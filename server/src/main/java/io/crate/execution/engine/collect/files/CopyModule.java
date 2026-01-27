@@ -21,13 +21,14 @@
 
 package io.crate.execution.engine.collect.files;
 
-import io.crate.execution.engine.export.FileOutputFactory;
-import io.crate.execution.engine.export.LocalFsFileOutputFactory;
-import io.crate.plugin.CopyPlugin;
+import java.util.List;
+
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-import java.util.List;
+import io.crate.execution.engine.export.FileOutputFactory;
+import io.crate.execution.engine.export.LocalFsFileOutputFactory;
+import io.crate.plugin.CopyPlugin;
 
 public class CopyModule extends AbstractModule {
 

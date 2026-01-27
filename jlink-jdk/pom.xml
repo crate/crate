@@ -41,6 +41,7 @@
             <addModule>java.security.jgss</addModule>
             <addModule>java.security.sasl</addModule>
             <addModule>java.sql</addModule>
+            <addModule>java.net.http</addModule>
             <addModule>jdk.unsupported</addModule>
             <addModule>jdk.management</addModule>
             <addModule>jdk.management.agent</addModule>

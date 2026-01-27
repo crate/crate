@@ -21,12 +21,17 @@
 
 package io.crate.copy.azure;
 
-import io.crate.execution.engine.collect.files.FileInput;
-import io.crate.execution.engine.collect.files.FileInputFactory;
+import java.net.URI;
+import java.util.Map;
 
+import org.apache.opendal.AsyncOperator;
+import org.apache.opendal.Operator;
 import org.elasticsearch.common.settings.Settings;
 
-import java.net.URI;
+import io.crate.execution.engine.collect.files.FileInput;
+import io.crate.execution.engine.collect.files.FileInputFactory;
+import io.crate.opendal.OpenDALFileInput;
+import io.crate.opendal.SharedAsyncExecutor;
 
 public class AzureFileInputFactory implements FileInputFactory {
 
@@ -38,6 +43,18 @@ public class AzureFileInputFactory implements FileInputFactory {
 
     @Override
     public FileInput create(URI uri, Settings withClauseOptions) {
-        return new AzureFileInput(sharedAsyncExecutor, uri, withClauseOptions);
+        AzureURI azureURI = AzureURI.of(uri);
+        Map<String, String> config = OperatorHelper.config(azureURI, withClauseOptions, true);
+        Operator operator = AsyncOperator.of(
+            AzureCopyPlugin.OPEN_DAL_SCHEME,
+            config,
+            sharedAsyncExecutor.asyncExecutor()
+        ).blocking();
+        return new OpenDALFileInput(
+            operator,
+            URI.create(azureURI.resourcePath()),
+            azureURI.preGlobPath(),
+            azureURI.globPredicate()
+        );
     }
 }

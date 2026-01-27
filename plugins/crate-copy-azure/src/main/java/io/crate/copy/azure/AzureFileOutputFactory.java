@@ -22,22 +22,30 @@
 package io.crate.copy.azure;
 
 import java.net.URI;
+import java.util.Map;
 
+import org.apache.opendal.AsyncExecutor;
+import org.apache.opendal.AsyncOperator;
+import org.apache.opendal.Operator;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.execution.engine.export.FileOutput;
 import io.crate.execution.engine.export.FileOutputFactory;
+import io.crate.opendal.OpenDALFileOutput;
 
 public class AzureFileOutputFactory implements FileOutputFactory {
 
-    private final SharedAsyncExecutor sharedAsyncExecutor;
+    private final AsyncExecutor executor;
 
-    public AzureFileOutputFactory(SharedAsyncExecutor sharedAsyncExecutor) {
-        this.sharedAsyncExecutor = sharedAsyncExecutor;
+    public AzureFileOutputFactory(AsyncExecutor executor) {
+        this.executor = executor;
     }
 
     @Override
     public FileOutput create(URI uri, Settings withClauseOptions) {
-        return new AzureFileOutput(uri, sharedAsyncExecutor, withClauseOptions);
+        AzureURI azureURI = AzureURI.of(uri);
+        Map<String, String> config = OperatorHelper.config(azureURI, withClauseOptions, false);
+        Operator operator = AsyncOperator.of(AzureCopyPlugin.OPEN_DAL_SCHEME, config, executor).blocking();
+        return new OpenDALFileOutput(operator, azureURI.resourcePath());
     }
 }

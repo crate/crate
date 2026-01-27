@@ -23,17 +23,32 @@ package io.crate.copy.s3;
 
 import java.net.URI;
 
-import io.crate.copy.s3.common.S3Protocol;
+import org.apache.opendal.AsyncExecutor;
+import org.apache.opendal.AsyncOperator;
+import org.apache.opendal.Operator;
+import org.apache.opendal.ServiceConfig.S3;
+import org.elasticsearch.common.settings.Settings;
+
+import io.crate.copy.s3.common.S3Env;
+import io.crate.copy.s3.common.S3URI;
 import io.crate.execution.engine.export.FileOutput;
 import io.crate.execution.engine.export.FileOutputFactory;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.opendal.OpenDALFileOutput;
 
 public class S3FileOutputFactory implements FileOutputFactory {
 
     public static final String NAME = "s3";
+    private final AsyncExecutor executor;
+
+    public S3FileOutputFactory(AsyncExecutor executor) {
+        this.executor = executor;
+    }
 
     @Override
-    public FileOutput create(URI uri, Settings withClauseOptions) {
-        return new S3FileOutput(uri, S3Protocol.get(withClauseOptions));
+    public FileOutput create(URI uri, Settings withClause) {
+        S3URI s3uri = S3URI.of(uri);
+        S3 s3 = S3Env.getServiceConfig(s3uri, withClause);
+        Operator operator = AsyncOperator.of(s3, executor).blocking();
+        return new OpenDALFileOutput(operator, s3uri.path());
     }
 }

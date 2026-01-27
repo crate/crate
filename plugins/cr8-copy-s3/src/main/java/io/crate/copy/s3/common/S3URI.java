@@ -23,66 +23,73 @@ package io.crate.copy.s3.common;
 
 
 import java.net.URI;
-import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
 
-public class S3URI {
+public record S3URI(String bucket,
+                    String path,
+                    /* endpoint is without http[s]:// prefix */
+                    @Nullable String endpoint,
+                    @Nullable String accessKey,
+                    @Nullable String secretKey) {
+
     private static final String INVALID_URI_MSG = "Invalid URI. Please make sure that given URI is encoded properly.";
 
-    private final URI uri;
-    private final String accessKey;
-    private final String secretKey;
-    private final String bucket;
-    private final String key;
-    private final String endpoint;
-
-    private S3URI(URI uri, String accessKey, String secretKey, String bucket, String key, String endpoint) {
-        this.uri = uri;
-        this.accessKey = accessKey;
-        this.secretKey = secretKey;
-        this.bucket = bucket;
-        this.key = key;
-        this.endpoint = endpoint;
-    }
-
-    public static S3URI toS3URI(URI uri) {
-        URI normalizedURI = normalize(uri);
-        String userInfo = getUserInfo(normalizedURI);
+    /// Parse a S3 URI as described in https://crate.io/docs/crate/reference/en/latest/sql/statements/copy-from.html#sql-copy-from-s3
+    public static S3URI of(URI uri) {
+        // Due to the optional host:port part, the bucketname is either the host or in the path of the URI
+        // If there is no port as in `s3://example/foo/bar` then `example` is assumed to be the bucketname
+        String host = uri.getHost();
+        int port = uri.getPort();
         String accessKey = null;
         String secretKey = null;
+        String userInfo = uri.getUserInfo();
+        String authority = uri.getAuthority();
+        int atIdx = authority == null
+            ? -1
+            : authority.indexOf("@");
+        if (userInfo == null && atIdx >= 0) {
+            userInfo = authority.substring(0, atIdx);
+        }
         if (userInfo != null) {
-            String[] userInfoParts = userInfo.split(":");
-            try {
-                accessKey = userInfoParts[0];
-                secretKey = userInfoParts[1];
-            } catch (ArrayIndexOutOfBoundsException e) {
-                // ignore
+            String[] parts = userInfo.split(":");
+            accessKey = parts[0];
+            if (parts.length > 1) {
+                secretKey = parts[1];
             }
-            // if the URI contains '@' and ':', a UserInfo is in fact given, but could not
-            // be parsed properly because the URI is not valid (e.g. not properly encoded).
-        } else if (normalizedURI.toString().contains("@") && normalizedURI.toString().contains(":")) {
-            throw new IllegalArgumentException(INVALID_URI_MSG);
         }
-
+        boolean bucketInPath = host != null && port > -1 || atIdx > -1 || authority == null;
         String bucket;
-        String key;
-        String path = normalizedURI.getPath().substring(1);
-        int splitIndex = path.indexOf('/');
-        if (splitIndex == -1) {
-            bucket = path;
-            key = "";
+        String path;
+        String endpoint;
+        String uriPath = uri.getPath();
+        if (uriPath.startsWith("/")) {
+            uriPath = uriPath.substring(1);
+        }
+        if (bucketInPath) {
+            int bucketEnd = uriPath.indexOf("/");
+            if (bucketEnd == -1) {
+                bucket = uriPath;
+                path = "";
+            } else {
+                bucket = uriPath.substring(0, bucketEnd);
+                path = uriPath.substring(bucketEnd + 1);
+            }
+            endpoint = port == -1 ? host : host + ":" + Integer.toString(port);
         } else {
-            bucket = path.substring(0, splitIndex);
-            key = path.substring(splitIndex + 1);
+            bucket = authority;
+            path = uriPath;
+            endpoint = null;
         }
-
-        String endpoint = null;
-        if (normalizedURI.getHost() != null) {
-            endpoint = normalizedURI.getHost() + ":" + normalizedURI.getPort();
-        }
-
-        return new S3URI(normalizedURI, accessKey, secretKey, bucket, key, endpoint);
+        return new S3URI(
+            bucket,
+            path.endsWith("/") ? path.substring(0, path.length() - 1) : path,
+            endpoint,
+            accessKey,
+            secretKey
+        );
     }
 
     @VisibleForTesting
@@ -102,96 +109,5 @@ public class S3URI {
             userInfo = uri.getUserInfo();
         }
         return userInfo;
-    }
-
-    /**
-     * As shown in <a href="https://crate.io/docs/crate/reference/en/latest/sql/statements/copy-from.html#sql-copy-from-s3">CrateDB Reference</a>,
-     * the accepted s3 uri format is:
-     * <pre>{@code
-     * s3://[<accesskey>:<secretkey>@][<host>:<port>/]<bucketname>/<path>}
-     * </pre>
-     * which is inconsistent with {@link URI}.
-     * <p>
-     * For example, s3://bucket is an acceptable s3 uri to CrateDB but {@link URI} parses "bucket" as the host instead of the path.
-     * <p>
-     * Another example is, s3://bucket/key1/key2, another valid CrateDB s3 uri. Again, URI parses "bucket" as the host and "/key1/key2" as the path.
-     * <p>
-     * This method resolved this inconsistency such that URI can be utilized.
-     *
-     * @param uri a valid s3 uri
-     * @return a normalized uri such that the path component contains the bucket and the key
-     */
-    private static URI normalize(URI uri) {
-        assert "s3".equals(uri.getScheme());
-        if (uri.getHost() != null) {
-            if (uri.getPath() == null || uri.getPort() == -1) {
-                return URI.create("s3://"
-                                  + (uri.getRawUserInfo() == null ? "" : uri.getRawUserInfo() + "@")
-                                  + "/"
-                                  + uri.getHost()
-                                  + uri.getPath());
-            }
-        }
-        return uri;
-    }
-
-    public S3URI replacePath(String bucket, String key) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("s3://");
-        if (uri.getRawAuthority() != null) {
-            sb.append(uri.getRawAuthority());
-        }
-        sb.append("/").append(bucket).append("/").append(key);
-        return new S3URI(URI.create(sb.toString()), accessKey, secretKey, bucket, key, endpoint);
-    }
-
-    @Override
-    public String toString() {
-        return uri.toString();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (!(obj instanceof S3URI that)) {
-            return false;
-        }
-        return uri.equals(that.uri) &&
-               Objects.equals(accessKey, that.accessKey) &&
-               Objects.equals(secretKey, that.secretKey) &&
-               Objects.equals(bucket, that.bucket) &&
-               Objects.equals(key, that.key) &&
-               Objects.equals(endpoint, that.endpoint);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(uri, accessKey, secretKey, bucket, key, endpoint);
-    }
-
-    public URI uri() {
-        return uri;
-    }
-
-    public String bucket() {
-        return bucket;
-    }
-
-    public String key() {
-        return key;
-    }
-
-    public String accessKey() {
-        return accessKey;
-    }
-
-    public String secretKey() {
-        return secretKey;
-    }
-
-    public String endpoint() {
-        return endpoint;
     }
 }
