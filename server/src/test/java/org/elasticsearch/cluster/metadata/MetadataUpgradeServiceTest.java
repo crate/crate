@@ -397,7 +397,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
             .numberOfReplicas(1)
             .build();
 
-        var tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.TABLE_OID_UNASSIGNED);
+        var tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.OID_UNASSIGNED);
         RelationName tblName = new RelationName("doc", "tbl");
         Metadata metadata = Metadata.builder()
             .tableOidSupplier(tableOidSupplier)
@@ -469,7 +469,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
 
     public static Metadata randomMetadata(boolean withRelationMetadata, TestCustomMetadata... customMetadatas) {
         Metadata.Builder builder = Metadata.builder();
-        var tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.TABLE_OID_UNASSIGNED);
+        var tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.OID_UNASSIGNED);
         builder.tableOidSupplier(tableOidSupplier);
         for (TestCustomMetadata customMetadata : customMetadatas) {
             builder.putCustom(customMetadata.getWriteableName(), customMetadata);

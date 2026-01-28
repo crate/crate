@@ -257,7 +257,7 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
             if (in.getVersion().after(Version.V_6_2_0)) {
                 tableOID = in.readLong();
             } else {
-                tableOID = Metadata.TABLE_OID_UNASSIGNED;
+                tableOID = Metadata.OID_UNASSIGNED;
             }
             RelationName name = new RelationName(in);
             List<Reference> columns = in.readList(Reference::fromStream);

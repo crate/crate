@@ -176,7 +176,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
     private DocTableInfo docTableInfo(String name) {
         return new DocTableInfo(
-            Metadata.TABLE_OID_UNASSIGNED,
+            Metadata.OID_UNASSIGNED,
             new RelationName(DocSchemaInfo.NAME, name),
             Map.of(),
             Map.of(),

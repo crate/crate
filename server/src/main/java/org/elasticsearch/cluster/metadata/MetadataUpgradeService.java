@@ -21,7 +21,7 @@ package org.elasticsearch.cluster.metadata;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_UPGRADED;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 
 import java.util.List;
@@ -245,7 +245,7 @@ public class MetadataUpgradeService {
         // This does another "correction" by checking oid assignment
         // If a column doesn't have OIDs the table must be from < 5.5.0
         if (versionCreated.onOrAfter(DocTableInfo.COLUMN_OID_VERSION)) {
-            if (docTable.rootColumns().stream().anyMatch(ref -> ref.oid() == COLUMN_OID_UNASSIGNED)) {
+            if (docTable.rootColumns().stream().anyMatch(ref -> ref.oid() == OID_UNASSIGNED)) {
                 versionCreated = Version.V_5_4_0;
             }
         }

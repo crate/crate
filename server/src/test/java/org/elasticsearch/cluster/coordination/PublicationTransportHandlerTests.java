@@ -157,7 +157,7 @@ public class PublicationTransportHandlerTests extends ESTestCase {
         localTransportService.start();
         localTransportService.acceptIncomingRequests();
 
-        var tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.TABLE_OID_UNASSIGNED);
+        var tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.OID_UNASSIGNED);
         RelationName relationName = new RelationName("my_schema", "my_table");
         RelationMetadata.Table table = new RelationMetadata.Table(
                 tableOidSupplier.getAsLong(),

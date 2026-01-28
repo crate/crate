@@ -22,7 +22,7 @@
 
 package io.crate.execution.dml;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -740,7 +740,7 @@ public class Indexer {
         var idx = 0;
         while (it.hasNext()) {
             var oldRef = it.next();
-            if (oldRef.oid() == COLUMN_OID_UNASSIGNED) {
+            if (oldRef.oid() == OID_UNASSIGNED) {
                 // try to resolve the column again, new reference may have been added to or dropped of the table or
                 // the reference may be invalid
                 Reference newRef = getRef.apply(oldRef.column());

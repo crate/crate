@@ -83,7 +83,7 @@ public class MetaStateService {
         final Metadata.Builder metadataBuilder;
         if (manifest.isGlobalGenerationMissing()) {
             metadataBuilder = Metadata.builder();
-            metadataBuilder.tableOidSupplier(new DocTableInfo.OidSupplier(Metadata.TABLE_OID_UNASSIGNED));
+            metadataBuilder.tableOidSupplier(new DocTableInfo.OidSupplier(Metadata.OID_UNASSIGNED));
         } else {
             final Metadata globalMetadata = METADATA_FORMAT.loadGeneration(
                 LOGGER,

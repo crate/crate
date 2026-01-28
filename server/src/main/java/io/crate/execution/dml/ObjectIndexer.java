@@ -21,7 +21,7 @@
 
 package io.crate.execution.dml;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -74,7 +74,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         this.table = table;
         this.ref = ref;
         this.getRef = getRef;
-        this.unknownColumnPrefix = ref.oid() != COLUMN_OID_UNASSIGNED ? SourceParser.UNKNOWN_COLUMN_PREFIX : "";
+        this.unknownColumnPrefix = ref.oid() != OID_UNASSIGNED ? SourceParser.UNKNOWN_COLUMN_PREFIX : "";
         this.column = ref.column();
         ObjectType objectType = (ObjectType) ArrayType.unnest(ref.valueType());
         for (var entry : objectType.innerTypes().entrySet()) {
@@ -287,7 +287,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 column.getChild(innerName),
                 type,
                 position,
-                COLUMN_OID_UNASSIGNED
+                OID_UNASSIGNED
             );
             position--;
             onDynamicColumn.accept(newColumn);

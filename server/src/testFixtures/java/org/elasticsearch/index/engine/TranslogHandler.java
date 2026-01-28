@@ -66,11 +66,11 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
             false,
             true,
             0,
-            Metadata.COLUMN_OID_UNASSIGNED,
+            Metadata.OID_UNASSIGNED,
             false,
             null);
         DocTableInfo table = new DocTableInfo(
-                Metadata.TABLE_OID_UNASSIGNED, relation,
+                Metadata.OID_UNASSIGNED, relation,
             Map.of(ColumnIdent.of("value"), column),
             Map.of(),
             Set.of(),

@@ -22,7 +22,7 @@
 package io.crate.execution.ddl.tables;
 
 import static io.crate.metadata.Reference.buildTree;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -201,7 +201,7 @@ public final class MappingUtil {
 
     private static String mappingKey(Reference reference) {
         if (reference.isDropped()) {
-            assert reference.oid() != COLUMN_OID_UNASSIGNED : "Only columns with assigned OID-s can be dropped";
+            assert reference.oid() != OID_UNASSIGNED : "Only columns with assigned OID-s can be dropped";
             return DROPPED_COLUMN_NAME_PREFIX + reference.oid();
         } else {
             return reference.column().leafName();

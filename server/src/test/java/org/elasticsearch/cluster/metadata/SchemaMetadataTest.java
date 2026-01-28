@@ -41,21 +41,21 @@ public class SchemaMetadataTest extends ESTestCase {
 
     RelationName t1 = new RelationName("blob", "t1");
     RelationMetadata.BlobTable relT1 = new RelationMetadata.BlobTable(
-            Metadata.TABLE_OID_UNASSIGNED,
+            Metadata.OID_UNASSIGNED,
             t1,
             UUIDs.randomBase64UUID(),
             Settings.EMPTY,
             State.OPEN);
     RelationName t2 = new RelationName("blob", "t2");
     RelationMetadata.BlobTable relT2 = new RelationMetadata.BlobTable(
-            Metadata.TABLE_OID_UNASSIGNED,
+            Metadata.OID_UNASSIGNED,
             t2,
             UUIDs.randomBase64UUID(),
             Settings.EMPTY,
             State.OPEN);
     RelationName t3 = new RelationName("blob", "t3");
     RelationMetadata.BlobTable relT3 = new RelationMetadata.BlobTable(
-            Metadata.TABLE_OID_UNASSIGNED,
+            Metadata.OID_UNASSIGNED,
             t3,
             UUIDs.randomBase64UUID(),
             Settings.EMPTY,

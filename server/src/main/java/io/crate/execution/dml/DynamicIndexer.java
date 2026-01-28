@@ -21,7 +21,7 @@
 
 package io.crate.execution.dml;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.function.Consumer;
@@ -97,7 +97,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                                      Synthetics synthetics) throws IOException {
         if (type == null) {
             type = guessType(value);
-            Reference newColumn = buildReference(relation, column, type, position, COLUMN_OID_UNASSIGNED);
+            Reference newColumn = buildReference(relation, column, type, position, OID_UNASSIGNED);
             StorageSupport<?> storageSupport = type.storageSupport();
             assert storageSupport != null; // will have already thrown in buildReference
             indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(
@@ -128,7 +128,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                 "Cannot create columns of type " + type.getName() + " dynamically. " +
                     "Storage is not supported for this type");
         }
-        Reference newColumn = buildReference(relation, column, type, position, COLUMN_OID_UNASSIGNED);
+        Reference newColumn = buildReference(relation, column, type, position, OID_UNASSIGNED);
         if (indexer == null) {
             // Reuse indexer if phase 1 already created one.
             // Phase 1 mutates indexer.innerTypes on new columns creation.

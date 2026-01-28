@@ -66,7 +66,7 @@ public class TransportClusterStateTests extends ESTestCase {
         var indexUUID1 = UUIDs.randomBase64UUID();
         var indexUUID2 = UUIDs.randomBase64UUID();
         var relationName2 = new RelationName("doc", "t2");
-        var tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.TABLE_OID_UNASSIGNED);
+        var tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.OID_UNASSIGNED);
         clusterState = ClusterState.builder(new ClusterName("test"))
             .metadata(Metadata.builder()
                 .tableOidSupplier(tableOidSupplier)

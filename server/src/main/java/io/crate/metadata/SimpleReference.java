@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -83,7 +83,7 @@ public class SimpleReference implements Reference {
              true,
              false,
              position,
-             COLUMN_OID_UNASSIGNED,
+            OID_UNASSIGNED,
              false,
              defaultExpression);
     }
@@ -129,7 +129,7 @@ public class SimpleReference implements Reference {
             oid = in.readLong();
             isDropped = in.readBoolean();
         } else {
-            oid = COLUMN_OID_UNASSIGNED;
+            oid = OID_UNASSIGNED;
             isDropped = false;
         }
         type = DataTypes.fromStream(in);
@@ -219,7 +219,7 @@ public class SimpleReference implements Reference {
 
     @Override
     public Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
-        long newOid = oid == COLUMN_OID_UNASSIGNED ? acquireOid.getAsLong() : oid;
+        long newOid = oid == OID_UNASSIGNED ? acquireOid.getAsLong() : oid;
         int newPosition = position < 0 ? acquirePosition.getAsInt() : position;
         if (newOid == oid && newPosition == position) {
             return this;
@@ -363,7 +363,7 @@ public class SimpleReference implements Reference {
         Map<String, Object> mapping = new HashMap<>();
         mapping.put("type", DataTypes.esMappingNameFrom(innerType.id()));
         mapping.put("position", position);
-        if (oid != COLUMN_OID_UNASSIGNED) {
+        if (oid != OID_UNASSIGNED) {
             mapping.put("oid", oid);
         }
         if (isDropped) {

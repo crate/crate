@@ -39,13 +39,13 @@ public class RelationMetadataTest {
     public void test_diff_streaming() throws Exception {
         RelationName t1 = new RelationName("blob", "t1");
         RelationMetadata.BlobTable t1Open = new RelationMetadata.BlobTable(
-                Metadata.TABLE_OID_UNASSIGNED,
+                Metadata.OID_UNASSIGNED,
                 t1,
                 UUIDs.randomBase64UUID(),
                 Settings.EMPTY,
                 State.OPEN);
         RelationMetadata.BlobTable t1Close = new RelationMetadata.BlobTable(
-                Metadata.TABLE_OID_UNASSIGNED,
+                Metadata.OID_UNASSIGNED,
                 t1,
                 UUIDs.randomBase64UUID(),
                 Settings.EMPTY,

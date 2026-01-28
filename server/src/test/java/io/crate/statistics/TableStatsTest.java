@@ -55,7 +55,7 @@ public class TableStatsTest extends ESTestCase {
         1,
         null);
     private final DocTableInfo docTableInfo = new DocTableInfo(
-            Metadata.TABLE_OID_UNASSIGNED, testRelation,
+            Metadata.OID_UNASSIGNED, testRelation,
         Map.of(idRef.column(), idRef),
         Map.of(),
         Set.of(),
