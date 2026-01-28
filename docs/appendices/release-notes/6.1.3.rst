@@ -142,3 +142,16 @@ Fixes
   restarts. Flag mentioned in :ref:`version_6.0.0_breaking_changes` and
   :ref:`version_6.1.0_breaking_changes` is already set to ``NORMAL`` starting
   from this version and won't be needed at all starting from CrateDB 6.2.0.
+
+- Fixed a regression introduced in :ref:`version_6.0.0` that caused nested path
+  accesses on ``ARRAY(OBJECT)`` columns returned by a sub-select using a
+  ``UNNEST`` function to either fail with a ``ColumnUnknownException`` or
+  return incorrect results as wrong child-columns are used. Example::
+
+    SELECT obj_arr['child_obj']['id'] AS id
+    FROM (
+      SELECT unnest(
+        [ {child_obj = { id = 'correct_id'}, id='wrong_id'} ]
+      ) AS obj_arr
+    ) AS sub1
+    --> now returns 'correct_id' instead of returning 'wrong_id'

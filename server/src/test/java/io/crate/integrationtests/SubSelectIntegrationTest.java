@@ -26,7 +26,6 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -829,5 +828,36 @@ public class SubSelectIntegrationTest extends IntegTestCase {
             """;
         execute(stmt);
         assertThat(response.rowCount()).isEqualTo(15L);
+    }
+
+    @Test
+    public void test_subscript_on_subselect_using_unnest_on_subscript() {
+        execute("""
+            SELECT obj_arr['child_obj']['id'] AS id
+                    FROM (
+                       SELECT unnest([{child_obj = { id = 'correct_id'}, id='wrong_id'}]) obj_arr
+                    ) sub1
+            """);
+        assertThat(response).hasRows("correct_id");
+    }
+
+    @Test
+    public void test_subscript_with_index_on_subselect_using_unnest_on_subscript() {
+        execute("""
+            SELECT obj_arr['child_obj']['ids'][2] AS id
+                    FROM (
+                       SELECT unnest([{child_obj = { ids = ['c1', 'c2']}, ids=['w1, w2']}]) obj_arr
+                    ) sub1;
+            """);
+        assertThat(response).hasRows("c2");
+
+        // Using nested array accesses
+        execute("""
+            SELECT obj_arr['child_obj']['ids'][1][2] AS id
+            FROM (
+               SELECT unnest([{child_obj = { ids = [['c1', 'c2']]}, ids=[['w1, w2']]}]) obj_arr
+            ) sub1;
+            """);
+        assertThat(response).hasRows("c2");
     }
 }
