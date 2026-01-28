@@ -693,7 +693,7 @@ public class ExpressionAnalyzer {
                 if (index.valueType() == DataTypes.STRING && subscriptContext.parts().isEmpty() == false) {
                     // Only the last path must be used (the index string value). The visitor will collect all parts of
                     // the symbol tree, while with expression, only the path on the expression itself must be considered.
-                    Function optimizedSubscript = optimizedSubscriptFunction(base, index, List.of(subscriptContext.parts().getLast()), context, null);
+                    Function optimizedSubscript = optimizedSubscriptFunction(base, List.of(subscriptContext.parts().getLast()), context, null);
                     if (optimizedSubscript != null) {
                         return optimizedSubscript;
                     }
@@ -723,7 +723,7 @@ public class ExpressionAnalyzer {
             try {
                 ref = fieldProvider.resolveField(qualifiedName, parts, operation, context.errorOnUnknownObjectKey());
             } catch (ColumnUnknownException e) {
-                return resolveUnindexedSubscriptExpression(node, context, qualifiedName, parts, e);
+                ref = resolveUnindexedSubscriptExpression(node, context, qualifiedName, parts, e);
             }
 
             // If there are any array subscripts, recursively wrap the resolved expression in an
@@ -764,12 +764,13 @@ public class ExpressionAnalyzer {
             assert parent != null : "Parent symbol must not be null without throwing an exception";
 
             try {
-                Symbol index = node.index().accept(this, context);
-                Function optimizedSubscript = optimizedSubscriptFunction(parent, index, childParts, context, e);
+                Function optimizedSubscript = optimizedSubscriptFunction(parent, childParts, context, e);
                 if (optimizedSubscript != null) {
                     return optimizedSubscript;
                 }
 
+                // Fall back to using generic subscript function without a concrete return type (UNDEFINED)
+                Symbol index = node.index().accept(this, context);
                 return allocateFunction(
                     SubscriptFunction.NAME,
                     List.of(parent, index),
@@ -790,7 +791,6 @@ public class ExpressionAnalyzer {
          */
         @Nullable
         private Function optimizedSubscriptFunction(Symbol base,
-                                                    Symbol index,
                                                     List<String> path,
                                                     ExpressionAnalysisContext context,
                                                     @Nullable ColumnUnknownException e) {
@@ -800,15 +800,7 @@ public class ExpressionAnalyzer {
             DataType<?> baseType = base.valueType();
             DataType<?> innerType = DataTypes.innerType(baseType, path);
             if (innerType != null && innerType != UndefinedType.INSTANCE && !DataTypes.isArrayOfNulls(innerType)) {
-                Signature signature = SubscriptFunction.SIGNATURE_OBJECT;
-                if (baseType instanceof ArrayType<?>) {
-                    signature = SubscriptFunction.SIGNATURE_ARRAY_OF_OBJECTS;
-                }
-                return new Function(
-                    signature,
-                    List.of(base, index),
-                    innerType
-                );
+                return SubscriptFunctions.tryCreateSubscript(base, path);
             }
             DataType<?> currentType = baseType;
             ColumnPolicy parentPolicy = baseType.columnPolicy();

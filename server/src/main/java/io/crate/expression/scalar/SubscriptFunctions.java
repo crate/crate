@@ -30,6 +30,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 import io.crate.types.RowType;
@@ -85,6 +86,32 @@ public final class SubscriptFunctions {
                 }
                 return recordSubscript;
             }
+
+            case ArrayType.ID:
+                DataType<?> innerType = ArrayType.unnest(baseType);
+                assert innerType instanceof ObjectType
+                    : "SubscriptFunctions.tryCreateSubscript only supports array of objects for nested object subscript, got `"
+                      + innerType.getName() + '`';
+                String child = path.get(0);
+                DataType<?> returnType = ((ObjectType) innerType).innerType(child);
+
+                // The arrayOfObjects subscript function only supports 1 level of child access,
+                // so we need to wrap multiple path elements in multiple function calls.
+                Function subscript = new Function(
+                    SubscriptFunction.SIGNATURE_ARRAY_OF_OBJECTS,
+                    List.of(baseSymbol, Literal.of(child)),
+                    new ArrayType<>(returnType)
+                );
+
+                for (int i = 1; i < path.size(); i++) {
+                    Function innerSubscript = tryCreateSubscript(subscript, List.of(path.get(i)));
+                    if (innerSubscript == null) {
+                        return null;
+                    }
+                    subscript = innerSubscript;
+                }
+
+                return subscript;
 
             default:
                 return null;
