@@ -640,7 +640,7 @@ public class RestoreService implements ClusterStateApplier {
                         table.state(),
                         indexUUIDs,
                         table.tableVersion(),
-                        currentMetadata.tableOidSupplier().getAsLong() // adding a new table - existingRelation == null
+                        mdBuilder.tableOidSupplier().getAsLong() // adding a new table - existingRelation == null
                     );
                 }
             } else {

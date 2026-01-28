@@ -799,7 +799,7 @@ public class SQLExecutor {
             State.OPEN,
             indexUUIDs,
             0,
-            prevState.metadata().tableOidSupplier().getAsLong()
+            mdBuilder.tableOidSupplier().getAsLong()
         );
         ClusterState newState = ClusterState.builder(prevState)
             .metadata(mdBuilder.build())
@@ -968,8 +968,9 @@ public class SQLExecutor {
             prevState.nodes().getSmallestNonClientNodeVersion()
         ).build();
 
-        Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata())
-            .setBlobTable(relationName, indexMetadata.getIndexUUID(), settings, State.OPEN, prevState.metadata().tableOidSupplier().getAsLong())
+        Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
+        mdBuilder
+            .setBlobTable(relationName, indexMetadata.getIndexUUID(), settings, State.OPEN, mdBuilder.tableOidSupplier().getAsLong())
             .put(indexMetadata, true);
         ClusterState state = ClusterState.builder(prevState)
             .metadata(mdBuilder)

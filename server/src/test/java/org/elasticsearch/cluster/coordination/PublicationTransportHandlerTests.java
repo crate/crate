@@ -194,8 +194,7 @@ public class PublicationTransportHandlerTests extends ESTestCase {
         // testing both directions, writing out relations as templates and reading them back in as relations.
         // Thus, we will add a table here and not a template.
         ClusterState clusterState = ClusterState.builder(new ClusterName("test"))
-            .metadata(Metadata.builder()
-                .tableOidSupplier(tableOidSupplier)
+            .metadata(Metadata.builder(Metadata.OID_UNASSIGNED)
                 .setTable(
                     table.name(),
                     table.columns(),

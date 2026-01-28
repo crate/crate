@@ -38,7 +38,6 @@ import org.elasticsearch.index.Index;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Tuple;
-import io.crate.metadata.doc.DocTableInfo;
 
 /**
  * Handles writing and loading {@link Manifest}, {@link Metadata} and {@link IndexMetadata}
@@ -82,8 +81,7 @@ public class MetaStateService {
 
         final Metadata.Builder metadataBuilder;
         if (manifest.isGlobalGenerationMissing()) {
-            metadataBuilder = Metadata.builder();
-            metadataBuilder.tableOidSupplier(new DocTableInfo.OidSupplier(Metadata.OID_UNASSIGNED));
+            metadataBuilder = Metadata.builder(Metadata.OID_UNASSIGNED);
         } else {
             final Metadata globalMetadata = METADATA_FORMAT.loadGeneration(
                 LOGGER,
@@ -137,7 +135,7 @@ public class MetaStateService {
             // TODO https://github.com/elastic/elasticsearch/issues/38556
             // assert Version.CURRENT.major < 8 : "failed to find manifest file, which is mandatory staring with Elasticsearch version 8.0";
         } else {
-            metadataBuilder = Metadata.builder();
+            metadataBuilder = Metadata.builder(Metadata.OID_UNASSIGNED); // TODO: double check
         }
 
         for (String indexFolderName : nodeEnv.availableIndexFolders()) {

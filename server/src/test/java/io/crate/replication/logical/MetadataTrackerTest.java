@@ -101,7 +101,8 @@ public class MetadataTrackerTest extends ESTestCase {
                 .build();
 
             String indexUUID = UUIDs.randomBase64UUID();
-            Metadata metadata = Metadata.builder(clusterState.metadata())
+            var mdBuilder = Metadata.builder(clusterState.metadata());
+            Metadata metadata = mdBuilder
                 .setTable(
                     relationName,
                     columns,
@@ -115,7 +116,7 @@ public class MetadataTrackerTest extends ESTestCase {
                     IndexMetadata.State.OPEN,
                     List.of(indexUUID),
                     1L,
-                    clusterState.metadata().tableOidSupplier().getAsLong())
+                    mdBuilder.tableOidSupplier().getAsLong())
                 .build();
 
             clusterState = ClusterState.builder(clusterState)
@@ -170,7 +171,8 @@ public class MetadataTrackerTest extends ESTestCase {
         }
 
         public Builder addPartitionedTable(RelationName relationName, List<PartitionName> partitions) throws IOException {
-            Metadata metadata = Metadata.builder(clusterState.metadata())
+            var mdBuilder = Metadata.builder(clusterState.metadata());
+            Metadata metadata = mdBuilder
                 .setTable(
                     relationName,
                     buildReferences(relationName, Map.of("p1", 1)),
@@ -186,7 +188,7 @@ public class MetadataTrackerTest extends ESTestCase {
                     IndexMetadata.State.OPEN,
                     List.of(),
                     1L,
-                    clusterState.metadata().tableOidSupplier().getAsLong())
+                    mdBuilder.tableOidSupplier().getAsLong())
                 .build();
 
             clusterState = ClusterState.builder(clusterState)
@@ -342,8 +344,7 @@ public class MetadataTrackerTest extends ESTestCase {
                                                                            String publicationName) {
         PublicationsMetadata publicationsMetadata = publisherState.metadata().custom(PublicationsMetadata.TYPE);
         Publication publication = publicationsMetadata.publications().get(publicationName);
-        Metadata.Builder mdBuilder = Metadata.builder();
-        mdBuilder.tableOidSupplier(publisherState.metadata().tableOidSupplier());
+        Metadata.Builder mdBuilder = Metadata.builder(publisherState.metadata().currentMaxTableOid());
         publication.resolveCurrentRelations(
             publisherState,
             () -> List.of(CRATE_USER),

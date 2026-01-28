@@ -106,8 +106,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             .startShards("doc.t1", "doc.t3");
         var publication = new Publication("publisher", true, List.of());
 
-        Metadata.Builder metadataBuilder = Metadata.builder();
-        metadataBuilder.tableOidSupplier(clusterService.state().metadata().tableOidSupplier());
+        Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
         publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
@@ -152,8 +151,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             .startShards("doc.t1", "doc.t2");
         var publication = new Publication("publisher", true, List.of());
 
-        Metadata.Builder metadataBuilder = Metadata.builder();
-        metadataBuilder.tableOidSupplier(clusterService.state().metadata().tableOidSupplier());
+        Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
         publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
@@ -202,8 +200,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             )
         );
 
-        Metadata.Builder metadataBuilder = Metadata.builder();
-        metadataBuilder.tableOidSupplier(clusterService.state().metadata().tableOidSupplier());
+        Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
         publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
@@ -241,8 +238,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             .startShards("doc.t1");      // <- only t1 has active primary shards;
         var publication = new Publication("some_user", true, List.of());
 
-        Metadata.Builder metadataBuilder = Metadata.builder();
-        metadataBuilder.tableOidSupplier(clusterService.state().metadata().tableOidSupplier());
+        Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
         publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
@@ -285,8 +281,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             List.of(RelationName.fromIndexName("t1"), RelationName.fromIndexName("doc.t2"))
         );
 
-        Metadata.Builder metadataBuilder = Metadata.builder();
-        metadataBuilder.tableOidSupplier(clusterService.state().metadata().tableOidSupplier());
+        Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
         publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
@@ -328,8 +323,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             );
         var publication = new Publication("some_user", true, List.of());
 
-        Metadata.Builder metadataBuilder = Metadata.builder();
-        metadataBuilder.tableOidSupplier(clusterService.state().metadata().tableOidSupplier());
+        Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
         publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
@@ -371,8 +365,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             List.of(RelationName.fromIndexName("p1"))
         );
 
-        Metadata.Builder metadataBuilder = Metadata.builder();
-        metadataBuilder.tableOidSupplier(clusterService.state().metadata().tableOidSupplier());
+        Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
         publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
@@ -416,8 +409,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             .startShards("doc.t1", "doc.t2");
         var publication = new Publication("publisher", true, List.of());
 
-        Metadata.Builder metadataBuilder = Metadata.builder();
-        metadataBuilder.tableOidSupplier(clusterService.state().metadata().tableOidSupplier());
+        Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
         publication.resolveCurrentRelations(
             clusterService.state(),
             roles,

@@ -133,7 +133,7 @@ public class MetadataUpgradeService {
                 docTable.isClosed() ? IndexMetadata.State.CLOSE : IndexMetadata.State.OPEN,
                 List.of(),
                 docTable.tableVersion(),
-                metadata.tableOidSupplier().getAsLong()
+                newMetadata.tableOidSupplier().getAsLong()
             );
         }
 
@@ -183,7 +183,7 @@ public class MetadataUpgradeService {
                         newIndexMetadata.getState(),
                         List.of(newIndexMetadata.getIndexUUID()),
                         docTable.tableVersion(),
-                        metadata.tableOidSupplier().getAsLong()
+                        newMetadata.tableOidSupplier().getAsLong()
                     );
                 } else if (BlobIndex.isBlobIndex(indexName)) {
                     newMetadata.setBlobTable(
@@ -191,7 +191,7 @@ public class MetadataUpgradeService {
                         indexUUID,
                         newIndexMetadata.getSettings(),
                         newIndexMetadata.getState(),
-                        metadata.tableOidSupplier().getAsLong()
+                        newMetadata.tableOidSupplier().getAsLong()
                     );
                 } else {
                     throw new AssertionError("If the relation is missing we need a DocTableInfo instance or it must be a blob index");

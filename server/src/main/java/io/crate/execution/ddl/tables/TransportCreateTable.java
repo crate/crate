@@ -170,7 +170,8 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
 
                 ClusterState newState = ClusterState.builder(currentState).build();
                 List<String> newIndexUUIDs = isPartitioned ? List.of() : List.of(UUIDs.randomBase64UUID());
-                Metadata newMetadata = Metadata.builder(newState.metadata())
+                var mdBuilder = Metadata.builder(newState.metadata());
+                Metadata newMetadata = mdBuilder
                     .setTable(
                         relationName,
                         request.references(),
@@ -184,7 +185,7 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
                         State.OPEN,
                         newIndexUUIDs,
                         0,
-                        currentState.metadata().tableOidSupplier().getAsLong()
+                        mdBuilder.tableOidSupplier().getAsLong()
                     ).build();
                 table = newMetadata.getRelation(relationName);
                 assert table != null : "table must not be null";

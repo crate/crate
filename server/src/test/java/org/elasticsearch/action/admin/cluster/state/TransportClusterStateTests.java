@@ -68,8 +68,7 @@ public class TransportClusterStateTests extends ESTestCase {
         var relationName2 = new RelationName("doc", "t2");
         var tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.OID_UNASSIGNED);
         clusterState = ClusterState.builder(new ClusterName("test"))
-            .metadata(Metadata.builder()
-                .tableOidSupplier(tableOidSupplier)
+            .metadata(Metadata.builder(Metadata.OID_UNASSIGNED)
                 .persistentSettings(Settings.builder().put("setting1", "bar").build())
                 .setTable(
                     relationName1,
