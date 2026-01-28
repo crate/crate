@@ -33,7 +33,6 @@ import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static io.crate.types.ArrayType.makeArray;
 import static org.assertj.core.api.Assertions.anyOf;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -2730,13 +2729,13 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .hasMessage("Column obj['unknown'] unknown");
         var analyzed = executor.analyze("select obj['a'] from (select obj from c1 union all select obj from c2) alias");
         assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj"), isLiteral("a"));
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript_obj", isField("obj"), isLiteral("a"));
         analyzed = executor.analyze("select obj['b'] from (select obj from c1 union all select obj from c2) alias");
         assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj"), isLiteral("b"));
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript_obj", isField("obj"), isLiteral("b"));
         analyzed = executor.analyze("select obj['c'] from (select obj from c1 union all select obj from c2) alias");
         assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj"), isLiteral("c"));
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript_obj", isField("obj"), isLiteral("c"));
         assertThatThrownBy(() ->
             executor.analyze("select obj['unknown'] from (select obj from c1 union all select obj from c2) alias"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
@@ -2751,13 +2750,13 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj") ,isLiteral("unknown"));
         analyzed = executor.analyze("select obj['a'] from (select obj from c1 union all select obj from c2) alias");
         assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj"), isLiteral("a"));
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript_obj", isField("obj"), isLiteral("a"));
         analyzed = executor.analyze("select obj['b'] from (select obj from c1 union all select obj from c2) alias");
         assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj"), isLiteral("b"));
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript_obj", isField("obj"), isLiteral("b"));
         analyzed = executor.analyze("select obj['c'] from (select obj from c1 union all select obj from c2) alias");
         assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj"), isLiteral("c"));
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript_obj", isField("obj"), isLiteral("c"));
         analyzed = executor.analyze("select obj['unknown'] from (select obj from c1 union all select obj from c2) alias");
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst()).isFunction("subscript", isField("obj"), isLiteral("unknown"));
@@ -2938,11 +2937,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.of(clusterService);
         var analyzed = executor.analyze("select o['a'] from (select {a=1} as o) tbl"); // `o` is an object literal returned from MapFunction
         Assertions.assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.INTEGER);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript_obj", DataTypes.INTEGER);
 
         analyzed = executor.analyze("select o3['a'] from (select ({a=1} || {b=1}) as o3) t2"); // `o3` is an object literal returned from ConcatFunction
         Assertions.assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.INTEGER);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript_obj", DataTypes.INTEGER);
     }
 
     @Test
@@ -2993,7 +2992,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         // DYNAMIC
         var analyzed = executor.analyze("SELECT o['b'] FROM (SELECT {a = {b = {c = 1}}}['a'] AS o) tbl");
         var expectedDataType = ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("c", DataTypes.INTEGER).build();
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", expectedDataType);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript_obj", expectedDataType);
 
         // Field does not exist
         // DYNAMIC
@@ -3019,7 +3018,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         // Field exists
         var analyzed = executor.analyze("select obj_dynamic['d']['e']['f'] from (select obj_dynamic['d'] from t) t2");
         Assertions.assertThat(analyzed.outputs()).hasSize(1);
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.INTEGER);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript_obj", DataTypes.INTEGER);
 
         // Field does not exist
         // DYNAMIC
@@ -3083,10 +3082,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         // DYNAMIC object cast with inner types always work
         executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         analyzed = executor.analyze("SELECT myobj['a'] FROM (SELECT '{\"a\":1}'::OBJECT AS (a int) as myobj) t");
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.INTEGER);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript_obj", DataTypes.INTEGER);
         // Same for references
         analyzed = executor.analyze("SELECT myobj['a'] FROM (SELECT js::OBJECT AS (a int) as myobj FROM t1) t");
-        assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.INTEGER);
+        assertThat(analyzed.outputs().getFirst()).isFunction("subscript_obj", DataTypes.INTEGER);
 
         // IGNORE object cast always results in an untyped object, but works with subscript
         analyzed = executor.analyze("SELECT myobj['a'] FROM (SELECT '{\"a\":1}'::OBJECT(IGNORED) as myobj) t");
