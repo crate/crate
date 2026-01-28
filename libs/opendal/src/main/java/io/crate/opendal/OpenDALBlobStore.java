@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,31 +19,35 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.copy.s3.common;
+package io.crate.opendal;
 
+import java.io.IOException;
+
+import org.apache.opendal.AsyncExecutor;
+import org.apache.opendal.AsyncOperator;
+import org.apache.opendal.Operator;
 import org.apache.opendal.ServiceConfig;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.blobstore.BlobContainer;
+import org.elasticsearch.common.blobstore.BlobPath;
+import org.elasticsearch.common.blobstore.BlobStore;
 
-import io.crate.opendal.S3;
+public class OpenDALBlobStore implements BlobStore {
 
-public final class S3Env {
+    private final Operator operator;
+    private final int bufferSize;
 
-    private S3Env() {
+    public OpenDALBlobStore(AsyncExecutor executor, ServiceConfig config, int bufferSize) {
+        this.operator = AsyncOperator.of(config, executor).blocking();
+        this.bufferSize = bufferSize;
     }
 
-    public static ServiceConfig.S3 getServiceConfig(S3URI s3uri, Settings withClause) {
-        String protocol = S3Protocol.get(withClause);
-        String endpoint = protocol + "://" + s3uri.endpoint();
-        String region = S3.getRegion(endpoint, s3uri.bucket());
-        return ServiceConfig.S3.builder()
-            .bucket(s3uri.bucket())
-            .endpoint(endpoint)
-            .accessKeyId(s3uri.accessKey())
-            .secretAccessKey(s3uri.secretKey())
-            .disableConfigLoad(true)
-            .disableEc2Metadata(true)
-            .allowAnonymous(true)
-            .region(region)
-            .build();
+    @Override
+    public BlobContainer blobContainer(BlobPath path) {
+        return new OpenDALBlobContainer(path, operator, bufferSize);
+    }
+
+    @Override
+    public void close() throws IOException {
+        operator.close();
     }
 }
