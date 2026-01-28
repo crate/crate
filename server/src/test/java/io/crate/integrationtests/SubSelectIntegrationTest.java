@@ -876,4 +876,15 @@ public class SubSelectIntegrationTest extends IntegTestCase {
             """);
         assertThat(response).hasRows("correct_id");
     }
+
+    @Test
+    public void test_subscript_with_index_on_subselect_using_unnest_on_subscript() {
+        execute("""
+            SELECT obj_arr['child_obj']['ids'][2] AS id
+                    FROM (
+                       SELECT unnest([{child_obj = { ids = ['c1', 'c2']}, ids=['w1, w2']}]) obj_arr
+                    ) sub1;
+            """);
+        assertThat(response).hasRows("c2");
+    }
 }
