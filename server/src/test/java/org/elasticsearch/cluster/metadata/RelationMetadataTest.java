@@ -39,17 +39,17 @@ public class RelationMetadataTest {
     public void test_diff_streaming() throws Exception {
         RelationName t1 = new RelationName("blob", "t1");
         RelationMetadata.BlobTable t1Open = new RelationMetadata.BlobTable(
-            t1,
-            UUIDs.randomBase64UUID(),
-            Settings.EMPTY,
-            State.OPEN
-        );
+                Metadata.TABLE_OID_UNASSIGNED,
+                t1,
+                UUIDs.randomBase64UUID(),
+                Settings.EMPTY,
+                State.OPEN);
         RelationMetadata.BlobTable t1Close = new RelationMetadata.BlobTable(
-            t1,
-            UUIDs.randomBase64UUID(),
-            Settings.EMPTY,
-            State.CLOSE
-        );
+                Metadata.TABLE_OID_UNASSIGNED,
+                t1,
+                UUIDs.randomBase64UUID(),
+                Settings.EMPTY,
+                State.CLOSE);
 
         Diff<RelationMetadata> diff = t1Close.diff(Version.CURRENT, t1Open);
         try (var out = new BytesStreamOutput()) {

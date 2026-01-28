@@ -114,8 +114,8 @@ public class MetadataTrackerTest extends ESTestCase {
                     List.of(),
                     IndexMetadata.State.OPEN,
                     List.of(indexUUID),
-                    1L
-                )
+                    1L,
+                    Metadata.TABLE_OID_UNASSIGNED)
                 .build();
 
             clusterState = ClusterState.builder(clusterState)
@@ -185,8 +185,8 @@ public class MetadataTrackerTest extends ESTestCase {
                     List.of(ColumnIdent.of("p1")),
                     IndexMetadata.State.OPEN,
                     List.of(),
-                    1L
-                )
+                    1L,
+                    Metadata.TABLE_OID_UNASSIGNED)
                 .build();
 
             clusterState = ClusterState.builder(clusterState)
@@ -222,8 +222,8 @@ public class MetadataTrackerTest extends ESTestCase {
                     table.partitionedBy(),
                     table.state(),
                     table.indexUUIDs(),
-                    table.tableVersion() + 1
-                )
+                    table.tableVersion() + 1,
+                    table.tableOID())
                 .build();
 
             DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(createNodeContext());
@@ -257,8 +257,8 @@ public class MetadataTrackerTest extends ESTestCase {
                 table.partitionedBy(),
                 table.state(),
                 table.indexUUIDs(),
-                table.tableVersion() + 1L
-            );
+                table.tableVersion() + 1L,
+                table.tableOID());
 
             for (String indexUUID : table.indexUUIDs()) {
                 var indexMetadata = clusterState.metadata().index(indexUUID);

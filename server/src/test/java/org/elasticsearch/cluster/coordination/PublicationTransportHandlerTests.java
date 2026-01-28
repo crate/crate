@@ -158,34 +158,34 @@ public class PublicationTransportHandlerTests extends ESTestCase {
 
         RelationName relationName = new RelationName("my_schema", "my_table");
         RelationMetadata.Table table = new RelationMetadata.Table(
-            relationName,
-            List.of(new SimpleReference(
+            Metadata.TABLE_OID_UNASSIGNED,
                 relationName,
-                ColumnIdent.of("x"),
-                RowGranularity.PARTITION,
-                DataTypes.STRING,
-                IndexType.PLAIN,
-                true,
-                false,
-                1,
-                1,
-                false,
-                null
-            )),
-            Settings.builder()
-                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
-                .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
-                .build(),
-            null,
-            ColumnPolicy.STRICT,
-            null,
-            Map.of(),
-            List.of(),
-            List.of(ColumnIdent.of("x")),
-            IndexMetadata.State.OPEN,
-            List.of(),
-            0L
-        );
+                List.of(new SimpleReference(
+                    relationName,
+                    ColumnIdent.of("x"),
+                    RowGranularity.PARTITION,
+                    DataTypes.STRING,
+                    IndexType.PLAIN,
+                    true,
+                    false,
+                    1,
+                    1,
+                    false,
+                    null
+                )),
+                Settings.builder()
+                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+                    .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                    .build(),
+                null,
+                ColumnPolicy.STRICT,
+                null,
+                Map.of(),
+                List.of(),
+                List.of(ColumnIdent.of("x")),
+                IndexMetadata.State.OPEN,
+                List.of(),
+                0L);
 
         // Metadata will not write out any templates anymore as templates should not be used since 6.0.0.
         // But for nodes < 6.0.0, any partitioned table will be written out as a template, so this test is actually
@@ -205,8 +205,8 @@ public class PublicationTransportHandlerTests extends ESTestCase {
                     table.partitionedBy(),
                     table.state(),
                     table.indexUUIDs(),
-                    table.tableVersion()
-                )
+                    table.tableVersion(),
+                    table.tableOID())
                 .build())
             .build();
 

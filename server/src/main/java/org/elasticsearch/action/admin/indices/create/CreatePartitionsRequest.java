@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -37,25 +38,28 @@ import io.crate.metadata.RelationName;
 
 public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartitionsRequest> {
 
+    private final long tableOID;
     private final RelationName relationName;
     private final List<List<String>> partitionValuesList;
 
     /**
+     * @param tableOID
      * @param partitions partitions to create. Limited to one unique relation
      **/
-    public static CreatePartitionsRequest of(Collection<PartitionName> partitions) {
+    public static CreatePartitionsRequest of(long tableOID, Collection<PartitionName> partitions) {
         List<RelationName> relations = partitions.stream()
             .map(PartitionName::relationName)
             .distinct()
             .toList();
         return switch (relations.size()) {
             case 0 -> throw new IllegalArgumentException("Must create at least one partition");
-            case 1 -> new CreatePartitionsRequest(relations.get(0), Lists.map(partitions, p -> p.ident().isEmpty() ? List.of() : p.values()));
+            case 1 -> new CreatePartitionsRequest(tableOID, relations.get(0), Lists.map(partitions, p -> p.ident().isEmpty() ? List.of() : p.values()));
             default -> throw new IllegalArgumentException("Cannot create partitions for more than one table in the same request: " + relations);
         };
     }
 
-    public CreatePartitionsRequest(RelationName relationName, List<List<String>> partitionValuesList) {
+    public CreatePartitionsRequest(long tableOID, RelationName relationName, List<List<String>> partitionValuesList) {
+        this.tableOID = tableOID;
         this.relationName = relationName;
         this.partitionValuesList = partitionValuesList;
     }
@@ -73,6 +77,10 @@ public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartition
      **/
     public List<String> indexNames() {
         return Lists.map(partitionValuesList, values -> new PartitionName(relationName, values).asIndexName());
+    }
+
+    public long tableOID() {
+        return tableOID;
     }
 
     public CreatePartitionsRequest(StreamInput in) throws IOException {
@@ -108,6 +116,11 @@ public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartition
             }
             this.relationName = relation;
         }
+        if (in.getVersion().after(Version.V_6_2_0)) {
+            this.tableOID = in.readLong();
+        } else {
+            this.tableOID = Metadata.TABLE_OID_UNASSIGNED;
+        }
     }
 
     @Override
@@ -136,6 +149,9 @@ public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartition
                 String indexName = new PartitionName(relationName, partitionValues).asIndexName();
                 out.writeString(indexName);
             }
+        }
+        if (out.getVersion().after(Version.V_6_2_0)) {
+            out.writeLong(this.tableOID);
         }
     }
 }

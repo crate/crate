@@ -74,7 +74,6 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 
@@ -143,19 +142,18 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
             if (response.isAcknowledged()) {
                 final String[] indices = request.partitionValuesList().stream()
                     .map(partitionValues -> clusterService.state().metadata()
-                        .getIndex(request.relationName(), partitionValues, false, IndexMetadata::getIndexUUID))
+                        .getIndex(request.tableOID(), partitionValues, false, IndexMetadata::getIndexUUID))
                     .toArray(String[]::new);
                 activeShardsObserver.waitForActiveShards(indices, ActiveShardCount.DEFAULT, request.ackTimeout(),
                     shardsAcked -> {
                         if (!shardsAcked && logger.isInfoEnabled()) {
-                            RelationName relationName = request.relationName();
-                            RelationMetadata.Table table = state.metadata().getRelation(relationName);
+                            RelationMetadata.Table table = state.metadata().getRelation(request.tableOID());
                             assert table != null : "table should be present in the cluster state";
 
                             logger.info("[{}] Table partitions created, but the operation timed out while waiting for " +
                                          "enough shards to be started. Timeout={}, wait_for_active_shards={}. " +
                                          "Consider decreasing the 'number_of_shards' table setting (currently: {}) or adding nodes to the cluster.",
-                                relationName, request.timeout(),
+                                request.relationName(), request.timeout(),
                                 SETTING_WAIT_FOR_ACTIVE_SHARDS.get(table.settings()),
                                 INDEX_NUMBER_OF_SHARDS_SETTING.get(table.settings()));
                         }
@@ -317,7 +315,7 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                 ClusterStateTaskExecutor.ClusterTasksResult.Builder<CreatePartitionsRequest> builder = ClusterStateTaskExecutor.ClusterTasksResult.builder();
                 for (CreatePartitionsRequest request1 : tasks) {
                     try {
-                        RelationMetadata.Table table = currentState.metadata().getRelation(request1.relationName());
+                        RelationMetadata.Table table = currentState.metadata().getRelation(request1.tableOID());
                         if (table == null) {
                             throw new RelationUnknown(request1.relationName());
                         }
@@ -333,7 +331,7 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
             new AckedClusterStateUpdateTask<>(request, listener) {
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
-                    RelationMetadata.Table table = currentState.metadata().getRelation(request.relationName());
+                    RelationMetadata.Table table = currentState.metadata().getRelation(request.tableOID());
                     if (table == null) {
                         throw new RelationUnknown(request.relationName());
                     }
@@ -354,9 +352,9 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
         ArrayList<PartitionName> partitions = new ArrayList<>(request.partitionValuesList().size());
         for (List<String> partitionValues : request.partitionValuesList()) {
             // Don't be strict, it should not fail if the partition already exists
-            List<IndexMetadata> indices = metadata.getIndices(request.relationName(), partitionValues, false, imd -> imd);
+            List<IndexMetadata> indices = metadata.getIndices(request.tableOID(), partitionValues, false, imd -> imd);
             if (indices.isEmpty()) {
-                PartitionName partition = new PartitionName(request.relationName(), partitionValues);
+                PartitionName partition = new PartitionName(metadata.getRelation(request.tableOID()).name(), partitionValues);
                 partitions.add(partition);
             }
             // else: exists already

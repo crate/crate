@@ -106,7 +106,8 @@ public class RenameTableClusterStateExecutor {
                 table.partitionedBy(),
                 table.state(),
                 table.indexUUIDs(),
-                table.tableVersion() + 1
+                table.tableVersion() + 1,
+                table.tableOID()
             );
 
         boolean needIndexAndRoutingUpdate = currentState.nodes().getSmallestNonClientNodeVersion().before(Version.V_6_1_0);

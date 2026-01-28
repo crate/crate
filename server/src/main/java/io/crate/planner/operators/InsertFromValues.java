@@ -261,7 +261,7 @@ public class InsertFromValues implements LogicalPlan {
             plannerContext.jobId()
         );
 
-        var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING);
+        var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING, tableInfo.tableOID());
 
         for (Row row : rows) {
             try {
@@ -362,7 +362,7 @@ public class InsertFromValues implements LogicalPlan {
             null,
             plannerContext.jobId()
         );
-        var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING);
+        var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING, tableInfo.tableOID());
 
         HashMap<PartitionName, Consumer<IndexItem>> validatorsCache = new HashMap<>();
         BiConsumer<PartitionName, IndexItem> constraintsChecker = (partition, indexItem) -> checkConstraints(
@@ -754,7 +754,7 @@ public class InsertFromValues implements LogicalPlan {
         if (partitionsToCreate.isEmpty()) {
             return CompletableFuture.completedFuture(new AcknowledgedResponse(true));
         }
-        return client.execute(TransportCreatePartitions.ACTION, CreatePartitionsRequest.of(partitionsToCreate));
+        return client.execute(TransportCreatePartitions.ACTION, CreatePartitionsRequest.of(tableInfo.tableOID(), partitionsToCreate));
     }
 
     @Override

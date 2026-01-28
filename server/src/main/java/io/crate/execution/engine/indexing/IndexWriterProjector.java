@@ -95,7 +95,8 @@ public class IndexWriterProjector implements Projector {
                                 boolean overwriteDuplicates,
                                 UUID jobId,
                                 UpsertResultContext upsertResultContext,
-                                boolean failFast) {
+                                boolean failFast,
+                                long tableOID) {
         Input<String> source;
         if (excludes == null) {
             //noinspection unchecked
@@ -151,7 +152,8 @@ public class IndexWriterProjector implements Projector {
             targetTableNumReplicas,
             upsertResultContext,
             earlyTerminationCondition,
-            earlyTerminationExceptionGenerator
+            earlyTerminationExceptionGenerator,
+            tableOID
         );
     }
 

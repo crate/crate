@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -125,7 +126,8 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             false,
             UUID.randomUUID(),
             UpsertResultContext.forRowCount(),
-            false
+            false,
+            Metadata.TABLE_OID_UNASSIGNED
         );
 
         RowN rowN = new RowN(new Object[]{new BytesRef("{\"y\": \"x\"}"), null});
