@@ -26,13 +26,17 @@ import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.data.Row1;
 import io.crate.expression.symbol.Literal;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 
 public class SubscriptFunctionsTest extends ESTestCase {
@@ -52,5 +56,26 @@ public class SubscriptFunctionsTest extends ESTestCase {
         var subscript = SubscriptFunctions.tryCreateSubscript(rowExpression, List.of("x", "y"));
         assertThat(subscript)
             .isFunction("_subscript_record", isFunction("_subscript_record"), isLiteral("y"));
+    }
+
+    @Test
+    public void test_subscript_array_of_objects_with_nested_path() {
+        var arrayType = new ArrayType<>(
+            ObjectType.of(ColumnPolicy.DYNAMIC)
+                .setInnerType("a", ObjectType.of(ColumnPolicy.DYNAMIC)
+                    .setInnerType("b", DataTypes.INTEGER)
+                    .build())
+                .build()
+        );
+        var arrayExpression = Literal.of(
+            List.of(
+                Map.of("a", Map.of("b", 1)),
+                Map.of("a", Map.of("b", 2))
+            ),
+            arrayType
+        );
+        var subscript = SubscriptFunctions.tryCreateSubscript(arrayExpression, List.of("a", "b"));
+        assertThat(subscript)
+            .isFunction("subscript", isFunction("subscript"), isLiteral("b"));
     }
 }
