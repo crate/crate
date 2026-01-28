@@ -37,6 +37,7 @@ import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 
@@ -83,7 +84,7 @@ public class SubscriptFunctionTest extends ScalarTestCase {
     public void test_subscript_can_be_used_on_subqueries_returning_objects() {
         assertNormalize(
             "(select {x=10})['x']",
-            isFunction("subscript", exactlyInstanceOf(SelectSymbol.class), isLiteral("x"))
+            isFunction("subscript_obj", exactlyInstanceOf(SelectSymbol.class), isLiteral("x"))
         );
     }
 
@@ -163,12 +164,13 @@ public class SubscriptFunctionTest extends ScalarTestCase {
     @Test
     public void test_return_type_of_subscript_on_literals() {
         assertNormalize("{a = {b = 1}}['a']['b']", isLiteral(1, DataTypes.INTEGER));
+        assertNormalize("[{a = {b = 1}}]['a']['b']", isLiteral(List.of(1), new ArrayType<>(DataTypes.INTEGER)));
         assertNormalize("subscript({a = {b = 1}}['a'], 'b')", isLiteral(1, DataTypes.INTEGER));
     }
 
     @Test
     public void test_return_type_of_subscript_on_expressions() {
         Symbol symbol = sqlExpressions.asSymbol("(obj_typed || {c=1})['a']['b']");
-        assertThat(symbol).isFunction("subscript", DataTypes.INTEGER);
+        assertThat(symbol).isFunction("subscript_obj", DataTypes.INTEGER);
     }
 }
