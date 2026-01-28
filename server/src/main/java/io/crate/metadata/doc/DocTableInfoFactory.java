@@ -21,7 +21,7 @@
 
 package io.crate.metadata.doc;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -163,6 +163,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
         );
 
         return new DocTableInfo(
+            table.tableOID(),
             table.name(),
             columns,
             indexColumns,
@@ -317,12 +318,13 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
             // can be wrong; inferring the correct version from partitions can also fail if old partitions
             // are deleted.
             // This is another safety mechanism. If a column doesn't have OIDs the table must be from < 5.5.0
-            if (references.values().stream().anyMatch(ref -> ref.oid() == COLUMN_OID_UNASSIGNED)) {
+            if (references.values().stream().anyMatch(ref -> ref.oid() == OID_UNASSIGNED)) {
                 versionCreated = Version.V_5_4_0;
             }
         }
 
         return new DocTableInfo(
+            Metadata.OID_UNASSIGNED,
             relationName,
             references,
             indexColumns.entrySet().stream()
@@ -419,7 +421,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                 : Booleans.parseBoolean(docValues.toString());
 
             int position = Maps.getOrDefault(columnProperties, "position", 0);
-            Number oidNum = Maps.getOrDefault(columnProperties, "oid", COLUMN_OID_UNASSIGNED);
+            Number oidNum = Maps.getOrDefault(columnProperties, "oid", OID_UNASSIGNED);
             long oid = oidNum.longValue();
             DataType<?> elementType = ArrayType.unnest(type);
 
@@ -488,7 +490,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                     );
                 }
             } else if (type != DataTypes.NOT_SUPPORTED) {
-                var indicesKey = oid == COLUMN_OID_UNASSIGNED ? column.fqn() : Long.toString(oid);
+                var indicesKey = oid == OID_UNASSIGNED ? column.fqn() : Long.toString(oid);
                 if (indicesMap.containsKey(indicesKey)) {
                     List<String> sources = Maps.get(columnProperties, "sources");
                     if (sources != null) {

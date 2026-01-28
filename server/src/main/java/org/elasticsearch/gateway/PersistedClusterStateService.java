@@ -489,6 +489,7 @@ public class PersistedClusterStateService {
             builder.put(indexMetadata, false);
         });
 
+        // builder.tableOidSupplier(new DocTableInfo.OidSupplier(Metadata.TABLE_OID_UNASSIGNED));
         final Map<String, String> userData = reader.getIndexCommit().getUserData();
         LOGGER.trace("loaded metadata [{}] from [{}]", userData, reader.directory());
         assert userData.size() == COMMIT_DATA_SIZE : userData;

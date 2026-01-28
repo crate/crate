@@ -29,6 +29,7 @@ import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -54,7 +55,7 @@ public class TableStatsTest extends ESTestCase {
         1,
         null);
     private final DocTableInfo docTableInfo = new DocTableInfo(
-        testRelation,
+            Metadata.OID_UNASSIGNED, testRelation,
         Map.of(idRef.column(), idRef),
         Map.of(),
         Set.of(),

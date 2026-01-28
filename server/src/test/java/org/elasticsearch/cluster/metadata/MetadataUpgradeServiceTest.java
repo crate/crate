@@ -52,6 +52,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.sql.tree.ColumnPolicy;
@@ -396,8 +397,9 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
             .numberOfReplicas(1)
             .build();
 
+        var tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.OID_UNASSIGNED);
         RelationName tblName = new RelationName("doc", "tbl");
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = Metadata.builder(Metadata.OID_UNASSIGNED)
             .put(indexMetadata, false)
             .setTable(
                 tblName,
@@ -411,8 +413,8 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
                 List.of(),
                 State.OPEN,
                 List.of(indexMetadata.getIndexUUID()),
-                1
-            )
+                1,
+                tableOidSupplier.getAsLong())
             .build();
 
         Metadata upgraded = metadataUpgradeService.upgradeMetadata(metadata);
@@ -465,7 +467,8 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
     }
 
     public static Metadata randomMetadata(boolean withRelationMetadata, TestCustomMetadata... customMetadatas) {
-        Metadata.Builder builder = Metadata.builder();
+        Metadata.Builder builder = Metadata.builder(Metadata.OID_UNASSIGNED);
+        var tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.OID_UNASSIGNED);
         for (TestCustomMetadata customMetadata : customMetadatas) {
             builder.putCustom(customMetadata.getWriteableName(), customMetadata);
         }
@@ -492,8 +495,9 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
                     List.of(),
                     IndexMetadata.State.OPEN,
                     List.of(indexUUID),
-                    0
-                );
+                    0,
+                    tableOidSupplier.getAsLong()
+                    );
             }
         }
         return builder.build();

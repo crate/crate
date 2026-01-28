@@ -23,7 +23,7 @@
 package io.crate.execution.dsl.projection;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.List;
@@ -61,7 +61,7 @@ public class SourceIndexWriterProjectionSerializationTest {
             false,
             true,
             0,
-            COLUMN_OID_UNASSIGNED,
+            OID_UNASSIGNED,
             false,
             Literal.of(dataType, List.of(Map.of("f", 10))
             )

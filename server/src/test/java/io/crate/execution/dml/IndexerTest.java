@@ -32,7 +32,7 @@ import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -1394,7 +1394,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     public void test_ignored_object_child_columns_are_not_prefixed_on_tables_created_less_5_5() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
             // old tables created with CrateDB < 5.5.0 do not assign any OID, fake it here
-            .setColumnOidSupplier(() -> COLUMN_OID_UNASSIGNED)
+            .setColumnOidSupplier(() -> OID_UNASSIGNED)
             .addTable("create table tbl (o object (ignored) as (i int))",
                 Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_4_0).build()
             );

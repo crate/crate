@@ -25,7 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -78,7 +78,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
         ColumnIdent columnIdent = ColumnIdent.of("o", List.of());
         DocTableInfo info = new DocTableInfo(
-            relationName,
+                Metadata.OID_UNASSIGNED, relationName,
             Map.of(
                 columnIdent,
                 new SimpleReference(
@@ -145,7 +145,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             true,
             false,
             1,
-            COLUMN_OID_UNASSIGNED,
+            OID_UNASSIGNED,
             false,
             null
         );
@@ -153,7 +153,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         Map<ColumnIdent, Reference> references = Map.of(column, strictParent);
 
         DocTableInfo info = new DocTableInfo(
-            dummy,
+                Metadata.OID_UNASSIGNED, dummy,
             references,
             Map.of(),
             Set.of(),
@@ -261,7 +261,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             true,
             false,
             1,
-            COLUMN_OID_UNASSIGNED,
+            OID_UNASSIGNED,
             false,
             null
         );
@@ -279,7 +279,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         DocTableInfo docTableInfo = new DocTableInfo(
-            relationName,
+                Metadata.OID_UNASSIGNED, relationName,
             Map.of(
                 withoutOid.column(), withoutOid,
                 withOid.column(), withOid
@@ -338,7 +338,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         DocTableInfo info = new DocTableInfo(
-            relationName,
+                Metadata.OID_UNASSIGNED, relationName,
             Map.of(a, refa, b, refb),
             Map.of(),
             Set.of(refb),
@@ -743,8 +743,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             table.partitionedBy(),
             table.state(),
             table.indexUUIDs(),
-            table.tableVersion() + 1
-        );
+            table.tableVersion() + 1,
+            table.tableOID());
 
         var newMetadata = metadataBuilder.build();
 

@@ -69,6 +69,7 @@ import io.crate.metadata.IndexType;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
@@ -156,43 +157,44 @@ public class PublicationTransportHandlerTests extends ESTestCase {
         localTransportService.start();
         localTransportService.acceptIncomingRequests();
 
+        var tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.OID_UNASSIGNED);
         RelationName relationName = new RelationName("my_schema", "my_table");
         RelationMetadata.Table table = new RelationMetadata.Table(
-            relationName,
-            List.of(new SimpleReference(
+                tableOidSupplier.getAsLong(),
                 relationName,
-                ColumnIdent.of("x"),
-                RowGranularity.PARTITION,
-                DataTypes.STRING,
-                IndexType.PLAIN,
-                true,
-                false,
-                1,
-                1,
-                false,
-                null
-            )),
-            Settings.builder()
-                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
-                .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
-                .build(),
-            null,
-            ColumnPolicy.STRICT,
-            null,
-            Map.of(),
-            List.of(),
-            List.of(ColumnIdent.of("x")),
-            IndexMetadata.State.OPEN,
-            List.of(),
-            0L
-        );
+                List.of(new SimpleReference(
+                    relationName,
+                    ColumnIdent.of("x"),
+                    RowGranularity.PARTITION,
+                    DataTypes.STRING,
+                    IndexType.PLAIN,
+                    true,
+                    false,
+                    1,
+                    1,
+                    false,
+                    null
+                )),
+                Settings.builder()
+                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+                    .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                    .build(),
+                null,
+                ColumnPolicy.STRICT,
+                null,
+                Map.of(),
+                List.of(),
+                List.of(ColumnIdent.of("x")),
+                IndexMetadata.State.OPEN,
+                List.of(),
+                0L);
 
         // Metadata will not write out any templates anymore as templates should not be used since 6.0.0.
         // But for nodes < 6.0.0, any partitioned table will be written out as a template, so this test is actually
         // testing both directions, writing out relations as templates and reading them back in as relations.
         // Thus, we will add a table here and not a template.
         ClusterState clusterState = ClusterState.builder(new ClusterName("test"))
-            .metadata(Metadata.builder()
+            .metadata(Metadata.builder(Metadata.OID_UNASSIGNED)
                 .setTable(
                     table.name(),
                     table.columns(),
@@ -205,8 +207,8 @@ public class PublicationTransportHandlerTests extends ESTestCase {
                     table.partitionedBy(),
                     table.state(),
                     table.indexUUIDs(),
-                    table.tableVersion()
-                )
+                    table.tableVersion(),
+                    table.tableOID())
                 .build())
             .build();
 

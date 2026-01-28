@@ -23,7 +23,7 @@ package io.crate.metadata;
 
 import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.Map;
@@ -201,7 +201,7 @@ public class GeoReference extends SimpleReference {
 
     @Override
     public Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
-        long newOid = oid == COLUMN_OID_UNASSIGNED ? acquireOid.getAsLong() : oid;
+        long newOid = oid == OID_UNASSIGNED ? acquireOid.getAsLong() : oid;
         int newPosition = position < 0 ? acquirePosition.getAsInt() : position;
         if (newOid == oid && newPosition == position) {
             return this;

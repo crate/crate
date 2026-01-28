@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -272,7 +272,7 @@ public class IndexReference extends SimpleReference {
 
     @Override
     public Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
-        long newOid = oid == COLUMN_OID_UNASSIGNED ? acquireOid.getAsLong() : oid;
+        long newOid = oid == OID_UNASSIGNED ? acquireOid.getAsLong() : oid;
         int newPosition = position < 0 ? acquirePosition.getAsInt() : position;
         if (newOid == oid && newPosition == position) {
             return this;

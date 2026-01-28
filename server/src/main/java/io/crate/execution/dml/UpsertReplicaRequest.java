@@ -86,7 +86,7 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
             this.columns = new ArrayList<>(numColumns);
             for (int i = 0; i < numColumns; i++) {
                 long oid = in.readLong();
-                Reference column = oid == Metadata.COLUMN_OID_UNASSIGNED
+                Reference column = oid == Metadata.OID_UNASSIGNED
                     ? Reference.fromStream(in)
                     : table.getReference(oid);
                 if (column == null) {
@@ -143,7 +143,7 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
             out.writeVInt(columns.size());
             for (Reference column : columns) {
                 out.writeLong(column.oid());
-                if (column.oid() == Metadata.COLUMN_OID_UNASSIGNED) {
+                if (column.oid() == Metadata.OID_UNASSIGNED) {
                     Reference.toStream(out, column);
                 }
             }
