@@ -99,8 +99,8 @@ Fixes
 
 - Fixed a regression introduced in :ref:`version_6.0.0` that caused nested path
   accesses on ``ARRAY(OBJECT)`` columns returned by a sub-select using a
-  ``UNNEST`` function to either fail with a ``ColumnUnknownException`` or r
-  eturn incorrect results as wrong child-columns are used. Example::
+  ``UNNEST`` function to either fail with a ``ColumnUnknownException`` or
+  return incorrect results as wrong child-columns are used. Example::
 
     SELECT obj_arr['child_obj']['id'] AS id
     FROM (
