@@ -19,14 +19,7 @@
 
 package org.elasticsearch.common.blobstore.fs;
 
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.blobstore.BlobContainer;
-import org.elasticsearch.common.blobstore.BlobMetadata;
-import org.elasticsearch.common.blobstore.BlobPath;
-import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
-import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
-import io.crate.common.io.IOUtils;
-import org.elasticsearch.common.io.Streams;
+import static java.util.Collections.unmodifiableMap;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -49,7 +42,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.Collections.unmodifiableMap;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.blobstore.BlobContainer;
+import org.elasticsearch.common.blobstore.BlobMetadata;
+import org.elasticsearch.common.blobstore.BlobPath;
+import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
+import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
+import org.elasticsearch.common.io.Streams;
+
+import io.crate.common.io.IOUtils;
 
 /**
  * A file system based implementation of {@link org.elasticsearch.common.blobstore.BlobContainer}.
@@ -159,12 +160,6 @@ public class FsBlobContainer extends AbstractBlobContainer {
         }
         assert channel.position() == position;
         return Streams.limitStream(Channels.newInputStream(channel), length);
-    }
-
-    @Override
-    public long readBlobPreferredLength() {
-        // This container returns streams that are cheap to close early, so we can tell consumers to request as much data as possible.
-        return Long.MAX_VALUE;
     }
 
     @Override

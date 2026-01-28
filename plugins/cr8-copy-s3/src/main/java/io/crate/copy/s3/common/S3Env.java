@@ -21,33 +21,21 @@
 
 package io.crate.copy.s3.common;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.opendal.ServiceConfig.S3;
+import org.apache.opendal.ServiceConfig;
 import org.elasticsearch.common.settings.Settings;
-import org.jspecify.annotations.Nullable;
 
-public class S3Env {
+import io.crate.opendal.S3;
 
-    private static final Logger LOGGER = LogManager.getLogger(S3Env.class);
-    private static final String DEFAULT_REGION = "us-east-1";
-    private static final Pattern AWS_ENDPOINT = Pattern.compile("https://s3\\.(.*)\\.amazonaws\\.com");
+public final class S3Env {
 
-    public static S3 getServiceConfig(S3URI s3uri, Settings withClause) {
+    private S3Env() {
+    }
+
+    public static ServiceConfig.S3 getServiceConfig(S3URI s3uri, Settings withClause) {
         String protocol = S3Protocol.get(withClause);
         String endpoint = protocol + "://" + s3uri.endpoint();
-        String region = S3Env.getRegion(endpoint, s3uri.bucket());
-        return S3.builder()
+        String region = S3.getRegion(endpoint, s3uri.bucket());
+        return ServiceConfig.S3.builder()
             .bucket(s3uri.bucket())
             .endpoint(endpoint)
             .accessKeyId(s3uri.accessKey())
@@ -57,40 +45,5 @@ public class S3Env {
             .allowAnonymous(true)
             .region(region)
             .build();
-    }
-
-    /// Gets the region from the endpoint if well-known and the value contains the region
-    /// name, otherwise tries to make a HEAD request
-    ///
-    /// Adapted from:
-    ///     https://github.com/apache/opendal/blob/500532ea92b622d44edd2d84a40e3b80ed5d6e6c/core/services/s3/src/backend.rs?plain=1#L603-L603
-    @Nullable
-    public static String getRegion(String endpoint, String bucket) {
-        Matcher awsMatcher = AWS_ENDPOINT.matcher(endpoint);
-        if (awsMatcher.matches()) {
-            return awsMatcher.group(1);
-        }
-        if (endpoint.endsWith("r2.cloudflarestorage.com")) {
-            return "auto";
-        }
-        try (var httpClient = HttpClient.newHttpClient()) {
-            HttpRequest request = HttpRequest.newBuilder(URI.create(endpoint + "/" + bucket))
-                .HEAD()
-                .build();
-            try {
-                HttpResponse<Void> response = httpClient.send(request, BodyHandlers.discarding());
-                Optional<String> bucketRegion = response.headers().firstValue("x-amz-bucket-region");
-                if (bucketRegion.isPresent()) {
-                    return bucketRegion.get();
-                }
-                if (response.statusCode() == 403 || response.statusCode() == 200) {
-                    return DEFAULT_REGION;
-                }
-            } catch (IOException | InterruptedException e) {
-                LOGGER.warn("Error trying to retrieve region from S3 endpoint", e);
-                return null;
-            }
-        }
-        return null;
     }
 }

@@ -19,18 +19,6 @@
 
 package org.elasticsearch.repositories.azure;
 
-import com.microsoft.azure.storage.Constants;
-import com.microsoft.azure.storage.LocationMode;
-import com.microsoft.azure.storage.StorageException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.jspecify.annotations.Nullable;
-
-import org.elasticsearch.common.blobstore.BlobContainer;
-import org.elasticsearch.common.blobstore.BlobMetadata;
-import org.elasticsearch.common.blobstore.BlobPath;
-import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -38,6 +26,17 @@ import java.net.URISyntaxException;
 import java.nio.file.NoSuchFileException;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.blobstore.BlobContainer;
+import org.elasticsearch.common.blobstore.BlobMetadata;
+import org.elasticsearch.common.blobstore.BlobPath;
+import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
+import org.jspecify.annotations.Nullable;
+
+import com.microsoft.azure.storage.LocationMode;
+import com.microsoft.azure.storage.StorageException;
 
 public class AzureBlobContainer extends AbstractBlobContainer {
 
@@ -94,11 +93,6 @@ public class AzureBlobContainer extends AbstractBlobContainer {
     @Override
     public InputStream readBlob(String blobName, long position, long length) throws IOException {
         return openInputStream(blobName, position, length);
-    }
-
-    @Override
-    public long readBlobPreferredLength() {
-        return Constants.DEFAULT_MINIMUM_READ_SIZE_IN_BYTES;
     }
 
     @Override

@@ -19,14 +19,14 @@
 
 package org.elasticsearch.snapshots.mockstore;
 
-import org.elasticsearch.common.blobstore.BlobContainer;
-import org.elasticsearch.common.blobstore.BlobMetadata;
-import org.elasticsearch.common.blobstore.BlobPath;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
+
+import org.elasticsearch.common.blobstore.BlobContainer;
+import org.elasticsearch.common.blobstore.BlobMetadata;
+import org.elasticsearch.common.blobstore.BlobPath;
 
 public class BlobContainerWrapper implements BlobContainer {
     private BlobContainer delegate;
@@ -50,15 +50,9 @@ public class BlobContainerWrapper implements BlobContainer {
         return delegate.blobExists(blobName);
     }
 
-
     @Override
     public InputStream readBlob(String blobName, long position, long length) throws IOException {
         return delegate.readBlob(blobName, position, length);
-    }
-
-    @Override
-    public long readBlobPreferredLength() {
-        return delegate.readBlobPreferredLength();
     }
 
     @Override
@@ -71,7 +65,6 @@ public class BlobContainerWrapper implements BlobContainer {
                                 boolean failIfAlreadyExists) throws IOException {
         delegate.writeBlobAtomic(blobName, inputStream, blobSize, failIfAlreadyExists);
     }
-
 
     @Override
     public void delete() throws IOException {

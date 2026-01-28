@@ -20,11 +20,15 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>io.crate</groupId>
+            <artifactId>crate-libs-opendal</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.jspecify</groupId>
             <artifactId>jspecify</artifactId>
             <version>${versions.jspecify}</version>
         </dependency>
-
 
         <dependency>
             <groupId>io.crate</groupId>
@@ -42,12 +46,6 @@
             <scope>test</scope>
             <classifier>tests</classifier>
         </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
-            <version>${versions.aws}</version>
-        </dependency>
-
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
