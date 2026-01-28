@@ -886,5 +886,14 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                     ) sub1;
             """);
         assertThat(response).hasRows("c2");
+
+        // Using nested array accesses
+        execute("""
+            SELECT obj_arr['child_obj']['ids'][1][2] AS id
+            FROM (
+               SELECT unnest([{child_obj = { ids = [['c1', 'c2']]}, ids=[['w1, w2']]}]) obj_arr
+            ) sub1;
+            """);
+        assertThat(response).hasRows("c2");
     }
 }
