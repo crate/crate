@@ -362,18 +362,6 @@ Parameters
 
   Whether CrateDB should throttle retries (i.e., should back off).
 
-.. _sql-create-repo-s3-canned_acl:
-
-**canned_acl**
-  | *Type:*    ``text``
-  | *Values:*  ``private``, ``public-read``, ``public-read-write``,
-               ``authenticated-read``, ``log-delivery-write``,
-               ``bucket-owner-read``, or ``bucket-owner-full-control``
-  | *Default:* ``private``
-
-  When CrateDB creates new buckets and objects, the specified `Canned ACL`_ is
-  added.
-
 .. _sql-create-repo-s3-storage_class:
 
 **storage_class**
@@ -388,7 +376,7 @@ Parameters
 
 **use_path_style_access**
   | *Type:*    ``boolean``
-  | *Default:* ``false``
+  | *Default:* ``true``
 
   Whether CrateDB should use path style access.
   Useful for some S3-compatible providers.

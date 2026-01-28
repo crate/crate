@@ -21,18 +21,16 @@
 
 package org.elasticsearch.repositories.s3;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.Protocol;
+import java.util.Locale;
+
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
-import io.crate.types.DataTypes;
-
 import org.elasticsearch.monitor.jvm.JvmInfo;
 
-import java.util.Locale;
+import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
 
 class S3RepositorySettings {
 
@@ -150,41 +148,19 @@ class S3RepositorySettings {
     /**
      * The protocol to use to connect to s3.
      */
-    static final Setting<Protocol> PROTOCOL_SETTING = new Setting<>(
+    static final Setting<String> PROTOCOL_SETTING = new Setting<>(
         "protocol",
         "https",
-        s -> Protocol.valueOf(s.toUpperCase(Locale.ROOT)),
+        s -> s,
         DataTypes.STRING,
         Setting.Property.NodeScope);
-
-    /**
-     * The host name of a proxy to connect to s3 through.
-     */
-    static final Setting<String> PROXY_HOST_SETTING =
-        Setting.simpleString("proxy_host", Setting.Property.NodeScope);
-
-    /**
-     * The port of a proxy to connect to s3 through.
-     */
-    static final Setting<Integer> PROXY_PORT_SETTING =
-        Setting.intSetting("proxy_port", 80, 0, 1 << 16, Setting.Property.NodeScope);
-
-    /**
-     * The username of a proxy to connect to s3 through.
-     */
-    static final Setting<SecureString> PROXY_USERNAME_SETTING = Setting.maskedString("proxy_username");
-
-    /**
-     * The password of a proxy to connect to s3 through.
-     */
-    static final Setting<SecureString> PROXY_PASSWORD_SETTING = Setting.maskedString("proxy_password");
 
     /**
      * The socket timeout for connecting to s3.
      */
     static final Setting<TimeValue> READ_TIMEOUT_SETTING = Setting.timeSetting(
         "read_timeout",
-        TimeValue.timeValueMillis(ClientConfiguration.DEFAULT_SOCKET_TIMEOUT),
+        TimeValue.timeValueMillis(0),
         Setting.Property.NodeScope);
 
     /**
@@ -192,7 +168,7 @@ class S3RepositorySettings {
      */
     static final Setting<Integer> MAX_RETRIES_SETTING = Setting.intSetting(
         "max_retries",
-        ClientConfiguration.DEFAULT_RETRY_POLICY.getMaxErrorRetry(),
+        25,
         0,
         Setting.Property.NodeScope);
 
@@ -201,7 +177,7 @@ class S3RepositorySettings {
      */
     static final Setting<Boolean> USE_THROTTLE_RETRIES_SETTING = Setting.boolSetting(
         "use_throttle_retries",
-        ClientConfiguration.DEFAULT_THROTTLE_RETRIES,
+        false,
         Setting.Property.NodeScope);
 
 
@@ -210,5 +186,5 @@ class S3RepositorySettings {
      */
     static final Setting<Boolean> USE_PATH_STYLE_ACCESS = Setting.boolSetting(
         "use_path_style_access",
-        false);
+        true);
 }

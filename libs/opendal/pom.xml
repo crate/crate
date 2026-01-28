@@ -39,6 +39,26 @@
             <version>${versions.opendal}</version>
             <classifier>${os.classifier}</classifier>
         </dependency>
+
+
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${versions.assertj}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${versions.junit5}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>${versions.junit5}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
 

@@ -19,24 +19,25 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.copy.s3.common;
+package io.crate.opendal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class S3EnvTest {
+
+public class S3Test {
 
     @Test
     public void test_aws_region() throws Exception {
-        assertThat(S3Env.getRegion("https://s3.eu-west-1.amazonaws.com", "example"))
+        assertThat(S3.getRegion("https://s3.eu-west-1.amazonaws.com", "example"))
             .isEqualTo("eu-west-1");
     }
 
     @Test
     public void test_cloud_flare_region() throws Exception {
-        assertThat(S3Env.getRegion("https://example.r2.cloudflarestorage.com", "example"))
+        assertThat(S3.getRegion("https://example.r2.cloudflarestorage.com", "example"))
             .isEqualTo("auto");
     }
-}
 
+}

@@ -148,7 +148,6 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
             "   max_retries=2," +
             "   use_throttle_retries=false," +
             "   readonly=false, " +
-            "   canned_acl=false, " +
             "   storage_class='standard_ia')");
         assertThat(request.name()).isEqualTo("foo");
         assertThat(request.type()).isEqualTo("s3");
@@ -157,7 +156,6 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
                 .hasFieldOrPropertyWithValue("base_path", "/holz/")
                 .hasFieldOrPropertyWithValue("bucket", "abc")
                 .hasFieldOrPropertyWithValue("buffer_size", "5mb")
-                .hasFieldOrPropertyWithValue("canned_acl", "false")
                 .hasFieldOrPropertyWithValue("chunk_size", "12mb")
                 .hasFieldOrPropertyWithValue("compress", "true")
                 .hasFieldOrPropertyWithValue("endpoint", "www.example.com")
