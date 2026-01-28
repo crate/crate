@@ -127,7 +127,7 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
                 return new ValueIndexer<>() {
                     @Override
                     public void indexValue(Object value, IndexDocumentBuilder docBuilder) {
-                        throw new UnsupportedOperationException("Cannot index values for type `undefined`");
+                        throw new UnsupportedOperationException("Cannot index values of column " + ref.column() + " with type `undefined`");
                     }
 
                     @Override
