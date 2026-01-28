@@ -22,8 +22,8 @@
 package io.crate.role;
 
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
@@ -120,25 +120,23 @@ public final class Privileges {
     }
 
     private static String getTargetSchema(Securable securable, @Nullable String ident) {
-        String schemaName = null;
         if (Securable.CLUSTER.equals(securable)) {
-            return schemaName;
+            return null;
         }
         assert ident != null : "ident must not be null if privilege securable is not 'CLUSTER'";
         if (Securable.TABLE.equals(securable)) {
-            schemaName = IndexName.decode(ident).schema();
+            return IndexName.decode(ident).schema();
         } else {
-            schemaName = ident;
+            return ident;
         }
-        return schemaName;
     }
 
-    private static boolean isInformationSchema(Securable securable, String ident) {
+    public static boolean isInformationSchema(Securable securable, String ident) {
         String targetSchema = getTargetSchema(securable, ident);
         return InformationSchemaInfo.NAME.equals(targetSchema);
     }
 
-    private static boolean isPgCatalogSchema(Securable securable, String ident) {
+    public static boolean isPgCatalogSchema(Securable securable, String ident) {
         String targetSchema = getTargetSchema(securable, ident);
         return PgCatalogSchemaInfo.NAME.equals(targetSchema);
     }
