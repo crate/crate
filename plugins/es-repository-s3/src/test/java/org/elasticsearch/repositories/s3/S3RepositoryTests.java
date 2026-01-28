@@ -24,6 +24,7 @@ package org.elasticsearch.repositories.s3;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.apache.opendal.AsyncExecutor;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -35,30 +36,24 @@ import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.blobstore.BlobStoreTestUtil;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-import com.amazonaws.services.s3.AbstractAmazonS3;
 
 
 public class S3RepositoryTests extends ESTestCase {
 
-    private static class DummyS3Client extends AbstractAmazonS3 {
+    private AsyncExecutor executor;
 
-        @Override
-        public void shutdown() {
-            // TODO check is closed
-        }
+    @Before
+    public void setup() {
+        executor = AsyncExecutor.createTokioExecutor(1);
     }
 
-    private static class DummyS3Service extends S3Service {
-        @Override
-        public AmazonS3Reference client(RepositoryMetadata metadata) {
-            return new AmazonS3Reference(new DummyS3Client());
-        }
-
-        @Override
-        public void close() {
-        }
+    @After
+    public void teardown() {
+        executor.close();
     }
 
     @Test
@@ -118,13 +113,14 @@ public class S3RepositoryTests extends ESTestCase {
     }
 
     private S3Repository createS3Repo(RepositoryMetadata metadata) {
+        ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
         return new S3Repository(
             metadata,
             NamedWriteableRegistry.EMPTY,
             NamedXContentRegistry.EMPTY,
-            new DummyS3Service(),
             BlobStoreTestUtil.mockClusterService(),
-            new RecoverySettings(Settings.EMPTY, new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS))) {
+            new RecoverySettings(Settings.EMPTY, clusterSettings),
+            executor) {
 
             @Override
             protected void assertSnapshotOrGenericThread() {

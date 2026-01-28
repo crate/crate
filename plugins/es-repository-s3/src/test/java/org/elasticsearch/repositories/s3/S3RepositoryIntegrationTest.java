@@ -44,12 +44,23 @@ public class S3RepositoryIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_unable_to_create_s3_repository() {
-        Asserts.assertSQLError(() -> execute(
-                "create repository test123 type s3 with (bucket='bucket', endpoint='https://s3.region.amazonaws.com', " +
-                "protocol='https', access_key='access',secret_key='secret', base_path='test123')"))
+        // Ipv6 endpoint with 0100::/64 is for fast timeouts
+        // See https://www.rfc-editor.org/rfc/rfc6666 Discard prefix
+        String stmt =
+            """
+            create repository test123 type s3 with (
+                bucket='bucket',
+                endpoint='https://0100::/64',
+                protocol='https',
+                access_key='access',
+                secret_key='secret',
+                base_path='test123'
+            )
+            """;
+        Asserts.assertSQLError(() -> execute(stmt))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
-            .hasMessageContaining("[test123] Unable to verify the repository, [test123] is not accessible on master " +
-                                  "node: SdkClientException 'Unable to execute HTTP request: bucket.s3.region.amazonaws.com");
+            .hasMessageContaining(
+                "test123] Unable to verify the repository, [test123] is not accessible on master node");
     }
 }

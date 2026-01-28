@@ -39,18 +39,25 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.opendal.AsyncExecutor;
+import org.apache.opendal.ServiceConfig;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
+
+import io.crate.opendal.OpenDALBlobStore;
+import io.crate.opendal.S3;
 
 /**
  * Shared file system implementation of the BlobStoreRepository
@@ -91,8 +98,6 @@ public class S3Repository extends BlobStoreRepository {
                        USE_PATH_STYLE_ACCESS);
     }
 
-    private final S3Service service;
-
     private final String bucket;
 
     private final ByteSizeValue bufferSize;
@@ -105,24 +110,30 @@ public class S3Repository extends BlobStoreRepository {
 
     private final String cannedACL;
 
+    private final AsyncExecutor executor;
+
     /**
      * Constructs an s3 backed repository
      */
-    S3Repository(
-        final RepositoryMetadata metadata,
-        final NamedWriteableRegistry namedWriteableRegistry,
-        final NamedXContentRegistry namedXContentRegistry,
-        final S3Service service,
-        final ClusterService clusterService,
-        RecoverySettings recoverySettings) {
-        super(metadata, namedWriteableRegistry, namedXContentRegistry, clusterService, recoverySettings, buildBasePath(metadata));
-        this.service = service;
-
-        // Parse and validate the user's S3 Storage Class setting
+    S3Repository(final RepositoryMetadata metadata,
+                 final NamedWriteableRegistry namedWriteableRegistry,
+                 final NamedXContentRegistry namedXContentRegistry,
+                 final ClusterService clusterService,
+                 RecoverySettings recoverySettings,
+                 AsyncExecutor executor) {
+        super(
+            metadata,
+            namedWriteableRegistry,
+            namedXContentRegistry,
+            clusterService,
+            recoverySettings,
+            buildBasePath(metadata)
+        );
         this.bucket = BUCKET_SETTING.get(metadata.settings());
         if (bucket == null) {
             throw new RepositoryException(metadata.name(), "No bucket defined for s3 repository");
         }
+        this.executor = executor;
 
         this.bufferSize = BUFFER_SIZE_SETTING.get(metadata.settings());
         this.chunkSize = CHUNK_SIZE_SETTING.get(metadata.settings());
@@ -139,13 +150,13 @@ public class S3Repository extends BlobStoreRepository {
         this.cannedACL = CANNED_ACL_SETTING.get(metadata.settings());
 
         LOGGER.debug(
-                "using bucket [{}], chunk_size [{}], server_side_encryption [{}], buffer_size [{}], cannedACL [{}], storageClass [{}]",
-                bucket,
-                chunkSize,
-                serverSideEncryption,
-                bufferSize,
-                cannedACL,
-                storageClass);
+            "using bucket [{}], chunk_size [{}], server_side_encryption [{}], buffer_size [{}], cannedACL [{}], storageClass [{}]",
+            bucket,
+            chunkSize,
+            serverSideEncryption,
+            bufferSize,
+            cannedACL,
+            storageClass);
     }
 
     private static BlobPath buildBasePath(RepositoryMetadata metadata) {
@@ -158,23 +169,39 @@ public class S3Repository extends BlobStoreRepository {
     }
 
     @Override
-    protected S3BlobStore createBlobStore() {
-        return new S3BlobStore(service, bucket, serverSideEncryption, bufferSize, cannedACL, storageClass, metadata);
-    }
-
-    // only use for testing
-    @Override
-    protected BlobStore getBlobStore() {
-        return super.getBlobStore();
+    protected BlobStore createBlobStore() {
+        Settings settings = metadata.settings();
+        SecureString accessKey = S3RepositorySettings.ACCESS_KEY_SETTING.getOrNull(settings);
+        SecureString secretKey = S3RepositorySettings.SECRET_KEY_SETTING.getOrNull(settings);
+        String endpoint = S3RepositorySettings.ENDPOINT_SETTING.getOrNull(settings);
+        if (endpoint != null && !(endpoint.startsWith("http://") || endpoint.startsWith("https://"))) {
+            String protocol = S3RepositorySettings.PROTOCOL_SETTING.get(settings);
+            endpoint = protocol + "://" + endpoint;
+        }
+        String region = S3.getRegion(endpoint, bucket);
+        var configBuilder = ServiceConfig.S3.builder()
+            .bucket(bucket)
+            .endpoint(endpoint)
+            .accessKeyId(accessKey == null ? null : accessKey.toString())
+            .secretAccessKey(secretKey == null ? null : secretKey.toString())
+            .defaultStorageClass(storageClass)
+            .region(region);
+        if (serverSideEncryption) {
+            configBuilder.serverSideEncryption("AES256");
+        }
+        if (endpoint != null && !endpoint.contains("amazonaws.com")) {
+            configBuilder.disableConfigLoad(true);
+            configBuilder.disableEc2Metadata(true);
+        }
+        return new OpenDALBlobStore(
+            executor,
+            configBuilder.build(),
+            bufferSize.bytesAsInt()
+        );
     }
 
     @Override
     protected ByteSizeValue chunkSize() {
         return chunkSize;
-    }
-
-    @Override
-    protected void doClose() {
-        super.doClose();
     }
 }
