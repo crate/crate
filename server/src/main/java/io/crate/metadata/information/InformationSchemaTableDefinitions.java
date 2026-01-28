@@ -171,6 +171,14 @@ public class InformationSchemaTableDefinitions {
                 )
             ),
             Map.entry(
+                InformationSchemaViewColumnUsage.IDENT,
+                new StaticTableDefinition<>(
+                    (_, role) -> completedFuture(informationSchemaIterables.viewColumnUsage(role, roles)),
+                    InformationSchemaViewColumnUsage.TABLE.expressions(),
+                    false
+                )
+            ),
+            Map.entry(
                 ForeignServerTableInfo.IDENT,
                 new StaticTableDefinition<>(
                     informationSchemaIterables::servers,

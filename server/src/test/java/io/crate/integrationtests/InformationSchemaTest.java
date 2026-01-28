@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.List;
@@ -79,6 +80,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| tables| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| user_mapping_options| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| user_mappings| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| view_column_usage| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| views| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_am| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_attrdef| pg_catalog| BASE TABLE| NULL",
@@ -218,12 +220,12 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testSearchInformationSchemaTablesRefresh() {
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(74L);
+        assertThat(response.rowCount()).isEqualTo(75L);
 
         execute("create table t4 (col1 integer, col2 string) with(number_of_replicas=0)");
 
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(75L);
+        assertThat(response.rowCount()).isEqualTo(76L);
     }
 
     @Test
@@ -577,7 +579,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(1085);
+        assertThat(response.rowCount()).isEqualTo(1092);
     }
 
     @Test
@@ -917,7 +919,7 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
         execute("select count(*) from information_schema.tables");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.rows()[0][0]).isEqualTo(77L);
+        assertThat(response.rows()[0][0]).isEqualTo(78L);
     }
 
     @Test
@@ -1426,5 +1428,34 @@ public class InformationSchemaTest extends IntegTestCase {
             where table_name = 't' and constraint_type = 'PRIMARY KEY'
             """);
         assertThat(response).hasRows("c_1");
+    }
+
+    @Test
+    public void test_view_column_usage() throws Exception {
+        execute("create table doc.t1 (x int)");
+        execute("create table doc.t2 (y int)");
+        execute("create table doc.t3 (name text)");
+        execute("create view doc.v1 as (select *, 1 + 1 as calc from doc.t1, doc.t2 as t22, (select x as a from doc.t1) as t3)");
+        execute("create view doc.v2 as (select * from doc.v1, doc.t3, (select name as aliased_name from doc.t3) t31)");
+        execute(
+            """
+            select
+                view_name,
+                table_name,
+                column_name
+            from
+                information_schema.view_column_usage
+            order by view_name, column_name
+            """
+        );
+        assertThat(response).hasRows(
+            "v1| t1| x",
+            "v1| t2| y",
+            "v2| v1| a",
+            "v2| v1| calc",
+            "v2| t3| name",
+            "v2| v1| x",
+            "v2| v1| y"
+        );
     }
 }

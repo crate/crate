@@ -38,6 +38,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.expression.symbol.ScopedColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.doc.SysColumns;
@@ -45,7 +46,7 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
 
-public interface Reference extends Symbol {
+public interface Reference extends Symbol, ScopedColumn {
 
     public static final Comparator<Reference> CMP_BY_POSITION_THEN_NAME = Comparator
         .comparingInt(Reference::position)
@@ -61,10 +62,6 @@ public interface Reference extends Symbol {
         }
         return -1;
     }
-
-    RelationName relation();
-
-    ColumnIdent column();
 
     @Override
     default ColumnIdent toColumn() {

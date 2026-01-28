@@ -64,6 +64,9 @@ None
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
+- Added the :ref:`information_schema.view_column_usage
+  <information_schema_view_column_usage>` table.
+
 - Added the :ref:`pg_sleep <scalar-pg_sleep>` function, which pauses a session.
 
 Data Types
