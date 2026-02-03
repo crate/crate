@@ -88,6 +88,7 @@ public class S3Repository extends BlobStoreRepository {
                        SERVER_SIDE_ENCRYPTION_SETTING,
                        // client specific settings
                        ENDPOINT_SETTING,
+                       S3RepositorySettings.REGION,
                        PROTOCOL_SETTING,
                        MAX_RETRIES_SETTING,
                        USE_THROTTLE_RETRIES_SETTING,
@@ -173,7 +174,10 @@ public class S3Repository extends BlobStoreRepository {
             endpoint = protocol + "://" + endpoint;
         }
         boolean usePathStyle = S3RepositorySettings.USE_PATH_STYLE_ACCESS.get(settings);
-        String region = S3.getRegion(endpoint, bucket);
+        String region = S3RepositorySettings.REGION.getOrNull(settings);
+        if (region == null) {
+            region = S3.getRegion(endpoint, bucket);
+        }
         var configBuilder = ServiceConfig.S3.builder()
             .bucket(bucket)
             .endpoint(endpoint)
