@@ -29,6 +29,7 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.After;
 import org.junit.Before;
@@ -95,6 +96,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     @After
     public void dropDbObjects() {
         executeAsSuperuser("drop view if exists v1, my_schema.v2, other_schema.v3");
+        executeAsSuperuser("drop function if exists my_schema.foo(bigint)");
     }
 
     @Test
