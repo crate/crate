@@ -265,6 +265,12 @@ Parameters
       You can specify a `regional endpoint`_ to force the use of a specific
       `AWS region`_.
 
+**region**
+  | *Type:*    ``text``
+  | *Default:* Inferred from the endpoint if possible or us-east-1.
+
+  The region to use.
+
 .. _sql-create-repo-s3-protocol:
 
 **protocol**

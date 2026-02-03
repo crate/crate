@@ -145,6 +145,8 @@ class S3RepositorySettings {
         DataTypes.STRING,
         Setting.Property.NodeScope);
 
+    static final Setting<String> REGION = Setting.simpleString("region", Setting.Property.NodeScope);
+
     /**
      * The protocol to use to connect to s3.
      */
