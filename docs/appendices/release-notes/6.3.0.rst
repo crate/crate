@@ -48,6 +48,8 @@ Breaking Changes
 - Removed the ``canned_acl`` setting for repositories of type ``s3`` and also
   removed the undocumented proxy settings.
 
+- Removed the ``token_uri`` setting for repositories of type ``gcs``.
+
 Deprecations
 ============
 

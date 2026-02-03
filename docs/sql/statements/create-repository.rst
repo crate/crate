@@ -731,14 +731,6 @@ Parameters
 
  Endpoint root url to connect to an alternative storage provider.
 
-.. _sql-create-repo-gcs-token_uri:
-
-**token_uri**
- | *Type:* ``text``
- | *Required:* ``false``
-
- Endpoint oauth token URI to connect to an alternative oauth provider.
-
 .. _sql-create-repo-url:
 
 ``url``
