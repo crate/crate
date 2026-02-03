@@ -41,89 +41,14 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+          <groupId>io.crate</groupId>
+          <artifactId>crate-libs-opendal</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.jspecify</groupId>
             <artifactId>jspecify</artifactId>
             <version>${versions.jspecify}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.api</groupId>
-            <artifactId>gax</artifactId>
-            <version>${versions.google.gax}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.auth</groupId>
-            <artifactId>google-auth-library-credentials</artifactId>
-            <version>${versions.google.auth}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.auth</groupId>
-            <artifactId>google-auth-library-oauth2-http</artifactId>
-            <version>${versions.google.oauth2}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-storage</artifactId>
-            <version>${versions.google.cloud.storage}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-core-http</artifactId>
-            <version>${versions.google.cloud.core.http}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-core</artifactId>
-            <version>${versions.google.cloud.core}</version>
-        </dependency>
-
-        <!-- Pin version of external dependencies -->
-
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>${versions.guava}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>${versions.jackson}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.http-client</groupId>
-            <artifactId>google-http-client-gson</artifactId>
-            <version>${versions.google.gson}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.errorprone</groupId>
-            <artifactId>error_prone_annotations</artifactId>
-            <version>${versions.google.errorprone}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.j2objc</groupId>
-            <artifactId>j2objc-annotations</artifactId>
-            <version>${versions.google.j2objc}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.checkerframework</groupId>
-            <artifactId>checker-qual</artifactId>
-            <version>${versions.checkerframework}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-context</artifactId>
-            <version>${versions.grpc}</version>
         </dependency>
 
         <dependency>
