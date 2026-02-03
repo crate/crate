@@ -40,6 +40,12 @@ series.
 Fixes
 =====
 
+- Fixed an issue that caused ``INSERT INTO`` statements into columns of type
+  ``ARRAY(OBJECT(DYNAMIC))`` to fail with an
+  ``UnsupportedFeatureException[null]`` if it resulted in the addition of new
+  columns to the table schema and if the objects within the array contained
+  mixed types like in ``[{"x": 1}, {"x": null}]``.
+
 - Fixed an issue that allowed inserting ``NULL`` values into child columns of
   ``ARRAY(OBJECT)`` columns despite ``NOT NULL`` constraint on those child
   columns if a sibling column had a value.
@@ -130,3 +136,21 @@ Fixes
   restarts. Flag mentioned in :ref:`version_6.0.0_breaking_changes` and
   :ref:`version_6.1.0_breaking_changes` is already set to ``NORMAL`` starting
   from this version and won't be needed at all starting from CrateDB 6.2.0.
+
+- Fixed a regression introduced in :ref:`version_6.0.0` that caused nested path
+  accesses on ``ARRAY(OBJECT)`` columns returned by a sub-select using a
+  ``UNNEST`` function to either fail with a ``ColumnUnknownException`` or
+  return incorrect results as wrong child-columns are used. Example::
+
+    SELECT obj_arr['child_obj']['id'] AS id
+    FROM (
+      SELECT unnest(
+        [ {child_obj = { id = 'correct_id'}, id='wrong_id'} ]
+      ) AS obj_arr
+    ) AS sub1
+    --> now returns 'correct_id' instead of returning 'wrong_id'
+
+- Fixed an issue that caused inserts to fail with a
+  ``UnsupportedFeatureException`` error if a sub-column of a ``OBJECT`` typed
+  column, previously created with a ``NULL`` value, is then inserted using a
+  non-NULL value and such using a concrete data type.
