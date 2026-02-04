@@ -145,17 +145,19 @@ public class MetadataTest {
         assertThat(recievedMetadata.currentMaxTableOid()).isEqualTo(tableOID);
 
         // diff streaming
-        Metadata prevMetadata = Metadata.builder(100)
+        Metadata prevMetadata = Metadata.builder(Metadata.OID_UNASSIGNED)
             .removeCustom(IndexGraveyard.TYPE)
             .build();
+        // build metadataDiff with currentMaxTableOid = 123
         var metadataDiff = metadata.diff(Version.CURRENT, prevMetadata);
 
         out = new BytesStreamOutput();
         metadataDiff.writeTo(out);
         in = out.bytes().streamInput();
         var receivedMetadataDiff = Metadata.readDiffFrom(in);
-        var emptyMetadata = Metadata.builder(777).build(); // check tableOID is overwritten
-        assertThat(receivedMetadataDiff.apply(emptyMetadata).currentMaxTableOid()).isEqualTo(tableOID);
+        // check that currMetadata.currentMaxTableOid is overridden by metadataDiff.currentMaxTableOid which is greater
+        var currMetadata = Metadata.builder(120).build();
+        assertThat(receivedMetadataDiff.apply(currMetadata).currentMaxTableOid()).isEqualTo(tableOID);
 
         out = new BytesStreamOutput();
         out.setVersion(Version.fromString("6.2.0"));
@@ -163,8 +165,9 @@ public class MetadataTest {
         in = out.bytes().streamInput();
         in.setVersion(Version.fromString("6.2.0"));
         receivedMetadataDiff = Metadata.readDiffFrom(in);
-        emptyMetadata = Metadata.builder(777).build(); // check tableOID is overwritten
-        assertThat(receivedMetadataDiff.apply(emptyMetadata).currentMaxTableOid()).isEqualTo(Metadata.OID_UNASSIGNED);
+        // check that currMetadata.currentMaxTableOid is not overridden by metadataDiff.currentMaxTableOid which is UNASSIGNED
+        currMetadata = Metadata.builder(120).build();
+        assertThat(receivedMetadataDiff.apply(currMetadata).currentMaxTableOid()).isEqualTo(120);
     }
 
     @Test
