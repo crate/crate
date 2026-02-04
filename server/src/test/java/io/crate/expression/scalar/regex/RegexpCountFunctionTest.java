@@ -101,8 +101,9 @@ public class RegexpCountFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_invalid_argument_type() {
-        assertThatThrownBy(() -> assertEvaluateNull("regexp_count('foobar', 1)"))
+        assertThatThrownBy(() -> assertNormalize("regexp_count('foobar', [1, 2])", isLiteral(0)))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Invalid arguments in: regexp_count('foobar', 1) with (text, integer).");
+            .hasMessageStartingWith(
+                "Invalid arguments in: regexp_count('foobar', [1, 2]) with (text, integer_array).");
     }
 }
