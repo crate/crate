@@ -2706,6 +2706,51 @@ See the API documentation for more details.
     operator <sql_dql_regexp>` uses `Lucene Regular Expressions`_.
 
 
+.. _scalar-regexp_count:
+
+``regexp_count(text, pattern [, start [, flags]])``
+---------------------------------------------------
+
+Counts the number of non-overlapping occurrences of ``pattern`` in ``text``.
+``start`` is a 1-based index to start searching from. If ``start`` is less
+than or equal to ``0``, it is treated as ``1``. If ``start`` is beyond the
+length of ``text``, the result is ``0``. Returns ``NULL`` if ``text``,
+``pattern`` or ``start`` is ``NULL``.
+
+Returns: ``integer``
+
+``pattern`` is a Java regular expression. For details on the regexp syntax, see
+`Java Regular Expressions`_.
+
+``flags`` is a string containing any of the following characters:
+``i``, ``u``, ``U``, ``s``, ``m``, ``x``, ``d``, ``g``. The ``g`` flag is
+accepted for compatibility but has no effect because all occurrences are
+counted.
+
+Examples
+........
+
+::
+
+    cr> select regexp_count('foobarbequebaz', 'ba') AS count;
+    +-------+
+    | count |
+    +-------+
+    |     2 |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select regexp_count('AaA', 'a', 1, 'i') AS count;
+    +-------+
+    | count |
+    +-------+
+    |     3 |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-regexp_replace:
 
 ``regexp_replace(source, pattern, replacement [, flags])``
