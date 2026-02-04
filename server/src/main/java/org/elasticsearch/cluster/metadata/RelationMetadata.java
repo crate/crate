@@ -47,6 +47,8 @@ public sealed interface RelationMetadata extends Writeable permits
 
     RelationName name();
 
+    List<String> indexUUIDs();
+
     static RelationMetadata of(StreamInput in) throws IOException {
         short ord = in.readShort();
         return switch (ord) {
@@ -87,6 +89,11 @@ public sealed interface RelationMetadata extends Writeable permits
         @Override
         public short ord() {
             return ORD;
+        }
+
+        @Override
+        public List<String> indexUUIDs() {
+            return List.of(indexUUID);
         }
     }
 
