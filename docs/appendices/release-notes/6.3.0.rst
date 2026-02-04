@@ -102,6 +102,9 @@ Scalar and Aggregation Functions
 - `Dhruv Patel <https://github.com/DHRUV6029>`_ added support for ``interval``
   type to the :ref:`percentile <aggregation-percentile>` aggregation function.
 
+- Added the :ref:`regexp_count <scalar-regexp_count>` scalar function to count
+  regular expression matches, with optional ``start`` and ``flags`` arguments.
+
 Performance and Resilience Improvements
 ---------------------------------------
 
