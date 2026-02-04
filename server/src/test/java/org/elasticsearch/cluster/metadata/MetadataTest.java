@@ -23,8 +23,10 @@ package org.elasticsearch.cluster.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.elasticsearch.test.ESTestCase.settings;
 
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -35,9 +37,12 @@ import io.crate.exceptions.DependentObjectsExists;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTablesMetadata;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
 public class MetadataTest {
@@ -111,5 +116,79 @@ public class MetadataTest {
                 )
                 .dropSchema("foo")
         ).isExactlyInstanceOf(DependentObjectsExists.class);
+    }
+
+    @Test
+    public void test_deleted_tables_in_metadataDiff_indices_templates_are_applied_to_source_metadata_schemas() {
+        Metadata metadata = Metadata.builder()
+            .put(IndexTemplateMetadata.builder(PartitionName.templateName("doc", "t1"))
+                .patterns(List.of(PartitionName.templatePrefix("doc", "t1")))
+                .settings(Settings.EMPTY)
+                .putMapping("{}")
+                .build())
+            .put(IndexMetadata.builder("t2")
+                    .settings(settings(Version.CURRENT))
+                    .numberOfShards(1)
+                    .numberOfReplicas(0)
+                    .build(),
+                true
+            ).build();
+
+        assertThat(metadata.schemas()).isEmpty();
+        assertThat(metadata.indices().size()).isEqualTo(1);
+        assertThat(metadata.indices().keysIt().next()).isEqualTo("t2");
+        assertThat(metadata.templates().size()).isEqualTo(1);
+        assertThat(metadata.templates().keysIt().next()).isEqualTo(".partitioned.t1.");
+
+        var mdBuilder = Metadata.builder(metadata);
+        Metadata upgraded = mdBuilder
+            .setTable(
+                new RelationName("doc", "t1"),
+                List.of(),
+                Settings.builder()
+                    .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                    .build(),
+                null,
+                ColumnPolicy.STRICT,
+                null,
+                Map.of(),
+                List.of(),
+                List.of(ColumnIdent.of("col1")),
+                IndexMetadata.State.OPEN,
+                List.of(),
+                1L)
+            .setTable(
+                new RelationName("doc", "t2"),
+                List.of(),
+                Settings.builder()
+                    .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                    .build(),
+                null,
+                ColumnPolicy.STRICT,
+                null,
+                Map.of(),
+                List.of(),
+                List.of(),
+                IndexMetadata.State.OPEN,
+                List.of("t2"),
+                2L
+            ).build();
+
+        assertThat(upgraded.schemas().get("doc").relations().size()).isEqualTo(2);
+        assertThat(upgraded.schemas().get("doc").relations().get("t1")).isNotNull();
+        assertThat(upgraded.schemas().get("doc").relations().get("t2")).isNotNull();
+        assertThat(upgraded.indices().size()).isEqualTo(1);
+        assertThat(upgraded.indices().keysIt().next()).isEqualTo("t2");
+        assertThat(upgraded.templates().size()).isEqualTo(1);
+        assertThat(upgraded.templates().keysIt().next()).isEqualTo(".partitioned.t1.");
+
+        // diff that holds table(t1, t2) deletes
+        var metadataDiff = Metadata.EMPTY_METADATA.diff(Version.CURRENT, metadata);
+
+        Metadata deletesApplied = metadataDiff.apply(upgraded);
+
+        assertThat(deletesApplied.indices().size()).isEqualTo(0);
+        assertThat(deletesApplied.templates().size()).isEqualTo(0);
+        assertThat(deletesApplied.schemas().size()).isEqualTo(0); // make sure deleted from schemas as well
     }
 }
