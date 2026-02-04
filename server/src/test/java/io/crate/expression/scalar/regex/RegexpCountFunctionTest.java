@@ -51,6 +51,7 @@ public class RegexpCountFunctionTest extends ScalarTestCase {
     public void test_count_with_start() {
         assertEvaluate("regexp_count('abcabc', 'abc', 2)", 1);
         assertEvaluate("regexp_count('abcabc', 'abc', 1)", 2);
+        assertEvaluate("regexp_count('aaaa', 'aa', 2)", 1);
     }
 
     @Test
@@ -67,6 +68,11 @@ public class RegexpCountFunctionTest extends ScalarTestCase {
     @Test
     public void test_count_with_flags() {
         assertEvaluate("regexp_count('AaA', 'a', 1, 'i')", 3);
+    }
+
+    @Test
+    public void test_g_flag_is_accepted_but_has_no_effect() {
+        assertEvaluate("regexp_count('aba', 'a', 1, 'g')", 2);
     }
 
     @Test
