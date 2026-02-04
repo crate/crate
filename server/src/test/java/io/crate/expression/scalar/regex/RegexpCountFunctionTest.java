@@ -63,6 +63,7 @@ public class RegexpCountFunctionTest extends ScalarTestCase {
     public void test_count_start_zero_or_negative_treated_as_one() {
         assertEvaluate("regexp_count('abcabc', 'abc', 0)", 2);
         assertEvaluate("regexp_count('abcabc', 'abc', -2)", 2);
+        assertEvaluate("regexp_count('abc', 'a', -2147483648)", 1);
     }
 
     @Test

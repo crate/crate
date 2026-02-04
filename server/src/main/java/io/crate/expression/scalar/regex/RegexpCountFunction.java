@@ -130,7 +130,9 @@ public final class RegexpCountFunction extends Scalar<Integer, Object> {
             if (start == null) {
                 return null;
             }
-            startIndex = Math.max(0, start.intValue() - 1);
+            int startValue = start.intValue();
+            // Guard against underflow for Integer.MIN_VALUE and keep 1-based semantics.
+            startIndex = startValue <= 0 ? 0 : startValue - 1;
         }
         if (startIndex >= value.length()) {
             return 0;
