@@ -85,6 +85,7 @@ import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -580,6 +581,25 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             builder.templates(templates.apply(part.templates));
             builder.customs(customs.apply(part.customs));
             builder.schemas.putAll(schemas.apply(part.schemas));
+
+            // apply deleted indices and templates to schemas
+            var templatesMapDiff = (Diffs.MapDiff<String, IndexTemplateMetadata, ImmutableOpenMap<String, IndexTemplateMetadata>>) templates;
+            templatesMapDiff.getDeletes().forEach(templateName -> {
+                IndexTemplateMetadata template = part.templates.get(templateName);
+                if (template != null) {
+                    RelationName relationName = IndexName.decode(template.name()).toRelationName();
+                    builder.dropRelation(relationName);
+                }
+            });
+            var indicesMapDiff = (Diffs.MapDiff<String, IndexMetadata, ImmutableOpenMap<String, IndexMetadata>>) indices;
+            indicesMapDiff.getDeletes().forEach(key -> {
+                String indexUUID = part.indices().get(key).getIndexUUID();
+                RelationMetadata relationMetadata = part.getRelation(indexUUID);
+                if (relationMetadata instanceof RelationMetadata.Table table && table.partitionedBy().isEmpty()) {
+                    builder.dropRelation(relationMetadata.name());
+                }
+            });
+
             return builder.build();
         }
     }
