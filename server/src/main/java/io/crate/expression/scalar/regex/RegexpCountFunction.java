@@ -119,8 +119,8 @@ public final class RegexpCountFunction extends Scalar<Integer, Object> {
     public Integer evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         assert args.length >= 2 && args.length <= 4 : "number of args must be 2 to 4";
         String value = (String) args[0].value();
-        String pattern = (String) args[1].value();
-        if (value == null || pattern == null) {
+        String patternStr = (String) args[1].value();
+        if (value == null || patternStr == null) {
             return null;
         }
 
@@ -141,20 +141,15 @@ public final class RegexpCountFunction extends Scalar<Integer, Object> {
             flags = (String) args[3].value();
         }
 
-        Pattern countPattern;
+        Pattern pattern;
         if (this.pattern == null) {
-            countPattern = Pattern.compile(pattern, parseFlags(flags));
+            pattern = Pattern.compile(patternStr, parseFlags(flags));
         } else {
-            countPattern = this.pattern;
+            pattern = this.pattern;
         }
 
-        Matcher matcher = countPattern.matcher(value);
-        int count = 0;
-        boolean found = matcher.find(startIndex);
-        while (found) {
-            count++;
-            found = matcher.find();
-        }
-        return count;
+        Matcher matcher = pattern.matcher(value);
+        matcher.region(startIndex, value.length());
+        return (int) matcher.results().count();
     }
 }
