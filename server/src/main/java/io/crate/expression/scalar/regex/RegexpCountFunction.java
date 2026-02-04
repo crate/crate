@@ -132,7 +132,7 @@ public final class RegexpCountFunction extends Scalar<Integer, Object> {
             }
             startIndex = Math.max(0, start.intValue() - 1);
         }
-        if (startIndex > value.length()) {
+        if (startIndex >= value.length()) {
             return 0;
         }
 
