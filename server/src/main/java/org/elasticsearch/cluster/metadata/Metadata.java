@@ -568,7 +568,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
         @Override
         public Metadata apply(Metadata part) {
-            Builder builder = builder(currentMaxTableOid);
+            Builder builder = builder(part.currentMaxTableOid);
             builder.clusterUUID(clusterUUID);
             builder.clusterUUIDCommitted(clusterUUIDCommitted);
             builder.version(version);
