@@ -39,12 +39,12 @@ public class RegexpCountFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_count_basic() {
-        assertEvaluate("regexp_count(name, 'ba')", 2, Literal.of("foobarbequebaz"));
+        assertEvaluate("regexp_count(name, 'ba(?:r|z)')", 2, Literal.of("foobarbequebaz"));
     }
 
     @Test
     public void test_count_non_overlapping() {
-        assertEvaluate("regexp_count('aaaa', 'aa')", 2);
+        assertEvaluate("regexp_count('aaaa', 'a{2}')", 2);
     }
 
     @Test
@@ -60,10 +60,16 @@ public class RegexpCountFunctionTest extends ScalarTestCase {
     }
 
     @Test
-    public void test_count_start_zero_or_negative_treated_as_one() {
-        assertEvaluate("regexp_count('abcabc', 'abc', 0)", 2);
-        assertEvaluate("regexp_count('abcabc', 'abc', -2)", 2);
-        assertEvaluate("regexp_count('abc', 'a', -2147483648)", 1);
+    public void test_count_start_zero_or_negative_throws_error() {
+        assertThatThrownBy(() -> assertEvaluate("regexp_count('abcabc', 'abc', 0)", 2))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("`start` must be greater than or equal to 1");
+        assertThatThrownBy(() -> assertEvaluate("regexp_count('abcabc', 'abc', -2)", 2))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("`start` must be greater than or equal to 1");
+        assertThatThrownBy(() -> assertEvaluate("regexp_count('abc', 'a', -2147483648)", 1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("`start` must be greater than or equal to 1");
     }
 
     @Test
@@ -72,20 +78,18 @@ public class RegexpCountFunctionTest extends ScalarTestCase {
     }
 
     @Test
-    public void test_g_flag_is_accepted_but_has_no_effect() {
-        assertEvaluate("regexp_count('aba', 'a', 1, 'g')", 2);
-    }
-
-    @Test
-    public void test_flags_null_is_treated_as_no_flags() {
-        assertEvaluate("regexp_count('aaa', 'a', 1, null::text)", 3);
+    public void test_g_flag_is_rejected() {
+        assertThatThrownBy(() -> assertNormalize("regexp_count('aba', 'a', 1, 'g')", isLiteral(0)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The regular expression flag is unknown: g");
     }
 
     @Test
     public void test_nulls() {
-        assertEvaluateNull("regexp_count(null::text, 'a')");
-        assertEvaluateNull("regexp_count('abc', null::text)");
-        assertEvaluateNull("regexp_count('abc', 'a', null::integer)");
+        assertEvaluateNull("regexp_count(null, 'a')");
+        assertEvaluateNull("regexp_count('abc', null)");
+        assertEvaluateNull("regexp_count('abc', 'a', null)");
+        assertEvaluate("regexp_count('aaa', 'a', 1, null)", 3);
     }
 
     @Test
@@ -104,13 +108,5 @@ public class RegexpCountFunctionTest extends ScalarTestCase {
     public void test_invalid_number_of_arguments() {
         assertThatThrownBy(() -> assertEvaluateNull("regexp_count('foobar')"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class);
-    }
-
-    @Test
-    public void test_invalid_argument_type() {
-        assertThatThrownBy(() -> assertNormalize("regexp_count('foobar', [1, 2])", isLiteral(0)))
-            .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith(
-                "Invalid arguments in: regexp_count('foobar', [1, 2]) with (text, integer_array).");
     }
 }

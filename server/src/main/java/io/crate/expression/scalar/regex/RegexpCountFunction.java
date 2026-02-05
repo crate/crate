@@ -116,7 +116,7 @@ public final class RegexpCountFunction extends Scalar<Integer, Object> {
     }
 
     @Override
-    public Integer evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
+    public Integer evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         assert args.length >= 2 && args.length <= 4 : "number of args must be 2 to 4";
         String value = (String) args[0].value();
         String patternStr = (String) args[1].value();
@@ -131,8 +131,10 @@ public final class RegexpCountFunction extends Scalar<Integer, Object> {
                 return null;
             }
             int startValue = start.intValue();
-            // Guard against underflow for Integer.MIN_VALUE and keep 1-based semantics.
-            startIndex = startValue <= 0 ? 0 : startValue - 1;
+            if (startValue < 1) {
+                throw new IllegalArgumentException("`start` must be greater than or equal to 1");
+            }
+            startIndex = startValue - 1;
         }
         if (startIndex >= value.length()) {
             return 0;
@@ -141,6 +143,9 @@ public final class RegexpCountFunction extends Scalar<Integer, Object> {
         String flags = null;
         if (args.length == 4) {
             flags = (String) args[3].value();
+            if (flags != null && flags.indexOf('g') != -1) {
+                throw new IllegalArgumentException("The regular expression flag is unknown: g");
+            }
         }
 
         Pattern pattern;
@@ -152,6 +157,10 @@ public final class RegexpCountFunction extends Scalar<Integer, Object> {
 
         Matcher matcher = pattern.matcher(value);
         matcher.region(startIndex, value.length());
-        return (int) matcher.results().count();
+        int count = 0;
+        while (matcher.find()) {
+            count++;
+        }
+        return count;
     }
 }

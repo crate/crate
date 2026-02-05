@@ -2712,10 +2712,10 @@ See the API documentation for more details.
 ---------------------------------------------------
 
 Counts the number of non-overlapping occurrences of ``pattern`` in ``text``.
-``start`` is a 1-based index to start searching from. If ``start`` is less
-than or equal to ``0``, it is treated as ``1``. If ``start`` is beyond the
-length of ``text``, the result is ``0``. Returns ``NULL`` if ``text``,
-``pattern`` or ``start`` is ``NULL``.
+``start`` is an optional 1-based index to start searching from. If ``start``
+is less than ``1``, an error is raised. If ``start`` is beyond the length of
+``text``, the result is ``0``. Returns ``NULL`` if ``text``, ``pattern`` or
+``start`` is ``NULL``.
 
 Returns: ``integer``
 
@@ -2723,16 +2723,14 @@ Returns: ``integer``
 `Java Regular Expressions`_.
 
 ``flags`` is a string containing any of the following characters:
-``i``, ``u``, ``U``, ``s``, ``m``, ``x``, ``d``, ``g``. The ``g`` flag is
-accepted for compatibility but has no effect because all occurrences are
-counted.
+``i``, ``u``, ``U``, ``s``, ``m``, ``x``, ``d``.
 
 Examples
 ........
 
 ::
 
-    cr> select regexp_count('foobarbequebaz', 'ba') AS count;
+    cr> select regexp_count('foobarbequebaz', 'ba(?:r|z)') AS count;
     +-------+
     | count |
     +-------+
@@ -2742,11 +2740,11 @@ Examples
 
 ::
 
-    cr> select regexp_count('AaA', 'a', 1, 'i') AS count;
+    cr> select regexp_count('AaA', 'a+', 1, 'i') AS count;
     +-------+
     | count |
     +-------+
-    |     3 |
+    |     1 |
     +-------+
     SELECT 1 row in set (... sec)
 
