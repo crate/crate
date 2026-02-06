@@ -24,6 +24,14 @@ package io.crate.gcs;
 import static org.elasticsearch.common.settings.Setting.byteSizeSetting;
 import static org.elasticsearch.common.settings.Setting.simpleString;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
+import org.apache.opendal.AsyncExecutor;
+import org.apache.opendal.ServiceConfig;
+import org.apache.opendal.ServiceConfig.Gcs;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
@@ -31,11 +39,15 @@ import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
+
+import io.crate.opendal.OpenDALBlobStore;
 
 /**
  * Based on https://github.com/opensearch-project/OpenSearch/blob/main/plugins/repository-gcs/src/main/java/org/opensearch/repositories/gcs/GoogleCloudStorageRepository.java
@@ -64,27 +76,73 @@ public class GCSRepository extends BlobStoreRepository {
         Property.Dynamic
     );
 
-    private final GCSService service;
+    private static final int NUM_RETRIES = 3;
+    private static final boolean JITTER = true;
+
     private final ByteSizeValue chunkSize;
     private final String bucket;
-
+    private final AsyncExecutor executor;
 
     public GCSRepository(
-        final RepositoryMetadata metadata,
-        final NamedWriteableRegistry namedWriteableRegistry,
-        final NamedXContentRegistry namedXContentRegistry,
-        final ClusterService clusterService,
-        final GCSService service,
-        final RecoverySettings recoverySettings) {
-        super(metadata, namedWriteableRegistry, namedXContentRegistry, clusterService, recoverySettings, buildBasePath(metadata));
-        this.service = service;
+            RepositoryMetadata metadata,
+            NamedWriteableRegistry namedWriteableRegistry,
+            NamedXContentRegistry namedXContentRegistry,
+            ClusterService clusterService,
+            RecoverySettings recoverySettings,
+            AsyncExecutor executor) {
+        super(
+            metadata,
+            namedWriteableRegistry,
+            namedXContentRegistry,
+            clusterService,
+            recoverySettings,
+            buildBasePath(metadata)
+        );
+        this.executor = executor;
         this.chunkSize = CHUNK_SIZE_SETTING.get(metadata.settings());
         this.bucket = BUCKET_SETTING.get(metadata.settings());
     }
 
     @Override
-    protected GCSBlobStore createBlobStore() {
-        return new GCSBlobStore(bucket, service, metadata, bufferSize);
+    protected OpenDALBlobStore createBlobStore() {
+        Settings repoSettings = metadata.settings();
+        String credentials;
+        try (var builder = JsonXContent.builder()
+                .startObject()
+                .field("type", "service_account")
+                .field("project_id", GCSClientSettings.PROJECT_ID_SETTING.get(repoSettings))
+                .field("private_key_id", GCSClientSettings.PRIVATE_KEY_ID_SETTING.get(repoSettings).toString())
+                .field("private_key", GCSClientSettings.PRIVATE_KEY_SETTING.get(repoSettings).toString())
+                .field("client_id", GCSClientSettings.CLIENT_ID_SETTING.get(repoSettings).toString())
+                .field("client_email", GCSClientSettings.CLIENT_EMAIL_SETTING.get(repoSettings).toString())
+                .endObject()) {
+
+            credentials = Strings.toString(builder);
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
+        String endpoint = GCSClientSettings.ENDPOINT_SETTING.getOrNull(repoSettings);
+        String tokenURI = GCSClientSettings.TOKEN_URI_SETTING.get(repoSettings);
+        String token = null;
+        if (!tokenURI.equals(GCSClientSettings.TOKEN_URI_SETTING.getDefault(repoSettings))) {
+        }
+        Gcs.GcsBuilder configBuilder = ServiceConfig.Gcs.builder()
+            .allowAnonymous(true)
+            .endpoint(endpoint)
+            .token(token)
+            .credential(Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8)))
+            .bucket(bucket);
+        if (endpoint != null && !endpoint.contains("storage.googleapis.com")) {
+            configBuilder.disableVmMetadata(true);
+            configBuilder.disableConfigLoad(true);
+        }
+        return new OpenDALBlobStore(
+            executor,
+            configBuilder.build(),
+            bufferSize,
+            NUM_RETRIES,
+            JITTER
+        );
     }
 
     private static BlobPath buildBasePath(RepositoryMetadata metadata) {
