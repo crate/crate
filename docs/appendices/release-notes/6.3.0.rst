@@ -105,6 +105,9 @@ Scalar and Aggregation Functions
 - Added the :ref:`regexp_count <scalar-regexp_count>` scalar function to count
   regular expression matches, with optional ``start`` and ``flags`` arguments.
 
+- Added the :ref:`regexp_instr <scalar-regexp_instr>` scalar function to find
+  the position of the ``N`` th regular expression match.
+
 Performance and Resilience Improvements
 ---------------------------------------
 
