@@ -2877,6 +2877,85 @@ Examples
     +---------------------+--------------+
     SELECT 5 rows in set (... sec)
 
+.. _scalar-regexp_instr:
+
+``regexp_instr(source, pattern [, start [, N [, endoption [, flags [, subexpr])``
+---------------------------------------------------------------------------------
+
+``regexp_instr`` returns an 1-based index that corresponds to the starting or
+ending position of the ``N`` th match of the regular expression ``pattern`` in
+the input string ``source``, or 0 if there is no such match. If the optional
+parameter ``N`` is not specified the first match is located. The optional parameter
+``start`` can be used to specify the position to start searching for a match,
+otherwise the scan is started from the beginning of ``source``.
+If the optional ``endoption`` parameter is omitted or specified as zero, the
+function returns the position of the first character of the match. Otherwise,
+``endoption`` must be one, and the function returns the position of the
+character following the match. For a pattern containing parenthesized
+subexpressions, the optional parameter ``subexpr`` is an integer indicating
+which subexpression is of interest. The result then identifies the position of
+the substring matching that subexpression. Subexpressions are numbered in the
+order of their leading parentheses. When ``subexpr`` is omitted or zero, the
+result identifies the position of the whole match regardless of parenthesized
+subexpressions. The optional ``flags`` argument contains one or more single-
+letter flags that change the function's behavior (see below). The most prominent
+one is ``i`` to enable case-insensitive matching. Returns ``NULL`` if any of the
+parameters is ``NULL``.
+
+Returns: ``integer``
+
+``pattern`` is a Java regular expression. For details on the regexp syntax, see
+`Java Regular Expressions`_.
+
+
+.. _scalar-regexp_instr-flags:
+
+Flags
+.....
+
+``regexp_instr`` supports the same flags as for :ref:`regexp_replace <scalar-regexp_replace-flags>` except for
+the ``g`` flag which only makes sense for replacements.
+
+.. _scalar-regexp_instr-examples:
+
+Examples
+........
+
+Find the first position of a postal code:
+
+::
+
+   cr> select regexp_instr('Trier: 54290 Buxtehude: 21614', '\b\d{5}\b');
+    +--------------+
+    | regexp_instr |
+    +--------------+
+    |            8 |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+Find the first position of a town containing the letter 'x' following a postal code:
+
+::
+
+   cr> select regexp_instr('54290 Trier 21614 Buxtehude', '\d{5}\s(\w*X\w*)', 1, 1, 0, 'i', 1);
+    +--------------+
+    | regexp_instr |
+    +--------------+
+    |           19 |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+Find the position of the 3rd town following a postal code.
+
+::
+
+   cr> select regexp_instr('54290 Trier, 21614 Buxtehude, 53520 Wershofen', '\b\d{5}\s', 1, 3, 1);
+    +--------------+
+    | regexp_instr |
+    +--------------+
+    |           37 |
+    +--------------+
+    SELECT 1 row in set (... sec)
 
 .. _scalar-arrays:
 
