@@ -582,28 +582,31 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             builder.customs(customs.apply(part.customs));
             builder.schemas.putAll(schemas.apply(part.schemas));
 
-            // apply deleted indices and templates to schemas
+            // For BWC: when MetadataDiff is streamed from < 6.0, MetadataDiff.deletes applied to indices and templates
+            // must also be applied to schemas
             var templatesMapDiff = (Diffs.MapDiff<String, IndexTemplateMetadata, ImmutableOpenMap<String, IndexTemplateMetadata>>) templates;
             templatesMapDiff.getDeletes().forEach(templateName -> {
-                IndexTemplateMetadata template = part.templates.get(templateName);
-                if (template != null) {
-                    RelationName relationName = IndexName.decode(template.name()).toRelationName();
-                    builder.dropRelation(relationName);
-                }
+                RelationName relationName = IndexName.decode(templateName).toRelationName();
+                builder.dropRelation(relationName);
             });
             var indicesMapDiff = (Diffs.MapDiff<String, IndexMetadata, ImmutableOpenMap<String, IndexMetadata>>) indices;
-            indicesMapDiff.getDeletes().forEach(indexUUID -> {
+            indicesMapDiff.getDeletes().forEach(key -> {
                 try {
-                    RelationName relationName = IndexName.decode(part.indices().get(indexUUID).getIndex().getName()).toRelationName();
+                    IndexMetadata indexMetadata = part.indices().get(key);
+                    String indexUUID = indexMetadata.getIndexUUID(); // key is not always indexUUID if the Diff is streamed from a node < 6.0
+                    RelationName relationName = IndexName.decode(part.indices().get(key).getIndex().getName()).toRelationName();
                     RelationMetadata relationMetadata = builder.getRelation(relationName);
-                    // An indexMetadata deletion triggers dropRelation only if it is a non-partitioned table
-                    // Since shard resizing also uses MetadataDiff.deletes, we must ensure the indexUUID of the non-partitioned table matches
-                    // to prevent accidental drops
-                    if (relationMetadata instanceof RelationMetadata.Table table && table.partitionedBy().isEmpty() && table.indexUUIDs().getFirst().equals(indexUUID)) {
-                        builder.dropRelation(relationMetadata.name());
+                    if (relationMetadata != null
+                        // Deletion of indexMetadata should trigger dropRelation only if it is a non-partitioned table.
+                        && (!(relationMetadata instanceof RelationMetadata.Table table) || table.partitionedBy().isEmpty())
+                        // Since shard resizing also uses MetadataDiff.deletes, we must ensure the indexUUID of the non-partitioned table matches
+                        // to prevent accidental drops
+                        && relationMetadata.indexUUIDs().getFirst().equals(indexUUID)) {
+                        builder.dropRelation(relationName);
                     }
                 } catch (IllegalArgumentException e) {
-                    // suppress the exception thrown when decoding index name with ".resize." prefix to relation name.
+                    // Suppress the exception thrown when decoding index name with ".resize." prefix to relation name.
+                    assert e.getMessage().contains("resize") : "Unexpected exception thrown: " + e;
                 }
             });
 
