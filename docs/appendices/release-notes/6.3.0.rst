@@ -98,6 +98,10 @@ Performance and Resilience Improvements
 Administration and Operations
 -----------------------------
 
+- Added a ``region`` option to repositories of type ``s3`` for compatibility
+  with alternative s3 implementations like `Garage
+  <https://garagehq.deuxfleurs.fr/>`_.
+
 - Repositories of type ``s3`` now use path style access by default instead of
   virtual host style when building the URI.
 
