@@ -2821,6 +2821,94 @@ Examples
     +---------------------+--------------+
     SELECT 5 rows in set (... sec)
 
+.. _scalar-regexp_instr:
+
+``regexp_instr(source, pattern [, start [, N [, endoption [, flags [, subexpr])``
+---------------------------------------------------------------------------------
+
+``regexp_instr`` returns an 1-based index that corresponds to the starting or
+ending position of the ``N`` th match of the regular expression ``pattern``, or
+0 if there is no such match. If N is not specified the first match is located.
+If the ``endoption`` parameter is omitted or specified as zero, the function
+returns the position of the first character of the match. Otherwise,
+``endoption`` must be one, and the function returns the position of the
+character following the match. For a pattern containing parenthesized
+subexpressions, ``subexpr`` is an integer indicating which subexpression is of
+interest: the result identifies the position of the substring matching that
+subexpression. Subexpressions are numbered in the order of their leading
+parentheses. When ``subexpr`` is omitted or zero, the result identifies the
+position of the whole match regardless of parenthesized subexpressions.
+
+Returns: ``integer``
+
+``pattern`` is a Java regular expression. For details on the regexp syntax, see
+`Java Regular Expressions`_.
+
+
+.. _scalar-regexp_instr-flags:
+
+Flags
+.....
+
+``regexp_instr`` supports a number of flags as optional parameters. These
+flags are given as a string containing any of the characters listed below.
+Order does not matter.
+
++-------+---------------------------------------------------------------------+
+| Flag  | Description                                                         |
++=======+=====================================================================+
+| ``i`` | enable case insensitive matching                                    |
++-------+---------------------------------------------------------------------+
+| ``u`` | enable unicode case folding when used together with ``i``           |
++-------+---------------------------------------------------------------------+
+| ``U`` | enable unicode support for character classes like ``\W``            |
++-------+---------------------------------------------------------------------+
+| ``s`` | make ``.`` match line terminators, too                              |
++-------+---------------------------------------------------------------------+
+| ``m`` | make ``^`` and ``$`` match on the beginning or end of a line        |
+|       | too.                                                                |
++-------+---------------------------------------------------------------------+
+| ``x`` | permit whitespace and line comments starting with ``#``             |
++-------+---------------------------------------------------------------------+
+| ``d`` | only ``\n`` is considered a line-terminator when using ``^``, ``$`` |
+|       | and ``.``                                                           |
++-------+---------------------------------------------------------------------+
+
+
+.. _scalar-regexp_instr-examples:
+
+Examples
+........
+
+::
+
+   cr> select regexp_instr('foobarbequebaz', 'b..');
+    +--------------+
+    | regexp_instr |
+    +--------------+
+    |            4 |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+   cr> select regexp_instr('foobarbequebaz', 'b..', 10, 1, 1, 'i');
+    +--------------+
+    | regexp_instr |
+    +--------------+
+    |           15 |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+   cr> select regexp_instr('foobarbequebaz',  'O(B..).*(B..)', 1, 1, 1, 'i', 2);
+    +--------------+
+    | regexp_instr |
+    +--------------+
+    |           15 |
+    +--------------+
+    SELECT 1 row in set (... sec)
 
 .. _scalar-arrays:
 

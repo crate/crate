@@ -88,7 +88,7 @@ public final class RegexpReplaceFunction extends Scalar<String, String> {
 
     @Override
     public Scalar<String, String> compile(List<Symbol> arguments, String currentUser, Roles roles) {
-        assert arguments.size() >= 3 : "number of arguments muts be >= 3";
+        assert arguments.size() >= 3 : "number of arguments must be >= 3";
         Symbol patternSymbol = arguments.get(1);
         if (patternSymbol instanceof Input) {
             String pattern = (String) ((Input) patternSymbol).value();
