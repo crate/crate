@@ -592,14 +592,18 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 }
             });
             var indicesMapDiff = (Diffs.MapDiff<String, IndexMetadata, ImmutableOpenMap<String, IndexMetadata>>) indices;
-            indicesMapDiff.getDeletes().forEach(key -> {
-                RelationName relationName = IndexName.decode(key).toRelationName();
-                RelationMetadata relationMetadata = builder.getRelation(relationName);
-                // An indexMetadata deletion triggers dropRelation only if it is a non-partitioned table
-                // Since shard resizing also uses MetadataDiff.deletes, we must ensure the indexUUID of the non-partitioned table matches
-                // to prevent accidental drops
-                if (relationMetadata instanceof RelationMetadata.Table table && table.partitionedBy().isEmpty() && table.indexUUIDs().getFirst().equals(key)) {
-                    builder.dropRelation(relationMetadata.name());
+            indicesMapDiff.getDeletes().forEach(indexUUID -> {
+                try {
+                    RelationName relationName = IndexName.decode(part.indices().get(indexUUID).getIndex().getName()).toRelationName();
+                    RelationMetadata relationMetadata = builder.getRelation(relationName);
+                    // An indexMetadata deletion triggers dropRelation only if it is a non-partitioned table
+                    // Since shard resizing also uses MetadataDiff.deletes, we must ensure the indexUUID of the non-partitioned table matches
+                    // to prevent accidental drops
+                    if (relationMetadata instanceof RelationMetadata.Table table && table.partitionedBy().isEmpty() && table.indexUUIDs().getFirst().equals(indexUUID)) {
+                        builder.dropRelation(relationMetadata.name());
+                    }
+                } catch (IllegalArgumentException e) {
+                    // suppress the exception thrown when decoding index name with ".resize." prefix to relation name.
                 }
             });
 
