@@ -593,9 +593,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             });
             var indicesMapDiff = (Diffs.MapDiff<String, IndexMetadata, ImmutableOpenMap<String, IndexMetadata>>) indices;
             indicesMapDiff.getDeletes().forEach(key -> {
-                String indexUUID = part.indices().get(key).getIndexUUID();
-                RelationMetadata relationMetadata = part.getRelation(indexUUID);
-                if (relationMetadata instanceof RelationMetadata.Table table && table.partitionedBy().isEmpty()) {
+                RelationName relationName = IndexName.decode(part.indices().get(key).getIndex().getName()).toRelationName();
+                RelationMetadata relationMetadata = builder.getRelation(relationName);
+                // An indexMetadata deletion triggers dropRelation only if it is a non-partitioned table
+                // Since shard resizing also uses MetadataDiff.deletes, we must ensure the indexUUID of the non-partitioned table matches
+                // to prevent accidental drops
+                if (relationMetadata instanceof RelationMetadata.Table table && table.partitionedBy().isEmpty() && table.indexUUIDs().getFirst().equals(key)) {
                     builder.dropRelation(relationMetadata.name());
                 }
             });
