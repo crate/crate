@@ -190,7 +190,7 @@ sortItem
     ;
 
 querySpec
-    : SELECT setQuant? selectItem (COMMA selectItem)*
+    : SELECT setQuant? (selectItem (COMMA selectItem)*)?
       (FROM relation (COMMA relation)*)?
       where?
       (GROUP BY ( ALL | expr (COMMA expr)*))?

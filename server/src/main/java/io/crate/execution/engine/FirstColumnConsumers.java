@@ -61,6 +61,10 @@ public class FirstColumnConsumers {
         @Override
         public BiConsumer<List<Object>, Row> accumulator() {
             return (agg, row) -> {
+                if (row.numColumns() == 0) {
+                    agg.add(1);
+                    return;
+                }
                 Object value = row.get(0);
                 ramAccounting.addBytes(dataType.valueBytes(value));
                 agg.add(value);

@@ -3094,4 +3094,27 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         analyzed = executor.analyze("SELECT myobj['a'] FROM (SELECT js::OBJECT(IGNORED) as myobj FROM t1) t");
         assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
     }
+
+    @Test
+    public void test_select_with_no_columns_from_table() {
+        var executor = SQLExecutor.of(clusterService);
+        QueriedSelectRelation relation = executor.analyze("SELECT FROM sys.nodes");
+        assertThat(relation.outputs()).isEmpty();
+    }
+
+    @Test
+    public void test_select_with_no_columns_and_where_clause() {
+        var executor = SQLExecutor.of(clusterService);
+        QueriedSelectRelation relation = executor.analyze("SELECT FROM sys.nodes WHERE id = 'foo'");
+        assertThat(relation.outputs()).isEmpty();
+        assertThat(relation.where()).isFunction("op_=");
+    }
+
+    @Test
+    public void test_exists_with_select_no_columns() {
+        var executor = SQLExecutor.of(clusterService);
+        QueriedSelectRelation relation = executor.analyze(
+            "SELECT * FROM sys.nodes WHERE EXISTS (SELECT FROM sys.nodes WHERE id = 'foo')");
+        assertThat(relation.where()).isFunction("_exists");
+    }
 }
