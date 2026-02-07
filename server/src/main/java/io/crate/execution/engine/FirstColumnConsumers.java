@@ -46,11 +46,13 @@ public class FirstColumnConsumers {
 
         private final RamAccounting ramAccounting;
         private final DataType<Object> dataType;
+        private final int numColumns;
 
         @SuppressWarnings("unchecked")
-        private AllValues(RamAccounting ramAccounting, DataType<?> dataType) {
+        private AllValues(RamAccounting ramAccounting, DataType<?> dataType, int numColumns) {
             this.ramAccounting = ramAccounting;
             this.dataType = (DataType<Object>) dataType;
+            this.numColumns = numColumns;
         }
 
         @Override
@@ -61,6 +63,13 @@ public class FirstColumnConsumers {
         @Override
         public BiConsumer<List<Object>, Row> accumulator() {
             return (agg, row) -> {
+                // For 0-column rows (e.g., SELECT FROM table), just add a sentinel value.
+                // This is used for EXISTS which just needs to know if any rows exist.
+                // We use 1 to match the integer inner type used for 0-column EXISTS subqueries.
+                if (numColumns == 0) {
+                    agg.add(1);
+                    return;
+                }
                 Object value = row.get(0);
                 ramAccounting.addBytes(dataType.valueBytes(value));
                 agg.add(value);
@@ -131,10 +140,10 @@ public class FirstColumnConsumers {
 
     }
 
-    public static Collector<Row, ?, ?> getCollector(ResultType resultType, DataType<?> dataType, RamAccounting ramAccounting) {
+    public static Collector<Row, ?, ?> getCollector(ResultType resultType, DataType<?> dataType, RamAccounting ramAccounting, int numColumns) {
         if (resultType == ResultType.SINGLE_COLUMN_SINGLE_VALUE) {
             return SingleValue.INSTANCE;
         }
-        return new AllValues(ramAccounting, dataType);
+        return new AllValues(ramAccounting, dataType, numColumns);
     }
 }

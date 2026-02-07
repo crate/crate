@@ -80,7 +80,8 @@ public final class CorrelatedJoinProjector implements Projector {
             this.collector = FirstColumnConsumers.getCollector(
                 correlatedSubQuery.getResultType(),
                 correlatedSubQuery.innerType(),
-                RamAccounting.NO_ACCOUNTING
+                RamAccounting.NO_ACCOUNTING,
+                correlatedSubQuery.relation().outputs().size()
             );
         }
 

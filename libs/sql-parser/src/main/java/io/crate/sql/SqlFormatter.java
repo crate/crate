@@ -667,6 +667,10 @@ public final class SqlFormatter {
                 builder.append(" DISTINCT");
             }
 
+            if (node.getSelectItems().isEmpty()) {
+                return null;
+            }
+
             if (node.getSelectItems().size() > 1) {
                 boolean first = true;
                 for (SelectItem item : node.getSelectItems()) {

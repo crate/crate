@@ -45,7 +45,7 @@ public class FirstColumnConsumersTest {
         AtomicInteger calls = new AtomicInteger();
         var accounting = new BlockBasedRamAccounting(bytes -> calls.incrementAndGet(), 1);
         Collector<Row, List<Object>, ?> collector = (Collector<Row, List<Object>, ?>) FirstColumnConsumers
-            .getCollector(SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES, DataTypes.INTEGER, accounting);
+            .getCollector(SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES, DataTypes.INTEGER, accounting, 1);
         List<Object> supplier = collector.supplier().get();
         collector.accumulator().accept(supplier, new Row1(1));
         assertThat(calls.get()).isEqualTo(1);
