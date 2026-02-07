@@ -36,6 +36,7 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -174,6 +175,15 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
             } else {
                 outputs.add(output);
             }
+        }
+        // If there are no columns to collect but we still need to produce rows
+        // (e.g., SELECT FROM table), add a dummy literal to drive row production.
+        // The final Eval operator will use the empty relation.outputs() to strip it out.
+        if (outputs.isEmpty()
+            && context.aggregates.isEmpty()
+            && context.tableFunctions.isEmpty()
+            && context.windowFunctions.isEmpty()) {
+            outputs.add(Literal.of(1));
         }
         return new SplitPoints(
             outputs,

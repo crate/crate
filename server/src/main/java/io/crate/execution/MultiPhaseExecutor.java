@@ -95,7 +95,8 @@ public final class MultiPhaseExecutor {
             FirstColumnConsumers.getCollector(
                 selectSymbol.getResultType(),
                 selectSymbol.innerType(),
-                new BlockBasedRamAccounting(ramAccounting::addBytes, MAX_BLOCK_SIZE_IN_BYTES)
+                new BlockBasedRamAccounting(ramAccounting::addBytes, MAX_BLOCK_SIZE_IN_BYTES),
+                selectSymbol.relation().outputs().size()
             )
         );
     }

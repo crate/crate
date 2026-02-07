@@ -669,7 +669,9 @@ public class ExpressionAnalyzer {
             }
             var relation = subQueryAnalyzer.analyze(node.getSubquery());
             List<Symbol> fields = relation.outputs();
-            DataType<?> innerType = fields.getFirst().valueType();
+            // For EXISTS, we only care about whether rows exist, not the actual column types.
+            // If outputs is empty (e.g., SELECT FROM table), use integer as a placeholder type.
+            DataType<?> innerType = fields.isEmpty() ? DataTypes.INTEGER : fields.getFirst().valueType();
             SelectSymbol selectSymbol = new SelectSymbol(
                 relation,
                 new ArrayType<>(innerType),

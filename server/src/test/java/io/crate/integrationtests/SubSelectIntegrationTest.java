@@ -896,4 +896,23 @@ public class SubSelectIntegrationTest extends IntegTestCase {
             """);
         assertThat(response).hasRows("c2");
     }
+
+    @Test
+    public void test_select_with_no_columns() throws Exception {
+        execute("SELECT FROM sys.nodes");
+        assertThat(response.rowCount()).isGreaterThanOrEqualTo(1L);
+        assertThat(response.cols()).isEmpty();
+    }
+
+    @Test
+    public void test_exists_with_select_no_columns() throws Exception {
+        execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'nodes')");
+        assertThat(response.rows()[0][0]).isEqualTo(true);
+    }
+
+    @Test
+    public void test_exists_with_select_no_columns_no_match() throws Exception {
+        execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'nonexistent')");
+        assertThat(response.rows()[0][0]).isEqualTo(false);
+    }
 }

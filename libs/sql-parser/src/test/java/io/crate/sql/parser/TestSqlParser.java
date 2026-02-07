@@ -648,6 +648,19 @@ public class TestSqlParser {
         }
     }
 
+    @Test
+    public void test_select_with_no_columns() {
+        Query query = (Query) SqlParser.createStatement("SELECT FROM t");
+        QuerySpecification querySpec = (QuerySpecification) query.getQueryBody();
+        assertThat(querySpec.getSelect().getSelectItems()).isEmpty();
+    }
+
+    @Test
+    public void test_select_with_no_columns_round_trip() {
+        Statement stmt = SqlParser.createStatement("SELECT FROM t");
+        assertThat(formatSql(stmt)).isEqualTo("SELECT\nFROM \"t\"\n");
+    }
+
     private static String indent(String value) {
         String indent = "    ";
         return indent + value.trim().replaceAll("\n", "\n" + indent);
