@@ -19,38 +19,31 @@
 
 package org.elasticsearch.repositories.azure;
 
-import static org.elasticsearch.repositories.azure.AzureStorageService.MAX_CHUNK_SIZE;
-import static org.elasticsearch.repositories.azure.AzureStorageService.MIN_CHUNK_SIZE;
-
-import java.net.Proxy;
 import java.net.URI;
 import java.util.List;
-import java.util.Locale;
 import java.util.function.Function;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.opendal.AsyncExecutor;
+import org.apache.opendal.ServiceConfig;
+import org.apache.opendal.ServiceConfig.Azblob;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.blobstore.BlobPath;
-import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.SettingsException;
+import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
-import io.crate.common.annotations.VisibleForTesting;
 
-import com.microsoft.azure.storage.LocationMode;
-import com.microsoft.azure.storage.RetryPolicy;
-
-import io.crate.common.unit.TimeValue;
+import io.crate.opendal.OpenDALBlobStore;
 import io.crate.types.DataTypes;
 
 /**
@@ -65,7 +58,6 @@ import io.crate.types.DataTypes;
  * </dl>
  */
 public class AzureRepository extends BlobStoreRepository {
-    private static final Logger LOGGER = LogManager.getLogger(AzureRepository.class);
 
     public static final String TYPE = "azure";
 
@@ -78,27 +70,20 @@ public class AzureRepository extends BlobStoreRepository {
         static final Setting<SecureString> KEY_SETTING = Setting.maskedString("key");
 
         static final Setting<String> CONTAINER_SETTING = new Setting<>(
-                "container",
-                "crate-snapshots",
-                Function.identity(),
-                DataTypes.STRING,
-                Property.NodeScope);
+            "container",
+            "crate-snapshots",
+            Function.identity(),
+            DataTypes.STRING,
+            Property.NodeScope);
 
         static final Setting<String> BASE_PATH_SETTING =
             Setting.simpleString("base_path", Property.NodeScope);
 
-        static final Setting<LocationMode> LOCATION_MODE_SETTING = new Setting<>(
-            "location_mode",
-            s -> LocationMode.PRIMARY_ONLY.toString(),
-            s -> LocationMode.valueOf(s.toUpperCase(Locale.ROOT)),
-            DataTypes.STRING,
-            Property.NodeScope);
-
         static final Setting<ByteSizeValue> CHUNK_SIZE_SETTING = Setting.byteSizeSetting(
             "chunk_size",
-            MAX_CHUNK_SIZE,
-            MIN_CHUNK_SIZE,
-            MAX_CHUNK_SIZE,
+            new ByteSizeValue(256, ByteSizeUnit.MB),
+            new ByteSizeValue(1, ByteSizeUnit.BYTES),
+            new ByteSizeValue(256, ByteSizeUnit.MB),
             Property.NodeScope);
 
         static final Setting<Boolean> READONLY_SETTING =
@@ -110,7 +95,7 @@ public class AzureRepository extends BlobStoreRepository {
          */
         static final Setting<Integer> MAX_RETRIES_SETTING = Setting.intSetting(
             "max_retries",
-            RetryPolicy.DEFAULT_CLIENT_RETRY_COUNT,
+            3,
             Setting.Property.NodeScope);
 
         static final Setting<String> ENDPOINT_SETTING =
@@ -118,43 +103,6 @@ public class AzureRepository extends BlobStoreRepository {
                 "endpoint",
                 val -> validateEndpoint(val, "endpoint"),
                 Property.NodeScope);
-
-        static final Setting<String> SECONDARY_ENDPOINT_SETTING =
-            Setting.simpleString(
-                "secondary_endpoint",
-                val -> validateEndpoint(val, "secondary_endpoint"),
-                Property.NodeScope);
-
-        /**
-         * Azure endpoint suffix. Default to core.windows.net (CloudStorageAccount.DEFAULT_DNS).
-         */
-        static final Setting<String> ENDPOINT_SUFFIX_SETTING = Setting
-            .simpleString("endpoint_suffix", Property.NodeScope);
-
-        static final Setting<TimeValue> TIMEOUT_SETTING =
-            Setting.timeSetting("timeout", TimeValue.timeValueMinutes(-1), Property.NodeScope);
-
-        /**
-         * The type of the proxy to connect to azure through. Can be direct (no proxy, default), http or socks
-         */
-        static final Setting<Proxy.Type> PROXY_TYPE_SETTING = new Setting<>(
-            "proxy_type",
-            "direct",
-            s -> Proxy.Type.valueOf(s.toUpperCase(Locale.ROOT)),
-            DataTypes.STRING,
-            Property.NodeScope);
-
-        /**
-         * The host name of a proxy to connect to azure through.
-         */
-        static final Setting<String> PROXY_HOST_SETTING =
-            Setting.simpleString("proxy_host", Property.NodeScope);
-
-        /**
-         * The port of a proxy to connect to azure through.
-         */
-        static final Setting<Integer> PROXY_PORT_SETTING =
-            Setting.intSetting("proxy_port", 0, 0, 65535, Setting.Property.NodeScope);
 
         /**
          * Verify that the endpoint is a valid URI with a nonnull scheme and host.
@@ -176,52 +124,50 @@ public class AzureRepository extends BlobStoreRepository {
     }
 
     public static List<Setting<?>> optionalSettings() {
-        return List.of(Repository.CONTAINER_SETTING,
+        return List.of(
+            Repository.CONTAINER_SETTING,
             Repository.BASE_PATH_SETTING,
             Repository.CHUNK_SIZE_SETTING,
             Repository.READONLY_SETTING,
-            Repository.LOCATION_MODE_SETTING,
             COMPRESS_SETTING,
             // client specific repository settings
             Repository.MAX_RETRIES_SETTING,
             Repository.ENDPOINT_SETTING,
-            Repository.SECONDARY_ENDPOINT_SETTING,
-            Repository.ENDPOINT_SUFFIX_SETTING,
-            Repository.TIMEOUT_SETTING,
-            Repository.PROXY_TYPE_SETTING,
-            Repository.PROXY_HOST_SETTING,
-            Repository.PROXY_PORT_SETTING,
             Repository.KEY_SETTING,
-            Repository.SAS_TOKEN_SETTING);
+            Repository.SAS_TOKEN_SETTING
+        );
     }
 
     public static List<Setting<?>> mandatorySettings() {
-        return List.of(Repository.ACCOUNT_SETTING);
+        return List.of(
+            Repository.ACCOUNT_SETTING
+        );
     }
 
     private final ByteSizeValue chunkSize;
-    private final boolean readonly;
+
+    private final AsyncExecutor executor;
 
     public AzureRepository(RepositoryMetadata metadata,
                            NamedWriteableRegistry namedWriteableRegistry,
                            NamedXContentRegistry namedXContentRegistry,
                            ClusterService clusterService,
-                           RecoverySettings recoverySettings) {
-        super(metadata, namedWriteableRegistry, namedXContentRegistry, clusterService, recoverySettings, buildBasePath(metadata));
+                           RecoverySettings recoverySettings,
+                           AsyncExecutor executor) {
+        super(
+            metadata,
+            namedWriteableRegistry,
+            namedXContentRegistry,
+            clusterService,
+            recoverySettings,
+            buildBasePath(metadata));
         this.chunkSize = Repository.CHUNK_SIZE_SETTING.get(metadata.settings());
-
-        // If the user explicitly did not define a readonly value, we set it by ourselves depending on the location mode setting.
-        // For secondary_only setting, the repository should be read only
-        final LocationMode locationMode = Repository.LOCATION_MODE_SETTING.get(metadata.settings());
-        if (Repository.READONLY_SETTING.exists(metadata.settings())) {
-            this.readonly = Repository.READONLY_SETTING.get(metadata.settings());
-        } else {
-            this.readonly = locationMode == LocationMode.SECONDARY_ONLY;
-        }
+        this.executor = executor;
     }
 
     private static BlobPath buildBasePath(RepositoryMetadata metadata) {
-        final String basePath = Strings.trimLeadingCharacter(Repository.BASE_PATH_SETTING.get(metadata.settings()), '/');
+        String basePathStr = Repository.BASE_PATH_SETTING.get(metadata.settings());
+        final String basePath = Strings.trimLeadingCharacter(basePathStr, '/');
         if (Strings.hasLength(basePath)) {
             // Remove starting / if any
             BlobPath path = new BlobPath();
@@ -234,23 +180,40 @@ public class AzureRepository extends BlobStoreRepository {
         }
     }
 
-    @VisibleForTesting
-    @Override
-    protected BlobStore getBlobStore() {
-        return super.getBlobStore();
-    }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    protected AzureBlobStore createBlobStore() {
-        final AzureBlobStore blobStore = new AzureBlobStore(metadata);
-
-        LOGGER.debug((org.apache.logging.log4j.util.Supplier<?>) () -> new ParameterizedMessage(
-            "using container [{}], chunk_size [{}], compress [{}], base_path [{}]",
-            blobStore, chunkSize, isCompress(), basePath()));
-        return blobStore;
+    protected OpenDALBlobStore createBlobStore() {
+        Settings repoSettings = metadata.settings();
+        String accountName = Repository.ACCOUNT_SETTING.get(repoSettings).toString();
+        String endpoint = Repository.ENDPOINT_SETTING.get(repoSettings);
+        if (endpoint == null) {
+            endpoint = "https://" + accountName + ".blob.core.windows.net";
+        }
+        SecureString accountKey = Repository.KEY_SETTING.getOrNull(repoSettings);
+        SecureString sasToken = Repository.SAS_TOKEN_SETTING.getOrNull(repoSettings);
+        if (sasToken == null && accountKey == null) {
+            throw new SettingsException("Neither a secret key nor a shared access token was set.");
+        }
+        if (sasToken != null && accountKey != null) {
+            throw new SettingsException("Both a secret as well as a shared access token were set.");
+        }
+        Azblob config = ServiceConfig.Azblob.builder()
+            .accountName(accountName)
+            .accountKey(accountKey == null ? null : accountKey.toString())
+            .sasToken(sasToken == null ? null : sasToken.toString())
+            .container(Repository.CONTAINER_SETTING.get(repoSettings))
+            .endpoint(endpoint)
+            .build();
+        return new OpenDALBlobStore(
+            executor,
+            config,
+            bufferSize,
+            Repository.MAX_RETRIES_SETTING.get(repoSettings),
+            true
+        );
     }
 
     /**
@@ -259,10 +222,5 @@ public class AzureRepository extends BlobStoreRepository {
     @Override
     protected ByteSizeValue chunkSize() {
         return chunkSize;
-    }
-
-    @Override
-    public boolean isReadOnly() {
-        return readonly;
     }
 }

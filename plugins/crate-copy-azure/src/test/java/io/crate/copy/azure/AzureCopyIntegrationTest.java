@@ -35,6 +35,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
 import com.carrotsearch.randomizedtesting.ThreadFilter;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.sun.net.httpserver.HttpServer;
@@ -97,7 +98,7 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        var handler = new AzureHttpHandler(CONTAINER_NAME, true);
+        var handler = new AzureHttpHandler(CONTAINER_NAME);
         httpServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         httpServer.createContext("/" + CONTAINER_NAME , handler);
         httpServer.start();

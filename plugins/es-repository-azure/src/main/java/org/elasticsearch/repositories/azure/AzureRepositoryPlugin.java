@@ -23,6 +23,7 @@ import static org.elasticsearch.repositories.azure.AzureRepository.Repository.AC
 import static org.elasticsearch.repositories.azure.AzureRepository.Repository.KEY_SETTING;
 import static org.elasticsearch.repositories.azure.AzureRepository.Repository.SAS_TOKEN_SETTING;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,7 @@ import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.indices.recovery.RecoverySettings;
@@ -39,11 +41,23 @@ import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.Repository;
 
 import io.crate.analyze.repositories.TypeSettings;
+import io.crate.opendal.SharedAsyncExecutor;
 
 /**
  * A plugin to add a repository type that writes to and from the Azure cloud storage service.
  */
 public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
+
+    private SharedAsyncExecutor executor;
+
+    public AzureRepositoryPlugin(Settings settings) {
+        executor = new SharedAsyncExecutor(settings);
+    }
+
+    @Override
+    public void close() throws IOException {
+        executor.close();
+    }
 
     @Override
     public Map<String, Repository.Factory> getRepositories(Environment env,
@@ -68,7 +82,8 @@ public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
                         namedWriteableRegistry,
                         namedXContentRegistry,
                         clusterService,
-                        recoverySettings
+                        recoverySettings,
+                        executor.asyncExecutor()
                     );
                 }
             }
