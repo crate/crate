@@ -149,7 +149,7 @@ across the cluster.
 
    The following only applies to CrateDB versions 3.x and below. CrateDB
    versions 4.x and above `determine quorum size automatically
-   <https://crate.io/docs/crate/howtos/en/latest/clustering/multi-node-setup.html#master-node-election>`_.
+   <https://cratedb.com/docs/guide/install/multi-node.html#master-node-election>`_.
 
 A minimum number of nodes (referred as a *quorum*) needs to configured (using the
 `discovery.zen.minimum_master_nodes`_ setting) to ensure that in case of a
@@ -319,5 +319,5 @@ will taken out of the load balancing.
 .. _abstract syntax tree: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 .. _POJOs: https://en.wikipedia.org/wiki/Plain_Old_Java_Object
 .. _full mesh: https://en.wikipedia.org/wiki/Network_topology#Mesh
-.. _discovery.zen.minimum_master_nodes: https://crate.io/docs/crate/reference/en/3.3/config/cluster.html#discovery-zen-minimum-master-nodes
+.. _discovery.zen.minimum_master_nodes: https://web.archive.org/web/20250522100227/https://cratedb.com/docs/crate/reference/en/3.3/config/cluster.html#discovery-zen-minimum-master-nodes
 .. _split-brain: https://en.wikipedia.org/wiki/Split-brain_(computing)

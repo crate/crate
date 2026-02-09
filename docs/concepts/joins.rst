@@ -350,4 +350,4 @@ optimized.*
 .. _here: http://www.dcs.ed.ac.uk/home/tz/phd/thesis.pdf
 .. _information_schema: https://crate.io/docs/reference/sql/information_schema.html
 .. _system tables: https://crate.io/docs/reference/sql/system.html
-.. _this article: https://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins
+.. _this article: https://www.codeproject.com/articles/Visual-Representation-of-SQL-Joins
