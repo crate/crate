@@ -24,7 +24,9 @@ exclude_patterns = ['out/**', 'tmp/**', 'eggs/**', 'requirements.txt', 'README.r
 extensions.append('crate.sphinx.csv')
 
 linkcheck_ignore = [
-    'https://www.iso.org/obp/ui/.*'  # Breaks accessibility via JS ¯\_(ツ)_/¯
+    'https://joda-time.sourceforge.net/',  # 403 Client Error: Forbidden
+    'https://www.codeproject.com/',  # 403 Client Error: Forbidden
+    'https://www.iso.org/obp/ui/.*',  # Breaks accessibility via JS ¯\_(ツ)_/¯
 ]
 linkcheck_retries = 3
 
