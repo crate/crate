@@ -1,6 +1,8 @@
 name: Check PR Author has signed CLA
 on:
   pull_request_target:
+    branches:
+    - 'master'
     types: [opened, synchronize, unlabeled]
 jobs:
   check-author-signed-cla:
