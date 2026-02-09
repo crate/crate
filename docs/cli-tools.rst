@@ -222,7 +222,7 @@ Options
 .. _deployment guide: https://crate.io/docs/crate/howtos/en/latest/deployment/index.html
 .. _Detach a node from its cluster: https://crate.io/docs/crate/howtos/en/latest/best-practices/crate-node.html#detach-a-node-from-its-cluster
 .. _CrateDB installation tutorial: https://crate.io/docs/crate/tutorials/en/latest/install.html
-.. _graceful stop: https://crate.io/docs/crate/howtos/en/latest/admin/rolling-upgrade.html#step-2-graceful-stop
+.. _graceful stop: https://cratedb.com/docs/guide/admin/upgrade/rolling.html#graceful-stop
 .. _PATH: https://kb.iu.edu/d/acar
 .. _Perform an unsafe cluster bootstrap: https://crate.io/docs/crate/howtos/en/latest/best-practices/crate-node.html#perform-an-unsafe-cluster-bootstrap
 .. _Repurpose a node: https://crate.io/docs/crate/howtos/en/latest/best-practices/crate-node.html#repurpose-a-node
