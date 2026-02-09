@@ -22,8 +22,8 @@
 package org.elasticsearch.repositories.azure;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -61,7 +61,7 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        handler = new AzureHttpHandler(CONTAINER_NAME, false);
+        handler = new AzureHttpHandler(CONTAINER_NAME);
         httpServer = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         httpServer.createContext("/" + CONTAINER_NAME, handler);
         httpServer.start();
@@ -75,7 +75,7 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void create_azure_snapshot_and_restore_with_endpoint_suffix() {
+    public void create_azure_snapshot_and_restore() {
         execute("CREATE TABLE t1 (x int)");
         assertThat(response.rowCount()).isEqualTo(1L);
 
@@ -87,11 +87,17 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
         execute("INSERT INTO t1 (x) VALUES (?)", rows);
         execute("REFRESH TABLE t1");
 
-        execute("CREATE REPOSITORY r1 TYPE AZURE WITH (" +
-                "container = '" + CONTAINER_NAME + "', " +
-                "account = 'devstoreaccount1', " +
-                "key = 'ZGV2c3RvcmVhY2NvdW50MQ==', " +
-                "endpoint_suffix = 'ignored;DefaultEndpointsProtocol=http;BlobEndpoint=" + httpServerUrl() + "')");
+        execute(
+            """
+            CREATE REPOSITORY r1 TYPE AZURE WITH (
+                container = 'crate_snapshots',
+                account = 'devstoreaccount1',
+                key = 'ZGV2c3RvcmVhY2NvdW50MQ==',
+                endpoint = ?
+            )
+            """,
+            new Object[] { httpServerUrl() }
+        );
         assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("CREATE SNAPSHOT r1.s1 ALL WITH (wait_for_completion = true)");
@@ -113,13 +119,12 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
         assertThat((Map<String, String>) response.rows()[0][1])
             .hasEntrySatisfying("account", v -> assertThat(v).isEqualTo("[xxxxx]"))
             .hasEntrySatisfying("container", v -> assertThat(v).isEqualTo("crate_snapshots"))
-            .hasEntrySatisfying("endpoint_suffix", v -> assertThat(v).matches("ignored;DefaultEndpointsProtocol=http;BlobEndpoint=http://127.0.0.1:\\d+"))
             .hasEntrySatisfying("key", v -> assertThat(v).isEqualTo("[xxxxx]"));
         assertThat(response.rows()[0][2]).isEqualTo("azure");
     }
 
     @Test
-    public void create_azure_snapshot_and_restore_with_secondary_endpoint() {
+    public void create_azure_snapshot_and_restore_with_second_readonly_repo() {
         execute("CREATE TABLE t1 (x int)");
         assertThat(response.rowCount()).isEqualTo(1L);
 
@@ -135,7 +140,6 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
                 "container = '" + CONTAINER_NAME + "', " +
                 "account = 'devstoreaccount1', " +
                 "key = 'ZGV2c3RvcmVhY2NvdW50MQ==', " +
-                "location_mode = 'PRIMARY_ONLY', " +
                 "endpoint = '" + httpServerUrl() + "')");
         assertThat(response.rowCount()).isEqualTo(1L);
 
@@ -143,14 +147,12 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
 
         execute("DROP TABLE t1");
 
-        // secondary endpoint is by read-only
         execute("CREATE REPOSITORY r2 TYPE AZURE WITH (" +
                 "container = '" + CONTAINER_NAME + "', " +
                 "account = 'devstoreaccount1', " +
                 "key = 'ZGV2c3RvcmVhY2NvdW50MQ==', " +
-                "location_mode = 'SECONDARY_ONLY', " +
-                "endpoint = '" + invalidHttpServerUrl() + "', "+
-                "secondary_endpoint = '" + httpServerUrl() + "')");
+                "readonly = true, " +
+                "endpoint = '" + httpServerUrl() + "')");
 
         execute("RESTORE SNAPSHOT r2.s1 ALL WITH (wait_for_completion = true)");
         execute("REFRESH TABLE t1");
@@ -168,7 +170,6 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
             "container = '" + CONTAINER_NAME + "', " +
             "account = 'devstoreaccount1', " +
             "sas_token = 'aaQc3RvcmVhY2NvdW50Mdhdhd', " +
-            "location_mode = 'PRIMARY_ONLY', " +
             "endpoint = '" + httpServerUrl() + "')");
         assertThat(response.rowCount()).isEqualTo(1L);
 
@@ -179,7 +180,6 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
             .hasEntrySatisfying("account", v -> assertThat(v).isEqualTo("[xxxxx]"))
             .hasEntrySatisfying("container", v -> assertThat(v).isEqualTo("crate_snapshots"))
             .hasEntrySatisfying("endpoint", v -> assertThat(v).matches("http://127.0.0.1:\\d+"))
-            .hasEntrySatisfying("location_mode", v -> assertThat(v).isEqualTo("PRIMARY_ONLY"))
             .hasEntrySatisfying("sas_token", v -> assertThat(v).isEqualTo("[xxxxx]"));
         assertThat(response.rows()[0][2]).isEqualTo("azure");
     }
@@ -192,7 +192,6 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
             "account = 'devstoreaccount1', " +
             "sas_token = 'aaQc3RvcmVhY2NvdW50Mdhdhd', " +
             "key = 'ZGV2c3RvcmVhY2NvdW50MQ==', " +
-            "location_mode = 'PRIMARY_ONLY', " +
             "endpoint = '" + httpServerUrl() + "')"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
@@ -202,8 +201,15 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_create_azure_repo_with_missing_mandatory_settings() {
-        Asserts.assertSQLError(() ->
-                execute("CREATE REPOSITORY r1 TYPE AZURE WITH (account = 'devstoreaccount1')"))
+        Asserts.assertSQLError(() -> execute(
+            """
+            CREATE REPOSITORY r1 TYPE AZURE WITH (
+                account = 'devstoreaccount1',
+                endpoint = ?
+            )
+            """,
+            new Object[] { httpServerUrl() }
+        ))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
             .hasMessageContaining("[r1] Unable to verify the repository, [r1] is not accessible on master node: " +
@@ -213,23 +219,25 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
     @Test
     public void test_invalid_settings_to_create_azure_repository() {
         Asserts.assertSQLError(() -> execute(
-            "CREATE REPOSITORY r1 TYPE AZURE WITH (container = 'invalid', " +
-            "account = 'devstoreaccount1', " +
-            "key = 'ZGV2c3RvcmVhY2NvdW50MQ=='," +
-            "endpoint_suffix = 'ignored;DefaultEndpointsProtocol=http;BlobEndpoint')"))
+            """
+            create repository r1 type azure with (
+                container = 'invalid',
+                account = 'devstoreaccount1',
+                key = 'ZGV2c3RvcmVhY2NvdW50MQ==',
+                endpoint = ?
+            )
+            """,
+            new Object[] { httpServerUrl() }
+        ))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
-            .hasMessageContaining("[r1] Unable to verify the repository, [r1] is not accessible on master node: " +
-                                         "IllegalArgumentException 'Invalid connection string.'");
+            .hasMessageContaining(
+                "[r1] Unable to verify the repository, [r1] is not accessible on master node"
+            );
     }
 
     private String httpServerUrl() {
         InetSocketAddress address = httpServer.getAddress();
         return "http://" + address.getAddress().getHostAddress() + ":" + address.getPort();
-    }
-
-    private String invalidHttpServerUrl() {
-        InetSocketAddress address = httpServer.getAddress();
-        return "http://127.0.0.0:" + address.getPort();
     }
 }

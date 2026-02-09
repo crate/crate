@@ -83,15 +83,10 @@ public class AzureRepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "   chunk_size='12mb'," +
             "   compress=true," +
             "   readonly=true," +
-            "   location_mode='primary_only'," +
             "   account='test_account'," +
             "   key='test_key'," +
-            "   max_retries=3," +
-            "   endpoint_suffix='.com'," +
-            "   timeout='30s'," +
-            "   proxy_port=0," +
-            "   proxy_type='socks'," +
-            "   proxy_host='localhost')");
+            "   max_retries=3)"
+        );
         assertThat(request.name()).isEqualTo("foo");
         assertThat(request.type()).isEqualTo("azure");
         assertThat(request.settings().getAsStructuredMap())
@@ -102,12 +97,7 @@ public class AzureRepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .hasFieldOrPropertyWithValue("readonly", "true")
             .hasFieldOrPropertyWithValue("account", "test_account")
             .hasFieldOrPropertyWithValue("key", "test_key")
-            .hasFieldOrPropertyWithValue("max_retries", "3")
-            .hasFieldOrPropertyWithValue("endpoint_suffix", ".com")
-            .hasFieldOrPropertyWithValue("timeout", "30s")
-            .hasFieldOrPropertyWithValue("proxy_port", "0")
-            .hasFieldOrPropertyWithValue("proxy_type", "socks")
-            .hasFieldOrPropertyWithValue("proxy_host", "localhost");
+            .hasFieldOrPropertyWithValue("max_retries", "3");
     }
 
     @Test

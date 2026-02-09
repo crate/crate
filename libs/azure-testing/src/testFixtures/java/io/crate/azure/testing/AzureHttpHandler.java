@@ -23,6 +23,10 @@ package io.crate.azure.testing;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,6 +38,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.Streams;
@@ -51,18 +57,13 @@ import io.netty.handler.codec.http.QueryStringDecoder;
  */
 public class AzureHttpHandler implements HttpHandler {
 
+    private static final Logger LOGGER = LogManager.getLogger(AzureHttpHandler.class);
     private final Map<String, BytesReference> blobs;
     private final String container;
-    private final boolean addDateHeader;
 
-    /**
-     * @param addDateHeader indicates whether to add Last-Modified header to the list API response.
-     * COPY/OpenDAL requires 'Last-Modified' in the list API response.
-     */
-    public AzureHttpHandler(final String container, boolean addDateHeader) {
+    public AzureHttpHandler(final String container) {
         this.container = Objects.requireNonNull(container);
         this.blobs = new ConcurrentHashMap<>();
-        this.addDateHeader = addDateHeader;
     }
 
     @Override
@@ -165,6 +166,7 @@ public class AzureHttpHandler implements HttpHandler {
 
             } else if (Regex.simpleMatch("GET /" + container + "?restype=container&comp=list*", request)) {
                 // List Blobs (https://docs.microsoft.com/en-us/rest/api/storageservices/list-blobs)
+
                 final Map<String, String> params = decodeQueryString(exchange.getRequestURI().toString());
 
                 final StringBuilder list = new StringBuilder();
@@ -193,10 +195,10 @@ public class AzureHttpHandler implements HttpHandler {
                     list.append("<Blob><Name>").append(blobPath).append("</Name>");
                     list.append("<Properties><Content-Length>").append(blob.getValue().length()).append(
                         "</Content-Length>");
-                    if (addDateHeader) {
-                        // We use a dummy date in rfc2822 format.
-                        list.append("<Last-Modified>").append("Mon, 12 Aug 2024 11:16:46 UT").append("</Last-Modified>");
-                    }
+
+                    OffsetDateTime now = Instant.now().atOffset(ZoneOffset.UTC);
+                    String lastModified = DateTimeFormatter.RFC_1123_DATE_TIME.format(now);
+                    list.append("<Last-Modified>").append(lastModified).append("</Last-Modified>");
 
                     list.append("<BlobType>BlockBlob</BlobType></Properties></Blob>");
                 }
@@ -213,9 +215,33 @@ public class AzureHttpHandler implements HttpHandler {
                 exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), response.length);
                 exchange.getResponseBody().write(response);
 
+            } else if (Regex.simpleMatch("POST /" + container + "?restype=container&comp=batch*", request)) {
+                // https://learn.microsoft.com/en-us/rest/api/storageservices/blob-batch
+                String contentType = exchange.getRequestHeaders().getFirst("Content-type");
+                int boundaryIdx = contentType.indexOf("boundary=");
+                String boundary = "--" + contentType.substring(boundaryIdx + "boundary=".length()) + "\r\n";
+                String content = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                String[] parts = content.split(Pattern.quote(boundary));
+                final StringBuilder resp = new StringBuilder();
+                exchange.getResponseHeaders().add("Content-Type", "multipart/mixed; boundary=dummy_boundary");
+                exchange.getResponseHeaders().add("Transfer-Encoding", "chunked");
+                for (int i = 1; i < parts.length; i++) {
+                    resp.append("--dummy_boundary\r\n");
+                    resp.append("Content-Type: application/http\r\n");
+                    resp.append("Content-ID: ").append(i - 1).append("\r\n");
+                    resp.append("\r\n");
+                    resp.append("HTTP/1.1 202 Accepted\r\n");
+                }
+                resp.append("\r\n--dummy_boundary--\r\n");
+                blobs.clear();
+                byte[] response = resp.toString().getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(HttpResponseStatus.ACCEPTED.code(), 0);
+                exchange.getResponseBody().write(response);
             } else {
                 sendError(exchange, HttpResponseStatus.BAD_REQUEST);
             }
+        } catch (Throwable t) {
+            LOGGER.error(t);
         }
     }
 

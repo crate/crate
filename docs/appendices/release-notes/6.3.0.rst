@@ -50,6 +50,16 @@ Breaking Changes
 
 - Removed the ``token_uri`` setting for repositories of type ``gcs``.
 
+- Removed the following settings for repositories of type ``azure``:
+
+  - ``location_mode``
+  - ``secondary_endpoint``
+  - ``endpoint_suffix``
+  - ``timeout``
+  - ``proxy_type``
+  - ``proxy_host``
+  - ``proxy_port``
+
 Deprecations
 ============
 
