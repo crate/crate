@@ -41,7 +41,6 @@ import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
-import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -268,7 +267,7 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
                         .collect(
                             Collectors.toMap(
                                 action -> action.path.substring(thisPath.length()),
-                                action -> new PlainBlobMetadata(action.path.substring(thisPath.length()), action.data.length))));
+                                action -> new BlobMetadata(action.path.substring(thisPath.length()), action.data.length))));
                 }
             }
 

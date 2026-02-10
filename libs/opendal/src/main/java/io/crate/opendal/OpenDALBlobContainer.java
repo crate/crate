@@ -36,7 +36,6 @@ import org.apache.opendal.Operator;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
-import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
 
 public class OpenDALBlobContainer implements BlobContainer {
 
@@ -131,7 +130,7 @@ public class OpenDALBlobContainer implements BlobContainer {
         HashMap<String, BlobMetadata> result = new HashMap<>();
         for (var entry : operator.list(fullPath)) {
             String path = entry.getPath();
-            var blobMetadata = new PlainBlobMetadata(path, entry.getMetadata().getContentLength());
+            var blobMetadata = new BlobMetadata(path, entry.getMetadata().getContentLength());
             result.put(path, blobMetadata);
         }
         return result;
