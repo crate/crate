@@ -29,26 +29,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Locale;
 
-import org.apache.lucene.tests.util.QuickPatchThreadsFilter;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.carrotsearch.randomizedtesting.ThreadFilter;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.sun.net.httpserver.HttpServer;
 
 import io.crate.azure.testing.AzureHttpHandler;
-import io.crate.lucene.CrateLuceneTestCase;
 
-@ThreadLeakFilters(
-        defaultFilters = true,
-        filters = {
-            QuickPatchThreadsFilter.class,
-            AzureCopyIntegrationTest.OpenDALFilter.class,
-            CrateLuceneTestCase.CommonPoolFilter.class})
 public class AzureCopyIntegrationTest extends IntegTestCase {
 
     private static final String CONTAINER_NAME = "test";
@@ -67,18 +57,6 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
     private String containerUri;
     private HttpServer httpServer;
 
-    /**
-     * OpenDAL uses shared singleton async tokio executor with configured number of threads.
-     * They are re-used throughout the app lifetime and cleaned up on executor disposal on node shutdown.
-     **/
-    public static class OpenDALFilter implements ThreadFilter {
-
-        @Override
-        public boolean reject(Thread t) {
-            // TODO: Used more reliable/less common pattern once https://github.com/apache/opendal/issues/5088 is implemented.
-            return t.getName().startsWith("Thread-");
-        }
-    }
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
