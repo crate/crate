@@ -31,6 +31,9 @@ linkcheck_ignore = [
     'https://www.npmjs.com/package/pg-cursor',
 ]
 linkcheck_retries = 3
+linkcheck_request_headers = {
+    "User-Agent": "CrateDB docs linkcheck"
+}
 
 # Enable version chooser.
 html_context.update({
