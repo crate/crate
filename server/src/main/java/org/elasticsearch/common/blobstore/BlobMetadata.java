@@ -20,17 +20,7 @@
 package org.elasticsearch.common.blobstore;
 
 /**
- * An interface for providing basic metadata about a blob.
+ * Basic metadata about a blob.
  */
-public interface BlobMetadata {
-
-    /**
-     * Gets the name of the blob.
-     */
-    String name();
-
-    /**
-     * Gets the size of the blob in bytes.
-     */
-    long length();
+public record BlobMetadata(String name, long length) {
 }

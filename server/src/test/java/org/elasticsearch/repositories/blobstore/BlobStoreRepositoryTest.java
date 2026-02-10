@@ -43,7 +43,6 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
-import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.TestFutureUtils;
 import org.elasticsearch.repositories.ESBlobStoreTestCase;
@@ -111,7 +110,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
         assertBlobsByPrefix(repo.basePath(), "fo", Collections.emptyMap());
         assertChildren(repo.basePath().add("foo"), List.of("nested", "nested2"));
         assertBlobsByPrefix(repo.basePath().add("foo"), "nest",
-                            Collections.singletonMap("nested-blob", new PlainBlobMetadata("nested-blob", testBlobLen)));
+                            Collections.singletonMap("nested-blob", new BlobMetadata("nested-blob", testBlobLen)));
         assertChildren(repo.basePath().add("foo").add("nested"), Collections.emptyList());
     }
 
