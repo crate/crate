@@ -1,5 +1,10 @@
 Generated using [License Maven Plugin](https://www.mojohaus.org/license-maven-plugin/):
 
+# Third-Party Software Notices and Information
+
+- Some documentation snippets and portions of this software may be derived from PostgreSQL and used according to terms
+  of The PostgreSQL License (https://www.postgresql.org/about/licence/).
+
 ## Lists of 117 third-party dependencies.
 
 - (MIT License) Big Math (ch.obermuhlner:big-math:2.3.2 - https://github.com/eobermuhlner/big-math)
