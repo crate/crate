@@ -41,15 +41,12 @@ import io.crate.analyze.repositories.TypeSettings;
 import io.crate.opendal.SharedAsyncExecutor;
 
 
-/**
- * Based on https://github.com/opensearch-project/OpenSearch/blob/main/plugins/repository-gcs/src/main/java/org/opensearch/repositories/gcs/GoogleCloudStoragePlugin.java
- */
 public class GCSRepositoryPlugin extends Plugin implements RepositoryPlugin {
 
     private final SharedAsyncExecutor executor;
 
     public GCSRepositoryPlugin(Settings settings) {
-        executor = new SharedAsyncExecutor(settings);
+        executor = SharedAsyncExecutor.getInstance(settings);
     }
 
     @Override
