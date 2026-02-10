@@ -19,10 +19,10 @@
 
 package org.elasticsearch.discovery.ec2;
 
-import com.amazonaws.services.ec2.AmazonEC2;
-
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.util.concurrent.AbstractRefCounted;
+
+import com.amazonaws.services.ec2.AmazonEC2;
 
 /**
  * Handles the shutdown of the wrapped {@link AmazonEC2} using reference

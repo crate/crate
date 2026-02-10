@@ -21,6 +21,7 @@
 
 package io.crate.copy.azure;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -52,7 +53,12 @@ public class AzureCopyPlugin extends Plugin implements CopyPlugin {
 
     @Inject
     public AzureCopyPlugin(Settings settings) {
-        this.sharedAsyncExecutor = new SharedAsyncExecutor(settings);
+        this.sharedAsyncExecutor = SharedAsyncExecutor.getInstance(settings);
+    }
+
+    @Override
+    public void close() throws IOException {
+        sharedAsyncExecutor.close();
     }
 
     public Map<String, FileInputFactory> getFileInputFactories() {

@@ -51,7 +51,7 @@ public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
     private SharedAsyncExecutor executor;
 
     public AzureRepositoryPlugin(Settings settings) {
-        executor = new SharedAsyncExecutor(settings);
+        executor = SharedAsyncExecutor.getInstance(settings);
     }
 
     @Override

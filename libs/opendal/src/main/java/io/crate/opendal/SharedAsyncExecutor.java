@@ -21,22 +21,34 @@
 
 package io.crate.opendal;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 import org.apache.opendal.AsyncExecutor;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
+
 
 /**
  * Wrapper around OpenDAL AsyncExecutor.
  * Holds a singleton instance and manages its lifecycle.
  */
-public class SharedAsyncExecutor extends AbstractLifecycleComponent {
+public class SharedAsyncExecutor implements Closeable {
 
+    private static SharedAsyncExecutor INSTANCE = null;
     private final AsyncExecutor asyncExecutor;
 
-    public SharedAsyncExecutor(Settings settings) {
+    private int refs = 0;
+
+    public static SharedAsyncExecutor getInstance(Settings settings) {
+        if (INSTANCE == null) {
+            INSTANCE = new SharedAsyncExecutor(settings);
+        }
+        INSTANCE.refs++;
+        return INSTANCE;
+    }
+
+    private SharedAsyncExecutor(Settings settings) {
         int numOfProcessors = EsExecutors.numberOfProcessors(settings);
         this.asyncExecutor = AsyncExecutor.createTokioExecutor(numOfProcessors);
     }
@@ -46,17 +58,11 @@ public class SharedAsyncExecutor extends AbstractLifecycleComponent {
     }
 
     @Override
-    protected void doStart() {
-        // No-op.
-    }
-
-    @Override
-    protected void doStop() {
-        // No-op.
-    }
-
-    @Override
-    protected void doClose() throws IOException {
-        asyncExecutor.close();
+    public void close() throws IOException {
+        refs--;
+        if (refs == 0) {
+            INSTANCE = null;
+            asyncExecutor.close();
+        }
     }
 }
