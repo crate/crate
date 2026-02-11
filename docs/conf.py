@@ -29,6 +29,9 @@ linkcheck_ignore = [
 
      # 403, best guess: The AI-down-your-throat company MS put up AI crawler blocking rules and link check is a casualty
     'https://www.npmjs.com/package/pg-cursor',
+
+    # 403 Client Error: Too many requests. Please respect our robot policy https://w.wiki/4wJS. (dd12474) for url
+    'https://en.wikipedia.org/wiki/.*',
 ]
 linkcheck_retries = 3
 linkcheck_request_headers = {
