@@ -39,7 +39,12 @@ public class S3CopyPlugin extends Plugin implements CopyPlugin {
 
     @Inject
     public S3CopyPlugin(Settings settings) {
-        this.sharedAsyncExecutor = new SharedAsyncExecutor(settings);
+        this.sharedAsyncExecutor = SharedAsyncExecutor.getInstance(settings);
+    }
+
+    @Override
+    public void close() throws IOException {
+        sharedAsyncExecutor.close();
     }
 
     public Map<String, FileInputFactory> getFileInputFactories() {
@@ -54,10 +59,5 @@ public class S3CopyPlugin extends Plugin implements CopyPlugin {
             S3FileOutputFactory.NAME,
             new S3FileOutputFactory(sharedAsyncExecutor.asyncExecutor())
         );
-    }
-
-    @Override
-    public void close() throws IOException {
-        sharedAsyncExecutor.close();
     }
 }

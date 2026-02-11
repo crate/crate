@@ -48,6 +48,18 @@ Breaking Changes
 - Removed the ``canned_acl`` setting for repositories of type ``s3`` and also
   removed the undocumented proxy settings.
 
+- Removed the ``token_uri`` setting for repositories of type ``gcs``.
+
+- Removed the following settings for repositories of type ``azure``:
+
+  - ``location_mode``
+  - ``secondary_endpoint``
+  - ``endpoint_suffix``
+  - ``timeout``
+  - ``proxy_type``
+  - ``proxy_host``
+  - ``proxy_port``
+
 Deprecations
 ============
 
@@ -102,6 +114,10 @@ Performance and Resilience Improvements
 
 Administration and Operations
 -----------------------------
+
+- Added a ``region`` option to repositories of type ``s3`` for compatibility
+  with alternative s3 implementations like `Garage
+  <https://garagehq.deuxfleurs.fr/>`_.
 
 - Repositories of type ``s3`` now use path style access by default instead of
   virtual host style when building the URI.

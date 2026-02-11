@@ -7,7 +7,7 @@ Resiliency Issues
 CrateDB uses Elasticsearch for data distribution and replication. Most of the
 resiliency issues `exist in the Elasticsearch layer
 <https://www.elastic.co/guide/en/elasticsearch/resiliency/current/index.html>`_ and can
-be tested by `Jepsen <https://github.com/jepsen-io/jepsen/tree/master/crate>`_.
+be tested by `Jepsen <https://github.com/jepsen-io/cratedb>`_.
 
 
 Known issues

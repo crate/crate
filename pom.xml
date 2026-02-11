@@ -342,26 +342,9 @@
         <versions.jwt>4.5.0</versions.jwt>
         <versions.jwks-rsa>0.23.0</versions.jwks-rsa>
 
-        <versions.google.gax>2.43.0</versions.google.gax>
-        <versions.google.auth>1.23.0</versions.google.auth>
-        <versions.google.oauth2>1.23.0</versions.google.oauth2>
-        <versions.google.cloud.storage>1.113.1</versions.google.cloud.storage>
-        <versions.google.cloud.core>2.30.0</versions.google.cloud.core>
-        <versions.google.cloud.core.http>2.23.0</versions.google.cloud.core.http>
-
-        <versions.guava>33.5.0-jre</versions.guava>
-        <versions.google.gson>2.0.2</versions.google.gson>
-        <versions.google.errorprone>2.43.0</versions.google.errorprone>
-        <versions.google.j2objc>3.1</versions.google.j2objc>
-        <versions.checkerframework>3.51.1</versions.checkerframework>
-        <versions.grpc>1.76.0</versions.grpc>
-
         <versions.hamcrest>2.2</versions.hamcrest>
         <versions.mockito>5.21.0</versions.mockito>
         <versions.jdbc>42.7.8</versions.jdbc>
-
-        <versions.azure_storage>8.6.6</versions.azure_storage>
-        <versions.azure_keyvault>1.2.6</versions.azure_keyvault>
 
         <versions.jmh>1.37</versions.jmh>
 

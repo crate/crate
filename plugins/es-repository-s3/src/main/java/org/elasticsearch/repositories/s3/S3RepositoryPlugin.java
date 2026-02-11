@@ -50,7 +50,12 @@ public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin {
     private final SharedAsyncExecutor executor;
 
     public S3RepositoryPlugin(Settings settings) {
-        executor = new SharedAsyncExecutor(settings);
+        executor = SharedAsyncExecutor.getInstance(settings);
+    }
+
+    @Override
+    public void close() throws IOException {
+        executor.close();
     }
 
     @Override
@@ -86,10 +91,5 @@ public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin {
                 }
             }
         );
-    }
-
-    @Override
-    public void close() throws IOException {
-        executor.close();
     }
 }

@@ -21,6 +21,7 @@
 
 package io.crate.gcs;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +29,7 @@ import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.indices.recovery.RecoverySettings;
@@ -36,17 +38,20 @@ import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.Repository;
 
 import io.crate.analyze.repositories.TypeSettings;
+import io.crate.opendal.SharedAsyncExecutor;
 
 
-/**
- * Based on https://github.com/opensearch-project/OpenSearch/blob/main/plugins/repository-gcs/src/main/java/org/opensearch/repositories/gcs/GoogleCloudStoragePlugin.java
- */
 public class GCSRepositoryPlugin extends Plugin implements RepositoryPlugin {
 
-    private final GCSService service;
+    private final SharedAsyncExecutor executor;
 
-    public GCSRepositoryPlugin() {
-        this.service = new GCSService();
+    public GCSRepositoryPlugin(Settings settings) {
+        executor = SharedAsyncExecutor.getInstance(settings);
+    }
+
+    @Override
+    public void close() throws IOException {
+        executor.close();
     }
 
     @Override
@@ -62,10 +67,9 @@ public class GCSRepositoryPlugin extends Plugin implements RepositoryPlugin {
             GCSClientSettings.CLIENT_EMAIL_SETTING,
             GCSClientSettings.CLIENT_ID_SETTING,
             GCSClientSettings.ENDPOINT_SETTING,
-            GCSClientSettings.TOKEN_URI_SETTING,
             GCSClientSettings.CONNECT_TIMEOUT_SETTING,
             GCSClientSettings.READ_TIMEOUT_SETTING
-            );
+        );
     }
 
     @Override
@@ -74,45 +78,39 @@ public class GCSRepositoryPlugin extends Plugin implements RepositoryPlugin {
                                                            NamedXContentRegistry namedXContentRegistry,
                                                            ClusterService clusterService,
                                                            RecoverySettings recoverySettings) {
-        return Map.of(
-            "gcs", new Repository.Factory() {
-                @Override
-                public TypeSettings settings() {
-                    return new TypeSettings(
-                        // Required settings
-                        List.of(
+        Repository.Factory factory = new Repository.Factory() {
+            @Override
+            public TypeSettings settings() {
+                return new TypeSettings(
+                    // Required settings
+                    List.of(
                             GCSRepository.BUCKET_SETTING,
                             GCSClientSettings.PROJECT_ID_SETTING,
                             GCSClientSettings.PRIVATE_KEY_ID_SETTING,
                             GCSClientSettings.PRIVATE_KEY_SETTING,
                             GCSClientSettings.CLIENT_ID_SETTING,
-                            GCSClientSettings.CLIENT_EMAIL_SETTING
-                        ),
-                        // Optional settings
-                        List.of(
+                            GCSClientSettings.CLIENT_EMAIL_SETTING),
+                    // Optional settings
+                    List.of(
                             GCSRepository.CHUNK_SIZE_SETTING,
                             GCSRepository.COMPRESS_SETTING,
                             GCSRepository.BASE_PATH_SETTING,
                             GCSClientSettings.ENDPOINT_SETTING,
-                            GCSClientSettings.TOKEN_URI_SETTING,
                             GCSClientSettings.CONNECT_TIMEOUT_SETTING,
-                            GCSClientSettings.READ_TIMEOUT_SETTING
-                        )
-                    );
-                }
+                            GCSClientSettings.READ_TIMEOUT_SETTING));
+            }
 
-                @Override
-                public Repository create(RepositoryMetadata metadata) {
-                    return new GCSRepository(
+            @Override
+            public Repository create(RepositoryMetadata metadata) {
+                return new GCSRepository(
                         metadata,
                         namedWriteableRegistry,
                         namedXContentRegistry,
                         clusterService,
-                        service,
-                        recoverySettings
-                    );
-                }
+                        recoverySettings,
+                        executor.asyncExecutor());
             }
-        );
+        };
+        return Map.of("gcs", factory);
     }
 }
