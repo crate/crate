@@ -51,4 +51,16 @@ public class FirstColumnConsumersTest {
         assertThat(calls.get()).isEqualTo(1);
         assertThat(accounting.totalBytes()).isEqualTo(16);
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void test_zero_column_row_adds_sentinel_value() {
+        var accounting = new BlockBasedRamAccounting(bytes -> {}, 1);
+        Collector<Row, List<Object>, ?> collector = (Collector<Row, List<Object>, ?>) FirstColumnConsumers
+            .getCollector(SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES, DataTypes.INTEGER, accounting);
+        List<Object> supplier = collector.supplier().get();
+        collector.accumulator().accept(supplier, Row.EMPTY);
+        assertThat(supplier).hasSize(1);
+        assertThat(supplier.get(0)).isEqualTo(1);
+    }
 }

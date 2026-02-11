@@ -1136,6 +1136,10 @@ public class TestStatementBuilder {
         printStatement("select col['y'] / col[2 / 1] from foo");
         printStatement("select col[1] from foo");
 
+        printStatement("select from foo");
+        printStatement("select from foo where x = 1");
+        printStatement("select exists (select from foo where x = 1)");
+
         printStatement("select - + 10");
         printStatement("select - ( - - 10)");
         printStatement("select - ( + - 10) * - ( - 10 - + 10)");

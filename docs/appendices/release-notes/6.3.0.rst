@@ -85,6 +85,11 @@ SQL Standard and PostgreSQL Compatibility
 - Added the :ref:`has_function_privileges <scalar-has-function-priv>` function,
   which checks whether a user has privileges to execute a function.
 
+- Added support for ``SELECT`` statements without a column list (e.g.,
+  ``SELECT FROM table``) to match PostgreSQL behavior. This enables
+  compatibility with tools like TinyETL that use reflection queries such as
+  ``SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = $1)``.
+
 Data Types
 ----------
 
