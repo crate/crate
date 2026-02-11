@@ -22,7 +22,6 @@
 package io.crate.execution.jobs;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -42,19 +41,21 @@ import org.elasticsearch.action.NoSuchNodeException;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportConnectionListener;
 import org.elasticsearch.transport.TransportService;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.TaskMissing;
@@ -85,12 +86,16 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
 
     private final TransportService transportService;
 
+    private final CircuitBreakerService circuitBreakerService;
+
     @Inject
     public TasksService(ClusterService clusterService,
                         TransportService transportService,
+                        CircuitBreakerService circuitBreakerService,
                         JobsLogs jobsLogs) {
         this.clusterService = clusterService;
         this.transportService = transportService;
+        this.circuitBreakerService = circuitBreakerService;
         this.jobsLogs = jobsLogs;
     }
 
@@ -161,20 +166,23 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
 
     @VisibleForTesting
     public RootTask.Builder newBuilder(UUID jobId) {
-        return new RootTask.Builder(
-            LOGGER,
-            jobId,
-            Role.CRATE_USER.name(),
-            clusterService.localNode().getId(),
-            Collections.emptySet(),
-            jobsLogs);
+        return newBuilder(jobId, Role.CRATE_USER.name(), List.of());
     }
 
     public RootTask.Builder newBuilder(UUID jobId,
                                        String user,
                                        Collection<String> participatingNodes) {
         String localNodeId = clusterService.localNode().getId();
-        return new RootTask.Builder(LOGGER, jobId, user, localNodeId, participatingNodes, jobsLogs);
+        return new RootTask.Builder(
+            LOGGER,
+            jobId,
+            user,
+            localNodeId,
+            participatingNodes,
+            circuitBreakerService.getBreaker(CircuitBreaker.QUERY),
+            -1,
+            jobsLogs
+        );
     }
 
     public int numActive() {

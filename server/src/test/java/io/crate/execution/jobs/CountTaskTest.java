@@ -64,7 +64,14 @@ public class CountTaskTest extends ESTestCase {
         CountOperation countOperation = mock(CountOperation.class);
         when(countOperation.count(eq(txnCtx), any(), any(Symbol.class), eq(false))).thenReturn(future);
 
-        final CountTask countTask1 = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
+        final CountTask countTask1 = new CountTask(
+            countPhaseWithId(1),
+            txnCtx,
+            countOperation,
+            new TestingRowConsumer(),
+            null,
+            () -> -1
+        );
         countTask1.start();
         future.complete(1L);
         assertThat(countTask1.isClosed()).isTrue();
@@ -75,8 +82,14 @@ public class CountTaskTest extends ESTestCase {
         future = new CompletableFuture<>();
         when(countOperation.count(eq(txnCtx), any(), any(Symbol.class), eq(false))).thenReturn(future);
 
-        final CountTask countTask2 =
-            new CountTask(countPhaseWithId(2), txnCtx, countOperation, new TestingRowConsumer(), null);
+        final CountTask countTask2 = new CountTask(
+            countPhaseWithId(2),
+            txnCtx,
+            countOperation,
+            new TestingRowConsumer(),
+            null,
+            () -> -1
+        );
         countTask2.start();
         future.completeExceptionally(new UnhandledServerException("dummy"));
         assertThat(countTask2.isClosed()).isTrue();
@@ -92,7 +105,14 @@ public class CountTaskTest extends ESTestCase {
         CountOperation countOperation = mock(CountOperation.class);
         when(countOperation.count(any(), any(), any(), eq(false))).thenReturn(future);
 
-        CountTask countTask = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
+        CountTask countTask = new CountTask(
+            countPhaseWithId(1),
+            txnCtx,
+            countOperation,
+            new TestingRowConsumer(),
+            null,
+            () -> -1
+        );
 
         countTask.start();
         countTask.kill(JobKilledException.of("dummy"));

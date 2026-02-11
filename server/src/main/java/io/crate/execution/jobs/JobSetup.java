@@ -586,19 +586,25 @@ public class JobSetup {
                 throw new IllegalArgumentException("The routing of the countPhase doesn't contain the current nodeId");
             }
             CircuitBreaker breaker = context.circuitBreaker;
+            RamAccounting rootTaskAccounting = context.taskBuilder.rootTaskAccounting();
             int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.blockSizeInBytes(breaker.getLimit());
-            var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker, context.operationMemoryLimitInBytes());
+            BlockBasedRamAccounting countPhaseAccounting = new BlockBasedRamAccounting(
+                rootTaskAccounting::addBytes,
+                ramAccountingBlockSizeInBytes
+            );
             RowConsumer consumer = context.getRowConsumer(
                 phase,
                 Paging.NO_PAGING,
-                new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes));
-            consumer.completionFuture().whenComplete((result, error) -> ramAccounting.close());
+                countPhaseAccounting
+            );
+            consumer.completionFuture().whenComplete((result, error) -> countPhaseAccounting.close());
             context.registerSubContext(new CountTask(
                 phase,
                 context.transactionContext,
                 countOperation,
                 consumer,
-                indexShardMap
+                indexShardMap,
+                countPhaseAccounting::totalBytes
             ));
             return null;
         }

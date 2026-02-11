@@ -38,6 +38,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -65,8 +67,16 @@ public class RootTaskTest extends ESTestCase {
 
     @Test
     public void testKillPropagatesToSubContexts() throws Exception {
-        RootTask.Builder builder =
-            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+        RootTask.Builder builder = new RootTask.Builder(
+            logger,
+            UUID.randomUUID(),
+            "dummy-user",
+            coordinatorNode,
+            Collections.emptySet(),
+            new NoopCircuitBreaker(CircuitBreaker.QUERY),
+            -1,
+            mock(JobsLogs.class)
+        );
 
 
         AbstractTaskTest.TestingTask ctx1 = new AbstractTaskTest.TestingTask(1);
@@ -86,8 +96,16 @@ public class RootTaskTest extends ESTestCase {
     @Test
     public void testErrorMessageIsIncludedInStatsTableOnFailure() throws Throwable {
         JobsLogs jobsLogs = mock(JobsLogs.class);
-        RootTask.Builder builder =
-            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), jobsLogs);
+        RootTask.Builder builder = new RootTask.Builder(
+            logger,
+            UUID.randomUUID(),
+            "dummy-user",
+            coordinatorNode,
+            Collections.emptySet(),
+            new NoopCircuitBreaker(CircuitBreaker.QUERY),
+            -1,
+            jobsLogs
+        );
 
         Task task = new AbstractTask(0) {
             @Override
@@ -119,8 +137,16 @@ public class RootTaskTest extends ESTestCase {
         when(collectPhase.routing()).thenReturn(routing);
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
 
-        RootTask.Builder builder =
-            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+        RootTask.Builder builder = new RootTask.Builder(
+            logger,
+            UUID.randomUUID(),
+            "dummy-user",
+            coordinatorNode,
+            Collections.emptySet(),
+            new NoopCircuitBreaker(CircuitBreaker.QUERY),
+            -1,
+            mock(JobsLogs.class)
+        );
 
         CollectTask collectChildTask = new CollectTask(
             collectPhase,
@@ -165,8 +191,16 @@ public class RootTaskTest extends ESTestCase {
 
     @Test
     public void testEnablingProfilingGathersExecutionTimes() throws Throwable {
-        RootTask.Builder builder =
-            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+        RootTask.Builder builder = new RootTask.Builder(
+            logger,
+            UUID.randomUUID(),
+            "dummy-user",
+            coordinatorNode,
+            Collections.emptySet(),
+            new NoopCircuitBreaker(CircuitBreaker.QUERY),
+            -1,
+            mock(JobsLogs.class)
+        );
         ProfilingContext profilingContext = new ProfilingContext(Map.of(), ClusterState.EMPTY_STATE);
         builder.profilingContext(profilingContext);
 

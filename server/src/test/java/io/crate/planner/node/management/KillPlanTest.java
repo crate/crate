@@ -28,6 +28,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
@@ -46,7 +47,12 @@ public class KillPlanTest extends CrateDummyClusterServiceUnitTest {
     public void testKillTaskCallsBroadcastOnTransportKillAllNodeAction() {
         AtomicInteger broadcastCalls = new AtomicInteger(0);
         AtomicInteger nodeOperationCalls = new AtomicInteger(0);
-        TasksService tasksService = new TasksService(clusterService, mock(TransportService.class), new JobsLogs(() -> false));
+        TasksService tasksService = new TasksService(
+            clusterService,
+            mock(TransportService.class),
+            new NoneCircuitBreakerService(),
+            new JobsLogs(() -> false)
+        );
         TransportKillAllNodeAction killAllNodeAction = new TransportKillAllNodeAction(
             tasksService,
             clusterService,

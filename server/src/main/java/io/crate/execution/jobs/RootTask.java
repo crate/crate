@@ -37,10 +37,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletionListenable;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.TaskMissing;
@@ -61,6 +64,7 @@ public class RootTask implements CompletionListenable<Void> {
     private final Collection<String> participatedNodes;
     private final String user;
     private final List<Task> orderedTasks;
+    private final ConcurrentRamAccounting ramAccounting;
 
     @Nullable
     private final ProfilingContext profiler;
@@ -83,6 +87,7 @@ public class RootTask implements CompletionListenable<Void> {
         private final List<Task> tasks = new ArrayList<>();
         private final String user;
         private final Set<String> participatingNodes;
+        private final ConcurrentRamAccounting ramAccounting;
 
         @Nullable
         private ProfilingContext profilingContext = null;
@@ -92,6 +97,8 @@ public class RootTask implements CompletionListenable<Void> {
                 String user,
                 String coordinatorNode,
                 Collection<String> participatingNodes,
+                CircuitBreaker breaker,
+                int memoryLimitInBytes,
                 JobsLogs jobsLogs) {
             this.logger = logger;
             this.jobId = jobId;
@@ -99,6 +106,11 @@ public class RootTask implements CompletionListenable<Void> {
             this.coordinatorNode = coordinatorNode;
             this.participatingNodes = new HashSet<>(participatingNodes);
             this.jobsLogs = jobsLogs;
+            this.ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(
+                "root-task:" + jobId.toString(),
+                breaker,
+                memoryLimitInBytes
+            );
         }
 
         public Builder profilingContext(ProfilingContext profilingContext) {
@@ -128,6 +140,10 @@ public class RootTask implements CompletionListenable<Void> {
             return jobId;
         }
 
+        public RamAccounting rootTaskAccounting() {
+            return ramAccounting;
+        }
+
         RootTask build() throws Exception {
             return new RootTask(
                 logger,
@@ -137,7 +153,8 @@ public class RootTask implements CompletionListenable<Void> {
                 participatingNodes,
                 jobsLogs,
                 tasks,
-                profilingContext
+                profilingContext,
+                ramAccounting
             );
         }
     }
@@ -149,7 +166,8 @@ public class RootTask implements CompletionListenable<Void> {
                      Collection<String> participatingNodes,
                      JobsLogs jobsLogs,
                      List<Task> orderedTasks,
-                     @Nullable ProfilingContext profilingContext) throws Exception {
+                     @Nullable ProfilingContext profilingContext,
+                     ConcurrentRamAccounting ramAccounting) throws Exception {
         this.logger = logger;
         this.user = user;
         this.coordinatorNodeId = coordinatorNodeId;
@@ -170,6 +188,8 @@ public class RootTask implements CompletionListenable<Void> {
             taskTimersByPhaseId = new ConcurrentHashMap<>(numTasks);
             profilingFuture = new CompletableFuture<>();
         }
+        this.ramAccounting = ramAccounting;
+        finishedFuture.whenComplete((_, _) -> ramAccounting.close());
         for (Task task : orderedTasks) {
             task.completionFuture().whenComplete(new TaskFinishedListener(task));
         }

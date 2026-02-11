@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
@@ -51,7 +52,12 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
     @Test
     public void testKillIsInvokedIfContextIsNotFound() throws Exception {
         TransportService transportService = mock(TransportService.class);
-        TasksService tasksService = new TasksService(clusterService, transportService, new JobsLogs(() -> false));
+        TasksService tasksService = new TasksService(
+            clusterService,
+            transportService,
+            new NoneCircuitBreakerService(),
+            new JobsLogs(() -> false)
+        );
         AtomicInteger numBroadcasts = new AtomicInteger(0);
         TransportKillJobsNodeAction killJobsAction = new TransportKillJobsNodeAction(
             tasksService,

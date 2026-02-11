@@ -25,6 +25,7 @@ import static io.crate.data.SentinelRow.SENTINEL;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.LongSupplier;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 
@@ -42,6 +43,7 @@ public class CountTask extends AbstractTask {
     private final CountOperation countOperation;
     private final RowConsumer consumer;
     private final Map<String, IntIndexedContainer> indexShardMap;
+    private final LongSupplier bytesUsed;
     private CompletableFuture<Long> countFuture;
     private volatile Throwable killReason;
 
@@ -49,13 +51,15 @@ public class CountTask extends AbstractTask {
               TransactionContext txnCtx,
               CountOperation countOperation,
               RowConsumer consumer,
-              Map<String, IntIndexedContainer> indexShardMap) {
+              Map<String, IntIndexedContainer> indexShardMap,
+              LongSupplier bytesUsed) {
         super(countPhase.phaseId());
         this.countPhase = countPhase;
         this.txnCtx = txnCtx;
         this.countOperation = countOperation;
         this.consumer = consumer;
         this.indexShardMap = indexShardMap;
+        this.bytesUsed = bytesUsed;
     }
 
     @Override
@@ -97,6 +101,6 @@ public class CountTask extends AbstractTask {
 
     @Override
     public long bytesUsed() {
-        return -1;
+        return bytesUsed.getAsLong();
     }
 }

@@ -35,6 +35,7 @@ import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,6 +77,7 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
         tasksService = new TasksService(
             clusterService,
             mock(TransportService.class),
+            new NoneCircuitBreakerService(),
             new JobsLogs(() -> false)
         );
     }

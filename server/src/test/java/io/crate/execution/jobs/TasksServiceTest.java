@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.elasticsearch.action.NoSuchNodeException;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportService;
 import org.junit.After;
@@ -58,7 +59,12 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() {
         JobsLogs jobsLogs = new JobsLogs(() -> true);
-        tasksService = new TasksService(clusterService, Mockito.mock(TransportService.class), jobsLogs);
+        tasksService = new TasksService(
+            clusterService,
+            Mockito.mock(TransportService.class),
+            new NoneCircuitBreakerService(),
+            jobsLogs
+        );
     }
 
     @After

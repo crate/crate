@@ -37,6 +37,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
@@ -97,6 +98,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
         TasksService tasksService = new TasksService(
             clusterService,
             mock(TransportService.class),
+            new NoneCircuitBreakerService(),
             new JobsLogs(() -> true));
         numBroadcastCalls = new AtomicInteger(0);
         transportKillJobsNodeAction = new TransportKillJobsNodeAction(
