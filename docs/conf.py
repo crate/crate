@@ -31,6 +31,7 @@ linkcheck_ignore = [
     'https://www.npmjs.com/package/pg-cursor',
 ]
 linkcheck_retries = 3
+linkcheck_workers = 1  # Hitting rate limits with default 5
 linkcheck_request_headers = {
     "User-Agent": "CrateDB docs linkcheck"
 }
