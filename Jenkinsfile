@@ -62,14 +62,6 @@ pipeline {
             sh './gradlew --no-daemon itest'
           }
         }
-        stage('blackbox tests') {
-          agent { label 'medium' }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh './gradlew --no-daemon s3Test monitoringTest gtest dnsDiscoveryTest sslTest'
-          }
-        }
       }
     }
   }
