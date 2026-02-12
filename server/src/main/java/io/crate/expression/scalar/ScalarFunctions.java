@@ -53,6 +53,7 @@ import io.crate.expression.scalar.conditional.IfFunction;
 import io.crate.expression.scalar.conditional.LeastFunction;
 import io.crate.expression.scalar.conditional.NullIfFunction;
 import io.crate.expression.scalar.formatting.ToCharFunction;
+import io.crate.expression.scalar.formatting.ToTimestampFunction;
 import io.crate.expression.scalar.geo.AreaFunction;
 import io.crate.expression.scalar.geo.CoordinateFunction;
 import io.crate.expression.scalar.geo.DistanceFunction;
@@ -167,6 +168,7 @@ public class ScalarFunctions implements FunctionsProvider {
         AgeFunction.register(builder);
 
         ToCharFunction.register(builder);
+        ToTimestampFunction.register(builder);
 
         ExplicitCastFunction.register(builder);
         ImplicitCastFunction.register(builder);
