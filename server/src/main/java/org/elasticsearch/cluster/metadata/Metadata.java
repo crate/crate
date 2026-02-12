@@ -969,6 +969,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             final Set<String> duplicateAliasesIndices = new HashSet<>();
             for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
                 final IndexMetadata indexMetadata = cursor.value;
+                if (indexMetadata.getUpgradedVersion().onOrAfter(Version.V_6_0_0)) {
+                    continue;
+                }
                 final String uuid = indexMetadata.getIndex().getUUID();
                 boolean added = allIndices.add(uuid);
                 assert added : "double index named [" + uuid + "]";
@@ -1013,7 +1016,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             SortedMap<String, AliasOrIndex> aliasAndIndexLookup = new TreeMap<>();
             for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
                 IndexMetadata indexMetadata = cursor.value;
-                if (indexMetadata.getCreationVersion().onOrAfter(Version.V_6_0_0)) {
+                if (indexMetadata.getUpgradedVersion().onOrAfter(Version.V_6_0_0)) {
                     // aliases are deprecated and only needed to be built for old indices, aliases will be removed once
                     // the metadata is fully migrated/upgraded to schemas/relations.
                     continue;
