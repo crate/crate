@@ -37,18 +37,17 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.Index;
 import org.jetbrains.annotations.Nullable;
+
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -67,7 +66,6 @@ import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -232,16 +230,10 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
         // Versions up to 5.9.7 had a bug where ALTER TABLE on a partitioned table could change the `versionCreated` property on the template.
         // See https://github.com/crate/crate/pull/17178
         // To mitigate the impact, this looks through partitions and takes their lowest version:
-        Index[] concreteIndices = IndexNameExpressionResolver.concreteIndices(
-            metadata,
-            IndicesOptions.LENIENT_EXPAND_OPEN,
-            PartitionName.templatePrefix(relationName.schema(), relationName.name())
-        );
-        for (Index index : concreteIndices) {
-            IndexMetadata indexMetadata = metadata.index(index);
-            if (indexMetadata != null) {
-                versionCreated = Version.min(versionCreated, indexMetadata.getCreationVersion());
-            }
+        for (ObjectCursor<IndexMetadata> e : metadata.indices().values()) {
+            IndexMetadata indexMetadata = e.value;
+            assert Version.CURRENT.equals(indexMetadata.getUpgradedVersion()) : "All indexMetadata are upgraded to the current version";
+            versionCreated = Version.min(versionCreated, indexMetadata.getCreationVersion());
         }
         Version versionUpgraded = null;
         boolean isClosed = Maps.getOrDefault(

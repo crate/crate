@@ -987,7 +987,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 } else if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
                     allClosedIndices.add(indexMetadata.getIndex().getName());
                 }
-                indexMetadata.getAliases().keysIt().forEachRemaining(duplicateAliasesIndices::add);
+                if (indexMetadata.getUpgradedVersion().before(Version.V_6_0_0)) {
+                    indexMetadata.getAliases().keysIt().forEachRemaining(duplicateAliasesIndices::add);
+                }
             }
             duplicateAliasesIndices.retainAll(allIndices);
             if (duplicateAliasesIndices.isEmpty() == false) {
@@ -1040,7 +1042,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             SortedMap<String, AliasOrIndex> aliasAndIndexLookup = new TreeMap<>();
             for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
                 IndexMetadata indexMetadata = cursor.value;
-                if (indexMetadata.getCreationVersion().onOrAfter(Version.V_6_0_0)) {
+                if (indexMetadata.getUpgradedVersion().onOrAfter(Version.V_6_0_0)) {
                     // aliases are deprecated and only needed to be built for old indices, aliases will be removed once
                     // the metadata is fully migrated/upgraded to schemas/relations.
                     continue;
