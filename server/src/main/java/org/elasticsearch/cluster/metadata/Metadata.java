@@ -85,6 +85,7 @@ import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -485,8 +486,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         private final CoordinationMetadata coordinationMetadata;
         private final Settings transientSettings;
         private final Settings persistentSettings;
-        private final Diff<ImmutableOpenMap<String, IndexMetadata>> indices;
-        private final Diff<ImmutableOpenMap<String, IndexTemplateMetadata>> templates;
+        private final Diffs.MapDiff<String, IndexMetadata, ImmutableOpenMap<String, IndexMetadata>> indices;
+        private final Diffs.MapDiff<String, IndexTemplateMetadata, ImmutableOpenMap<String, IndexTemplateMetadata>> templates;
         private final Diff<ImmutableOpenMap<String, Custom>> customs;
         private final Diff<ImmutableOpenMap<String, SchemaMetadata>> schemas;
 
@@ -580,6 +581,34 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             builder.templates(templates.apply(part.templates));
             builder.customs(customs.apply(part.customs));
             builder.schemas.putAll(schemas.apply(part.schemas));
+
+            // For BWC: when MetadataDiff is streamed from a node < 6.0, MetadataDiff.deletes applied to indices and templates
+            // must also be applied to schemas.
+            // Note that table additions are handled by MetadataUpgradeService.upgradeMetadata
+            for (String templateName : templates.getDeletes()) {
+                RelationName relationName = IndexName.decode(templateName).toRelationName();
+                builder.dropRelation(relationName);
+            }
+            for (String key : indices.getDeletes()) {
+                try {
+                    IndexMetadata indexMetadata = part.indices().get(key);
+                    String indexUUID = indexMetadata.getIndexUUID(); // key is not always indexUUID if the Diff is streamed from a node < 6.0
+                    RelationName relationName = IndexName.decode(indexMetadata.getIndex().getName()).toRelationName();
+                    RelationMetadata relationMetadata = builder.getRelation(relationName);
+                    if (relationMetadata != null
+                        // Deletion of indexMetadata should trigger dropRelation only if it is a non-partitioned table.
+                        && (!(relationMetadata instanceof RelationMetadata.Table table) || table.partitionedBy().isEmpty())
+                        // Since shard resizing also uses MetadataDiff.deletes, we must ensure the indexUUID of the non-partitioned table matches
+                        // to prevent accidental drops
+                        && relationMetadata.indexUUIDs().getFirst().equals(indexUUID)) {
+                        builder.dropRelation(relationName);
+                    }
+                } catch (IllegalArgumentException e) {
+                    // Suppress the exception thrown when decoding index name with ".resize." prefix to relation name.
+                    assert e.getMessage().contains("resize") : "Unexpected exception thrown: " + e;
+                }
+            }
+
             return builder.build();
         }
     }
