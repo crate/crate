@@ -1442,6 +1442,15 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return getRelation(tableName) != null;
     }
 
+    public RelationName getRelationName(int tableOID) {
+        RelationMetadata relationMetadata = getRelation(tableOID);
+        if (relationMetadata == null) {
+            throw new RelationUnknown(
+                String.format(Locale.ENGLISH, "Relation not found for oid=%s", tableOID));
+        }
+        return relationMetadata.name();
+    }
+
     @Nullable
     public <T extends RelationMetadata> T getRelation(RelationName relation) {
         return getRelation(relation, schemas::get);
@@ -1450,6 +1459,22 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     @Nullable
     public RelationMetadata getRelation(String indexUUID) {
         return indexUUIDsRelations.get(indexUUID);
+    }
+
+    @Nullable
+    @SuppressWarnings("unchecked")
+    public <T extends RelationMetadata> T getRelation(int tableOID) {
+        assert tableOID > Metadata.OID_UNASSIGNED : "Invalid tableOID: " + tableOID;
+        for (ObjectCursor<SchemaMetadata> s : schemas.values()) {
+            SchemaMetadata schemaMetadata = s.value;
+            for (ObjectCursor<RelationMetadata> r : schemaMetadata.relations().values()) {
+                RelationMetadata relationMetadata = r.value;
+                if (relationMetadata.oid() == tableOID) {
+                    return (T) relationMetadata;
+                }
+            }
+        }
+        return null;
     }
 
     /**
