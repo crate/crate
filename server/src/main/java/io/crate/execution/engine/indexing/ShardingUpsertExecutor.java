@@ -104,6 +104,7 @@ public class ShardingUpsertExecutor
     private volatile boolean createPartitionsRequestOngoing = false;
     private final Predicate<UpsertResults> earlyTerminationCondition;
     private final Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator;
+    private final int tableOID;
 
     ShardingUpsertExecutor(ClusterService clusterService,
                            BiConsumer<PartitionName, IndexItem> constraintsChecker,
@@ -125,7 +126,8 @@ public class ShardingUpsertExecutor
                            int targetTableNumReplicas,
                            UpsertResultContext upsertResultContext,
                            Predicate<UpsertResults> earlyTerminationCondition,
-                           Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator) {
+                           Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator,
+                           int tableOID) {
         this.localNode = clusterService.state().nodes().getLocalNodeId();
         this.nodeLimits = nodeJobsCounter;
         this.queryCircuitBreaker = queryCircuitBreaker;
@@ -155,6 +157,7 @@ public class ShardingUpsertExecutor
         isDebugEnabled = LOGGER.isDebugEnabled();
         this.earlyTerminationCondition = earlyTerminationCondition;
         this.earlyTerminationExceptionGenerator = earlyTerminationExceptionGenerator;
+        this.tableOID = tableOID;
     }
 
     public CompletableFuture<UpsertResults> execute(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> requests) {
@@ -168,7 +171,7 @@ public class ShardingUpsertExecutor
         createPartitionsRequestOngoing = true;
         return elasticsearchClient.execute(
             TransportCreatePartitions.ACTION,
-            CreatePartitionsRequest.of(requests.itemsByMissingPartition.keySet()))
+                CreatePartitionsRequest.of(requests.tableOID(), requests.itemsByMissingPartition.keySet()))
             .thenCompose(_ -> {
                 grouper.reResolveShardLocations(requests);
                 createPartitionsRequestOngoing = false;
@@ -277,7 +280,7 @@ public class ShardingUpsertExecutor
         var reqBatchIterator = BatchIterators.chunks(
             batchIterator,
             bulkSize,
-            () -> new ShardedRequests<>(requestFactory, ramAccounting),
+            () -> new ShardedRequests<>(requestFactory, ramAccounting, tableOID),
             grouper,
             bulkShardCreationLimiter.or(isUsedBytesOverThreshold)
         );

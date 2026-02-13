@@ -1443,6 +1443,20 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return indexUUIDsRelations.get(indexUUID);
     }
 
+    @Nullable
+    public <T extends RelationMetadata> T getRelation(long tableOID) {
+        for (ObjectCursor<SchemaMetadata> s : schemas.values()) {
+            SchemaMetadata schemaMetadata = s.value;
+            for (ObjectCursor<RelationMetadata> r : schemaMetadata.relations().values()) {
+                RelationMetadata relationMetadata = r.value;
+                if (relationMetadata.oid() == tableOID) {
+                    return (T) relationMetadata;
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * @throws RelationUnknown
      * @throws IndexNotFoundException
@@ -1527,6 +1541,14 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return result;
     }
 
+    public <T> List<T> getIndices(long tableOID,
+                                  List<String> partitionValues,
+                                  boolean strict,
+                                  Function<IndexMetadata, T> as) {
+        RelationMetadata relationMetadata = Objects.requireNonNull(getRelation(tableOID), "Cannot find RelationMetadata with oid: " + tableOID);
+        return getIndices(relationMetadata.name(), partitionValues, strict, as);
+    }
+
     /**
      * <p>
      * Resolve the indices for a relation and return their data either as
@@ -1598,6 +1620,20 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         List<T> indices = getIndices(relationName, partitionValues, strict, as);
         if (indices.size() > 1) {
             throw new IllegalArgumentException("Expected a single index for " + relationName + " but got " + indices.size());
+        } else if (indices.size() == 1) {
+            return indices.getFirst();
+        }
+        return null;
+    }
+
+    @Nullable
+    public <T> T getIndex(long tableOID,
+                          List<String> partitionValues,
+                          boolean strict,
+                          Function<IndexMetadata, T> as) {
+        List<T> indices = getIndices(tableOID, partitionValues, strict, as);
+        if (indices.size() > 1) {
+            throw new IllegalArgumentException("TableOID unknown " + tableOID);
         } else if (indices.size() == 1) {
             return indices.getFirst();
         }

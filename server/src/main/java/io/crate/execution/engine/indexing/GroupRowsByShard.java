@@ -236,7 +236,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
             while (it.hasNext()) {
                 ShardedRequests.ItemAndRoutingAndSourceInfo<TItem> itemAndRoutingAndSourceInfo = it.next();
                 IndexMetadata indexMetadata = metadata.getIndex(
-                    partitionName.relationName(),
+                    requests.tableOID(),
                     partitionName.values(),
                     true,
                     x -> x
