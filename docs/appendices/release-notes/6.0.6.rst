@@ -1,7 +1,7 @@
-.. _version_6.2.2:
+.. _version_6.0.6:
 
 ==========================
-Version 6.2.2 - Unreleased
+Version 6.0.6 - Unreleased
 ==========================
 
 .. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
@@ -9,21 +9,18 @@ Version 6.2.2 - Unreleased
 .. comment    (without a NOTE entry, simply starting from col 1 of the line)
 .. NOTE::
 
-    In development. 6.2.2 isn't released yet. These are the release notes for
+    In development. 6.0.6 isn't released yet. These are the release notes for
     the upcoming release.
 
 .. NOTE::
 
     If you are upgrading a cluster, you must be running CrateDB 5.0.0 or higher
-    before you upgrade to 6.2.2.
+    before you upgrade to 6.0.6.
 
-    We recommend that you upgrade to the latest 6.1 release before moving to
-    6.2.2.
+    We recommend that you upgrade to the latest 5.10 release before moving to
+    6.0.6.
 
-    A rolling upgrade from >= 6.1.2 to 6.2.2 is supported. Doing a rolling
-    upgrade from an earlier version than 6.1.2 can cause runtime errors when
-    executing statements relying on implicit casts.
-
+    A rolling upgrade from >= 5.10.1 to 6.0.6 is supported.
     Before upgrading, you should `back up your data`_.
 
 .. WARNING::
@@ -43,7 +40,7 @@ Version 6.2.2 - Unreleased
    :local:
 
 
-See the :ref:`version_6.2.0` release notes for a full list of changes in the 6.2
+See the :ref:`version_6.0.0` release notes for a full list of changes in the 6.0
 series.
 
 Fixes
