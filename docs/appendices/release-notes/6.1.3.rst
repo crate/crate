@@ -118,7 +118,7 @@ Fixes
   value ``true``.
 
 - Improved error message thrown when providing empty value for configuration
-  settings, e.g.:
+  settings, e.g.::
 
       $> bin/crate -Cauth.host_based.enabled
       $> bin/crate -Cauth.host_based.enabled=
