@@ -60,6 +60,7 @@ public class PlainRamAccounting implements RamAccounting {
     @Override
     public void close() {
         closed = true;
+        release();
     }
 
     public boolean closed() {
