@@ -23,10 +23,16 @@ package io.crate.execution.engine.collect.files;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
 
 class URLFileInput implements FileInput {
 
@@ -56,11 +62,93 @@ class URLFileInput implements FileInput {
     @Override
     public InputStream getStream(URI uri) throws IOException {
         URL url = uri.toURL();
-        return url.openStream();
+        Proxy proxy = getProxyForUrl(uri);
+        URLConnection connection = url.openConnection(proxy);
+        return connection.getInputStream();
     }
 
     @Override
     public boolean sharedStorageDefault() {
         return true;
+    }
+
+    /**
+     * Creates a Proxy object based on JVM system properties for the given URI.
+     * Respects http.proxyHost, http.proxyPort, https.proxyHost, https.proxyPort,
+     * and http.nonProxyHosts system properties.
+     *
+     * @param uri The URI for which to determine proxy settings
+     * @return A Proxy object configured based on system properties, or Proxy.NO_PROXY if no proxy is configured
+     */
+    private Proxy getProxyForUrl(URI uri) {
+        String scheme = uri.getScheme();
+        if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
+            return Proxy.NO_PROXY;
+        }
+
+        // Check if host should bypass proxy
+        String host = uri.getHost();
+        if (host != null && shouldBypassProxy(host)) {
+            return Proxy.NO_PROXY;
+        }
+
+        // Get proxy settings based on protocol
+        String proxyHost = System.getProperty(scheme.toLowerCase() + ".proxyHost");
+        String proxyPortStr = System.getProperty(scheme.toLowerCase() + ".proxyPort");
+
+        if (proxyHost == null || proxyHost.trim().isEmpty()) {
+            return Proxy.NO_PROXY;
+        }
+
+        // Remove protocol prefix if present in proxyHost (e.g., "http://proxy.example.com" -> "proxy.example.com")
+        if (proxyHost.startsWith("http://")) {
+            proxyHost = proxyHost.substring(7);
+        } else if (proxyHost.startsWith("https://")) {
+            proxyHost = proxyHost.substring(8);
+        }
+
+        int proxyPort;
+        try {
+            proxyPort = proxyPortStr != null ? Integer.parseInt(proxyPortStr) : (scheme.equalsIgnoreCase("https") ? 443 : 80);
+        } catch (NumberFormatException e) {
+            // Default ports if parsing fails
+            proxyPort = scheme.equalsIgnoreCase("https") ? 443 : 80;
+        }
+
+        return new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
+    }
+
+    /**
+     * Checks if a host should bypass the proxy based on the http.nonProxyHosts system property.
+     * The property uses pipe-separated patterns with * as wildcard.
+     *
+     * @param host The host to check
+     * @return true if the host should bypass the proxy, false otherwise
+     */
+    private boolean shouldBypassProxy(String host) {
+        String nonProxyHosts = System.getProperty("http.nonProxyHosts");
+        if (nonProxyHosts == null || nonProxyHosts.trim().isEmpty()) {
+            return false;
+        }
+
+        // Split by pipe and check each pattern
+        String[] patterns = nonProxyHosts.split("\\|");
+        for (String pattern : patterns) {
+            pattern = pattern.trim();
+            if (pattern.isEmpty()) {
+                continue;
+            }
+            
+            // Convert wildcard pattern to regex
+            // Escape special regex characters except *
+            String regexPattern = pattern
+                .replace(".", "\\.")
+                .replace("*", ".*");
+            
+            if (Pattern.matches(regexPattern, host)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
