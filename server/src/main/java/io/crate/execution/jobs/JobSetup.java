@@ -592,13 +592,13 @@ public class JobSetup {
                 phase,
                 Paging.NO_PAGING,
                 new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes));
-            consumer.completionFuture().whenComplete((result, error) -> ramAccounting.close());
             context.registerSubContext(new CountTask(
                 phase,
                 context.transactionContext,
                 countOperation,
                 consumer,
-                indexShardMap
+                indexShardMap,
+                ramAccounting
             ));
             return null;
         }
