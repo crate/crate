@@ -146,6 +146,7 @@ information about the currently applied cluster settings.
     | settings['gateway']['recover_after_time']                                         | text         |
     | settings['indices']                                                               | object       |
     | settings['indices']['breaker']                                                    | object       |
+    | settings['indices']['breaker']['policy']                                          | text         |
     | settings['indices']['breaker']['query']                                           | object       |
     | settings['indices']['breaker']['query']['limit']                                  | text         |
     | settings['indices']['breaker']['request']                                         | object       |

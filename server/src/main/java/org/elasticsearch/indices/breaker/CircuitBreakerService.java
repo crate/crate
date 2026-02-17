@@ -44,6 +44,14 @@ public abstract class CircuitBreakerService extends AbstractLifecycleComponent {
 
     public abstract void checkParentLimit(long newBytesReserved, String label) throws CircuitBreakingException;
 
+    /// Trip the breaker, either raising a [CircuitBreakingException] or
+    /// killing a job depending on the configured breaking policy.
+    public abstract void circuitBreak(
+        String component,
+        long bytesAdded,
+        long bytesUsed,
+        long limit) throws CircuitBreakingException;
+
     @Override
     protected void doStart() {
     }

@@ -1081,13 +1081,41 @@ Operations that hit this memory limit will trigger a ``CircuitBreakingException`
 that can be handled in the application to inform the user about too much memory
 consumption for the particular query.
 
-Query circuit breaker
----------------------
 
-The Query circuit breaker will keep track of the used memory during the
-execution of a query. If a query consumes too much memory or if the cluster is
-already near its memory limit it will terminate the query to ensure the cluster
-keeps working.
+Circuit Breakers
+----------------
+
+CrateDB includes a circuit breaker mechanism designed to prevent nodes from
+running out of memory if queries try to take up more memory than there is
+available. Circuit breakers form a hierarchy with individual circuit breakers
+for specific type of operations or components - like query, requests and more.
+Those individual breakers then aggregate to a parent or "total" breaker which
+takes the current heap memory usage as reported by the JVM into consideration.
+
+If a query trips a circuit breaker, it will - depending on the configured policy
+- either abort the current query, or abort the operation consuming the most
+memory.
+
+
+.. _indices.breaker.policy:
+
+**indices.breaker.policy**
+  | *Default:*  ``current``
+  | *Runtime:*  ``yes``
+  | *Allowed values:* ``current``, ``top_consumer``
+
+  If set to ``current`` (the default), tripping a circuit breaker aborts the
+  query that tripped the breaker.
+
+  If set to ``top_consumer`` (experimental), tripping a circuit breaker aborts
+  the query consuming the most memory on the node where the breaker tripped.
+
+
+Query circuit breaker
+.....................
+
+The Query circuit breaker tracks the used memory for (intermediate) results of
+queries.
 
 .. _indices.breaker.query.limit:
 
@@ -1102,11 +1130,10 @@ keeps working.
 
 
 Request circuit breaker
------------------------
+.......................
 
-The request circuit breaker allows an estimation of required heap memory per
-request. If a single request exceeds the specified amount of memory, an
-exception is raised.
+The request circuit breaker tracks the used memory for requests required as part
+of query processing.
 
 .. _indices.breaker.request.limit:
 
@@ -1118,7 +1145,7 @@ exception is raised.
 
 
 Accounting circuit breaker
---------------------------
+..........................
 
 Tracks things that are held in memory independent of queries. For example the
 memory used by Lucene for segments.
@@ -1139,7 +1166,7 @@ memory used by Lucene for segments.
 .. _stats.breaker.log:
 
 Stats circuit breakers
-----------------------
+......................
 
 Settings that control the behaviour of the stats circuit breaker. There are two
 breakers in place, one for the jobs log and one for the operations log. For
@@ -1174,7 +1201,7 @@ each of them, the breaker limit can be set.
 
 
 Total circuit breaker
----------------------
+.....................
 
 The total - or parent - circuit breaker represents a sum of all other circuit
 breakers and additionally takes the current heap usage into consideration.
@@ -1191,6 +1218,7 @@ breakers and additionally takes the current heap usage into consideration.
   Even if an individual circuit breaker doesn't hit its individual limit,
   queries might still get aborted if several circuit breakers together would
   hit the memory limit configured in ``indices.breaker.total.limit``.
+
 
 Thread pools
 ------------
