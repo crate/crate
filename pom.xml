@@ -324,10 +324,10 @@
 
         <versions.jspecify>1.0.0</versions.jspecify>
         <versions.log4j>2.25.2</versions.log4j>
-        <versions.assertj>3.27.6</versions.assertj>
+        <versions.assertj>3.27.7</versions.assertj>
         <versions.junit5>5.13.4</versions.junit5>
         <versions.junit>4.13.2</versions.junit>
-        <versions.randomizedrunner>2.8.3</versions.randomizedrunner>
+        <versions.randomizedrunner>2.8.4</versions.randomizedrunner>
         <versions.jackson>2.20.1</versions.jackson>
         <versions.fastdoubleparser>2.0.1</versions.fastdoubleparser>
         <versions.jopt_simple>6.0-alpha-3</versions.jopt_simple>
