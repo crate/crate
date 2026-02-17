@@ -25,8 +25,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 
 import org.elasticsearch.ElasticsearchParseException;
@@ -43,7 +45,7 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
 
-public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
+public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom, Iterable<Map.Entry<String, ViewMetadata>> {
 
     public static final String TYPE = "views";
     public static final ViewsMetadata EMPTY = new ViewsMetadata(Map.of());
@@ -246,5 +248,10 @@ public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         public List<RelationName> missing() {
             return missing;
         }
+    }
+
+    @Override
+    public Iterator<Entry<String, ViewMetadata>> iterator() {
+        return viewByName.entrySet().iterator();
     }
 }

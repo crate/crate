@@ -33,6 +33,7 @@ import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -173,6 +174,12 @@ public class DocSchemaInfo implements SchemaInfo {
             throw new RelationUnknown(name);
         }
         return table.tableVersion();
+    }
+
+
+    @Nullable
+    public ViewInfo getViewInfo(ClusterState state, String name) {
+        return viewInfoFactory.create(new RelationName(schemaName, name), state);
     }
 
     @Nullable

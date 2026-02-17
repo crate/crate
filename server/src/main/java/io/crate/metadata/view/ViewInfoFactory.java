@@ -58,25 +58,18 @@ public class ViewInfoFactory {
         this.analyzerProvider = analyzerProvider;
     }
 
-    public ViewInfo create(RelationName ident, ClusterState state) {
-        ViewsMetadata meta = state.metadata().custom(ViewsMetadata.TYPE);
-        if (meta == null) {
-            return null;
-        }
-        ViewMetadata view = meta.getView(ident);
-        if (view == null) {
-            return null;
-        }
+    public ViewInfo create(RelationName ident, ViewMetadata view) {
         List<Reference> columns;
         LinkedHashSet<ScopedColumn> usedSourceColumns = new LinkedHashSet<>();
         boolean analyzeError = false;
         boolean errorOnUnknownObjectKey = view.errorOnUnknownObjectKey();
+        AnalyzedRelation relation = null;
         try {
             CoordinatorTxnCtx transactionContext = CoordinatorTxnCtx.systemTransactionContext();
             transactionContext.sessionSettings().setSearchPath(view.searchPath());
             transactionContext.sessionSettings().setErrorOnUnknownObjectKey(errorOnUnknownObjectKey);
 
-            AnalyzedRelation relation = analyzerProvider.analyze(
+            relation = analyzerProvider.analyze(
                 (Query) SqlParser.createStatement(view.stmt()),
                 transactionContext,
                 ParamTypeHints.EMPTY
@@ -136,7 +129,9 @@ public class ViewInfoFactory {
             columns = Collections.emptyList();
             analyzeError = true;
         }
-        String viewDefinition = analyzeError ? String.format(Locale.ENGLISH, "/* Corrupted view, needs fix */\n%s", view.stmt()) : view.stmt();
+        String viewDefinition = analyzeError
+            ? String.format(Locale.ENGLISH, "/* Corrupted view, needs fix */\n%s", view.stmt())
+            : view.stmt();
         return new ViewInfo(
             ident,
             viewDefinition,
@@ -144,8 +139,21 @@ public class ViewInfoFactory {
             List.copyOf(usedSourceColumns),
             view.owner(),
             view.searchPath(),
-            errorOnUnknownObjectKey
+            errorOnUnknownObjectKey,
+            relation
         );
+    }
+
+    public ViewInfo create(RelationName ident, ClusterState state) {
+        ViewsMetadata meta = state.metadata().custom(ViewsMetadata.TYPE);
+        if (meta == null) {
+            return null;
+        }
+        ViewMetadata view = meta.getView(ident);
+        if (view == null) {
+            return null;
+        }
+        return create(ident, view);
     }
 
     private static int addSubColumns(List<Reference> subColumns,

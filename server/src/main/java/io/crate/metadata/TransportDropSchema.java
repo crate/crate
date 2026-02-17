@@ -44,6 +44,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.metadata.view.ViewInfoFactory;
+
 public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaRequest, AcknowledgedResponse> {
 
     public static final Action ACTION = new Action();
@@ -56,9 +59,13 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
         }
     }
 
+
+    private final ViewInfoFactory viewFactory;
+
     @Inject
     public TransportDropSchema(TransportService transportService,
                                ClusterService clusterService,
+                               NodeContext nodeContext,
                                ThreadPool threadPool) {
         super(
             ACTION.name(),
@@ -67,6 +74,7 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
             threadPool,
             DropSchemaRequest::new
         );
+        this.viewFactory = new ViewInfoFactory(new RelationAnalyzer(nodeContext));
     }
 
     @Override
@@ -87,7 +95,7 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
             throw new IllegalStateException(
                 "Cannot execute DROP SCHEMA while there are <6.2.0 nodes in the cluster");
         }
-        DropSchemaTask task = new DropSchemaTask(request);
+        DropSchemaTask task = new DropSchemaTask(viewFactory, request);
         task.completionFuture().whenComplete(listener);
         clusterService.submitStateUpdateTask("drop-schema", task);
     }
@@ -101,9 +109,11 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
     static class DropSchemaTask extends AckedClusterStateUpdateTask<AcknowledgedResponse> {
 
         private final DropSchemaRequest request;
+        private final ViewInfoFactory viewFactory;
 
-        protected DropSchemaTask(DropSchemaRequest request) {
+        protected DropSchemaTask(ViewInfoFactory viewFactory, DropSchemaRequest request) {
             super(Priority.NORMAL, request);
+            this.viewFactory = viewFactory;
             this.request = request;
         }
 
@@ -121,7 +131,7 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
                 if (!schemas.containsKey(schema) && request.ifExists()) {
                     continue;
                 }
-                newMetadata.dropSchema(schema);
+                newMetadata.dropSchema(viewFactory, schema);
             }
             return ClusterState.builder(currentState)
                 .metadata(newMetadata)

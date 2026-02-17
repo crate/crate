@@ -21,9 +21,9 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.elasticsearch.test.ESTestCase.settings;
 
 import java.io.IOException;
 import java.util.List;
@@ -34,6 +34,7 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
+import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.exceptions.DependentObjectsExists;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
@@ -42,11 +43,16 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
-public class MetadataTest {
+public class MetadataTest extends CrateDummyClusterServiceUnitTest {
+
+    ViewInfoFactory viewInfoFactory = new ViewInfoFactory(new RelationAnalyzer(createNodeContext()));
 
     @Test
     public void test_bwc_read_writes_with_6_1_0() throws Exception {
@@ -82,7 +88,7 @@ public class MetadataTest {
                         SearchPath.pathWithPGCatalogAndDoc(),
                         true
                     ))
-                .dropSchema("foo")
+                .dropSchema(viewInfoFactory, "foo")
         ).isExactlyInstanceOf(DependentObjectsExists.class);
     }
 
@@ -97,7 +103,7 @@ public class MetadataTest {
                         new UserDefinedFunctionMetadata("foo", "bar", List.of(), DataTypes.INTEGER, "js", "")
                     )
                 )
-                .dropSchema("foo")
+                .dropSchema(viewInfoFactory, "foo")
         ).isExactlyInstanceOf(DependentObjectsExists.class);
     }
 
@@ -115,7 +121,20 @@ public class MetadataTest {
                         Settings.EMPTY
                     )
                 )
-                .dropSchema("foo")
+                .dropSchema(viewInfoFactory, "foo")
+        ).isExactlyInstanceOf(DependentObjectsExists.class);
+    }
+
+    @Test
+    public void test_cant_drop_schema_if_used_in_view_of_other_schema() throws Exception {
+        SQLExecutor.of(clusterService)
+            .addTable("create table s1.t1 (x int)")
+            .addView(new RelationName("s3", "v1"), "select * from s1.t1");
+        Metadata metadata = clusterService.state().metadata();
+        assertThatThrownBy(() ->
+            new Metadata.Builder(metadata)
+                .createSchema("s2")
+                .dropSchema(viewInfoFactory, "s2")
         ).isExactlyInstanceOf(DependentObjectsExists.class);
     }
 

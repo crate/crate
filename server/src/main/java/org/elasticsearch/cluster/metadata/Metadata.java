@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
@@ -68,12 +69,12 @@ import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.DependentObjectsExists;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
@@ -91,6 +92,9 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.view.ViewInfo;
+import io.crate.metadata.view.ViewInfoFactory;
+import io.crate.metadata.view.ViewMetadata;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.rest.action.HttpErrorStatus;
 import io.crate.sql.tree.ColumnPolicy;
@@ -1322,7 +1326,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
         /// @throws [SchemaUnknownException]
         /// @throws [DependentObjectsExists]
-        public Builder dropSchema(String schema) {
+        public Builder dropSchema(ViewInfoFactory viewFactory, String schema) {
             SchemaMetadata schemaMetadata = schemas.get(schema);
             if (schemaMetadata == null) {
                 throw new SchemaUnknownException(schema);
@@ -1332,11 +1336,27 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             }
 
             ViewsMetadata views = (ViewsMetadata) customs.getOrDefault(ViewsMetadata.TYPE, ViewsMetadata.EMPTY);
-            for (String viewName : views.names()) {
-                RelationName relationName = RelationName.fromIndexName(viewName);
+            Consumer<RelationName> ensureNotInSchema = relationName -> {
                 if (relationName.schema().equals(schema)) {
                     throw new DependentObjectsExists("schema", schema);
                 }
+            };
+            for (var entry : views) {
+                String viewName = entry.getKey();
+                ViewMetadata viewMd = entry.getValue();
+
+                RelationName relationName = RelationName.fromIndexName(viewName);
+                ensureNotInSchema.accept(relationName);
+                ViewInfo viewInfo = viewFactory.create(relationName, viewMd);
+                // viewInfo.forDependentObjects(ensureNotInSchema, symbol -> {
+                //     if (symbol instanceof io.crate.expression.symbol.Function fn
+                //             && fn.signature().getName().schema().equals(schema)) {
+                //         throw new DependentObjectsExists("schema", schema);
+                //     }
+                //     if (symbol instanceof ScopedColumn column && column.relation().schema().equals(schema)) {
+                //         throw new DependentObjectsExists("schema", schema);
+                //     }
+                // });
             }
 
             UserDefinedFunctionsMetadata udfs = (UserDefinedFunctionsMetadata) customs.getOrDefault(
