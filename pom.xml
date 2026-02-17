@@ -8,6 +8,18 @@
     <version>6.3.0</version>
     <packaging>pom</packaging>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${versions.junit5}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <build>
         <plugins>
             <plugin>
@@ -314,7 +326,6 @@
         <versions.log4j>2.25.2</versions.log4j>
         <versions.assertj>3.27.6</versions.assertj>
         <versions.junit5>5.13.4</versions.junit5>
-        <versions.junit-platform-commons>1.13.4</versions.junit-platform-commons>
         <versions.junit>4.13.2</versions.junit>
         <versions.randomizedrunner>2.8.3</versions.randomizedrunner>
         <versions.jackson>2.20.1</versions.jackson>
