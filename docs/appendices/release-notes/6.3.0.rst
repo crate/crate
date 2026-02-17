@@ -105,6 +105,12 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Added a :ref:`indices.breaker.policy` setting which can be set to either
+  ``current`` (default - current behavior) or ``top_consumer`` (new experimental
+  behavior). If set to ``top_consumer`` it changes the circuit breaking
+  mechanism to abort the query consuming the most memory on the node where the
+  circuit breaker was tripped instead of the query who tripped it.
+
 - Changed the :ref:`swapping <alter_cluster_swap_table>` and
   :ref:`renaming <sql-alter-table-rename-to>` of tables to no longer re-allocate
   the shards of the swapped/renamed table, so that in-progress snapshots can

@@ -28,12 +28,11 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.StampedLock;
-import java.util.function.BooleanSupplier;
 
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.common.annotations.ThreadSafe;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.jobs.Task;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.sys.job.JobContext;
@@ -73,10 +72,10 @@ public class JobsLogs {
     private final StampedLock operationsLogRWLock = new StampedLock();
 
     private final LongAdder activeRequests = new LongAdder();
-    private final BooleanSupplier enabled;
     private final ClassifiedMetrics classifiedMetrics = new ClassifiedMetrics();
+    private volatile boolean enabled;
 
-    public JobsLogs(BooleanSupplier enabled) {
+    public JobsLogs(boolean enabled) {
         this.enabled = enabled;
     }
 
@@ -85,7 +84,11 @@ public class JobsLogs {
      * This result will change if the cluster settings is updated.
      */
     private boolean isEnabled() {
-        return enabled.getAsBoolean();
+        return enabled;
+    }
+
+    public void setEnabled(boolean value) {
+        enabled = value;
     }
 
     /**

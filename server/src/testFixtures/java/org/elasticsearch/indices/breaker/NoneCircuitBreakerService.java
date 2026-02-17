@@ -39,6 +39,11 @@ public class NoneCircuitBreakerService extends CircuitBreakerService {
     }
 
     @Override
+    public void circuitBreak(String component, long bytesAdded, long bytesUsed, long limit) throws CircuitBreakingException {
+        throw new CircuitBreakingException(bytesAdded, bytesUsed, limit, component);
+    }
+
+    @Override
     public CircuitBreakerStats stats(String name) {
         return new CircuitBreakerStats(CircuitBreaker.QUERY, -1, -1, 0, 0);
     }

@@ -23,7 +23,9 @@ import static java.util.Objects.requireNonNull;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
+import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -31,6 +33,7 @@ import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -39,6 +42,12 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
+
+import io.crate.execution.jobs.TasksService;
+import io.crate.execution.jobs.kill.KillJobsNodeAction;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.role.Role;
+import io.crate.types.DataTypes;
 
 /**
  * CircuitBreakerService that attempts to redistribute space between breakers
@@ -55,6 +64,26 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
 
     public static final Setting<ByteSizeValue> TOTAL_CIRCUIT_BREAKER_LIMIT_SETTING =
         Setting.memorySizeSetting("indices.breaker.total.limit", "95%", Property.Dynamic, Property.NodeScope, Property.Exposed);
+
+    enum BreakerPolicy {
+        CURRENT,
+        TOP_CONSUMER
+    }
+
+    public static final Setting<BreakerPolicy> POLICY_SETTING = new Setting<>(
+        "indices.breaker.policy",
+        BreakerPolicy.CURRENT.toString(),
+        value -> switch (value.toLowerCase(Locale.ENGLISH)) {
+            case "current" -> BreakerPolicy.CURRENT;
+            case "top_consumer" -> BreakerPolicy.TOP_CONSUMER;
+            default -> throw new IllegalArgumentException(
+                "Invalid breaker policy: " + value + " expected one of: current, top_consumer");
+        },
+        DataTypes.STRING,
+        Property.Dynamic,
+        Property.NodeScope,
+        Property.Exposed
+    );
 
     public static final Setting<ByteSizeValue> REQUEST_CIRCUIT_BREAKER_LIMIT_SETTING =
         Setting.memorySizeSetting("indices.breaker.request.limit", "60%", Property.Dynamic, Property.NodeScope, Property.Exposed);
@@ -82,10 +111,20 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
     private volatile BreakerSettings inFlightRequestsSettings;
     private volatile BreakerSettings requestSettings;
 
+    private volatile BreakerPolicy policy;
+
     // Tripped count for when redistribution was attempted but wasn't successful
     private final AtomicLong parentTripCount = new AtomicLong(0);
 
-    public HierarchyCircuitBreakerService(Settings settings, ClusterSettings clusterSettings) {
+    private final Client client;
+    private final TasksService tasksService;
+
+    public HierarchyCircuitBreakerService(Settings settings,
+                                          ClusterSettings clusterSettings,
+                                          TasksService tasksService,
+                                          Client client) {
+        this.tasksService = tasksService;
+        this.client = client;
         this.inFlightRequestsSettings = new BreakerSettings(
             CircuitBreaker.IN_FLIGHT_REQUESTS,
             IN_FLIGHT_REQUESTS_CIRCUIT_BREAKER_LIMIT_SETTING.get(settings).getBytes()
@@ -139,6 +178,9 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
             OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
             (newLimit) ->
                 setBreakerLimit(logOperationsBreakerSettings, CircuitBreaker.OPERATIONS_LOG, s -> this.logOperationsBreakerSettings = s, newLimit));
+
+        this.policy = POLICY_SETTING.get(settings);
+        clusterSettings.addSettingsUpdateConsumer(POLICY_SETTING, newPolicy -> this.policy = newPolicy);
     }
 
     public static String breakingExceptionMessage(String label, long limit) {
@@ -257,9 +299,33 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
                     ByteSizeValue.humanReadableBytes(parentLimit)
                 );
             }
-            throw new CircuitBreakingException(newBytesReserved, totalUsed, parentLimit, "parent: " + label);
+            circuitBreak("parent: " + label, newBytesReserved, totalUsed, parentLimit);
         }
     }
+
+
+    public void circuitBreak(String component, long bytesAdded, long bytesUsed, long limit) {
+        if (policy == BreakerPolicy.CURRENT) {
+            throw new CircuitBreakingException(bytesAdded, bytesUsed, limit, component);
+        }
+        UUID jobId = tasksService.topConsumer();
+        if (jobId == null) {
+            throw new CircuitBreakingException(bytesAdded, bytesUsed, limit, component);
+        }
+
+        List<UUID> toKill = List.of(jobId);
+        String reason = String.format(
+            Locale.ENGLISH,
+            "Circuit breaker for '%s' triggered. New used memory %s would be larger than the limit %s",
+            component,
+            ByteSizeValue.humanReadableBytes(bytesUsed + bytesAdded),
+            ByteSizeValue.humanReadableBytes(limit)
+        );
+        tasksService.killJobs(toKill, Role.CRATE_USER.name(), reason);
+        var request = new KillJobsNodeRequest(List.of(), toKill, Role.CRATE_USER.name(), reason);
+        client.execute(KillJobsNodeAction.INSTANCE, request);
+    }
+
 
     private void setBreaker(BreakerSettings breakerSettings) {
         breakers.compute(
