@@ -49,6 +49,23 @@ series.
 Fixes
 =====
 
+- Fixed an issue that caused a :ref:`SUM <aggregation-sum>` aggregation to cause
+  a ``NullPointerException`` if used on a column containing null values and used
+  as part of a window function with a window definition where the null values
+  appeared first or intermediate instead of last.
+
+  An Example::
+
+    select sum(x) over (order by x nulls first rows between 1 preceding and 1 following)
+    from (
+      select null
+      union all
+      select 1
+      union all
+      select 2
+    ) tbl (x);
+
+
 - Fixed an issue that caused :ref:`swap table <alter_cluster_swap_table>` or
   :ref:`drop table <drop-table>` to cause temporary metadata corruption if
   run during a rolling upgrade from 5.10.x. The corruption can be recovered by
