@@ -80,20 +80,29 @@
                     </includes>
                     <systemPropertyVariables>
                         <worker-id>$${surefire.forkNumber}</worker-id>
+                        <junit.vintage.discovery.issue.reporting.enabled>false</junit.vintage.discovery.issue.reporting.enabled>
                     </systemPropertyVariables>
                     <properties>
                         <configurationParameters>
-                            junit.jupiter.execution.parallel.enabled = true
+                            junit.jupiter.execution.parallel.enabled=true
+                            junit.vintage.discovery.issue.reporting.enabled=false
                         </configurationParameters>
                     </properties>
                     <!-- by default is false but is set to true by `serverTest` profile to avoid
                     running tests
                for modules on which `server` module depends on, when running `mvn -Pserver test` -->
                     <skip>${skipRunTests}</skip>
-                    <argLine>@{argLine} -XX:+UseSerialGC -XX:TieredStopAtLevel=1
-                        -XX:ReservedCodeCacheSize=512M -XX:+UseCompactObjectHeaders --add-modules
-                        jdk.incubator.vector --enable-native-access=ALL-UNNAMED
-                        --sun-misc-unsafe-memory-access=allow</argLine>
+                    <argLine>
+                        @{argLine}
+                        -XX:+UseSerialGC
+                        -XX:TieredStopAtLevel=1
+                        -XX:ReservedCodeCacheSize=512M
+                        -XX:+UseCompactObjectHeaders
+                        --add-modules jdk.incubator.vector
+                        --enable-native-access=ALL-UNNAMED
+                        --sun-misc-unsafe-memory-access=allow
+                        -Djunit.vintage.discovery.issue.reporting.enabled=false
+                    </argLine>
                 </configuration>
             </plugin>
             <plugin>
@@ -325,7 +334,7 @@
         <versions.jspecify>1.0.0</versions.jspecify>
         <versions.log4j>2.25.2</versions.log4j>
         <versions.assertj>3.27.7</versions.assertj>
-        <versions.junit5>5.13.4</versions.junit5>
+        <versions.junit5>6.0.3</versions.junit5>
         <versions.junit>4.13.2</versions.junit>
         <versions.randomizedrunner>2.8.4</versions.randomizedrunner>
         <versions.jackson>2.20.1</versions.jackson>
