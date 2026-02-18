@@ -23,8 +23,8 @@ package io.crate.execution.engine.aggregation.impl;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.jspecify.annotations.Nullable;
 import org.joda.time.Period;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
@@ -120,6 +120,10 @@ public class IntervalSumAggregation extends AggregationFunction<Period, Period> 
     public Period removeFromAggregatedState(RamAccounting ramAccounting,
                                             Period previousAggState,
                                             Input<?>[] stateToRemove) {
-        return previousAggState.minus(DataTypes.INTERVAL.sanitizeValue(stateToRemove[0].value()));
+        Object value = stateToRemove[0].value();
+        if (value == null) {
+            return previousAggState;
+        }
+        return previousAggState.minus(DataTypes.INTERVAL.sanitizeValue(value));
     }
 }
