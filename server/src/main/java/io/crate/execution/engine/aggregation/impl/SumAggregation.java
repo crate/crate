@@ -32,11 +32,11 @@ import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.common.MutableDouble;
 import io.crate.common.MutableFloat;
 import io.crate.common.MutableLong;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -185,7 +185,11 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
     @Override
     public T removeFromAggregatedState(RamAccounting ramAccounting, T previousAggState, Input<?>[] stateToRemove) {
-        return subtraction.apply(previousAggState, returnType.sanitizeValue(stateToRemove[0].value()));
+        Object value = stateToRemove[0].value();
+        if (value == null) {
+            return previousAggState;
+        }
+        return subtraction.apply(previousAggState, returnType.sanitizeValue(value));
     }
 
     @Nullable
