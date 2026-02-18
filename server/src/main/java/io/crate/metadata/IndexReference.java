@@ -333,6 +333,25 @@ public class IndexReference extends SimpleReference {
     }
 
     @Override
+    public Reference withDefaultExpression(@Nullable Symbol defaultExpression) {
+        return new IndexReference(
+            relation,
+            column,
+            granularity,
+            type,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            oid,
+            isDropped,
+            defaultExpression,
+            columns,
+            analyzer
+        );
+    }
+
+    @Override
     public Map<String, Object> toMapping(int position) {
         Map<String, Object> mapping = super.toMapping(position);
         if (analyzer != null) {

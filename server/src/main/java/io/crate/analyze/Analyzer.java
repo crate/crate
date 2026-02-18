@@ -58,6 +58,7 @@ import io.crate.sql.tree.AlterServer;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
+import io.crate.sql.tree.AlterTableAlterColumnDefault;
 import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRenameColumn;
@@ -155,6 +156,7 @@ public class Analyzer {
     private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
     private final AlterTableDropColumnAnalyzer alterTableDropColumnAnalyzer;
     private final AlterTableRenameColumnAnalyzer alterTableRenameColumnAnalyzer;
+    private final AlterTableAlterColumnDefaultAnalyzer alterTableAlterColumnDefaultAnalyzer;
     private final InsertAnalyzer insertAnalyzer;
     private final CopyAnalyzer copyAnalyzer;
     private final UpdateAnalyzer updateAnalyzer;
@@ -203,6 +205,7 @@ public class Analyzer {
         this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, nodeCtx);
         this.alterTableDropColumnAnalyzer = new AlterTableDropColumnAnalyzer(schemas, nodeCtx);
         this.alterTableRenameColumnAnalyzer = new AlterTableRenameColumnAnalyzer(schemas, nodeCtx);
+        this.alterTableAlterColumnDefaultAnalyzer = new AlterTableAlterColumnDefaultAnalyzer(schemas, nodeCtx);
         this.swapTableAnalyzer = new SwapTableAnalyzer(nodeCtx, schemas);
         this.viewAnalyzer = new ViewAnalyzer(relationAnalyzer, schemas);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this, clusterService);
@@ -316,6 +319,14 @@ public class Analyzer {
         public AnalyzedStatement visitAlterTableRenameColumnStatement(AlterTableRenameColumn<?> node, Analysis context) {
             return alterTableRenameColumnAnalyzer.analyze(
                 (AlterTableRenameColumn<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterTableAlterColumnDefaultStatement(AlterTableAlterColumnDefault<?> node, Analysis context) {
+            return alterTableAlterColumnDefaultAnalyzer.analyze(
+                (AlterTableAlterColumnDefault<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext());
         }

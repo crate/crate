@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongSupplier;
@@ -910,6 +911,45 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             pkConstraintName,
             primaryKeys,
             newConstraints,
+            clusteredBy,
+            tableParameters,
+            partitionedBy,
+            columnPolicy,
+            versionCreated,
+            versionUpgraded,
+            closed,
+            supportedOperations,
+            tableVersion + 1
+        );
+    }
+
+    public DocTableInfo setDefaultExpression(Reference targetRef, @Nullable Symbol newDefault) {
+        long targetOid = targetRef.oid();
+        Map<ColumnIdent, Reference> newReferences = new HashMap<>(allColumns);
+        boolean changed = false;
+        for (var entry : newReferences.entrySet()) {
+            Reference ref = entry.getValue();
+            if (ref.oid() == targetOid) {
+                if (Objects.equals(ref.defaultExpression(), newDefault)) {
+                    return this;
+                }
+                entry.setValue(ref.withDefaultExpression(newDefault));
+                changed = true;
+                break;
+            }
+        }
+        if (!changed) {
+            throw new ColumnUnknownException(targetRef.column(), ident);
+        }
+        return new DocTableInfo(
+            tableOID,
+            ident,
+            newReferences,
+            indexColumns,
+            droppedColumns,
+            pkConstraintName,
+            primaryKeys,
+            checkConstraints,
             clusteredBy,
             tableParameters,
             partitionedBy,

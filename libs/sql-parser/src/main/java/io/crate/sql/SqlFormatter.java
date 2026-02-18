@@ -48,6 +48,7 @@ import io.crate.sql.tree.AlterRoleSet;
 import io.crate.sql.tree.AlterServer;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.AlterTable;
+import io.crate.sql.tree.AlterTableAlterColumnDefault;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.CascadeMode;
@@ -799,6 +800,21 @@ public final class SqlFormatter {
                 builder.append(")");
             }
 
+            return null;
+        }
+
+        @Override
+        public Void visitAlterTableAlterColumnDefaultStatement(AlterTableAlterColumnDefault<?> node, Integer indent) {
+            builder.append("ALTER TABLE ");
+            node.table().accept(this, indent);
+            builder.append(" ALTER COLUMN ");
+            builder.append(formatExpression(node.column()));
+            if (node.defaultExpression() != null) {
+                builder.append(" SET DEFAULT ");
+                builder.append(formatExpression(node.defaultExpression()));
+            } else {
+                builder.append(" DROP DEFAULT");
+            }
             return null;
         }
 
