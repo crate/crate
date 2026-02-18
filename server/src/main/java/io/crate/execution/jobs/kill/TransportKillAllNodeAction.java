@@ -54,7 +54,10 @@ public class TransportKillAllNodeAction extends TransportAction<KillAllRequest, 
         this.transportService = transportService;
         transportService.registerRequestHandler(
             KillAllNodeAction.NAME,
-            ThreadPool.Names.GENERIC,
+            ThreadPool.Names.SAME, // KILL ALL is cheap
+            // Must always process KILL ALL, so that users can kill all jobs despite on high CB
+            true,
+            false,
             KillAllRequest::new,
             new NodeActionRequestHandler<>(this::nodeOperation));
     }
