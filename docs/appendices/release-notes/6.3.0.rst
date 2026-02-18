@@ -72,7 +72,9 @@ Changes
 SQL Statements
 --------------
 
-None
+- Added support for :ref:`ALTER TABLE ALTER COLUMN SET/DROP DEFAULT
+  <SQL-alter-table-alter-column-default>` to set or drop the default value of a
+  column.
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------

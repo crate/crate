@@ -22,6 +22,7 @@ Synopsis
         | { ADD [ COLUMN ] column_name data_type [ column_constraint [ ... ] ] } [, ... ]
         | { DROP [ COLUMN ] [ IF EXISTS ] column_name } [, ... ]
         | { RENAME [ COLUMN ] column_name TO new_name } [, ... ]
+        | ALTER [ COLUMN ] column_name { SET DEFAULT expression | DROP DEFAULT }
         | OPEN
         | CLOSE
         | RENAME TO table_ident
@@ -233,6 +234,44 @@ Renames a column of a table
 .. NOTE::
 
    Renaming columns of a table created before version 5.5 is not supported.
+
+.. _SQL-alter-table-alter-column-default:
+
+``ALTER COLUMN SET/DROP DEFAULT``
+---------------------------------
+
+Can be used to set or drop the default value of a column.
+
+Setting a default value causes new rows to use that value when no explicit
+value is provided for the column during :ref:`sql-insert` statements.
+
+Dropping a default value removes any previously set default. New rows will
+receive ``NULL`` for that column if no explicit value is provided.
+
+:column_name:
+  Name of the column to alter.
+  Supports subscript expressions to alter sub-columns of ``OBJECT`` columns.
+
+:expression:
+  The default value expression to assign. Must be compatible with the column's
+  data type. The expression must not reference other columns. Functions like
+  ``current_timestamp`` are allowed.
+
+.. NOTE::
+
+   Setting or dropping the default of a column does not affect existing rows.
+
+.. NOTE::
+
+   It is not allowed to set a default on:
+
+   - :ref:`generated columns <ddl-generated-columns>`
+   - ``OBJECT`` columns (sub-columns of objects are allowed)
+
+.. NOTE::
+
+   Altering column defaults of a table created before version 5.5 is not
+   supported.
 
 .. _sql-alter-table-open-close:
 

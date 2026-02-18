@@ -371,6 +371,10 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
             return ref.withValueType(type);
         }
 
+        public Reference withDefaultExpression(@Nullable Symbol defaultExpression) {
+            return ref.withDefaultExpression(defaultExpression);
+        }
+
         public String storageIdent() {
             return ref.storageIdent();
         }
