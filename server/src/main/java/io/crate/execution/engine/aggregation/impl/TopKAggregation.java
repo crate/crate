@@ -188,7 +188,9 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 state = initState(ramAccounting, DEFAULT_LIMIT, DEFAULT_MAX_CAPACITY);
             }
         }
-        state.update(value, argumentType);
+        if (value != null) {
+            state.update(value, argumentType);
+        }
         return state;
     }
 
