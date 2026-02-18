@@ -103,6 +103,10 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
+    public R visitAlterTableAlterColumnDefault(AnalyzedAlterTableAlterColumnDefault analysis, C context) {
+        return visitDDLStatement(analysis, context);
+    }
+
     public R visitRerouteRetryFailedStatement(AnalyzedRerouteRetryFailed analysis, C context) {
         return visitDDLStatement(analysis, context);
     }

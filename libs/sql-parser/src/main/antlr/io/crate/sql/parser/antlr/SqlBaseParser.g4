@@ -134,6 +134,10 @@ alterStmt
     | ALTER (BLOB)? TABLE alterTableDefinition RENAME TO qname                       #alterTableRenameTable
     | ALTER (BLOB)? TABLE alterTableDefinition
         RENAME COLUMN? source=subscriptSafe TO target=subscriptSafe                  #alterTableRenameColumn
+    | ALTER TABLE alterTableDefinition
+        ALTER COLUMN? subscriptSafe SET DEFAULT expr                                 #alterTableAlterColumnSetDefault
+    | ALTER TABLE alterTableDefinition
+        ALTER COLUMN? subscriptSafe DROP DEFAULT                                     #alterTableAlterColumnDropDefault
     | ALTER (BLOB)? TABLE alterTableDefinition REROUTE rerouteOption                 #alterTableReroute
     | ALTER CLUSTER REROUTE RETRY FAILED                                             #alterClusterRerouteRetryFailed
     | ALTER CLUSTER SWAP TABLE source=qname TO target=qname withProperties?          #alterClusterSwapTable

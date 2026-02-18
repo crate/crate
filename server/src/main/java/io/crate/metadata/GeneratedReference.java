@@ -32,6 +32,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Symbol;
@@ -307,6 +308,15 @@ public final class GeneratedReference implements Reference {
             ref.withValueType(type),
             formattedGeneratedExpression,
             generatedExpression.cast(type, CastMode.IMPLICIT)
+        );
+    }
+
+    @Override
+    public Reference withDefaultExpression(@Nullable Symbol defaultExpression) {
+        return new GeneratedReference(
+            ref.withDefaultExpression(defaultExpression),
+            formattedGeneratedExpression,
+            generatedExpression
         );
     }
 

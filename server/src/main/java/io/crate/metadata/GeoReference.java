@@ -243,6 +243,25 @@ public class GeoReference extends SimpleReference {
     }
 
     @Override
+    public Reference withDefaultExpression(@Nullable Symbol defaultExpression) {
+        return new GeoReference(
+            relation,
+            column,
+            type,
+            indexType,
+            nullable,
+            position,
+            oid,
+            isDropped,
+            defaultExpression,
+            geoTree,
+            precision,
+            treeLevels,
+            distanceErrorPct
+        );
+    }
+
+    @Override
     public Map<String, Object> toMapping(int position) {
         Map<String, Object> mapping = super.toMapping(position);
         Maps.putNonNull(mapping, "tree", geoTree);

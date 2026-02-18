@@ -922,6 +922,75 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         );
     }
 
+    public DocTableInfo alterColumn(Reference targetRef, UnaryOperator<Reference> update) {
+        long targetOid = targetRef.oid();
+        Map<ColumnIdent, Reference> newReferences = new HashMap<>(allColumns);
+        Reference updatedRef = null;
+
+        // Fast path: lookup by name, verify OID matches
+        Reference existing = newReferences.get(targetRef.column());
+        if (existing != null && existing.oid() == targetOid) {
+            updatedRef = update.apply(existing);
+            if (existing.equals(updatedRef)) {
+                return this;
+            }
+            newReferences.put(targetRef.column(), updatedRef);
+        } else {
+            // Fallback: O(N) scan by OID
+            for (var entry : newReferences.entrySet()) {
+                Reference ref = entry.getValue();
+                if (ref.oid() == targetOid) {
+                    updatedRef = update.apply(ref);
+                    if (ref.equals(updatedRef)) {
+                        return this;
+                    }
+                    entry.setValue(updatedRef);
+                    break;
+                }
+            }
+        }
+        if (updatedRef == null) {
+            throw new ColumnUnknownException(targetRef.column(), ident);
+        }
+
+        // Update generated references whose referencedReferences contain the altered column
+        final Reference finalUpdatedRef = updatedRef;
+        for (var entry : newReferences.entrySet()) {
+            Reference ref = entry.getValue();
+            if (ref instanceof GeneratedReference genRef) {
+                boolean referencesTarget = genRef.referencedReferences().stream()
+                    .anyMatch(r -> r.oid() == targetOid);
+                if (referencesTarget) {
+                    Symbol newExpression = RefReplacer.replaceRefs(
+                        genRef.generatedExpression(),
+                        r -> r.oid() == targetOid ? finalUpdatedRef : r
+                    );
+                    entry.setValue(new GeneratedReference(genRef.reference(), newExpression));
+                }
+            }
+        }
+
+        return new DocTableInfo(
+            tableOID,
+            ident,
+            newReferences,
+            indexColumns,
+            droppedColumns,
+            pkConstraintName,
+            primaryKeys,
+            checkConstraints,
+            clusteredBy,
+            tableParameters,
+            partitionedBy,
+            columnPolicy,
+            versionCreated,
+            versionUpgraded,
+            closed,
+            supportedOperations,
+            tableVersion + 1
+        );
+    }
+
     public DocTableInfo dropColumns(List<DropColumn> columns) {
         validateDropColumns(columns);
         HashMap<ColumnIdent, Reference> newReferences = new HashMap<>(allColumns);

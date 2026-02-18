@@ -109,6 +109,8 @@ public interface Reference extends Symbol, ScopedColumn {
 
     Reference withValueType(DataType<?> type);
 
+    Reference withDefaultExpression(@Nullable Symbol defaultExpression);
+
     /**
      * Return the identifier of this column used inside the storage engine
      */
