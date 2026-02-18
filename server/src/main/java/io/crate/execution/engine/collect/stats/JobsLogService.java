@@ -42,13 +42,13 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Input;
@@ -123,7 +123,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     private final ExpressionAnalyzer expressionAnalyzer;
     private final CoordinatorTxnCtx systemTransactionCtx;
 
-    private JobsLogs jobsLogs;
+    private final JobsLogs jobsLogs;
 
     private ExpressionsInput<JobContextLog, Boolean> memoryFilter;
     private ExpressionsInput<JobContextLog, Boolean> persistFilter;
@@ -135,6 +135,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     volatile TimeValue operationsLogExpiration;
 
     public JobsLogService(Settings settings,
+                          JobsLogs jobsLogs,
                           ClusterService clusterService,
                           NodeContext nodeCtx,
                           CircuitBreakerService breakerService) {
@@ -155,8 +156,9 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         );
         FILTER_VALIDATOR.validate = this::asSymbol;
 
+        this.jobsLogs = jobsLogs;
         isEnabled = STATS_ENABLED_SETTING.get(settings);
-        jobsLogs = new JobsLogs(this::isEnabled);
+        jobsLogs.setEnabled(isEnabled);
         memoryFilter = createFilter(
             STATS_JOBS_LOG_FILTER.get(settings), STATS_JOBS_LOG_FILTER.getKey());
         persistFilter = createFilter(
@@ -309,6 +311,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     }
 
     private void setStatsEnabled(boolean enableStats) {
+        jobsLogs.setEnabled(enableStats);
         if (enableStats) {
             isEnabled = true;
             setOperationsLogSink(operationsLogSize, operationsLogExpiration);
@@ -325,6 +328,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
      * Indicates if statistics are gathered.
      * This result will change if the cluster settings is updated.
      */
+    @VisibleForTesting
     public boolean isEnabled() {
         return isEnabled;
     }
@@ -348,13 +352,9 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         }
     }
 
-    private JobsLogs statsTables() {
-        return jobsLogs;
-    }
-
     @Override
     public JobsLogs get() {
-        return statsTables();
+        return jobsLogs;
     }
 
     @VisibleForTesting

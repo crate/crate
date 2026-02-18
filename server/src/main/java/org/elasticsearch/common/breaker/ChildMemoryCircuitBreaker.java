@@ -94,12 +94,11 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
     }
 
     /**
-     * Method used to trip the breaker, delegates to the parent to determine
-     * whether to trip the breaker or not
+     * Method used to trip the breaker
      */
-    private void circuitBreak(String fieldName, long bytesAdded, long bytesUsed) {
+    private void circuitBreak(String component, long bytesAdded, long bytesUsed) {
         this.trippedCount.incrementAndGet();
-        throw new CircuitBreakingException(bytesAdded, bytesUsed, memoryBytesLimit, fieldName);
+        parent.circuitBreak(component, bytesAdded, bytesUsed, memoryBytesLimit);
     }
 
     /**

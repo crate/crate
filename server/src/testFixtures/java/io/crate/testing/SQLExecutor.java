@@ -217,7 +217,6 @@ public class SQLExecutor {
     private final CreateTableStatementAnalyzer createTableAnalyzer;
 
     public TransactionState transactionState = TransactionState.IDLE;
-    public boolean jobsLogsEnabled;
 
     @Nullable
     private LongSupplier columnOidSupplier;
@@ -472,8 +471,7 @@ public class SQLExecutor {
                         ForeignDataWrappers foreignDataWrappers) {
         this.clusterService = clusterService;
         this.allocationService = allocationService;
-        this.jobsLogsEnabled = false;
-        this.jobsLogs = new JobsLogs(() -> SQLExecutor.this.jobsLogsEnabled);
+        this.jobsLogs = new JobsLogs(false);
         this.dependencyMock = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
         when(dependencyMock.clusterService()).thenReturn(clusterService);
         when(dependencyMock.schemas()).thenReturn(schemas);

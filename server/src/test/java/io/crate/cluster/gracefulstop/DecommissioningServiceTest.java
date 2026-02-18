@@ -21,7 +21,7 @@
 
 package io.crate.cluster.gracefulstop;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -57,7 +57,7 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
     @Before
     public void init() throws Exception {
         executorService = mock(ScheduledExecutorService.class, Answers.RETURNS_MOCKS);
-        jobsLogs = new JobsLogs(() -> true);
+        jobsLogs = new JobsLogs(true);
         sqlOperations = mock(Sessions.class, Answers.RETURNS_MOCKS);
         decommissioningService = new TestableDecommissioningService(
             Settings.EMPTY,
