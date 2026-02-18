@@ -217,6 +217,7 @@ public class TopKAggregationTest extends AggregationTestCase {
             new Object[]{first},
             new Object[]{second},
             new Object[]{second},
+            new Object[]{null},
             new Object[]{third},
             new Object[]{third},
             new Object[]{third},

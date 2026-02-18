@@ -49,6 +49,10 @@ series.
 Fixes
 =====
 
+- Fixed an issue that could cause a ``NullPointerException`` when using the
+  :ref:`topk <aggregation-topk>` aggregation on a column containing ``null``
+  values.
+
 - Fixed an issue that caused a :ref:`SUM <aggregation-sum>` aggregation to cause
   a ``NullPointerException`` if used on a column containing null values and used
   as part of a window function with a window definition where the null values
@@ -64,7 +68,6 @@ Fixes
       union all
       select 2
     ) tbl (x);
-
 
 - Fixed an issue that caused :ref:`swap table <alter_cluster_swap_table>` or
   :ref:`drop table <drop-table>` to cause temporary metadata corruption if
