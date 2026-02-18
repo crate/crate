@@ -76,3 +76,7 @@ Fixes
   partitioned tables to be rejected with ``IllegalStateException`` due to wrong
   version upgrade migration logic. Only tables created on or before 5.10.x are
   affected.
+
+- Fixed an issue that could lead to queries being stuck when a distributed
+  query was interrupted by a ``CircuitBreakingException`` on a cluster under
+  high memory pressure.
