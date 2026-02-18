@@ -80,12 +80,10 @@
                     </includes>
                     <systemPropertyVariables>
                         <worker-id>$${surefire.forkNumber}</worker-id>
-                        <junit.vintage.discovery.issue.reporting.enabled>false</junit.vintage.discovery.issue.reporting.enabled>
                     </systemPropertyVariables>
                     <properties>
                         <configurationParameters>
-                            junit.jupiter.execution.parallel.enabled=true
-                            junit.vintage.discovery.issue.reporting.enabled=false
+                            junit.jupiter.execution.parallel.enabled = true
                         </configurationParameters>
                     </properties>
                     <!-- by default is false but is set to true by `serverTest` profile to avoid
@@ -101,7 +99,6 @@
                         --add-modules jdk.incubator.vector
                         --enable-native-access=ALL-UNNAMED
                         --sun-misc-unsafe-memory-access=allow
-                        -Djunit.vintage.discovery.issue.reporting.enabled=false
                     </argLine>
                 </configuration>
             </plugin>
