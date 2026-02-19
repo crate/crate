@@ -97,15 +97,7 @@ for libname in "$APP_HOME"/lib/*.jar; do
 done
 
 
-darwin=false
-case "$( uname )" in                #(
-  Darwin* )         darwin=true  ;; #(
-esac
-if ${darwin}; then
-    JAVACMD="${APP_HOME}/jdk/Contents/Home/bin/java"
-else
-    JAVACMD="${APP_HOME}/jdk/bin/java"
-fi
+JAVACMD="${APP_HOME}/jdk/bin/java"
 
 
 # Collect all arguments for the java command, stacking in reverse order:
