@@ -261,7 +261,7 @@ public class InsertFromValues implements LogicalPlan {
             plannerContext.jobId()
         );
 
-        var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING, tableInfo.tableOID());
+        var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING);
 
         for (Row row : rows) {
             try {
@@ -362,7 +362,7 @@ public class InsertFromValues implements LogicalPlan {
             null,
             plannerContext.jobId()
         );
-        var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING, tableInfo.tableOID());
+        var shardedRequests = new ShardedRequests<>(builder::newRequest, RamAccounting.NO_ACCOUNTING);
 
         HashMap<PartitionName, Consumer<IndexItem>> validatorsCache = new HashMap<>();
         BiConsumer<PartitionName, IndexItem> constraintsChecker = (partition, indexItem) -> checkConstraints(

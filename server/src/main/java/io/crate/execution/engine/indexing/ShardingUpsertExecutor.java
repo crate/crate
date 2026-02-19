@@ -171,9 +171,9 @@ public class ShardingUpsertExecutor
         createPartitionsRequestOngoing = true;
         return elasticsearchClient.execute(
             TransportCreatePartitions.ACTION,
-                CreatePartitionsRequest.of(requests.tableOID(), requests.itemsByMissingPartition.keySet()))
+                CreatePartitionsRequest.of(tableOID, requests.itemsByMissingPartition.keySet()))
             .thenCompose(_ -> {
-                grouper.reResolveShardLocations(requests);
+                grouper.reResolveShardLocations(requests, tableOID);
                 createPartitionsRequestOngoing = false;
                 return execRequests(requests, upsertResults);
             });
@@ -280,7 +280,7 @@ public class ShardingUpsertExecutor
         var reqBatchIterator = BatchIterators.chunks(
             batchIterator,
             bulkSize,
-            () -> new ShardedRequests<>(requestFactory, ramAccounting, tableOID),
+            () -> new ShardedRequests<>(requestFactory, ramAccounting),
             grouper,
             bulkShardCreationLimiter.or(isUsedBytesOverThreshold)
         );

@@ -1444,7 +1444,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     }
 
     @Nullable
+    @SuppressWarnings("unchecked")
     public <T extends RelationMetadata> T getRelation(long tableOID) {
+        assert tableOID > Metadata.OID_UNASSIGNED : "Invalid tableOID: " + tableOID;
         for (ObjectCursor<SchemaMetadata> s : schemas.values()) {
             SchemaMetadata schemaMetadata = s.value;
             for (ObjectCursor<RelationMetadata> r : schemaMetadata.relations().values()) {
@@ -1545,7 +1547,11 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                                   List<String> partitionValues,
                                   boolean strict,
                                   Function<IndexMetadata, T> as) {
-        RelationMetadata relationMetadata = Objects.requireNonNull(getRelation(tableOID), "Cannot find RelationMetadata with oid: " + tableOID);
+        RelationMetadata relationMetadata = getRelation(tableOID);
+        if (relationMetadata == null) {
+            // better to throw the name instead of the oid
+            throw new RelationUnknown("Cannot find RelationMetadata with oid: " + tableOID);
+        }
         return getIndices(relationMetadata.name(), partitionValues, strict, as);
     }
 

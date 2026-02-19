@@ -138,22 +138,23 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
     protected void masterOperation(final CreatePartitionsRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) throws ElasticsearchException {
+        final CreatePartitionsRequest upgradedRequest = upgradeCreatePartitionsRequest(request, state.metadata());
         createIndices(request, ActionListener.wrap(response -> {
             if (response.isAcknowledged()) {
-                final String[] indices = request.partitionValuesList().stream()
+                final String[] indices = upgradedRequest.partitionValuesList().stream()
                     .map(partitionValues -> clusterService.state().metadata()
-                        .getIndex(request.tableOID(), partitionValues, false, IndexMetadata::getIndexUUID))
+                        .getIndex(upgradedRequest.tableOID(), partitionValues, false, IndexMetadata::getIndexUUID))
                     .toArray(String[]::new);
-                activeShardsObserver.waitForActiveShards(indices, ActiveShardCount.DEFAULT, request.ackTimeout(),
+                activeShardsObserver.waitForActiveShards(indices, ActiveShardCount.DEFAULT, upgradedRequest.ackTimeout(),
                     shardsAcked -> {
                         if (!shardsAcked && logger.isInfoEnabled()) {
-                            RelationMetadata.Table table = state.metadata().getRelation(request.tableOID());
+                            RelationMetadata.Table table = state.metadata().getRelation(upgradedRequest.tableOID());
                             assert table != null : "table should be present in the cluster state";
 
                             logger.info("[{}] Table partitions created, but the operation timed out while waiting for " +
                                          "enough shards to be started. Timeout={}, wait_for_active_shards={}. " +
                                          "Consider decreasing the 'number_of_shards' table setting (currently: {}) or adding nodes to the cluster.",
-                                request.relationName(), request.timeout(),
+                                upgradedRequest.relationName(), upgradedRequest.timeout(),
                                 SETTING_WAIT_FOR_ACTIVE_SHARDS.get(table.settings()),
                                 INDEX_NUMBER_OF_SHARDS_SETTING.get(table.settings()));
                         }
@@ -171,10 +172,10 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
      * This code is more or less the same as the stuff in {@link MetadataCreateIndexService}
      * but optimized for bulk operation without separate mapping/alias/index settings.
      */
-    public ClusterState executeCreateIndices(ClusterState currentState,
-                                             RelationMetadata.Table table,
-                                             DocTableInfo docTableInfo,
-                                             CreatePartitionsRequest request) throws Exception {
+    private ClusterState executeCreateIndices(ClusterState currentState,
+                                              RelationMetadata.Table table,
+                                              DocTableInfo docTableInfo,
+                                              CreatePartitionsRequest request) throws Exception {
         String removalReason = null;
         Index testIndex = null;
         try {
@@ -382,5 +383,19 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
             ClusterBlockLevel.METADATA_WRITE,
             request.indexNames().toArray(String[]::new)
         );
+    }
+
+    /**
+     * Upgrades CreatePartitionsRequest instance from a node < 6.3 which contains invalid table OID.
+     */
+    private static CreatePartitionsRequest upgradeCreatePartitionsRequest(CreatePartitionsRequest createPartitionsRequest, Metadata metadata) {
+        if (createPartitionsRequest.tableOID() == Metadata.OID_UNASSIGNED) {
+            RelationMetadata relationMetadata = metadata.getRelation(createPartitionsRequest.relationName());
+            return new CreatePartitionsRequest(
+                relationMetadata.oid(),
+                createPartitionsRequest.relationName(),
+                createPartitionsRequest.partitionValuesList());
+        }
+        return createPartitionsRequest;
     }
 }
