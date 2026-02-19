@@ -137,6 +137,7 @@ public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
         // shard should be failed due to a corrupted index
         assertBusy(() -> {
             execute("SELECT explanation FROM sys.allocations WHERE shard_id = 0 AND primary = true");
+            assertThat(response.rowCount()).isEqualTo(1L);
             // The error message is not deterministic, it is either
             //  - "cannot allocate because all found copies of the shard are either stale or corrupt" or
             //  - "cannot allocate because allocation is not permitted to any of the nodes that hold an in-sync shard copy"
