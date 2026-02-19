@@ -91,7 +91,7 @@ Scalar and Aggregation Functions
 
 - `Bing O'Dowd <https://github.com/bodowd>`_ added the :ref:`largest triangle
   three buckets <aggregation-largest-triangle-three-buckets>` aggregation
-  function for downsampling data using the Largest Triangle Three Buckets 
+  function for downsampling data using the Largest Triangle Three Buckets
   algorithm
 
 Performance and Resilience Improvements
@@ -118,6 +118,10 @@ Administration and Operations
   :ref:`sys.jobs_log <sys-logs>` tables.
 
 - Added a ``state`` column to the :ref:`sys.cluster <sys-cluster>` table.
+
+- Added a ``remove-corrupted-data`` command to the :ref:`cli-crate-node` CLI
+  tool for disaster recovery of a corrupted shard which cannot be automatically
+  recovered from a good copy (replica) or restored from a backup.
 
 Client interfaces
 -----------------

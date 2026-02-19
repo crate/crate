@@ -164,31 +164,35 @@ Synopsis
 Commands
 --------
 
-+----------------------+------------------------------------------------------+
-| Command              | Description                                          |
-+======================+======================================================+
-| ``repurpose``        | Clean up any unnecessary data on disk after changing |
-|                      | the role of a node.                                  |
-+----------------------+------------------------------------------------------+
-| ``unsafe-bootstrap`` | Force the election of a master and create a new      |
-|                      | cluster in the event of losing the majority of       |
-|                      | master-eligible nodes.                               |
-+----------------------+------------------------------------------------------+
-| ``detach-cluster``   | Detach a node from a cluster so that it can join a   |
-|                      | new one.                                             |
-+----------------------+------------------------------------------------------+
-| ``remove-settings``  | Remove persistent settings from the cluster state in |
-|                      | case where it contains incompatible settings that    |
-|                      | prevent the cluster from forming.                    |
-+----------------------+------------------------------------------------------+
-| ``override-version`` | Override the version number stored in the data path  |
-|                      | to be able to force a node to startup even when the  |
-|                      | node version is not compatible with the meta data.   |
-+----------------------+------------------------------------------------------+
-| ``fix-metadata``     | Fix corrupted metadata after running table swap      |
-|                      | like: ALTER CLUSTER SWAP TABLE "schema"."table" TO   |
-|                      | "schema.table";                                      |
-+----------------------+------------------------------------------------------+
++---------------------------+------------------------------------------------------+
+| Command                   | Description                                          |
++===========================+======================================================+
+| ``repurpose``             | Clean up any unnecessary data on disk after changing |
+|                           | the role of a node.                                  |
++---------------------------+------------------------------------------------------+
+| ``unsafe-bootstrap``      | Force the election of a master and create a new      |
+|                           | cluster in the event of losing the majority of       |
+|                           | master-eligible nodes.                               |
++---------------------------+------------------------------------------------------+
+| ``detach-cluster``        | Detach a node from a cluster so that it can join a   |
+|                           | new one.                                             |
++---------------------------+------------------------------------------------------+
+| ``remove-settings``       | Remove persistent settings from the cluster state in |
+|                           | case where it contains incompatible settings that    |
+|                           | prevent the cluster from forming.                    |
++---------------------------+------------------------------------------------------+
+| ``override-version``      | Override the version number stored in the data path  |
+|                           | to be able to force a node to startup even when the  |
+|                           | node version is not compatible with the meta data.   |
++---------------------------+------------------------------------------------------+
+| ``fix-metadata``          | Fix corrupted metadata after running table swap      |
+|                           | like: ALTER CLUSTER SWAP TABLE "schema"."table" TO   |
+|                           | "schema.table";                                      |
++---------------------------+------------------------------------------------------+
+| ``remove-corrupted-data`` | Remove corrupted parts of a shard which cannot be    |
+|                           | automatically recovered from a good copy (replica)   |
+|                           | or restored from a backup.                           |
++---------------------------+------------------------------------------------------+
 
 
 .. _cli-crate-node-options:
@@ -212,6 +216,69 @@ Options
 | ``-v, --verbose``   | Shows verbose output                                |
 +---------------------+-----------------------------------------------------+
 
+
+.. _cli-crate-node-remove-corrupted-data:
+
+`remove-corrupted-data`
+-----------------------
+
+In some exceptionally cases, a CrateDB shard can become corrupted and the
+related table isn't accessible. The ``remove-corrupted-data`` command helps to
+remove corrupted parts of a shard which cannot be automatically recovered from a
+good copy (replica) or restored from a backup.
+
+.. WARNING::
+
+    You will lose data if you use the ``remove-corrupted-data`` command.
+    Use it only as a last resort when you have no other options to recover the
+    data.
+
+
+When CratedB detects that a shard’s data is corrupted, it fails that shard copy
+and refuses to use it. Under normal conditions, the shard is automatically
+recovered from another copy. If no good copy of the shard is available and you
+cannot restore one from a snapshot, you can use ``remove-corrupted-data`` to remove the
+corrupted data and restore access to any remaining data in unaffected segments.
+
+.. WARNING::
+
+    Stop the CrateDB node before using the ``remove-corrupted-data`` command.
+
+There are two ways to specify the shard that you want to fix:
+
+- With the ``--table`` option, you can specify the fully qualified name of the
+  table that contains the shard. If you want to fix a shard of a partitioned
+  table, you must also specify the partition values with the ``-P`` option. If
+  the table is partitioned by multiple columns, repeat the ``-P`` option for
+  each partition column/value pair. Additionally, the shard ID using to target
+  a specific shard copy must be specified using the ``--shard-id`` option.
+- With the ``--dir`` option, you can specify the path to the table data on disk.
+  The path must be the one that contains the shard data, for example
+  ``/data/crate/data/0/nodes/0/indices/yxZabc/0``.
+
+
+Options
+.......
+
+Additional options for the ``remove-corrupted-data`` command are as follows.
+
++-------------------------------+-----------------------------------------------------+
+| Option                        | Description                                         |
++===============================+=====================================================+
+| ``--table <fqn_table_name>``  | Specifies the full-qualified table name incl. the   |
+|                               | schema name.                                        |
++-------------------------------+-----------------------------------------------------+
+| ``-P<parted_col>=<value>``    | Specifies the partition by partition columns.       |
+|                               | Must be repeated for every partition column.        |
+|                               | Optional, only needed for partitioned tables.       |
++-------------------------------+-----------------------------------------------------+
+| ``--shard-id <INT>``          | Specifies shard ID.                                 |
++-------------------------------+-----------------------------------------------------+
+| ``--dir <shard_path>``        | Specifies the path on disk of the shard to fix.     |
++-------------------------------+-----------------------------------------------------+
+| ``--truncate-clean-translog`` | If set, truncate the shard's translog, even if not  |
+|                               | corrupted.                                          |
++-------------------------------+-----------------------------------------------------+
 
 .. _deployment guide: https://cratedb.com/docs/crate/howtos/en/latest/deployment/index.html
 .. _Detach a node from its cluster: https://cratedb.com/docs/crate/howtos/en/latest/best-practices/crate-node.html#detach-a-node-from-its-cluster

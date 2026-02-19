@@ -726,6 +726,7 @@ rerouteOption
     : MOVE SHARD shardId=parameterOrInteger FROM fromNodeId=parameterOrString TO toNodeId=parameterOrString #rerouteMoveShard
     | ALLOCATE REPLICA SHARD shardId=parameterOrInteger ON nodeId=parameterOrString                         #rerouteAllocateReplicaShard
     | PROMOTE REPLICA SHARD shardId=parameterOrInteger ON nodeId=parameterOrString withProperties?          #reroutePromoteReplica
+    | ALLOCATE type=(STALE|EMPTY) PRIMARY SHARD shardId=parameterOrInteger ON nodeId=parameterOrString withProperties?   #rerouteAllocatePrimaryShard
     | CANCEL SHARD shardId=parameterOrInteger ON nodeId=parameterOrString withProperties?                   #rerouteCancelShard
     ;
 
@@ -952,6 +953,7 @@ nonReserved
     | DUPLICATE
     | DYNAMIC
     | ENABLE
+    | EMPTY
     | EXPLAIN
     | EXTENDS
     | FAILED
@@ -1021,6 +1023,7 @@ nonReserved
     | PREPARE
     | PRIOR
     | PRIVILEGES
+    | PRIMARY
     | PROMOTE
     | PUBLICATION
     | RANGE
@@ -1055,6 +1058,7 @@ nonReserved
     | SHORT
     | SHOW
     | SNAPSHOT
+    | STALE
     | START
     | STORAGE
     | STRICT

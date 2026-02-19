@@ -22,6 +22,7 @@ package org.elasticsearch.cluster.coordination;
 import org.elasticsearch.cli.MultiCommand;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.env.NodeRepurposeCommand;
+import org.elasticsearch.index.shard.RemoveCorruptedShardDataCommand;
 
 import io.crate.cluster.commands.FixCorruptedMetadataCommand;
 import io.crate.server.cli.CommandLoggingConfigurator;
@@ -44,6 +45,7 @@ public class NodeToolCli extends MultiCommand {
         subcommands.put("remove-settings", new RemoveSettingsCommand());
         subcommands.put("remove-customs", new RemoveCustomsCommand());
         subcommands.put("fix-metadata", new FixCorruptedMetadataCommand());
+        subcommands.put("remove-corrupted-data", new RemoveCorruptedShardDataCommand());
     }
 
     public static void main(String[] args) throws Exception {

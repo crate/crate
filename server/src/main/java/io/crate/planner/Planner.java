@@ -88,6 +88,7 @@ import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.AnalyzedOptimizeTable;
 import io.crate.analyze.AnalyzedPromoteReplica;
 import io.crate.analyze.AnalyzedRefreshTable;
+import io.crate.analyze.AnalyzedRerouteAllocatePrimaryShard;
 import io.crate.analyze.AnalyzedRerouteAllocateReplicaShard;
 import io.crate.analyze.AnalyzedRerouteCancelShard;
 import io.crate.analyze.AnalyzedRerouteMoveShard;
@@ -632,6 +633,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitRerouteRetryFailedStatement(AnalyzedRerouteRetryFailed analysis, PlannerContext context) {
         return new RerouteRetryFailedPlan();
+    }
+
+    @Override
+    protected Plan visitRerouteAllocatePrimaryShard(AnalyzedRerouteAllocatePrimaryShard analysis, PlannerContext context) {
+        return new AlterTableReroutePlan(analysis);
     }
 
     @Override
