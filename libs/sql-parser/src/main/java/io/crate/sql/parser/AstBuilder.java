@@ -75,6 +75,7 @@ import io.crate.sql.parser.antlr.SqlBaseParserBaseVisitor;
 import io.crate.sql.tree.AddColumnDefinition;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
+import io.crate.sql.tree.AllocatePrimaryShard;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterPublication;
 import io.crate.sql.tree.AlterRoleReset;
@@ -1349,6 +1350,17 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return new RerouteAllocateReplicaShard<>(
             visit(context.shardId),
             visit(context.nodeId));
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    @Override
+    public Node visitRerouteAllocatePrimaryShard(SqlBaseParser.RerouteAllocatePrimaryShardContext context) {
+        return new AllocatePrimaryShard(
+            visit(context.nodeId),
+            visit(context.shardId),
+            AllocatePrimaryShard.Type.valueOf(context.type.getText()),
+            extractGenericProperties(context.withProperties())
+        );
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})

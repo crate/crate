@@ -32,11 +32,14 @@ import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.allocation.command.AllocateEmptyPrimaryAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateStalePrimaryAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.AllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
+
+import io.crate.analyze.AnalyzedRerouteAllocatePrimaryShard;
 import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedPromoteReplica;
@@ -61,6 +64,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.AllocatePrimaryShard;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;
@@ -163,6 +167,41 @@ public class AlterTableReroutePlan implements Plan {
                 DataTypes.BOOLEAN.sanitizeValue(context.eval.apply(statement.acceptDataLoss()))
             );
 
+        }
+
+        @Override
+        protected AllocationCommand visitRerouteAllocatePrimaryShard(AnalyzedRerouteAllocatePrimaryShard statement, Context context) {
+            AllocatePrimaryShard<Object> boundedAllocatePrimaryShard = statement.rerouteAllocatePrimaryShard().map(context.eval);
+            validateShardId(boundedAllocatePrimaryShard.shardId());
+
+            String index = getRerouteIndex(
+                statement.shardedTable(),
+                Lists.map(statement.partitionProperties(), x -> x.map(context.eval)), context.metadata);
+            String toNodeId = resolveNodeId(
+                context.nodes,
+                DataTypes.STRING.sanitizeValue(boundedAllocatePrimaryShard.node()));
+
+            switch (boundedAllocatePrimaryShard.type()) {
+                case STALE -> {
+                    return new AllocateStalePrimaryAllocationCommand(
+                        index,
+                        DataTypes.INTEGER.sanitizeValue(boundedAllocatePrimaryShard.shardId()),
+                        toNodeId,
+                        DataTypes.BOOLEAN.sanitizeValue(context.eval.apply(statement.acceptDataLoss()))
+                    );
+                }
+                case EMPTY -> {
+                    return new AllocateEmptyPrimaryAllocationCommand(
+                        index,
+                        DataTypes.INTEGER.sanitizeValue(boundedAllocatePrimaryShard.shardId()),
+                        toNodeId,
+                        DataTypes.BOOLEAN.sanitizeValue(context.eval.apply(statement.acceptDataLoss()))
+                    );
+
+                }
+                default -> throw new IllegalArgumentException(
+                    "Unsupported primary allocation type: " + boundedAllocatePrimaryShard.type());
+            }
         }
 
         @Override

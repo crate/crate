@@ -212,6 +212,92 @@ Options
 | ``-v, --verbose``   | Shows verbose output                                |
 +---------------------+-----------------------------------------------------+
 
+.. _cli-crate-shard:
+
+``crate-shard``
+===============
+
+In some exceptionally cases, a CrateDB shard can become corrupted and the
+related table isn't accessible. The ``crate-shard`` executable helps to remove
+corrupted parts of a shard which cannot be automatically recovered from a good
+copy (replica) or restored from a backup.
+
+.. WARNING::
+
+    You will lose data if you use ``crate-shard``. Use this tool only as a last
+    resort when you have no other options to recover the data.
+
+
+.. _cli-crate-shard-synopsis:
+
+Synopsis
+--------
+
+::
+
+   sh$ bin/crate-shard remove-corrupted-data
+   ([--table <FullTableFQN>] (-Ppartitioned_column=value [ , ...]) [--shard-id <ShardId>] | [--dir <TablePath>])
+   [--truncate-clean-translog]
+   [-C<key>=<value>]
+   [-h, --help] ([-s, --silent] | [-v, --verbose])
+
+
+.. _cli-crate-shard-description:
+
+Description
+-----------
+
+When CratedB detects that a shard’s data is corrupted, it fails that shard copy
+and refuses to use it. Under normal conditions, the shard is automatically
+recovered from another copy. If no good copy of the shard is available and you
+cannot restore one from a snapshot, you can use ``crate-shard`` to remove the
+corrupted data and restore access to any remaining data in unaffected segments.
+
+.. WARNING::
+
+    Stop the CrateDB node before using ``crate-shard``.
+
+There are two ways to specify the shard that you want to fix:
+
+- With the ``--table`` option, you can specify the fully qualified name of the
+  table that contains the shard. If you want to fix a shard of a partitioned
+  table, you must also specify the partition values with the ``-P`` option. If
+  the table is partitioned by multiple columns, repeat the ``-P`` option for
+  each partition column/value pair. Additionally, the shard ID using to target
+  a specific shard copy must be specified using the ``--shard-id`` option.
+- With the ``--dir`` option, you can specify the path to the table data on disk.
+  The path must be the one that contains the shard data, for example
+  ``/data/crate/data/0/nodes/0/indices/yxZabc/0``.
+
+.. _cli-crate-shard-options:
+
+Options
+-------
+
++------------------------------+-----------------------------------------------------+
+| Option                       | Description                                         |
++==============================+=====================================================+
+| ``--table <fqn_table_name>`` | Specifies the full-qualified table name incl. the   |
+|                              | schema name.                                        |
++------------------------------+-----------------------------------------------------+
+| ``-P<parted_col>=<value>``   | Specifies the partition by partition columns.       |
+|                              | Must be repeated for every partition column.        |
+|                              | Optional, only needed for partitioned tables.       |
++------------------------------+-----------------------------------------------------+
+| ``--shard-id <INT>``         | Specifies shard ID.                                 |
++------------------------------+-----------------------------------------------------+
+| ``--dir <shard_path>``       | Specifies the path on disk of the shard to fix.     |
++------------------------------+-----------------------------------------------------+
+| ``-C``                       | Set a CrateDB :ref:`configuration <config>` value   |
+|                              | (overrides configuration file)                      |
++------------------------------+-----------------------------------------------------+
+| ``-h, --help``               | Return all of the command parameters                |
++------------------------------+-----------------------------------------------------+
+| ``-s, --silent``             | Show minimal output                                 |
++------------------------------+-----------------------------------------------------+
+| ``-v, --verbose``            | Shows verbose output                                |
++------------------------------+-----------------------------------------------------+
+
 
 .. _deployment guide: https://cratedb.com/docs/crate/howtos/en/latest/deployment/index.html
 .. _Detach a node from its cluster: https://cratedb.com/docs/crate/howtos/en/latest/best-practices/crate-node.html#detach-a-node-from-its-cluster

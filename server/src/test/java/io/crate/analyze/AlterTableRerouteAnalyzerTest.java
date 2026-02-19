@@ -33,6 +33,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.allocation.command.AllocateEmptyPrimaryAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateStalePrimaryAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
@@ -309,5 +310,35 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
         AllocateStalePrimaryAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE PROMOTE REPLICA SHARD 0 ON 'n1'");
         assertThat(command.acceptDataLoss()).isFalse();
+    }
+
+    @Test
+    public void test_reroute_allocate_stale_primary_shard() {
+        AllocateStalePrimaryAllocationCommand command = analyze(
+            "ALTER TABLE users REROUTE ALLOCATE STALE PRIMARY SHARD 2 ON 'n1' WITH (accept_data_loss = true)");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
+        assertThat(command.shardId()).isEqualTo(2);
+        assertThat(command.node()).isEqualTo("n1");
+        assertThat(command.acceptDataLoss()).isTrue();
+
+        assertThatThrownBy(() ->
+            analyze("ALTER TABLE users REROUTE ALLOCATE STALE PRIMARY SHARD ? ON ? WITH (foobar = true)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Unsupported options provided to REROUTE ALLOCATE STALE PRIMARY SHARD: [foobar]");
+    }
+
+    @Test
+    public void test_reroute_allocate_empty_primary_shard() {
+        AllocateEmptyPrimaryAllocationCommand command = analyze(
+            "ALTER TABLE users REROUTE ALLOCATE EMPTY PRIMARY SHARD 2 ON 'n1' WITH (accept_data_loss = true)");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
+        assertThat(command.shardId()).isEqualTo(2);
+        assertThat(command.node()).isEqualTo("n1");
+        assertThat(command.acceptDataLoss()).isTrue();
+
+        assertThatThrownBy(() ->
+            analyze("ALTER TABLE users REROUTE ALLOCATE EMPTY PRIMARY SHARD ? ON ? WITH (foobar = true)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Unsupported options provided to REROUTE ALLOCATE EMPTY PRIMARY SHARD: [foobar]");
     }
 }
