@@ -1789,6 +1789,83 @@ specified interval added to the timestamp of ``0000/01/01 00:00:00``::
     +---------------------+
     SELECT 1 row in set (... sec)
 
+
+.. _scalar-to_timestamp:
+
+``to_timestamp(string, format_string)``
+---------------------------------------
+
+The ``to_timestamp`` function parses a string representation of a date and time
+according to the given format pattern and returns a ``timestamp with time zone``.
+
+This function is the inverse of :ref:`to_char <scalar-to_char>`.
+
+Returns: ``timestamp with time zone``
+
+Synopsis::
+
+    TO_TIMESTAMP( string, format_string )
+
+The ``format_string`` accepts the same patterns as :ref:`to_char <scalar-to_char>`.
+See the :ref:`to_char <scalar-to_char>` documentation for the complete list of
+supported format patterns.
+
+Parsing behavior (PostgreSQL compatible):
+
+- Missing date components default to: year=1, month=1, day=1
+- Missing time components default to: 00:00:00.000
+- Two-digit years (``YY``) use the "nearest to 2020" rule: 00-69 → 2000-2069, 70-99 → 1970-1999
+- Separators match flexibly: any non-alphanumeric character in the input can match
+  any separator in the format pattern (e.g., ``'2023/07/15'`` matches ``'YYYY-MM-DD'``)
+- Leading whitespace in the input is skipped
+- Month and day names are parsed case-insensitively
+- Day names (``DAY``, ``Day``, ``day``, ``DY``, ``Dy``, ``dy``) are consumed during parsing
+  but do not affect the result (the date is determined by year, month, and day components)
+- The result is always in UTC timezone
+
+Example::
+
+    cr> select
+    ...     to_timestamp(
+    ...         '2023-07-15 14:30:45',
+    ...         'YYYY-MM-DD HH24:MI:SS'
+    ...     ) as ts;
+    +---------------+
+    |            ts |
+    +---------------+
+    | 1689431445000 |
+    +---------------+
+    SELECT 1 row in set (... sec)
+
+Example with month name::
+
+    cr> select
+    ...     to_timestamp(
+    ...         '15 July 2023',
+    ...         'DD Month YYYY'
+    ...     ) as ts;
+    +---------------+
+    |            ts |
+    +---------------+
+    | 1689379200000 |
+    +---------------+
+    SELECT 1 row in set (... sec)
+
+Round-trip example with ``to_char``::
+
+    cr> select
+    ...     to_timestamp(
+    ...         to_char(timestamp '2023-07-15 14:30:45', 'YYYY-MM-DD HH24:MI:SS'),
+    ...         'YYYY-MM-DD HH24:MI:SS'
+    ...     ) as ts;
+    +---------------+
+    |            ts |
+    +---------------+
+    | 1689431445000 |
+    +---------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-pg-age:
 
 ``pg_catalog.age([timestamp,] timestamp)``

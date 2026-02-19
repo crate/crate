@@ -26,7 +26,9 @@ import static org.elasticsearch.common.Strings.padStart;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.time.ZoneOffset;
 import java.time.format.TextStyle;
 import java.time.temporal.IsoFields;
@@ -479,5 +481,384 @@ public class DateTimeFormatter {
             }
         }
         return sb.toString();
+    }
+
+    private static class ParsedDateTime {
+        Integer year = null;
+        Integer month = null;
+        Integer day = null;
+        Integer hour = null;
+        Integer minute = null;
+        Integer second = null;
+        Integer millisecond = null;
+        Integer microsecond = null;
+        Boolean isPm = null;
+        Integer secondsPastMidnight = null;
+        Integer dayOfYear = null;
+    }
+
+    private static class ParseResult {
+        final int charsConsumed;
+        final Object value;
+
+        ParseResult(int charsConsumed, Object value) {
+            this.charsConsumed = charsConsumed;
+            this.value = value;
+        }
+    }
+
+    public LocalDateTime parseDateTime(String input) {
+        ParsedDateTime parsed = new ParsedDateTime();
+        int pos = 0;
+
+        // PostgreSQL behavior: skip leading whitespace
+        while (pos < input.length() && Character.isWhitespace(input.charAt(pos))) {
+            pos++;
+        }
+
+        for (Object tokenObj : this.tokens) {
+            if (pos >= input.length()) {
+                break;
+            }
+
+            if (tokenObj instanceof Token token) {
+                ParseResult result = parseToken(token, input, pos);
+                pos += result.charsConsumed;
+                applyParsedValue(parsed, token, result.value);
+            } else {
+                // PostgreSQL behavior: separators match flexibly
+                // Any non-letter/non-digit in pattern matches any non-letter/non-digit in input
+                String literal = String.valueOf(tokenObj);
+                pos = skipSeparators(input, pos, literal.length());
+            }
+        }
+
+        return buildLocalDateTime(parsed);
+    }
+
+    private ParseResult parseToken(Token token, String input, int pos) {
+        return switch (token) {
+            case YEAR_YYYY, YEAR_LOWER_YYYY -> parseDigits(input, pos, 4);
+            case YEAR_YYY, YEAR_YYY_LOWER -> parseDigits(input, pos, 3);
+            case YEAR_YY, YEAR_YY_LOWER -> parseTwoDigitYear(input, pos);
+            case YEAR_Y, YEAR_Y_LOWER -> parseDigits(input, pos, 1);
+            case YEAR_WITH_COMMA, YEAR_WITH_COMMA_LOWER -> parseYearWithComma(input, pos);
+            case MONTH_NUMBER, MONTH_NUMBER_LOWER -> parseDigits(input, pos, 2);
+            case DAY_OF_MONTH, DAY_OF_MONTH_LOWER -> parseDigits(input, pos, 2);
+            case HOUR_OF_DAY, HOUR_OF_DAY_LOWER, HOUR_OF_DAY12, HOUR_OF_DAY12_LOWER -> parseDigits(input, pos, 2);
+            case HOUR_OF_DAY24, HOUR_OF_DAY24_LOWER -> parseDigits(input, pos, 2);
+            case MINUTE, MINUTE_LOWER -> parseDigits(input, pos, 2);
+            case SECOND, SECOND_LOWER -> parseDigits(input, pos, 2);
+            case MILLISECOND, MILLISECOND_LOWER, MILLISECOND_FF, MILLISECOND_FF_LOWER -> parseDigits(input, pos, 3);
+            case MICROSECOND, MICROSECOND_LOWER, MICROSECOND_FF, MICROSECOND_FF_LOWER -> parseMicroseconds(input, pos);
+            case TENTH_OF_SECOND, TENTH_OF_SECOND_LOWER -> parseDigits(input, pos, 1);
+            case HUNDREDTH_OF_SECOND, HUNDREDTH_OF_SECOND_LOWER -> parseDigits(input, pos, 2);
+            case TENTH_OF_MILLISECOND, TENTH_OF_MILLISECOND_LOWER -> parseDigits(input, pos, 4);
+            case HUNDREDTH_OF_MILLISECOND, HUNDREDTH_OF_MILLISECOND_LOWER -> parseDigits(input, pos, 5);
+            case AM_UPPER, AM_LOWER, PM_UPPER, PM_LOWER -> parseAmPm(input, pos, false);
+            case A_M_UPPER, A_M_LOWER, P_M_UPPER, P_M_LOWER -> parseAmPm(input, pos, true);
+            case MONTH_UPPER, MONTH_CAPITALIZED, MONTH_LOWER -> parseMonthName(input, pos, TextStyle.FULL);
+            case ABBREVIATED_MONTH_UPPER, ABBREVIATED_MONTH_CAPITALIZED, ABBREVIATED_MONTH_LOWER -> parseMonthName(input, pos, TextStyle.SHORT);
+            case DAY_UPPER, DAY_CAPITALIZED, DAY_LOWER -> parseDayName(input, pos, TextStyle.FULL);
+            case ABBREVIATED_DAY_UPPER, ABBREVIATED_DAY_CAPITALIZED, ABBREVIATED_DAY_LOWER -> parseDayName(input, pos, TextStyle.SHORT);
+            case SECONDS_PAST_MIDNIGHT, SECONDS_PAST_MIDNIGHT_LOWER, SECONDS_PAST_MIDNIGHT_S, SECONDS_PAST_MIDNIGHT_S_LOWER -> parseSecondsPastMidnight(input, pos);
+            case DAY_OF_YEAR, DAY_OF_YEAR_LOWER -> parseDigits(input, pos, 3);
+            case ISO_YEAR_YYY, ISO_YEAR_YYY_LOWER -> parseDigits(input, pos, 4);
+            case ISO_YEAR_YY, ISO_YEAR_YY_LOWER -> parseDigits(input, pos, 3);
+            case ISO_YEAR_Y, ISO_YEAR_Y_LOWER -> parseDigits(input, pos, 2);
+            case ISO_YEAR, ISO_YEAR_LOWER -> parseDigits(input, pos, 1);
+            case DAY_OF_WEEK, DAY_OF_WEEK_LOWER, ISO_DAY_OF_WEEK, ISO_DAY_OF_WEEK_LOWER -> parseDigits(input, pos, 1);
+            case DAY_OF_ISO_WEEK_NUMBERING_YEAR, DAY_OF_ISO_WEEK_NUMBERING_YEAR_LOWER -> parseDigits(input, pos, 3);
+            case WEEK_OF_MONTH, WEEK_OF_MONTH_LOWER -> parseDigits(input, pos, 1);
+            case WEEK_NUMBER_OF_YEAR, WEEK_NUMBER_OF_YEAR_LOWER -> parseDigits(input, pos, 2);
+            case WEEK_NUMBER_OF_ISO_YEAR, WEEK_NUMBER_OF_ISO_YEAR_LOWER -> parseDigits(input, pos, 2);
+            case CENTURY, CENTURY_LOW -> parseDigits(input, pos, 2);
+            case JULIAN_DAY, JULIAN_DAY_LOWER -> parseJulianDay(input, pos);
+            case QUARTER, QUARTER_LOWER -> parseDigits(input, pos, 1);
+            case BC_ERA_UPPER, BC_ERA_LOWER, AD_ERA_UPPER, AD_ERA_LOWER -> parseEra(input, pos, false);
+            case B_C_ERA_UPPER, B_C_ERA_LOWER, A_D_ERA_UPPER, A_D_ERA_LOWER -> parseEra(input, pos, true);
+            case ROMAN_MONTH_UPPER, ROMAN_MONTH_LOWER -> parseRomanMonth(input, pos);
+            case TIMEZONE_UPPER, TIMEZONE_LOWER, TIMEZONE_HOURS, TIMEZONE_HOURS_LOWER,
+                 TIMEZONE_MINUTES, TIMEZONE_MINUTES_LOWER, TIMEZONE_OFFSET_FROM_UTC,
+                 TIMEZONE_OFFSET_FROM_UTC_LOWER -> new ParseResult(0, null);
+        };
+    }
+
+    private void applyParsedValue(ParsedDateTime parsed, Token token, Object value) {
+        if (value == null) {
+            return;
+        }
+        switch (token) {
+            case YEAR_YYYY, YEAR_LOWER_YYYY, YEAR_YYY, YEAR_YYY_LOWER, YEAR_YY, YEAR_YY_LOWER,
+                 YEAR_Y, YEAR_Y_LOWER, YEAR_WITH_COMMA, YEAR_WITH_COMMA_LOWER,
+                 ISO_YEAR_YYY, ISO_YEAR_YYY_LOWER, ISO_YEAR_YY, ISO_YEAR_YY_LOWER,
+                 ISO_YEAR_Y, ISO_YEAR_Y_LOWER, ISO_YEAR, ISO_YEAR_LOWER -> parsed.year = (Integer) value;
+            case MONTH_NUMBER, MONTH_NUMBER_LOWER, MONTH_UPPER, MONTH_CAPITALIZED, MONTH_LOWER,
+                 ABBREVIATED_MONTH_UPPER, ABBREVIATED_MONTH_CAPITALIZED, ABBREVIATED_MONTH_LOWER,
+                 ROMAN_MONTH_UPPER, ROMAN_MONTH_LOWER -> parsed.month = (Integer) value;
+            case DAY_OF_MONTH, DAY_OF_MONTH_LOWER -> parsed.day = (Integer) value;
+            case HOUR_OF_DAY, HOUR_OF_DAY_LOWER, HOUR_OF_DAY12, HOUR_OF_DAY12_LOWER,
+                 HOUR_OF_DAY24, HOUR_OF_DAY24_LOWER -> parsed.hour = (Integer) value;
+            case MINUTE, MINUTE_LOWER -> parsed.minute = (Integer) value;
+            case SECOND, SECOND_LOWER -> parsed.second = (Integer) value;
+            case MILLISECOND, MILLISECOND_LOWER, MILLISECOND_FF, MILLISECOND_FF_LOWER -> parsed.millisecond = (Integer) value;
+            case MICROSECOND, MICROSECOND_LOWER, MICROSECOND_FF, MICROSECOND_FF_LOWER -> parsed.microsecond = (Integer) value;
+            case TENTH_OF_SECOND, TENTH_OF_SECOND_LOWER -> parsed.millisecond = ((Integer) value) * 100;
+            case HUNDREDTH_OF_SECOND, HUNDREDTH_OF_SECOND_LOWER -> parsed.millisecond = ((Integer) value) * 10;
+            case TENTH_OF_MILLISECOND, TENTH_OF_MILLISECOND_LOWER -> parsed.microsecond = ((Integer) value) * 100;
+            case HUNDREDTH_OF_MILLISECOND, HUNDREDTH_OF_MILLISECOND_LOWER -> parsed.microsecond = ((Integer) value) * 10;
+            case AM_UPPER, AM_LOWER, PM_UPPER, PM_LOWER,
+                 A_M_UPPER, A_M_LOWER, P_M_UPPER, P_M_LOWER -> parsed.isPm = (Boolean) value;
+            case SECONDS_PAST_MIDNIGHT, SECONDS_PAST_MIDNIGHT_LOWER,
+                 SECONDS_PAST_MIDNIGHT_S, SECONDS_PAST_MIDNIGHT_S_LOWER -> parsed.secondsPastMidnight = (Integer) value;
+            case DAY_OF_YEAR, DAY_OF_YEAR_LOWER -> parsed.dayOfYear = (Integer) value;
+            default -> {
+            }
+        }
+    }
+
+    private LocalDateTime buildLocalDateTime(ParsedDateTime parsed) {
+        int year = parsed.year != null ? parsed.year : 1;
+        int hour = parsed.hour != null ? parsed.hour : 0;
+        int minute = parsed.minute != null ? parsed.minute : 0;
+        int second = parsed.second != null ? parsed.second : 0;
+        int nano = computeNanos(parsed);
+
+        if (parsed.isPm != null && parsed.isPm && hour < 12) {
+            hour += 12;
+        } else if (parsed.isPm != null && !parsed.isPm && hour == 12) {
+            hour = 0;
+        }
+
+        if (parsed.secondsPastMidnight != null) {
+            hour = parsed.secondsPastMidnight / 3600;
+            minute = (parsed.secondsPastMidnight % 3600) / 60;
+            second = parsed.secondsPastMidnight % 60;
+        }
+
+        if (parsed.dayOfYear != null && parsed.year != null) {
+            LocalDate date = LocalDate.ofYearDay(year, parsed.dayOfYear);
+            return LocalDateTime.of(date.getYear(), date.getMonth(), date.getDayOfMonth(), hour, minute, second, nano);
+        }
+
+        int month = parsed.month != null ? parsed.month : 1;
+        int day = parsed.day != null ? parsed.day : 1;
+        return LocalDateTime.of(year, month, day, hour, minute, second, nano);
+    }
+
+    private int computeNanos(ParsedDateTime parsed) {
+        if (parsed.microsecond != null) {
+            return parsed.microsecond * 1_000;
+        }
+        if (parsed.millisecond != null) {
+            return parsed.millisecond * 1_000_000;
+        }
+        return 0;
+    }
+
+    private int skipSeparators(String input, int pos, int expectedLength) {
+        // PostgreSQL behavior: skip leading whitespace, then match separators flexibly
+        // Any sequence of non-alphanumeric chars in input can match any separator in pattern
+        int skipped = 0;
+
+        // Skip leading whitespace in input (PostgreSQL skips multiple blanks)
+        while (pos + skipped < input.length() && Character.isWhitespace(input.charAt(pos + skipped))) {
+            skipped++;
+        }
+
+        // If we've consumed whitespace, that may be enough
+        if (skipped > 0) {
+            return pos + skipped;
+        }
+
+        // Otherwise, consume non-alphanumeric characters to match the pattern's separators
+        int toConsume = expectedLength;
+        while (toConsume > 0 && pos + skipped < input.length()) {
+            char c = input.charAt(pos + skipped);
+            if (Character.isLetterOrDigit(c)) {
+                break;
+            }
+            skipped++;
+            toConsume--;
+        }
+
+        return pos + skipped;
+    }
+
+    private ParseResult parseDigits(String input, int pos, int maxDigits) {
+        int endPos = pos;
+        while (endPos < input.length() && endPos < pos + maxDigits && Character.isDigit(input.charAt(endPos))) {
+            endPos++;
+        }
+        if (endPos == pos) {
+            return new ParseResult(0, null);
+        }
+        int value = Integer.parseInt(input.substring(pos, endPos));
+        return new ParseResult(endPos - pos, value);
+    }
+
+    private ParseResult parseTwoDigitYear(String input, int pos) {
+        ParseResult result = parseDigits(input, pos, 2);
+        if (result.value == null) {
+            return result;
+        }
+        int twoDigitYear = (Integer) result.value;
+        // PostgreSQL uses "nearest to 2020" rule:
+        // 00-69 → 2000-2069, 70-99 → 1970-1999
+        int fullYear = twoDigitYear < 70 ? 2000 + twoDigitYear : 1900 + twoDigitYear;
+        return new ParseResult(result.charsConsumed, fullYear);
+    }
+
+    private ParseResult parseYearWithComma(String input, int pos) {
+        if (pos >= input.length()) {
+            return new ParseResult(0, null);
+        }
+        int endPos = pos;
+        StringBuilder digits = new StringBuilder();
+        while (endPos < input.length() && (Character.isDigit(input.charAt(endPos)) || input.charAt(endPos) == ',')) {
+            char c = input.charAt(endPos);
+            if (c != ',') {
+                digits.append(c);
+            }
+            endPos++;
+            if (digits.length() >= 4) {
+                break;
+            }
+        }
+        if (digits.length() == 0) {
+            return new ParseResult(0, null);
+        }
+        return new ParseResult(endPos - pos, Integer.parseInt(digits.toString()));
+    }
+
+    private ParseResult parseAmPm(String input, int pos, boolean withPeriods) {
+        String remaining = input.substring(pos).toUpperCase(Locale.ENGLISH);
+        if (withPeriods) {
+            if (remaining.startsWith("A.M.")) {
+                return new ParseResult(4, false);
+            } else if (remaining.startsWith("P.M.")) {
+                return new ParseResult(4, true);
+            }
+        } else {
+            if (remaining.startsWith("AM")) {
+                return new ParseResult(2, false);
+            } else if (remaining.startsWith("PM")) {
+                return new ParseResult(2, true);
+            }
+        }
+        return new ParseResult(0, null);
+    }
+
+    private ParseResult parseMonthName(String input, int pos, TextStyle style) {
+        String remaining = input.substring(pos).toLowerCase(Locale.ENGLISH);
+        for (Month m : Month.values()) {
+            String name = m.getDisplayName(style, Locale.ENGLISH).toLowerCase(Locale.ENGLISH);
+            if (remaining.startsWith(name.trim())) {
+                return new ParseResult(name.trim().length(), m.getValue());
+            }
+        }
+        String trimmedRemaining = remaining.trim();
+        for (Month m : Month.values()) {
+            String name = m.getDisplayName(style, Locale.ENGLISH).toLowerCase(Locale.ENGLISH).trim();
+            if (trimmedRemaining.startsWith(name)) {
+                int spaceOffset = 0;
+                while (pos + spaceOffset < input.length() && input.charAt(pos + spaceOffset) == ' ') {
+                    spaceOffset++;
+                }
+                return new ParseResult(spaceOffset + name.length(), m.getValue());
+            }
+        }
+        return new ParseResult(0, null);
+    }
+
+    private ParseResult parseDayName(String input, int pos, TextStyle style) {
+        String remaining = input.substring(pos).toLowerCase(Locale.ENGLISH);
+        for (java.time.DayOfWeek d : java.time.DayOfWeek.values()) {
+            String name = d.getDisplayName(style, Locale.ENGLISH).toLowerCase(Locale.ENGLISH);
+            if (remaining.startsWith(name.trim())) {
+                return new ParseResult(name.trim().length(), null);
+            }
+        }
+        int spaceOffset = 0;
+        while (pos + spaceOffset < input.length() && input.charAt(pos + spaceOffset) == ' ') {
+            spaceOffset++;
+        }
+        String trimmedRemaining = remaining.trim();
+        for (java.time.DayOfWeek d : java.time.DayOfWeek.values()) {
+            String name = d.getDisplayName(style, Locale.ENGLISH).toLowerCase(Locale.ENGLISH).trim();
+            if (trimmedRemaining.startsWith(name)) {
+                return new ParseResult(spaceOffset + name.length(), null);
+            }
+        }
+        return new ParseResult(0, null);
+    }
+
+    private ParseResult parseSecondsPastMidnight(String input, int pos) {
+        int endPos = pos;
+        while (endPos < input.length() && Character.isDigit(input.charAt(endPos))) {
+            endPos++;
+        }
+        if (endPos == pos) {
+            return new ParseResult(0, null);
+        }
+        int value = Integer.parseInt(input.substring(pos, endPos));
+        return new ParseResult(endPos - pos, value);
+    }
+
+    private ParseResult parseJulianDay(String input, int pos) {
+        int endPos = pos;
+        while (endPos < input.length() && Character.isDigit(input.charAt(endPos))) {
+            endPos++;
+        }
+        if (endPos == pos) {
+            return new ParseResult(0, null);
+        }
+        return new ParseResult(endPos - pos, Integer.parseInt(input.substring(pos, endPos)));
+    }
+
+    private ParseResult parseEra(String input, int pos, boolean withPeriods) {
+        String remaining = input.substring(pos).toUpperCase(Locale.ENGLISH);
+        if (withPeriods) {
+            if (remaining.startsWith("A.D") || remaining.startsWith("A.D.")) {
+                return new ParseResult(remaining.startsWith("A.D.") ? 4 : 3, true);
+            } else if (remaining.startsWith("B.C") || remaining.startsWith("B.C.")) {
+                return new ParseResult(remaining.startsWith("B.C.") ? 4 : 3, false);
+            }
+        } else {
+            if (remaining.startsWith("AD")) {
+                return new ParseResult(2, true);
+            } else if (remaining.startsWith("BC")) {
+                return new ParseResult(2, false);
+            }
+        }
+        return new ParseResult(0, null);
+    }
+
+    private ParseResult parseRomanMonth(String input, int pos) {
+        String remaining = input.substring(pos).toUpperCase(Locale.ENGLISH).trim();
+        String[] romans = {"XII", "XI", "X", "IX", "VIII", "VII", "VI", "V", "IV", "III", "II", "I"};
+        int[] values = {12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
+        for (int i = 0; i < romans.length; i++) {
+            if (remaining.startsWith(romans[i])) {
+                return new ParseResult(romans[i].length(), values[i]);
+            }
+        }
+        return new ParseResult(0, null);
+    }
+
+    private ParseResult parseMicroseconds(String input, int pos) {
+        int endPos = pos;
+        while (endPos < input.length() && endPos < pos + 6 && Character.isDigit(input.charAt(endPos))) {
+            endPos++;
+        }
+        if (endPos == pos) {
+            return new ParseResult(0, null);
+        }
+        StringBuilder digits = new StringBuilder(input.substring(pos, endPos));
+        while (digits.length() < 6) {
+            digits.append('0');
+        }
+        int value = Integer.parseInt(digits.toString());
+        return new ParseResult(endPos - pos, value);
     }
 }
