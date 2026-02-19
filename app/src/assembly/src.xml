@@ -41,6 +41,7 @@
         <include>crate</include>
         <include>crate.bat</include>
         <include>crate-node</include>
+        <include>crate-shard</include>
       </includes>
     </fileSet>
     <fileSet>
