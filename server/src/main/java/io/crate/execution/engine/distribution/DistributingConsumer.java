@@ -360,7 +360,11 @@ public class DistributingConsumer implements RowConsumer {
                     // It's safe to broadcast KILL even if it didn't happen locally,
                     // as it just adds an overhead and we can't distinguish
                     // where it happened on response handling (locally or remotely).
-                    broadcastKill(killNodeAction, jobId, localNodeId, originalFailure.getMessage());
+
+                    // If we get a JobKilled from downstream it was already broadcast
+                    if (!(originalFailure instanceof JobKilledException)) {
+                        broadcastKill(killNodeAction, jobId, localNodeId, originalFailure.getMessage());
+                    }
                 }
             } else {
                 // If we get a JobKilled from downstream it was already broadcast
