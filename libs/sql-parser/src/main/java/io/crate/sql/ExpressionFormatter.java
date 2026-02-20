@@ -51,6 +51,7 @@ import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CurrentTime;
+import io.crate.sql.tree.DefaultColumnValue;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.ExistsPredicate;
@@ -277,6 +278,11 @@ public final class ExpressionFormatter {
         @Override
         protected String visitNullLiteral(NullLiteral node, @Nullable List<Expression> parameters) {
             return "NULL";
+        }
+
+        @Override
+        protected String visitDefaultColumnValue(DefaultColumnValue node, @Nullable List<Expression> parameters) {
+            return "DEFAULT";
         }
 
         @Override

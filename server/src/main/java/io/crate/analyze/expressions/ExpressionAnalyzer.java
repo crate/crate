@@ -127,6 +127,7 @@ import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CurrentTime;
+import io.crate.sql.tree.DefaultColumnValue;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.ExistsPredicate;
@@ -1075,6 +1076,11 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitNullLiteral(NullLiteral node, ExpressionAnalysisContext context) {
             return Literal.of(UndefinedType.INSTANCE, null);
+        }
+
+        @Override
+        protected Symbol visitDefaultColumnValue(DefaultColumnValue node, ExpressionAnalysisContext context) {
+            throw new UnsupportedOperationException("DEFAULT is only allowed in INSERT VALUES");
         }
 
         @Override

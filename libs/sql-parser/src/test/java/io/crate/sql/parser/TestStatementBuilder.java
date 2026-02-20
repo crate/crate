@@ -1412,6 +1412,15 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_insert_with_default_values_expression() {
+        printStatement("insert into foo (a) values (DEFAULT)");
+        printStatement("insert into foo (a, b) values (DEFAULT, 1)");
+        printStatement("insert into foo (a, b) values (1, DEFAULT)");
+        printStatement("insert into foo (a, b) values (DEFAULT, DEFAULT)");
+        printStatement("insert into foo (a, b) values (1, DEFAULT), (DEFAULT, 2)");
+    }
+
+    @Test
     public void test_insert_returning() {
         printStatement("insert into foo (id, name) values ('string', 1.2) returning id");
         printStatement("insert into foo (id, name) values ('string', 1.2) returning id as foo");

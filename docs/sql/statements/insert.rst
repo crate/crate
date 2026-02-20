@@ -21,10 +21,14 @@ CrateDB defines the full ``INSERT`` syntax as:
 
     INSERT INTO table_ident
       [ ( column_ident [, ...] ) ]
-      { VALUES ( expression [, ...] ) [, ...] | ( query ) | query }
+      { VALUES ( value_item [, ...] ) [, ...] | ( query ) | query }
       [ ON CONFLICT (column_ident [, ...]) DO UPDATE SET { column_ident = expression [, ...] } |
         ON CONFLICT [ ( column_ident [, ...] ) ] DO NOTHING ]
       [ RETURNING { * | output_expression [ [ AS ] output_name ] | relation.* } [, ...] ]
+
+where ``value_item`` is::
+
+    expression | DEFAULT
 
 
 
@@ -42,6 +46,12 @@ Parameters
 :expression:
     An :ref:`expression <gloss-expression>` or value to assign to the
     corresponding column.
+
+:DEFAULT:
+    Uses the column's default value. If the column has no default, ``NULL``
+    is inserted. Can only be used within ``VALUES`` clauses, not in
+    sub-queries. See :ref:`sql-create-table-default-clause` and
+    :ref:`SQL-alter-table-alter-column-default`.
 
 :query:
     A query (i.e., :ref:`SELECT <sql-select>`) that supplies rows for the
