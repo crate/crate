@@ -232,8 +232,10 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
         // To mitigate the impact, this looks through partitions and takes their lowest version:
         for (ObjectCursor<IndexMetadata> e : metadata.indices().values()) {
             IndexMetadata indexMetadata = e.value;
-            assert Version.CURRENT.equals(indexMetadata.getUpgradedVersion()) : "All indexMetadata are upgraded to the current version";
-            versionCreated = Version.min(versionCreated, indexMetadata.getCreationVersion());
+            RelationName r = IndexName.decode(indexMetadata.getIndex().getName()).toRelationName();
+            if (relationName.equals(r)) {
+                versionCreated = Version.min(versionCreated, indexMetadata.getCreationVersion());
+            }
         }
         Version versionUpgraded = null;
         boolean isClosed = Maps.getOrDefault(
