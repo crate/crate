@@ -1906,6 +1906,9 @@ public class TestStatementBuilder {
         printStatement("ALTER TABLE t REROUTE PROMOTE REPLICA SHARD 1 ON 'node1' WITH (accept_data_loss = true, foo = ?)");
         printStatement("ALTER TABLE t REROUTE PROMOTE REPLICA SHARD ? ON ? ");
         printStatement("ALTER TABLE t REROUTE PROMOTE REPLICA SHARD '12'::short ON ? ");
+
+        printStatement("ALTER TABLE t REROUTE ALLOCATE EMPTY PRIMARY SHARD 0 ON 'node1' WITH (accept_data_loss = true)");
+        printStatement("ALTER TABLE t REROUTE ALLOCATE STALE PRIMARY SHARD 0 ON 'node1' WITH (accept_data_loss = true)");
     }
 
     @Test

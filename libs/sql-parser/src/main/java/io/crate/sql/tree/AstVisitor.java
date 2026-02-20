@@ -540,6 +540,10 @@ public abstract class AstVisitor<R, C> {
         return visitNode(node, context);
     }
 
+    public R visitRerouteAllocatePrimaryShard(AllocatePrimaryShard<?> node, C context) {
+        return visitNode(node, context);
+    }
+
     public R visitRerouteCancelShard(RerouteCancelShard<?> node, C context) {
         return visitNode(node, context);
     }

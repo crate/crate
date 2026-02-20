@@ -284,6 +284,7 @@ where ``reroute_option`` is::
     { MOVE SHARD shard_id FROM node TO node
       | ALLOCATE REPLICA SHARD shard_id ON node
       | PROMOTE REPLICA SHARD shard_id ON node [ WITH (accept_data_loss = { TRUE | FALSE }) ]
+      | ALLOCATE [ STALE | EMPTY ] PRIMARY SHARD shard_id ON node [ WITH (accept_data_loss = { TRUE | FALSE }) ]
       | CANCEL SHARD shard_id ON node [ WITH (allow_primary = {TRUE|FALSE}) ]
     }
 
@@ -310,10 +311,11 @@ where ``reroute_option`` is::
 
 .. _alter-table-reroute-promote-replica:
 
-**PROMOTE REPLICA** Force promote a stale replica shard to a primary.  In case
-  a node holding a primary copy of a shard had a failure and the replica shards
-  are out of sync, the system won't promote the replica to primary
-  automatically, as it would result in a silent data loss.
+**PROMOTE REPLICA**
+  Force the promotion of a stale replica shard to a primary. In case a node
+  holding a primary copy of a shard had a failure and the replica shards are out
+  of sync, the system won't promote the replica to primary automatically, as it
+  would result in a silent data loss.
 
   Ideally the node holding the primary copy of the shard would be brought back
   into the cluster, but if that is not possible due to a permanent system
@@ -328,6 +330,26 @@ where ``reroute_option`` is::
   This cancels the allocation or :ref:`recovery <gloss-shard-recovery>` of a
   ``shard_id`` of a ``table_ident`` on a given ``node``. The ``allow_primary``
   flag indicates if it is allowed to cancel the allocation of a primary shard.
+
+**ALLOCATE STALE PRIMARY**
+  Force allocating a stale primary shard. Mostly only useful after recovering a
+  corrupted shard using the :ref:`cli-crate-shard` CLI tool.
+
+  The parameter ``accept_data_loss`` needs to be set to ``true`` in order for
+  this command to work. If it is not provided or set to false, the command will
+  error out.
+
+**ALLOCATE EMPTY PRIMARY**
+  Force allocating an empty primary shard. Mostly only useful after recovering
+  a corrupted shard using the :ref:`cli-crate-shard` CLI tool.
+
+  Depending on the corruption of the shard, the :ref:`cli-crate-shard` CLI tool
+  might not be able to recover the shard to a state where any content can be
+  used, resulting in an empty shard. Use this command in such cases.
+
+  The parameter ``accept_data_loss`` needs to be set to ``true`` in order for
+  this command to work. If it is not provided or set to false, the command will
+  error out.
 
 
 .. _sql-alter-drop-constraint:

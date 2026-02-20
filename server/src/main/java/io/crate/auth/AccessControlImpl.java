@@ -75,6 +75,7 @@ import io.crate.analyze.AnalyzedOptimizeTable;
 import io.crate.analyze.AnalyzedPrivileges;
 import io.crate.analyze.AnalyzedPromoteReplica;
 import io.crate.analyze.AnalyzedRefreshTable;
+import io.crate.analyze.AnalyzedRerouteAllocatePrimaryShard;
 import io.crate.analyze.AnalyzedRerouteAllocateReplicaShard;
 import io.crate.analyze.AnalyzedRerouteCancelShard;
 import io.crate.analyze.AnalyzedRerouteMoveShard;
@@ -741,6 +742,12 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitReroutePromoteReplica(AnalyzedPromoteReplica analysis, Role user) {
+            ensureDDLOnTable(user, analysis.shardedTable().ident().fqn());
+            return null;
+        }
+
+        @Override
+        protected Void visitRerouteAllocatePrimaryShard(AnalyzedRerouteAllocatePrimaryShard analysis, Role user) {
             ensureDDLOnTable(user, analysis.shardedTable().ident().fqn());
             return null;
         }

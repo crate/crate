@@ -501,6 +501,10 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         assertAskedForTable(Permission.DDL, "doc.users");
         analyze("alter table users reroute CANCEL SHARD 1 ON 'node1'");
         assertAskedForTable(Permission.DDL, "doc.users");
+        analyze("alter table users reroute ALLOCATE EMPTY PRIMARY SHARD 1 ON 'node1'");
+        assertAskedForTable(Permission.DDL, "doc.users");
+        analyze("alter table users reroute ALLOCATE STALE PRIMARY SHARD 1 ON 'node1'");
+        assertAskedForTable(Permission.DDL, "doc.users");
     }
 
     @Test

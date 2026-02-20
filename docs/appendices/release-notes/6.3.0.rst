@@ -136,6 +136,10 @@ Administration and Operations
 - Repositories of type ``s3`` now use path style access by default instead of
   virtual host style when building the URI.
 
+- Added a :ref:`cli-crate-shard` CLI tool for disaster recovery of a corrupted
+  shard which cannot be automatically recovered from a good copy (replica) or
+  restored from a backup.
+
 Client interfaces
 -----------------
 
