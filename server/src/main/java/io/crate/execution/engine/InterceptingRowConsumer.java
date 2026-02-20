@@ -73,7 +73,7 @@ class InterceptingRowConsumer implements RowConsumer {
                 List.of(),
                 List.of(jobId),
                 Role.CRATE_USER.name(),
-                "An error was encountered: " + t
+                t
             );
             killNodeAction.execute(killRequest).whenComplete((resp, killErr) -> {
                 if (killErr == null) {

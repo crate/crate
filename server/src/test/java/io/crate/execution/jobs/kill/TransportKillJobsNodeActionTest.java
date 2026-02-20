@@ -21,6 +21,8 @@
 
 package io.crate.execution.jobs.kill;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -37,6 +39,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
 
+import io.crate.exceptions.JobKilledException;
 import io.crate.execution.jobs.TasksService;
 import io.crate.netty.NettyBootstrap;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -69,8 +72,8 @@ public class TransportKillJobsNodeActionTest extends CrateDummyClusterServiceUni
         List<UUID> toKill = List.of(UUID.randomUUID(), UUID.randomUUID());
 
         transportKillJobsNodeAction.nodeOperation(
-            new KillJobsNodeRequest(List.of(), toKill, "dummy-user", null).innerRequest())
+            new KillJobsNodeRequest(List.of(), toKill, "dummy-user", JobKilledException.of(null)).innerRequest())
             .get(5, TimeUnit.SECONDS);
-        verify(tasksService, times(1)).killJobs(toKill, "dummy-user", null);
+        verify(tasksService, times(1)).killJobs(eq(toKill), eq("dummy-user"), any(JobKilledException.class));
     }
 }

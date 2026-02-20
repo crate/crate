@@ -80,6 +80,6 @@ public class CircuitBreakerIntegrationTest extends IntegTestCase {
         execute("set global \"indices.breaker.policy\"='top_consumer'");
         execute("set global \"indices.breaker.query.limit\"='100b'");
         assertThatThrownBy(() -> execute("select distinct x from generate_series(1, 100) as t (x)"))
-            .hasMessageContaining("Job killed. Circuit breaker for 'tableFunction: 0' triggered.");
+            .hasMessageContaining("failed, breaker would use");
     }
 }

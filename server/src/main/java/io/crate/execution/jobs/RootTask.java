@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
@@ -258,9 +259,12 @@ public class RootTask implements CompletionListenable<Void> {
      * Issues a kill on all active tasks. This method returns immediately. The caller should use the future
      * returned by {@link CompletionListenable#completionFuture()} to track EOL of the task.
      *
+     * @param failure should be {@link JobKilledException}
+     * except cases when another error is the direct cause of the kill.
+     *
      * @return the number of tasks on which kill was called
      */
-    public long kill(@Nullable String reason) {
+    public long kill(@NonNull Throwable failure) {
         int numKilled = 0;
         if (!closed.getAndSet(true)) {
             logger.trace("RootTask.kill job={}", jobId);
@@ -274,7 +278,7 @@ public class RootTask implements CompletionListenable<Void> {
                     if (traceEnabled) {
                         logger.trace("Task.kill job={} id={} task={}", jobId, task.id(), task);
                     }
-                    task.kill(JobKilledException.of(reason));
+                    task.kill(failure);
                     numKilled++;
                 }
             }

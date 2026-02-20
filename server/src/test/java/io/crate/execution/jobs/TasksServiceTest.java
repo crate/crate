@@ -158,7 +158,8 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         @SuppressWarnings("unchecked")
         Map<UUID, RootTask> activeTasks = (Map<UUID, RootTask>) activeTasksField.get(tasksService);
         assertThat(activeTasks).hasSize(2);
-        assertThat(tasksService.killJobs(List.of(jobId), Role.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS)).isEqualTo(1);
+        assertThat(tasksService.killJobs(List.of(jobId), Role.CRATE_USER.name(), JobKilledException.of(null))
+            .get(5L, TimeUnit.SECONDS)).isEqualTo(1);
 
         assertThat(killCalled.get()).isTrue();
         assertThat(kill2Called.get()).isFalse();
@@ -215,7 +216,8 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder = tasksService.newBuilder(UUID.randomUUID());
         builder.addTask(new DummyTask());
         tasksService.createTask(builder);
-        assertThat(tasksService.killJobs(jobsToKill, Role.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS)).isEqualTo(1);
+        assertThat(tasksService.killJobs(jobsToKill, Role.CRATE_USER.name(), JobKilledException.of(null))
+            .get(5L, TimeUnit.SECONDS)).isEqualTo(1);
     }
 
     @Test
@@ -225,8 +227,10 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder.addTask(new DummyTask());
         tasksService.createTask(builder);
 
-        assertThat(tasksService.killJobs(List.of(jobId), "Trillian", null).get(5L, TimeUnit.SECONDS)).isEqualTo(0);
-        assertThat(tasksService.killJobs(List.of(jobId), "Arthur", null).get(5L, TimeUnit.SECONDS)).isEqualTo(1);
+        assertThat(tasksService.killJobs(List.of(jobId), "Trillian", JobKilledException.of(null))
+            .get(5L, TimeUnit.SECONDS)).isEqualTo(0);
+        assertThat(tasksService.killJobs(List.of(jobId), "Arthur", JobKilledException.of(null))
+            .get(5L, TimeUnit.SECONDS)).isEqualTo(1);
     }
 
     @Test
@@ -307,7 +311,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         ///   that the task context is missing it retries.
 
         UUID jobId = UUID.randomUUID();
-        tasksService.killJobs(List.of(jobId), Role.CRATE_USER.name(), "Sparks no joy");
+        tasksService.killJobs(List.of(jobId), Role.CRATE_USER.name(), JobKilledException.of("Sparks no joy"));
         assertThat(tasksService.recentlyFailed(jobId)).isTrue();
     }
 
@@ -322,7 +326,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder.addTask(new DummyTask());
         RootTask rootTask = builder.build();
 
-        rootTask.kill("Client node disconnected");
+        rootTask.kill(JobKilledException.of("Client node disconnected"));
 
         assertThat(rootTask.completionFuture()).failsWithin(5, TimeUnit.SECONDS);
         assertThat(tasksService.getTaskOrNull(jobId)).isNull();
