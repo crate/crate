@@ -214,12 +214,12 @@ public class RemoveCorruptedShardDataCommand extends ElasticsearchNodeCommand {
             }
         }
 
-        IndexMetadata indexMetadata = clusterState.metadata().getIndices(
+        IndexMetadata indexMetadata = clusterState.metadata().getIndex(
             relationName,
             Arrays.asList(partitionedByValues),
             true,
             im -> im
-        ).getFirst();
+        );
         if (indexMetadata == null) {
             String partitionValString = partitionValues == null ? "" :
                 partitionValues.stream()

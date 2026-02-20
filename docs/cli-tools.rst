@@ -274,29 +274,32 @@ There are two ways to specify the shard that you want to fix:
 Options
 -------
 
-+------------------------------+-----------------------------------------------------+
-| Option                       | Description                                         |
-+==============================+=====================================================+
-| ``--table <fqn_table_name>`` | Specifies the full-qualified table name incl. the   |
-|                              | schema name.                                        |
-+------------------------------+-----------------------------------------------------+
-| ``-P<parted_col>=<value>``   | Specifies the partition by partition columns.       |
-|                              | Must be repeated for every partition column.        |
-|                              | Optional, only needed for partitioned tables.       |
-+------------------------------+-----------------------------------------------------+
-| ``--shard-id <INT>``         | Specifies shard ID.                                 |
-+------------------------------+-----------------------------------------------------+
-| ``--dir <shard_path>``       | Specifies the path on disk of the shard to fix.     |
-+------------------------------+-----------------------------------------------------+
-| ``-C``                       | Set a CrateDB :ref:`configuration <config>` value   |
-|                              | (overrides configuration file)                      |
-+------------------------------+-----------------------------------------------------+
-| ``-h, --help``               | Return all of the command parameters                |
-+------------------------------+-----------------------------------------------------+
-| ``-s, --silent``             | Show minimal output                                 |
-+------------------------------+-----------------------------------------------------+
-| ``-v, --verbose``            | Shows verbose output                                |
-+------------------------------+-----------------------------------------------------+
++-------------------------------+-----------------------------------------------------+
+| Option                        | Description                                         |
++===============================+=====================================================+
+| ``--table <fqn_table_name>``  | Specifies the full-qualified table name incl. the   |
+|                               | schema name.                                        |
++-------------------------------+-----------------------------------------------------+
+| ``-P<parted_col>=<value>``    | Specifies the partition by partition columns.       |
+|                               | Must be repeated for every partition column.        |
+|                               | Optional, only needed for partitioned tables.       |
++-------------------------------+-----------------------------------------------------+
+| ``--shard-id <INT>``          | Specifies shard ID.                                 |
++-------------------------------+-----------------------------------------------------+
+| ``--dir <shard_path>``        | Specifies the path on disk of the shard to fix.     |
++-------------------------------+-----------------------------------------------------+
+| ``--truncate-clean-translog`` | If set, truncate the shard's translog, even if not  |
+|                               | corrupted.                                          |
++-------------------------------+-----------------------------------------------------+
+| ``-C``                        | Set a CrateDB :ref:`configuration <config>` value   |
+|                               | (overrides configuration file)                      |
++-------------------------------+-----------------------------------------------------+
+| ``-h, --help``                | Return all of the command parameters                |
++-------------------------------+-----------------------------------------------------+
+| ``-s, --silent``              | Show minimal output                                 |
++-------------------------------+-----------------------------------------------------+
+| ``-v, --verbose``             | Shows verbose output                                |
++-------------------------------+-----------------------------------------------------+
 
 
 .. _deployment guide: https://cratedb.com/docs/crate/howtos/en/latest/deployment/index.html

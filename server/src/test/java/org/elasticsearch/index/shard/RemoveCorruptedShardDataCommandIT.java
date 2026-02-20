@@ -34,6 +34,7 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.TestEnvironment;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.MockEngineFactoryPlugin;
+import org.elasticsearch.index.translog.TestTranslog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.CorruptionUtils;
@@ -69,6 +70,8 @@ public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
 
     @SuppressWarnings({"resource", "ResultOfMethodCallIgnored", "CatchMayIgnoreException"})
     public void run_corrupted_index_test(boolean partitioned) throws Exception {
+        boolean truncateTranslog = randomBoolean();
+
         final String node = cluster().startNode();
 
         String stmt = "CREATE TABLE t (a INT, p INT) CLUSTERED INTO 1 SHARDS";
@@ -130,6 +133,9 @@ public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
                 }
 
                 CorruptionUtils.corruptIndex(random(), shardPath.resolveIndex(), false);
+                if (truncateTranslog) {
+                    TestTranslog.corruptRandomTranslogFile(logger, random(), shardPath.resolveTranslog());
+                }
                 return super.onNodeStopped(nodeName);
             }
         });
@@ -152,6 +158,10 @@ public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
             );
         });
 
+        if (truncateTranslog) {
+            args.add("-truncate-clean-translog");
+        }
+
         cluster().restartNode(node, new TestCluster.RestartCallback() {
             @Override
             public Settings onNodeStopped(String nodeName) throws Exception {
@@ -163,6 +173,10 @@ public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
         });
 
         logger.info("--> output:\n{}", terminal.getOutput());
+
+        if (truncateTranslog) {
+            assertThat(terminal.getOutput()).contains("Removing existing translog files");
+        }
 
         String nodeId = clusterService().state().getRoutingNodes().iterator().next().nodeId();
         String tableIdent = partitioned ? "doc.t PARTITION (p = 1)" : "doc.t";
@@ -180,7 +194,8 @@ public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
             assertThat(response.rowCount()).isEqualTo(1);
         });
 
-        execute(String.format("SELECT COUNT(*) < %s FROM t", totalDocs));
-        assertThat(response).hasRows("true");
+        execute("SELECT * FROM t");
+        assertThat(response.rowCount()).isGreaterThan(0L);
+        assertThat(response.rowCount()).isLessThan(totalDocs);
     }
 }
