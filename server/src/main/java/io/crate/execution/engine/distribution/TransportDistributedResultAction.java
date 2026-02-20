@@ -206,7 +206,11 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
              */
             String reason = "Received data for job=" + request.jobId() + " but there is no job context present. " +
                 "This can happen due to bad network latency or if individual nodes are unresponsive due to high load";
-            broadcastKill(killNodeAction, request.jobId(), clusterService.localNode().getId(), reason);
+            broadcastKill(killNodeAction,
+                request.jobId(),
+                Collections.singletonList(clusterService.localNode().getId()),
+                JobKilledException.of(reason)
+            );
             return CompletableFuture.failedFuture(new TaskMissing(TaskMissing.Type.ROOT, request.jobId()));
         }
     }
@@ -216,10 +220,8 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
      */
     public static void broadcastKill(ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction,
                                      UUID jobId,
-                                     String localNodeId,
-                                     String reason) {
-        List<String> excludedNodeIds = Collections.singletonList(localNodeId);
-
+                                     List<String> excludedNodeIds,
+                                     Throwable reason) {
         KillJobsNodeRequest killRequest = new KillJobsNodeRequest(
             excludedNodeIds,
             List.of(jobId),

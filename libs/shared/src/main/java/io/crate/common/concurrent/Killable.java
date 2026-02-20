@@ -41,6 +41,8 @@ public interface Killable {
      * Operations which have already completed may also ignore the kill.
      *
      * @param throwable the reason for the interruption or null if there is none.
+     * It should be a JobKilledException
+     * except cases when another error is the direct cause of the kill.
      */
     void kill(Throwable throwable);
 }

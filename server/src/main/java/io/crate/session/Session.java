@@ -670,7 +670,7 @@ public class Session implements AutoCloseable {
                 List.of(),
                 List.of(jobId),
                 sessionSettings.userName(),
-                "statement_timeout (" + timeout.toString() + "/exec)"
+                JobKilledException.of("statement_timeout (" + timeout.toString() + "/exec)")
             );
             executor.client().execute(KillJobsNodeAction.INSTANCE, request);
         };
@@ -1024,7 +1024,7 @@ public class Session implements AutoCloseable {
             List.of(),
             List.of(mostRecentJobID),
             sessionSettings.userName(),
-            "Cancellation request by: " + sessionSettings.userName()
+            JobKilledException.of("Cancellation request by: " + sessionSettings.userName())
         );
         executor.client().execute(KillJobsNodeAction.INSTANCE, request);
         resetDeferredExecutions();
