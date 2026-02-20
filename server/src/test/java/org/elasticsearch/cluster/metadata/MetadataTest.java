@@ -59,10 +59,10 @@ public class MetadataTest {
                 .build();
 
         BytesStreamOutput out = new BytesStreamOutput();
-        out.setVersion(Version.fromString("6.1.0"));
+        out.setVersion(Version.V_6_1_0);
         metadata.writeTo(out); // OID should be written, 6.1.0 expects it.
         var in = out.bytes().streamInput();
-        in.setVersion(Version.fromString("6.1.0"));
+        in.setVersion(Version.V_6_1_0);
         Metadata recievedMetadata = Metadata.readFrom(in); // We are reading from 6.1.0, which sends out OID.
         assertThat(recievedMetadata.columnOID()).isEqualTo(123L);
     }
@@ -120,7 +120,7 @@ public class MetadataTest {
     }
 
     @Test
-    public void test_streaming_table_oid() throws IOException {
+    public void test_bwc_streaming_table_oid() throws IOException {
         int tableOID = 123;
         Metadata metadata = Metadata.builder(tableOID)
             // builder() adds IndexGraveyard custom, which causes "can't read named writeable from StreamInput" error on reads.
@@ -131,10 +131,10 @@ public class MetadataTest {
         assertThat(metadata.currentMaxTableOid()).isEqualTo(tableOID);
 
         BytesStreamOutput out = new BytesStreamOutput();
-        out.setVersion(Version.fromString("6.2.0"));
+        out.setVersion(Version.V_6_2_0);
         metadata.writeTo(out);
         var in = out.bytes().streamInput();
-        in.setVersion(Version.fromString("6.2.0"));
+        in.setVersion(Version.V_6_2_0);
         Metadata recievedMetadata = Metadata.readFrom(in);
         assertThat(recievedMetadata.currentMaxTableOid()).isEqualTo(Metadata.OID_UNASSIGNED);
 
@@ -160,10 +160,10 @@ public class MetadataTest {
         assertThat(receivedMetadataDiff.apply(currMetadata).currentMaxTableOid()).isEqualTo(tableOID);
 
         out = new BytesStreamOutput();
-        out.setVersion(Version.fromString("6.2.0"));
+        out.setVersion(Version.V_6_2_0);
         metadataDiff.writeTo(out);
         in = out.bytes().streamInput();
-        in.setVersion(Version.fromString("6.2.0"));
+        in.setVersion(Version.V_6_2_0);
         receivedMetadataDiff = Metadata.readDiffFrom(in);
         // check that currMetadata.currentMaxTableOid is not overridden by metadataDiff.currentMaxTableOid which is UNASSIGNED
         currMetadata = Metadata.builder(120).build();

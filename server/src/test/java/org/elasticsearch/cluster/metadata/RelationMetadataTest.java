@@ -71,7 +71,7 @@ public class RelationMetadataTest {
     }
 
     @Test
-    public void test_streaming_table_oid() throws IOException {
+    public void test_bwc_streaming_table_oid() throws IOException {
         final int tableOID = 123;
         RelationMetadata table1 = new RelationMetadata.Table(
             tableOID,
