@@ -31,6 +31,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.exceptions.JobKilledException;
 import io.crate.execution.jobs.kill.KillAllNodeAction;
 import io.crate.execution.jobs.kill.KillAllRequest;
 import io.crate.execution.jobs.kill.KillJobsNodeAction;
@@ -119,7 +120,9 @@ public class KillPlan implements Plan {
                         List.of(),
                         List.of(jobId),
                         userName,
-                        "KILL invoked by user: " + userName))
+                        JobKilledException.of("KILL invoked by user: " + userName)
+                    )
+                )
                 .whenComplete(
                     new OneRowActionListener<>(
                         consumer,

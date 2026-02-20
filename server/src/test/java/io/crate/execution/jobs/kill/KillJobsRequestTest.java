@@ -26,10 +26,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.UUID;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
+
+import io.crate.exceptions.JobKilledException;
 
 public class KillJobsRequestTest extends ESTestCase {
 
@@ -37,7 +40,7 @@ public class KillJobsRequestTest extends ESTestCase {
     public void testStreaming() throws Exception {
         List<UUID> toKill = List.of(UUID.randomUUID(), UUID.randomUUID());
         KillJobsNodeRequest.KillJobsRequest r = new KillJobsNodeRequest(
-            List.of(), toKill, "dummy-user", "just because")
+            List.of(), toKill, "dummy-user", JobKilledException.of("just because"))
             .innerRequest();
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -47,7 +50,31 @@ public class KillJobsRequestTest extends ESTestCase {
         KillJobsNodeRequest.KillJobsRequest r2 = new KillJobsNodeRequest.KillJobsRequest(in);
 
         assertThat(r.toKill()).isEqualTo(r2.toKill());
-        assertThat(r.reason()).isEqualTo(r2.reason());
+        assertThat(r.reason())
+            .isInstanceOf(r2.reason().getClass())
+            .hasMessage(r2.reason().getMessage());
+        assertThat(r.userName()).isEqualTo(r2.userName());
+    }
+
+    @Test
+    public void test_bwc_streaming() throws Exception {
+        List<UUID> toKill = List.of(UUID.randomUUID(), UUID.randomUUID());
+        KillJobsNodeRequest.KillJobsRequest r = new KillJobsNodeRequest(
+            List.of(), toKill, "dummy-user", JobKilledException.of("just because"))
+            .innerRequest();
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_2_1);
+        r.writeTo(out);
+
+        StreamInput in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_2_1);
+        KillJobsNodeRequest.KillJobsRequest r2 = new KillJobsNodeRequest.KillJobsRequest(in);
+
+        assertThat(r.toKill()).isEqualTo(r2.toKill());
+        assertThat(r.reason())
+            .isInstanceOf(r2.reason().getClass())
+            .hasMessage(r2.reason().getMessage());
         assertThat(r.userName()).isEqualTo(r2.userName());
     }
 }

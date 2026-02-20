@@ -27,19 +27,24 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
-import org.jspecify.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.exceptions.JobKilledException;
 
 public class KillJobsNodeRequest extends TransportRequest {
 
     private final List<String> excludedNodeIds;
     private final KillJobsRequest killJobsRequest;
 
-    public KillJobsNodeRequest(List<String> excludedNodeIds, Collection<UUID> jobsToKill, String userName, @Nullable String reason) {
+    public KillJobsNodeRequest(List<String> excludedNodeIds,
+                               Collection<UUID> jobsToKill,
+                               String userName,
+                               @NonNull Throwable reason) {
         this.killJobsRequest = new KillJobsRequest(jobsToKill, userName, reason);
         this.excludedNodeIds = excludedNodeIds;
     }
@@ -58,14 +63,19 @@ public class KillJobsNodeRequest extends TransportRequest {
         private final Collection<UUID> toKill;
         private final String userName;
 
-        @Nullable
-        private final String reason;
+        @NonNull
+        private final Throwable reason;
 
 
         /**
          * @param userName user that invoked the kill. If the kill is system generated use User.CRATE_USER.name()
+         *
+         * @param reason should be {@link JobKilledException}
+         * except cases when another error is the direct cause of the kill.
          */
-        private KillJobsRequest(Collection<UUID> jobsToKill, String userName, @Nullable String reason) {
+        private KillJobsRequest(Collection<UUID> jobsToKill,
+                                String userName,
+                                @NonNull Throwable reason) {
             this.toKill = jobsToKill;
             this.userName = userName;
             this.reason = reason;
@@ -83,7 +93,11 @@ public class KillJobsNodeRequest extends TransportRequest {
                 UUID job = new UUID(in.readLong(), in.readLong());
                 toKill.add(job);
             }
-            reason = in.readOptionalString();
+            if (in.getVersion().onOrBefore(Version.V_6_2_1)) {
+                reason = JobKilledException.of(in.readOptionalString());
+            } else {
+                reason = in.readException();
+            }
             userName = in.readString();
         }
 
@@ -96,7 +110,11 @@ public class KillJobsNodeRequest extends TransportRequest {
                 out.writeLong(job.getMostSignificantBits());
                 out.writeLong(job.getLeastSignificantBits());
             }
-            out.writeOptionalString(reason);
+            if (out.getVersion().onOrBefore(Version.V_6_2_1)) {
+                out.writeOptionalString(reason.getMessage());
+            } else {
+                out.writeException(reason);
+            }
             out.writeString(userName);
         }
 
@@ -105,8 +123,8 @@ public class KillJobsNodeRequest extends TransportRequest {
             return "KillJobsRequest{" + toKill + '}';
         }
 
-        @Nullable
-        public String reason() {
+        @NonNull
+        public Throwable reason() {
             return reason;
         }
 
