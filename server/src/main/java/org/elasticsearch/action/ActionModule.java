@@ -63,6 +63,7 @@ import io.crate.cluster.decommission.TransportDecommissionNodeAction;
 import io.crate.execution.ddl.TransportSwapRelations;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexName;
 import io.crate.execution.ddl.tables.TransportAddColumn;
+import io.crate.execution.ddl.tables.TransportAlterColumnDefault;
 import io.crate.execution.ddl.tables.TransportAlterTable;
 import io.crate.execution.ddl.tables.TransportCloseTable;
 import io.crate.execution.ddl.tables.TransportCreateBlobTable;
@@ -157,6 +158,7 @@ public class ActionModule extends AbstractModule {
         bind(binder, TransportAddColumn.ACTION, TransportAddColumn.class);
         bind(binder, TransportDropColumn.ACTION, TransportDropColumn.class);
         bind(binder, TransportRenameColumn.ACTION, TransportRenameColumn.class);
+        bind(binder, TransportAlterColumnDefault.ACTION, TransportAlterColumnDefault.class);
         bind(binder, TransportDropConstraint.ACTION, TransportDropConstraint.class);
         bind(binder, TransportResize.ACTION, TransportResize.class);
         bind(binder, TransportUpdateSettings.ACTION, TransportUpdateSettings.class);

@@ -83,6 +83,7 @@ import io.crate.sql.tree.AlterServer;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
+import io.crate.sql.tree.AlterTableAlterColumnDefault;
 import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRenameColumn;
@@ -1480,7 +1481,22 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             (Table<?>) visit(ctx.alterTableDefinition()),
             (Expression) visit(ctx.source),
             (Expression) visit(ctx.target));
+    }
 
+    @Override
+    public Node visitAlterTableAlterColumnSetDefault(SqlBaseParser.AlterTableAlterColumnSetDefaultContext ctx) {
+        return new AlterTableAlterColumnDefault<>(
+            (Table<?>) visit(ctx.alterTableDefinition()),
+            (Expression) visit(ctx.subscriptSafe()),
+            (Expression) visit(ctx.expr()));
+    }
+
+    @Override
+    public Node visitAlterTableAlterColumnDropDefault(SqlBaseParser.AlterTableAlterColumnDropDefaultContext ctx) {
+        return new AlterTableAlterColumnDefault<>(
+            (Table<?>) visit(ctx.alterTableDefinition()),
+            (Expression) visit(ctx.subscriptSafe()),
+            null);
     }
 
     @Override

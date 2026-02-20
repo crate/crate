@@ -274,6 +274,23 @@ public class SimpleReference implements Reference {
     }
 
     @Override
+    public Reference withDefaultExpression(@Nullable Symbol defaultExpression) {
+        return new SimpleReference(
+            relation,
+            column,
+            granularity,
+            type,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            oid,
+            isDropped,
+            defaultExpression
+        );
+    }
+
+    @Override
     public SymbolType symbolType() {
         return SymbolType.REFERENCE;
     }

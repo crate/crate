@@ -29,7 +29,6 @@ import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Locale;
@@ -473,5 +472,142 @@ public class AlterTableIntegrationTest extends IntegTestCase {
             "04132| false",
             "04134| false"
         );
+    }
+
+    @Test
+    public void test_alter_column_set_default_on_column_without_default() {
+        execute("create table t (a int, b text)");
+        execute("alter table t alter column a set default 42");
+        execute("insert into t (b) values ('hello')");
+        execute("refresh table t");
+        execute("select a, b from t");
+        assertThat(response).hasRows("42| hello");
+
+        execute("show create table t");
+        assertThat((String) response.rows()[0][0]).contains("DEFAULT 42");
+    }
+
+    @Test
+    public void test_alter_column_change_existing_default() {
+        execute("create table t (a int default 1, b text)");
+        execute("insert into t (b) values ('first')");
+        execute("alter table t alter column a set default 99");
+        execute("insert into t (b) values ('second')");
+        execute("refresh table t");
+        execute("select a from t order by a");
+        assertThat(response).hasRows("1", "99");
+    }
+
+    @Test
+    public void test_alter_column_drop_default() {
+        execute("create table t (a int default 42, b text)");
+        execute("alter table t alter column a drop default");
+        execute("insert into t (b) values ('hello')");
+        execute("refresh table t");
+        execute("select a from t");
+        assertThat(response).hasRows("NULL");
+
+        execute("show create table t");
+        assertThat((String) response.rows()[0][0]).doesNotContain("DEFAULT");
+    }
+
+    @Test
+    public void test_alter_column_set_default_does_not_affect_existing_rows() {
+        execute("create table t (a int)");
+        execute("insert into t (a) values (1)");
+        execute("refresh table t");
+        execute("alter table t alter column a set default 99");
+        execute("refresh table t");
+        execute("select a from t");
+        assertThat(response).hasRows("1");
+    }
+
+    @Test
+    public void test_alter_column_set_default_on_partitioned_table() {
+        execute("create table t (a int, b text) partitioned by (b)");
+        execute("insert into t (a, b) values (1, 'p1')");
+        execute("refresh table t");
+        execute("alter table t alter column a set default 77");
+        execute("insert into t (b) values ('p2')");
+        execute("refresh table t");
+        execute("select a, b from t order by b");
+        assertThat(response).hasRows("1| p1", "77| p2");
+    }
+
+    @Test
+    public void test_alter_column_set_default_type_mismatch() {
+        execute("create table t (a int)");
+        assertThatThrownBy(() -> execute("alter table t alter column a set default 'hello'"))
+            .hasMessageContaining("Cannot cast");
+    }
+
+    @Test
+    public void test_alter_column_set_default_on_generated_column() {
+        execute("create table t (a int, b int generated always as (a + 1))");
+        assertThatThrownBy(() -> execute("alter table t alter column b set default 5"))
+            .hasMessageContaining("Cannot SET DEFAULT on generated column");
+    }
+
+    @Test
+    public void test_alter_column_set_default_on_object_column() {
+        execute("create table t (o object as (a int))");
+        assertThatThrownBy(() -> execute("alter table t alter column o set default {a=1}"))
+            .hasMessageContaining("Default values are not allowed for object columns");
+    }
+
+    @Test
+    public void test_alter_column_set_default_on_sub_column() {
+        execute("create table t (o object as (a int))");
+        execute("alter table t alter column o['a'] set default 10");
+        execute("insert into t (o) values ({})");
+        execute("refresh table t");
+        execute("select o['a'] from t");
+        assertThat(response).hasRows("10");
+    }
+
+    @Test
+    public void test_alter_column_set_default_with_expression() {
+        execute("create table t (a timestamp with time zone)");
+        execute("alter table t alter column a set default current_timestamp");
+        execute("show create table t");
+        assertThat((String) response.rows()[0][0]).contains("DEFAULT current_timestamp");
+    }
+
+    @Test
+    public void test_alter_column_drop_default_on_column_without_default_is_noop() {
+        execute("create table t (a int)");
+        execute("alter table t alter column a drop default");
+        execute("show create table t");
+        assertThat((String) response.rows()[0][0]).doesNotContain("DEFAULT");
+    }
+
+    @Test
+    public void test_alter_column_set_default_without_column_keyword() {
+        execute("create table t (a int, b text)");
+        execute("alter table t alter a set default 42");
+        execute("insert into t (b) values ('hello')");
+        execute("refresh table t");
+        execute("select a from t");
+        assertThat(response).hasRows("42");
+    }
+
+    @Test
+    public void test_alter_column_set_default_on_primary_key_column() {
+        execute("create table t (id int primary key, name text)");
+        execute("alter table t alter column id set default 1");
+        execute("insert into t (name) values ('hello')");
+        execute("refresh table t");
+        execute("select id, name from t");
+        assertThat(response).hasRows("1| hello");
+    }
+
+    @Test
+    public void test_alter_column_set_default_on_array_column() {
+        execute("create table t (tags array(text), name text)");
+        execute("alter table t alter column tags set default ['a', 'b']");
+        execute("insert into t (name) values ('test')");
+        execute("refresh table t");
+        execute("select tags from t");
+        assertThat(response).hasRows("[a, b]");
     }
 }
