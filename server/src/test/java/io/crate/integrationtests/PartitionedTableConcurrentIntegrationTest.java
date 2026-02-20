@@ -489,4 +489,49 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         }
         ensureGreen();
     }
+
+    @Test
+    public void test_concurrent_swaps() throws Exception {
+        execute("create table t1 (p int) partitioned by (p)");
+        execute("create table t2 (p2 int)");
+
+        final AtomicReference<Throwable> error = new AtomicReference<>();
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        Thread t1 = new Thread(() -> {
+            try {
+                latch.await();
+                execute("insert into t1 select * from generate_series (1, 50)");
+            } catch (Throwable e) {
+                error.set(e);
+            }
+        });
+
+        Thread t2 = new Thread(() -> {
+            try {
+                latch.await();
+                for (int i = 0; i < 3; i++) {
+                    Thread.sleep(300); // to prevent swap queries to go through at once
+                    execute("ALTER CLUSTER SWAP TABLE t1 TO t2");
+                }
+            } catch (Throwable e) {
+                error.set(e);
+            }
+        });
+
+        t1.start();
+        t2.start();
+        latch.countDown();
+        t1.join();
+        t2.join();
+
+        if (error.get() != null) {
+            throw new RuntimeException(error.get());
+        }
+        execute("refresh table t1, t2");
+        execute("select distinct(count(*)) from t2");
+        assertThat(response.rows()[0][0]).isEqualTo(50L);
+        execute("select count(*) from information_schema.table_partitions where table_name = 't2'");
+        assertThat(response.rows()[0][0]).isEqualTo(50L);
+    }
 }

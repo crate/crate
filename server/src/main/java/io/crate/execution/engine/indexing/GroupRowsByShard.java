@@ -224,7 +224,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     /**
      * @throws IllegalStateException if a shardLocation still can't be resolved
      */
-    void reResolveShardLocations(ShardedRequests<TReq, TItem> requests) {
+    void reResolveShardLocations(ShardedRequests<TReq, TItem> requests, int tableOID) {
         var entryIt = requests.itemsByMissingPartition.entrySet().iterator();
         ClusterState state = clusterService.state();
         Metadata metadata = state.metadata();
@@ -236,7 +236,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
             while (it.hasNext()) {
                 ShardedRequests.ItemAndRoutingAndSourceInfo<TItem> itemAndRoutingAndSourceInfo = it.next();
                 IndexMetadata indexMetadata = metadata.getIndex(
-                    partitionName.relationName(),
+                    tableOID,
                     partitionName.values(),
                     true,
                     x -> x
