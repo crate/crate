@@ -208,7 +208,7 @@ public class DistributingConsumer implements RowConsumer {
                     request,
                     it,
                     numActiveRequests,
-                    true
+                    failure
                 );
                 distributedResultAction.execute(request).whenComplete(responseHandler);
             }
@@ -264,7 +264,7 @@ public class DistributingConsumer implements RowConsumer {
                 request,
                 it,
                 numActiveRequests,
-                false
+                null
             );
             distributedResultAction.execute(request).whenComplete(responseHandler);
         }
@@ -276,26 +276,28 @@ public class DistributingConsumer implements RowConsumer {
         private final NodeRequest<DistributedResultRequest> request;
         private final BatchIterator<Row> it;
         private final AtomicInteger numActiveRequests;
-        private final boolean isFailureReq;
+        private final Throwable originalFailure;
         private final Iterator<TimeValue> retries;
 
         public ResponseHandler(Downstream downstream,
                                NodeRequest<DistributedResultRequest> request,
                                BatchIterator<Row> it,
                                AtomicInteger numActiveRequests,
-                               boolean isFailureReq) {
+                               @Nullable Throwable originalFailure) {
+
             this.downstream = downstream;
             this.request = request;
             this.it = it;
             this.numActiveRequests = numActiveRequests;
-            this.isFailureReq = isFailureReq;
+            this.originalFailure = originalFailure;
             this.retries = BackoffPolicy.exponentialBackoff().iterator();
         }
 
         @Override
         public void accept(DistributedResultResponse resp, Throwable err) {
             if (err == null) {
-                if (isFailureReq) {
+                if (originalFailure != null) {
+                    // original failure has been forwarded without errors.
                     downstream.needsMoreData = false;
                     countdownAndMaybeCloseIt(numActiveRequests, it);
                 } else {
@@ -306,7 +308,7 @@ public class DistributingConsumer implements RowConsumer {
             }
             err = SQLExceptions.unwrap(err);
             LOGGER.trace(
-                "Failure from downstream while sending result. job={} targetNode={} failure={}",
+                "Failure from downstream (or local failure) while sending result. job={} targetNode={} failure={}",
                 jobId,
                 downstream.nodeId,
                 err
@@ -347,7 +349,7 @@ public class DistributingConsumer implements RowConsumer {
             }
             downstream.needsMoreData = false;
             // continue because it's necessary to send something to the other downstreams still waiting for data
-            if (isFailureReq) {
+            if (originalFailure != null) {
                 countdownAndMaybeCloseIt(numActiveRequests, it);
                 if (err instanceof CircuitBreakingException) {
                     // We tried to forward a failure to other nodes and it failed.
@@ -358,7 +360,7 @@ public class DistributingConsumer implements RowConsumer {
                     // It's safe to broadcast KILL even if it didn't happen locally,
                     // as it just adds an overhead and we can't distinguish
                     // where it happened on response handling (locally or remotely).
-                    broadcastKill(killNodeAction, jobId, localNodeId, err.getMessage());
+                    broadcastKill(killNodeAction, jobId, localNodeId, originalFailure.getMessage());
                 }
             } else {
                 // If we get a JobKilled from downstream it was already broadcast
