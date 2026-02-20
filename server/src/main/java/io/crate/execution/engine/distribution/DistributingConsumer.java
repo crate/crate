@@ -38,6 +38,7 @@ import java.util.function.BiConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
@@ -348,6 +349,17 @@ public class DistributingConsumer implements RowConsumer {
             // continue because it's necessary to send something to the other downstreams still waiting for data
             if (isFailureReq) {
                 countdownAndMaybeCloseIt(numActiveRequests, it);
+                if (err instanceof CircuitBreakingException) {
+                    // We tried to forward a failure to other nodes and it failed.
+                    // It could be that forwarding was tripped _locally_ by a circuit breaker
+                    // and other nodes never received a failure.
+
+                    // We broadcast KILL in order to ensure that other nodes close their tasks.
+                    // It's safe to broadcast KILL even if it didn't happen locally,
+                    // as it just adds an overhead and we can't distinguish
+                    // where it happened on response handling (locally or remotely).
+                    broadcastKill(killNodeAction, jobId, localNodeId, err.getMessage());
+                }
             } else {
                 // If we get a JobKilled from downstream it was already broadcast
                 if (!(err instanceof JobKilledException)) {
