@@ -62,7 +62,7 @@ CRATE_HOME=$(dirname "$SCRIPT")/..
 CRATE_HOME=$(cd "$CRATE_HOME"; pwd)
 
 
-if [ "x$CRATE_CLASSPATH" != "x" ]; then
+if [ -n "$CRATE_CLASSPATH" ]; then
     cat >&2 << EOF
 Error: Don't modify the classpath with CRATE_CLASSPATH.
 Add plugins and their dependencies into the plugins/ folder instead.
@@ -71,19 +71,65 @@ EOF
 fi
 
 for libname in "$CRATE_HOME"/lib/*.jar; do
-    if [ "x$CRATE_CLASSPATH" != "x" ]; then
+    if [ -n "$CRATE_CLASSPATH" ]; then
         CRATE_CLASSPATH="$CRATE_CLASSPATH:$libname"
     else
         CRATE_CLASSPATH="$libname"
     fi
 done
 
-if [ "$CRATE_MIN_MEM" = "" ]; then
-    CRATE_MIN_MEM=256m
+get_total_memory_kb() {
+  if [ -f /sys/fs/cgroup/memory/memory.limit_in_bytes ]; then
+    # Running in a Docker container / kubernetes pod
+    memory_limit_bytes=$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes)
+    memory_limit_kb=$((memory_limit_bytes / 1024))
+    # Check for unlimited memory limit (value 9223372036854771712 or higher)
+    if [ "$memory_limit_bytes" -ge 9223372036854771712 ]; then
+      grep MemTotal /proc/meminfo | awk '{print $2}'
+    else
+      echo "$memory_limit_kb"
+    fi
+  else
+    if [ -f /proc/meminfo ]; then
+      # Running in a non-Docker environment
+      grep MemTotal /proc/meminfo | awk '{print $2}'
+    else
+      # Fallback for systems without /proc/meminfo
+      return 0
+    fi
+  fi
+}
+
+if [ -z "$CRATE_MIN_MEM" ]; then
+    CRATE_MIN_MEM=1024m
 fi
-if [ "x$CRATE_HEAP_SIZE" != "x" ]; then
+if [ -n "$CRATE_HEAP_SIZE" ]; then
     CRATE_MIN_MEM=$CRATE_HEAP_SIZE
     CRATE_MAX_MEM=$CRATE_HEAP_SIZE
+else
+    # User hasn't specified CRATE_HEAP_SIZE, so calculate it automatically
+    total_mem_kb=$(get_total_memory_kb)
+    if [ "$total_mem_kb" -eq 0 ]; then
+        echo "ERROR: Unable to determine total memory on this system." >&2
+    else
+        # Calculate 25% of total memory in kB
+        heap_size_kb=$((total_mem_kb / 4))
+
+        # Convert kB to MB (JVM expects the value in MB for -Xmx)
+        heap_size_mb=$((heap_size_kb / 1024))
+
+        # Ensure heap size is within 1GB and 30.5GB limits
+        min_heap_size_mb=1024      # 1GB in MB
+        max_heap_size_mb=31232     # 30.5GB in MB
+
+        if [ $heap_size_mb -lt $min_heap_size_mb ]; then
+            heap_size_mb=$min_heap_size_mb
+        elif [ $heap_size_mb -gt $max_heap_size_mb ]; then
+            heap_size_mb=$max_heap_size_mb
+        fi
+
+        CRATE_HEAP_SIZE="${heap_size_mb}m"
+    fi
 fi
 
 # min and max heap sizes should be set to the same value to avoid
@@ -91,17 +137,17 @@ fi
 # heap in memory on startup to prevent any of it from being swapped
 # out.
 JAVA_OPTS="$JAVA_OPTS -Xms${CRATE_MIN_MEM}"
-if [ "x$CRATE_MAX_MEM" != "x" ]; then
+if [ -n "$CRATE_MAX_MEM" ]; then
     JAVA_OPTS="$JAVA_OPTS -Xmx${CRATE_MAX_MEM}"
 fi
 
 # new generation
-if [ "x$CRATE_HEAP_NEWSIZE" != "x" ]; then
+if [ -n "$CRATE_HEAP_NEWSIZE" ]; then
     JAVA_OPTS="$JAVA_OPTS -Xmn${CRATE_HEAP_NEWSIZE}"
 fi
 
 # max direct memory
-if [ "x$CRATE_DIRECT_SIZE" != "x" ]; then
+if [ -n "$CRATE_DIRECT_SIZE" ]; then
     JAVA_OPTS="$JAVA_OPTS -XX:MaxDirectMemorySize=${CRATE_DIRECT_SIZE}"
 fi
 
@@ -109,7 +155,7 @@ fi
 JAVA_OPTS="$JAVA_OPTS -Djava.awt.headless=true"
 
 # Force the JVM to use IPv4 stack
-if [ "x$CRATE_USE_IPV4" != "x" ]; then
+if [ -n "$CRATE_USE_IPV4" ]; then
   JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true"
 fi
 
@@ -118,7 +164,7 @@ JAVA_OPTS="$JAVA_OPTS -XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOcc
 
 # GC logging options
 # Set CRATE_DISABLE_GC_LOGGING=1 to disable GC logging
-if [ "$CRATE_DISABLE_GC_LOGGING" = "" ]; then
+if [ -z "$CRATE_DISABLE_GC_LOGGING" ]; then
   # GC log directory needs to be set explicitly by packages
   # GC logging requires 16x64mb = 1g of free disk space
   GC_LOG_DIR=${CRATE_GC_LOG_DIR:-"$CRATE_HOME/logs"};
