@@ -37,6 +37,7 @@ import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -118,6 +119,10 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
 
     @Override
     protected void doExecute(NodeRequest<DistributedResultRequest> request, ActionListener<DistributedResultResponse> listener) {
+        if (request.innerRequest().throwable() == null) {
+            // debug: try to trip forwardResults locally.
+            throw new CircuitBreakingException("dummy");
+        }
         transports.sendRequest(
             DistributedResultAction.NAME,
             request.nodeId(),
