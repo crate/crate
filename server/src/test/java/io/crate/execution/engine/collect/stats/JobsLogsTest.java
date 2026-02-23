@@ -42,15 +42,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
@@ -66,17 +69,23 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     private HierarchyCircuitBreakerService breakerService;
     private ClusterSettings clusterSettings;
     private NodeContext nodeCtx;
+    private JobsLogs jobsLogs = new JobsLogs(true);
 
     @Before
     public void createJobsLogDependencies() {
         clusterSettings = clusterService.getClusterSettings();
-        breakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, clusterSettings);
+        breakerService = new HierarchyCircuitBreakerService(
+            Settings.EMPTY,
+            clusterSettings,
+            new TasksService(clusterService, jobsLogs),
+            Mockito.mock(Client.class)
+        );
         nodeCtx = createNodeContext();
     }
 
     @Test
     public void testDefaultSettings() {
-        try (JobsLogService stats = new JobsLogService(Settings.EMPTY, clusterService, nodeCtx, breakerService)) {
+        try (JobsLogService stats = new JobsLogService(Settings.EMPTY, jobsLogs, clusterService, nodeCtx, breakerService)) {
             assertThat(stats.isEnabled()).isTrue();
             assertThat(stats.jobsLogSize).isEqualTo(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY));
             assertThat(stats.operationsLogSize).isEqualTo(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY));
@@ -92,7 +101,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         Settings settings = Settings.builder()
             .put(JobsLogService.STATS_JOBS_LOG_FILTER.getKey(), "stmt like 'select%'")
             .build();
-        try (JobsLogService stats = new JobsLogService(settings, clusterService, nodeCtx, breakerService)) {
+        try (JobsLogService stats = new JobsLogService(settings, jobsLogs, clusterService, nodeCtx, breakerService)) {
             LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
 
             jobsLogSink.add(new JobContextLog(
@@ -106,7 +115,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testFilterIsValidatedOnUpdate() {
         // creating the service registers the update listener
-        try (var _ = new JobsLogService(Settings.EMPTY, clusterService, nodeCtx, breakerService)) {
+        try (var _ = new JobsLogService(Settings.EMPTY, jobsLogs, clusterService, nodeCtx, breakerService)) {
             var settings = Settings.builder()
                 .put(JobsLogService.STATS_JOBS_LOG_FILTER.getKey(), "statement = 'x'")
                 .build();
@@ -121,7 +130,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
                 .put(JobsLogService.STATS_JOBS_LOG_FILTER.getKey(), "invalid_column = 10")
                 .build();
 
-        assertThatThrownBy(() -> new JobsLogService(settings, clusterService, nodeCtx, breakerService).close())
+        assertThatThrownBy(() -> new JobsLogService(settings, jobsLogs, clusterService, nodeCtx, breakerService).close())
             .hasMessage("Invalid filter expression: invalid_column = 10: Column invalid_column unknown");
     }
 
@@ -136,7 +145,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 100)
             .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 100)
             .build();
-        try (JobsLogService stats = new JobsLogService(settings, clusterService, nodeCtx, breakerService)) {
+        try (JobsLogService stats = new JobsLogService(settings, jobsLogs, clusterService, nodeCtx, breakerService)) {
             LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
             LogSink<OperationContextLog> operationsLogSink = (LogSink<OperationContextLog>) stats.get().operationsLog();
 
@@ -165,7 +174,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 100)
             .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 100)
             .build();
-        try (var stats = new JobsLogService(settings, clusterService, nodeCtx, breakerService)) {
+        try (var stats = new JobsLogService(settings, jobsLogs, clusterService, nodeCtx, breakerService)) {
             Supplier<LogSink<JobContextLog>> jobsLogSink = () -> (LogSink<JobContextLog>) stats.get().jobsLog();
             Supplier<LogSink<OperationContextLog>> operationsLogSink = () -> (LogSink<OperationContextLog>) stats.get().operationsLog();
 
@@ -234,7 +243,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     public void testLogsArentWipedOnSizeChange() {
         Settings settings = Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
-        try (var stats = new JobsLogService(settings, clusterService, nodeCtx, breakerService)) {
+        try (var stats = new JobsLogService(settings, jobsLogs, clusterService, nodeCtx, breakerService)) {
             LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
             LogSink<OperationContextLog> operationsLogSink = (LogSink<OperationContextLog>) stats.get().operationsLog();
 
@@ -283,7 +292,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
         Settings settings = Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
-        try (var jobsLogService = new JobsLogService(settings, clusterService, nodeCtx, breakerService)) {
+        try (var jobsLogService = new JobsLogService(settings, jobsLogs, clusterService, nodeCtx, breakerService)) {
             JobsLogs jobsLogs = jobsLogService.get();
 
             Classification classification =
@@ -324,7 +333,6 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExecutionStart() {
-        JobsLogs jobsLogs = new JobsLogs(() -> true);
         Role user = RolesHelper.userOf("arthur");
 
         Classification classification =
@@ -343,7 +351,6 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExecutionFailure() {
-        JobsLogs jobsLogs = new JobsLogs(() -> true);
         Role user = RolesHelper.userOf("arthur");
         Queue<JobContextLog> q = new BlockingEvictingQueue<>(1);
 
@@ -361,7 +368,6 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExecutionFailureIsRecordedInMetrics() {
-        JobsLogs jobsLogs = new JobsLogs(() -> true);
         Role user = RolesHelper.userOf("arthur");
         Queue<JobContextLog> q = new BlockingEvictingQueue<>(1);
 
@@ -393,7 +399,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
             .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 100)
             .build();
-        try (JobsLogService stats = new JobsLogService(settings, clusterService, nodeCtx, breakerService)) {
+        try (JobsLogService stats = new JobsLogService(settings, jobsLogs, clusterService, nodeCtx, breakerService)) {
             LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
 
             jobsLogSink.add(new JobContextLog(

@@ -23,8 +23,10 @@ package io.crate.execution.jobs;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -43,18 +45,15 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportConnectionListener;
-import org.elasticsearch.transport.TransportService;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.TaskMissing;
@@ -64,7 +63,6 @@ import io.crate.execution.jobs.kill.KillAllListener;
 import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.role.Role;
 
-@Singleton
 public class TasksService extends AbstractLifecycleComponent implements TransportConnectionListener {
 
     private static final Logger LOGGER = LogManager.getLogger(TasksService.class);
@@ -83,25 +81,17 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
         .expireAfterWrite(30, TimeUnit.SECONDS)
         .build();
 
-    private final TransportService transportService;
-
-    @Inject
-    public TasksService(ClusterService clusterService,
-                        TransportService transportService,
-                        JobsLogs jobsLogs) {
+    public TasksService(ClusterService clusterService, JobsLogs jobsLogs) {
         this.clusterService = clusterService;
-        this.transportService = transportService;
         this.jobsLogs = jobsLogs;
     }
 
     @Override
     protected void doStart() throws ElasticsearchException {
-        transportService.addConnectionListener(this);
     }
 
     @Override
     protected void doStop() throws ElasticsearchException {
-        transportService.removeConnectionListener(this);
         for (RootTask rootTask : activeTasks.values()) {
             rootTask.kill("TasksService stopped");
         }
@@ -352,5 +342,20 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
                 LOGGER.error("Active task node={} jobId={}, task={}", localNodeId, entry.getKey(), entry.getValue());
             }
         }
+    }
+
+    @Nullable
+    public UUID topConsumer() {
+        record TaskUsage(RootTask task, long totalBytesUsed) {
+        }
+
+        Optional<TaskUsage> topTask = activeTasks.values().stream()
+            .map(rootTask -> new TaskUsage(
+                rootTask,
+                rootTask.tasks().stream().mapToLong(Task::bytesUsed).sum()
+            ))
+            .max(Comparator.comparingLong(TaskUsage::totalBytesUsed));
+
+        return topTask.map(x -> x.task.jobId()).orElse(null);
     }
 }

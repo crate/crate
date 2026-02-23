@@ -21,6 +21,8 @@
 
 package io.crate.execution.jobs.kill;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -30,6 +32,8 @@ import java.util.concurrent.TimeUnit;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.transport.MockTransportService;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -68,6 +72,27 @@ public class TransportKillAllNodeActionTest extends CrateDummyClusterServiceUnit
 
         transportKillAllNodeAction.nodeOperation(new KillAllRequest("dummy-user")).get(5, TimeUnit.SECONDS);
         verify(tasksService, times(1)).killAll("dummy-user");
+    }
+
+    @Test
+    public void test_kill_all_cannot_be_tripped_by_circuit_breaker() throws Exception {
+        TasksService tasksService = mock(TasksService.class, Answers.RETURNS_DEEP_STUBS);
+        TransportService transportService = mock(TransportService.class);
+        new TransportKillAllNodeAction(
+            tasksService,
+            clusterService,
+            transportService
+        );
+
+        verify(transportService, times(1))
+            .registerRequestHandler(
+                eq(KillAllNodeAction.NAME),
+                eq(ThreadPool.Names.SAME),
+                eq(true), // forceExecution
+                eq(false), // canTripBreaker
+                any(),
+                any()
+            );
     }
 
 }

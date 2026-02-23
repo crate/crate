@@ -78,7 +78,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             mock(Analyzer.class),
             mock(Planner.class),
             () -> dependencies,
-            new JobsLogs(() -> false),
+            new JobsLogs(false),
             Settings.EMPTY,
             clusterService,
             sessionSettingRegistry
@@ -140,7 +140,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             mock(Analyzer.class),
             mock(Planner.class),
             () -> mock(DependencyCarrier.class),
-            new JobsLogs(() -> false),
+            new JobsLogs(false),
             Settings.builder()
                 .put("statement_timeout", "30s")
                 .build(),
@@ -184,7 +184,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             mock(Analyzer.class),
             mock(Planner.class),
             () -> mock(DependencyCarrier.class),
-            new JobsLogs(() -> false),
+            new JobsLogs(false),
             Settings.builder()
                 .put("statement_max_length", 512)
                 .build(),

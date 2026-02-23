@@ -35,7 +35,6 @@ import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -75,8 +74,7 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
             );
         tasksService = new TasksService(
             clusterService,
-            mock(TransportService.class),
-            new JobsLogs(() -> false)
+            new JobsLogs(false)
         );
     }
 

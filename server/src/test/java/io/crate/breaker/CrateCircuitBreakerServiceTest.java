@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Locale;
 
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -32,7 +33,10 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.CircuitBreakerStats;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.junit.Test;
+import org.mockito.Mockito;
 
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.TasksService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnitTest {
@@ -41,7 +45,9 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
     public void testQueryCircuitBreakerRegistration() throws Exception {
         try (CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
             Settings.EMPTY,
-            clusterService.getClusterSettings()
+            clusterService.getClusterSettings(),
+            new TasksService(clusterService, new JobsLogs(true)),
+            Mockito.mock(Client.class)
         )) {
 
             CircuitBreaker breaker = breakerService.getBreaker(CircuitBreaker.QUERY);
@@ -58,7 +64,9 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
             .build();
         try (HierarchyCircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
             settings,
-            clusterService.getClusterSettings()
+            clusterService.getClusterSettings(),
+            new TasksService(clusterService, new JobsLogs(true)),
+            Mockito.mock(Client.class)
         )) {
 
             CircuitBreaker breaker = breakerService.getBreaker(CircuitBreaker.QUERY);
@@ -82,7 +90,9 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
             .build();
         try (CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
                 settings,
-                clusterService.getClusterSettings()
+                clusterService.getClusterSettings(),
+                new TasksService(clusterService, new JobsLogs(true)),
+                Mockito.mock(Client.class)
         )) {
             CircuitBreaker breaker = breakerService.getBreaker(CircuitBreaker.JOBS_LOG);
             assertThat(breaker.getLimit()).isEqualTo(10_485_760L);
@@ -114,7 +124,10 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
     @Test
     public void testStats() throws Exception {
         try (CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
-            Settings.EMPTY, clusterService.getClusterSettings()
+            Settings.EMPTY,
+            clusterService.getClusterSettings(),
+            new TasksService(clusterService, new JobsLogs(true)),
+            Mockito.mock(Client.class)
         )) {
             CircuitBreakerStats queryBreakerStats = breakerService.stats(CircuitBreaker.QUERY);
             assertThat(queryBreakerStats.getUsed()).isEqualTo(0L);

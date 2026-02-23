@@ -102,8 +102,22 @@ Scalar and Aggregation Functions
 - `Dhruv Patel <https://github.com/DHRUV6029>`_ added support for ``interval``
   type to the :ref:`percentile <aggregation-percentile>` aggregation function.
 
+- Added the :ref:`regexp_count <scalar-regexp_count>` scalar function to count
+  regular expression matches, with optional ``start`` and ``flags`` arguments.
+
 Performance and Resilience Improvements
 ---------------------------------------
+
+- :ref:`analyze` now processes tables one after another to update the statistics
+  instead of processing all tables concurrently. This reduces the impact it has
+  on the cluster to avoid sudden spikes in disk IO or memory usage. The tradeoff
+  is that the operation will now run longer.
+
+- Added a :ref:`indices.breaker.policy` setting which can be set to either
+  ``current`` (default - current behavior) or ``top_consumer`` (new experimental
+  behavior). If set to ``top_consumer`` it changes the circuit breaking
+  mechanism to abort the query consuming the most memory on the node where the
+  circuit breaker was tripped instead of the query who tripped it.
 
 - Changed the :ref:`swapping <alter_cluster_swap_table>` and
   :ref:`renaming <sql-alter-table-rename-to>` of tables to no longer re-allocate

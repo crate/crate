@@ -301,6 +301,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
         HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
         HierarchyCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
+        HierarchyCircuitBreakerService.POLICY_SETTING,
         IndexModule.NODE_STORE_ALLOW_MMAP,
         ClusterApplierService.CLUSTER_SERVICE_SLOW_TASK_LOGGING_THRESHOLD_SETTING,
         ClusterService.USER_DEFINED_METADATA,

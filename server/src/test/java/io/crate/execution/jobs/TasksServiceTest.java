@@ -38,7 +38,6 @@ import org.elasticsearch.action.NoSuchNodeException;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.transport.Transport.Connection;
-import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,8 +56,8 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        JobsLogs jobsLogs = new JobsLogs(() -> true);
-        tasksService = new TasksService(clusterService, Mockito.mock(TransportService.class), jobsLogs);
+        JobsLogs jobsLogs = new JobsLogs(true);
+        tasksService = new TasksService(clusterService, jobsLogs);
     }
 
     @After
@@ -228,6 +227,24 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(tasksService.killJobs(List.of(jobId), "Trillian", null).get(5L, TimeUnit.SECONDS)).isEqualTo(0);
         assertThat(tasksService.killJobs(List.of(jobId), "Arthur", null).get(5L, TimeUnit.SECONDS)).isEqualTo(1);
+    }
+
+    @Test
+    public void test_top_consumer_returns_task_id_with_most_used_memory() throws Exception {
+        RootTask.Builder rootTask1 = tasksService.newBuilder(UUID.randomUUID(), "Arthur", List.of());
+        DummyTask subTask1 = new DummyTask();
+        subTask1.bytesUsed = 200;
+        rootTask1.addTask(subTask1);
+        tasksService.createTask(rootTask1);
+
+
+        RootTask.Builder rootTask2 = tasksService.newBuilder(UUID.randomUUID(), "Arthur", List.of());
+        DummyTask subTask2 = new DummyTask();
+        subTask2.bytesUsed = 42;
+        rootTask2.addTask(subTask2);
+        tasksService.createTask(rootTask2);
+
+        assertThat(tasksService.topConsumer()).isEqualTo(rootTask1.jobId());
     }
 
     @Test

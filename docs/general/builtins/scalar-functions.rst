@@ -2706,6 +2706,62 @@ See the API documentation for more details.
     operator <sql_dql_regexp>` uses `Lucene Regular Expressions`_.
 
 
+.. _scalar-regexp_count:
+
+``regexp_count(text, pattern [, start [, flags]])``
+---------------------------------------------------
+
+Counts the number of non-overlapping occurrences of ``pattern`` in ``text``.
+``start`` is an optional 1-based index to start searching from. If ``start``
+is less than ``1``, an error is raised. If ``start`` is beyond the length of
+``text``, the result is ``0``. Returns ``NULL`` if any of the parameters is
+``NULL``.
+
+Returns: ``integer``
+
+``pattern`` is a Java regular expression. For details on the regexp syntax, see
+`Java Regular Expressions`_.
+
+``flags`` is a string containing any of the characters listed in
+:ref:`regexp_replace flags <scalar-regexp_replace-flags>` except for the
+``g`` flag which only makes sense for replacements.
+
+Examples
+........
+
+::
+
+    cr> select regexp_count('foobarbequebaz', 'ba(r|z)') AS count;
+    +-------+
+    | count |
+    +-------+
+    |     2 |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select regexp_count('AaA', 'a+', 1, 'i') AS count;
+    +-------+
+    | count |
+    +-------+
+    |     1 |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+Or with ``start`` and ``flags`` (``i`` for case-insensitive matching):
+
+::
+
+    cr> select regexp_count('a-A-a', 'a+', 2, 'i') AS count;
+    +-------+
+    | count |
+    +-------+
+    |     2 |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-regexp_replace:
 
 ``regexp_replace(source, pattern, replacement [, flags])``

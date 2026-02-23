@@ -177,7 +177,7 @@ import io.crate.execution.ddl.tables.CreateTableClient;
 import io.crate.execution.engine.collect.CollectOperationModule;
 import io.crate.execution.engine.collect.files.CopyModule;
 import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.execution.jobs.JobModule;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.sys.check.SysChecksModule;
 import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
@@ -385,7 +385,8 @@ public class Node implements Closeable {
 
             final Roles roles = new RolesService(clusterService);
             final TableStats tableStats = new TableStats();
-            final NodeContext nodeContext = NodeContext.of(environment, clusterService, functions, roles, tableStats);
+            final NodeContext nodeContext = NodeContext.of(
+                environment, clusterService, functions, roles, tableStats);
             final var udfService = new UserDefinedFunctionService(clusterService, nodeContext);
 
             SetOnce<RerouteService> rerouteServiceReference = new SetOnce<>();
@@ -418,7 +419,6 @@ public class Node implements Closeable {
             }
             modules.add(new CrateCommonModule());
             modules.add(new TransportExecutorModule());
-            modules.add(new JobModule());
             modules.add(new CollectOperationModule());
             modules.add(new MetadataModule());
             modules.add(new MetadataSysModule());
@@ -451,7 +451,16 @@ public class Node implements Closeable {
 
             IndexSearcher.setMaxClauseCount(LuceneQueryBuilder.INDICES_MAX_CLAUSE_COUNT_SETTING.get(settings));
 
-            CircuitBreakerService circuitBreakerService = new HierarchyCircuitBreakerService(settings, settingsModule.getClusterSettings());
+            JobsLogs jobsLogs = new JobsLogs(true);
+            TasksService tasksService = new TasksService(clusterService, jobsLogs);
+            resourcesToClose.add(tasksService);
+
+            CircuitBreakerService circuitBreakerService = new HierarchyCircuitBreakerService(
+                settings,
+                settingsModule.getClusterSettings(),
+                tasksService,
+                client
+            );
             resourcesToClose.add(circuitBreakerService);
             modules.add(new GatewayModule());
 
@@ -570,6 +579,7 @@ public class Node implements Closeable {
                 localNodeFactory,
                 settingsModule.getClusterSettings()
             );
+            transportService.addConnectionListener(tasksService);
             final GatewayMetaState gatewayMetaState = new GatewayMetaState();
             BlobIndicesService blobIndicesService = new BlobIndicesService(settings, clusterService);
             BlobTransferTarget blobTransferTarget = new BlobTransferTarget(
@@ -726,6 +736,7 @@ public class Node implements Closeable {
             );
             JobsLogService jobsLogService = new JobsLogService(
                 settings,
+                jobsLogs,
                 clusterService,
                 nodeContext,
                 circuitBreakerService
@@ -846,6 +857,7 @@ public class Node implements Closeable {
                     b.bind(PgCatalogSchemaInfo.class).toInstance((PgCatalogSchemaInfo) schemas.getSystemSchema(PgCatalogSchemaInfo.NAME));
                     b.bind(InformationSchemaInfo.class).toInstance((InformationSchemaInfo) schemas.getSystemSchema(InformationSchemaInfo.NAME));
                     b.bind(BlobSchemaInfo.class).toInstance((BlobSchemaInfo) schemas.getSystemSchema(BlobSchemaInfo.NAME));
+                    b.bind(TasksService.class).toInstance(tasksService);
                 }
             );
             injector = modules.createInjector();
@@ -1321,7 +1333,6 @@ public class Node implements Closeable {
      * @param boundTransportAddress the network addresses the node is
      *                              bound and publishing to
      */
-    @SuppressWarnings("unused")
     protected void validateNodeBeforeAcceptingRequests(final BoundTransportAddress boundTransportAddress,
                                                        List<BootstrapCheck> bootstrapChecks) throws NodeValidationException {
     }

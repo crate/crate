@@ -53,7 +53,10 @@ public class TransportKillJobsNodeAction extends TransportAction<KillJobsNodeReq
         this.transportService = transportService;
         transportService.registerRequestHandler(
             KillJobsNodeAction.NAME,
-            ThreadPool.Names.GENERIC,
+            ThreadPool.Names.SAME, // KILL is cheap
+            // Must always process KILL - it is essential for error handling to avoid task leaks
+            true,
+            false,
             KillJobsNodeRequest.KillJobsRequest::new,
             new NodeActionRequestHandler<>(this::nodeOperation));
     }

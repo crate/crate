@@ -492,6 +492,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         private final Diff<ImmutableOpenMap<String, SchemaMetadata>> schemas;
 
         MetadataDiff(Version v, Metadata before, Metadata after) {
+            assert before.currentMaxTableOid <= after.currentMaxTableOid : "after.currentMaxTableOid must be greater than or equal to before.currentMaxTableOid";
             currentMaxTableOid = after.currentMaxTableOid;
             clusterUUID = after.clusterUUID;
             clusterUUIDCommitted = after.clusterUUIDCommitted;
@@ -569,7 +570,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
         @Override
         public Metadata apply(Metadata part) {
-            Builder builder = builder(currentMaxTableOid);
+            assert currentMaxTableOid == Metadata.OID_UNASSIGNED || part.currentMaxTableOid <= currentMaxTableOid :
+                "Incoming currentMaxTableOid (" + currentMaxTableOid + ") must be OID_UNASSIGNED (BWC) " +
+                    "or >= local value (" + part.currentMaxTableOid + ") because the value must be non-decreasing and" +
+                    "the incoming value must be the latest value";
+            int nextMaxOid = (currentMaxTableOid == Metadata.OID_UNASSIGNED) ? part.currentMaxTableOid : currentMaxTableOid;
+            Builder builder = builder(nextMaxOid);
             builder.clusterUUID(clusterUUID);
             builder.clusterUUIDCommitted(clusterUUIDCommitted);
             builder.version(version);

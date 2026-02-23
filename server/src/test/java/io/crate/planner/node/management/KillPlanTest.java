@@ -46,7 +46,7 @@ public class KillPlanTest extends CrateDummyClusterServiceUnitTest {
     public void testKillTaskCallsBroadcastOnTransportKillAllNodeAction() {
         AtomicInteger broadcastCalls = new AtomicInteger(0);
         AtomicInteger nodeOperationCalls = new AtomicInteger(0);
-        TasksService tasksService = new TasksService(clusterService, mock(TransportService.class), new JobsLogs(() -> false));
+        TasksService tasksService = new TasksService(clusterService, new JobsLogs(false));
         TransportKillAllNodeAction killAllNodeAction = new TransportKillAllNodeAction(
             tasksService,
             clusterService,
