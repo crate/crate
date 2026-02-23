@@ -487,7 +487,8 @@ public final class DataTypes {
         entry("object", UNTYPED_OBJECT),
         entry("nested", UNTYPED_OBJECT),
         entry("interval", DataTypes.INTERVAL),
-        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE)
+        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE),
+        entry("undefined", DataTypes.UNDEFINED)
     );
 
     private static final Map<Integer, String> TYPE_IDS_TO_MAPPINGS = Map.ofEntries(

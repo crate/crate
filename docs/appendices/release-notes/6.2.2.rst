@@ -49,6 +49,10 @@ series.
 Fixes
 =====
 
+- Fixed an issue that caused ``ALTER TABLE`` statements to fail if the table
+  contains columns of type ``UNDEFINED`` due to dynamic column creation with
+  ``null`` values.
+
 - Fixed an issue that could cause a ``NullPointerException`` when using the
   :ref:`topk <aggregation-topk>` aggregation on a column containing ``null``
   values.
