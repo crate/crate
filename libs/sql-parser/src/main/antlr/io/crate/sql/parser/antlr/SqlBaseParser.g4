@@ -579,7 +579,12 @@ conflictTarget
    ;
 
 values
-    : OPEN_ROUND_BRACKET expr (COMMA expr)* CLOSE_ROUND_BRACKET
+    : OPEN_ROUND_BRACKET valueItem (COMMA valueItem)* CLOSE_ROUND_BRACKET
+    ;
+
+valueItem
+    : DEFAULT                                                                        #defaultValueItem
+    | expr                                                                           #exprValueItem
     ;
 
 columns

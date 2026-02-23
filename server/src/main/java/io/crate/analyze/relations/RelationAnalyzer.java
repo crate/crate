@@ -72,6 +72,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
@@ -85,6 +86,7 @@ import io.crate.planner.consumer.OrderByWithAggregationValidator;
 import io.crate.role.Role;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.AliasedRelation;
+import io.crate.sql.tree.DefaultColumnValue;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Except;
 import io.crate.sql.tree.Expression;
@@ -814,7 +816,22 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                         "VALUES lists must all be the same length. " +
                             "Found row with " + numColumns + " items and another with " + columns.size() + " items");
                 }
-                Symbol cell = expressionToSymbol.apply(row.get(c));
+                Expression expr = row.get(c);
+                Symbol cell;
+                if (expr instanceof DefaultColumnValue) {
+                    if (parentOutputColumns.size() <= c) {
+                        throw new UnsupportedOperationException(
+                            "DEFAULT is only allowed in INSERT VALUES");
+                    }
+                    Symbol colSymbol = parentOutputColumns.get(c);
+                    if (colSymbol instanceof Reference ref && ref.defaultExpression() != null) {
+                        cell = ref.defaultExpression();
+                    } else {
+                        cell = Literal.of(colSymbol.valueType(), null);
+                    }
+                } else {
+                    cell = expressionToSymbol.apply(expr);
+                }
                 columnValues.add(cell);
 
                 var cellType = cell.valueType();
