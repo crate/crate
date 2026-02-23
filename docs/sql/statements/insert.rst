@@ -50,8 +50,7 @@ Parameters
 :DEFAULT:
     Uses the column's default value. If the column has no default, ``NULL``
     is inserted. Can only be used within ``VALUES`` clauses, not in
-    sub-queries. See :ref:`sql-create-table-default-clause` and
-    :ref:`SQL-alter-table-alter-column-default`.
+    sub-queries. See :ref:`sql-create-table-default-clause`.
 
 :query:
     A query (i.e., :ref:`SELECT <sql-select>`) that supplies rows for the
