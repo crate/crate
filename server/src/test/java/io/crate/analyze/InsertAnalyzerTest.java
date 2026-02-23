@@ -102,6 +102,13 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                   col3 int default 20 not null,
                   col4 int generated always as ((col2 + col3) * col1 - 2) primary key)
                 """
+            )
+            .addTable(
+                "create table doc.t_defaults (" +
+                "  a int default 10," +
+                "  b text default 'hello'," +
+                "  c int" +
+                ")"
             );
     }
 
@@ -539,5 +546,60 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                     y -> assertThat(y).isFunction(CurrentDateFunction.NAME)
                 ).hasDataType(DataTypes.TIMESTAMPZ)
             );
+    }
+
+    @Test
+    public void test_insert_default_keyword_uses_column_default() {
+        AnalyzedInsertStatement stmt = e.analyze("insert into doc.t_defaults (a, b) values (default, default)");
+        TableFunctionRelation relation = (TableFunctionRelation) stmt.subQueryRelation();
+        assertThat(relation.function())
+            .isFunction(
+                ValuesFunction.NAME,
+                isFunction(ArrayFunction.NAME, isLiteral(10)),
+                isFunction(ArrayFunction.NAME, isLiteral("hello")));
+    }
+
+    @Test
+    public void test_insert_default_keyword_mixed_with_explicit_values() {
+        AnalyzedInsertStatement stmt = e.analyze("insert into doc.t_defaults (a, c) values (default, 5)");
+        TableFunctionRelation relation = (TableFunctionRelation) stmt.subQueryRelation();
+        assertThat(relation.function())
+            .isFunction(
+                ValuesFunction.NAME,
+                isFunction(ArrayFunction.NAME, isLiteral(10)),
+                isFunction(ArrayFunction.NAME, isLiteral(5)));
+
+        AnalyzedInsertStatement stmt2 = e.analyze("insert into doc.t_defaults (a, c) values (3, default)");
+        TableFunctionRelation relation2 = (TableFunctionRelation) stmt2.subQueryRelation();
+        assertThat(relation2.function())
+            .isFunction(
+                ValuesFunction.NAME,
+                isFunction(ArrayFunction.NAME, isLiteral(3)),
+                isFunction(ArrayFunction.NAME, isLiteral(null, DataTypes.INTEGER)));
+    }
+
+    @Test
+    public void test_insert_default_keyword_without_column_default_inserts_null() {
+        AnalyzedInsertStatement stmt = e.analyze("insert into doc.t_defaults (c) values (default)");
+        TableFunctionRelation relation = (TableFunctionRelation) stmt.subQueryRelation();
+        assertThat(relation.function())
+            .isFunction(
+                ValuesFunction.NAME,
+                isFunction(ArrayFunction.NAME, isLiteral(null, DataTypes.INTEGER)));
+    }
+
+    @Test
+    public void test_insert_default_keyword_multi_row() {
+        AnalyzedInsertStatement stmt = e.analyze(
+            "insert into doc.t_defaults (a, c) values (default, 1), (99, default), (default, default)");
+        TableFunctionRelation relation = (TableFunctionRelation) stmt.subQueryRelation();
+        assertThat(relation.function())
+            .isFunction(
+                ValuesFunction.NAME,
+                isFunction(ArrayFunction.NAME, isLiteral(10), isLiteral(99), isLiteral(10)),
+                isFunction(ArrayFunction.NAME,
+                    isLiteral(1),
+                    isLiteral(null, DataTypes.INTEGER),
+                    isLiteral(null, DataTypes.INTEGER)));
     }
 }

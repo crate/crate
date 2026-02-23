@@ -140,6 +140,7 @@ import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.Declare.Hold;
 import io.crate.sql.tree.DecommissionNodeStatement;
+import io.crate.sql.tree.DefaultColumnValue;
 import io.crate.sql.tree.DefaultConstraint;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
@@ -890,7 +891,17 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitValues(SqlBaseParser.ValuesContext context) {
-        return new ValuesList(visitCollection(context.expr(), Expression.class));
+        return new ValuesList(visitCollection(context.valueItem(), Expression.class));
+    }
+
+    @Override
+    public Node visitDefaultValueItem(SqlBaseParser.DefaultValueItemContext context) {
+        return DefaultColumnValue.INSTANCE;
+    }
+
+    @Override
+    public Node visitExprValueItem(SqlBaseParser.ExprValueItemContext context) {
+        return visit(context.expr());
     }
 
     @Override
@@ -1480,7 +1491,6 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             (Table<?>) visit(ctx.alterTableDefinition()),
             (Expression) visit(ctx.source),
             (Expression) visit(ctx.target));
-
     }
 
     @Override
