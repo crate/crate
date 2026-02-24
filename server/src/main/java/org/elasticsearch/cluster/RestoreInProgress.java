@@ -21,21 +21,20 @@ package org.elasticsearch.cluster;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState.Custom;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.snapshots.Snapshot;
-
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 /**
  * Meta data about restore processes that are currently executing
@@ -49,16 +48,16 @@ public class RestoreInProgress extends AbstractNamedDiffable<Custom> implements 
 
     public static final String TYPE = "restore";
 
-    public static final RestoreInProgress EMPTY = new RestoreInProgress(ImmutableOpenMap.of());
+    public static final RestoreInProgress EMPTY = new RestoreInProgress(Map.of());
 
-    private final ImmutableOpenMap<String, Entry> entries;
+    private final Map<String, Entry> entries;
 
     /**
      * Constructs new restore metadata
      *
      * @param entries map of currently running restore processes keyed by their restore uuid
      */
-    private RestoreInProgress(ImmutableOpenMap<String, Entry> entries) {
+    private RestoreInProgress(Map<String, Entry> entries) {
         this.entries = entries;
     }
 
@@ -77,7 +76,7 @@ public class RestoreInProgress extends AbstractNamedDiffable<Custom> implements 
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder("RestoreInProgress[");
-        entries.forEach(entry -> builder.append("{").append(entry.key).append("}{").append(entry.value.snapshot).append("},"));
+        entries.entrySet().forEach(entry -> builder.append("{").append(entry.getKey()).append("}{").append(entry.getValue().snapshot).append("},"));
         builder.setCharAt(builder.length() - 1, ']');
         return builder.toString();
     }
@@ -92,12 +91,12 @@ public class RestoreInProgress extends AbstractNamedDiffable<Custom> implements 
 
     @Override
     public Iterator<Entry> iterator() {
-        return entries.valuesIt();
+        return entries.values().iterator();
     }
 
     public static final class Builder {
 
-        private final ImmutableOpenMap.Builder<String, Entry> entries = ImmutableOpenMap.builder();
+        private final HashMap<String, Entry> entries = new HashMap<>();
 
         public Builder() {
         }
@@ -112,7 +111,9 @@ public class RestoreInProgress extends AbstractNamedDiffable<Custom> implements 
         }
 
         public RestoreInProgress build() {
-            return entries.isEmpty() ? EMPTY : new RestoreInProgress(entries.build());
+            return entries.isEmpty()
+                ? EMPTY
+                : new RestoreInProgress(Map.copyOf(entries));
         }
     }
 
@@ -123,7 +124,7 @@ public class RestoreInProgress extends AbstractNamedDiffable<Custom> implements 
         private final String uuid;
         private final State state;
         private final Snapshot snapshot;
-        private final ImmutableOpenMap<ShardId, ShardRestoreStatus> shards;
+        private final Map<ShardId, ShardRestoreStatus> shards;
         private final List<String> indices;
 
         /**
@@ -135,13 +136,16 @@ public class RestoreInProgress extends AbstractNamedDiffable<Custom> implements 
          * @param indices    list of indices being restored
          * @param shards     map of shards being restored to their current restore status
          */
-        public Entry(String uuid, Snapshot snapshot, State state, List<String> indices,
-            ImmutableOpenMap<ShardId, ShardRestoreStatus> shards) {
+        public Entry(String uuid,
+                     Snapshot snapshot,
+                     State state,
+                     List<String> indices,
+                     Map<ShardId, ShardRestoreStatus> shards) {
             this.snapshot = Objects.requireNonNull(snapshot);
             this.state = Objects.requireNonNull(state);
             this.indices = Objects.requireNonNull(indices);
             if (shards == null) {
-                this.shards = ImmutableOpenMap.of();
+                this.shards = Map.of();
             } else {
                 this.shards = shards;
             }
@@ -170,7 +174,7 @@ public class RestoreInProgress extends AbstractNamedDiffable<Custom> implements 
          *
          * @return list of shards
          */
-        public ImmutableOpenMap<ShardId, ShardRestoreStatus> shards() {
+        public Map<ShardId, ShardRestoreStatus> shards() {
             return this.shards;
         }
 
@@ -431,28 +435,33 @@ public class RestoreInProgress extends AbstractNamedDiffable<Custom> implements 
 
     public RestoreInProgress(StreamInput in) throws IOException {
         int count = in.readVInt();
-        final ImmutableOpenMap.Builder<String, Entry> entriesBuilder = ImmutableOpenMap.builder(count);
+        final HashMap<String, Entry> entriesBuilder = HashMap.newHashMap(count);
         for (int i = 0; i < count; i++) {
             final String uuid = in.readString();
             Snapshot snapshot = new Snapshot(in);
             State state = State.fromValue(in.readByte());
             List<String> indexBuilder = in.readStringList();
-            entriesBuilder.put(uuid, new Entry(uuid, snapshot, state, Collections.unmodifiableList(indexBuilder),
-                    in.readImmutableMap(ShardId::new, ShardRestoreStatus::readShardRestoreStatus)));
+            Entry value = new Entry(
+                uuid,
+                snapshot,
+                state,
+                Collections.unmodifiableList(indexBuilder),
+                in.readMap(ShardId::new, ShardRestoreStatus::readShardRestoreStatus)
+            );
+            entriesBuilder.put(uuid, value);
         }
-        this.entries = entriesBuilder.build();
+        this.entries = Map.copyOf(entriesBuilder);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(entries.size());
-        for (ObjectCursor<Entry> v : entries.values()) {
-            Entry entry = v.value;
+        for (Entry entry : entries.values()) {
             out.writeString(entry.uuid);
             entry.snapshot().writeTo(out);
             out.writeByte(entry.state().value());
             out.writeStringCollection(entry.indices);
-            out.writeMap(entry.shards);
+            out.writeWritableMap(entry.shards);
         }
     }
 }
