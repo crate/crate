@@ -104,7 +104,7 @@ public class SysSnapshotRestoreInProgress {
         return Objects.hash(id, name, repository, state, shards);
     }
 
-    public static class ShardRestoreInfo {
+    public record ShardRestoreInfo(int id, IndexParts indexParts, RestoreInProgress.State state) {
 
         public static List<ShardRestoreInfo> of(Map<ShardId, RestoreInProgress.ShardRestoreStatus> shards,
                                                 ClusterState currentState) {
@@ -127,49 +127,5 @@ public class SysSnapshotRestoreInProgress {
             }
             return shardsRestoreInfo;
         }
-
-        private final int id;
-        private final IndexParts indexParts;
-        private final RestoreInProgress.State state;
-
-        public ShardRestoreInfo(int id, IndexParts indexParts, RestoreInProgress.State state) {
-            this.id = id;
-            this.indexParts = indexParts;
-            this.state = state;
-        }
-
-        public int id() {
-            return id;
-        }
-
-        public IndexParts indexParts() {
-            return indexParts;
-        }
-
-        public RestoreInProgress.State state() {
-            return state;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            ShardRestoreInfo that = (ShardRestoreInfo) o;
-            return id == that.id &&
-                   Objects.equals(indexParts.table(), that.indexParts.table()) &&
-                   Objects.equals(indexParts.schema(), that.indexParts.schema()) &&
-                   Objects.equals(indexParts.partitionIdent(), that.indexParts.partitionIdent()) &&
-                   state == that.state;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(id, indexParts, state);
-        }
     }
-
 }
