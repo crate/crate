@@ -240,9 +240,11 @@ public class DateTimeFormatter {
     }
 
     /**
-     * Validates that ISO week-based patterns (IYYY, IW, ID, IDDD) are not mixed with
-     * Gregorian date patterns (YYYY, MM, DD, DDD, etc.).
-     * PostgreSQL rejects such combinations with "invalid combination of date conventions".
+     * Validates pattern tokens for PostgreSQL compatibility.
+     * <ul>
+     *   <li>Rejects mixing ISO week-based patterns (IYYY, IW, ID, IDDD) with Gregorian patterns</li>
+     *   <li>Rejects TZ, tz, OF, of patterns which are only supported in to_char</li>
+     * </ul>
      */
     private void validateDateConventions() {
         boolean hasIsoYear = false;
@@ -253,6 +255,15 @@ public class DateTimeFormatter {
         for (Object tokenObj : tokens) {
             if (tokenObj instanceof Token token) {
                 switch (token) {
+                    // TZ and OF patterns are only supported in to_char, not to_timestamp
+                    case TIMEZONE_UPPER ->
+                        throw new IllegalArgumentException("formatting field \"TZ\" is only supported in to_char");
+                    case TIMEZONE_LOWER ->
+                        throw new IllegalArgumentException("formatting field \"tz\" is only supported in to_char");
+                    case TIMEZONE_OFFSET_FROM_UTC ->
+                        throw new IllegalArgumentException("formatting field \"OF\" is only supported in to_char");
+                    case TIMEZONE_OFFSET_FROM_UTC_LOWER ->
+                        throw new IllegalArgumentException("formatting field \"of\" is only supported in to_char");
                     // ISO week-based year patterns
                     case ISO_YEAR_YYY, ISO_YEAR_YYY_LOWER,
                          ISO_YEAR_YY, ISO_YEAR_YY_LOWER,

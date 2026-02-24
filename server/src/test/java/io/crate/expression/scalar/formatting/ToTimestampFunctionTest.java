@@ -48,8 +48,6 @@ import io.crate.expression.symbol.Literal;
  * <ul>
  *   <li><b>Microsecond precision:</b> CrateDB truncates microseconds (US, FF4-FF6) to milliseconds
  *       due to TIMESTAMPTZ storage precision. PostgreSQL preserves full microsecond precision.</li>
- *   <li><b>TZ/tz/OF patterns:</b> CrateDB accepts timezone patterns (parses and ignores them),
- *       PostgreSQL rejects these patterns in to_timestamp.</li>
  *   <li><b>WW/D computation:</b> Minor differences in week number and day of week calculation
  *       due to different week start conventions.</li>
  * </ul>
@@ -819,18 +817,14 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
     }
 
     @Test
-    public void testTimezonePatternsAreIgnored() {
-        // Timezone patterns are parsed but ignored (result is always UTC)
-        assertEvaluate(
-            "to_timestamp('2023-07-15 UTC', 'YYYY-MM-DD TZ')",
-            // PG_REJECTS: PostgreSQL 16 rejects "formatting field TZ is only supported in to_char"
-            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
-        );
-        assertEvaluate(
-            "to_timestamp('2023-07-15 utc', 'YYYY-MM-DD tz')",
-            // PG_REJECTS: PostgreSQL 16 rejects "formatting field tz is only supported in to_char"
-            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
-        );
+    public void testTimezonePatternsAreRejected() {
+        // PostgreSQL 16 rejects TZ/tz patterns in to_timestamp
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('2023-07-15 UTC', 'YYYY-MM-DD TZ')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("formatting field \"TZ\" is only supported in to_char");
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('2023-07-15 utc', 'YYYY-MM-DD tz')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("formatting field \"tz\" is only supported in to_char");
     }
 
     @Test
@@ -849,13 +843,14 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
     }
 
     @Test
-    public void testTimezoneOffsetPatternIsIgnored() {
-        // OF pattern is parsed but ignored
-        assertEvaluate(
-            "to_timestamp('2023-07-15 +00:00', 'YYYY-MM-DD OF')",
-            // PG_REJECTS: PostgreSQL 16 rejects "formatting field OF is only supported in to_char"
-            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
-        );
+    public void testTimezoneOffsetPatternIsRejected() {
+        // PostgreSQL 16 rejects OF pattern in to_timestamp
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('2023-07-15 +00:00', 'YYYY-MM-DD OF')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("formatting field \"OF\" is only supported in to_char");
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('2023-07-15 +00:00', 'YYYY-MM-DD of')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("formatting field \"of\" is only supported in to_char");
     }
 
     @Test

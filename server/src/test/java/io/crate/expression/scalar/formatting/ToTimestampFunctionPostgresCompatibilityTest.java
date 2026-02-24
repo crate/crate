@@ -49,8 +49,6 @@ import io.crate.expression.scalar.ScalarTestCase;
  * <ul>
  *   <li><b>Microsecond precision:</b> CrateDB truncates microseconds (US, FF4-FF6) to milliseconds
  *       due to TIMESTAMPTZ storage precision. PostgreSQL preserves full microsecond precision.</li>
- *   <li><b>TZ/tz/OF patterns:</b> CrateDB accepts timezone patterns (parses and ignores them),
- *       PostgreSQL rejects these patterns in to_timestamp.</li>
  *   <li><b>WW/D computation:</b> Minor differences in week number and day of week calculation
  *       due to different week start conventions.</li>
  *   <li><b>Large years (>9999):</b> YYYY pattern strictly consumes 4 digits in CrateDB,
