@@ -288,7 +288,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             .setPlanner(planner)
             .build()
             .addTable("create table t1 (x int)");
-        sqlExecutor.jobsLogsEnabled = true;
+        sqlExecutor.jobsLogs.setEnabled(true);
         Session session = sqlExecutor.createSession();
         when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
             .thenReturn(
@@ -494,7 +494,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_binding_with_removed_prepared_statement_throws_sstatement_not_found_and_logs_error() {
         SQLExecutor sqlExecutor = SQLExecutor.of(clusterService);
-        sqlExecutor.jobsLogsEnabled = true;
+        sqlExecutor.jobsLogs.setEnabled(true);
         sqlExecutor.jobsLogs.updateJobsLog(new QueueSink<>(new BlockingEvictingQueue<>(1), () -> {}));
 
         try (Session session = sqlExecutor.createSession()) {
@@ -570,7 +570,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     public void test_simple_query_parse_failure_is_logged() throws Exception {
         // https://github.com/crate/crate/issues/17651
         SQLExecutor sqlExecutor = SQLExecutor.of(clusterService);
-        sqlExecutor.jobsLogsEnabled = true;
+        sqlExecutor.jobsLogs.setEnabled(true);
         sqlExecutor.jobsLogs.updateJobsLog(new QueueSink<>(new BlockingEvictingQueue<>(1), () -> {}));
         try (Session session = sqlExecutor.createSession()) {
             assertThatThrownBy(() -> session.simpleQuery("sele"))
@@ -592,7 +592,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             .setPlanner(planner)
             .build()
             .addTable("create table t1 (x int)");
-        sqlExecutor.jobsLogsEnabled = true;
+        sqlExecutor.jobsLogs.setEnabled(true);
         Session session = sqlExecutor.createSession();
         when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
             .thenReturn(

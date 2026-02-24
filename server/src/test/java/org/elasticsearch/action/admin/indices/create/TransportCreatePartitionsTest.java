@@ -139,7 +139,7 @@ public class TransportCreatePartitionsTest extends IntegTestCase {
 
     @Test
     public void testEmpty() throws Exception {
-        assertThatThrownBy(() -> CreatePartitionsRequest.of(List.of()))
+        assertThatThrownBy(() -> CreatePartitionsRequest.of(Metadata.OID_UNASSIGNED, List.of()))
             .hasMessage("Must create at least one partition");
     }
 }

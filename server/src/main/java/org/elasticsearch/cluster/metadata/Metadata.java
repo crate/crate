@@ -492,6 +492,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         private final Diff<ImmutableOpenMap<String, SchemaMetadata>> schemas;
 
         MetadataDiff(Version v, Metadata before, Metadata after) {
+            assert before.currentMaxTableOid <= after.currentMaxTableOid : "after.currentMaxTableOid must be greater than or equal to before.currentMaxTableOid";
             currentMaxTableOid = after.currentMaxTableOid;
             clusterUUID = after.clusterUUID;
             clusterUUIDCommitted = after.clusterUUIDCommitted;
@@ -569,7 +570,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
         @Override
         public Metadata apply(Metadata part) {
-            Builder builder = builder(currentMaxTableOid);
+            assert currentMaxTableOid == Metadata.OID_UNASSIGNED || part.currentMaxTableOid <= currentMaxTableOid :
+                "Incoming currentMaxTableOid (" + currentMaxTableOid + ") must be OID_UNASSIGNED (BWC) " +
+                    "or >= local value (" + part.currentMaxTableOid + ") because the value must be non-decreasing and" +
+                    "the incoming value must be the latest value";
+            int nextMaxOid = (currentMaxTableOid == Metadata.OID_UNASSIGNED) ? part.currentMaxTableOid : currentMaxTableOid;
+            Builder builder = builder(nextMaxOid);
             builder.clusterUUID(clusterUUID);
             builder.clusterUUIDCommitted(clusterUUIDCommitted);
             builder.version(version);
@@ -1013,6 +1019,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             final Set<String> duplicateAliasesIndices = new HashSet<>();
             for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
                 final IndexMetadata indexMetadata = cursor.value;
+                if (indexMetadata.getUpgradedVersion().onOrAfter(Version.V_6_0_0)) {
+                    continue;
+                }
                 final String uuid = indexMetadata.getIndex().getUUID();
                 boolean added = allIndices.add(uuid);
                 assert added : "double index named [" + uuid + "]";
@@ -1086,7 +1095,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             SortedMap<String, AliasOrIndex> aliasAndIndexLookup = new TreeMap<>();
             for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
                 IndexMetadata indexMetadata = cursor.value;
-                if (indexMetadata.getCreationVersion().onOrAfter(Version.V_6_0_0)) {
+                if (indexMetadata.getUpgradedVersion().onOrAfter(Version.V_6_0_0)) {
                     // aliases are deprecated and only needed to be built for old indices, aliases will be removed once
                     // the metadata is fully migrated/upgraded to schemas/relations.
                     continue;
@@ -1433,6 +1442,15 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return getRelation(tableName) != null;
     }
 
+    public RelationName getRelationName(int tableOID) {
+        RelationMetadata relationMetadata = getRelation(tableOID);
+        if (relationMetadata == null) {
+            throw new RelationUnknown(
+                String.format(Locale.ENGLISH, "Relation not found for oid=%s", tableOID));
+        }
+        return relationMetadata.name();
+    }
+
     @Nullable
     public <T extends RelationMetadata> T getRelation(RelationName relation) {
         return getRelation(relation, schemas::get);
@@ -1441,6 +1459,22 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     @Nullable
     public RelationMetadata getRelation(String indexUUID) {
         return indexUUIDsRelations.get(indexUUID);
+    }
+
+    @Nullable
+    @SuppressWarnings("unchecked")
+    public <T extends RelationMetadata> T getRelation(int tableOID) {
+        assert tableOID > Metadata.OID_UNASSIGNED : "Invalid tableOID: " + tableOID;
+        for (ObjectCursor<SchemaMetadata> s : schemas.values()) {
+            SchemaMetadata schemaMetadata = s.value;
+            for (ObjectCursor<RelationMetadata> r : schemaMetadata.relations().values()) {
+                RelationMetadata relationMetadata = r.value;
+                if (relationMetadata.oid() == tableOID) {
+                    return (T) relationMetadata;
+                }
+            }
+        }
+        return null;
     }
 
     /**

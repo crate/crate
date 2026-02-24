@@ -147,24 +147,24 @@ Breaking Changes
       complaint from the ``PRIMARY KEY`` constraint check, as the value will be
       stored, normalized, as ``192.168.0.1``.
 
- - Fixed an issue that caused queries filtering on partition(s) of a table for
-   which the ``PARTITION BY`` clause, contains a column of ``BOOLEAN`` type to
-   return no results, e.g. for a table::
+- Fixed an issue that caused queries filtering on partition(s) of a table for
+  which the ``PARTITION BY`` clause, contains a column of ``BOOLEAN`` type to
+  return no results, e.g. for a table::
 
-     CREATE TABLE tbl(id BOOLEAN, PRIMARY KEY(id)) PARTITIONED BY (id);
-     INSERT INTO tbl(id) VALUES (FALSE);
-     REFRESH TABLE tbl;
+    CREATE TABLE tbl(id BOOLEAN, PRIMARY KEY(id)) PARTITIONED BY (id);
+    INSERT INTO tbl(id) VALUES (FALSE);
+    REFRESH TABLE tbl;
 
-   The query::
+  The query::
 
-     SELECT * FROM tbl WHERE id = FALSE;
+    SELECT * FROM tbl WHERE id = FALSE;
 
-   would return ``0`` rows;
+  would return ``0`` rows;
 
-   .. WARNING::
+  .. WARNING::
 
-       Because of this fix, users should re-create tables which have a
-       ``BOOLEAN`` column in their ``PARTITIONED BY`` clause.
+      Because of this fix, users should re-create tables which have a
+      ``BOOLEAN`` column in their ``PARTITIONED BY`` clause.
 
 - Added a :ref:`statement_max_length` setting to limit the length of allowed SQL
   statements. It defaults to ``262144``. Statements exceeding this limit are
@@ -230,10 +230,10 @@ Breaking Changes
         | TRUE          |
         +---------------+
 
- - :ref:`aggregation-stddev` changed and is now an alias for
-   :ref:`aggregation-stddev-samp`, to match PostgreSQL behavior. In order to
-   calculate the population standard deviation, :ref:`aggregation-stddev-pop`
-   must be used.
+- :ref:`aggregation-stddev` changed and is now an alias for
+  :ref:`aggregation-stddev-samp`, to match PostgreSQL behavior. In order to
+  calculate the population standard deviation, :ref:`aggregation-stddev-pop`
+  must be used.
 
 - ``current_catalog`` has been added to the list of reserved keywords, because
   of the addition of :ref:`scalar-current_catalog` function which is called as a
@@ -243,9 +243,9 @@ Breaking Changes
 Deprecations
 ============
 
- - Usage of :ref:`_version<sql_administration_system_column_version>` has been
-   deprecated completely. Please note that its usage for :ref:`sql_occ` has
-   already been deprecated since :ref:`version_4.0.0`.
+- Usage of :ref:`_version<sql_administration_system_column_version>` has been
+  deprecated completely. Please note that its usage for :ref:`sql_occ` has
+  already been deprecated since :ref:`version_4.0.0`.
 
 
 Changes

@@ -31,6 +31,7 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.engine.collect.count.CountOperation;
 import io.crate.metadata.TransactionContext;
@@ -42,20 +43,29 @@ public class CountTask extends AbstractTask {
     private final CountOperation countOperation;
     private final RowConsumer consumer;
     private final Map<String, IntIndexedContainer> indexShardMap;
+    private final RamAccounting ramAccounting;
     private CompletableFuture<Long> countFuture;
+
     private volatile Throwable killReason;
+    private long bytesUsed = -1;
 
     CountTask(CountPhase countPhase,
               TransactionContext txnCtx,
               CountOperation countOperation,
               RowConsumer consumer,
-              Map<String, IntIndexedContainer> indexShardMap) {
+              Map<String, IntIndexedContainer> indexShardMap,
+              RamAccounting ramAccounting) {
         super(countPhase.phaseId());
         this.countPhase = countPhase;
         this.txnCtx = txnCtx;
         this.countOperation = countOperation;
         this.consumer = consumer;
         this.indexShardMap = indexShardMap;
+        this.ramAccounting = ramAccounting;
+        this.consumer.completionFuture().whenComplete((r, f) -> {
+            bytesUsed = ramAccounting.totalBytes();
+            ramAccounting.close();
+        });
     }
 
     @Override
@@ -97,6 +107,6 @@ public class CountTask extends AbstractTask {
 
     @Override
     public long bytesUsed() {
-        return -1;
+        return bytesUsed == -1 ? ramAccounting.totalBytes() : bytesUsed;
     }
 }

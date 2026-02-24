@@ -474,4 +474,31 @@ public class AlterTableIntegrationTest extends IntegTestCase {
             "04134| false"
         );
     }
+
+    @Test
+    public void test_can_alter_table_settings_while_there_are_untyped_columns_in_schema() throws Exception {
+        // https://github.com/crate/crate/issues/19065
+
+        execute("create table tbl (id int primary key, obj object(dynamic))");
+        execute("insert into tbl (id, obj) values (1, {y=null})");
+        execute("refresh table tbl");
+
+        execute("alter table tbl set (number_of_replicas = '0-2')");
+
+        execute("select obj from tbl where id = 1");
+        assertThat(response).hasRows("{y=NULL}");
+
+        execute("select obj from tbl");
+        assertThat(response).hasRows("{y=NULL}");
+
+        execute("insert into tbl (id, obj) values (2, {y=20})");
+        execute("refresh table tbl");
+        execute("alter table tbl set (number_of_replicas = '0-1')");
+
+        execute("select obj['y'] from tbl order by 1");
+        assertThat(response).hasRows(
+            "20",
+            "NULL"
+        );
+    }
 }

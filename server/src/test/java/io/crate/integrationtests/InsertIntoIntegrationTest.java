@@ -2878,4 +2878,5 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("SELECT count(*) FROM sys.jobs WHERE stmt like 'INSERT%'");
         assertThat(response).hasRows("0");
     }
+
 }

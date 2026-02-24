@@ -23,7 +23,7 @@ package io.crate.statistics;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -44,7 +44,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.common.concurrent.CompletableFutures;
 import io.crate.concurrent.FutureActionListener;
 import io.crate.concurrent.MultiActionListener;
 import io.crate.execution.support.NodeActionRequestHandler;
@@ -125,10 +124,10 @@ public final class TransportAnalyzeAction {
         );
     }
 
-    @SuppressWarnings("unchecked")
     public CompletableFuture<AcknowledgedResponse> fetchSamplesThenGenerateAndPublishStats() {
         LOGGER.info("ANALYZE: Start collecting samples to update table statistics");
-        ArrayList<CompletableFuture<Map.Entry<RelationName, Stats>>> futures = new ArrayList<>();
+        HashMap<RelationName, Stats> entries = new HashMap<>();
+        CompletableFuture<Void> currentFetch = CompletableFuture.completedFuture(null);
         for (SchemaInfo schema : schemas) {
             if (!(schema instanceof DocSchemaInfo)) {
                 continue;
@@ -140,14 +139,14 @@ public final class TransportAnalyzeAction {
                     .map(x -> table.getReadReference(x.column()))
                     .toList();
 
-                futures.add(fetchSamples(
-                    table.ident(),
-                    primitiveColumns
-                ).thenApply(samples -> Map.entry(table.ident(), samples.createTableStats(primitiveColumns))));
+                currentFetch = currentFetch
+                    .thenCompose(ignored -> fetchSamples(table.ident(), primitiveColumns))
+                    .thenAccept(samples -> {
+                        entries.put(table.ident(), samples.createTableStats(primitiveColumns));
+                    });
             }
         }
-        return CompletableFutures.allAsList(futures)
-            .thenCompose(entries -> publishTableStats(Map.ofEntries(entries.toArray(new Map.Entry[0]))));
+        return currentFetch.thenCompose(ignored -> publishTableStats(entries));
     }
 
     private CompletableFuture<AcknowledgedResponse> publishTableStats(Map<RelationName, Stats> newTableStats) {

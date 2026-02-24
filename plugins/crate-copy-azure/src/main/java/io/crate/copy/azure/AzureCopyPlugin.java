@@ -22,22 +22,11 @@
 package io.crate.copy.azure;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
-import java.util.function.Supplier;
 
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.execution.engine.collect.files.FileInputFactory;
 import io.crate.execution.engine.export.FileOutputFactory;
@@ -67,17 +56,5 @@ public class AzureCopyPlugin extends Plugin implements CopyPlugin {
 
     public Map<String, FileOutputFactory> getFileOutputFactories() {
         return Map.of(USER_FACING_SCHEME, new AzureFileOutputFactory(sharedAsyncExecutor.asyncExecutor()));
-    }
-
-    @Override
-    public Collection<Object> createComponents(Client client,
-                                               ClusterService clusterService,
-                                               ThreadPool threadPool,
-                                               NamedXContentRegistry xContentRegistry,
-                                               Environment environment,
-                                               NodeEnvironment nodeEnvironment,
-                                               NamedWriteableRegistry namedWriteableRegistry,
-                                               Supplier<RepositoriesService> repositoriesServiceSupplier) {
-        return Collections.singletonList(sharedAsyncExecutor);
     }
 }

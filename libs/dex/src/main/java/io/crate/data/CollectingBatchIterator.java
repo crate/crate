@@ -79,10 +79,10 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
 
     public static <T, A> BatchIterator<T> newInstance(BatchIterator<T> source,
                                                       Collector<T, A, ? extends Iterable<? extends T>> collector) {
-        return newInstance(
+        return new CollectingBatchIterator<>(
+            () -> source.collect(collector),
             source::close,
             source::kill,
-            () -> source.collect(collector),
             source.hasLazyResultSet()
         );
     }
@@ -90,11 +90,12 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
     public static <I, O> BatchIterator<O> newInstance(BatchIterator<I> source,
                                                       Function<BatchIterator<I>, CompletableFuture<? extends Iterable<? extends O>>> processSource,
                                                       boolean involvesIO) {
-        return newInstance(
+        return new CollectingBatchIterator<>(
+            () -> processSource.apply(source).whenComplete((r, f) -> source.close()),
             source::close,
             source::kill,
-            () -> processSource.apply(source).whenComplete((r, f) -> source.close()),
-            involvesIO);
+            involvesIO
+        );
     }
 
     public static <T> BatchIterator<T> newInstance(Runnable onClose,
@@ -145,10 +146,8 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
                 .whenComplete((r, t) -> {
                     if (t == null) {
                         it = r.iterator();
-                    } else if (t instanceof RuntimeException) {
-                        throw (RuntimeException) t;
                     } else {
-                        throw new RuntimeException(t);
+                        Exceptions.toRuntimeException(t);
                     }
                 });
             return resultFuture;

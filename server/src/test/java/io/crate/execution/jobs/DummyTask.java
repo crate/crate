@@ -23,6 +23,8 @@ package io.crate.execution.jobs;
 
 public class DummyTask extends AbstractTask {
 
+    public long bytesUsed = -1;
+
     public DummyTask() {
         this(1);
     }
@@ -38,6 +40,6 @@ public class DummyTask extends AbstractTask {
 
     @Override
     public long bytesUsed() {
-        return -1;
+        return bytesUsed;
     }
 }

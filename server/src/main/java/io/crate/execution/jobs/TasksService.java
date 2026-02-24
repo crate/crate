@@ -23,8 +23,10 @@ package io.crate.execution.jobs;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -43,20 +45,19 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportConnectionListener;
-import org.elasticsearch.transport.TransportService;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.concurrent.CountdownFuture;
+import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.RootTask.Builder;
@@ -64,7 +65,6 @@ import io.crate.execution.jobs.kill.KillAllListener;
 import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.role.Role;
 
-@Singleton
 public class TasksService extends AbstractLifecycleComponent implements TransportConnectionListener {
 
     private static final Logger LOGGER = LogManager.getLogger(TasksService.class);
@@ -83,27 +83,19 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
         .expireAfterWrite(30, TimeUnit.SECONDS)
         .build();
 
-    private final TransportService transportService;
-
-    @Inject
-    public TasksService(ClusterService clusterService,
-                        TransportService transportService,
-                        JobsLogs jobsLogs) {
+    public TasksService(ClusterService clusterService, JobsLogs jobsLogs) {
         this.clusterService = clusterService;
-        this.transportService = transportService;
         this.jobsLogs = jobsLogs;
     }
 
     @Override
     protected void doStart() throws ElasticsearchException {
-        transportService.addConnectionListener(this);
     }
 
     @Override
     protected void doStop() throws ElasticsearchException {
-        transportService.removeConnectionListener(this);
         for (RootTask rootTask : activeTasks.values()) {
-            rootTask.kill("TasksService stopped");
+            rootTask.kill(JobKilledException.of("TasksService stopped"));
         }
     }
 
@@ -120,7 +112,7 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
                         rootTask.jobId(),
                         task.name(),
                         rootTask.started(),
-                        task::bytesUsed
+                        task.bytesUsed()
                     ))
             )
             .iterator();
@@ -142,7 +134,7 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
     public void onNodeDisconnected(DiscoveryNode node, Connection connection) {
         for (var task : activeTasks.values()) {
             if (task.participatingNodes().contains(node.getId())) {
-                task.kill("Participating node " + node.getId() + " disconnected");
+                task.kill(JobKilledException.of("Participating node " + node.getId() + " disconnected"));
             }
         }
     }
@@ -267,10 +259,10 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
         if (toKill.isEmpty()) {
             return CompletableFuture.completedFuture(0);
         }
-        return killTasks(toKill, userName, null);
+        return killTasks(toKill, userName, JobKilledException.of(null));
     }
 
-    private CompletableFuture<Integer> killTasks(Collection<UUID> toKill, String userName, @Nullable String reason) {
+    private CompletableFuture<Integer> killTasks(Collection<UUID> toKill, String userName, @NonNull Throwable reason) {
         assert !toKill.isEmpty() : "toKill must not be empty";
         int numKilled = 0;
         CountdownFuture countDownFuture = new CountdownFuture(toKill.size());
@@ -297,7 +289,7 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
         return countDownFuture.handle((r, f) -> finalNumKilled);
     }
 
-    public CompletableFuture<Integer> killJobs(Collection<UUID> toKill, String userName, @Nullable String reason) {
+    public CompletableFuture<Integer> killJobs(Collection<UUID> toKill, String userName, @NonNull Throwable reason) {
         boolean isSuperUser = userName.equals(Role.CRATE_USER.name());
         if (isSuperUser) {
             for (KillAllListener killAllListener : killAllListeners) {
@@ -352,5 +344,20 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
                 LOGGER.error("Active task node={} jobId={}, task={}", localNodeId, entry.getKey(), entry.getValue());
             }
         }
+    }
+
+    @Nullable
+    public UUID topConsumer() {
+        record TaskUsage(RootTask task, long totalBytesUsed) {
+        }
+
+        Optional<TaskUsage> topTask = activeTasks.values().stream()
+            .map(rootTask -> new TaskUsage(
+                rootTask,
+                rootTask.tasks().stream().mapToLong(Task::bytesUsed).sum()
+            ))
+            .max(Comparator.comparingLong(TaskUsage::totalBytesUsed));
+
+        return topTask.map(x -> x.task.jobId()).orElse(null);
     }
 }

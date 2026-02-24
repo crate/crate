@@ -64,7 +64,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -120,7 +119,6 @@ import io.crate.common.unit.TimeValue;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfoFactory;
 
 public class IndicesService extends AbstractLifecycleComponent
     implements Iterable<IndexService>, IndexService.ShardStoreDeleter {
@@ -163,7 +161,6 @@ public class IndicesService extends AbstractLifecycleComponent
     private final boolean nodeWriteDanglingIndicesInfo;
 
     private final Map<ShardId, CompletableFuture<IndexShard>> pendingShardCreations = new ConcurrentHashMap<>();
-    private final DocTableInfoFactory tableFactory;
 
 
     @Override
@@ -203,7 +200,6 @@ public class IndicesService extends AbstractLifecycleComponent
         this.metaStateService = metaStateService;
         this.engineFactoryProviders = engineFactoryProviders;
         this.nodeContext = nodeContext;
-        this.tableFactory = new DocTableInfoFactory(nodeContext);
 
         // do not allow any plugin-provided index store type to conflict with a built-in type
         for (final String indexStoreType : directoryFactories.keySet()) {
@@ -502,7 +498,6 @@ public class IndicesService extends AbstractLifecycleComponent
             );
             closeables.add(() -> service.close("metadata verification", false));
             if (metadata.equals(metadataUpdate) == false) {
-                tableFactory.create(metadataUpdate, Metadata.OID_UNASSIGNED);
                 service.updateMetadata(metadata, metadataUpdate);
             }
         } finally {

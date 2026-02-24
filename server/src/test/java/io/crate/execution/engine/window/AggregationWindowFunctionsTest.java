@@ -42,6 +42,46 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     };
 
     @Test
+    public void test_sum_remove_cumulative_with_null() throws Throwable {
+        assertEvaluate(
+            """
+            sum(x) over (order by x nulls first rows between 1 preceding and 1 following)
+            """,
+            new Object[] { 10L, 30L, 30L },
+            List.of(ColumnIdent.of("x")),
+            new Object[][] {
+                new Object[] { null },
+                new Object[] { 10 },
+                new Object[] { 20 },
+            }
+        );
+        assertEvaluate(
+            """
+            sum(x) over (order by x nulls first rows between 1 preceding and 1 following)
+            """,
+            new Object[] { null, null, null},
+            List.of(ColumnIdent.of("x")),
+            new Object[][] {
+                new Object[] { null },
+                new Object[] { null },
+                new Object[] { null },
+            }
+        );
+        assertEvaluate(
+            """
+            sum(x::text::interval) over (order by x nulls first rows between 1 preceding and 1 following)
+            """,
+            new Object[] { null, null, null},
+            List.of(ColumnIdent.of("x")),
+            new Object[][] {
+                new Object[] { null },
+                new Object[] { null },
+                new Object[] { null },
+            }
+        );
+    }
+
+    @Test
     public void testSumOverUnboundedPrecedingToUnboundedFollowingFrames() throws Throwable {
         Object[] expected = new Object[]{5L, 5L, 5L, 12L, 12L, 12L, null};
         assertEvaluate("sum(x) OVER(" +

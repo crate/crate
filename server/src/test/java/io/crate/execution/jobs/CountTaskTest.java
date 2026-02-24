@@ -30,10 +30,12 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.UnhandledServerException;
@@ -45,6 +47,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.testing.PlainRamAccounting;
 
 public class CountTaskTest extends ESTestCase {
 
@@ -64,19 +67,43 @@ public class CountTaskTest extends ESTestCase {
         CountOperation countOperation = mock(CountOperation.class);
         when(countOperation.count(eq(txnCtx), any(), any(Symbol.class), eq(false))).thenReturn(future);
 
-        final CountTask countTask1 = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
+        RamAccounting ramAccounting = new PlainRamAccounting();
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        final CountTask countTask1 = new CountTask(
+            countPhaseWithId(1),
+            txnCtx,
+            countOperation,
+            consumer,
+            null,
+            ramAccounting);
+
+        ramAccounting.addBytes(42L);
         countTask1.start();
+        assertThat(countTask1.bytesUsed()).isEqualTo(42L);
         future.complete(1L);
         assertThat(countTask1.isClosed()).isTrue();
-        // assure that there was no exception
-        countTask1.completionFuture().get();
+        assertThat(countTask1.completionFuture()).succeedsWithin(1, TimeUnit.MILLISECONDS);
+        assertThat(consumer.completionFuture()).succeedsWithin(1, TimeUnit.MILLISECONDS);
+
+        assertThat(countTask1.bytesUsed())
+            .as("closed task preserves total bytes used for sys.operations_log reporting")
+            .isEqualTo(42L);
+        assertThat(ramAccounting.totalBytes())
+            .as("closed RamAccounting releases total bytes")
+            .isEqualTo(0L);
 
         // on error
         future = new CompletableFuture<>();
         when(countOperation.count(eq(txnCtx), any(), any(Symbol.class), eq(false))).thenReturn(future);
 
-        final CountTask countTask2 =
-            new CountTask(countPhaseWithId(2), txnCtx, countOperation, new TestingRowConsumer(), null);
+        final CountTask countTask2 = new CountTask(
+            countPhaseWithId(2),
+            txnCtx,
+            countOperation,
+            new TestingRowConsumer(),
+            null,
+            RamAccounting.NO_ACCOUNTING
+        );
         countTask2.start();
         future.completeExceptionally(new UnhandledServerException("dummy"));
         assertThat(countTask2.isClosed()).isTrue();
@@ -92,7 +119,14 @@ public class CountTaskTest extends ESTestCase {
         CountOperation countOperation = mock(CountOperation.class);
         when(countOperation.count(any(), any(), any(), eq(false))).thenReturn(future);
 
-        CountTask countTask = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
+        CountTask countTask = new CountTask(
+            countPhaseWithId(1),
+            txnCtx,
+            countOperation,
+            new TestingRowConsumer(),
+            null,
+            RamAccounting.NO_ACCOUNTING
+        );
 
         countTask.start();
         countTask.kill(JobKilledException.of("dummy"));

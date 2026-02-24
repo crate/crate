@@ -59,7 +59,6 @@ import org.elasticsearch.cluster.routing.TestShardRouting;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.lucene.uid.Versions;
-import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
@@ -82,7 +81,7 @@ import org.elasticsearch.index.snapshots.IndexShardSnapshotStatus;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.indices.recovery.AsyncRecoveryTarget;
 import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
 import org.elasticsearch.indices.recovery.RecoveryFailedException;
@@ -515,8 +514,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         try {
             var queryCache = DisabledQueryCache.instance();
             TestAnalysis testAnalysis = createTestAnalysis(indexSettings, indexSettings.getSettings());
-            ClusterSettings clusterSettings = new ClusterSettings(nodeSettings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
-            CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(nodeSettings, clusterSettings);
+            CircuitBreakerService breakerService = new NoneCircuitBreakerService();
             indexShard = new IndexShard(
                 Mockito.mock(NodeContext.class),
                 routing,
@@ -532,7 +530,8 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 BigArrays.NON_RECYCLING_INSTANCE,
                 Arrays.asList(listeners),
                 globalCheckpointSyncer,
-                retentionLeaseSyncer, breakerService
+                retentionLeaseSyncer,
+                breakerService
             );
             indexShard.addShardFailureCallback(DEFAULT_SHARD_FAILURE_HANDLER);
             success = true;

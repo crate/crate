@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -36,7 +37,7 @@ public class CreatePartitionsRequestTest {
     @Test
     public void testSerialization() throws Exception {
         RelationName tbl = new RelationName("doc", "tbl");
-        CreatePartitionsRequest request = new CreatePartitionsRequest(tbl, List.of(List.of("1"), List.of("2")));
+        CreatePartitionsRequest request = new CreatePartitionsRequest(Metadata.OID_UNASSIGNED, tbl, List.of(List.of("1"), List.of("2")));
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
         CreatePartitionsRequest requestDeserialized = new CreatePartitionsRequest(out.bytes().streamInput());

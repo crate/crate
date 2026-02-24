@@ -19,14 +19,33 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.jobs;
+package io.crate.sql.tree;
 
-import org.elasticsearch.common.inject.AbstractModule;
+public class DefaultColumnValue extends Expression {
 
-public class JobModule extends AbstractModule {
+    public static final DefaultColumnValue INSTANCE = new DefaultColumnValue();
+
+    private DefaultColumnValue() {
+    }
 
     @Override
-    protected void configure() {
-        bind(TasksService.class).asEagerSingleton();
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitDefaultColumnValue(this, context);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return DefaultColumnValue.class.hashCode();
     }
 }
