@@ -54,8 +54,6 @@ import io.crate.expression.symbol.Literal;
  *       accepts variable-width input, so use patterns without FM (e.g., 'Month' instead of 'FMMonth').</li>
  *   <li><b>'th' ordinal suffix:</b> Ordinal suffixes (TH/th pattern matching st, nd, rd, th) not yet
  *       supported.</li>
- *   <li><b>Internal whitespace:</b> PostgreSQL accepts internal whitespace in fixed-width formats
- *       like YYYYMMDD, CrateDB requires explicit separators or no whitespace.</li>
  * </ul>
  *
  * @see ToTimestampFunctionPostgresCompatibilityTest for additional PostgreSQL compatibility tests
@@ -361,6 +359,21 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
             "to_timestamp('  2023-07-15', 'YYYY-MM-DD')",
             // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
             Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
+        );
+    }
+
+    @Test
+    public void testInternalWhitespaceInFixedWidthFormat() {
+        // PostgreSQL accepts whitespace between tokens even in fixed-width formats
+        assertEvaluate(
+            "to_timestamp('2023 07 15', 'YYYYMMDD')",
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
+        );
+        assertEvaluate(
+            "to_timestamp('12 30 45', 'HH24MISS')",
+            // Verified: PostgreSQL 16 returns 0001-01-01 12:30:45+00 BC (year 0)
+            Instant.parse("0000-01-01T12:30:45Z").toEpochMilli()
         );
     }
 

@@ -599,6 +599,10 @@ public class DateTimeFormatter {
             }
 
             if (tokenObj instanceof Token token) {
+                // PostgreSQL skips whitespace between tokens even in fixed-width formats like YYYYMMDD
+                while (pos < input.length() && Character.isWhitespace(input.charAt(pos))) {
+                    pos++;
+                }
                 // Check for leading minus sign on year tokens (PostgreSQL treats negative years as BC)
                 boolean hadMinus = false;
                 if (isYearToken(token) && pos < input.length() && input.charAt(pos) == '-') {

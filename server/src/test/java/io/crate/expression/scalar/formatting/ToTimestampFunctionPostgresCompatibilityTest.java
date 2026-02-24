@@ -55,8 +55,6 @@ import io.crate.expression.scalar.ScalarTestCase;
  *       accepts variable-width input, so use patterns without FM (e.g., 'Month' instead of 'FMMonth').</li>
  *   <li><b>'th' ordinal suffix:</b> Ordinal suffixes (TH/th pattern matching st, nd, rd, th) not yet
  *       supported.</li>
- *   <li><b>Internal whitespace:</b> PostgreSQL accepts internal whitespace in fixed-width formats
- *       like YYYYMMDD, CrateDB requires explicit separators or no whitespace.</li>
  * </ul>
  *
  * <p>Note: Missing date components default to year=0 (1 BC), month=1, day=1, matching PostgreSQL.
@@ -682,9 +680,8 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
         assertEvaluate("to_timestamp('  20050302', 'YYYYMMDD')",
             // Verified: PostgreSQL 16 returns 2005-03-02 00:00:00+00
             Instant.parse("2005-03-02T00:00:00Z").toEpochMilli());
-        // Note: PostgreSQL accepts internal whitespace in fixed-width formats like YYYYMMDD
-        // but CrateDB requires explicit separators or no whitespace. Testing with separators:
-        assertEvaluate("to_timestamp('2005 03 02', 'YYYY MM DD')",
+        // Internal whitespace in fixed-width formats (matches PostgreSQL)
+        assertEvaluate("to_timestamp('2005 03 02', 'YYYYMMDD')",
             // Verified: PostgreSQL 16 returns 2005-03-02 00:00:00+00
             Instant.parse("2005-03-02T00:00:00Z").toEpochMilli());
 
