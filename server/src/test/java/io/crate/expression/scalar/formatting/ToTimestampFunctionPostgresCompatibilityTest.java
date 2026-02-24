@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.formatting;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.time.Instant;
 
 import org.junit.Test;
@@ -45,8 +47,6 @@ import io.crate.expression.scalar.ScalarTestCase;
  *
  * <p>Known Differences from PostgreSQL:
  * <ul>
- *   <li><b>ISO patterns with Gregorian:</b> CrateDB accepts mixing ISO week patterns (IYYY, IW, ID)
- *       with Gregorian dates, PostgreSQL rejects with "invalid combination of date conventions".</li>
  *   <li><b>TZ/tz/OF patterns:</b> CrateDB accepts timezone patterns (parses and ignores them),
  *       PostgreSQL rejects these patterns in to_timestamp.</li>
  *   <li><b>WW/D computation:</b> Minor differences in week number and day of week calculation
@@ -230,12 +230,13 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
 
     @Test
     public void testPostgresISOYearCompatibility() {
-        assertEvaluate("to_timestamp('1970', 'IYYY')",
-            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
-            Instant.parse("1970-01-01T00:00:00Z").toEpochMilli());
-        assertEvaluate("to_timestamp('2023', 'IYYY')",
-            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
-            Instant.parse("2023-01-01T00:00:00Z").toEpochMilli());
+        // PostgreSQL 16 rejects ISO year alone without ISO week (IW) or ISO day (IDDD)
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('1970', 'IYYY')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid combination of date conventions");
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('2023', 'IYYY')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid combination of date conventions");
     }
 
     @Test
@@ -340,13 +341,14 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
 
     @Test
     public void testPostgresDayOfWeekCompatibility() {
-        // D and ID are parsed but don't affect result
+        // D is Gregorian day of week (parsed but doesn't affect result)
         assertEvaluate("to_timestamp('1970-01-01 5', 'YYYY-MM-DD D')",
             // Verified: PostgreSQL 16 returns 1970-01-01 00:00:00+00
             Instant.parse("1970-01-01T00:00:00Z").toEpochMilli());
-        assertEvaluate("to_timestamp('1970-01-01 4', 'YYYY-MM-DD ID')",
-            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
-            Instant.parse("1970-01-01T00:00:00Z").toEpochMilli());
+        // ID is ISO day of week - PostgreSQL rejects mixing with Gregorian date
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('1970-01-01 4', 'YYYY-MM-DD ID')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid combination of date conventions");
     }
 
     @Test
@@ -363,10 +365,10 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
         assertEvaluate("to_timestamp('1970 01', 'YYYY WW')",
             // DIFFERS: PostgreSQL 16 returns 1970-01-01 00:00:00+00
             Instant.parse("1969-12-28T00:00:00Z").toEpochMilli());
-        // IW computes date from ISO week number (Monday start)
-        assertEvaluate("to_timestamp('1970 01', 'YYYY IW')",
-            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
-            Instant.parse("1969-12-29T00:00:00Z").toEpochMilli());
+        // IW is ISO week - PostgreSQL rejects mixing with Gregorian year
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('1970 01', 'YYYY IW')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid combination of date conventions");
     }
 
     @Test

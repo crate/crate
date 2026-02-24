@@ -23,6 +23,7 @@ package io.crate.expression.scalar.formatting;
 
 import static io.crate.testing.Asserts.isNotSameInstance;
 import static io.crate.testing.Asserts.isSameInstance;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 
@@ -45,8 +46,6 @@ import io.crate.expression.symbol.Literal;
  *
  * <p>Known Differences from PostgreSQL:
  * <ul>
- *   <li><b>ISO patterns with Gregorian:</b> CrateDB accepts mixing ISO week patterns (IYYY, IW, ID)
- *       with Gregorian dates, PostgreSQL rejects with "invalid combination of date conventions".</li>
  *   <li><b>TZ/tz/OF patterns:</b> CrateDB accepts timezone patterns (parses and ignores them),
  *       PostgreSQL rejects these patterns in to_timestamp.</li>
  *   <li><b>WW/D computation:</b> Minor differences in week number and day of week calculation
@@ -463,11 +462,10 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
 
     @Test
     public void testIsoYearIyyy() {
-        assertEvaluate(
-            "to_timestamp('2023-07-15', 'IYYY-MM-DD')",
-            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
-            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
-        );
+        // PostgreSQL 16 rejects mixing ISO year (IYYY) with Gregorian month/day (MM-DD)
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('2023-07-15', 'IYYY-MM-DD')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid combination of date conventions");
     }
 
     @Test
@@ -482,12 +480,10 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
 
     @Test
     public void testIsoWeekNumberIw() {
-        // ISO week 28 of 2023 starts Monday July 10
-        assertEvaluate(
-            "to_timestamp('2023-28', 'YYYY-IW')",
-            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
-            Instant.parse("2023-07-10T00:00:00Z").toEpochMilli()
-        );
+        // PostgreSQL 16 rejects mixing Gregorian year (YYYY) with ISO week (IW)
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('2023-28', 'YYYY-IW')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid combination of date conventions");
     }
 
     @Test
@@ -501,11 +497,10 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
 
     @Test
     public void testIsoDayOfWeekId() {
-        assertEvaluate(
-            "to_timestamp('2023-07-15 6', 'YYYY-MM-DD ID')",
-            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
-            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
-        );
+        // PostgreSQL 16 rejects mixing Gregorian date (YYYY-MM-DD) with ISO day (ID)
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('2023-07-15 6', 'YYYY-MM-DD ID')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid combination of date conventions");
     }
 
     @Test
@@ -720,12 +715,10 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
 
     @Test
     public void testIsoDayOfWeekNumberingYearIddd() {
-        // IDDD is parsed but not used to compute the date (it's informational only)
-        assertEvaluate(
-            "to_timestamp('2023 196', 'YYYY IDDD')",
-            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
-            Instant.parse("2023-01-01T00:00:00Z").toEpochMilli()
-        );
+        // PostgreSQL 16 rejects mixing Gregorian year (YYYY) with ISO day of year (IDDD)
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('2023 196', 'YYYY IDDD')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid combination of date conventions");
     }
 
     @Test
@@ -766,24 +759,16 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
 
     @Test
     public void testIsoYearShortFormatsIyyIyI() {
-        // IYY parses 3 digits for ISO year (970 -> year 970, Jul 15)
-        assertEvaluate(
-            "to_timestamp('970-07-15', 'IYY-MM-DD')",
-            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
-            Instant.parse("0970-07-15T00:00:00Z").toEpochMilli()
-        );
-        // IY parses 2 digits for ISO year with two-digit year rule (70 -> 1970, Jul 15)
-        assertEvaluate(
-            "to_timestamp('70-07-15', 'IY-MM-DD')",
-            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
-            Instant.parse("0070-07-15T00:00:00Z").toEpochMilli()
-        );
-        // I parses 1 digit for ISO year (0 -> year 0, Jul 15)
-        assertEvaluate(
-            "to_timestamp('0-07-15', 'I-MM-DD')",
-            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
-            Instant.parse("0000-07-15T00:00:00Z").toEpochMilli()
-        );
+        // PostgreSQL 16 rejects mixing ISO year patterns (IYY, IY, I) with Gregorian month/day (MM-DD)
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('970-07-15', 'IYY-MM-DD')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid combination of date conventions");
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('70-07-15', 'IY-MM-DD')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid combination of date conventions");
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('0-07-15', 'I-MM-DD')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid combination of date conventions");
     }
 
     @Test
@@ -887,35 +872,28 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
 
     @Test
     public void testIsoYearLowercaseVariants() {
-        assertEvaluate(
-            "to_timestamp('2023', 'iyyy')",
-            // Verified: PostgreSQL 16 returns 2023-01-01 00:00:00+00
-            Instant.parse("2023-01-01T00:00:00Z").toEpochMilli()
-        );
-        assertEvaluate(
-            "to_timestamp('023', 'iyy')",
-            // DIFFERS: PostgreSQL 16 returns 2023 (applies "nearest to 2020" rule)
-            Instant.parse("0023-01-01T00:00:00Z").toEpochMilli()
-        );
-        assertEvaluate(
-            "to_timestamp('23', 'iy')",
-            // DIFFERS: PostgreSQL 16 returns 2023 (applies "nearest to 2020" rule)
-            Instant.parse("0023-01-01T00:00:00Z").toEpochMilli()
-        );
-        assertEvaluate(
-            "to_timestamp('3', 'i')",
-            // DIFFERS: PostgreSQL 16 returns 2003 (applies "nearest to 2020" rule)
-            Instant.parse("0003-01-01T00:00:00Z").toEpochMilli()
-        );
+        // PostgreSQL 16 rejects ISO year patterns alone without ISO week (IW) or ISO day (IDDD)
+        // because ISO year cannot determine a specific date without week/day information
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('2023', 'iyyy')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid combination of date conventions");
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('023', 'iyy')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid combination of date conventions");
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('23', 'iy')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid combination of date conventions");
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('3', 'i')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid combination of date conventions");
     }
 
     @Test
     public void testDayOfIsoWeekNumberingYearIdddLowercase() {
-        assertEvaluate(
-            "to_timestamp('2023 196', 'YYYY iddd')",
-            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
-            Instant.parse("2023-01-01T00:00:00Z").toEpochMilli()
-        );
+        // PostgreSQL 16 rejects mixing Gregorian year (YYYY) with ISO day of year (iddd)
+        assertThatThrownBy(() -> assertEvaluate("to_timestamp('2023 196', 'YYYY iddd')", -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid combination of date conventions");
     }
 
     @Test

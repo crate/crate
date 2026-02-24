@@ -236,6 +236,64 @@ public class DateTimeFormatter {
 
     public DateTimeFormatter(String pattern) {
         this.tokens = DateTimeFormatter.parse(pattern);
+        validateDateConventions();
+    }
+
+    /**
+     * Validates that ISO week-based patterns (IYYY, IW, ID, IDDD) are not mixed with
+     * Gregorian date patterns (YYYY, MM, DD, DDD, etc.).
+     * PostgreSQL rejects such combinations with "invalid combination of date conventions".
+     */
+    private void validateDateConventions() {
+        boolean hasIsoYear = false;
+        boolean hasIsoWeek = false;
+        boolean hasGregorianYear = false;
+        boolean hasGregorianDate = false;
+
+        for (Object tokenObj : tokens) {
+            if (tokenObj instanceof Token token) {
+                switch (token) {
+                    // ISO week-based year patterns
+                    case ISO_YEAR_YYY, ISO_YEAR_YYY_LOWER,
+                         ISO_YEAR_YY, ISO_YEAR_YY_LOWER,
+                         ISO_YEAR_Y, ISO_YEAR_Y_LOWER,
+                         ISO_YEAR, ISO_YEAR_LOWER -> hasIsoYear = true;
+                    // ISO week patterns
+                    case WEEK_NUMBER_OF_ISO_YEAR, WEEK_NUMBER_OF_ISO_YEAR_LOWER,
+                         ISO_DAY_OF_WEEK, ISO_DAY_OF_WEEK_LOWER,
+                         DAY_OF_ISO_WEEK_NUMBERING_YEAR, DAY_OF_ISO_WEEK_NUMBERING_YEAR_LOWER -> hasIsoWeek = true;
+                    // Gregorian year patterns
+                    case YEAR_YYYY, YEAR_LOWER_YYYY,
+                         YEAR_YYY, YEAR_YYY_LOWER,
+                         YEAR_YY, YEAR_YY_LOWER,
+                         YEAR_Y, YEAR_Y_LOWER,
+                         YEAR_WITH_COMMA, YEAR_WITH_COMMA_LOWER -> hasGregorianYear = true;
+                    // Gregorian date patterns (month/day)
+                    case MONTH_NUMBER, MONTH_NUMBER_LOWER,
+                         DAY_OF_MONTH, DAY_OF_MONTH_LOWER,
+                         DAY_OF_YEAR, DAY_OF_YEAR_LOWER,
+                         MONTH_UPPER, MONTH_CAPITALIZED, MONTH_LOWER,
+                         ABBREVIATED_MONTH_UPPER, ABBREVIATED_MONTH_CAPITALIZED, ABBREVIATED_MONTH_LOWER,
+                         ROMAN_MONTH_UPPER, ROMAN_MONTH_LOWER -> hasGregorianDate = true;
+                    default -> {
+                    }
+                }
+            }
+        }
+
+        // PostgreSQL rejects mixing ISO year with Gregorian month/day
+        if (hasIsoYear && hasGregorianDate) {
+            throw new IllegalArgumentException("invalid combination of date conventions");
+        }
+        // PostgreSQL rejects mixing Gregorian year with ISO week/day patterns
+        if (hasGregorianYear && hasIsoWeek) {
+            throw new IllegalArgumentException("invalid combination of date conventions");
+        }
+        // PostgreSQL rejects ISO year alone (without ISO week patterns)
+        // because it needs IW or IDDD to compute the actual date
+        if (hasIsoYear && !hasIsoWeek) {
+            throw new IllegalArgumentException("invalid combination of date conventions");
+        }
     }
 
     private static List<Object> parse(String pattern) {
