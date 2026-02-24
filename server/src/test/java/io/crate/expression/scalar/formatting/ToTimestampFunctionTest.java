@@ -407,7 +407,6 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
      *       {@code if (token == Token.FILL_MODE || token == Token.FILL_MODE_LOWER) continue;}</li>
      * </ol>
      *
-     * @see FM_IMPLEMENTATION.md for detailed implementation guide
      */
     @Test
     public void testFmModifierSingleDigitValues() {
@@ -458,7 +457,6 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
      *   <li>Add case for ORDINAL_SUFFIX in parseToken() switch</li>
      * </ol>
      *
-     * @see TH_IMPLEMENTATION.md for detailed implementation guide
      */
     @Test
     public void testOrdinalSuffixTh() {
@@ -530,6 +528,31 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
             // Verified: PostgreSQL 16 returns 2003-07-15 00:00:00+00
             Instant.parse("2003-07-15T00:00:00Z").toEpochMilli()
         );
+    }
+
+    /**
+     * Large year (>9999) tests - currently not supported.
+     *
+     * <p>PostgreSQL's YYYY pattern consumes all available digits, allowing years > 9999.
+     * CrateDB currently limits YYYY to exactly 4 digits.
+     *
+     * <p>To implement large year support, the tokenizer needs to be modified to
+     * recognize YYYY as a variable-width token that consumes all available digits.
+     *
+     */
+    @Test
+    public void testLargeYearYyyy() {
+        // TODO: Enable when large year support is implemented
+        // assertEvaluate(
+        //     "to_timestamp('10000-07-15', 'YYYY-MM-DD')",
+        //     // Verified: PostgreSQL 16 returns 10000-07-15 00:00:00+00
+        //     Instant.parse("+10000-07-15T00:00:00Z").toEpochMilli()
+        // );
+        // assertEvaluate(
+        //     "to_timestamp('12345-07-15', 'YYYY-MM-DD')",
+        //     // Verified: PostgreSQL 16 returns 12345-07-15 00:00:00+00
+        //     Instant.parse("+12345-07-15T00:00:00Z").toEpochMilli()
+        // );
     }
 
     @Test
