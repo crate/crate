@@ -45,8 +45,6 @@ import io.crate.expression.scalar.ScalarTestCase;
  *
  * <p>Known Differences from PostgreSQL:
  * <ul>
- *   <li><b>Default year:</b> CrateDB uses year 1, PostgreSQL uses year 0 (1 BC).
- *       Tests that rely only on time components (HH, MI, SS, etc.) will differ by 1 year.</li>
  *   <li><b>ISO patterns with Gregorian:</b> CrateDB accepts mixing ISO week patterns (IYYY, IW, ID)
  *       with Gregorian dates, PostgreSQL rejects with "invalid combination of date conventions".</li>
  *   <li><b>TZ/tz/OF patterns:</b> CrateDB accepts timezone patterns (parses and ignores them),
@@ -64,8 +62,8 @@ import io.crate.expression.scalar.ScalarTestCase;
  *       like YYYYMMDD, CrateDB requires explicit separators or no whitespace.</li>
  * </ul>
  *
- * <p>Note: Missing date components default to year=1, month=1, day=1 in CrateDB.
- * Year 1 (0001-01-01 00:00:00 UTC) = -62135596800000 ms from epoch.
+ * <p>Note: Missing date components default to year=0 (1 BC), month=1, day=1, matching PostgreSQL.
+ * Year 0 (0000-01-01 00:00:00 UTC) = -62167219200000 ms from epoch.
  *
  * @see ToTimestampFunctionTest for additional unit tests
  */
@@ -74,119 +72,119 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
     @Test
     public void testPostgresHourOfDayCompatibility() {
         // HH and HH12 are 12-hour format, HH24 is 24-hour format
-        // Results are relative to year 1, Jan 1 (differs from PG which uses year 0)
+        // Results are relative to year 0 (1 BC), Jan 1
         assertEvaluate("to_timestamp('17', 'HH24')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 17:00:00+00 (year 0)
-            Instant.parse("0001-01-01T17:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 17:00:00+00 (year 0)
+            Instant.parse("0000-01-01T17:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('05', 'HH')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 05:00:00+00 (year 0)
-            Instant.parse("0001-01-01T05:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 05:00:00+00 (year 0)
+            Instant.parse("0000-01-01T05:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('05', 'HH12')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 05:00:00+00 (year 0)
-            Instant.parse("0001-01-01T05:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 05:00:00+00 (year 0)
+            Instant.parse("0000-01-01T05:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('05 PM', 'HH12 PM')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 17:00:00+00 (year 0)
-            Instant.parse("0001-01-01T17:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 17:00:00+00 (year 0)
+            Instant.parse("0000-01-01T17:00:00Z").toEpochMilli());
     }
 
     @Test
     public void testPostgresMinuteCompatibility() {
         assertEvaluate("to_timestamp('05', 'MI')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:05:00+00 (year 0)
-            Instant.parse("0001-01-01T00:05:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:05:00+00 (year 0)
+            Instant.parse("0000-01-01T00:05:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('30', 'MI')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:30:00+00 (year 0)
-            Instant.parse("0001-01-01T00:30:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:30:00+00 (year 0)
+            Instant.parse("0000-01-01T00:30:00Z").toEpochMilli());
     }
 
     @Test
     public void testPostgresSecondCompatibility() {
         assertEvaluate("to_timestamp('05', 'SS')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:05+00 (year 0)
-            Instant.parse("0001-01-01T00:00:05Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:05+00 (year 0)
+            Instant.parse("0000-01-01T00:00:05Z").toEpochMilli());
         assertEvaluate("to_timestamp('45', 'SS')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:45+00 (year 0)
-            Instant.parse("0001-01-01T00:00:45Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:45+00 (year 0)
+            Instant.parse("0000-01-01T00:00:45Z").toEpochMilli());
     }
 
     @Test
     public void testPostgresMillisecondCompatibility() {
         assertEvaluate("to_timestamp('123', 'MS')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.123+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00.123Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.123+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00.123Z").toEpochMilli());
         assertEvaluate("to_timestamp('003', 'MS')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.003+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00.003Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.003+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00.003Z").toEpochMilli());
         assertEvaluate("to_timestamp('300', 'MS')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.3+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00.300Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.3+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00.300Z").toEpochMilli());
     }
 
     @Test
     public void testPostgresMicrosecondCompatibility() {
         // Microseconds are truncated to milliseconds in the result
         assertEvaluate("to_timestamp('123456', 'US')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.123456+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00.123Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.123456+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00.123Z").toEpochMilli());
         assertEvaluate("to_timestamp('000500', 'US')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.0005+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.0005+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00Z").toEpochMilli());
     }
 
     @Test
     public void testPostgresFractionOfSecondCompatibility() {
         assertEvaluate("to_timestamp('1', 'FF1')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.1+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00.100Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.1+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00.100Z").toEpochMilli());
         assertEvaluate("to_timestamp('12', 'FF2')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.12+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00.120Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.12+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00.120Z").toEpochMilli());
         assertEvaluate("to_timestamp('123', 'FF3')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.123+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00.123Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.123+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00.123Z").toEpochMilli());
         assertEvaluate("to_timestamp('1234', 'FF4')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.1234+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00.123Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.1234+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00.123Z").toEpochMilli());
         assertEvaluate("to_timestamp('12345', 'FF5')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.12345+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00.123Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.12345+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00.123Z").toEpochMilli());
         assertEvaluate("to_timestamp('123456', 'FF6')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.123456+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00.123Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.123456+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00.123Z").toEpochMilli());
     }
 
     @Test
     public void testPostgresSecondsPastMidnightCompatibility() {
         // 17:31:12 = 17*3600 + 31*60 + 12 = 63072 seconds past midnight
         assertEvaluate("to_timestamp('63072', 'SSSS')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 17:31:12+00 (year 0)
-            Instant.parse("0001-01-01T17:31:12Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 17:31:12+00 (year 0)
+            Instant.parse("0000-01-01T17:31:12Z").toEpochMilli());
         assertEvaluate("to_timestamp('63072', 'SSSSS')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 17:31:12+00 (year 0)
-            Instant.parse("0001-01-01T17:31:12Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 17:31:12+00 (year 0)
+            Instant.parse("0000-01-01T17:31:12Z").toEpochMilli());
     }
 
     @Test
     public void testPostgresMeridiemIndicatorCompatibility() {
         // AM/PM parsing
         assertEvaluate("to_timestamp('05 PM', 'HH12 PM')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 17:00:00+00 (year 0)
-            Instant.parse("0001-01-01T17:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 17:00:00+00 (year 0)
+            Instant.parse("0000-01-01T17:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('05 AM', 'HH12 AM')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 05:00:00+00 (year 0)
-            Instant.parse("0001-01-01T05:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 05:00:00+00 (year 0)
+            Instant.parse("0000-01-01T05:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('05 pm', 'HH12 pm')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 17:00:00+00 (year 0)
-            Instant.parse("0001-01-01T17:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 17:00:00+00 (year 0)
+            Instant.parse("0000-01-01T17:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('05 am', 'HH12 am')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 05:00:00+00 (year 0)
-            Instant.parse("0001-01-01T05:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 05:00:00+00 (year 0)
+            Instant.parse("0000-01-01T05:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('05 P.M.', 'HH12 P.M.')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 17:00:00+00 (year 0)
-            Instant.parse("0001-01-01T17:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 17:00:00+00 (year 0)
+            Instant.parse("0000-01-01T17:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('05 A.M.', 'HH12 A.M.')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 05:00:00+00 (year 0)
-            Instant.parse("0001-01-01T05:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 05:00:00+00 (year 0)
+            Instant.parse("0000-01-01T05:00:00Z").toEpochMilli());
     }
 
     @Test
@@ -244,46 +242,46 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
     public void testPostgresMonthNameCompatibility() {
         // Full month names - case insensitive
         assertEvaluate("to_timestamp('JANUARY', 'MONTH')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('January', 'Month')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('january', 'month')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('DECEMBER', 'MONTH')",
-            // DIFFERS: PostgreSQL 16 returns 0001-12-01 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-12-01T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-12-01 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-12-01T00:00:00Z").toEpochMilli());
     }
 
     @Test
     public void testPostgresAbbreviatedMonthNameCompatibility() {
         assertEvaluate("to_timestamp('JAN', 'MON')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('Jan', 'Mon')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('jan', 'mon')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('DEC', 'MON')",
-            // DIFFERS: PostgreSQL 16 returns 0001-12-01 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-12-01T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-12-01 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-12-01T00:00:00Z").toEpochMilli());
     }
 
     @Test
     public void testPostgresMonthNumberCompatibility() {
         assertEvaluate("to_timestamp('01', 'MM')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('11', 'MM')",
-            // DIFFERS: PostgreSQL 16 returns 0001-11-01 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-11-01T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-11-01 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-11-01T00:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('12', 'MM')",
-            // DIFFERS: PostgreSQL 16 returns 0001-12-01 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-12-01T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-12-01 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-12-01T00:00:00Z").toEpochMilli());
     }
 
     @Test
@@ -328,16 +326,16 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
 
     @Test
     public void testPostgresDayOfMonthCompatibility() {
-        // Day of month with defaults for year 1, month 1
+        // Day of month with defaults for year 0 (1 BC), month 1
         assertEvaluate("to_timestamp('01', 'DD')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('17', 'DD')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-17 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-01-17T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-17 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-01-17T00:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('31', 'DD')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-31 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-01-31T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-31 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-01-31T00:00:00Z").toEpochMilli());
     }
 
     @Test
@@ -500,37 +498,37 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
     public void testPostgres12HourClockEdgeCasesCompatibility() {
         // 12 AM = midnight (00:00)
         assertEvaluate("to_timestamp('12:00:00 AM', 'HH12:MI:SS AM')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-01-01T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-01-01T00:00:00Z").toEpochMilli());
         // 12 PM = noon (12:00)
         assertEvaluate("to_timestamp('12:00:00 PM', 'HH12:MI:SS PM')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 12:00:00+00 (year 0)
-            Instant.parse("0001-01-01T12:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 12:00:00+00 (year 0)
+            Instant.parse("0000-01-01T12:00:00Z").toEpochMilli());
         // 12:30 AM = 00:30
         assertEvaluate("to_timestamp('12:30:00 AM', 'HH12:MI:SS AM')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:30:00+00 (year 0)
-            Instant.parse("0001-01-01T00:30:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:30:00+00 (year 0)
+            Instant.parse("0000-01-01T00:30:00Z").toEpochMilli());
         // 12:30 PM = 12:30
         assertEvaluate("to_timestamp('12:30:00 PM', 'HH12:MI:SS PM')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 12:30:00+00 (year 0)
-            Instant.parse("0001-01-01T12:30:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 12:30:00+00 (year 0)
+            Instant.parse("0000-01-01T12:30:00Z").toEpochMilli());
     }
 
     @Test
     public void testPostgresDefaultValuesCompatibility() {
-        // Missing components default to: year=1, month=1, day=1, time=00:00:00
+        // Missing components default to: year=0 (1 BC), month=1, day=1, time=00:00:00
         assertEvaluate("to_timestamp('2023', 'YYYY')",
             // Verified: PostgreSQL 16 returns 2023-01-01 00:00:00+00
             Instant.parse("2023-01-01T00:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('07', 'MM')",
-            // DIFFERS: PostgreSQL 16 returns 0001-07-01 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-07-01T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-07-01 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-07-01T00:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('15', 'DD')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-15 BC 00:00:00+00 (year 0)
-            Instant.parse("0001-01-15T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-15 BC 00:00:00+00 (year 0)
+            Instant.parse("0000-01-15T00:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('14:30:45', 'HH24:MI:SS')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 14:30:45+00 (year 0)
-            Instant.parse("0001-01-01T14:30:45Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 0001-01-01 BC 14:30:45+00 (year 0)
+            Instant.parse("0000-01-01T14:30:45Z").toEpochMilli());
     }
 
     // =========================================================================

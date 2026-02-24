@@ -699,7 +699,8 @@ public class DateTimeFormatter {
             // Century 21 = 2001, Century 20 = 1901
             return (parsed.century - 1) * 100 + 1;
         }
-        return parsed.year != null ? parsed.year : 1;
+        // PostgreSQL defaults to year 0 (1 BC) when year is not specified
+        return parsed.year != null ? parsed.year : 0;
     }
 
     private int computeNanos(ParsedDateTime parsed) {

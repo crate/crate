@@ -45,8 +45,6 @@ import io.crate.expression.symbol.Literal;
  *
  * <p>Known Differences from PostgreSQL:
  * <ul>
- *   <li><b>Default year:</b> CrateDB uses year 1, PostgreSQL uses year 0 (1 BC).
- *       Tests that rely only on time components (HH, MI, SS, etc.) will differ by 1 year.</li>
  *   <li><b>ISO patterns with Gregorian:</b> CrateDB accepts mixing ISO week patterns (IYYY, IW, ID)
  *       with Gregorian dates, PostgreSQL rejects with "invalid combination of date conventions".</li>
  *   <li><b>TZ/tz/OF patterns:</b> CrateDB accepts timezone patterns (parses and ignores them),
@@ -712,11 +710,11 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEmptyInputUsesDefaults() {
-        // Empty string should use all defaults (CrateDB defaults to year 1, PG defaults to year 0)
+        // Empty string should use all defaults (year 0 = 1 BC, month 1, day 1)
         assertEvaluate(
             "to_timestamp('', '')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 00:00:00+00 BC (year 0 = 1 BC)
-            Instant.parse("0001-01-01T00:00:00Z").toEpochMilli()
+            // Verified: PostgreSQL 16 returns 0001-01-01 00:00:00+00 BC (year 0 = 1 BC)
+            Instant.parse("0000-01-01T00:00:00Z").toEpochMilli()
         );
     }
 
@@ -805,26 +803,26 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
 
     @Test
     public void testRomanMonthParsing() {
-        // Roman numeral month I = January (CrateDB uses year 1 default, PG uses year 0)
+        // Roman numeral month I = January (default year 0 = 1 BC)
         assertEvaluate(
             "to_timestamp('I', 'RM')",
-            // DIFFERS: PostgreSQL 16 returns 0001-01-01 00:00:00+00 BC (year 0)
-            Instant.parse("0001-01-01T00:00:00Z").toEpochMilli()
+            // Verified: PostgreSQL 16 returns 0001-01-01 00:00:00+00 BC (year 0)
+            Instant.parse("0000-01-01T00:00:00Z").toEpochMilli()
         );
         assertEvaluate(
             "to_timestamp('XII', 'RM')",
-            // DIFFERS: PostgreSQL 16 returns year 0, CrateDB returns year 1
-            Instant.parse("0001-12-01T00:00:00Z").toEpochMilli()
+            // Verified: PostgreSQL 16 returns 0001-12-01 00:00:00+00 BC (year 0)
+            Instant.parse("0000-12-01T00:00:00Z").toEpochMilli()
         );
         assertEvaluate(
             "to_timestamp('IV', 'RM')",
-            // DIFFERS: PostgreSQL 16 returns year 0, CrateDB returns year 1
-            Instant.parse("0001-04-01T00:00:00Z").toEpochMilli()
+            // Verified: PostgreSQL 16 returns 0001-04-01 00:00:00+00 BC (year 0)
+            Instant.parse("0000-04-01T00:00:00Z").toEpochMilli()
         );
         assertEvaluate(
             "to_timestamp('ix', 'rm')",
-            // DIFFERS: PostgreSQL 16 returns year 0, CrateDB returns year 1
-            Instant.parse("0001-09-01T00:00:00Z").toEpochMilli()
+            // Verified: PostgreSQL 16 returns 0001-09-01 00:00:00+00 BC (year 0)
+            Instant.parse("0000-09-01T00:00:00Z").toEpochMilli()
         );
     }
 
