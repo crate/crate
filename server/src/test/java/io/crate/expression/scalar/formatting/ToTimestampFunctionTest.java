@@ -24,792 +24,920 @@ package io.crate.expression.scalar.formatting;
 import static io.crate.testing.Asserts.isNotSameInstance;
 import static io.crate.testing.Asserts.isSameInstance;
 
+import java.time.Instant;
 
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 
+/**
+ * Unit tests for the to_timestamp(text, text) function.
+ *
+ * <p>Verified against PostgreSQL 16 on 2026-02-24.
+ *
+ * <p>Verification Status Legend:
+ * <ul>
+ *   <li>Verified: Tests that produce identical results to PostgreSQL 16</li>
+ *   <li>DIFFERS: Tests where CrateDB behavior intentionally differs from PostgreSQL</li>
+ *   <li>PG_REJECTS: Patterns that PostgreSQL rejects but CrateDB accepts</li>
+ * </ul>
+ *
+ * <p>Known Differences from PostgreSQL:
+ * <ul>
+ *   <li><b>Default year:</b> CrateDB uses year 1, PostgreSQL uses year 0 (1 BC).
+ *       Tests that rely only on time components (HH, MI, SS, etc.) will differ by 1 year.</li>
+ *   <li><b>YYY/Y patterns:</b> CrateDB treats as literal year value,
+ *       PostgreSQL applies "nearest to 2020" rule (e.g., Y=9 becomes 2009 in PG, 0009 in CrateDB).</li>
+ *   <li><b>ISO patterns with Gregorian:</b> CrateDB accepts mixing ISO week patterns (IYYY, IW, ID)
+ *       with Gregorian dates, PostgreSQL rejects with "invalid combination of date conventions".</li>
+ *   <li><b>TZ/tz/OF patterns:</b> CrateDB accepts timezone patterns (parses and ignores them),
+ *       PostgreSQL rejects these patterns in to_timestamp.</li>
+ *   <li><b>WW/D computation:</b> Minor differences in week number and day of week calculation
+ *       due to different week start conventions.</li>
+ * </ul>
+ *
+ * @see ToTimestampFunctionPostgresCompatibilityTest for additional PostgreSQL compatibility tests
+ */
 public class ToTimestampFunctionTest extends ScalarTestCase {
 
     @Test
-    public void test_basic_date_parsing_yyyy_mm_dd() {
+    public void testBasicDateParsingYyyyMmDd() {
         assertEvaluate(
             "to_timestamp('2023-07-15', 'YYYY-MM-DD')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_date_with_time_parsing() {
+    public void testDateWithTimeParsing() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45', 'YYYY-MM-DD HH24:MI:SS')",
-            1689431445000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45+00
+            Instant.parse("2023-07-15T14:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_12_hour_format_with_am() {
+    public void test12HourFormatWithAm() {
         assertEvaluate(
             "to_timestamp('2023-07-15 02:30:45 AM', 'YYYY-MM-DD HH12:MI:SS AM')",
-            1689388245000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 02:30:45+00
+            Instant.parse("2023-07-15T02:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_12_hour_format_with_pm() {
+    public void test12HourFormatWithPm() {
         assertEvaluate(
             "to_timestamp('2023-07-15 02:30:45 PM', 'YYYY-MM-DD HH12:MI:SS PM')",
-            1689431445000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45+00
+            Instant.parse("2023-07-15T14:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_full_month_name_parsing() {
+    public void testFullMonthNameParsing() {
         assertEvaluate(
             "to_timestamp('15 July 2023', 'DD Month YYYY')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_abbreviated_month_name_parsing() {
+    public void testAbbreviatedMonthNameParsing() {
         assertEvaluate(
             "to_timestamp('15 Jul 2023', 'DD Mon YYYY')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_milliseconds_parsing() {
+    public void testMillisecondsParsing() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45.123', 'YYYY-MM-DD HH24:MI:SS.MS')",
-            1689431445123L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45.123+00
+            Instant.parse("2023-07-15T14:30:45.123Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_null_input_returns_null() {
+    public void testNullInputReturnsNull() {
+        // Verified: PostgreSQL 16 returns NULL
         assertEvaluateNull("to_timestamp(null, 'YYYY-MM-DD')");
     }
 
     @Test
-    public void test_null_input_via_reference_returns_null() {
+    public void testNullInputViaReferenceReturnsNull() {
         // Test null input through a reference to cover the runtime null check branch
         assertEvaluateNull("to_timestamp(name, 'YYYY-MM-DD')", Literal.of((String) null));
     }
 
     @Test
-    public void test_null_pattern_returns_null() {
+    public void testNullPatternReturnsNull() {
+        // Verified: PostgreSQL 16 returns NULL
         assertEvaluateNull("to_timestamp('2023-07-15', null)");
     }
 
     @Test
-    public void test_null_pattern_via_reference_returns_null() {
+    public void testNullPatternViaReferenceReturnsNull() {
         // Test null pattern through a reference to cover the runtime null check branch
         assertEvaluateNull("to_timestamp('2023-07-15', name)", Literal.of((String) null));
     }
 
     @Test
-    public void test_both_null_returns_null() {
+    public void testBothNullReturnsNull() {
         // Test both arguments null to ensure short-circuit evaluation is covered
         assertEvaluateNull("to_timestamp(name, time_format)", Literal.of((String) null), Literal.of((String) null));
     }
 
     @Test
-    public void test_lowercase_pattern_works() {
+    public void testLowercasePatternWorks() {
         assertEvaluate(
             "to_timestamp('2023-07-15', 'yyyy-mm-dd')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_two_digit_year_00_to_69_maps_to_2000s() {
-        // PostgreSQL uses "nearest to 2020" rule: 00-69 → 2000-2069
+    public void testTwoDigitYear00To69MapsTo2000s() {
+        // PostgreSQL uses "nearest to 2020" rule: 00-69 -> 2000-2069
         assertEvaluate(
             "to_timestamp('23-07-15', 'YY-MM-DD')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
         assertEvaluate(
             "to_timestamp('69-07-15', 'YY-MM-DD')",
-            3141072000000L
+            // Verified: PostgreSQL 16 returns 2069-07-15 00:00:00+00
+            Instant.parse("2069-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_two_digit_year_70_to_99_maps_to_1900s() {
-        // PostgreSQL uses "nearest to 2020" rule: 70-99 → 1970-1999
+    public void testTwoDigitYear70To99MapsTo1900s() {
+        // PostgreSQL uses "nearest to 2020" rule: 70-99 -> 1970-1999
         assertEvaluate(
             "to_timestamp('70-07-15', 'YY-MM-DD')",
-            16848000000L
+            // Verified: PostgreSQL 16 returns 1970-07-15 00:00:00+00
+            Instant.parse("1970-07-15T00:00:00Z").toEpochMilli()
         );
         assertEvaluate(
             "to_timestamp('99-07-15', 'YY-MM-DD')",
-            931996800000L
+            // Verified: PostgreSQL 16 returns 1999-07-15 00:00:00+00
+            Instant.parse("1999-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_compile_with_literal_pattern_returns_optimized_instance() {
+    public void testCompileWithLiteralPatternReturnsOptimizedInstance() {
         assertCompile("to_timestamp(name, 'YYYY-MM-DD')", isNotSameInstance());
     }
 
     @Test
-    public void test_compile_with_ref_pattern_returns_same_instance() {
+    public void testCompileWithRefPatternReturnsSameInstance() {
         assertCompile("to_timestamp(name, time_format)", isSameInstance());
     }
 
     @Test
-    public void test_compile_with_null_literal_pattern_returns_same_instance() {
+    public void testCompileWithNullLiteralPatternReturnsSameInstance() {
         // When pattern is a null literal, compile should return same instance (no optimization possible)
         assertCompile("to_timestamp(name, null)", isSameInstance());
     }
 
     @Test
-    public void test_round_trip_with_to_char() {
+    public void testRoundTripWithToChar() {
         assertEvaluate(
             "to_timestamp(to_char(timestamp '2023-07-15 14:30:45', 'YYYY-MM-DD HH24:MI:SS'), 'YYYY-MM-DD HH24:MI:SS')",
-            1689431445000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45+00
+            Instant.parse("2023-07-15T14:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_defaults_missing_components_to_epoch_start() {
+    public void testDefaultsMissingComponentsToEpochStart() {
         assertEvaluate(
             "to_timestamp('2023', 'YYYY')",
-            1672531200000L
+            // Verified: PostgreSQL 16 returns 2023-01-01 00:00:00+00
+            Instant.parse("2023-01-01T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_full_day_name_ignored_during_parsing() {
+    public void testFullDayNameIgnoredDuringParsing() {
         assertEvaluate(
             "to_timestamp('Saturday 2023-07-15', 'Day YYYY-MM-DD')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_abbreviated_day_name_ignored_during_parsing() {
+    public void testAbbreviatedDayNameIgnoredDuringParsing() {
         assertEvaluate(
             "to_timestamp('Sat 2023-07-15', 'Dy YYYY-MM-DD')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_month_name_case_insensitive() {
+    public void testMonthNameCaseInsensitive() {
         assertEvaluate(
             "to_timestamp('15 JULY 2023', 'DD Month YYYY')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
         assertEvaluate(
             "to_timestamp('15 july 2023', 'DD Month YYYY')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_am_pm_case_insensitive() {
+    public void testAmPmCaseInsensitive() {
         assertEvaluate(
             "to_timestamp('2023-07-15 02:30:45 am', 'YYYY-MM-DD HH12:MI:SS AM')",
-            1689388245000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 02:30:45+00
+            Instant.parse("2023-07-15T02:30:45Z").toEpochMilli()
         );
         assertEvaluate(
             "to_timestamp('2023-07-15 02:30:45 pm', 'YYYY-MM-DD HH12:MI:SS AM')",
-            1689431445000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45+00
+            Instant.parse("2023-07-15T14:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_with_periods_am_pm() {
+    public void testWithPeriodsAmPm() {
         assertEvaluate(
             "to_timestamp('2023-07-15 02:30:45 A.M.', 'YYYY-MM-DD HH12:MI:SS A.M.')",
-            1689388245000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 02:30:45+00
+            Instant.parse("2023-07-15T02:30:45Z").toEpochMilli()
         );
         assertEvaluate(
             "to_timestamp('2023-07-15 02:30:45 P.M.', 'YYYY-MM-DD HH12:MI:SS P.M.')",
-            1689431445000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45+00
+            Instant.parse("2023-07-15T14:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_four_digit_year_y_yyy_format() {
+    public void testFourDigitYearYYyyFormat() {
         assertEvaluate(
             "to_timestamp('2,023-07-15', 'Y,YYY-MM-DD')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_hour_without_suffix_defaults_to_12h() {
+    public void testHourWithoutSuffixDefaultsTo12h() {
         assertEvaluate(
             "to_timestamp('2023-07-15 02:30:45', 'YYYY-MM-DD HH:MI:SS')",
-            1689388245000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 02:30:45+00
+            Instant.parse("2023-07-15T02:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_seconds_past_midnight() {
+    public void testSecondsPastMidnight() {
         assertEvaluate(
             "to_timestamp('2023-07-15 52245', 'YYYY-MM-DD SSSS')",
-            1689431445000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45+00
+            Instant.parse("2023-07-15T14:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_microseconds_parsing() {
+    public void testMicrosecondsParsing() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45.123456', 'YYYY-MM-DD HH24:MI:SS.US')",
-            1689431445123L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45.123456+00 (truncated to milliseconds)
+            Instant.parse("2023-07-15T14:30:45.123Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_day_of_year_parsing() {
+    public void testDayOfYearParsing() {
         assertEvaluate(
             "to_timestamp('2023 196', 'YYYY DDD')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_flexible_separator_matching() {
+    public void testFlexibleSeparatorMatching() {
         // PostgreSQL allows any separator to match any separator
         assertEvaluate(
             "to_timestamp('2023/07/15', 'YYYY-MM-DD')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
         assertEvaluate(
             "to_timestamp('2023.07.15', 'YYYY-MM-DD')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
         assertEvaluate(
             "to_timestamp('2023 07 15', 'YYYY-MM-DD')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_skips_leading_whitespace() {
+    public void testSkipsLeadingWhitespace() {
         // PostgreSQL skips multiple blanks at start
         assertEvaluate(
             "to_timestamp('  2023-07-15', 'YYYY-MM-DD')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_three_digit_year_yyy() {
+    public void testThreeDigitYearYyy() {
         // YYY parses 3 digits as the year value directly (023 = year 23)
         assertEvaluate(
             "to_timestamp('023-07-15', 'YYY-MM-DD')",
-            -61424524800000L
+            // DIFFERS: PostgreSQL 16 returns 2023-07-15 (applies "nearest to 2020" rule)
+            Instant.parse("0023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_single_digit_year_y() {
+    public void testSingleDigitYearY() {
         // Y parses 1 digit as the year value directly (3 = year 3)
         assertEvaluate(
             "to_timestamp('3-07-15', 'Y-MM-DD')",
-            -62055676800000L
+            // DIFFERS: PostgreSQL 16 returns 2003-07-15 (applies "nearest to 2020" rule)
+            Instant.parse("0003-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_ff1_tenth_of_second() {
+    public void testFf1TenthOfSecond() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45.1', 'YYYY-MM-DD HH24:MI:SS.FF1')",
-            1689431445100L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45.1+00
+            Instant.parse("2023-07-15T14:30:45.100Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_ff2_hundredth_of_second() {
+    public void testFf2HundredthOfSecond() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45.12', 'YYYY-MM-DD HH24:MI:SS.FF2')",
-            1689431445120L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45.12+00
+            Instant.parse("2023-07-15T14:30:45.120Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_ff3_millisecond() {
+    public void testFf3Millisecond() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45.123', 'YYYY-MM-DD HH24:MI:SS.FF3')",
-            1689431445123L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45.123+00
+            Instant.parse("2023-07-15T14:30:45.123Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_ff4_tenth_of_millisecond() {
+    public void testFf4TenthOfMillisecond() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45.1234', 'YYYY-MM-DD HH24:MI:SS.FF4')",
-            1689431445123L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45.1234+00 (truncated to milliseconds)
+            Instant.parse("2023-07-15T14:30:45.123Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_ff5_hundredth_of_millisecond() {
+    public void testFf5HundredthOfMillisecond() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45.12345', 'YYYY-MM-DD HH24:MI:SS.FF5')",
-            1689431445123L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45.12345+00 (truncated to milliseconds)
+            Instant.parse("2023-07-15T14:30:45.123Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_ff6_microsecond() {
+    public void testFf6Microsecond() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45.123456', 'YYYY-MM-DD HH24:MI:SS.FF6')",
-            1689431445123L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45.123456+00 (truncated to milliseconds)
+            Instant.parse("2023-07-15T14:30:45.123Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_sssss_seconds_past_midnight_variant() {
+    public void testSssssSecondsPastMidnightVariant() {
         assertEvaluate(
             "to_timestamp('2023-07-15 52245', 'YYYY-MM-DD SSSSS')",
-            1689431445000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45+00
+            Instant.parse("2023-07-15T14:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_hour_12_at_noon_with_pm() {
+    public void testHour12AtNoonWithPm() {
         // 12 PM should be 12:00, not 24:00
         assertEvaluate(
             "to_timestamp('2023-07-15 12:30:45 PM', 'YYYY-MM-DD HH12:MI:SS PM')",
-            1689424245000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 12:30:45+00
+            Instant.parse("2023-07-15T12:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_hour_12_at_midnight_with_am() {
+    public void testHour12AtMidnightWithAm() {
         // 12 AM should be 00:00
         assertEvaluate(
             "to_timestamp('2023-07-15 12:30:45 AM', 'YYYY-MM-DD HH12:MI:SS AM')",
-            1689381045000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:30:45+00
+            Instant.parse("2023-07-15T00:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_iso_year_iyyy() {
+    public void testIsoYearIyyy() {
         assertEvaluate(
             "to_timestamp('2023-07-15', 'IYYY-MM-DD')",
-            1689379200000L
+            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_week_number_ww() {
+    public void testWeekNumberWw() {
+        // Week 28 of 2023 starts July 9 (Sunday start)
         assertEvaluate(
             "to_timestamp('2023-28', 'YYYY-WW')",
-            1672531200000L
+            // Verified: PostgreSQL 16 returns 2023-07-09 00:00:00+00
+            Instant.parse("2023-07-09T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_iso_week_number_iw() {
+    public void testIsoWeekNumberIw() {
+        // ISO week 28 of 2023 starts Monday July 10
         assertEvaluate(
             "to_timestamp('2023-28', 'YYYY-IW')",
-            1672531200000L
+            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
+            Instant.parse("2023-07-10T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_day_of_week_d() {
+    public void testDayOfWeekD() {
         assertEvaluate(
             "to_timestamp('2023-07-15 7', 'YYYY-MM-DD D')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_iso_day_of_week_id() {
+    public void testIsoDayOfWeekId() {
         assertEvaluate(
             "to_timestamp('2023-07-15 6', 'YYYY-MM-DD ID')",
-            1689379200000L
+            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_week_of_month_w() {
+    public void testWeekOfMonthW() {
         assertEvaluate(
             "to_timestamp('2023-07-15 3', 'YYYY-MM-DD W')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_century_cc() {
-        // CC parses century but doesn't set year, so defaults to year 1
+    public void testCenturyCc() {
+        // Century 21 = 2001-2100, first year = 2001
         assertEvaluate(
             "to_timestamp('21-07-15', 'CC-MM-DD')",
-            -62118748800000L
+            // Verified: PostgreSQL 16 returns 2001-07-15 00:00:00+00
+            Instant.parse("2001-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_quarter_q() {
+    public void testQuarterQ() {
         assertEvaluate(
             "to_timestamp('2023-3', 'YYYY-Q')",
-            1672531200000L
+            // Verified: PostgreSQL 16 returns 2023-01-01 00:00:00+00 (Q is ignored)
+            Instant.parse("2023-01-01T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_era_ad() {
+    public void testEraAd() {
         assertEvaluate(
             "to_timestamp('2023-07-15 AD', 'YYYY-MM-DD AD')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_era_bc() {
+    public void testEraBc() {
+        // Year 2023 BC = astronomical year -2022
         assertEvaluate(
             "to_timestamp('2023-07-15 BC', 'YYYY-MM-DD BC')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00 BC (= -2022)
+            Instant.parse("-2022-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_era_with_periods_a_d() {
+    public void testEraWithPeriodsAD() {
         assertEvaluate(
             "to_timestamp('2023-07-15 A.D.', 'YYYY-MM-DD A.D.')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_lowercase_month_pattern() {
+    public void testLowercaseMonthPattern() {
         assertEvaluate(
             "to_timestamp('15 july 2023', 'DD month YYYY')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_uppercase_month_pattern() {
+    public void testUppercaseMonthPattern() {
         assertEvaluate(
             "to_timestamp('15 JULY 2023', 'DD MONTH YYYY')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_lowercase_day_pattern() {
+    public void testLowercaseDayPattern() {
         assertEvaluate(
             "to_timestamp('saturday 2023-07-15', 'day YYYY-MM-DD')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_uppercase_day_pattern() {
+    public void testUppercaseDayPattern() {
         assertEvaluate(
             "to_timestamp('SATURDAY 2023-07-15', 'DAY YYYY-MM-DD')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_lowercase_abbreviated_month() {
+    public void testLowercaseAbbreviatedMonth() {
         assertEvaluate(
             "to_timestamp('15 jul 2023', 'DD mon YYYY')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_uppercase_abbreviated_month() {
+    public void testUppercaseAbbreviatedMonth() {
         assertEvaluate(
             "to_timestamp('15 JUL 2023', 'DD MON YYYY')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_lowercase_abbreviated_day() {
+    public void testLowercaseAbbreviatedDay() {
         assertEvaluate(
             "to_timestamp('sat 2023-07-15', 'dy YYYY-MM-DD')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_uppercase_abbreviated_day() {
+    public void testUppercaseAbbreviatedDay() {
         assertEvaluate(
             "to_timestamp('SAT 2023-07-15', 'DY YYYY-MM-DD')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_hour24_lowercase_hh24() {
+    public void testHour24LowercaseHh24() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45', 'YYYY-MM-DD hh24:MI:SS')",
-            1689431445000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45+00
+            Instant.parse("2023-07-15T14:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_minute_lowercase_mi() {
+    public void testMinuteLowercaseMi() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45', 'YYYY-MM-DD HH24:mi:SS')",
-            1689431445000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45+00
+            Instant.parse("2023-07-15T14:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_second_lowercase_ss() {
+    public void testSecondLowercaseSs() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45', 'YYYY-MM-DD HH24:MI:ss')",
-            1689431445000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45+00
+            Instant.parse("2023-07-15T14:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_millisecond_lowercase_ms() {
+    public void testMillisecondLowercaseMs() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45.123', 'YYYY-MM-DD HH24:MI:SS.ms')",
-            1689431445123L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45.123+00
+            Instant.parse("2023-07-15T14:30:45.123Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_microsecond_lowercase_us() {
+    public void testMicrosecondLowercaseUs() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45.123456', 'YYYY-MM-DD HH24:MI:SS.us')",
-            1689431445123L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45.123456+00 (truncated to milliseconds)
+            Instant.parse("2023-07-15T14:30:45.123Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_day_of_year_lowercase_ddd() {
+    public void testDayOfYearLowercaseDdd() {
         assertEvaluate(
             "to_timestamp('2023 196', 'YYYY ddd')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_day_of_month_lowercase_dd() {
+    public void testDayOfMonthLowercaseDd() {
         assertEvaluate(
             "to_timestamp('2023-07-15', 'YYYY-MM-dd')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_month_number_lowercase_mm() {
+    public void testMonthNumberLowercaseMm() {
         assertEvaluate(
             "to_timestamp('2023-07-15', 'YYYY-mm-DD')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_empty_input_uses_defaults() {
-        // Empty string should use all defaults
+    public void testEmptyInputUsesDefaults() {
+        // Empty string should use all defaults (CrateDB defaults to year 1, PG defaults to year 0)
         assertEvaluate(
             "to_timestamp('', '')",
-            -62135596800000L
+            // DIFFERS: PostgreSQL 16 returns 0001-01-01 00:00:00+00 BC (year 0 = 1 BC)
+            Instant.parse("0001-01-01T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_iso_day_of_week_numbering_year_iddd() {
+    public void testIsoDayOfWeekNumberingYearIddd() {
         // IDDD is parsed but not used to compute the date (it's informational only)
         assertEvaluate(
             "to_timestamp('2023 196', 'YYYY IDDD')",
-            1672531200000L
+            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
+            Instant.parse("2023-01-01T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_lowercase_pm_marker() {
+    public void testLowercasePmMarker() {
         assertEvaluate(
             "to_timestamp('2023-07-15 02:30:45 pm', 'YYYY-MM-DD HH12:MI:SS pm')",
-            1689431445000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45+00
+            Instant.parse("2023-07-15T14:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_lowercase_am_marker() {
+    public void testLowercaseAmMarker() {
         assertEvaluate(
             "to_timestamp('2023-07-15 02:30:45 am', 'YYYY-MM-DD HH12:MI:SS am')",
-            1689388245000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 02:30:45+00
+            Instant.parse("2023-07-15T02:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_lowercase_periods_am() {
+    public void testLowercasePeriodsAm() {
         assertEvaluate(
             "to_timestamp('2023-07-15 02:30:45 a.m.', 'YYYY-MM-DD HH12:MI:SS a.m.')",
-            1689388245000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 02:30:45+00
+            Instant.parse("2023-07-15T02:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_lowercase_periods_pm() {
+    public void testLowercasePeriodsPm() {
         assertEvaluate(
             "to_timestamp('2023-07-15 02:30:45 p.m.', 'YYYY-MM-DD HH12:MI:SS p.m.')",
-            1689431445000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45+00
+            Instant.parse("2023-07-15T14:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_iso_year_short_formats_iyy_iy_i() {
+    public void testIsoYearShortFormatsIyyIyI() {
         // IYY parses 3 digits for ISO year (970 -> year 970, Jul 15)
         assertEvaluate(
             "to_timestamp('970-07-15', 'IYY-MM-DD')",
-            -31540060800000L
+            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
+            Instant.parse("0970-07-15T00:00:00Z").toEpochMilli()
         );
         // IY parses 2 digits for ISO year with two-digit year rule (70 -> 1970, Jul 15)
         assertEvaluate(
             "to_timestamp('70-07-15', 'IY-MM-DD')",
-            -59941296000000L
+            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
+            Instant.parse("0070-07-15T00:00:00Z").toEpochMilli()
         );
-        // I parses 1 digit for ISO year (0 -> year 0 with two-digit year rule -> 2000, Jul 15)
+        // I parses 1 digit for ISO year (0 -> year 0, Jul 15)
         assertEvaluate(
             "to_timestamp('0-07-15', 'I-MM-DD')",
-            -62150284800000L
+            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
+            Instant.parse("0000-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_julian_day_parsing() {
+    public void testJulianDayParsing() {
         // Julian day 2440588 = 1970-01-01
         assertEvaluate(
             "to_timestamp('2440588', 'J')",
-            -62135596800000L
+            // Verified: PostgreSQL 16 returns 1970-01-01 00:00:00+00
+            Instant.parse("1970-01-01T00:00:00Z").toEpochMilli()
         );
-        // Julian day with lowercase j
         assertEvaluate(
             "to_timestamp('2440588', 'j')",
-            -62135596800000L
+            // Verified: PostgreSQL 16 returns 1970-01-01 00:00:00+00
+            Instant.parse("1970-01-01T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_roman_month_parsing() {
-        // Roman numeral month I = January (year 1, Jan 1)
+    public void testRomanMonthParsing() {
+        // Roman numeral month I = January (CrateDB uses year 1 default, PG uses year 0)
         assertEvaluate(
             "to_timestamp('I', 'RM')",
-            -62135596800000L
+            // DIFFERS: PostgreSQL 16 returns 0001-01-01 00:00:00+00 BC (year 0)
+            Instant.parse("0001-01-01T00:00:00Z").toEpochMilli()
         );
-        // Roman numeral month XII = December (year 1, Dec 1)
         assertEvaluate(
             "to_timestamp('XII', 'RM')",
-            -62106739200000L
+            // DIFFERS: PostgreSQL 16 returns year 0, CrateDB returns year 1
+            Instant.parse("0001-12-01T00:00:00Z").toEpochMilli()
         );
-        // Roman numeral month IV = April (year 1, Apr 1)
         assertEvaluate(
             "to_timestamp('IV', 'RM')",
-            -62127820800000L
+            // DIFFERS: PostgreSQL 16 returns year 0, CrateDB returns year 1
+            Instant.parse("0001-04-01T00:00:00Z").toEpochMilli()
         );
-        // Lowercase roman month IX = September (year 1, Sep 1)
         assertEvaluate(
             "to_timestamp('ix', 'rm')",
-            -62114601600000L
+            // DIFFERS: PostgreSQL 16 returns year 0, CrateDB returns year 1
+            Instant.parse("0001-09-01T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_timezone_patterns_are_ignored() {
+    public void testTimezonePatternsAreIgnored() {
         // Timezone patterns are parsed but ignored (result is always UTC)
         assertEvaluate(
             "to_timestamp('2023-07-15 UTC', 'YYYY-MM-DD TZ')",
-            1689379200000L
+            // PG_REJECTS: PostgreSQL 16 rejects "formatting field TZ is only supported in to_char"
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
         assertEvaluate(
             "to_timestamp('2023-07-15 utc', 'YYYY-MM-DD tz')",
-            1689379200000L
+            // PG_REJECTS: PostgreSQL 16 rejects "formatting field tz is only supported in to_char"
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_timezone_hours_minutes_patterns_are_ignored() {
+    public void testTimezoneHoursMinutesPatternsAreIgnored() {
         // TZH and TZM patterns are parsed but ignored
         assertEvaluate(
             "to_timestamp('2023-07-15 00', 'YYYY-MM-DD TZH')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
         assertEvaluate(
             "to_timestamp('2023-07-15 00', 'YYYY-MM-DD TZM')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_timezone_offset_pattern_is_ignored() {
+    public void testTimezoneOffsetPatternIsIgnored() {
         // OF pattern is parsed but ignored
         assertEvaluate(
             "to_timestamp('2023-07-15 +00:00', 'YYYY-MM-DD OF')",
-            1689379200000L
+            // PG_REJECTS: PostgreSQL 16 rejects "formatting field OF is only supported in to_char"
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_input_shorter_than_pattern() {
+    public void testInputShorterThanPattern() {
         // When input is shorter than pattern, remaining tokens use defaults
         assertEvaluate(
             "to_timestamp('2023', 'YYYY-MM-DD HH24:MI:SS')",
-            1672531200000L
+            // Verified: PostgreSQL 16 returns 2023-01-01 00:00:00+00
+            Instant.parse("2023-01-01T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_year_with_comma_lowercase() {
+    public void testYearWithCommaLowercase() {
         assertEvaluate(
             "to_timestamp('2,023-07-15', 'y,yyy-mm-dd')",
-            1689379200000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_iso_year_lowercase_variants() {
+    public void testIsoYearLowercaseVariants() {
         assertEvaluate(
             "to_timestamp('2023', 'iyyy')",
-            1672531200000L
+            // Verified: PostgreSQL 16 returns 2023-01-01 00:00:00+00
+            Instant.parse("2023-01-01T00:00:00Z").toEpochMilli()
         );
         assertEvaluate(
             "to_timestamp('023', 'iyy')",
-            -61441372800000L
+            // DIFFERS: PostgreSQL 16 returns 2023 (applies "nearest to 2020" rule)
+            Instant.parse("0023-01-01T00:00:00Z").toEpochMilli()
         );
         assertEvaluate(
             "to_timestamp('23', 'iy')",
-            -61441372800000L
+            // DIFFERS: PostgreSQL 16 returns 2023 (applies "nearest to 2020" rule)
+            Instant.parse("0023-01-01T00:00:00Z").toEpochMilli()
         );
-        // Single digit year 3 = year 3, Jan 1
         assertEvaluate(
             "to_timestamp('3', 'i')",
-            -62072524800000L
+            // DIFFERS: PostgreSQL 16 returns 2003 (applies "nearest to 2020" rule)
+            Instant.parse("0003-01-01T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_day_of_iso_week_numbering_year_iddd_lowercase() {
+    public void testDayOfIsoWeekNumberingYearIdddLowercase() {
         assertEvaluate(
             "to_timestamp('2023 196', 'YYYY iddd')",
-            1672531200000L
+            // PG_REJECTS: PostgreSQL 16 rejects "invalid combination of date conventions"
+            Instant.parse("2023-01-01T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_seconds_past_midnight_lowercase_ssss() {
+    public void testSecondsPastMidnightLowercaseSsss() {
         assertEvaluate(
             "to_timestamp('2023-07-15 52245', 'YYYY-MM-DD ssss')",
-            1689431445000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45+00
+            Instant.parse("2023-07-15T14:30:45Z").toEpochMilli()
         );
     }
 
     @Test
-    public void test_seconds_past_midnight_lowercase_sssss() {
+    public void testSecondsPastMidnightLowercaseSssss() {
         assertEvaluate(
             "to_timestamp('2023-07-15 52245', 'YYYY-MM-DD sssss')",
-            1689431445000L
+            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45+00
+            Instant.parse("2023-07-15T14:30:45Z").toEpochMilli()
         );
     }
+
 }
