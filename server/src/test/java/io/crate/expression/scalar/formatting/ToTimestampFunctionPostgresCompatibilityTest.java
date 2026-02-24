@@ -51,8 +51,8 @@ import io.crate.expression.scalar.ScalarTestCase;
  *       due to TIMESTAMPTZ storage precision. PostgreSQL preserves full microsecond precision.</li>
  *   <li><b>Large years (>9999):</b> YYYY pattern strictly consumes 4 digits in CrateDB,
  *       so years > 9999 are not supported with standard YYYY format.</li>
- *   <li><b>FM modifier:</b> Fill mode (FM) modifier not supported in CrateDB.
- *       Use padded patterns (Month, Day) with appropriate whitespace instead.</li>
+ *   <li><b>FM modifier:</b> Fill mode (FM) modifier not yet supported. Workaround: CrateDB already
+ *       accepts variable-width input, so use patterns without FM (e.g., 'Month' instead of 'FMMonth').</li>
  *   <li><b>'th' ordinal suffix:</b> Ordinal suffixes like 'th', 'nd', 'rd' not supported.</li>
  *   <li><b>Negative years in input:</b> Negative year values in the input string (e.g., '-44-02-01')
  *       are handled differently. Use the BC pattern instead for BC dates.</li>
@@ -386,6 +386,27 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
         assertEvaluate("to_timestamp('21', 'CC')",
             // Verified: PostgreSQL 16 returns 2001-01-01 00:00:00+00
             Instant.parse("2001-01-01T00:00:00Z").toEpochMilli());
+    }
+
+    /**
+     * FM (fill mode) modifier - not yet supported.
+     * See ToTimestampFunctionTest.testFmModifierSingleDigitValues for implementation notes.
+     */
+    @Test
+    public void testPostgresFillModeModifier() {
+        // FM (fill mode) modifier allows single-digit values without leading zeros
+        // TODO: Enable when FM support is implemented
+        // assertEvaluate("to_timestamp('2023-7-5', 'YYYY-FMMM-FMDD')",
+        //     // Verified: PostgreSQL 16 returns 2023-07-05 00:00:00+00
+        //     Instant.parse("2023-07-05T00:00:00Z").toEpochMilli());
+        // FM also works with month names
+        // assertEvaluate("to_timestamp('July 5, 2023', 'FMMonth FMDD, YYYY')",
+        //     // Verified: PostgreSQL 16 returns 2023-07-05 00:00:00+00
+        //     Instant.parse("2023-07-05T00:00:00Z").toEpochMilli());
+        // Lowercase fm also works
+        // assertEvaluate("to_timestamp('Jul 5, 2023', 'fmMon fmDD, YYYY')",
+        //     // Verified: PostgreSQL 16 returns 2023-07-05 00:00:00+00
+        //     Instant.parse("2023-07-05T00:00:00Z").toEpochMilli());
     }
 
     @Test
