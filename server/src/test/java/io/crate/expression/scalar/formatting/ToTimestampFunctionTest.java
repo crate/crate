@@ -47,8 +47,6 @@ import io.crate.expression.symbol.Literal;
  * <ul>
  *   <li><b>Default year:</b> CrateDB uses year 1, PostgreSQL uses year 0 (1 BC).
  *       Tests that rely only on time components (HH, MI, SS, etc.) will differ by 1 year.</li>
- *   <li><b>YYY/Y patterns:</b> CrateDB treats as literal year value,
- *       PostgreSQL applies "nearest to 2020" rule (e.g., Y=9 becomes 2009 in PG, 0009 in CrateDB).</li>
  *   <li><b>ISO patterns with Gregorian:</b> CrateDB accepts mixing ISO week patterns (IYYY, IW, ID)
  *       with Gregorian dates, PostgreSQL rejects with "invalid combination of date conventions".</li>
  *   <li><b>TZ/tz/OF patterns:</b> CrateDB accepts timezone patterns (parses and ignores them),
@@ -364,21 +362,21 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
 
     @Test
     public void testThreeDigitYearYyy() {
-        // YYY parses 3 digits as the year value directly (023 = year 23)
+        // YYY parses 3 digits and applies "nearest to 2020" rule
         assertEvaluate(
             "to_timestamp('023-07-15', 'YYY-MM-DD')",
-            // DIFFERS: PostgreSQL 16 returns 2023-07-15 (applies "nearest to 2020" rule)
-            Instant.parse("0023-07-15T00:00:00Z").toEpochMilli()
+            // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+            Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
         );
     }
 
     @Test
     public void testSingleDigitYearY() {
-        // Y parses 1 digit as the year value directly (3 = year 3)
+        // Y parses 1 digit and applies "nearest to 2020" rule
         assertEvaluate(
             "to_timestamp('3-07-15', 'Y-MM-DD')",
-            // DIFFERS: PostgreSQL 16 returns 2003-07-15 (applies "nearest to 2020" rule)
-            Instant.parse("0003-07-15T00:00:00Z").toEpochMilli()
+            // Verified: PostgreSQL 16 returns 2003-07-15 00:00:00+00
+            Instant.parse("2003-07-15T00:00:00Z").toEpochMilli()
         );
     }
 

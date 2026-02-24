@@ -495,6 +495,11 @@ public class DateTimeFormatter {
         Boolean isPm = null;
         Integer secondsPastMidnight = null;
         Integer dayOfYear = null;
+        Boolean isBc = null;
+        Integer julianDay = null;
+        Integer weekOfYear = null;
+        Integer isoWeekOfYear = null;
+        Integer century = null;
     }
 
     private static class ParseResult {
@@ -539,9 +544,9 @@ public class DateTimeFormatter {
     private ParseResult parseToken(Token token, String input, int pos) {
         return switch (token) {
             case YEAR_YYYY, YEAR_LOWER_YYYY -> parseDigits(input, pos, 4);
-            case YEAR_YYY, YEAR_YYY_LOWER -> parseDigits(input, pos, 3);
+            case YEAR_YYY, YEAR_YYY_LOWER -> parseThreeDigitYear(input, pos);
             case YEAR_YY, YEAR_YY_LOWER -> parseTwoDigitYear(input, pos);
-            case YEAR_Y, YEAR_Y_LOWER -> parseDigits(input, pos, 1);
+            case YEAR_Y, YEAR_Y_LOWER -> parseOneDigitYear(input, pos);
             case YEAR_WITH_COMMA, YEAR_WITH_COMMA_LOWER -> parseYearWithComma(input, pos);
             case MONTH_NUMBER, MONTH_NUMBER_LOWER -> parseDigits(input, pos, 2);
             case DAY_OF_MONTH, DAY_OF_MONTH_LOWER -> parseDigits(input, pos, 2);
@@ -612,13 +617,18 @@ public class DateTimeFormatter {
             case SECONDS_PAST_MIDNIGHT, SECONDS_PAST_MIDNIGHT_LOWER,
                  SECONDS_PAST_MIDNIGHT_S, SECONDS_PAST_MIDNIGHT_S_LOWER -> parsed.secondsPastMidnight = (Integer) value;
             case DAY_OF_YEAR, DAY_OF_YEAR_LOWER -> parsed.dayOfYear = (Integer) value;
+            case BC_ERA_UPPER, BC_ERA_LOWER, AD_ERA_UPPER, AD_ERA_LOWER,
+                 B_C_ERA_UPPER, B_C_ERA_LOWER, A_D_ERA_UPPER, A_D_ERA_LOWER -> parsed.isBc = !(Boolean) value;
+            case JULIAN_DAY, JULIAN_DAY_LOWER -> parsed.julianDay = (Integer) value;
+            case WEEK_NUMBER_OF_YEAR, WEEK_NUMBER_OF_YEAR_LOWER -> parsed.weekOfYear = (Integer) value;
+            case WEEK_NUMBER_OF_ISO_YEAR, WEEK_NUMBER_OF_ISO_YEAR_LOWER -> parsed.isoWeekOfYear = (Integer) value;
+            case CENTURY, CENTURY_LOW -> parsed.century = (Integer) value;
             default -> {
             }
         }
     }
 
     private LocalDateTime buildLocalDateTime(ParsedDateTime parsed) {
-        int year = parsed.year != null ? parsed.year : 1;
         int hour = parsed.hour != null ? parsed.hour : 0;
         int minute = parsed.minute != null ? parsed.minute : 0;
         int second = parsed.second != null ? parsed.second : 0;
@@ -636,14 +646,60 @@ public class DateTimeFormatter {
             second = parsed.secondsPastMidnight % 60;
         }
 
+        // Handle Julian day - takes precedence over other date fields
+        if (parsed.julianDay != null) {
+            LocalDate date = LocalDate.MIN.with(JulianFields.JULIAN_DAY, parsed.julianDay);
+            return LocalDateTime.of(date.getYear(), date.getMonth(), date.getDayOfMonth(), hour, minute, second, nano);
+        }
+
+        // Compute year from century and/or explicit year
+        int year = computeYear(parsed);
+
+        // Apply BC era - convert to astronomical year (year 1 BC = year 0, year 2 BC = year -1, etc.)
+        if (parsed.isBc != null && parsed.isBc) {
+            year = 1 - year;
+        }
+
         if (parsed.dayOfYear != null && parsed.year != null) {
             LocalDate date = LocalDate.ofYearDay(year, parsed.dayOfYear);
+            return LocalDateTime.of(date.getYear(), date.getMonth(), date.getDayOfMonth(), hour, minute, second, nano);
+        }
+
+        // Handle ISO week of year
+        if (parsed.isoWeekOfYear != null && parsed.year != null) {
+            LocalDate date = LocalDate.of(year, 1, 4)
+                .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, parsed.isoWeekOfYear)
+                .with(java.time.DayOfWeek.MONDAY);
+            return LocalDateTime.of(date.getYear(), date.getMonth(), date.getDayOfMonth(), hour, minute, second, nano);
+        }
+
+        // Handle week of year (Sunday start, week 1 contains Jan 1)
+        if (parsed.weekOfYear != null && parsed.year != null) {
+            LocalDate jan1 = LocalDate.of(year, 1, 1);
+            int jan1DayOfWeek = jan1.getDayOfWeek().getValue() % 7; // Sunday = 0
+            int daysToAdd = (parsed.weekOfYear - 1) * 7 - jan1DayOfWeek;
+            LocalDate date = jan1.plusDays(daysToAdd);
             return LocalDateTime.of(date.getYear(), date.getMonth(), date.getDayOfMonth(), hour, minute, second, nano);
         }
 
         int month = parsed.month != null ? parsed.month : 1;
         int day = parsed.day != null ? parsed.day : 1;
         return LocalDateTime.of(year, month, day, hour, minute, second, nano);
+    }
+
+    private int computeYear(ParsedDateTime parsed) {
+        if (parsed.year != null && parsed.century != null) {
+            // CC with YY: century provides the high digits, year provides the low digits
+            // CC=19 means 1800s, CC=20 means 1900s, CC=21 means 2000s
+            int yearInCentury = parsed.year % 100;
+            return (parsed.century - 1) * 100 + yearInCentury;
+        }
+        if (parsed.century != null) {
+            // Century alone: return first year of that century
+            // Century 21 = 2001, Century 20 = 1901
+            return (parsed.century - 1) * 100 + 1;
+        }
+        return parsed.year != null ? parsed.year : 1;
     }
 
     private int computeNanos(ParsedDateTime parsed) {
@@ -697,6 +753,19 @@ public class DateTimeFormatter {
         return new ParseResult(endPos - pos, value);
     }
 
+    private ParseResult parseOneDigitYear(String input, int pos) {
+        ParseResult result = parseDigits(input, pos, 1);
+        if (result.value == null) {
+            return result;
+        }
+        int oneDigitYear = (Integer) result.value;
+        // PostgreSQL uses "nearest to 2020" rule for single-digit years:
+        // Choose century that makes year closest to 2020
+        // e.g., 9 → 2009 (not 0009, 1009, or 3009)
+        int fullYear = 2000 + oneDigitYear;
+        return new ParseResult(result.charsConsumed, fullYear);
+    }
+
     private ParseResult parseTwoDigitYear(String input, int pos) {
         ParseResult result = parseDigits(input, pos, 2);
         if (result.value == null) {
@@ -706,6 +775,35 @@ public class DateTimeFormatter {
         // PostgreSQL uses "nearest to 2020" rule:
         // 00-69 → 2000-2069, 70-99 → 1970-1999
         int fullYear = twoDigitYear < 70 ? 2000 + twoDigitYear : 1900 + twoDigitYear;
+        return new ParseResult(result.charsConsumed, fullYear);
+    }
+
+    private ParseResult parseThreeDigitYear(String input, int pos) {
+        ParseResult result = parseDigits(input, pos, 3);
+        if (result.value == null) {
+            return result;
+        }
+        int threeDigitYear = (Integer) result.value;
+        // PostgreSQL uses "nearest to 2020" rule for three-digit years:
+        // Choose millennium that makes year closest to 2020
+        // e.g., 995 → 1995 (not 0995 or 2995)
+        // 021 → 2021 (not 1021 or 3021)
+        int candidate1 = threeDigitYear;        // 0xxx
+        int candidate2 = 1000 + threeDigitYear; // 1xxx
+        int candidate3 = 2000 + threeDigitYear; // 2xxx
+
+        int dist1 = Math.abs(candidate1 - 2020);
+        int dist2 = Math.abs(candidate2 - 2020);
+        int dist3 = Math.abs(candidate3 - 2020);
+
+        int fullYear;
+        if (dist1 <= dist2 && dist1 <= dist3) {
+            fullYear = candidate1;
+        } else if (dist2 <= dist3) {
+            fullYear = candidate2;
+        } else {
+            fullYear = candidate3;
+        }
         return new ParseResult(result.charsConsumed, fullYear);
     }
 

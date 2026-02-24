@@ -47,8 +47,6 @@ import io.crate.expression.scalar.ScalarTestCase;
  * <ul>
  *   <li><b>Default year:</b> CrateDB uses year 1, PostgreSQL uses year 0 (1 BC).
  *       Tests that rely only on time components (HH, MI, SS, etc.) will differ by 1 year.</li>
- *   <li><b>YYY/Y patterns:</b> CrateDB treats as literal year value,
- *       PostgreSQL applies "nearest to 2020" rule (e.g., Y=9 becomes 2009 in PG, 0009 in CrateDB).</li>
  *   <li><b>ISO patterns with Gregorian:</b> CrateDB accepts mixing ISO week patterns (IYYY, IW, ID)
  *       with Gregorian dates, PostgreSQL rejects with "invalid combination of date conventions".</li>
  *   <li><b>TZ/tz/OF patterns:</b> CrateDB accepts timezone patterns (parses and ignores them),
@@ -199,16 +197,16 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
         assertEvaluate("to_timestamp('1,970', 'Y,YYY')",
             // Verified: PostgreSQL 16 returns 1970-01-01 00:00:00+00
             Instant.parse("1970-01-01T00:00:00Z").toEpochMilli());
-        // YYY, YY, Y parse partial years
+        // YYY, YY, Y parse partial years with "nearest to 2020" rule
         assertEvaluate("to_timestamp('970', 'YYY')",
-            // DIFFERS: PostgreSQL 16 returns 2970-01-01 (applies "nearest to 2020" rule)
-            Instant.parse("0970-01-01T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 1970-01-01 00:00:00+00
+            Instant.parse("1970-01-01T00:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('70', 'YY')",
             // Verified: PostgreSQL 16 returns 1970-01-01 00:00:00+00
             Instant.parse("1970-01-01T00:00:00Z").toEpochMilli());
         assertEvaluate("to_timestamp('0', 'Y')",
-            // DIFFERS: PostgreSQL 16 returns 2000-01-01 (applies "nearest to 2020" rule)
-            -62167219200000L);  // year 0
+            // Verified: PostgreSQL 16 returns 2000-01-01 00:00:00+00
+            Instant.parse("2000-01-01T00:00:00Z").toEpochMilli());
     }
 
     @Test
@@ -597,8 +595,8 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
         // From horology.sql: SELECT to_timestamp('9-1116', 'Y-MMDD');
         // PostgreSQL applies "nearest to 2020" rule: 9 -> 2009
         assertEvaluate("to_timestamp('9-1116', 'Y-MMDD')",
-            // DIFFERS: PostgreSQL 16 returns 2009-11-16 00:00:00+00 (nearest to 2020 rule)
-            Instant.parse("0009-11-16T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 2009-11-16 00:00:00+00
+            Instant.parse("2009-11-16T00:00:00Z").toEpochMilli());
 
         // Two digit year
         // From horology.sql: SELECT to_timestamp('95-1116', 'YY-MMDD');
@@ -610,8 +608,8 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
         // From horology.sql: SELECT to_timestamp('995-1116', 'YYY-MMDD');
         // PostgreSQL applies "nearest to 2020" rule: 995 -> 1995
         assertEvaluate("to_timestamp('995-1116', 'YYY-MMDD')",
-            // DIFFERS: PostgreSQL 16 returns 1995-11-16 00:00:00+00 (nearest to 2020 rule)
-            Instant.parse("0995-11-16T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 1995-11-16 00:00:00+00
+            Instant.parse("1995-11-16T00:00:00Z").toEpochMilli());
 
         // Week and day of week
         // From horology.sql: SELECT to_timestamp('2005426', 'YYYYWWD');
