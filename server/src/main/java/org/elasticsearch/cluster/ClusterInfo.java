@@ -20,6 +20,7 @@
 package org.elasticsearch.cluster;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 
@@ -29,9 +30,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.StoreStats;
-
-import com.carrotsearch.hppc.ObjectHashSet;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.common.collections.MapBuilder;
 
@@ -88,7 +86,7 @@ public class ClusterInfo implements Writeable {
         final Map<ShardRouting, String> routingMap = in.readMap(ShardRouting::new, StreamInput::readString);
         Map<NodeAndPath, ReservedSpace> reservedSpaceMap;
         if (in.getVersion().onOrAfter(StoreStats.RESERVED_BYTES_VERSION)) {
-            reservedSpaceMap = in.readMap(NodeAndPath::new, ReservedSpace::new);
+            reservedSpaceMap = in.readMap(NodeAndPath::new, ReservedSpace::of);
         } else {
             reservedSpaceMap = Map.of();
         }
@@ -215,62 +213,36 @@ public class ClusterInfo implements Writeable {
     /**
      * Represents the total amount of "reserved" space on a particular data path, together with the set of shards considered.
      */
-    public static class ReservedSpace implements Writeable {
+    public record ReservedSpace(long total, HashSet<ShardId> shardIds) implements Writeable {
 
-        public static final ReservedSpace EMPTY = new ReservedSpace(0, new ObjectHashSet<>());
+        public static final ReservedSpace EMPTY = new ReservedSpace(0, new HashSet<>());
 
-        private final long total;
-        private final ObjectHashSet<ShardId> shardIds;
-
-        private ReservedSpace(long total, ObjectHashSet<ShardId> shardIds) {
-            this.total = total;
-            this.shardIds = shardIds;
-        }
-
-        ReservedSpace(StreamInput in) throws IOException {
-            total = in.readVLong();
+        public static ReservedSpace of(StreamInput in) throws IOException {
+            long total = in.readVLong();
             final int shardIdCount = in.readVInt();
-            shardIds = new ObjectHashSet<>(shardIdCount);
+            HashSet<ShardId> shardIds = HashSet.newHashSet(shardIdCount);
             for (int i = 0; i < shardIdCount; i++) {
                 shardIds.add(new ShardId(in));
             }
+            return new ReservedSpace(total, shardIds);
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeVLong(total);
             out.writeVInt(shardIds.size());
-            for (ObjectCursor<ShardId> shardIdCursor : shardIds) {
-                shardIdCursor.value.writeTo(out);
+            for (ShardId shardId : shardIds) {
+                shardId.writeTo(out);
             }
-        }
-
-        public long getTotal() {
-            return total;
         }
 
         public boolean containsShardId(ShardId shardId) {
             return shardIds.contains(shardId);
         }
 
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            ReservedSpace that = (ReservedSpace) o;
-            return total == that.total &&
-                shardIds.equals(that.shardIds);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(total, shardIds);
-        }
-
-
         public static class Builder {
             private long total;
-            private ObjectHashSet<ShardId> shardIds = new ObjectHashSet<>();
+            private HashSet<ShardId> shardIds = new HashSet<>();
 
             public ReservedSpace build() {
                 assert shardIds != null : "already built";
