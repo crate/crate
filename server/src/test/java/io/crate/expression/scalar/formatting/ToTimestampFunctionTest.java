@@ -52,7 +52,8 @@ import io.crate.expression.symbol.Literal;
  *       so years > 9999 are not supported with standard YYYY format.</li>
  *   <li><b>FM modifier:</b> Fill mode (FM) modifier not yet supported. Workaround: CrateDB already
  *       accepts variable-width input, so use patterns without FM (e.g., 'Month' instead of 'FMMonth').</li>
- *   <li><b>'th' ordinal suffix:</b> Ordinal suffixes like 'th', 'nd', 'rd' not supported.</li>
+ *   <li><b>'th' ordinal suffix:</b> Ordinal suffixes (TH/th pattern matching st, nd, rd, th) not yet
+ *       supported.</li>
  *   <li><b>Negative years in input:</b> Negative year values in the input string (e.g., '-44-02-01')
  *       are handled differently. Use the BC pattern instead for BC dates.</li>
  *   <li><b>Internal whitespace:</b> PostgreSQL accepts internal whitespace in fixed-width formats
@@ -429,6 +430,74 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
         //     "to_timestamp('2023-07-05', 'YYYY-FMMM-FMDD')",
         //     // Verified: PostgreSQL 16 returns 2023-07-05 00:00:00+00
         //     Instant.parse("2023-07-05T00:00:00Z").toEpochMilli()
+        // );
+    }
+
+    /**
+     * Ordinal suffix (TH/th) tests - currently not supported.
+     *
+     * <p>TH Behavior in PostgreSQL:
+     * The TH/th pattern matches any ordinal suffix (st, nd, rd, th) case-insensitively.
+     * The suffix is consumed but doesn't affect the parsed value.
+     *
+     * <p>To implement TH support:
+     * <ol>
+     *   <li>Add ORDINAL_SUFFIX("TH") and ORDINAL_SUFFIX_LOWER("th") to the Token enum</li>
+     *   <li>Add parseOrdinalSuffix() method that matches st/nd/rd/th case-insensitively</li>
+     *   <li>Add case for ORDINAL_SUFFIX in parseToken() switch</li>
+     * </ol>
+     *
+     * @see TH_IMPLEMENTATION.md for detailed implementation guide
+     */
+    @Test
+    public void testOrdinalSuffixTh() {
+        // TH/th pattern matches any ordinal suffix (st, nd, rd, th) case-insensitively
+        // TODO: Enable when TH support is implemented
+        // assertEvaluate(
+        //     "to_timestamp('15th', 'DDth')",
+        //     // Verified: PostgreSQL 16 returns 0001-01-15 BC 00:00:00+00 (year 0)
+        //     Instant.parse("0000-01-15T00:00:00Z").toEpochMilli()
+        // );
+        // assertEvaluate(
+        //     "to_timestamp('1st', 'DDth')",
+        //     // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
+        //     Instant.parse("0000-01-01T00:00:00Z").toEpochMilli()
+        // );
+        // assertEvaluate(
+        //     "to_timestamp('2nd', 'DDth')",
+        //     // Verified: PostgreSQL 16 returns 0001-01-02 BC 00:00:00+00 (year 0)
+        //     Instant.parse("0000-01-02T00:00:00Z").toEpochMilli()
+        // );
+        // assertEvaluate(
+        //     "to_timestamp('3rd', 'DDth')",
+        //     // Verified: PostgreSQL 16 returns 0001-01-03 BC 00:00:00+00 (year 0)
+        //     Instant.parse("0000-01-03T00:00:00Z").toEpochMilli()
+        // );
+    }
+
+    @Test
+    public void testOrdinalSuffixWithFullDate() {
+        // TODO: Enable when TH support is implemented
+        // assertEvaluate(
+        //     "to_timestamp('July 15th, 2023', 'Month DDth, YYYY')",
+        //     // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+        //     Instant.parse("2023-07-15T00:00:00Z").toEpochMilli()
+        // );
+    }
+
+    @Test
+    public void testOrdinalSuffixUppercase() {
+        // TH pattern is case-insensitive in input
+        // TODO: Enable when TH support is implemented
+        // assertEvaluate(
+        //     "to_timestamp('15TH', 'DDTH')",
+        //     // Verified: PostgreSQL 16 returns 0001-01-15 BC 00:00:00+00 (year 0)
+        //     Instant.parse("0000-01-15T00:00:00Z").toEpochMilli()
+        // );
+        // assertEvaluate(
+        //     "to_timestamp('15th', 'DDTH')",
+        //     // Verified: PostgreSQL 16 returns 0001-01-15 BC 00:00:00+00 (year 0)
+        //     Instant.parse("0000-01-15T00:00:00Z").toEpochMilli()
         // );
     }
 

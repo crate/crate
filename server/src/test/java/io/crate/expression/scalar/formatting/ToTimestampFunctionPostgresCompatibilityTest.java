@@ -53,7 +53,8 @@ import io.crate.expression.scalar.ScalarTestCase;
  *       so years > 9999 are not supported with standard YYYY format.</li>
  *   <li><b>FM modifier:</b> Fill mode (FM) modifier not yet supported. Workaround: CrateDB already
  *       accepts variable-width input, so use patterns without FM (e.g., 'Month' instead of 'FMMonth').</li>
- *   <li><b>'th' ordinal suffix:</b> Ordinal suffixes like 'th', 'nd', 'rd' not supported.</li>
+ *   <li><b>'th' ordinal suffix:</b> Ordinal suffixes (TH/th pattern matching st, nd, rd, th) not yet
+ *       supported.</li>
  *   <li><b>Negative years in input:</b> Negative year values in the input string (e.g., '-44-02-01')
  *       are handled differently. Use the BC pattern instead for BC dates.</li>
  *   <li><b>Internal whitespace:</b> PostgreSQL accepts internal whitespace in fixed-width formats
@@ -407,6 +408,28 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
         // assertEvaluate("to_timestamp('Jul 5, 2023', 'fmMon fmDD, YYYY')",
         //     // Verified: PostgreSQL 16 returns 2023-07-05 00:00:00+00
         //     Instant.parse("2023-07-05T00:00:00Z").toEpochMilli());
+    }
+
+    /**
+     * Ordinal suffix (TH/th) - not yet supported.
+     * See ToTimestampFunctionTest.testOrdinalSuffixTh for implementation notes.
+     */
+    @Test
+    public void testPostgresOrdinalSuffixCompatibility() {
+        // TH/th pattern matches any ordinal suffix (st, nd, rd, th) case-insensitively
+        // TODO: Enable when TH support is implemented
+        // assertEvaluate("to_timestamp('July 15th, 2023', 'Month DDth, YYYY')",
+        //     // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00
+        //     Instant.parse("2023-07-15T00:00:00Z").toEpochMilli());
+        // assertEvaluate("to_timestamp('1st', 'DDth')",
+        //     // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00+00 (year 0)
+        //     -62167219200000L);
+        // assertEvaluate("to_timestamp('2nd', 'DDth')",
+        //     // Verified: PostgreSQL 16 returns 0001-01-02 BC 00:00:00+00 (year 0)
+        //     -62167132800000L);
+        // assertEvaluate("to_timestamp('3rd', 'DDth')",
+        //     // Verified: PostgreSQL 16 returns 0001-01-03 BC 00:00:00+00 (year 0)
+        //     -62167046400000L);
     }
 
     @Test
