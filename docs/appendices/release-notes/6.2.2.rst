@@ -90,3 +90,17 @@ Fixes
 
 - Fixed an issue where a ``KILL ALL`` statement is not succeeding due to
   existing high memory pressure on the cluster.
+
+- Fixed a regression introduced in :ref:`version_6.0.0` that caused a
+  ``ColumnUnknownException``, even when disabling errors via the
+  :ref:`error_on_unknown_object_key <conf-session-error_on_unknown_object_key>`
+  session setting, when selecting a sub-column or array-index on a
+  ``DYNAMIC`` or ``IGNORED`` object/array value returned by a table function
+  like :ref:`UNNEST <unnest>`. Example::
+
+    SET SESSION error_on_unknown_object_key = FALSE;
+    SELECT obj_arr['child_obj']['unknown_array'][1]
+    FROM (
+      SELECT unnest([ {child_obj = { known_col = 'foo'}} ]) AS obj_arr
+    ) AS sub1;
+
