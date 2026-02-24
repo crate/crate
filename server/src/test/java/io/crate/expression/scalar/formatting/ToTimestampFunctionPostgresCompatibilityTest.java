@@ -49,13 +49,11 @@ import io.crate.expression.scalar.ScalarTestCase;
  * <ul>
  *   <li><b>Microsecond precision:</b> CrateDB truncates microseconds (US, FF4-FF6) to milliseconds
  *       due to TIMESTAMPTZ storage precision. PostgreSQL preserves full microsecond precision.</li>
- *   <li><b>WW/D computation:</b> Minor differences in week number and day of week calculation
- *       due to different week start conventions.</li>
  *   <li><b>Large years (>9999):</b> YYYY pattern strictly consumes 4 digits in CrateDB,
  *       so years > 9999 are not supported with standard YYYY format.</li>
  *   <li><b>FM modifier:</b> Fill mode (FM) modifier not supported in CrateDB.
  *       Use padded patterns (Month, Day) with appropriate whitespace instead.</li>
- *   <li><b>'th' ordinal suffix:</b> Ordinal suffixes like 'th', 'nd', 'rd' not supported in CrateDB.</li>
+ *   <li><b>'th' ordinal suffix:</b> Ordinal suffixes like 'th', 'nd', 'rd' not supported.</li>
  *   <li><b>Negative years in input:</b> Negative year values in the input string (e.g., '-44-02-01')
  *       are handled differently. Use the BC pattern instead for BC dates.</li>
  *   <li><b>Internal whitespace:</b> PostgreSQL accepts internal whitespace in fixed-width formats
@@ -369,10 +367,10 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
 
     @Test
     public void testPostgresWeekOfYearCompatibility() {
-        // WW computes date from week number (Sunday start)
+        // WW computes date from week number (week 1 starts on Jan 1)
         assertEvaluate("to_timestamp('1970 01', 'YYYY WW')",
-            // DIFFERS: PostgreSQL 16 returns 1970-01-01 00:00:00+00
-            Instant.parse("1969-12-28T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 1970-01-01 00:00:00+00
+            Instant.parse("1970-01-01T00:00:00Z").toEpochMilli());
         // IW is ISO week - PostgreSQL rejects mixing with Gregorian year
         assertThatThrownBy(() -> assertEvaluate("to_timestamp('1970 01', 'YYYY IW')", -1))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -621,11 +619,11 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
 
         // Week and day of week
         // From horology.sql: SELECT to_timestamp('2005426', 'YYYYWWD');
-        // PostgreSQL: Week 42, Day 6 of 2005 = 2005-10-15 (Saturday, D uses Sunday=1)
-        // CrateDB: Week 42, Day 6 of 2005 = 2005-10-09 (different WW calculation)
+        // Note: PostgreSQL ignores D when used with WW - it just returns the first day of week N
+        // Week 42 of 2005 = Jan 1 + 41*7 = Oct 15 (Jan 1, 2005 is Saturday)
         assertEvaluate("to_timestamp('2005426', 'YYYYWWD')",
-            // DIFFERS: PostgreSQL 16 returns 2005-10-15 00:00:00+00
-            Instant.parse("2005-10-09T00:00:00Z").toEpochMilli());
+            // Verified: PostgreSQL 16 returns 2005-10-15 00:00:00+00 (D is ignored with WW)
+            Instant.parse("2005-10-15T00:00:00Z").toEpochMilli());
 
         // Day of year
         // From horology.sql: SELECT to_timestamp('2005300', 'YYYYDDD');

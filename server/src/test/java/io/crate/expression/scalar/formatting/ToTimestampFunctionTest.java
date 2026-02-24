@@ -48,8 +48,15 @@ import io.crate.expression.symbol.Literal;
  * <ul>
  *   <li><b>Microsecond precision:</b> CrateDB truncates microseconds (US, FF4-FF6) to milliseconds
  *       due to TIMESTAMPTZ storage precision. PostgreSQL preserves full microsecond precision.</li>
- *   <li><b>WW/D computation:</b> Minor differences in week number and day of week calculation
- *       due to different week start conventions.</li>
+ *   <li><b>Large years (>9999):</b> YYYY pattern strictly consumes 4 digits in CrateDB,
+ *       so years > 9999 are not supported with standard YYYY format.</li>
+ *   <li><b>FM modifier:</b> Fill mode (FM) modifier not supported in CrateDB.
+ *       Use padded patterns (Month, Day) with appropriate whitespace instead.</li>
+ *   <li><b>'th' ordinal suffix:</b> Ordinal suffixes like 'th', 'nd', 'rd' not supported.</li>
+ *   <li><b>Negative years in input:</b> Negative year values in the input string (e.g., '-44-02-01')
+ *       are handled differently. Use the BC pattern instead for BC dates.</li>
+ *   <li><b>Internal whitespace:</b> PostgreSQL accepts internal whitespace in fixed-width formats
+ *       like YYYYMMDD, CrateDB requires explicit separators or no whitespace.</li>
  * </ul>
  *
  * @see ToTimestampFunctionPostgresCompatibilityTest for additional PostgreSQL compatibility tests

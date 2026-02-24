@@ -569,6 +569,8 @@ public class DateTimeFormatter {
         Integer weekOfYear = null;
         Integer isoWeekOfYear = null;
         Integer century = null;
+        Integer dayOfWeek = null;  // 1=Sunday, 7=Saturday (PostgreSQL D convention)
+        Integer isoDayOfWeek = null;  // 1=Monday, 7=Sunday (ISO convention)
     }
 
     private static class ParseResult {
@@ -692,6 +694,8 @@ public class DateTimeFormatter {
             case WEEK_NUMBER_OF_YEAR, WEEK_NUMBER_OF_YEAR_LOWER -> parsed.weekOfYear = (Integer) value;
             case WEEK_NUMBER_OF_ISO_YEAR, WEEK_NUMBER_OF_ISO_YEAR_LOWER -> parsed.isoWeekOfYear = (Integer) value;
             case CENTURY, CENTURY_LOW -> parsed.century = (Integer) value;
+            case DAY_OF_WEEK, DAY_OF_WEEK_LOWER -> parsed.dayOfWeek = (Integer) value;
+            case ISO_DAY_OF_WEEK, ISO_DAY_OF_WEEK_LOWER -> parsed.isoDayOfWeek = (Integer) value;
             default -> {
             }
         }
@@ -742,11 +746,11 @@ public class DateTimeFormatter {
             return LocalDateTime.of(date.getYear(), date.getMonth(), date.getDayOfMonth(), hour, minute, second, nano);
         }
 
-        // Handle week of year (Sunday start, week 1 contains Jan 1)
+        // Handle week of year (PostgreSQL WW: week 1 starts on Jan 1, each week is 7 days)
+        // Note: D (day of week) is ignored when used with WW in PostgreSQL
         if (parsed.weekOfYear != null && parsed.year != null) {
             LocalDate jan1 = LocalDate.of(year, 1, 1);
-            int jan1DayOfWeek = jan1.getDayOfWeek().getValue() % 7; // Sunday = 0
-            int daysToAdd = (parsed.weekOfYear - 1) * 7 - jan1DayOfWeek;
+            int daysToAdd = (parsed.weekOfYear - 1) * 7;
             LocalDate date = jan1.plusDays(daysToAdd);
             return LocalDateTime.of(date.getYear(), date.getMonth(), date.getDayOfMonth(), hour, minute, second, nano);
         }
