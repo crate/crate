@@ -20,8 +20,10 @@
 package org.elasticsearch.cluster.routing.allocation;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -49,12 +51,8 @@ import org.elasticsearch.cluster.routing.RoutingNodes;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
-
-import com.carrotsearch.hppc.ObjectLookupContainer;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.collections.Sets;
 import io.crate.concurrent.MultiActionListener;
@@ -123,7 +121,7 @@ public class DiskThresholdMonitor {
             return;
         }
 
-        final ImmutableOpenMap<String, DiskUsage> usages = info.getNodeLeastAvailableDiskUsages();
+        final Map<String, DiskUsage> usages = info.getNodeLeastAvailableDiskUsages();
         if (usages == null) {
             LOGGER.trace("skipping monitor as no disk usage information is available");
             checkFinished();
@@ -137,7 +135,7 @@ public class DiskThresholdMonitor {
         final long currentTimeMillis = currentTimeMillisSupplier.getAsLong();
 
         // Clean up nodes that have been removed from the cluster
-        final ObjectLookupContainer<String> nodes = usages.keys();
+        final Set<String> nodes = usages.keySet();
         cleanUpRemovedNodes(nodes, nodesOverLowThreshold);
         cleanUpRemovedNodes(nodes, nodesOverHighThreshold);
         cleanUpRemovedNodes(nodes, nodesOverHighThresholdAndRelocating);
@@ -150,9 +148,9 @@ public class DiskThresholdMonitor {
 
         final List<DiskUsage> usagesOverHighThreshold = new ArrayList<>();
 
-        for (final ObjectObjectCursor<String, DiskUsage> entry : usages) {
-            final String node = entry.key;
-            final DiskUsage usage = entry.value;
+        for (final Map.Entry<String, DiskUsage> entry : usages.entrySet()) {
+            final String node = entry.getKey();
+            final DiskUsage usage = entry.getValue();
             final RoutingNode routingNode = routingNodes.node(node);
 
             if (usage.getFreeBytes() < diskThresholdSettings.getFreeBytesThresholdFloodStage().getBytes() ||
@@ -332,7 +330,8 @@ public class DiskThresholdMonitor {
             diskUsage.getPath(), info, reroutedClusterState.metadata(), reroutedClusterState.routingTable());
     }
 
-    private void markNodesMissingUsageIneligibleForRelease(RoutingNodes routingNodes, ImmutableOpenMap<String, DiskUsage> usages,
+    private void markNodesMissingUsageIneligibleForRelease(RoutingNodes routingNodes,
+                                                           Map<String, DiskUsage> usages,
                                                            Set<String> indicesToMarkIneligibleForAutoRelease) {
         for (RoutingNode routingNode : routingNodes) {
             if (usages.containsKey(routingNode.nodeId()) == false) {
@@ -381,7 +380,7 @@ public class DiskThresholdMonitor {
             .whenComplete(wrappedListener);
     }
 
-    private static void cleanUpRemovedNodes(ObjectLookupContainer<String> nodesToKeep, Set<String> nodesToCleanUp) {
+    private static void cleanUpRemovedNodes(Collection<String> nodesToKeep, Set<String> nodesToCleanUp) {
         for (String node : nodesToCleanUp) {
             if (nodesToKeep.contains(node) == false) {
                 nodesToCleanUp.remove(node);

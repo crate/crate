@@ -77,8 +77,9 @@ public final class MapBuilder<K, V> {
         return Collections.unmodifiableMap(map);
     }
 
-    public void putAll(Map<K, V> value) {
+    public MapBuilder<K, V> putAll(Map<K, V> value) {
         map.putAll(value);
+        return this;
     }
 
     /// like [#put(Object, Object)] but fails if the entry already exists in the map.
