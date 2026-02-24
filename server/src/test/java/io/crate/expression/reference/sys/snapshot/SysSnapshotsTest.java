@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.concurrent.CompletableFuture;
@@ -268,7 +269,7 @@ public class SysSnapshotsTest extends ESTestCase {
             List.of(relationName),
             123L,
             1L,
-            ImmutableOpenMap.of(),
+            Map.of(),
             Version.CURRENT
         );
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);

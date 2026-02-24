@@ -26,14 +26,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.jspecify.annotations.Nullable;
-
 import org.elasticsearch.cluster.SnapshotsInProgress;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.ShardGenerations;
-
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Holds information about currently in-flight shard level snapshot or clone operations on a per-shard level.
@@ -58,9 +55,9 @@ public final class InFlightShardSnapshotStates {
             if (runningSnapshot.repository().equals(repoName) == false) {
                 continue;
             }
-            for (ObjectObjectCursor<ShardId, SnapshotsInProgress.ShardSnapshotStatus> shard : runningSnapshot.shards()) {
-                final ShardId sid = shard.key;
-                addStateInformation(generations, busyIds, shard.value, sid.id(), sid.getIndexName());
+            for (var shardEntry : runningSnapshot.shards().entrySet()) {
+                final ShardId sid = shardEntry.getKey();
+                addStateInformation(generations, busyIds, shardEntry.getValue(), sid.id(), sid.getIndexName());
             }
         }
         return new InFlightShardSnapshotStates(generations, busyIds);
