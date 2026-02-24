@@ -168,6 +168,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     private final ImmutableOpenMap<String, SchemaMetadata> schemas;
 
     private final transient ImmutableOpenMap<String, RelationMetadata> indexUUIDsRelations;
+    private final ImmutableOpenMap<Integer, RelationMetadata> oidsRelations;
     private final transient int totalNumberOfShards; // Transient ? not serializable anyway?
     private final int totalOpenIndexShards;
     private final int numberOfShards;
@@ -216,16 +217,19 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         this.numberOfShards = numberOfShards;
         this.aliasAndIndexLookup = aliasAndIndexLookup;
         var indexUUIDsRelationsBuilder = ImmutableOpenMap.<String, RelationMetadata>builder(indices.size());
+        var oidsRelationsBuilder = ImmutableOpenMap.<Integer, RelationMetadata>builder();
         for (var cursor : schemas) {
             SchemaMetadata schema = cursor.value;
             for (var relCursor : schema.relations()) {
                 var relationMetadata = relCursor.value;
                 for (String indexUUID : relationMetadata.indexUUIDs()) {
+                    oidsRelationsBuilder.put(relationMetadata.oid(), relationMetadata);
                     RelationMetadata old = indexUUIDsRelationsBuilder.put(indexUUID, relationMetadata);
                     assert old == null : "A index must not be referenced from multiple relations";
                 }
             }
         }
+        oidsRelations = oidsRelationsBuilder.build();
         indexUUIDsRelations = indexUUIDsRelationsBuilder.build();
     }
 
@@ -1475,6 +1479,17 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             }
         }
         return null;
+    }
+
+    @Nullable
+    @SuppressWarnings("unchecked")
+    public <T extends RelationMetadata> T getRelationFast(int tableOID) {
+        assert tableOID > Metadata.OID_UNASSIGNED : "Invalid tableOID: " + tableOID;
+        RelationMetadata relationMetadata = oidsRelations.get(tableOID);
+        if (relationMetadata == null) {
+            throw new RelationUnknown("cannot find relation");
+        }
+        return (T) relationMetadata;
     }
 
     /**
