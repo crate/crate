@@ -31,7 +31,6 @@ import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -299,9 +298,7 @@ public class DiskThresholdMonitor {
             LOGGER.trace("no reroute required");
             listener.onResponse(null);
         }
-        final Set<String> indicesToAutoRelease = StreamSupport.stream(state.routingTable().indicesRouting()
-            .spliterator(), false)
-            .map(c -> c.key)
+        final Set<String> indicesToAutoRelease = state.routingTable().indicesRouting().keySet().stream()
             .filter(indexUUID -> indicesNotToAutoRelease.contains(indexUUID) == false)
             .filter(indexUUID -> state.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK))
             .collect(Collectors.toSet());

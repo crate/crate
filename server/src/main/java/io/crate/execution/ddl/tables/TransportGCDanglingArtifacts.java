@@ -40,8 +40,6 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 
@@ -82,8 +80,8 @@ public class TransportGCDanglingArtifacts extends AbstractDDLTransportAction<GCD
                 Metadata metadata = currentState.metadata();
                 Set<Index> danglingIndicesToDelete = new HashSet<>();
                 if (gcDanglingArtifactsRequest.indexUUIDs().isEmpty()) {
-                    for (ObjectCursor<IndexMetadata> cursor : metadata.indices().values()) {
-                        Index index = cursor.value.getIndex();
+                    for (IndexMetadata indexMetadata : metadata.indices().values()) {
+                        Index index = indexMetadata.getIndex();
                         RelationMetadata relation = metadata.getRelation(index.getUUID());
                         if (relation == null) {
                             danglingIndicesToDelete.add(index);

@@ -37,7 +37,6 @@ import org.elasticsearch.cluster.Diffs;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RecoverySource.SnapshotRecoverySource;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.Index;
@@ -46,10 +45,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.jspecify.annotations.Nullable;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import io.crate.common.collections.Iterables;
+import io.crate.common.collections.MapBuilder;
 
 /**
  * Represents a global cluster-wide routing table for all indices including the
@@ -64,9 +61,9 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
     private final long version;
 
     // index to IndexRoutingTable map
-    private final ImmutableOpenMap<String, IndexRoutingTable> indicesRouting;
+    private final Map<String, IndexRoutingTable> indicesRouting;
 
-    private RoutingTable(long version, ImmutableOpenMap<String, IndexRoutingTable> indicesRouting) {
+    private RoutingTable(long version, Map<String, IndexRoutingTable> indicesRouting) {
         this.version = version;
         this.indicesRouting = indicesRouting;
     }
@@ -98,7 +95,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
 
     @Override
     public Iterator<IndexRoutingTable> iterator() {
-        return indicesRouting.valuesIt();
+        return indicesRouting.values().iterator();
     }
 
     public boolean hasIndex(String indexUUID) {
@@ -118,7 +115,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
         return indicesRouting.get(index.getUUID());
     }
 
-    public ImmutableOpenMap<String, IndexRoutingTable> indicesRouting() {
+    public Map<String, IndexRoutingTable> indicesRouting() {
         return indicesRouting;
     }
 
@@ -188,8 +185,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
      */
     public List<ShardRouting> allShards() {
         List<ShardRouting> shards = new ArrayList<>();
-        String[] indicesUUIDs = indicesRouting.keys().toArray(String.class);
-        for (String indexUUID : indicesUUIDs) {
+        for (String indexUUID : indicesRouting.keySet()) {
             List<ShardRouting> allShardsIndex = allShards(indexUUID);
             shards.addAll(allShardsIndex);
         }
@@ -350,8 +346,8 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
     public void writeTo(StreamOutput out) throws IOException {
         out.writeLong(version);
         out.writeVInt(indicesRouting.size());
-        for (ObjectCursor<IndexRoutingTable> index : indicesRouting.values()) {
-            index.value.writeTo(out);
+        for (IndexRoutingTable index : indicesRouting.values()) {
+            index.writeTo(out);
         }
     }
 
@@ -359,7 +355,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
 
         private final long version;
 
-        private final Diff<ImmutableOpenMap<String, IndexRoutingTable>> indicesRouting;
+        private final Diff<Map<String, IndexRoutingTable>> indicesRouting;
 
         RoutingTableDiff(Version v, RoutingTable before, RoutingTable after) {
             version = after.version;
@@ -400,7 +396,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
     public static class Builder {
 
         private long version;
-        private ImmutableOpenMap.Builder<String, IndexRoutingTable> indicesRouting = ImmutableOpenMap.builder();
+        private MapBuilder<String, IndexRoutingTable> indicesRouting = MapBuilder.newMapBuilder();
 
         public Builder() {
 
@@ -600,7 +596,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
             if (indicesRouting == null) {
                 throw new IllegalStateException("once build is called the builder cannot be reused");
             }
-            RoutingTable table = new RoutingTable(version, indicesRouting.build());
+            RoutingTable table = new RoutingTable(version, indicesRouting.immutableMap());
             indicesRouting = null;
             return table;
         }
@@ -609,8 +605,8 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("routing_table (version ").append(version).append("):\n");
-        for (ObjectObjectCursor<String, IndexRoutingTable> entry : indicesRouting) {
-            sb.append(entry.value.prettyPrint()).append('\n');
+        for (IndexRoutingTable indexRoutingTable : indicesRouting.values()) {
+            sb.append(indexRoutingTable.prettyPrint()).append('\n');
         }
         return sb.toString();
     }

@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -68,13 +69,10 @@ import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.jspecify.annotations.Nullable;
+
 import io.crate.common.annotations.VisibleForTesting;
-
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import com.carrotsearch.hppc.procedures.ObjectProcedure;
-
 import io.crate.common.collections.Lists;
+import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.DependentObjectsExists;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
@@ -162,10 +160,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     private final Settings transientSettings;
     private final Settings persistentSettings;
     private final Settings settings;
-    private final ImmutableOpenMap<String, IndexMetadata> indices;
-    private final ImmutableOpenMap<String, IndexTemplateMetadata> templates;
-    private final ImmutableOpenMap<String, Custom> customs;
-    private final ImmutableOpenMap<String, SchemaMetadata> schemas;
+    private final Map<String, IndexMetadata> indices;
+    private final Map<String, IndexTemplateMetadata> templates;
+    private final Map<String, Custom> customs;
+    private final Map<String, SchemaMetadata> schemas;
 
     private final transient ImmutableOpenMap<String, RelationMetadata> indexUUIDsRelations;
     private final transient int totalNumberOfShards; // Transient ? not serializable anyway?
@@ -182,10 +180,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
              CoordinationMetadata coordinationMetadata,
              Settings transientSettings,
              Settings persistentSettings,
-             ImmutableOpenMap<String, IndexMetadata> indices,
-             ImmutableOpenMap<String, IndexTemplateMetadata> templates,
-             ImmutableOpenMap<String, Custom> customs,
-             ImmutableOpenMap<String, SchemaMetadata> schemas,
+             Map<String, IndexMetadata> indices,
+             Map<String, IndexTemplateMetadata> templates,
+             Map<String, Custom> customs,
+             Map<String, SchemaMetadata> schemas,
              SortedMap<String, AliasOrIndex> aliasAndIndexLookup) {
         this.clusterUUID = clusterUUID;
         this.clusterUUIDCommitted = clusterUUIDCommitted;
@@ -203,8 +201,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         int totalNumberOfShards = 0;
         int totalOpenIndexShards = 0;
         int numberOfShards = 0;
-        for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
-            var indexMetadata = cursor.value;
+        for (IndexMetadata indexMetadata : indices.values()) {
             totalNumberOfShards += indexMetadata.getTotalNumberOfShards();
             numberOfShards += indexMetadata.getNumberOfShards();
             if (State.OPEN.equals(indexMetadata.getState())) {
@@ -216,10 +213,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         this.numberOfShards = numberOfShards;
         this.aliasAndIndexLookup = aliasAndIndexLookup;
         var indexUUIDsRelationsBuilder = ImmutableOpenMap.<String, RelationMetadata>builder(indices.size());
-        for (var cursor : schemas) {
-            SchemaMetadata schema = cursor.value;
-            for (var relCursor : schema.relations()) {
-                var relationMetadata = relCursor.value;
+        for (var schema : schemas.values()) {
+            for (var relEntry : schema.relations().entrySet()) {
+                var relationMetadata = relEntry.getValue();
                 for (String indexUUID : relationMetadata.indexUUIDs()) {
                     RelationMetadata old = indexUUIDsRelationsBuilder.put(indexUUID, relationMetadata);
                     assert old == null : "A index must not be referenced from multiple relations";
@@ -335,8 +331,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     /// Use [index(Index)][#index(Index)] or [index(String)][#index(String)] instead.
     @Nullable
     public IndexMetadata getIndexByName(String indexName) {
-        for (var cursor : indices.values()) {
-            IndexMetadata indexMetadata = cursor.value;
+        for (var indexMetadata : indices.values()) {
             if (indexMetadata.getIndex().getName().equals(indexName)) {
                 return indexMetadata;
             }
@@ -347,20 +342,20 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     /**
      * @return indexName -> indexMetadata
      **/
-    public ImmutableOpenMap<String, IndexMetadata> indices() {
+    public Map<String, IndexMetadata> indices() {
         return this.indices;
     }
 
     @Deprecated
-    public ImmutableOpenMap<String, IndexTemplateMetadata> templates() {
+    public Map<String, IndexTemplateMetadata> templates() {
         return this.templates;
     }
 
-    public ImmutableOpenMap<String, SchemaMetadata> schemas() {
+    public Map<String, SchemaMetadata> schemas() {
         return this.schemas;
     }
 
-    public ImmutableOpenMap<String, Custom> customs() {
+    public Map<String, Custom> customs() {
         return this.customs;
     }
 
@@ -413,7 +408,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     @Override
     public Iterator<IndexMetadata> iterator() {
-        return indices.valuesIt();
+        return indices.values().iterator();
     }
 
     public static boolean isGlobalStateEquals(Metadata metadata1, Metadata metadata2) {
@@ -441,15 +436,17 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
         // Check if any persistent metadata needs to be saved
         int customCount1 = 0;
-        for (ObjectObjectCursor<String, Custom> cursor : metadata1.customs) {
-            if (cursor.value.context().contains(XContentContext.GATEWAY)) {
-                if (!cursor.value.equals(metadata2.custom(cursor.key))) return false;
+        for (Map.Entry<String, Custom> entry : metadata1.customs.entrySet()) {
+            String key = entry.getKey();
+            Custom custom = entry.getValue();
+            if (custom.context().contains(XContentContext.GATEWAY)) {
+                if (!custom.equals(metadata2.custom(key))) return false;
                 customCount1++;
             }
         }
         int customCount2 = 0;
-        for (ObjectCursor<Custom> cursor : metadata2.customs.values()) {
-            if (cursor.value.context().contains(XContentContext.GATEWAY)) {
+        for (Custom custom : metadata2.customs.values()) {
+            if (custom.context().contains(XContentContext.GATEWAY)) {
                 customCount2++;
             }
         }
@@ -486,10 +483,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         private final CoordinationMetadata coordinationMetadata;
         private final Settings transientSettings;
         private final Settings persistentSettings;
-        private final Diffs.MapDiff<String, IndexMetadata, ImmutableOpenMap<String, IndexMetadata>> indices;
-        private final Diffs.MapDiff<String, IndexTemplateMetadata, ImmutableOpenMap<String, IndexTemplateMetadata>> templates;
-        private final Diff<ImmutableOpenMap<String, Custom>> customs;
-        private final Diff<ImmutableOpenMap<String, SchemaMetadata>> schemas;
+        private final Diffs.MapDiff<String, IndexMetadata, Map<String, IndexMetadata>> indices;
+        private final Diffs.MapDiff<String, IndexTemplateMetadata, Map<String, IndexTemplateMetadata>> templates;
+        private final Diff<Map<String, Custom>> customs;
+        private final Diff<Map<String, SchemaMetadata>> schemas;
 
         MetadataDiff(Version v, Metadata before, Metadata after) {
             assert before.currentMaxTableOid <= after.currentMaxTableOid : "after.currentMaxTableOid must be greater than or equal to before.currentMaxTableOid";
@@ -539,8 +536,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             } else {
                 schemas = Diffs.diff(
                     in.getVersion(),
-                    ImmutableOpenMap.<String, SchemaMetadata>of(),
-                    ImmutableOpenMap.<String, SchemaMetadata>of(),
+                    Map.<String, SchemaMetadata>of(),
+                    Map.<String, SchemaMetadata>of(),
                     Diffs.stringKeySerializer()
                 );
             }
@@ -695,23 +692,23 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
         // filter out custom states not supported by the other node
         int numberOfCustoms = 0;
-        for (final ObjectCursor<Custom> cursor : customs.values()) {
-            if (VersionedNamedWriteable.shouldSerialize(out, cursor.value)) {
+        for (final Custom custom : customs.values()) {
+            if (VersionedNamedWriteable.shouldSerialize(out, custom)) {
                 numberOfCustoms++;
             }
         }
         out.writeVInt(numberOfCustoms);
-        for (final ObjectCursor<Custom> cursor : customs.values()) {
-            if (VersionedNamedWriteable.shouldSerialize(out, cursor.value)) {
-                out.writeNamedWriteable(cursor.value);
+        for (final Custom custom : customs.values()) {
+            if (VersionedNamedWriteable.shouldSerialize(out, custom)) {
+                out.writeNamedWriteable(custom);
             }
         }
 
         if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
             out.writeVInt(schemas.size());
-            for (var cursor : schemas) {
-                String schemaName = cursor.key;
-                SchemaMetadata schema = cursor.value;
+            for (var entry : schemas.entrySet()) {
+                String schemaName = entry.getKey();
+                SchemaMetadata schema = entry.getValue();
 
                 out.writeString(schemaName);
                 schema.writeTo(out);
@@ -739,18 +736,18 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         private Settings transientSettings = Settings.EMPTY;
         private Settings persistentSettings = Settings.EMPTY;
 
-        private final ImmutableOpenMap.Builder<String, IndexMetadata> indices;
-        private final ImmutableOpenMap.Builder<String, IndexTemplateMetadata> templates;
-        private final ImmutableOpenMap.Builder<String, Custom> customs;
-        private final ImmutableOpenMap.Builder<String, SchemaMetadata> schemas;
+        private final MapBuilder<String, IndexMetadata> indices;
+        private final MapBuilder<String, IndexTemplateMetadata> templates;
+        private final MapBuilder<String, Custom> customs;
+        private final MapBuilder<String, SchemaMetadata> schemas;
 
         public Builder(int maxTableOid) {
             tableOidSupplier = new TableOidSupplier(maxTableOid);
             clusterUUID = UNKNOWN_CLUSTER_UUID;
-            indices = ImmutableOpenMap.builder();
-            templates = ImmutableOpenMap.builder();
-            customs = ImmutableOpenMap.builder();
-            schemas = ImmutableOpenMap.builder();
+            indices = MapBuilder.newMapBuilder();
+            templates = MapBuilder.newMapBuilder();
+            customs = MapBuilder.newMapBuilder();
+            schemas = MapBuilder.newMapBuilder();
             columnOID = OID_UNASSIGNED;
             indexGraveyard(IndexGraveyard.builder().build()); // create new empty index graveyard to initialize
         }
@@ -764,10 +761,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             this.persistentSettings = metadata.persistentSettings;
             this.version = metadata.version;
             this.columnOID = metadata.columnOID;
-            this.indices = ImmutableOpenMap.builder(metadata.indices);
-            this.templates = ImmutableOpenMap.builder(metadata.templates);
-            this.customs = ImmutableOpenMap.builder(metadata.customs);
-            this.schemas = ImmutableOpenMap.builder(metadata.schemas);
+            this.indices = MapBuilder.newMapBuilder(metadata.indices);
+            this.templates = MapBuilder.newMapBuilder(metadata.templates);
+            this.customs = MapBuilder.newMapBuilder(metadata.customs);
+            this.schemas = MapBuilder.newMapBuilder(metadata.schemas);
         }
 
         public Builder put(IndexMetadata.Builder indexMetadataBuilder) {
@@ -817,7 +814,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
-        public Builder indices(ImmutableOpenMap<String, IndexMetadata> indices) {
+        public Builder indices(Map<String, IndexMetadata> indices) {
             this.indices.putAll(indices);
             return this;
         }
@@ -839,9 +836,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             if (schemaMetadata == null) {
                 return this;
             }
-            ImmutableOpenMap<String, RelationMetadata> newRelations = ImmutableOpenMap.builder(schemaMetadata.relations())
-                .fRemove(relationName.name())
-                .build();
+            HashMap<String, RelationMetadata> newRelations = new HashMap<>(schemaMetadata.relations());
+            newRelations.remove(relationName.name());
             if (newRelations.isEmpty() && !schemaMetadata.explicit()) {
                 schemas.remove(relationName.schema());
             } else {
@@ -865,23 +861,21 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
          * If the relation already exists with the same name it is overridden.
          **/
         public void setRelation(RelationMetadata relation) {
-            ImmutableOpenMap<String, RelationMetadata> relations;
+            Map<String, RelationMetadata> relations;
             RelationName relationName = relation.name();
             String schema = relationName.schema();
             SchemaMetadata schemaMetadata = schemas.get(schema);
             boolean explicit;
             if (schemaMetadata == null) {
-                relations = ImmutableOpenMap.<String, RelationMetadata>builder(1)
-                    .fPut(relationName.name(), relation)
-                    .build();
+                relations = HashMap.newHashMap(1);
+                relations.put(relationName.name(), relation);
                 explicit = false;
             } else {
-                relations = ImmutableOpenMap.builder(schemaMetadata.relations())
-                    .fPut(relationName.name(), relation)
-                    .build();
+                relations = new HashMap<>(schemaMetadata.relations());
+                relations.put(relationName.name(), relation);
                 explicit = schemaMetadata.explicit();
             }
-            schemas.put(schema, new SchemaMetadata(relations, explicit));
+            schemas.put(schema, new SchemaMetadata(Collections.unmodifiableMap(relations), explicit));
         }
 
         @Deprecated
@@ -896,7 +890,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
 
         @Deprecated
-        public Builder templates(ImmutableOpenMap<String, IndexTemplateMetadata> templates) {
+        public Builder templates(Map<String, IndexTemplateMetadata> templates) {
             this.templates.putAll(templates);
             return this;
         }
@@ -915,7 +909,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
-        public Builder customs(ImmutableOpenMap<String, Custom> customs) {
+        public Builder customs(Map<String, Custom> customs) {
             this.customs.putAll(customs);
             return this;
         }
@@ -1017,24 +1011,23 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
             final Set<String> allIndices = new HashSet<>(indices.size());
             final Set<String> duplicateAliasesIndices = new HashSet<>();
-            for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
-                final IndexMetadata indexMetadata = cursor.value;
+            for (IndexMetadata indexMetadata : indices.values()) {
                 if (indexMetadata.getUpgradedVersion().onOrAfter(Version.V_6_0_0)) {
                     continue;
                 }
                 final String uuid = indexMetadata.getIndex().getUUID();
                 boolean added = allIndices.add(uuid);
                 assert added : "double index named [" + uuid + "]";
-                indexMetadata.getAliases().keysIt().forEachRemaining(duplicateAliasesIndices::add);
+                indexMetadata.getAliases().keySet().forEach(duplicateAliasesIndices::add);
             }
             duplicateAliasesIndices.retainAll(allIndices);
             if (duplicateAliasesIndices.isEmpty() == false) {
                 // iterate again and constructs a helpful message
                 ArrayList<String> duplicates = new ArrayList<>();
-                for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
+                for (IndexMetadata indexMetadata : indices.values()) {
                     for (String alias : duplicateAliasesIndices) {
-                        if (cursor.value.getAliases().containsKey(alias)) {
-                            duplicates.add(alias + " (alias of " + cursor.value.getIndex() + ")");
+                        if (indexMetadata.getAliases().containsKey(alias)) {
+                            duplicates.add(alias + " (alias of " + indexMetadata.getIndex() + ")");
                         }
                     }
                 }
@@ -1057,20 +1050,18 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 coordinationMetadata,
                 transientSettings,
                 persistentSettings,
-                indices.build(),
-                templates.build(),
-                customs.build(),
-                schemas.build(),
+                indices.immutableMap(),
+                templates.immutableMap(),
+                customs.immutableMap(),
+                schemas.immutableMap(),
                 aliasAndIndexLookup
             );
         }
 
         private boolean validateTableOIDs(int tableOidSupplierValue) {
             BitSet relationOIDs = new BitSet(tableOidSupplierValue + 1);
-            for (var e : schemas.values()) {
-                SchemaMetadata schemaMetadata = e.value;
-                for (var e2 : schemaMetadata.relations().values()) {
-                    RelationMetadata relationMetadata = e2.value;
+            for (var schemaMetadata : schemas.values()) {
+                for (var relationMetadata : schemaMetadata.relations().values()) {
                     Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(relationMetadata.settings());
                     int relationOID = relationMetadata.oid();
 
@@ -1093,8 +1084,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
         private SortedMap<String, AliasOrIndex> buildAliasAndIndexLookup() {
             SortedMap<String, AliasOrIndex> aliasAndIndexLookup = new TreeMap<>();
-            for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
-                IndexMetadata indexMetadata = cursor.value;
+            for (IndexMetadata indexMetadata : indices.values()) {
                 if (indexMetadata.getUpgradedVersion().onOrAfter(Version.V_6_0_0)) {
                     // aliases are deprecated and only needed to be built for old indices, aliases will be removed once
                     // the metadata is fully migrated/upgraded to schemas/relations.
@@ -1104,8 +1094,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 AliasOrIndex existing = aliasAndIndexLookup.put(indexMetadata.getIndex().getName(), new AliasOrIndex.Index(indexMetadata));
                 assert existing == null : "duplicate for " + indexMetadata.getIndex();
 
-                for (ObjectObjectCursor<String, AliasMetadata> aliasCursor : indexMetadata.getAliases()) {
-                    AliasMetadata aliasMetadata = aliasCursor.value;
+                for (Map.Entry<String, AliasMetadata> aliasCursor : indexMetadata.getAliases().entrySet()) {
+                    AliasMetadata aliasMetadata = aliasCursor.getValue();
                     aliasAndIndexLookup.compute(aliasMetadata.getAlias(), (aliasName, alias) -> {
                         if (alias == null) {
                             return new AliasOrIndex.Alias(aliasMetadata, indexMetadata);
@@ -1322,7 +1312,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
         /// Explicitly adds a schema
         public Builder createSchema(String schemaName) {
-            schemas.put(schemaName, new SchemaMetadata(ImmutableOpenMap.of(), true));
+            schemas.put(schemaName, new SchemaMetadata(Map.of(), true));
             return this;
         }
 
@@ -1465,10 +1455,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     @SuppressWarnings("unchecked")
     public <T extends RelationMetadata> T getRelation(int tableOID) {
         assert tableOID > Metadata.OID_UNASSIGNED : "Invalid tableOID: " + tableOID;
-        for (ObjectCursor<SchemaMetadata> s : schemas.values()) {
-            SchemaMetadata schemaMetadata = s.value;
-            for (ObjectCursor<RelationMetadata> r : schemaMetadata.relations().values()) {
-                RelationMetadata relationMetadata = r.value;
+        for (SchemaMetadata schemaMetadata : schemas.values()) {
+            for (RelationMetadata relationMetadata : schemaMetadata.relations().values()) {
                 if (relationMetadata.oid() == tableOID) {
                     return (T) relationMetadata;
                 }
@@ -1512,8 +1500,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return List.of();
         }
         ArrayList<T> relations = new ArrayList<>();
-        for (ObjectCursor<RelationMetadata> relationCursor : schemaMetadata.relations().values()) {
-            RelationMetadata relationMetadata = relationCursor.value;
+        for (RelationMetadata relationMetadata : schemaMetadata.relations().values()) {
             if (clazz.isInstance(relationMetadata)) {
                 relations.add(clazz.cast(relationMetadata));
             }
@@ -1523,10 +1510,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     public <T> List<T> relations(Predicate<RelationMetadata> predicate, Function<RelationMetadata, T> as) {
         ArrayList<T> relations = new ArrayList<>();
-        for (ObjectCursor<SchemaMetadata> cursor : schemas.values()) {
-            for (ObjectCursor<RelationMetadata> relationCursor : cursor.value.relations().values()) {
-                if (predicate.test(relationCursor.value)) {
-                    relations.add(as.apply(relationCursor.value));
+        for (SchemaMetadata schema : schemas.values()) {
+            for (RelationMetadata relationMetadata : schema.relations().values()) {
+                if (predicate.test(relationMetadata)) {
+                    relations.add(as.apply(relationMetadata));
                 }
             }
         }
@@ -1551,7 +1538,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     public <T> List<T> getIndices(List<PartitionName> partitions, boolean strict, Function<IndexMetadata, T> as) {
         if (partitions.isEmpty()) {
             List<T> allIndices = new ArrayList<>();
-            indices.values().forEach((ObjectProcedure<IndexMetadata>) value -> allIndices.add(as.apply(value)));
+            indices.values().forEach(value -> allIndices.add(as.apply(value)));
             return allIndices;
         }
         List<T> result = new ArrayList<>();

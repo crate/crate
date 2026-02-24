@@ -26,6 +26,8 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUI
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,12 +39,9 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.gateway.PersistedClusterStateService;
-
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Maps;
@@ -207,13 +206,13 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
                 fixedMetadata.put(generatePartitionedIndexMetadata(indexName, indexMetadata, partitionedByColumns));
 
                 String templateName = PartitionName.templateName(indexParts[0], indexParts[1]);
-                ImmutableOpenMap.Builder<String, IndexTemplateMetadata> mapBuilder = ImmutableOpenMap.builder();
+                HashMap<String, IndexTemplateMetadata> mapBuilder = new HashMap<>();
                 mapBuilder.put(
                     templateName,
                     generateTemplateIndexMetadata(indexName, indexMetadata, mappingMetadata).build());
 
                 fixedMetadata.removeTemplate(templateName);
-                fixedMetadata.templates(mapBuilder.build());
+                fixedMetadata.templates(Collections.unmodifiableMap(mapBuilder));
             } else {
                 /*
                    ex) test_swap_table_partitioned_to_non_partitioned_3
@@ -272,18 +271,18 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
     }
 
     @VisibleForTesting
-    static void fixNameOfTemplateMetadata(ImmutableOpenMap<String, IndexTemplateMetadata> templates,
+    static void fixNameOfTemplateMetadata(Map<String, IndexTemplateMetadata> templates,
                                           Metadata.Builder fixedMetadata) {
-        for (ObjectObjectCursor<String, IndexTemplateMetadata> e : templates) {
-            RelationName fixedRelationName = fixTemplateName(e.key);
+        for (Map.Entry<String, IndexTemplateMetadata> e : templates.entrySet()) {
+            RelationName fixedRelationName = fixTemplateName(e.getKey());
             if (fixedRelationName != null) {
-                fixedMetadata.removeTemplate(e.key);
+                fixedMetadata.removeTemplate(e.getKey());
                 // in case of duplicate keys, name-fixed templates overwrite
-                fixedMetadata.put(Templates.withName(e.value, fixedRelationName).build());
+                fixedMetadata.put(Templates.withName(e.getValue(), fixedRelationName).build());
             } else {
                 // in case of duplicate keys, do not overwrite
-                if (fixedMetadata.getTemplate(e.key) == null) {
-                    fixedMetadata.put(e.value);
+                if (fixedMetadata.getTemplate(e.getKey()) == null) {
+                    fixedMetadata.put(e.getValue());
                 }
             }
         }

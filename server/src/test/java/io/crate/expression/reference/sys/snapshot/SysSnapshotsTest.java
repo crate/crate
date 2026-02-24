@@ -46,7 +46,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.IndexMetaDataGenerations;
 import org.elasticsearch.repositories.Repository;
@@ -86,7 +85,7 @@ public class SysSnapshotsTest extends ESTestCase {
         when(r1.getMetadata()).thenReturn(new RepositoryMetadata("repo1", "fs", Settings.EMPTY));
 
         Metadata metadata = mock(Metadata.class);
-        when(metadata.templates()).thenReturn(ImmutableOpenMap.of());
+        when(metadata.templates()).thenReturn(Map.of());
 
         // s1 fails for SnapshotInfo
         doReturn(CompletableFuture.completedFuture(metadata))
@@ -148,7 +147,7 @@ public class SysSnapshotsTest extends ESTestCase {
         when(r1.getMetadata()).thenReturn(new RepositoryMetadata("repo1", "fs", Settings.EMPTY));
 
         Metadata metadata = mock(Metadata.class);
-        when(metadata.templates()).thenReturn(ImmutableOpenMap.of());
+        when(metadata.templates()).thenReturn(Map.of());
 
         doReturn(CompletableFuture.completedFuture(metadata))
             .when(r1)
@@ -202,7 +201,7 @@ public class SysSnapshotsTest extends ESTestCase {
         when(r1.getMetadata()).thenReturn(new RepositoryMetadata("repo1", "fs", Settings.EMPTY));
 
         Metadata metadata = mock(Metadata.class);
-        when(metadata.templates()).thenReturn(ImmutableOpenMap.of());
+        when(metadata.templates()).thenReturn(Map.of());
 
         doReturn(CompletableFuture.completedFuture(metadata))
             .when(r1)

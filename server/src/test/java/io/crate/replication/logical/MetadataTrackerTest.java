@@ -439,7 +439,7 @@ public class MetadataTrackerTest extends ESTestCase {
             updatedResponse,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
         );
-        var syncedIndexMetadata = syncedSubscriberClusterState.metadata().indices().valuesIt().next();
+        var syncedIndexMetadata = syncedSubscriberClusterState.metadata().indices().values().iterator().next();
         assertThat(syncedIndexMetadata.getSettings().getAsInt(IndexSettings.MAX_NGRAM_DIFF_SETTING.getKey(), null)).isEqualTo(5);
     }
 
@@ -484,7 +484,7 @@ public class MetadataTrackerTest extends ESTestCase {
             updatedResponse,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
         );
-        var syncedIndexMetadata = syncedSubscriberClusterState.metadata().indices().valuesIt().next();
+        var syncedIndexMetadata = syncedSubscriberClusterState.metadata().indices().values().iterator().next();
         assertThat(INDEX_NUMBER_OF_REPLICAS_SETTING.get(syncedIndexMetadata.getSettings())).isEqualTo(0);
     }
 

@@ -116,4 +116,16 @@ public final class MapBuilder<K, V> {
             map.remove(key);
         }
     }
+
+    public void clear() {
+        map.clear();
+    }
+
+    public int size() {
+        return map.size();
+    }
+
+    public V getOrDefault(K key, V defaultValue) {
+        return map.getOrDefault(key, defaultValue);
+    }
 }

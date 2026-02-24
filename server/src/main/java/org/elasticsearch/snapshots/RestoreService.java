@@ -78,7 +78,6 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -92,8 +91,6 @@ import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
-
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.analyze.SnapshotSettings;
 import io.crate.common.annotations.VisibleForTesting;
@@ -557,13 +554,13 @@ public class RestoreService implements ClusterStateApplier {
                 List<String> customMetadataTypes = Arrays.asList(request.customMetadataTypes());
                 boolean includeAll = customMetadataTypes.isEmpty();
 
-                for (ObjectObjectCursor<String, Metadata.Custom> cursor : snapshotMetadata.customs()) {
-                    if (!RepositoriesMetadata.TYPE.equals(cursor.key)) {
+                for (Map.Entry<String, Metadata.Custom> entry : snapshotMetadata.customs().entrySet()) {
+                    if (!RepositoriesMetadata.TYPE.equals(entry.getKey())) {
                         // Don't restore repositories while we are working with them
                         // TODO: Should we restore them at the end?
 
-                        if (includeAll || customMetadataTypes.contains(cursor.key)) {
-                            mdBuilder.putCustom(cursor.key, cursor.value);
+                        if (includeAll || customMetadataTypes.contains(entry.getKey())) {
+                            mdBuilder.putCustom(entry.getKey(), entry.getValue());
                         }
                     }
                 }
@@ -868,10 +865,12 @@ public class RestoreService implements ClusterStateApplier {
             if (changed == false) {
                 return resultBuilder.build(currentState);
             }
-            ImmutableOpenMap.Builder<String, ClusterState.Custom> builder = ImmutableOpenMap.builder(currentState.customs());
-            builder.put(RestoreInProgress.TYPE, restoreInProgressBuilder.build());
-            ImmutableOpenMap<String, ClusterState.Custom> customs = builder.build();
-            return resultBuilder.build(ClusterState.builder(currentState).customs(customs).build());
+            HashMap<String, ClusterState.Custom> newCustoms = new HashMap<>(currentState.customs());
+            newCustoms.put(RestoreInProgress.TYPE, restoreInProgressBuilder.build());
+            ClusterState newState = ClusterState.builder(currentState)
+                .customs(Collections.unmodifiableMap(newCustoms))
+                .build();
+            return resultBuilder.build(newState);
         }
 
         @Override

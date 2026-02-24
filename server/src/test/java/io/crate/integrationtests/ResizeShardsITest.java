@@ -46,8 +46,6 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 
@@ -325,8 +323,8 @@ public class ResizeShardsITest extends IntegTestCase {
 
     private static Set<Index> getResizeIndices(Metadata metadata) {
         Set<Index> resizeIndices = new HashSet<>();
-        for (ObjectCursor<IndexMetadata> cursor : metadata.indices().values()) {
-            Index index = cursor.value.getIndex();
+        for (IndexMetadata indexMetadata : metadata.indices().values()) {
+            Index index = indexMetadata.getIndex();
             RelationMetadata relation = metadata.getRelation(index.getUUID());
             if (relation == null && index.getName().startsWith(".resized")) {
                 resizeIndices.add(index);

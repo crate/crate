@@ -35,8 +35,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.jspecify.annotations.Nullable;
-
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.Assertions;
@@ -49,9 +47,9 @@ import org.elasticsearch.cluster.routing.allocation.ExistingShardsAllocator;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
+import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.ObjectIntHashMap;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.common.collections.Tuple;
 
@@ -103,8 +101,8 @@ public class RoutingNodes implements Iterable<RoutingNode> {
 
         // fill in the inverse of node -> shards allocated
         // also fill replicaSet information
-        for (ObjectCursor<IndexRoutingTable> indexRoutingTable : routingTable.indicesRouting().values()) {
-            for (IndexShardRoutingTable indexShard : indexRoutingTable.value) {
+        for (IndexRoutingTable indexRoutingTable : routingTable.indicesRouting().values()) {
+            for (IndexShardRoutingTable indexShard : indexRoutingTable) {
                 assert indexShard.primary != null;
                 for (ShardRouting shard : indexShard) {
                     // to get all the shards belonging to an index, including the replicas,

@@ -155,7 +155,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .containsEntry("type", "keyword")
             .doesNotContainKey("dropped")
             .hasSize(4);
-        IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
+        IndexMetadata indexMetadata = clusterService.state().metadata().indices().values().iterator().next();
         assertThat(indexMetadata.mapping()).isNull();
         assertThat(reference.valueType()).isEqualTo(StringType.of(40));
     }
@@ -174,7 +174,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .doesNotContainKey("dropped")
             .containsEntry("doc_values", "false")
             .hasSize(4);
-        IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
+        IndexMetadata indexMetadata = clusterService.state().metadata().indices().values().iterator().next();
         assertThat(indexMetadata.mapping()).isNull();
         assertThat(reference.hasDocValues()).isFalse();
     }
@@ -193,7 +193,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .doesNotContainKey("dropped")
             .containsEntry("doc_values", "false")
             .hasSize(4);
-        IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
+        IndexMetadata indexMetadata = clusterService.state().metadata().indices().values().iterator().next();
         assertThat(indexMetadata.mapping()).isNull();
         assertThat(reference.hasDocValues()).isFalse();
         assertThat(reference.valueType()).isEqualTo(DataTypes.FLOAT);
@@ -248,7 +248,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .doesNotContainKey("dropped")
             .containsEntry("default_expr", "'foo'")
             .hasSize(4);
-        IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
+        IndexMetadata indexMetadata = clusterService.state().metadata().indices().values().iterator().next();
         assertThat(indexMetadata.mapping()).isNull();
         assertThat(reference.defaultExpression()).isLiteral("foo");
     }
