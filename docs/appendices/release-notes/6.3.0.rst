@@ -130,6 +130,10 @@ Performance and Resilience Improvements
   remain in ``PARTIAL`` state, with an ``ABORTED`` failure message showing in
   the :ref:`sys.snapshots <sys-snapshots>` system table.
 
+- :ref:`INSERT INTO <sql-insert>` statements that create new partitions are no
+  longer interrupted by :ref:`SWAP <alter_cluster_swap_table>` or
+  :ref:`RENAME <sql-alter-table-rename-to>` table statements.
+
 Administration and Operations
 -----------------------------
 
