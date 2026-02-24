@@ -55,8 +55,6 @@ import io.crate.expression.scalar.ScalarTestCase;
  *       accepts variable-width input, so use patterns without FM (e.g., 'Month' instead of 'FMMonth').</li>
  *   <li><b>'th' ordinal suffix:</b> Ordinal suffixes (TH/th pattern matching st, nd, rd, th) not yet
  *       supported.</li>
- *   <li><b>Negative years in input:</b> Negative year values in the input string (e.g., '-44-02-01')
- *       are handled differently. Use the BC pattern instead for BC dates.</li>
  *   <li><b>Internal whitespace:</b> PostgreSQL accepts internal whitespace in fixed-width formats
  *       like YYYYMMDD, CrateDB requires explicit separators or no whitespace.</li>
  * </ul>

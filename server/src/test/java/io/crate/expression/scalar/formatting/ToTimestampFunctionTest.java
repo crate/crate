@@ -54,8 +54,6 @@ import io.crate.expression.symbol.Literal;
  *       accepts variable-width input, so use patterns without FM (e.g., 'Month' instead of 'FMMonth').</li>
  *   <li><b>'th' ordinal suffix:</b> Ordinal suffixes (TH/th pattern matching st, nd, rd, th) not yet
  *       supported.</li>
- *   <li><b>Negative years in input:</b> Negative year values in the input string (e.g., '-44-02-01')
- *       are handled differently. Use the BC pattern instead for BC dates.</li>
  *   <li><b>Internal whitespace:</b> PostgreSQL accepts internal whitespace in fixed-width formats
  *       like YYYYMMDD, CrateDB requires explicit separators or no whitespace.</li>
  * </ul>
@@ -694,6 +692,31 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
             "to_timestamp('2023-07-15 BC', 'YYYY-MM-DD BC')",
             // Verified: PostgreSQL 16 returns 2023-07-15 00:00:00+00 BC (= -2022)
             Instant.parse("-2022-07-15T00:00:00Z").toEpochMilli()
+        );
+    }
+
+    @Test
+    public void testNegativeYearInInput() {
+        // Negative year in input is treated as BC
+        assertEvaluate(
+            "to_timestamp('-44', 'YYYY')",
+            // Verified: PostgreSQL 16 returns 0044-01-01 00:00:00+00 BC (= astronomical year -43)
+            Instant.parse("-0043-01-01T00:00:00Z").toEpochMilli()
+        );
+        assertEvaluate(
+            "to_timestamp('-44-02-01', 'YYYY-MM-DD')",
+            // Verified: PostgreSQL 16 returns 0044-02-01 00:00:00+00 BC (= astronomical year -43)
+            Instant.parse("-0043-02-01T00:00:00Z").toEpochMilli()
+        );
+    }
+
+    @Test
+    public void testNegativeYearWithBcCancelsOut() {
+        // Negative year with BC pattern = double negation = AD
+        assertEvaluate(
+            "to_timestamp('-44 BC', 'YYYY BC')",
+            // Verified: PostgreSQL 16 returns 0044-01-01 00:00:00+00 (AD, not BC)
+            Instant.parse("0044-01-01T00:00:00Z").toEpochMilli()
         );
     }
 

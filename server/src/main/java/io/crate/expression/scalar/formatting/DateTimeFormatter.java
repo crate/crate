@@ -571,6 +571,7 @@ public class DateTimeFormatter {
         Integer century = null;
         Integer dayOfWeek = null;  // 1=Sunday, 7=Saturday (PostgreSQL D convention)
         Integer isoDayOfWeek = null;  // 1=Monday, 7=Sunday (ISO convention)
+        boolean yearHadMinusSign = false;  // True if year had leading minus sign in input
     }
 
     private static class ParseResult {
@@ -598,9 +599,18 @@ public class DateTimeFormatter {
             }
 
             if (tokenObj instanceof Token token) {
+                // Check for leading minus sign on year tokens (PostgreSQL treats negative years as BC)
+                boolean hadMinus = false;
+                if (isYearToken(token) && pos < input.length() && input.charAt(pos) == '-') {
+                    hadMinus = true;
+                    pos++;
+                }
                 ParseResult result = parseToken(token, input, pos);
                 pos += result.charsConsumed;
                 applyParsedValue(parsed, token, result.value);
+                if (hadMinus && result.value != null) {
+                    parsed.yearHadMinusSign = true;
+                }
             } else {
                 // PostgreSQL behavior: separators match flexibly
                 // Any non-letter/non-digit in pattern matches any non-letter/non-digit in input
@@ -728,8 +738,14 @@ public class DateTimeFormatter {
         // Compute year from century and/or explicit year
         int year = computeYear(parsed);
 
+        // Determine if this is a BC year:
+        // - Leading minus sign on year input implies BC (e.g., "-44" means 44 BC)
+        // - Explicit BC pattern also means BC
+        // - If both are present, they cancel out (e.g., "-44 BC" means 44 AD)
+        boolean isBcYear = parsed.yearHadMinusSign ^ (parsed.isBc != null && parsed.isBc);
+
         // Apply BC era - convert to astronomical year (year 1 BC = year 0, year 2 BC = year -1, etc.)
-        if (parsed.isBc != null && parsed.isBc) {
+        if (isBcYear) {
             year = 1 - year;
         }
 
@@ -813,6 +829,15 @@ public class DateTimeFormatter {
         }
 
         return pos + skipped;
+    }
+
+    private boolean isYearToken(Token token) {
+        return switch (token) {
+            case YEAR_YYYY, YEAR_LOWER_YYYY, YEAR_YYY, YEAR_YYY_LOWER,
+                 YEAR_YY, YEAR_YY_LOWER, YEAR_Y, YEAR_Y_LOWER,
+                 YEAR_WITH_COMMA, YEAR_WITH_COMMA_LOWER -> true;
+            default -> false;
+        };
     }
 
     private ParseResult parseDigits(String input, int pos, int maxDigits) {
