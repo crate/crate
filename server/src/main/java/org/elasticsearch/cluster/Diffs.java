@@ -128,7 +128,7 @@ public final class Diffs {
     }
 
     /**
-     * Loads an object that represents difference between two ImmutableOpenMaps
+     * Loads an object that represents difference between two ImmutableOpenIntMaps
      */
     public static <T> MapDiff<Integer, T, ImmutableOpenIntMap<T>> readIntMapDiff(StreamInput in, KeySerializer<Integer> keySerializer, ValueSerializer<Integer, T> valueSerializer) throws IOException {
         return new ImmutableIntMapDiff<>(in, keySerializer, valueSerializer);

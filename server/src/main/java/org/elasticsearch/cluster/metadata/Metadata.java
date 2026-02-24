@@ -56,7 +56,6 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.VersionedNamedWriteable;
@@ -165,7 +164,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     private final Map<String, Custom> customs;
     private final Map<String, SchemaMetadata> schemas;
 
-    private final transient ImmutableOpenMap<String, RelationMetadata> indexUUIDsRelations;
+    private final transient Map<String, RelationMetadata> indexUUIDsRelations;
     private final transient int totalNumberOfShards; // Transient ? not serializable anyway?
     private final int totalOpenIndexShards;
     private final int numberOfShards;
@@ -212,7 +211,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         this.totalOpenIndexShards = totalOpenIndexShards;
         this.numberOfShards = numberOfShards;
         this.aliasAndIndexLookup = aliasAndIndexLookup;
-        var indexUUIDsRelationsBuilder = ImmutableOpenMap.<String, RelationMetadata>builder(indices.size());
+        HashMap<String, RelationMetadata> indexUUIDsRelationsBuilder = HashMap.newHashMap(indices.size());
         for (var schema : schemas.values()) {
             for (var relEntry : schema.relations().entrySet()) {
                 var relationMetadata = relEntry.getValue();
@@ -222,7 +221,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 }
             }
         }
-        indexUUIDsRelations = indexUUIDsRelationsBuilder.build();
+        indexUUIDsRelations = Map.copyOf(indexUUIDsRelationsBuilder);
     }
 
     public long version() {
