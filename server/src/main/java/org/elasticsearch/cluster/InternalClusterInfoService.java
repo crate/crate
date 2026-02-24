@@ -56,7 +56,6 @@ import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ReceiveTimeoutTransportException;
 
-import com.carrotsearch.hppc.ObjectContainer;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
@@ -187,8 +186,8 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
      * @return a latch that can be used to wait for the nodes stats to complete if desired
      */
     protected CompletableFuture<NodesStatsResponse> updateNodeStats() {
-        ObjectContainer<DiscoveryNode> allDataNodes = clusterService.state().nodes().getDataNodes().values();
-        final NodesStatsRequest nodesStatsRequest = new NodesStatsRequest(allDataNodes.toArray(DiscoveryNode.class));
+        var allDataNodes = clusterService.state().nodes().getDataNodes().values();
+        final NodesStatsRequest nodesStatsRequest = new NodesStatsRequest(allDataNodes.toArray(DiscoveryNode[]::new));
         nodesStatsRequest.timeout(fetchTimeout);
         return client.nodesStats(nodesStatsRequest);
     }

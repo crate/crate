@@ -28,8 +28,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-
 @IntegTestCase.ClusterScope(numDataNodes = 2)
 public class RemoteCollectorIntegrationTest extends IntegTestCase {
 
@@ -53,9 +51,9 @@ public class RemoteCollectorIntegrationTest extends IntegTestCase {
         assert sourceNodeId != null;
         String targetNodeId = null;
 
-        for (ObjectCursor<String> cursor : clusterService.state().nodes().getDataNodes().keys()) {
-            if (!sourceNodeId.equals(cursor.value)) {
-                targetNodeId = cursor.value;
+        for (String nodeId : clusterService.state().nodes().getDataNodes().keySet()) {
+            if (!sourceNodeId.equals(nodeId)) {
+                targetNodeId = nodeId;
             }
         }
         assert targetNodeId != null;

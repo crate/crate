@@ -42,9 +42,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
-
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyFromReturnSummary;
@@ -53,6 +50,7 @@ import io.crate.analyze.CopyFromParserProperties;
 import io.crate.analyze.CopyStatementSettings;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.copy.NodeFilters;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -411,9 +409,9 @@ public final class CopyFromPlan implements Plan {
                                                         final Predicate<DiscoveryNode> nodeFilters) {
         int counter = maxNodes;
         final List<String> nodes = new ArrayList<>(allNodes.getSize());
-        for (ObjectCursor<DiscoveryNode> cursor : allNodes.getDataNodes().values()) {
-            if (nodeFilters.test(cursor.value) && counter-- > 0) {
-                nodes.add(cursor.value.getId());
+        for (DiscoveryNode node : allNodes.getDataNodes().values()) {
+            if (nodeFilters.test(node) && counter-- > 0) {
+                nodes.add(node.getId());
             }
         }
         return nodes;

@@ -55,7 +55,7 @@ public class ResizeShardsITest extends IntegTestCase {
 
     private String getADataNodeName(ClusterState state) {
         assertThat(state.nodes().getDataNodes()).isNotEmpty();
-        return state.nodes().getDataNodes().valuesIt().next().getName();
+        return state.nodes().getDataNodes().values().iterator().next().getName();
     }
 
     @Test
