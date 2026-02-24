@@ -46,6 +46,8 @@ import io.crate.expression.symbol.Literal;
  *
  * <p>Known Differences from PostgreSQL:
  * <ul>
+ *   <li><b>Microsecond precision:</b> CrateDB truncates microseconds (US, FF4-FF6) to milliseconds
+ *       due to TIMESTAMPTZ storage precision. PostgreSQL preserves full microsecond precision.</li>
  *   <li><b>TZ/tz/OF patterns:</b> CrateDB accepts timezone patterns (parses and ignores them),
  *       PostgreSQL rejects these patterns in to_timestamp.</li>
  *   <li><b>WW/D computation:</b> Minor differences in week number and day of week calculation
@@ -313,7 +315,8 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
     public void testMicrosecondsParsing() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45.123456', 'YYYY-MM-DD HH24:MI:SS.US')",
-            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45.123456+00 (truncated to milliseconds)
+            // DIFFERS: PostgreSQL 16 returns 2023-07-15 14:30:45.123456+00 (full microsecond precision)
+            // CrateDB truncates to milliseconds due to TIMESTAMPTZ storage precision
             Instant.parse("2023-07-15T14:30:45.123Z").toEpochMilli()
         );
     }
@@ -408,7 +411,8 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
     public void testFf4TenthOfMillisecond() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45.1234', 'YYYY-MM-DD HH24:MI:SS.FF4')",
-            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45.1234+00 (truncated to milliseconds)
+            // DIFFERS: PostgreSQL 16 returns 2023-07-15 14:30:45.1234+00 (4 decimal places)
+            // CrateDB truncates to milliseconds due to TIMESTAMPTZ storage precision
             Instant.parse("2023-07-15T14:30:45.123Z").toEpochMilli()
         );
     }
@@ -417,7 +421,8 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
     public void testFf5HundredthOfMillisecond() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45.12345', 'YYYY-MM-DD HH24:MI:SS.FF5')",
-            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45.12345+00 (truncated to milliseconds)
+            // DIFFERS: PostgreSQL 16 returns 2023-07-15 14:30:45.12345+00 (5 decimal places)
+            // CrateDB truncates to milliseconds due to TIMESTAMPTZ storage precision
             Instant.parse("2023-07-15T14:30:45.123Z").toEpochMilli()
         );
     }
@@ -426,7 +431,8 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
     public void testFf6Microsecond() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45.123456', 'YYYY-MM-DD HH24:MI:SS.FF6')",
-            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45.123456+00 (truncated to milliseconds)
+            // DIFFERS: PostgreSQL 16 returns 2023-07-15 14:30:45.123456+00 (full microsecond precision)
+            // CrateDB truncates to milliseconds due to TIMESTAMPTZ storage precision
             Instant.parse("2023-07-15T14:30:45.123Z").toEpochMilli()
         );
     }
@@ -671,7 +677,8 @@ public class ToTimestampFunctionTest extends ScalarTestCase {
     public void testMicrosecondLowercaseUs() {
         assertEvaluate(
             "to_timestamp('2023-07-15 14:30:45.123456', 'YYYY-MM-DD HH24:MI:SS.us')",
-            // Verified: PostgreSQL 16 returns 2023-07-15 14:30:45.123456+00 (truncated to milliseconds)
+            // DIFFERS: PostgreSQL 16 returns 2023-07-15 14:30:45.123456+00 (full microsecond precision)
+            // CrateDB truncates to milliseconds due to TIMESTAMPTZ storage precision
             Instant.parse("2023-07-15T14:30:45.123Z").toEpochMilli()
         );
     }

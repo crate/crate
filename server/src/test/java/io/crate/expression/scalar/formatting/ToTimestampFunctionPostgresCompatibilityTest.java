@@ -47,6 +47,8 @@ import io.crate.expression.scalar.ScalarTestCase;
  *
  * <p>Known Differences from PostgreSQL:
  * <ul>
+ *   <li><b>Microsecond precision:</b> CrateDB truncates microseconds (US, FF4-FF6) to milliseconds
+ *       due to TIMESTAMPTZ storage precision. PostgreSQL preserves full microsecond precision.</li>
  *   <li><b>TZ/tz/OF patterns:</b> CrateDB accepts timezone patterns (parses and ignores them),
  *       PostgreSQL rejects these patterns in to_timestamp.</li>
  *   <li><b>WW/D computation:</b> Minor differences in week number and day of week calculation
@@ -122,17 +124,21 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
 
     @Test
     public void testPostgresMicrosecondCompatibility() {
-        // Microseconds are truncated to milliseconds in the result
+        // DIFFERS: Microseconds are truncated to milliseconds in CrateDB
+        // PostgreSQL preserves full microsecond precision
         assertEvaluate("to_timestamp('123456', 'US')",
-            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.123456+00 (year 0)
+            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.123456+00 (year 0)
+            // CrateDB truncates to 0.123 (milliseconds)
             Instant.parse("0000-01-01T00:00:00.123Z").toEpochMilli());
         assertEvaluate("to_timestamp('000500', 'US')",
-            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.0005+00 (year 0)
+            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.0005+00 (year 0)
+            // CrateDB truncates to 0.000 (sub-millisecond precision lost)
             Instant.parse("0000-01-01T00:00:00Z").toEpochMilli());
     }
 
     @Test
     public void testPostgresFractionOfSecondCompatibility() {
+        // FF1, FF2, FF3 fit within millisecond precision - Verified
         assertEvaluate("to_timestamp('1', 'FF1')",
             // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.1+00 (year 0)
             Instant.parse("0000-01-01T00:00:00.100Z").toEpochMilli());
@@ -142,14 +148,18 @@ public class ToTimestampFunctionPostgresCompatibilityTest extends ScalarTestCase
         assertEvaluate("to_timestamp('123', 'FF3')",
             // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.123+00 (year 0)
             Instant.parse("0000-01-01T00:00:00.123Z").toEpochMilli());
+        // FF4, FF5, FF6 exceed millisecond precision - DIFFERS (truncated in CrateDB)
         assertEvaluate("to_timestamp('1234', 'FF4')",
-            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.1234+00 (year 0)
+            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.1234+00 (year 0)
+            // CrateDB truncates to 0.123 (milliseconds)
             Instant.parse("0000-01-01T00:00:00.123Z").toEpochMilli());
         assertEvaluate("to_timestamp('12345', 'FF5')",
-            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.12345+00 (year 0)
+            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.12345+00 (year 0)
+            // CrateDB truncates to 0.123 (milliseconds)
             Instant.parse("0000-01-01T00:00:00.123Z").toEpochMilli());
         assertEvaluate("to_timestamp('123456', 'FF6')",
-            // Verified: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.123456+00 (year 0)
+            // DIFFERS: PostgreSQL 16 returns 0001-01-01 BC 00:00:00.123456+00 (year 0)
+            // CrateDB truncates to 0.123 (milliseconds)
             Instant.parse("0000-01-01T00:00:00.123Z").toEpochMilli());
     }
 
