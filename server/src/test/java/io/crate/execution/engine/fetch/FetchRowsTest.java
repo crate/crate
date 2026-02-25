@@ -31,7 +31,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import com.carrotsearch.hppc.IntHashSet;
+import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.breaker.CellsSizeEstimator;
@@ -89,7 +89,7 @@ public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
             CellsSizeEstimator.constant(0),
             RamAccounting.NO_ACCOUNTING
         );
-        IntHashSet readerIds = new IntHashSet(2);
+        IntArrayList readerIds = new IntArrayList(2);
         readerIds.add(1);
         readerIds.add(2);
         readerBuckets.add(new RowN(fetchIdRel1, fetchIdRel2, 42));

@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Test;
 
-import com.carrotsearch.hppc.IntHashSet;
+import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.breaker.CellsSizeEstimator;
@@ -89,10 +89,10 @@ public class ReaderBucketsTest extends CrateDummyClusterServiceUnitTest {
         bucketsByReader.put(readerId, new CollectionBucket(List.<Object[]>of(
             new Object[] {"I eat memory for breakfast"}
         )));
-        IntHashSet readerIds = new IntHashSet(2);
+        IntArrayList readerIds = new IntArrayList(2);
         readerIds.add(readerId);
         readerBuckets.generateToFetch(readerIds);
-        try (var outputRows = readerBuckets.getOutputRows(List.of(bucketsByReader))) {
+        try (var _ = readerBuckets.getOutputRows(List.of(bucketsByReader))) {
             assertThat(bytesAccounted.get()).isEqualTo(1024L);
             assertThat(readerBuckets.ramBytesUsed()).isEqualTo(136L);
         }
