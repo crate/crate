@@ -25,6 +25,7 @@ package io.crate.protocols.postgres.types;
 import java.nio.charset.StandardCharsets;
 
 import ch.randelshofer.fastdoubleparser.JavaFloatParser;
+import io.crate.metadata.RelationLookup;
 import io.netty.buffer.ByteBuf;
 
 class RealType extends PGType<Float> {
@@ -74,7 +75,7 @@ class RealType extends PGType<Float> {
     }
 
     @Override
-    Float decodeUTF8Text(byte[] bytes) {
+    Float decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         return JavaFloatParser.parseFloat(bytes);
     }
 }

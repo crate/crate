@@ -25,6 +25,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Set;
 
+import io.crate.metadata.RelationLookup;
 import io.netty.buffer.ByteBuf;
 
 class BooleanType extends PGType<Boolean> {
@@ -94,7 +95,7 @@ class BooleanType extends PGType<Boolean> {
     }
 
     @Override
-    Boolean decodeUTF8Text(byte[] bytes) {
+    Boolean decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         return TRUTH_VALUES.contains(ByteBuffer.wrap(bytes));
     }
 }

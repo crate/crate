@@ -74,7 +74,8 @@ public class BlobTableInfoFactory implements TableInfoFactory<BlobTableInfo> {
             blobsPath(tableSettings),
             indexMetadata.getCreationVersion(),
             indexSettings.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null),
-            blobTable.state() == State.CLOSE
+            blobTable.state() == State.CLOSE,
+            blobTable.oid()
         );
     }
 

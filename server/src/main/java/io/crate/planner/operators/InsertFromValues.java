@@ -754,7 +754,7 @@ public class InsertFromValues implements LogicalPlan {
         if (partitionsToCreate.isEmpty()) {
             return CompletableFuture.completedFuture(new AcknowledgedResponse(true));
         }
-        return client.execute(TransportCreatePartitions.ACTION, CreatePartitionsRequest.of(tableInfo.tableOID(), partitionsToCreate));
+        return client.execute(TransportCreatePartitions.ACTION, CreatePartitionsRequest.of(tableInfo.oid(), partitionsToCreate));
     }
 
     @Override

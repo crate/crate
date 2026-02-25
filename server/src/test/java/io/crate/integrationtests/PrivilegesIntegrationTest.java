@@ -37,9 +37,6 @@ import org.junit.Test;
 
 import io.crate.auth.Protocol;
 import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.pgcatalog.OidHash;
-import io.crate.metadata.pgcatalog.OidHash.Type;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.Roles;
@@ -688,10 +685,9 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
     @Test
     public void testAccessesToPgConstraintEntriesWithRespectToPrivileges() throws Exception {
-        int relationOid = OidHash.relationOid(Type.TABLE, new RelationName("test_schema", "my_table"));
+        Object[] args;
         String selectConstraints =
             "select conname from pg_catalog.pg_constraint where conrelid = ? order by conname";
-        Object[] args = new Object[] { relationOid };
 
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
         try (Session testUserSession = testUserSession()) {
@@ -715,6 +711,10 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
                 )
                 """
             );
+
+            execute("select 'test_schema.my_table'::regclass::integer");
+            int relationOid = (int) response.rows()[0][0];
+            args = new Object[] { relationOid };
 
             execute(selectConstraints, args, testUserSession);
             assertThat(response)

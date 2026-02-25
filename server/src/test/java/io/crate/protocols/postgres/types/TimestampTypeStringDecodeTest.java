@@ -74,10 +74,10 @@ public class TimestampTypeStringDecodeTest extends BasePGTypeTest<Long> {
             expectedMillis += (long) Math.pow(10, 3 - numberOfFractionDigits);
         }
 
-        assertThat(TimestampType.INSTANCE.decodeUTF8Text(fullTimestamp.toString().getBytes(StandardCharsets.UTF_8)))
+        assertThat(TimestampType.INSTANCE.decodeUTF8Text(fullTimestamp.toString().getBytes(StandardCharsets.UTF_8), null))
             .isEqualTo(expectedMillis);
 
-        assertThat(TimestampType.INSTANCE.decodeUTF8Text(TimestampType.INSTANCE.encodeAsUTF8Text(expectedMillis)))
+        assertThat(TimestampType.INSTANCE.decodeUTF8Text(TimestampType.INSTANCE.encodeAsUTF8Text(expectedMillis), null))
             .isEqualTo(expectedMillis);
     }
 

@@ -21,15 +21,10 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.metadata.pgcatalog.OidHash.Type.fromRelationType;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
-
-import io.crate.metadata.RelationInfo;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.pgcatalog.OidHash;
 
 public class HasTablePrivilegeFunctionIntegrationTest extends IntegTestCase {
 
@@ -46,9 +41,7 @@ public class HasTablePrivilegeFunctionIntegrationTest extends IntegTestCase {
         execute("select has_table_privilege('john', 'sys.summits', 'SELECT')");
         assertThat(response.rows()[0][0]).isEqualTo(true);
 
-        final RelationName sysSummits = new RelationName("sys", "summits");
-        final int sysSummitsOid = OidHash.relationOid(OidHash.Type.TABLE, sysSummits);
-        execute("select has_table_privilege('john', " + sysSummitsOid + ", 'SELECT')");
+        execute("select has_table_privilege('john', 'sys.summits'::regclass::integer, 'SELECT')");
         assertThat(response.rows()[0][0]).isEqualTo(true);
 
         // view
@@ -62,9 +55,7 @@ public class HasTablePrivilegeFunctionIntegrationTest extends IntegTestCase {
         execute("select has_table_privilege('john', 'v', 'SELECT')");
         assertThat(response.rows()[0][0]).isEqualTo(true);
 
-        final RelationName view = new RelationName("doc", "v");
-        final int viewOid = OidHash.relationOid(fromRelationType(RelationInfo.RelationType.VIEW), view);
-        execute("select has_table_privilege('john', " + viewOid + ", 'SELECT')");
+        execute("select has_table_privilege('john', 'doc.v'::regclass::integer, 'SELECT')");
         assertThat(response.rows()[0][0]).isEqualTo(true);
 
         // foreign table
@@ -92,9 +83,7 @@ public class HasTablePrivilegeFunctionIntegrationTest extends IntegTestCase {
         execute("select has_table_privilege('john', 'remote_documents', 'SELECT')");
         assertThat(response.rows()[0][0]).isEqualTo(true);
 
-        final RelationName foreignTable = new RelationName("doc", "remote_documents");
-        final int foreignTableOid = OidHash.relationOid(fromRelationType(RelationInfo.RelationType.FOREIGN), foreignTable);
-        execute("select has_table_privilege('john', " + foreignTableOid + ", 'SELECT')");
+        execute("select has_table_privilege('john', 'doc.remote_documents'::regclass::integer, 'SELECT')");
         assertThat(response.rows()[0][0]).isEqualTo(true);
 
         execute("drop user john");

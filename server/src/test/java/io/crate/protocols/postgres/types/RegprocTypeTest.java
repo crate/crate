@@ -66,7 +66,7 @@ public class RegprocTypeTest extends BasePGTypeTest<Regproc> {
             //noinspection unchecked
             pgType.writeAsText(buffer, regproc);
             assertThat(
-                pgType.readTextValue(buffer, buffer.readInt())).isEqualTo(regproc);
+                pgType.readTextValue(buffer, buffer.readInt(), null)).isEqualTo(regproc);
         } finally {
             buffer.release();
         }

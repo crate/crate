@@ -26,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import org.joda.time.Period;
 import org.joda.time.ReadablePeriod;
 
+import io.crate.metadata.RelationLookup;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
@@ -121,7 +122,7 @@ public class IntervalType extends PGType<Period> {
     }
 
     @Override
-    Period decodeUTF8Text(byte[] bytes) {
+    Period decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         return io.crate.types.IntervalType.PERIOD_FORMATTER.parsePeriod(new String(bytes, StandardCharsets.UTF_8));
     }
 }

@@ -48,6 +48,7 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RelationLookup;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnDefinition;
@@ -179,7 +180,7 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     }
 
     @Override
-    public BitString explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+    public BitString explicitCast(Object value, SessionSettings sessionSettings, RelationLookup relationLookup) throws IllegalArgumentException, ClassCastException {
         // explicit cast is allowed to trim or extend the bitstring
         if (value instanceof String str) {
             return BitString.ofRawBits(str, length);

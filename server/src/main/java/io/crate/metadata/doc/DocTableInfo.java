@@ -1432,7 +1432,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return Lists.concat(Lists.concat(allColumns.values(), droppedColumns), indexColumns.values());
     }
 
-    public int tableOID() {
+    @Override
+    public int oid() {
         return tableOID;
     }
 }

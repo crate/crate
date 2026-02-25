@@ -24,10 +24,14 @@ package io.crate.types;
 import static io.crate.testing.Asserts.assertThat;
 
 import org.assertj.core.api.Assertions;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.jspecify.annotations.Nullable;
 import org.junit.Test;
 
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RelationLookup;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;
 
@@ -40,52 +44,81 @@ public class RegclassTypeTest extends DataTypeTestCase<Regclass> {
 
     private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
-    private Regclass explicitCast(Object value) {
-        return RegclassType.INSTANCE.explicitCast(value, SESSION_SETTINGS);
-    }
-
     @Test
     public void test_cannot_cast_long_outside_int_range_to_regclass() {
-        Assertions.assertThatThrownBy(() -> RegclassType.INSTANCE.implicitCast(Integer.MAX_VALUE + 42L))
+        Assertions.assertThatThrownBy(() -> RegclassType.INSTANCE.explicitCast(
+                Integer.MAX_VALUE + 42L,
+                SESSION_SETTINGS,
+                null
+            ))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("2147483689 is outside of `int` range and cannot be cast to the regclass type");
     }
 
     @Test
     public void test_cast_from_string_uses_current_schema() {
-        var sessionSettings = new SessionSettings("crate", SearchPath.createSearchPathFrom("my_schema"));
-        var regclass = RegclassType.INSTANCE.explicitCast("my_table", sessionSettings);
+        RelationLookup relationLookup = new RelationLookup() {
+            @Override
+            public int getRelationOid(RelationName relationName) {
+                if (relationName.equals(new RelationName("my_schema", "my_table"))) {
+                    return 123;
+                }
+                return Metadata.OID_UNASSIGNED;
+            }
 
-        assertThat(regclass.toString()).isEqualTo("2034491507");
+            @Override
+            public @Nullable RelationName getRelationName(int oid) {
+                return null;
+            }
+        };
+        var sessionSettings = new SessionSettings("crate", SearchPath.createSearchPathFrom("my_schema"));
+        var regclass = RegclassType.INSTANCE.explicitCast("my_table", sessionSettings, relationLookup);
+        assertThat(regclass.oid()).isEqualTo(123);
     }
 
     @Test
     public void test_cast_from_quoted_string_identifier() {
-        var regclassQuotedIdentifier = explicitCast("\"my_table\"");
-        var regclass = explicitCast("my_table");
+        RelationLookup relationLookup = new RelationLookup() {
+            @Override
+            public int getRelationOid(RelationName relationName) {
+                if (relationName.equals(new RelationName("doc", "my_table"))) {
+                    return 123;
+                }
+                return Metadata.OID_UNASSIGNED;
+            }
 
-        assertThat(regclassQuotedIdentifier).isEqualTo(regclass);
+            @Override
+            public @Nullable RelationName getRelationName(int oid) {
+                return null;
+            }
+        };
+        var regclass = RegclassType.INSTANCE.explicitCast("\"my_table\"", SESSION_SETTINGS, relationLookup);
+        assertThat(regclass.oid()).isEqualTo(123);
     }
 
     @Test
     public void test_cast_from_string_unquoted_ignores_capital_case() {
-        var regclassQuotedIdentifier = explicitCast("\"mytable\"");
-        var regclass = explicitCast("myTable");
+        RelationLookup relationLookup = new RelationLookup() {
+            @Override
+            public int getRelationOid(RelationName relationName) {
+                if (relationName.equals(new RelationName("doc", "my_table"))) {
+                    return 123;
+                }
+                return Metadata.OID_UNASSIGNED;
+            }
 
-        assertThat(regclassQuotedIdentifier).isEqualTo(regclass);
-    }
-
-    @Test
-    public void test_cast_from_string_quoted_does_not_ignore_capital_case() {
-        var regclassQuotedIdentifier = explicitCast("\"myTable\"");
-        var regclass = explicitCast("mytable");
-
-        assertThat(regclassQuotedIdentifier).isNotEqualTo(regclass);
+            @Override
+            public @Nullable RelationName getRelationName(int oid) {
+                return null;
+            }
+        };
+        var regclass = RegclassType.INSTANCE.explicitCast("my_Table", SESSION_SETTINGS, relationLookup);
+        assertThat(regclass.oid()).isEqualTo(123);
     }
 
     @Test
     public void test_cast_from_string_raise_exception_if_not_valid_relation_name() {
-        Assertions.assertThatThrownBy(() -> explicitCast("\"\"myTable\"\""))
+        Assertions.assertThatThrownBy(() -> RegclassType.INSTANCE.explicitCast("\"\"myTable\"\"", SESSION_SETTINGS, null))
             .isExactlyInstanceOf(InvalidRelationName.class)
             .hasMessageContaining("Relation name \"\"\"myTable\"\"\" is invalid");
     }

@@ -66,7 +66,7 @@ public class HasTablePrivilegeFunction {
                                           Functions functions,
                                           SearchPath searchPath) {
         int tableOid = (int) table;
-        RelationName relationName = schemas.getRelation(tableOid);
+        RelationName relationName = schemas.getRelationName(tableOid);
         String tableFqn;
         if (relationName == null) {
             // Proceed to checkPrivileges with tableFqn as 'null' which will return 'true' for a superuser or a

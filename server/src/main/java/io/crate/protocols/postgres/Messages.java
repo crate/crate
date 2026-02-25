@@ -38,7 +38,6 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
-import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
@@ -447,7 +446,7 @@ public final class Messages {
 
         int tableOid = 0;
         if (relation != null && columns.stream().allMatch(Messages::isRefWithPosition)) {
-            tableOid = OidHash.relationOid(relation);
+            tableOid = relation.oid();
         }
         int idx = 0;
         for (Symbol column : columns) {

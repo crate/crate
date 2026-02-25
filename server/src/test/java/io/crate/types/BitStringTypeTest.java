@@ -68,14 +68,14 @@ public class BitStringTypeTest extends DataTypeTestCase<BitString> {
     @Test
     public void test_explicit_cast_can_trim_bitstring() throws Exception {
         BitStringType type = new BitStringType(3);
-        BitString result = type.explicitCast(BitString.ofRawBits("1111"), SESSION_SETTINGS);
+        BitString result = type.explicitCast(BitString.ofRawBits("1111"), SESSION_SETTINGS, null);
         assertThat(result).isEqualTo(BitString.ofRawBits("111"));
     }
 
     @Test
     public void test_explicit_cast_can_extend_bitstring() throws Exception {
         BitStringType type = new BitStringType(4);
-        BitString result = type.explicitCast(BitString.ofRawBits("111"), SESSION_SETTINGS);
+        BitString result = type.explicitCast(BitString.ofRawBits("111"), SESSION_SETTINGS, null);
         assertThat(result).isEqualTo(BitString.ofRawBits("1110"));
     }
 

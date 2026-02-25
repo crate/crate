@@ -58,7 +58,7 @@ public class PgSubscriptionRelTable {
                             (r, rs) -> c.accept(
                                 new PgSubscriptionRelRow(
                                     OidHash.subscriptionOid(e.getKey(), sub),
-                                    new Regclass(OidHash.relationOid(OidHash.Type.TABLE, r), r.fqn()),
+                                    new Regclass(logicalReplicationService.getsubscriberTableOid(r), r.fqn()),
                                     sub.owner(),
                                     rs.state().pg_state(),
                                     rs.reason()

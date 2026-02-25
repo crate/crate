@@ -22,46 +22,21 @@
 package io.crate.metadata.pgcatalog;
 
 import static io.crate.metadata.pgcatalog.OidHash.constraintOid;
-import static io.crate.metadata.pgcatalog.OidHash.relationOid;
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.testing.T3.T1;
-import static io.crate.testing.T3.T1_DEFINITION;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Collections;
 import java.util.List;
 
-import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.metadata.RelationInfo;
-import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.ConstraintInfo;
-import io.crate.metadata.view.ViewInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
 public class OidHashTest extends CrateDummyClusterServiceUnitTest {
-
-    private static final RelationInfo VIEW_INFO = new ViewInfo(T1, "", Collections.emptyList(), List.of(), null, SearchPath.pathWithPGCatalogAndDoc(), true);
-    private RelationInfo t1Info;
-
-    @Before
-    public void prepare() throws Exception {
-        t1Info = SQLExecutor.tableInfo(T1, T1_DEFINITION, clusterService);
-    }
-
-    @Test
-    public void testRelationOid() {
-        int tableOid = relationOid(t1Info);
-        int viewOid = relationOid(VIEW_INFO);
-        assertThat(tableOid).isNotEqualTo(viewOid);
-        assertThat(tableOid).isEqualTo(728874843);
-        assertThat(viewOid).isEqualTo(1782608760);
-    }
 
     @Test
     public void testSchemaOid() {

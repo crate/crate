@@ -149,7 +149,7 @@ public class ShardUpsertExecutorTest extends IntegTestCase {
             UpsertResultContext.forRowCount(),
             UpsertResults::containsErrors,
             UpsertResults::resultsToFailure,
-            table.tableOID()
+            table.oid()
         );
 
         BatchIterator<Row> rowsIterator = InMemoryBatchIterator.of(IntStream.range(0, 10_000)

@@ -50,7 +50,9 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.IndexScopedSettings;
@@ -399,5 +401,13 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     @VisibleForTesting
     public boolean isActive() {
         return metadataTracker.isActive() || activeOperations.get() > 0;
+    }
+
+    public int getsubscriberTableOid(RelationName relationName) {
+        RelationMetadata relationMetadata = clusterService.state().metadata().getRelation(relationName);
+        if (relationMetadata == null) {
+            return Metadata.OID_UNASSIGNED; // when the subscription exists but the RelationMetadata has not been replicated yet
+        }
+        return relationMetadata.oid();
     }
 }

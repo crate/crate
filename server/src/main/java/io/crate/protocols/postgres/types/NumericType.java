@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.nio.charset.StandardCharsets;
 
+import io.crate.metadata.RelationLookup;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
@@ -178,7 +179,7 @@ class NumericType extends PGType<BigDecimal> {
     }
 
     @Override
-    BigDecimal decodeUTF8Text(byte[] bytes) {
+    BigDecimal decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         return new BigDecimal(new String(bytes, StandardCharsets.UTF_8));
     }
 }

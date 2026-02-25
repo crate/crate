@@ -24,6 +24,7 @@ package io.crate.protocols.postgres.types;
 import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 
+import io.crate.metadata.RelationLookup;
 import io.crate.sql.tree.BitString;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
@@ -109,7 +110,7 @@ public class BitType extends PGType<BitString> {
     }
 
     @Override
-    BitString decodeUTF8Text(byte[] bytes) {
+    BitString decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         String text = new String(bytes, StandardCharsets.UTF_8);
         // See `varbit_in` in src/backend/utils/adt/varbit.c of PostgreSQL
         // PostgreSQL also supports hex notation, that's currently unsupported.

@@ -23,6 +23,9 @@ package io.crate.protocols.postgres.types;
 
 import java.nio.charset.StandardCharsets;
 
+import org.jspecify.annotations.Nullable;
+
+import io.crate.metadata.RelationLookup;
 import io.crate.types.DataTypes;
 import io.netty.buffer.ByteBuf;
 
@@ -77,7 +80,7 @@ class CharacterType extends PGType<String> {
     }
 
     @Override
-    public String readTextValue(ByteBuf buffer, int valueLength) {
+    public String readTextValue(ByteBuf buffer, int valueLength, @Nullable RelationLookup relationLookup) {
         return readBinaryValue(buffer, valueLength);
     }
 
@@ -89,7 +92,7 @@ class CharacterType extends PGType<String> {
     }
 
     @Override
-    String decodeUTF8Text(byte[] bytes) {
+    String decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         return new String(bytes, StandardCharsets.UTF_8);
     }
 }

@@ -60,13 +60,13 @@ public class TimestampTypeTest extends BasePGTypeTest<Long> {
     @Test
     public void testDecodeUTF8TextWithUnexpectedNumberOfFractionDigits() {
         assertThatThrownBy(() ->
-                TimestampType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(UTF_8)))
+                TimestampType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(UTF_8), null))
             .hasMessageStartingWith("Text '2016-06-28 00:00:00.0000000001+05:00' could not be parsed");
     }
 
     @Test
     public void test_decode_ts_string() throws Exception {
-        assertThat(TimestampType.INSTANCE.decodeUTF8Text("2021-01-13T14:37:17.25988".getBytes(UTF_8)))
+        assertThat(TimestampType.INSTANCE.decodeUTF8Text("2021-01-13T14:37:17.25988".getBytes(UTF_8), null))
             .isEqualTo(1610548637259L);
     }
 }

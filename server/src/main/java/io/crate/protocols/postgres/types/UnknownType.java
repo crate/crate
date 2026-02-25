@@ -23,6 +23,7 @@ package io.crate.protocols.postgres.types;
 
 import java.nio.charset.StandardCharsets;
 
+import io.crate.metadata.RelationLookup;
 import io.crate.types.DataTypes;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
@@ -94,7 +95,7 @@ public class UnknownType extends PGType<Object> {
     }
 
     @Override
-    String decodeUTF8Text(byte[] bytes) {
+    String decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         return new String(bytes, StandardCharsets.UTF_8);
     }
 }

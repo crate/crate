@@ -160,7 +160,7 @@ public class MetadataUpgradeService {
                 docTable.isClosed() ? IndexMetadata.State.CLOSE : IndexMetadata.State.OPEN,
                 List.of(),
                 docTable.tableVersion(),
-                docTable.tableOID()
+                docTable.oid()
             );
         }
 
@@ -210,7 +210,7 @@ public class MetadataUpgradeService {
                         newIndexMetadata.getState(),
                         List.of(newIndexMetadata.getIndexUUID()),
                         docTable.tableVersion(),
-                        docTable.tableOID()
+                        docTable.oid()
                     );
                 } else if (BlobIndex.isBlobIndex(indexName)) {
                     newMetadata.setBlobTable(

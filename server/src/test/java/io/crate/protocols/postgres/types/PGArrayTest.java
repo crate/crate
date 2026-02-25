@@ -60,7 +60,7 @@ public class PGArrayTest extends BasePGTypeTest<List<Object>> {
         byte[] bytes = pgArray.encodeAsUTF8Text(array);
         String s = new String(bytes, StandardCharsets.UTF_8);
         assertThat(s).isEqualTo("{\"10\",NULL,\"20\"}");
-        Object o = pgArray.decodeUTF8Text(bytes);
+        Object o = pgArray.decodeUTF8Text(bytes, null);
         assertThat(o).isEqualTo(array);
     }
 
@@ -76,7 +76,7 @@ public class PGArrayTest extends BasePGTypeTest<List<Object>> {
                "\"{\\\"names\\\":[\\\"Ford\\\",\\\"Slarti\\\"]}\"" +
                "}");
 
-        assertThat(PGArray.JSON_ARRAY.decodeUTF8Text(bytes)).isEqualTo(actual);
+        assertThat(PGArray.JSON_ARRAY.decodeUTF8Text(bytes, null)).isEqualTo(actual);
     }
 
     @Test
@@ -85,7 +85,7 @@ public class PGArrayTest extends BasePGTypeTest<List<Object>> {
         byte[] bytes = PGArray.JSON_ARRAY.encodeAsUTF8Text(actual);
         assertThat(
             new String(bytes, StandardCharsets.UTF_8)).isEqualTo("{\"{\\\"values\\\":[\\\"foo \\\\\\\"\\\"]}\"}");
-        assertThat(PGArray.JSON_ARRAY.decodeUTF8Text(bytes)).isEqualTo(actual);
+        assertThat(PGArray.JSON_ARRAY.decodeUTF8Text(bytes, null)).isEqualTo(actual);
     }
 
     @Test
@@ -93,7 +93,7 @@ public class PGArrayTest extends BasePGTypeTest<List<Object>> {
     public void testDecodeEncodeEscapedJson() {
         // Decode
         String s = "{\"{\\\"names\\\":[\\\"Arthur\\\",\\\"Trillian\\\"]}\",\"{\\\"names\\\":[\\\"Ford\\\",\\\"Slarti\\\"]}\"}";
-        List<Object> values = PGArray.JSON_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
+        List<Object> values = PGArray.JSON_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8), null);
 
         List<String> names = (List<String>) ((Map<?, ?>) values.get(0)).get("names");
         assertThat(names).containsExactly("Arthur", "Trillian");
@@ -111,7 +111,7 @@ public class PGArrayTest extends BasePGTypeTest<List<Object>> {
     @Test
     public void test_can_decode_unquoted_strings_which_contain_numbers() throws Exception {
         String s = "{33a10b73-377d-4788-bbd3-9f0a0db4d595,2ea0876d-a290-438b-9816-cb4d63f48f77}";
-        List<Object> values = PGArray.VARCHAR_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
+        List<Object> values = PGArray.VARCHAR_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8), null);
         assertThat(values).containsExactly(
             "33a10b73-377d-4788-bbd3-9f0a0db4d595",
             "2ea0876d-a290-438b-9816-cb4d63f48f77"
@@ -121,7 +121,7 @@ public class PGArrayTest extends BasePGTypeTest<List<Object>> {
     @Test
     public void test_can_decode_unquoted_strings_which_do_not_contain_numbers() throws Exception {
         String s = "{foo,bar}";
-        List<Object> values = PGArray.VARCHAR_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
+        List<Object> values = PGArray.VARCHAR_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8), null);
         assertThat(values).containsExactly(
             "foo",
             "bar"
@@ -131,7 +131,7 @@ public class PGArrayTest extends BasePGTypeTest<List<Object>> {
     @Test
     public void test_can_decode_unquoted_words_with_multiple_spaces() throws Exception {
         String s = "{ \ta   b c  , \t d e   f  \t }";
-        List<Object> values = PGArray.VARCHAR_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
+        List<Object> values = PGArray.VARCHAR_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8), null);
         // leading/trailing whitespaces are ignored in the unquoted strings
         assertThat(values).containsExactly(
             "a   b c",
@@ -142,7 +142,7 @@ public class PGArrayTest extends BasePGTypeTest<List<Object>> {
     @Test
     public void test_can_decode_quoted_words_with_multiple_spaces() throws Exception {
         String s = "{\" a b c \t \r\n \", \"  d \t\t  \\\" e \"}";
-        List<Object> values = PGArray.VARCHAR_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
+        List<Object> values = PGArray.VARCHAR_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8), null);
         // Quoting preserves leading/trailing whitespaces
         assertThat(values).containsExactly(
             " a b c \t \r\n ",
@@ -153,27 +153,27 @@ public class PGArrayTest extends BasePGTypeTest<List<Object>> {
     @Test
     public void testDecodeUTF8Text() {
         // 1-dimension array
-        Object o = pgArray.decodeUTF8Text("{\"10\",\"20\"}".getBytes(StandardCharsets.UTF_8));
+        Object o = pgArray.decodeUTF8Text("{\"10\",\"20\"}".getBytes(StandardCharsets.UTF_8), null);
         assertThat(o).isEqualTo(List.of(10, 20));
 
         // ensure unquoted integer values are decoded correctly (a bug prevented that once)
-        o = pgArray.decodeUTF8Text("{10,2}".getBytes(StandardCharsets.UTF_8));
+        o = pgArray.decodeUTF8Text("{10,2}".getBytes(StandardCharsets.UTF_8), null);
         assertThat(o).isEqualTo(List.of(10, 2));
 
         // ensure array with single value is decoded correctly (a bug prevented that once)
-        o = pgArray.decodeUTF8Text("{10}".getBytes(StandardCharsets.UTF_8));
+        o = pgArray.decodeUTF8Text("{10}".getBytes(StandardCharsets.UTF_8), null);
         assertThat(o).isEqualTo(List.of(10));
 
         // ensure that elements consisting of only a single character within an array can be decoded (a bug prevented that once)
-        o = pgArray.decodeUTF8Text("{1}".getBytes(StandardCharsets.UTF_8));
+        o = pgArray.decodeUTF8Text("{1}".getBytes(StandardCharsets.UTF_8), null);
         assertThat(o).isEqualTo(List.of(1));
 
         // 2-dimension array
-        o = pgArray.decodeUTF8Text("{{\"1\",NULL,\"2\"},{NULL,\"3\",\"4\"}}".getBytes(StandardCharsets.UTF_8));
+        o = pgArray.decodeUTF8Text("{{\"1\",NULL,\"2\"},{NULL,\"3\",\"4\"}}".getBytes(StandardCharsets.UTF_8), null);
         assertThat(o).isEqualTo(List.of(Arrays.asList(1, null, 2), Arrays.asList(null, 3, 4)));
 
         // 3-dimension array
-        o = pgArray.decodeUTF8Text("{{{\"1\",NULL,\"2\"},{NULL,\"3\",\"4\"}},{{\"5\",NULL,\"6\"},{\"7\"}}}".getBytes(StandardCharsets.UTF_8));
+        o = pgArray.decodeUTF8Text("{{{\"1\",NULL,\"2\"},{NULL,\"3\",\"4\"}},{{\"5\",NULL,\"6\"},{\"7\"}}}".getBytes(StandardCharsets.UTF_8), null);
         assertThat(o).isEqualTo(List.of(
             List.of(
                 Arrays.asList(1, null, 2),

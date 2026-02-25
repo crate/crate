@@ -29,6 +29,7 @@ import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
+import io.crate.metadata.RelationLookup;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
@@ -90,7 +91,7 @@ public final class PointType extends PGType<Point> {
     }
 
     @Override
-    Point decodeUTF8Text(byte[] bytes) {
+    Point decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         String value = new String(bytes, StandardCharsets.UTF_8);
         StringTokenizer tokenizer = new StringTokenizer(value, ",()");
         double x;

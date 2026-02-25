@@ -60,6 +60,6 @@ public class TimeTZTypeTest extends BasePGTypeTest<TimeTZ> {
 
     @Test
     public void testDecodeAsUTF8Text() {
-        assertThat(TimeTZType.INSTANCE.decodeUTF8Text("04:00:00.123456789+03:00".getBytes())).isEqualTo(new TimeTZ(14400123456L, 10800));
+        assertThat(TimeTZType.INSTANCE.decodeUTF8Text("04:00:00.123456789+03:00".getBytes(), null)).isEqualTo(new TimeTZ(14400123456L, 10800));
     }
 }

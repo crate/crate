@@ -24,6 +24,7 @@ package io.crate.protocols.postgres.types;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
+import io.crate.metadata.RelationLookup;
 import io.netty.buffer.ByteBuf;
 
 public class PgUUIDType extends PGType<UUID> {
@@ -75,7 +76,7 @@ public class PgUUIDType extends PGType<UUID> {
     }
 
     @Override
-    UUID decodeUTF8Text(byte[] bytes) {
+    UUID decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         return UUID.fromString(new String(bytes, StandardCharsets.UTF_8));
     }
 }

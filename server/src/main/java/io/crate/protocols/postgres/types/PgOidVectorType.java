@@ -28,6 +28,7 @@ import java.util.StringTokenizer;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
+import io.crate.metadata.RelationLookup;
 import io.netty.buffer.ByteBuf;
 
 public class PgOidVectorType extends PGType<List<Integer>> {
@@ -77,7 +78,7 @@ public class PgOidVectorType extends PGType<List<Integer>> {
     }
 
     @Override
-    List<Integer> decodeUTF8Text(byte[] bytes) {
+    List<Integer> decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         String string = new String(bytes, StandardCharsets.UTF_8);
         return listFromOidVectorString(string);
     }

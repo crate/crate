@@ -334,7 +334,7 @@ public class CastFunctionTest extends ScalarTestCase {
     @Test
     public void test_can_cast_bigint_to_regclass() {
         assertEvaluate("10::bigint::regclass",
-            RegclassType.INSTANCE.explicitCast(10L, CoordinatorTxnCtx.systemTransactionContext().sessionSettings()));
+            RegclassType.INSTANCE.explicitCast(10L, CoordinatorTxnCtx.systemTransactionContext().sessionSettings(), sqlExpressions.nodeCtx.schemas()));
     }
 
     @Test

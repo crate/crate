@@ -369,15 +369,15 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             "SELECT " +
             " s.oid, s.subdbid, s.subname, s.subowner, s.subenabled, s.subbinary, s.substream, s.subslotname," +
             " s.subsynccommit, s.subpublications," +
-            " sr.srsubid, sr.srrelid, r.relname" +
+            " sr.srsubid, r.relname" +
             " FROM pg_subscription s" +
             " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
             " JOIN pg_class r ON sr.srrelid = r.oid" +
             " ORDER BY s.subname, r.relname"
         );
         assertThat(systemTableResponse).hasRows(
-            "530917412| 0| sub1| crate| true| true| false| NULL| NULL| [pub1]| 530917412| 728874843| t1",
-            "530917412| 0| sub1| crate| true| true| false| NULL| NULL| [pub1]| 530917412| 1737494392| t2"
+            "530917412| 0| sub1| crate| true| true| false| NULL| NULL| [pub1]| 530917412| t1",
+            "530917412| 0| sub1| crate| true| true| false| NULL| NULL| [pub1]| 530917412| t2"
         );
     }
 

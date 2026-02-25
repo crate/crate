@@ -22,8 +22,8 @@
 package io.crate.expression.scalar;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -33,7 +33,6 @@ import org.junit.Test;
 
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.role.Permission;
 import io.crate.role.Policy;
 import io.crate.role.Privilege;
@@ -88,25 +87,27 @@ public class HasTablePrivilegeFunctionTest extends ScalarTestCase {
     @Test
     public void test_has_table_privilege_function_with_table_as_oid() {
         final RelationName usersTable = new RelationName("doc", "users");
-        final int usersTableOid = OidHash.relationOid(OidHash.Type.TABLE, usersTable);
+        final int usersTableOid = 100; // dummy oid
 
         Schemas schemas = mock(Schemas.class);
-        when(schemas.getRelation(usersTableOid)).thenReturn(usersTable);
+        when(schemas.getRelationName(usersTableOid)).thenReturn(usersTable);
 
         sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER_WITH_DOC_USERS_TABLE_DQL, List.of(), schemas);
         assertEvaluate("has_table_privilege(" + usersTableOid + ", 'SELECT')", true);
+        verify(schemas).getRelationName(usersTableOid);
     }
 
     @Test
     public void test_has_table_privilege_function_with_system_table_as_oid() {
         final RelationName sysHealth = new RelationName("sys", "health");
-        final int sysHealthOid = OidHash.relationOid(OidHash.Type.TABLE, sysHealth);
+        final int sysHealthOid = 101; // dummy oid
 
         Schemas schemas = mock(Schemas.class);
-        when(schemas.getRelation(sysHealthOid)).thenReturn(sysHealth);
+        when(schemas.getRelationName(sysHealthOid)).thenReturn(sysHealth);
 
         sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER_WITH_SYS_HEALTH_TABLE_DML, List.of(), schemas);
         assertEvaluate("has_table_privilege(" + sysHealthOid + ", 'UPDATE')", true);
+        verify(schemas).getRelationName(sysHealthOid);
     }
 
     @Test
@@ -125,10 +126,9 @@ public class HasTablePrivilegeFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_unknown_tables_with_different_privilege_classes() {
+        int tableOid = 103; // dummy oid
         Schemas schemas = mock(Schemas.class);
-        when(schemas.getRelation(anyInt())).thenReturn(null);
-
-        int tableOid = OidHash.relationOid(OidHash.Type.TABLE, new RelationName("my_schema", "unknown_table"));
+        when(schemas.getRelationName(tableOid)).thenReturn(null);
 
         // super user
         sqlExpressions = new SqlExpressions(tableSources, null, Role.CRATE_USER, List.of(), schemas);

@@ -36,9 +36,7 @@ import org.junit.Test;
 import io.crate.auth.Protocol;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.protocols.postgres.ConnectionProperties;
@@ -91,12 +89,26 @@ public class PgCatalogITest extends IntegTestCase {
 
     @Test
     public void testPgClassTable() {
-        execute("select * from pg_catalog.pg_class where relname in ('t1', 'v1', 'tables', 'nodes') order by relname");
-        assertThat(response).hasRows(
-            "-1420189195| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| r| 0| nodes| -458336339| 19| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0",
-            "728874843| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| r| 0| t1| -2048275947| 4| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0",
-            "-1689918046| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| r| 0| tables| 204690627| 16| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0",
-            "845171032| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| v| 0| v1| -2048275947| 1| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0");
+        execute("""
+            SELECT
+                relname, relnamespace, reltype, reloftype, relowner, relam, relfilenode, reltablespace, relpages,
+                reltuples, relallvisible, reltoastrelid, relhasindex, relisshared, relpersistence, relkind, relnatts,
+                relchecks, relhasrules, relhastriggers, relhassubclass, relrowsecurity, relforcerowsecurity,
+                relispopulated, relreplident, relispartition, relrewrite, relfrozenxid, relminmxid, relacl, reloptions,
+                relpartbound
+            FROM pg_catalog.pg_class
+            WHERE relname IN ('t1', 'v1', 'tables', 'nodes')
+            ORDER BY 1;
+            """);
+
+        String[] expected = {
+            "nodes| -458336339| 0| 0| 0| 0| 0| 0| 0| -1.0| 0| 0| false| false| p| r| 19| 0| false| false| false| false| false| true| p| false| 0| 0| 0| NULL| NULL| NULL",
+            "t1| -2048275947| 0| 0| 0| 0| 0| 0| 0| -1.0| 0| 0| false| false| p| r| 4| 0| false| false| false| false| false| true| p| false| 0| 0| 0| NULL| NULL| NULL",
+            "tables| 204690627| 0| 0| 0| 0| 0| 0| 0| -1.0| 0| 0| false| false| p| r| 16| 0| false| false| false| false| false| true| p| false| 0| 0| 0| NULL| NULL| NULL",
+            "v1| -2048275947| 0| 0| 0| 0| 0| 0| 0| -1.0| 0| 0| false| false| p| v| 1| 0| false| false| false| false| false| true| p| false| 0| 0| 0| NULL| NULL| NULL"
+        };
+
+        assertThat(response).hasRows(expected);
     }
 
     @Test
@@ -151,15 +163,24 @@ public class PgCatalogITest extends IntegTestCase {
 
     @Test
     public void testPgAttributeTable() {
+        execute("select oid::integer from pg_class where relname = 't1'");
+        int t1Oid = (int) response.rows()[0][0];
+
+        String[] expected = {
+            "NULL| NULL| false| -1| 0| NULL| | false| false| | 0| false| true| 4| NULL| id| 0| true| 1| NULL| <attrelid>| 0| NULL| 23| -1",
+            "NULL| NULL| false| -1| 0| NULL| | false| false| | 0| false| true| -1| NULL| s| 0| false| 2| NULL| <attrelid>| 0| NULL| 1043| -1",
+            "NULL| NULL| false| -1| 0| NULL| | false| false| | 0| false| true| -1| NULL| o| 0| false| 3| NULL| <attrelid>| 0| NULL| 114| -1",
+            "NULL| NULL| false| -1| 0| NULL| | false| false| | 0| false| true| 4| NULL| o['a']| 0| false| 4| NULL| <attrelid>| 0| NULL| 23| -1",
+            "NULL| NULL| false| -1| 0| NULL| s| false| false| | 0| false| true| -1| NULL| g| 0| false| 5| NULL| <attrelid>| 0| NULL| 1043| -1"
+        };
+        expected = Arrays.stream(expected)
+            .map(row -> row.replace("<attrelid>", String.valueOf(t1Oid)))
+            .toArray(String[]::new);
+
         execute(
             "select a.* from pg_catalog.pg_attribute as a join pg_catalog.pg_class as c on a.attrelid = c.oid where" +
-            " c.relname = 't1' order by a.attnum");
-        assertThat(response).hasRows(
-            "NULL| NULL| false| -1| 0| NULL| | false| false| | 0| false| true| 4| NULL| id| 0| true| 1| NULL| 728874843| 0| NULL| 23| -1",
-            "NULL| NULL| false| -1| 0| NULL| | false| false| | 0| false| true| -1| NULL| s| 0| false| 2| NULL| 728874843| 0| NULL| 1043| -1",
-            "NULL| NULL| false| -1| 0| NULL| | false| false| | 0| false| true| -1| NULL| o| 0| false| 3| NULL| 728874843| 0| NULL| 114| -1",
-            "NULL| NULL| false| -1| 0| NULL| | false| false| | 0| false| true| 4| NULL| o['a']| 0| false| 4| NULL| 728874843| 0| NULL| 23| -1",
-            "NULL| NULL| false| -1| 0| NULL| s| false| false| | 0| false| true| -1| NULL| g| 0| false| 5| NULL| 728874843| 0| NULL| 1043| -1");
+                " c.relname = 't1' order by a.attnum");
+        assertThat(response).hasRows(expected);
     }
 
     @Test
@@ -176,10 +197,16 @@ public class PgCatalogITest extends IntegTestCase {
 
     @Test
     public void testPgConstraintTable() {
+        execute("select oid::integer from pg_class where relname = 't1'");
+        int t1Oid = (int) response.rows()[0][0];
+
+        String expected = "NULL| false| false| NULL| a| NULL| NULL| s| 0| a| 0| 0| true| [1]| t1_pkey| -2048275947| true| 0| NULL| " +
+            "NULL| <conrelid>| p| 0| true| -1310475467";
+        expected = expected.replace("<conrelid>", String.valueOf(t1Oid));
+
         execute("select cn.* from pg_constraint cn, pg_class c where cn.conrelid = c.oid and c.relname = 't1'");
-        assertThat(response).hasRows(
-            "NULL| false| false| NULL| a| NULL| NULL| s| 0| a| 0| 0| true| [1]| t1_pkey| -2048275947| true| 0| NULL| " +
-            "NULL| 728874843| p| 0| true| -1310475467");
+
+        assertThat(response).hasRows(expected);
     }
 
     @Test
@@ -286,8 +313,8 @@ public class PgCatalogITest extends IntegTestCase {
     @Test
     public void test_composite_primary_key_in_pg_index() {
         execute("create table doc.t2 (id int, id2 int, primary key (id, id2))");
-        execute("select i.indexrelid, i.indrelid, i.indkey, i.indnkeyatts from pg_index i, pg_class c where c.relname = 't2' and c.oid = i.indrelid;");
-        assertThat(response).hasRows("-811118696| 1737494392| [1, 2]| 2");
+        execute("select i.indexrelid, i.indkey, i.indnkeyatts from pg_index i, pg_class c where c.relname = 't2' and c.oid = i.indrelid;");
+        assertThat(response).hasRows("-811118696| [1, 2]| 2");
     }
 
     @Test
@@ -426,8 +453,16 @@ public class PgCatalogITest extends IntegTestCase {
             "PRIMARY KEY (int_col, long_col)," +
             "CONSTRAINT many_cols_and_functions CHECK(not_null * long_col > int_col))"
         );
-        int reloid = OidHash.relationOid(OidHash.Type.TABLE, new RelationName("doc", "tbl"));
-        response = execute("select i.conkey, i.conname, i.contype from pg_catalog.pg_constraint i where i.conrelid  = " + reloid + " order by i.conname");
+        response = execute("""
+                SELECT
+                    i.conkey,
+                    i.conname,
+                    i.contype
+                FROM pg_catalog.pg_constraint i
+                JOIN pg_catalog.pg_class c ON i.conrelid = c.oid
+                WHERE c.relname = 'tbl'
+                ORDER BY i.conname;
+            """);
         assertThat(response).hasRows(
             "[2, 1, 3]| many_cols_and_functions| c",
             "[4]| positive| c",
@@ -440,10 +475,9 @@ public class PgCatalogITest extends IntegTestCase {
     public void test_pg_class_oid_equals_cast_of_string_to_regclass() {
         execute("CREATE TABLE persons (x INT)");
         execute("SELECT " +
-            " '\"persons\"'::regclass::integer oid_from_relname, " +
-            " oid " +
+            " '\"persons\"'::regclass = oid " +
             " FROM pg_class WHERE relname ='persons'");
-        assertThat(response).hasRows("1726373441| 1726373441");
+        assertThat(response.rows()[0][0]).isEqualTo(true);
     }
 
     @Test

@@ -33,6 +33,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.ResolverStyle;
 import java.util.Locale;
 
+import io.crate.metadata.RelationLookup;
 import io.crate.types.Regproc;
 
 final class TimestampType extends BaseTimestampType {
@@ -99,7 +100,7 @@ final class TimestampType extends BaseTimestampType {
     }
 
     @Override
-    Long decodeUTF8Text(byte[] bytes) {
+    Long decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         String s = new String(bytes, StandardCharsets.UTF_8);
 
         try {

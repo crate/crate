@@ -25,7 +25,9 @@ import java.nio.charset.StandardCharsets;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
 
+import io.crate.metadata.RelationLookup;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
@@ -173,11 +175,11 @@ public abstract class PGType<T> {
         return INT32_BYTE_SIZE + bytes.length;
     }
 
-    public T readTextValue(ByteBuf buffer, int valueLength) {
+    public T readTextValue(ByteBuf buffer, int valueLength, @Nullable RelationLookup relationLookup) {
         byte[] bytes = new byte[valueLength];
         buffer.readBytes(bytes);
         try {
-            return decodeUTF8Text(bytes);
+            return decodeUTF8Text(bytes, relationLookup);
         } catch (Throwable t) {
             if (LOGGER.isWarnEnabled()) {
                 LOGGER.warn("decodeUTF8Text failed. input={} type={}",
@@ -210,6 +212,6 @@ public abstract class PGType<T> {
     /**
      * Convert a UTF8 encoded text representation into the actual value
      */
-    abstract T decodeUTF8Text(byte[] bytes);
+    abstract T decodeUTF8Text(byte[] bytes, RelationLookup relationLookup);
 
 }

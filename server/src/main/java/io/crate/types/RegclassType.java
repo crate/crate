@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -29,8 +30,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
 import io.crate.exceptions.InvalidRelationName;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RelationLookup;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
@@ -90,16 +91,19 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
     }
 
     @Override
-    public Regclass explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
-        return cast(value, sessionSettings.currentSchema());
+    public Regclass explicitCast(Object value, SessionSettings sessionSettings, RelationLookup relationLookup) throws IllegalArgumentException, ClassCastException {
+        return cast(value, sessionSettings.currentSchema(), relationLookup);
     }
 
     @Override
     public Regclass implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
-        return cast(value, CoordinatorTxnCtx.systemTransactionContext().sessionSettings().currentSchema());
+        // Implicit casts to Regclass are not generated; they are promoted to explicit casts during analysis/planning.
+        // See Symbol.generateCastFunction.
+        throw new IllegalArgumentException(String.format(
+            Locale.ENGLISH, "Implicit cast from '%s' to regclass is not supported. Use an explicit cast instead.", value));
     }
 
-    private Regclass cast(Object value, String currentSchema) {
+    private Regclass cast(Object value, String currentSchema, RelationLookup relationLookup) {
         if (value == null) {
             return null;
         }
@@ -120,7 +124,7 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
             try {
                 var qualifiedNameReference = (QualifiedNameReference) SqlParser.createExpression(s);
                 var relationName = RelationName.of(qualifiedNameReference.getName(), currentSchema);
-                return Regclass.fromRelationName(relationName);
+                return new Regclass(relationLookup.getRelationOid(relationName), relationName.fqn());
             } catch (ParsingException e) {
                 throw new InvalidRelationName(s, e);
             }

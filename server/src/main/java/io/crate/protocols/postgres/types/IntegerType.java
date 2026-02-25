@@ -24,6 +24,7 @@ package io.crate.protocols.postgres.types;
 
 import java.nio.charset.StandardCharsets;
 
+import io.crate.metadata.RelationLookup;
 import io.netty.buffer.ByteBuf;
 
 class IntegerType extends PGType<Integer> {
@@ -74,7 +75,7 @@ class IntegerType extends PGType<Integer> {
     }
 
     @Override
-    Integer decodeUTF8Text(byte[] bytes) {
+    Integer decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         return Integer.parseInt(new String(bytes, StandardCharsets.UTF_8));
     }
 }

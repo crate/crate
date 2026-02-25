@@ -47,6 +47,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.RegclassType;
 import io.crate.types.UndefinedType;
 
 public interface Symbol extends Writeable, Accountable {
@@ -227,7 +228,9 @@ public interface Symbol extends Writeable, Accountable {
             throw new ConversionException(sourceType, targetType);
         }
         var signature = switch (castMode) {
-            case IMPLICIT -> ImplicitCastFunction.SIGNATURE;
+            case IMPLICIT ->
+                // Regclass cast requires an RelationOidResolver, which is only available for explicit cast.
+                targetType.id() == RegclassType.ID ? ExplicitCastFunction.SIGNATURE : ImplicitCastFunction.SIGNATURE;
             case EXPLICIT -> ExplicitCastFunction.SIGNATURE;
             case TRY -> TryCastFunction.SIGNATURE;
         };

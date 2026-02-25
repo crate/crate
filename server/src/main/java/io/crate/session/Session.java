@@ -76,6 +76,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationInfo;
+import io.crate.metadata.RelationLookup;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.DependencyCarrier;
@@ -1020,6 +1021,10 @@ public class Session implements AutoCloseable {
         );
         executor.client().execute(KillJobsNodeAction.INSTANCE, request);
         resetDeferredExecutions();
+    }
+
+    public RelationLookup relationOidResolver() {
+        return executor.schemas();
     }
 
     @Override

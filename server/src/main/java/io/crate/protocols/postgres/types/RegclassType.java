@@ -24,6 +24,8 @@ package io.crate.protocols.postgres.types;
 import java.nio.charset.StandardCharsets;
 
 import io.crate.metadata.IndexName;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RelationLookup;
 import io.crate.types.Regclass;
 import io.netty.buffer.ByteBuf;
 
@@ -74,14 +76,15 @@ public class RegclassType extends PGType<Regclass> {
     }
 
     @Override
-    Regclass decodeUTF8Text(byte[] bytes) {
+    Regclass decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         String oidStr = new String(bytes, StandardCharsets.UTF_8);
         try {
-            int oid = Integer.parseInt(oidStr);
-            return new Regclass(oid, oidStr);
+            return new Regclass(Integer.parseInt(oidStr), oidStr);
         } catch (NumberFormatException e) {
             var indexParts = IndexName.decode(oidStr);
-            return Regclass.fromRelationName(indexParts.toRelationName());
+            RelationName relationName = indexParts.toRelationName();
+            int oid = relationLookup.getRelationOid(relationName);
+            return new Regclass(oid, relationName.fqn());
         }
     }
 }

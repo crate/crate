@@ -23,6 +23,9 @@ package io.crate.protocols.postgres.types;
 
 import java.nio.charset.StandardCharsets;
 
+import org.jspecify.annotations.Nullable;
+
+import io.crate.metadata.RelationLookup;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
@@ -76,7 +79,7 @@ class RegprocType extends PGType<Regproc> {
     }
 
     @Override
-    public Regproc readTextValue(ByteBuf buffer, int valueLength) {
+    public Regproc readTextValue(ByteBuf buffer, int valueLength, @Nullable RelationLookup relationLookup) {
         byte[] utf8 = new byte[valueLength];
         buffer.readBytes(utf8);
         return Regproc.of(new String(utf8, StandardCharsets.UTF_8));
@@ -88,7 +91,7 @@ class RegprocType extends PGType<Regproc> {
     }
 
     @Override
-    Regproc decodeUTF8Text(byte[] bytes) {
+    Regproc decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         return Regproc.of(new String(bytes, StandardCharsets.UTF_8));
     }
 }

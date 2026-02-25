@@ -121,7 +121,7 @@ public class ResultSetParser {
                 }
                 byte[] bytes = pgBitStringArray.getBytes(StandardCharsets.UTF_8);
                 ByteBuf buf = Unpooled.wrappedBuffer(bytes);
-                value = PGArray.BIT_ARRAY.readTextValue(buf, bytes.length);
+                value = PGArray.BIT_ARRAY.readTextValue(buf, bytes.length, null);
                 buf.release();
                 break;
 

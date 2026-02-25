@@ -33,6 +33,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import io.crate.Streamer;
+import io.crate.metadata.RelationLookup;
 import io.crate.metadata.settings.SessionSettings;
 
 public final class JsonType extends DataType<String> implements Streamer<String> {
@@ -87,7 +88,7 @@ public final class JsonType extends DataType<String> implements Streamer<String>
 
     @Override
     @SuppressWarnings("unchecked")
-    public String explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+    public String explicitCast(Object value, SessionSettings sessionSettings, RelationLookup relationLookup) throws IllegalArgumentException, ClassCastException {
         if (value instanceof Map<?, ?> map) {
             try {
                 return Strings.toString(JsonXContent.builder().map((Map<String, ?>) map));

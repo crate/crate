@@ -28,6 +28,7 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.RelationLookup;
 import io.crate.types.DataTypes;
 import io.crate.types.Regproc;
 
@@ -100,12 +101,12 @@ final class TimestampZType extends BaseTimestampType {
     }
 
     @Override
-    Long decodeUTF8Text(byte[] bytes) {
+    Long decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         // Currently seems that only GoLang prepared statements are sent as TimestampType with time zone
         // Other PostgreSQL clients send the parameter as Bigint or Varchar
         String s = new String(bytes, StandardCharsets.UTF_8);
         try {
-            return DataTypes.TIMESTAMPZ.explicitCast(s, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
+            return DataTypes.TIMESTAMPZ.explicitCast(s, CoordinatorTxnCtx.systemTransactionContext().sessionSettings(), null);
         } catch (Exception e) {
             int endOfSeconds = s.indexOf(".");
             int idx = endOfSeconds;

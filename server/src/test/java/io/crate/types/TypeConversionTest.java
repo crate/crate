@@ -32,6 +32,8 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnPolicy;
 
 public class TypeConversionTest extends ESTestCase {
@@ -44,15 +46,24 @@ public class TypeConversionTest extends ESTestCase {
         return () -> IntStream.generate(() -> randomIntBetween(lower, upper)).limit(num).iterator();
     }
 
+    private void cast(DataType<?> type, Object value, SessionSettings sessionSettings) {
+        if (type.equals(DataTypes.REGCLASS)) {
+            type.explicitCast(value, sessionSettings, null);
+        } else {
+            type.implicitCast(value);
+        }
+    }
+
     @Test
     public void numberConversionTest() throws Exception {
+        SessionSettings sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
         for (Byte byteVal : bytes(10)) {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.BYTE.id())) {
                 var t = DataTypes.fromId(id);
                 if (t.equals(DataTypes.IP)) {
                     byteVal = (byte) Math.abs(byteVal == Byte.MIN_VALUE ? byteVal >> 1 : byteVal);
                 }
-                t.implicitCast(byteVal);
+                cast(t, byteVal, sessionSettings);
             }
         }
 
@@ -60,7 +71,7 @@ public class TypeConversionTest extends ESTestCase {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.SHORT.id())) {
                 var t = DataTypes.fromId(id);
                 Integer val = t.equals(DataTypes.IP) ? Math.abs(shortVal) : shortVal;
-                t.implicitCast(val.shortValue());
+                cast(t, val.shortValue(), sessionSettings);
             }
         }
 
@@ -68,7 +79,7 @@ public class TypeConversionTest extends ESTestCase {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.INTEGER.id())) {
                 var t = DataTypes.fromId(id);
                 int val = t.equals(DataTypes.IP) ? Math.abs(intValue) : intValue;
-                t.implicitCast(val);
+                cast(t, val, sessionSettings);
             }
         }
 
@@ -76,7 +87,7 @@ public class TypeConversionTest extends ESTestCase {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.LONG.id())) {
                 var t = DataTypes.fromId(id);
                 Integer val = t.equals(DataTypes.IP) ? Math.abs(longValue) : longValue;
-                t.implicitCast(val.longValue());
+                cast(t, val.longValue(), sessionSettings);
             }
         }
 
@@ -84,7 +95,7 @@ public class TypeConversionTest extends ESTestCase {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.FLOAT.id())) {
                 var t = DataTypes.fromId(id);
                 Integer val = t.equals(DataTypes.IP) ? Math.abs(floatValue) : floatValue;
-                t.implicitCast(val.floatValue());
+                cast(t, val.floatValue(), sessionSettings);
             }
         }
 
@@ -92,7 +103,7 @@ public class TypeConversionTest extends ESTestCase {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.DOUBLE.id())) {
                 var t = DataTypes.fromId(id);
                 Integer val = t.equals(DataTypes.IP) ? Math.abs(doubleValue) : doubleValue;
-                t.implicitCast(val.doubleValue());
+                cast(t, val.doubleValue(), sessionSettings);
             }
         }
     }

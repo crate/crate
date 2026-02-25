@@ -73,7 +73,7 @@ public class PgTableIsVisibleFunction extends Scalar<Boolean, Integer> {
         }
 
         Schemas schemas = nodeContext.schemas();
-        RelationName relationName = schemas.getRelation(tableOid);
+        RelationName relationName = schemas.getRelationName(tableOid);
         if (relationName == null) {
             return false;
         }

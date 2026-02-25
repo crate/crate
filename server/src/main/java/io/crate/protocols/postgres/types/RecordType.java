@@ -26,6 +26,7 @@ import java.util.List;
 import com.carrotsearch.hppc.ByteArrayList;
 
 import io.crate.data.Row;
+import io.crate.metadata.RelationLookup;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
@@ -137,7 +138,7 @@ public class RecordType extends PGType<Row> {
     }
 
     @Override
-    Row decodeUTF8Text(byte[] bytes) {
+    Row decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         throw new UnsupportedOperationException("Input of record type values is not implemented");
     }
 }

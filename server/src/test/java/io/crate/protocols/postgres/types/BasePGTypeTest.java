@@ -77,7 +77,7 @@ public abstract class BasePGTypeTest<T> extends ESTestCase {
         if (formatCode == FormatCodes.FormatCode.BINARY) {
             readValue = pgType.readBinaryValue(buffer, pos);
         } else {
-            readValue = pgType.readTextValue(buffer, pos);
+            readValue = pgType.readTextValue(buffer, pos, null);
         }
         buffer.release();
         assertThat(readValue).isEqualTo(expectedValue);
