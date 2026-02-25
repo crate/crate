@@ -27,13 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
-import com.carrotsearch.hppc.IntSet;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.data.AsyncFlatMapper;
@@ -46,9 +45,9 @@ public class FetchMapper implements AsyncFlatMapper<ReaderBuckets, Row> {
     private static final Logger LOGGER = LogManager.getLogger(FetchMapper.class);
 
     private final FetchOperation fetchOperation;
-    private final Map<String, IntSet> readerIdsByNode;
+    private final Map<String, IntArrayList> readerIdsByNode;
 
-    public FetchMapper(FetchOperation fetchOperation, Map<String, IntSet> readerIdsByNode) {
+    public FetchMapper(FetchOperation fetchOperation, Map<String, IntArrayList> readerIdsByNode) {
         this.fetchOperation = fetchOperation;
         this.readerIdsByNode = readerIdsByNode;
     }
@@ -56,9 +55,9 @@ public class FetchMapper implements AsyncFlatMapper<ReaderBuckets, Row> {
     @Override
     public CompletableFuture<? extends CloseableIterator<Row>> apply(ReaderBuckets readerBuckets, boolean isLastCall) {
         List<CompletableFuture<IntObjectMap<? extends Bucket>>> futures = new ArrayList<>();
-        Iterator<Map.Entry<String, IntSet>> it = readerIdsByNode.entrySet().iterator();
+        Iterator<Map.Entry<String, IntArrayList>> it = readerIdsByNode.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<String, IntSet> entry = it.next();
+            Map.Entry<String, IntArrayList> entry = it.next();
             IntObjectHashMap<IntArrayList> toFetch = readerBuckets.generateToFetch(entry.getValue());
             if (toFetch.isEmpty() && !isLastCall) {
                 continue;
