@@ -46,6 +46,8 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 
@@ -283,6 +285,7 @@ public class ResizeShardsITest extends IntegTestCase {
     }
 
     @Test
+    @Repeat(iterations = 100)
     public void test_can_kill_resize_operation() throws Exception {
         execute("create table tbl (x int, p int) clustered into 1 shards partitioned by (p) with (\"routing.allocation.total_shards_per_node\" = 2)");
         execute("insert into tbl (x, p) values (1, 1), (1, 2), (2, 1), (2, 2)");
