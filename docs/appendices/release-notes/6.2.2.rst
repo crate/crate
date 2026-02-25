@@ -104,3 +104,14 @@ Fixes
       SELECT unnest([ {child_obj = { known_col = 'foo'}} ]) AS obj_arr
     ) AS sub1;
 
+- Fixed a regression introduced in :ref:`version_6.0.0` that caused an error
+  when trying to insert a nested array, or JSON string containing a nested
+  array, with incompatible inner value types into a column of type
+  ``OBJECT(ARRAY(OBJECT(IGNORED)))``. Example::
+
+    CREATE TABLE t1 (obj OBJECT(DYNAMIC) AS (arr ARRAY(OBJECT(IGNORED))));
+    INSERT INTO t1 (obj) VALUES (
+    $$
+       {"arr":[{"b": "str_val"}, {"b": ["array_val"]}]}
+    $$);
+
