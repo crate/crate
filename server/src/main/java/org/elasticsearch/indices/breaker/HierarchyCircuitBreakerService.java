@@ -314,9 +314,15 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
         }
 
         List<UUID> toKill = List.of(jobId);
-        var exception = new CircuitBreakingException(bytesAdded, bytesUsed, limit, component);
-        tasksService.killJobs(toKill, Role.CRATE_USER.name(), exception);
-        var request = new KillJobsNodeRequest(List.of(), toKill, Role.CRATE_USER.name(), exception);
+        String reason = String.format(
+            Locale.ENGLISH,
+            "Circuit breaker for '%s' triggered. New used memory %s would be larger than the limit %s",
+            component,
+            ByteSizeValue.humanReadableBytes(bytesUsed + bytesAdded),
+            ByteSizeValue.humanReadableBytes(limit)
+        );
+        tasksService.killJobs(toKill, Role.CRATE_USER.name(), reason);
+        var request = new KillJobsNodeRequest(List.of(), toKill, Role.CRATE_USER.name(), reason);
         client.execute(KillJobsNodeAction.INSTANCE, request);
     }
 

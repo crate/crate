@@ -34,7 +34,6 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.data.breaker.RamAccounting;
-import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
@@ -129,7 +128,7 @@ public class RemoteCollector {
             if (context == null) {
                 consumer.accept(null, t);
             } else {
-                context.kill(t);
+                context.kill(t.getMessage());
             }
             return false;
         }
@@ -142,7 +141,7 @@ public class RemoteCollector {
 
         synchronized (killLock) {
             if (collectorKilled) {
-                context.kill(JobKilledException.of(null));
+                context.kill(null);
                 return;
             }
             jobAction
@@ -163,7 +162,7 @@ public class RemoteCollector {
                             }
                         } else {
                             LOGGER.error("RemoteCollector jobId={} jobAction=onFailure collectorKilled={} error={}", jobId, collectorKilled, t);
-                            context.kill(t);
+                            context.kill(t.getMessage());
                         }
                     }
                 );
@@ -207,16 +206,16 @@ public class RemoteCollector {
             List.of(),
             List.of(jobId),
             sessionSettings.userName(),
-            JobKilledException.of(null)
+            null
         );
         killNodeAction
             .execute(killRequest)
             .whenComplete(
                 (resp, t) -> {
                     if (t == null) {
-                        context.kill(JobKilledException.of(null));
+                        context.kill(null);
                     } else {
-                        context.kill(t);
+                        context.kill(t.getMessage());
                     }
                 }
             );

@@ -45,7 +45,6 @@ import org.mockito.Mockito;
 import io.crate.Streamer;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
-import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.MapSideDataCollectOperation;
@@ -77,8 +76,8 @@ public class RootTaskTest extends ESTestCase {
         builder.addTask(ctx2);
         RootTask rootTask = builder.build();
 
-        assertThat(rootTask.kill(JobKilledException.of(null))).isGreaterThanOrEqualTo(1);
-        assertThat(rootTask.kill(JobKilledException.of(null))).isZero(); // Everything is killed already
+        assertThat(rootTask.kill(null)).isGreaterThanOrEqualTo(1);
+        assertThat(rootTask.kill(null)).isZero(); // Everything is killed already
 
         assertThat(ctx1.numKill.get()).isEqualTo(1);
         assertThat(ctx2.numKill.get()).isEqualTo(1);
@@ -181,7 +180,7 @@ public class RootTaskTest extends ESTestCase {
         // fake execution time so we can sure the measurement is > 0
         Thread.sleep(5L);
         // kill because the testing subcontexts would run infinitely
-        rootTask.kill(JobKilledException.of(null));
+        rootTask.kill(null);
         assertThat(rootTask.executionTimes()).containsKeys("1-TestingTask", "2-TestingTask");
         assertThat(((double) rootTask.executionTimes().get("1-TestingTask"))).isGreaterThan(0);
         assertThat(((double) rootTask.executionTimes().get("2-TestingTask"))).isGreaterThan(0);
