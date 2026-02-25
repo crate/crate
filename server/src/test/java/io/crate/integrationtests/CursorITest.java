@@ -33,6 +33,8 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.protocols.postgres.PostgresNetty;
 
 public class CursorITest extends IntegTestCase {
@@ -140,6 +142,7 @@ public class CursorITest extends IntegTestCase {
     }
 
     @Test
+    @Repeat(iterations = 100)
     public void test_scroll_operations() throws Exception {
         try (var conn = DriverManager.getConnection(url(), properties)) {
             Statement statement = conn.createStatement();
