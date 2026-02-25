@@ -42,7 +42,6 @@ import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.ConnectTransportException;
 import org.jspecify.annotations.Nullable;
 import io.crate.common.annotations.VisibleForTesting;
 
@@ -314,7 +313,7 @@ public class DistributingConsumer implements RowConsumer {
                 downstream.nodeId,
                 err
             );
-            if (err instanceof ConnectTransportException && retries.hasNext()) {
+            if (SQLExceptions.maybeTemporaryNetworkError(err) && retries.hasNext()) {
                 LOGGER.trace("Retry sending result", err);
                 TimeValue delay = retries.next();
                 try {
@@ -352,10 +351,15 @@ public class DistributingConsumer implements RowConsumer {
             // continue because it's necessary to send something to the other downstreams still waiting for data
             if (originalFailure != null) {
                 countdownAndMaybeCloseIt(numActiveRequests, it);
-                if (err instanceof CircuitBreakingException) {
-                    // CBE on `forwardFailure` could imply that the downstream
+                if (err instanceof CircuitBreakingException || SQLExceptions.maybeTemporaryNetworkError(err)) {
+                    // CBE or temporal error on `forwardFailure` could imply that the downstream
                     // didn't receive/handle the forwarded failure
                     // -> broadcast kill to ensure tasks get cleaned up.
+
+                    // If reached that point and still seeing a temporal network error,
+                    // it means that error persisted during retries.
+                    // issuing KILL on network error is a best effort.
+                    // If it doesn't go through, `TasksService.onNodeDisconnected` should eventually trigger and cleanup any related jobs.
 
                     // We don't exclude local node from the KILL broadcast
                     // as it can be a handler node and leave behind unclosed DistResultRXTask
