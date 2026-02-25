@@ -32,6 +32,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.ResolverStyle;
 import java.util.Locale;
 
+import io.crate.metadata.RelationLookup;
 import io.crate.types.Regproc;
 
 
@@ -80,7 +81,7 @@ final class DateType extends BaseTimestampType {
     }
 
     @Override
-    Long decodeUTF8Text(byte[] bytes) {
+    Long decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         String s = new String(bytes, StandardCharsets.UTF_8);
 
         //TODO: Add support of other formats, other than ISO 8601 (YYYY-MM-DD).

@@ -69,7 +69,7 @@ import io.crate.role.Securable;
 import io.crate.sql.tree.QualifiedName;
 
 
-public class Schemas extends AbstractLifecycleComponent implements Iterable<SchemaInfo>, ClusterStateListener {
+public class Schemas extends AbstractLifecycleComponent implements Iterable<SchemaInfo>, ClusterStateListener, RelationLookup {
 
     private static final Logger LOGGER = LogManager.getLogger(Schemas.class);
 
@@ -475,24 +475,29 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     }
 
     @Nullable
-    public RelationName getRelation(int oid) {
+    public RelationName getRelationName(int oid) {
         for (SchemaInfo schema : this) {
             for (RelationInfo relation : schema.getTables()) {
-                if (oid == OidHash.relationOid(relation)) {
+                if (oid == relation.oid()) {
                     return relation.ident();
                 }
             }
             for (ViewInfo view : schema.getViews()) {
-                if (oid == OidHash.relationOid(view)) {
+                if (oid == view.oid()) {
                     return view.ident();
                 }
             }
             for (RelationMetadata.ForeignTable foreignTable : schema.getForeignTables()) {
-                if (oid == OidHash.relationOid(foreignTable)) {
+                if (oid == foreignTable.oid()) {
                     return foreignTable.ident();
                 }
             }
         }
         return null;
+    }
+
+    public int getRelationOid(RelationName relationName) {
+        RelationMetadata relationMetadata = clusterService.state().metadata().getRelation(relationName);
+        return relationMetadata == null ? OidHash.relationOid(OidHash.Type.TABLE, relationName) : relationMetadata.oid();
     }
 }

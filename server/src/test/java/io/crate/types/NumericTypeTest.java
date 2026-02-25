@@ -256,7 +256,7 @@ public class NumericTypeTest extends DataTypeTestCase<BigDecimal> {
 
     @Test
     public void test_cast_number_if_precision_is_lost_throws_exception() {
-        assertThatThrownBy(() -> new NumericType(6, 3).explicitCast(1234.567d, SESSION_SETTINGS))
+        assertThatThrownBy(() -> new NumericType(6, 3).explicitCast(1234.567d, SESSION_SETTINGS, null))
             .isExactlyInstanceOf(ClassCastException.class)
             .hasMessage("Cannot cast '1234.567' to numeric(6,3) as it looses precision");
     }

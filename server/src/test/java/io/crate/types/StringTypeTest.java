@@ -65,25 +65,25 @@ public class StringTypeTest extends DataTypeTestCase<String> {
 
     @Test
     public void test_explicit_cast_text_with_length_truncates_exceeding_length_chars() {
-        assertThat(StringType.of(1).explicitCast("abcde", SESSION_SETTINGS)).isEqualTo("a");
-        assertThat(StringType.of(2).explicitCast("a    ", SESSION_SETTINGS)).isEqualTo("a ");
+        assertThat(StringType.of(1).explicitCast("abcde", SESSION_SETTINGS, null)).isEqualTo("a");
+        assertThat(StringType.of(2).explicitCast("a    ", SESSION_SETTINGS, null)).isEqualTo("a ");
     }
 
     @Test
     public void test_explicit_cast_text_with_length_on_literals_of_length_lte_length() {
-        assertThat(StringType.of(5).explicitCast("abc", SESSION_SETTINGS)).isEqualTo("abc");
-        assertThat(StringType.of(1).explicitCast("a", SESSION_SETTINGS)).isEqualTo("a");
+        assertThat(StringType.of(5).explicitCast("abc", SESSION_SETTINGS, null)).isEqualTo("abc");
+        assertThat(StringType.of(1).explicitCast("a", SESSION_SETTINGS, null)).isEqualTo("a");
     }
 
     @Test
     public void test_explicit_cast_text_without_length() {
-        assertThat(StringType.INSTANCE.explicitCast("abc", SESSION_SETTINGS)).isEqualTo("abc");
+        assertThat(StringType.INSTANCE.explicitCast("abc", SESSION_SETTINGS, null)).isEqualTo("abc");
     }
 
     @Test
     public void test_explicit_cast_text_without_length_on_literals_of_length_lte_length() {
-        assertThat(StringType.INSTANCE.explicitCast("abc", SESSION_SETTINGS)).isEqualTo("abc");
-        assertThat(StringType.INSTANCE.explicitCast("a", SESSION_SETTINGS)).isEqualTo("a");
+        assertThat(StringType.INSTANCE.explicitCast("abc", SESSION_SETTINGS, null)).isEqualTo("abc");
+        assertThat(StringType.INSTANCE.explicitCast("a", SESSION_SETTINGS, null)).isEqualTo("a");
     }
 
     @Test

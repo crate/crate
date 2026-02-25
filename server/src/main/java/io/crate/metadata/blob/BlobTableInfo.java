@@ -64,6 +64,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final Version versionCreated;
     private final Version versionUpgraded;
     private final boolean closed;
+    private final int oid;
 
     private final Map<ColumnIdent, Reference> infos = new LinkedHashMap<>();
     private static final List<ColumnIdent> PRIMARY_KEY = List.of(ColumnIdent.of("digest"));
@@ -75,7 +76,8 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
                          String blobsPath,
                          Version versionCreated,
                          @Nullable Version versionUpgraded,
-                         boolean closed) {
+                         boolean closed,
+                         int oid) {
         this.ident = ident;
         this.numberOfShards = numberOfShards;
         this.numberOfReplicas = numberOfReplicas;
@@ -84,6 +86,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.versionCreated = versionCreated;
         this.versionUpgraded = versionUpgraded;
         this.closed = closed;
+        this.oid = oid;
 
         addColumn("digest", DataTypes.STRING, 0);
         addColumn("last_modified", DataTypes.TIMESTAMPZ, 1);
@@ -206,4 +209,8 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         return versionUpgraded;
     }
 
+    @Override
+    public int oid() {
+        return oid;
+    }
 }

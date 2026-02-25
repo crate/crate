@@ -55,7 +55,7 @@ public class NumericTypeTest extends BasePGTypeTest<BigDecimal> {
             ByteBuf buffer = Unpooled.buffer();
             try {
                 pgType.writeAsText(buffer, expected);
-                var actual = pgType.readTextValue(buffer, buffer.readInt());
+                var actual = pgType.readTextValue(buffer, buffer.readInt(), null);
                 assertThat(actual).isEqualTo(expected);
                 assertThat(actual.toString()).isEqualTo(expected.toString());
             } finally {

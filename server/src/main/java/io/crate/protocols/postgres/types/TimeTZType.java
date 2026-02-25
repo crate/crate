@@ -28,6 +28,7 @@ import static io.crate.types.TimeTZType.TYPE_SIZE;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
+import io.crate.metadata.RelationLookup;
 import io.crate.types.Regproc;
 import io.crate.types.TimeTZ;
 import io.netty.buffer.ByteBuf;
@@ -93,7 +94,7 @@ final class TimeTZType extends PGType<TimeTZ> {
     }
 
     @Override
-    TimeTZ decodeUTF8Text(byte[] bytes) {
+    TimeTZ decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         return parse(new String(bytes, StandardCharsets.UTF_8));
     }
 }

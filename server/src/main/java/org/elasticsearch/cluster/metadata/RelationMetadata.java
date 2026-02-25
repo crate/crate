@@ -57,6 +57,7 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
@@ -380,7 +381,7 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata>
 
         @Override
         public int oid() {
-            return Metadata.OID_UNASSIGNED;
+            return OidHash.relationOid(OidHash.Type.VIEW, name);
         }
 
         @Override

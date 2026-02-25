@@ -636,7 +636,7 @@ public class PostgresWireProtocol {
                 FormatCodes.FormatCode formatCode = getFormatCode(formatCodes, i);
                 switch (formatCode) {
                     case TEXT:
-                        params.add(pgType.readTextValue(buffer, valueLength));
+                        params.add(pgType.readTextValue(buffer, valueLength, session.relationOidResolver()));
                         break;
 
                     case BINARY:

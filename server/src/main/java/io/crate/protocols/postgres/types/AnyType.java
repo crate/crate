@@ -25,6 +25,7 @@ import static io.crate.types.Regproc.REGPROC_ZERO;
 
 import java.nio.charset.StandardCharsets;
 
+import io.crate.metadata.RelationLookup;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
@@ -83,7 +84,7 @@ public class AnyType extends PGType<Integer> {
     }
 
     @Override
-    Integer decodeUTF8Text(byte[] bytes) {
+    Integer decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         return Integer.parseInt(new String(bytes, StandardCharsets.UTF_8));
     }
 }

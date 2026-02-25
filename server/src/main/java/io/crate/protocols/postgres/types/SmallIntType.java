@@ -24,6 +24,7 @@ package io.crate.protocols.postgres.types;
 
 import java.nio.charset.StandardCharsets;
 
+import io.crate.metadata.RelationLookup;
 import io.netty.buffer.ByteBuf;
 
 class SmallIntType extends PGType<Short> {
@@ -74,7 +75,7 @@ class SmallIntType extends PGType<Short> {
     }
 
     @Override
-    Short decodeUTF8Text(byte[] bytes) {
+    Short decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         return Short.parseShort(new String(bytes, StandardCharsets.UTF_8));
     }
 }

@@ -25,6 +25,7 @@ package io.crate.protocols.postgres.types;
 import java.nio.charset.StandardCharsets;
 
 import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
+import io.crate.metadata.RelationLookup;
 import io.netty.buffer.ByteBuf;
 
 class DoubleType extends PGType<Double> {
@@ -74,7 +75,7 @@ class DoubleType extends PGType<Double> {
     }
 
     @Override
-    Double decodeUTF8Text(byte[] bytes) {
+    Double decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         return JavaDoubleParser.parseDouble(bytes);
     }
 }

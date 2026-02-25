@@ -33,6 +33,7 @@ import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.CheckConstraint;
 
@@ -129,4 +130,8 @@ public interface RelationInfo extends Iterable<Reference> {
     Set<Operation> supportedOperations();
 
     RelationType relationType();
+
+    default int oid() {
+        return OidHash.relationOid(this);
+    }
 }

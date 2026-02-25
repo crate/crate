@@ -33,6 +33,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
+import io.crate.metadata.RelationLookup;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
@@ -112,7 +113,11 @@ class JsonType extends PGType<Object> {
     }
 
     @Override
-    Object decodeUTF8Text(byte[] bytes) {
+    Object decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
+        return decodeUTF8Text(bytes);
+    }
+
+    private Object decodeUTF8Text(byte[] bytes) {
         try {
             XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
                 NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);

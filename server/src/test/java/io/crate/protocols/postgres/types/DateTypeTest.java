@@ -61,14 +61,14 @@ public class DateTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testDecodeUTF8TextWithUnexpectedFormat() {
-        Assertions.assertThatThrownBy(() -> DateType.INSTANCE.decodeUTF8Text("2016.06.28".getBytes(UTF_8)))
+        Assertions.assertThatThrownBy(() -> DateType.INSTANCE.decodeUTF8Text("2016.06.28".getBytes(UTF_8), null))
             .isExactlyInstanceOf(DateTimeParseException.class)
             .hasMessageContaining("");
     }
 
     @Test
     public void testDecodeUTF8Text() {
-        assertThat(DateType.INSTANCE.decodeUTF8Text("2020-02-09".getBytes(UTF_8))).isEqualTo(1581206400000L);
+        assertThat(DateType.INSTANCE.decodeUTF8Text("2020-02-09".getBytes(UTF_8), null)).isEqualTo(1581206400000L);
     }
 
 }

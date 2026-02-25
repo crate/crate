@@ -41,6 +41,7 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RelationLookup;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
@@ -145,9 +146,10 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      *
      * @param value The value to cast to the target {@link DataType}.
      * @param sessionSettings
+     * @param relationLookup
      * @return The value casted the target {@link DataType}.
      */
-    public T explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+    public T explicitCast(Object value, SessionSettings sessionSettings, RelationLookup relationLookup) throws IllegalArgumentException, ClassCastException {
         return implicitCast(value);
     }
 

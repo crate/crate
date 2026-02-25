@@ -62,6 +62,7 @@ import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RelationLookup;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
@@ -217,8 +218,8 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
-    public Map<String, Object> explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
-        return convert(value, (dataType, val) -> dataType.explicitCast(val, sessionSettings));
+    public Map<String, Object> explicitCast(Object value, SessionSettings sessionSettings, RelationLookup relationLookup) throws IllegalArgumentException, ClassCastException {
+        return convert(value, (dataType, val) -> dataType.explicitCast(val, sessionSettings, relationLookup));
     }
 
     @Override

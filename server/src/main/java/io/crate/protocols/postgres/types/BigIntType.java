@@ -24,6 +24,7 @@ package io.crate.protocols.postgres.types;
 
 import java.nio.charset.StandardCharsets;
 
+import io.crate.metadata.RelationLookup;
 import io.netty.buffer.ByteBuf;
 
 class BigIntType extends PGType<Long> {
@@ -74,7 +75,7 @@ class BigIntType extends PGType<Long> {
     }
 
     @Override
-    Long decodeUTF8Text(byte[] bytes) {
+    Long decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         return Long.parseLong(new String(bytes, StandardCharsets.UTF_8));
     }
 }

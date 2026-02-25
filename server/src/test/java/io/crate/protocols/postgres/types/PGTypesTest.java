@@ -328,7 +328,7 @@ public class PGTypesTest extends ESTestCase {
         try {
             pgType.writeAsText(buffer, entry.value);
             int length = buffer.readInt();
-            return pgType.readTextValue(buffer, length);
+            return pgType.readTextValue(buffer, length, null);
         } finally {
             buffer.release();
         }

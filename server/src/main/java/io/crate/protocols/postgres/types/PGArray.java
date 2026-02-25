@@ -27,6 +27,7 @@ import java.util.List;
 
 import com.carrotsearch.hppc.ByteArrayList;
 
+import io.crate.metadata.RelationLookup;
 import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
@@ -222,7 +223,7 @@ public class PGArray extends PGType<List<Object>> {
 
     @SuppressWarnings("unchecked")
     @Override
-    List<Object> decodeUTF8Text(byte[] bytes) {
+    List<Object> decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         /*
          * text representation:
          *
@@ -238,7 +239,7 @@ public class PGArray extends PGType<List<Object>> {
          *      {{"{"x": 10}","{"y": 20}"},{"{"x": 30}","{"y": 40}"}}
          */
 
-        return (List<Object>) PgArrayParser.parse(bytes, innerType::decodeUTF8Text);
+        return (List<Object>) PgArrayParser.parse(bytes, bytes1 -> innerType.decodeUTF8Text(bytes1, relationLookup));
     }
 
     @SuppressWarnings("unchecked")

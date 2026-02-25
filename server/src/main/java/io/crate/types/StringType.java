@@ -58,6 +58,7 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RelationLookup;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnDefinition;
@@ -293,7 +294,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
-    public String explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+    public String explicitCast(Object value, SessionSettings sessionSettings, RelationLookup relationLookup) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         }

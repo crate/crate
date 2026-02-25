@@ -60,6 +60,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RelationLookup;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.parser.PgArrayParsingException;
@@ -235,8 +236,8 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
-    public List<T> explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
-        return convert(value, innerType, val -> innerType.explicitCast(val, sessionSettings), sessionSettings);
+    public List<T> explicitCast(Object value, SessionSettings sessionSettings, RelationLookup relationLookup) throws IllegalArgumentException, ClassCastException {
+        return convert(value, innerType, val -> innerType.explicitCast(val, sessionSettings, relationLookup), sessionSettings);
     }
 
     @Override
@@ -337,7 +338,7 @@ public class ArrayType<T> extends DataType<List<T>> {
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             utf8Bytes
         );
-        return Lists.map(parser.list(), value -> innerType.explicitCast(value, sessionSettings));
+        return Lists.map(parser.list(), value -> innerType.explicitCast(value, sessionSettings, null));
     }
 
     private static <T> ArrayList<T> convertObjectArray(Object[] values, Function<Object, T> convertInner) {

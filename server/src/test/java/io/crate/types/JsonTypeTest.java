@@ -35,7 +35,7 @@ public class JsonTypeTest {
 
     @Test
     void test_can_cast_object_to_json_string() throws Exception {
-        String result = JsonType.INSTANCE.explicitCast(Map.of("x", 200), CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
+        String result = JsonType.INSTANCE.explicitCast(Map.of("x", 200), CoordinatorTxnCtx.systemTransactionContext().sessionSettings(), null);
         assertThat(result).isEqualTo("{\"x\":200}");
     }
 }

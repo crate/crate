@@ -28,7 +28,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import io.crate.metadata.RelationInfo;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.pgcatalog.OidHash;
 
 /**
@@ -41,26 +40,13 @@ public final class Regclass implements Comparable<Regclass>, Writeable {
 
 
     public static Regclass relationOid(RelationInfo relation) {
-        return new Regclass(
-            OidHash.relationOid(
-                OidHash.Type.fromRelationType(relation.relationType()),
-                relation.ident()
-            ),
-            relation.ident().fqn()
-        );
+        return new Regclass(relation.oid(), relation.ident().fqn());
     }
 
     public static Regclass primaryOid(RelationInfo relation) {
         return new Regclass(
             OidHash.primaryKeyOid(relation.ident(), relation.primaryKey()),
             relation.ident().fqn()
-        );
-    }
-
-    public static Regclass fromRelationName(RelationName relationName) {
-        return new Regclass(
-            OidHash.relationOid(OidHash.Type.TABLE, relationName),
-            relationName.fqn()
         );
     }
 

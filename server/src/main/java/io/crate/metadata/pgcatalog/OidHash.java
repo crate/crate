@@ -67,11 +67,15 @@ public final class OidHash {
         return murmurhash3_x86_32(b, 0, b.length, 0);
     }
 
+    // TODO: Once all RelationInfo types can return persisted oids via oid(), this method can be completely replaced.
+    @Deprecated
     public static int relationOid(RelationInfo relationInfo) {
         Type t = Type.fromRelationType(relationInfo.relationType());
         return oid(t.toString() + relationInfo.ident().fqn());
     }
 
+    // TODO: Once all RelationInfo types can return persisted oids via oid(), this method can be completely replaced.
+    @Deprecated
     public static int relationOid(Type type, RelationName name) {
         return oid(type.toString() + name.fqn());
     }

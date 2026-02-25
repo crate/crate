@@ -26,6 +26,7 @@ import java.util.List;
 
 import com.carrotsearch.hppc.ByteArrayList;
 
+import io.crate.metadata.RelationLookup;
 import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.types.FloatVectorType;
 import io.netty.buffer.ByteBuf;
@@ -114,8 +115,8 @@ public class PGFloatVectorType extends PGType<float[]> {
 
     @SuppressWarnings("unchecked")
     @Override
-    float[] decodeUTF8Text(byte[] bytes) {
-        var list = (List<Object>) PgArrayParser.parse(bytes, RealType.INSTANCE::decodeUTF8Text);
+    float[] decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
+        var list = (List<Object>) PgArrayParser.parse(bytes, bytes1 -> RealType.INSTANCE.decodeUTF8Text(bytes1, relationLookup));
         float[] vector = new float[list.size()];
         for (int i = 0; i < vector.length; i++) {
             vector[i] = (float) list.get(i);

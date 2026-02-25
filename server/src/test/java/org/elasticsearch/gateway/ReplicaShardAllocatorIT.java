@@ -403,7 +403,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             assertThat(rentetionLease).hasSize(activeRetentionLeaseIds.size());
             for (var activeRetentionLease : rentetionLease) {
                 assertThat(
-                    DataTypes.LONG.explicitCast(activeRetentionLease.get("retaining_seq_no"), CoordinatorTxnCtx.systemTransactionContext().sessionSettings()))
+                    DataTypes.LONG.explicitCast(activeRetentionLease.get("retaining_seq_no"), CoordinatorTxnCtx.systemTransactionContext().sessionSettings(), null))
                     .isEqualTo(globalCheckPoint + 1L);
             }
         });

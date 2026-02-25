@@ -70,7 +70,7 @@ public class TryCastFunction extends Scalar<Object, Object> {
     @Override
     public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         try {
-            return returnType.explicitCast(args[0].value(), txnCtx.sessionSettings());
+            return returnType.explicitCast(args[0].value(), txnCtx.sessionSettings(), nodeCtx.schemas());
         } catch (ClassCastException | IllegalArgumentException e) {
             return null;
         }
@@ -88,7 +88,7 @@ public class TryCastFunction extends Scalar<Object, Object> {
         if (argument instanceof Input) {
             Object value = ((Input<?>) argument).value();
             try {
-                return Literal.ofUnchecked(returnType, returnType.explicitCast(value, txnCtx.sessionSettings()));
+                return Literal.ofUnchecked(returnType, returnType.explicitCast(value, txnCtx.sessionSettings(), nodeCtx.schemas()));
             } catch (ClassCastException | IllegalArgumentException e) {
                 return Literal.NULL;
             }

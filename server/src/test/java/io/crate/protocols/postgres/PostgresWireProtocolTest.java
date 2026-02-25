@@ -53,6 +53,7 @@ import java.util.function.Supplier;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.jspecify.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
@@ -403,7 +404,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 assertThat(response.readShort()).isEqualTo((short) 1);
                 assertThat(PostgresWireProtocol.readCString(response)).isEqualTo("name");
 
-                assertThat(response.readInt()).as("table_oid").isEqualTo(893280107);
+                assertThat(response.readInt()).as("table_oid").isGreaterThan(Metadata.OID_UNASSIGNED);
                 assertThat(response.readShort()).as("attr_num").isEqualTo((short) 1);
                 var pgType = PGTypes.get(DataTypes.STRING);
                 assertThat(response.readInt()).isEqualTo(pgType.oid());

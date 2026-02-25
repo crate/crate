@@ -45,7 +45,8 @@ public class BlobTableInfoTest extends ESTestCase {
         "/tmp/blobs_path",
         Version.CURRENT,
         null,
-        false);
+        false,
+        1);
 
     @Test
     public void testGetColumnInfo() throws Exception {

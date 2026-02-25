@@ -22,7 +22,6 @@
 package io.crate.metadata.pgcatalog;
 
 import static io.crate.metadata.pgcatalog.OidHash.constraintOid;
-import static io.crate.metadata.pgcatalog.OidHash.relationOid;
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
@@ -51,7 +50,7 @@ public final class PgConstraintTable {
         .add("condeferrable", BOOLEAN, c -> false)
         .add("condeferred", BOOLEAN, c -> false)
         .add("convalidated", BOOLEAN, c -> true)
-        .add("conrelid", INTEGER, c -> relationOid(c.relationInfo()))
+        .add("conrelid", INTEGER, c -> c.relationInfo().oid())
         .add("contypid", INTEGER, c -> 0)
         .add("conindid", INTEGER, c -> 0)
         .add("conparentid", INTEGER, c -> 0)

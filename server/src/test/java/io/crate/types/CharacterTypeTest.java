@@ -57,10 +57,10 @@ public class CharacterTypeTest extends DataTypeTestCase<String> {
 
     @Test
     public void test_explicit_cast_truncates_overflow_chars() {
-        assertThat(CharacterType.of(1).explicitCast("foo", SESSION_SETTINGS)).isEqualTo("f");
-        assertThat(CharacterType.of(1).explicitCast(true, SESSION_SETTINGS)).isEqualTo("t");
-        assertThat(CharacterType.of(1).explicitCast(12, SESSION_SETTINGS)).isEqualTo("1");
-        assertThat(CharacterType.of(1).explicitCast(-12, SESSION_SETTINGS)).isEqualTo("-");
+        assertThat(CharacterType.of(1).explicitCast("foo", SESSION_SETTINGS, null)).isEqualTo("f");
+        assertThat(CharacterType.of(1).explicitCast(true, SESSION_SETTINGS, null)).isEqualTo("t");
+        assertThat(CharacterType.of(1).explicitCast(12, SESSION_SETTINGS, null)).isEqualTo("1");
+        assertThat(CharacterType.of(1).explicitCast(-12, SESSION_SETTINGS, null)).isEqualTo("-");
     }
 
     @Test
