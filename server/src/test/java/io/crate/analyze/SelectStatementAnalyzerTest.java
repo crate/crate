@@ -30,6 +30,7 @@ import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static io.crate.testing.Asserts.isScopedSymbol;
 import static io.crate.testing.Asserts.toCondition;
 import static io.crate.types.ArrayType.makeArray;
 import static org.assertj.core.api.Assertions.anyOf;
@@ -3093,6 +3094,55 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         // Same for references
         analyzed = executor.analyze("SELECT myobj['a'] FROM (SELECT js::OBJECT(IGNORED) as myobj FROM t1) t");
         assertThat(analyzed.outputs().getFirst()).isFunction("subscript", DataTypes.UNDEFINED);
+    }
+
+    @Test
+    public void test_nested_subscript_on_aliased_ignored_object_array() throws Exception {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("""
+                CREATE TABLE IF NOT EXISTS t1 (
+                   "obj1" OBJECT(DYNAMIC) AS (
+                      "obj2" OBJECT(DYNAMIC) AS (
+                         "arr_obj_ignored" ARRAY(OBJECT(IGNORED))
+                      )
+                   )
+                );
+                """);
+        var analyzed = executor.analyze("""
+            SELECT unnested_ignored['ignored_col2']['ignored_col3']
+            FROM (
+              SELECT unnest("obj1"['obj2']['arr_obj_ignored']['ignored_col1']) AS unnested_ignored
+              FROM t1
+            ) sub
+            """);
+        assertThat(analyzed.outputs().getFirst())
+            .isFunction(
+                "subscript",
+                isFunction("subscript", isScopedSymbol("unnested_ignored"), isLiteral("ignored_col2")),
+                isLiteral("ignored_col3")
+            );
+
+        // TODO: The type signatures of objects will currently always result in DYNAMIC objects, caused here by the
+        //       use of the UNNEST function.
+        //       This is wrong and should be fixed, we should preserve the IGNORE policy across function calls.
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
+
+        analyzed = executor.analyze("""
+            SELECT unnested_ignored['some_array'][1]
+            FROM (
+              SELECT unnest("obj1"['obj2']['arr_obj_ignored']) AS unnested_ignored
+              FROM t1
+            ) sub
+            """);
+
+        assertThat(analyzed.outputs().getFirst())
+            .isFunction(
+                "subscript",
+                isFunction("_cast",
+                    isFunction("subscript", isScopedSymbol("unnested_ignored"), isLiteral("some_array"))
+                ),
+                isLiteral(1)
+            );
     }
 
     @Test

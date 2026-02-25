@@ -729,6 +729,17 @@ public class ExpressionAnalyzer {
                 ref = resolveUnindexedSubscriptExpression(node, context, qualifiedName, parts, e);
             }
 
+            if (ref == null) {
+                // Fall back to using generic subscript function without a concrete return type (UNDEFINED)
+                Symbol base = node.base().accept(this, context);
+                Symbol index = node.index().accept(this, context);
+                return allocateFunction(
+                    SubscriptFunction.NAME,
+                    List.of(base, index),
+                    context
+                );
+            }
+
             // If there are any array subscripts, recursively wrap the resolved expression in an
             // array subscript function for each nested array dereference.
             for (Expression idx : subscriptContext.index()) {
@@ -740,6 +751,7 @@ public class ExpressionAnalyzer {
 
         // If a subscript expression doesn't resolve to an indexed field, try instead
         // to resolve the base field and use a subscript function to extract the values
+        @Nullable
         private Symbol resolveUnindexedSubscriptExpression(
             SubscriptExpression node,
             ExpressionAnalysisContext context,
@@ -767,18 +779,7 @@ public class ExpressionAnalyzer {
             assert parent != null : "Parent symbol must not be null without throwing an exception";
 
             try {
-                Function optimizedSubscript = optimizedSubscriptFunction(parent, childParts, context, e);
-                if (optimizedSubscript != null) {
-                    return optimizedSubscript;
-                }
-
-                // Fall back to using generic subscript function without a concrete return type (UNDEFINED)
-                Symbol index = node.index().accept(this, context);
-                return allocateFunction(
-                    SubscriptFunction.NAME,
-                    List.of(parent, index),
-                    context
-                );
+                return optimizedSubscriptFunction(parent, childParts, context, e);
             } catch (ColumnUnknownException e2) {
                 throw e;
             }
