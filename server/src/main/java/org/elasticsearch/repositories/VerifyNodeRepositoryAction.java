@@ -21,6 +21,7 @@ package org.elasticsearch.repositories;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -42,9 +43,6 @@ import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
-
-import com.carrotsearch.hppc.ObjectContainer;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 public class VerifyNodeRepositoryAction {
 
@@ -69,10 +67,9 @@ public class VerifyNodeRepositoryAction {
         final DiscoveryNodes discoNodes = clusterService.state().nodes();
         final DiscoveryNode localNode = discoNodes.getLocalNode();
 
-        final ObjectContainer<DiscoveryNode> masterAndDataNodes = discoNodes.getMasterAndDataNodes().values();
+        final Collection<DiscoveryNode> masterAndDataNodes = discoNodes.getMasterAndDataNodes().values();
         final List<DiscoveryNode> nodes = new ArrayList<>();
-        for (ObjectCursor<DiscoveryNode> cursor : masterAndDataNodes) {
-            DiscoveryNode node = cursor.value;
+        for (DiscoveryNode node : masterAndDataNodes) {
             if (RepositoriesService.isDedicatedVotingOnlyNode(node.roles()) == false) {
                 nodes.add(node);
             }

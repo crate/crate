@@ -35,8 +35,6 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.common.settings.ClusterSettings;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-
 public final class ClusterStateUpdaters {
 
     private ClusterStateUpdaters() {}
@@ -97,8 +95,8 @@ public final class ClusterStateUpdaters {
     static ClusterState updateRoutingTable(final ClusterState state) {
         // initialize all index routing tables as empty
         final RoutingTable.Builder routingTableBuilder = RoutingTable.builder(state.routingTable());
-        for (final ObjectCursor<IndexMetadata> cursor : state.metadata().indices().values()) {
-            routingTableBuilder.addAsRecovery(cursor.value);
+        for (final IndexMetadata indexMetadata : state.metadata().indices().values()) {
+            routingTableBuilder.addAsRecovery(indexMetadata);
         }
         // start with 0 based versions for routing table
         routingTableBuilder.version(0);

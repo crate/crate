@@ -21,17 +21,17 @@
 
 package io.crate.expression.reference.sys.check.cluster;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import io.crate.expression.reference.sys.check.AbstractSysCheck;
-import io.crate.metadata.RelationName;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.concurrent.CompletableFuture;
+import io.crate.expression.reference.sys.check.AbstractSysCheck;
+import io.crate.metadata.RelationName;
 
 @Singleton
 public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
@@ -57,13 +57,13 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
     @Override
     public CompletableFuture<?> computeResult() {
         HashSet<String> fqTables = new HashSet<>();
-        for (ObjectCursor<IndexMetadata> cursor : clusterService.state()
+        for (IndexMetadata cursor : clusterService.state()
             .metadata()
             .indices()
             .values()) {
 
-            if (cursor.value.getCreationVersion().major < org.elasticsearch.Version.CURRENT.major) {
-                fqTables.add(RelationName.fqnFromIndexName(cursor.value.getIndex().getName()));
+            if (cursor.getCreationVersion().major < org.elasticsearch.Version.CURRENT.major) {
+                fqTables.add(RelationName.fqnFromIndexName(cursor.getIndex().getName()));
             }
         }
         tablesNeedUpgrade = fqTables;

@@ -21,19 +21,20 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -63,12 +64,12 @@ public class NumberOfShardsTest extends ESTestCase {
         numberOfShards = new NumberOfShards(clusterService);
     }
 
-    private static ImmutableOpenMap<String, DiscoveryNode> createDataNodes(int numNodes) {
-        ImmutableOpenMap.Builder<String, DiscoveryNode> dataNodesBuilder = ImmutableOpenMap.builder();
+    private static Map<String, DiscoveryNode> createDataNodes(int numNodes) {
+        HashMap<String, DiscoveryNode> dataNodesBuilder = HashMap.newHashMap(numNodes);
         for (int i = 0; i < numNodes; i++) {
             dataNodesBuilder.put(String.format(Locale.ENGLISH, "node%s", i), mock(DiscoveryNode.class));
         }
-        return dataNodesBuilder.build();
+        return dataNodesBuilder;
     }
 
     @Test

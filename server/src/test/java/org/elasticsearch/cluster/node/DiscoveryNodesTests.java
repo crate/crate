@@ -46,7 +46,7 @@ public class DiscoveryNodesTests extends ESTestCase {
 
     public void testResolveNodeByIdOrName() {
         DiscoveryNodes discoveryNodes = buildDiscoveryNodes();
-        DiscoveryNode[] nodes = discoveryNodes.getNodes().values().toArray(DiscoveryNode.class);
+        DiscoveryNode[] nodes = discoveryNodes.getNodes().values().toArray(DiscoveryNode[]::new);
         DiscoveryNode node = randomFrom(nodes);
         DiscoveryNode resolvedNode = discoveryNodes.resolveNode(randomBoolean() ? node.getId() : node.getName());
         assertThat(resolvedNode.getId()).isEqualTo(node.getId());
@@ -80,12 +80,10 @@ public class DiscoveryNodesTests extends ESTestCase {
         assertThat(discoveryNodes.resolveNodes()).containsExactlyInAnyOrder(allNodes);
         assertThat(discoveryNodes.resolveNodes("_all")).containsExactlyInAnyOrder(allNodes);
 
-        final String[] nonMasterNodes =
-                StreamSupport.stream(discoveryNodes.getNodes().values().spliterator(), false)
-                        .map(n -> n.value)
-                        .filter(n -> n.isMasterEligibleNode() == false)
-                        .map(DiscoveryNode::getId)
-                        .toArray(String[]::new);
+        final String[] nonMasterNodes = discoveryNodes.getNodes().values().stream()
+            .filter(n -> n.isMasterEligibleNode() == false)
+            .map(DiscoveryNode::getId)
+            .toArray(String[]::new);
         assertThat(discoveryNodes.resolveNodes("_all", "master:false")).containsExactlyInAnyOrder(nonMasterNodes);
 
         assertThat(discoveryNodes.resolveNodes("master:false", "_all")).containsExactlyInAnyOrder(allNodes);
@@ -94,19 +92,15 @@ public class DiscoveryNodesTests extends ESTestCase {
     public void testCoordinatorOnlyNodes() {
         final DiscoveryNodes discoveryNodes = buildDiscoveryNodes();
 
-        final String[] coordinatorOnlyNodes =
-                StreamSupport.stream(discoveryNodes.getNodes().values().spliterator(), false)
-                    .map(n -> n.value)
-                    .filter(n -> n.isDataNode() == false && n.isMasterEligibleNode() == false)
-                    .map(DiscoveryNode::getId)
-                    .toArray(String[]::new);
+        final String[] coordinatorOnlyNodes = discoveryNodes.getNodes().values().stream()
+            .filter(n -> n.isDataNode() == false && n.isMasterEligibleNode() == false)
+            .map(DiscoveryNode::getId)
+            .toArray(String[]::new);
 
-        final String[] nonCoordinatorOnlyNodes =
-                StreamSupport.stream(discoveryNodes.getNodes().values().spliterator(), false)
-                    .map(n -> n.value)
-                    .filter(n -> n.isMasterEligibleNode() || n.isDataNode())
-                    .map(DiscoveryNode::getId)
-                    .toArray(String[]::new);
+        final String[] nonCoordinatorOnlyNodes = discoveryNodes.getNodes().values().stream()
+            .filter(n -> n.isMasterEligibleNode() || n.isDataNode())
+            .map(DiscoveryNode::getId)
+            .toArray(String[]::new);
 
         assertThat(discoveryNodes.resolveNodes("coordinating_only:true")).containsExactlyInAnyOrder(coordinatorOnlyNodes);
         assertThat(discoveryNodes.resolveNodes("_all", "data:false", "ingest:false", "master:false"))
@@ -127,14 +121,14 @@ public class DiscoveryNodesTests extends ESTestCase {
             }
         }
         int numNodeIds = randomIntBetween(0, 3);
-        String[] nodeIds = discoveryNodes.getNodes().keys().toArray(String.class);
+        String[] nodeIds = discoveryNodes.getNodes().keySet().toArray(String[]::new);
         for (int i = 0; i < numNodeIds; i++) {
             String nodeId = randomFrom(nodeIds);
             nodeSelectors.add(nodeId);
             expectedNodeIdsSet.add(nodeId);
         }
         int numNodeNames = randomIntBetween(0, 3);
-        DiscoveryNode[] nodes = discoveryNodes.getNodes().values().toArray(DiscoveryNode.class);
+        DiscoveryNode[] nodes = discoveryNodes.getNodes().values().toArray(DiscoveryNode[]::new);
         for (int i = 0; i < numNodeNames; i++) {
             DiscoveryNode discoveryNode = randomFrom(nodes);
             nodeSelectors.add(discoveryNode.getName());
@@ -278,28 +272,28 @@ public class DiscoveryNodesTests extends ESTestCase {
             @Override
             Set<String> matchingNodeIds(DiscoveryNodes nodes) {
                 Set<String> ids = new HashSet<>();
-                nodes.getMasterNodes().keysIt().forEachRemaining(ids::add);
+                nodes.getMasterNodes().keySet().forEach(ids::add);
                 return ids;
             }
         }, DATA(DiscoveryNodeRole.DATA_ROLE.roleName() + ":true") {
             @Override
             Set<String> matchingNodeIds(DiscoveryNodes nodes) {
                 Set<String> ids = new HashSet<>();
-                nodes.getDataNodes().keysIt().forEachRemaining(ids::add);
+                nodes.getDataNodes().keySet().forEach(ids::add);
                 return ids;
             }
         }, COORDINATING_ONLY(DiscoveryNode.COORDINATING_ONLY + ":true") {
             @Override
             Set<String> matchingNodeIds(DiscoveryNodes nodes) {
                 Set<String> ids = new HashSet<>();
-                nodes.getCoordinatingOnlyNodes().keysIt().forEachRemaining(ids::add);
+                nodes.getCoordinatingOnlyNodes().keySet().forEach(ids::add);
                 return ids;
             }
         }, CUSTOM_ATTRIBUTE("attr:value") {
             @Override
             Set<String> matchingNodeIds(DiscoveryNodes nodes) {
                 Set<String> ids = new HashSet<>();
-                nodes.getNodes().valuesIt().forEachRemaining(node -> {
+                nodes.getNodes().values().forEach(node -> {
                     if ("value".equals(node.getAttributes().get("attr"))) {
                         ids.add(node.getId());
                     }
@@ -310,7 +304,7 @@ public class DiscoveryNodesTests extends ESTestCase {
             @Override
             Set<String> matchingNodeIds(DiscoveryNodes nodes) {
                 Set<String> ids = new HashSet<>();
-                nodes.getNodes().valuesIt().forEachRemaining(node -> {
+                nodes.getNodes().values().forEach(node -> {
                     if (node.roles().stream().anyMatch(role -> role.roleName().equals("custom_role"))) {
                         ids.add(node.getId());
                     }

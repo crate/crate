@@ -38,9 +38,9 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.blob.v2.BlobIndex;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.IndexName;
@@ -91,13 +91,13 @@ public class MetadataUpgradeService {
 
         // Templates only exist in Metadata from < 6.1.0
         // If streaming Metadata to nodes < 6.1.0 templates are re-created on demand
-        for (var cursor : metadata.templates()) {
-            String templateName = cursor.key;
+        for (var entry : metadata.templates().entrySet()) {
+            String templateName = entry.getKey();
             newMetadata.removeTemplate(templateName);
             if (templateName == IndexTemplateUpgrader.CRATE_DEFAULTS) {
                 continue;
             }
-            IndexTemplateMetadata template = cursor.value;
+            IndexTemplateMetadata template = entry.getValue();
             RelationName relationName = IndexName.decode(template.name()).toRelationName();
             RelationMetadata relation = metadata.getRelation(relationName);
             assert relation == null

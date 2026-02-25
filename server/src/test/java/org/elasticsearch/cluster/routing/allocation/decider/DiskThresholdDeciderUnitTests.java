@@ -27,7 +27,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterInfo;
@@ -52,12 +54,13 @@ import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDeciderTests.DevNullClusterInfo;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
+
+import io.crate.common.collections.MapBuilder;
 
 public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
 
@@ -92,20 +95,25 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         ).build();
 
         // actual test -- after all that bloat :)
-        ImmutableOpenMap.Builder<String, DiskUsage> leastAvailableUsages = ImmutableOpenMap.builder();
+        MapBuilder<String, DiskUsage> leastAvailableUsages = MapBuilder.newMapBuilder();
         leastAvailableUsages.put("node_0", new DiskUsage("node_0", "node_0", "_na_", 100, 0)); // all full
         leastAvailableUsages.put("node_1", new DiskUsage("node_1", "node_1", "_na_", 100, 0)); // all full
 
-        ImmutableOpenMap.Builder<String, DiskUsage> mostAvailableUsage = ImmutableOpenMap.builder();
+        MapBuilder<String, DiskUsage> mostAvailableUsage = MapBuilder.newMapBuilder();
         // 20 - 99 percent since after allocation there must be at least 10% left and shard is 10byte
         mostAvailableUsage.put("node_0", new DiskUsage("node_0", "node_0", "_na_", 100, randomIntBetween(20, 100)));
         // this is weird and smells like a bug! it should be up to 20%?
         mostAvailableUsage.put("node_1", new DiskUsage("node_1", "node_1", "_na_", 100, randomIntBetween(0, 10)));
 
-        ImmutableOpenMap.Builder<String, Long> shardSizes = ImmutableOpenMap.builder();
+        MapBuilder<String, Long> shardSizes = MapBuilder.newMapBuilder();
         shardSizes.put("[_na_/test][0][p]", 10L); // 10 bytes
-        final ClusterInfo clusterInfo = new ClusterInfo(leastAvailableUsages.build(),
-            mostAvailableUsage.build(), shardSizes.build(), ImmutableOpenMap.of(),  ImmutableOpenMap.of());
+        final ClusterInfo clusterInfo = new ClusterInfo(
+            leastAvailableUsages.immutableMap(),
+            mostAvailableUsage.immutableMap(),
+            shardSizes.immutableMap(),
+            Map.of(),
+            Map.of()
+        );
         RoutingAllocation allocation = new RoutingAllocation(new AllocationDeciders(Collections.singleton(decider)),
             clusterState.getRoutingNodes(), clusterState, clusterInfo, null, System.nanoTime());
         allocation.debugDecision(true);
@@ -152,18 +160,22 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
 
         // actual test -- after all that bloat :)
 
-        ImmutableOpenMap.Builder<String, DiskUsage> leastAvailableUsages = ImmutableOpenMap.builder();
+        MapBuilder<String, DiskUsage> leastAvailableUsages = MapBuilder.newMapBuilder();
         leastAvailableUsages.put("node_0", new DiskUsage("node_0", "node_0", "_na_", 100, 0)); // all full
-        ImmutableOpenMap.Builder<String, DiskUsage> mostAvailableUsage = ImmutableOpenMap.builder();
+        MapBuilder<String, DiskUsage> mostAvailableUsage = MapBuilder.newMapBuilder();
         final int freeBytes = randomIntBetween(20, 100);
         mostAvailableUsage.put("node_0", new DiskUsage("node_0", "node_0", "_na_", 100, freeBytes));
 
-        ImmutableOpenMap.Builder<String, Long> shardSizes = ImmutableOpenMap.builder();
+        MapBuilder<String, Long> shardSizes = MapBuilder.newMapBuilder();
         // way bigger than available space
         final long shardSize = randomIntBetween(110, 1000);
         shardSizes.put("[test/test][0][p]", shardSize);
-        ClusterInfo clusterInfo = new ClusterInfo(leastAvailableUsages.build(), mostAvailableUsage.build(),
-            shardSizes.build(), ImmutableOpenMap.of(),  ImmutableOpenMap.of());
+        ClusterInfo clusterInfo = new ClusterInfo(
+            leastAvailableUsages.immutableMap(),
+            mostAvailableUsage.immutableMap(),
+            shardSizes.immutableMap(),
+            Map.of(),
+            Map.of());
         RoutingAllocation allocation = new RoutingAllocation(new AllocationDeciders(Collections.singleton(decider)),
             clusterState.getRoutingNodes(), clusterState, clusterInfo, null, System.nanoTime());
         allocation.debugDecision(true);
@@ -181,7 +193,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
     public void testCanRemainUsesLeastAvailableSpace() {
         ClusterSettings nss = new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
         DiskThresholdDecider decider = new DiskThresholdDecider(Settings.EMPTY, nss);
-        ImmutableOpenMap.Builder<ShardRouting, String> shardRoutingMap = ImmutableOpenMap.builder();
+        MapBuilder<ShardRouting, String> shardRoutingMap = MapBuilder.newMapBuilder();
 
         DiscoveryNode node_0 = new DiscoveryNode("node_0", buildNewFakeTransportAddress(), Collections.emptyMap(),
                 new HashSet<>(DiscoveryNodeRole.BUILT_IN_ROLES), Version.CURRENT);
@@ -231,21 +243,26 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         ).build();
 
         // actual test -- after all that bloat :)
-        ImmutableOpenMap.Builder<String, DiskUsage> leastAvailableUsages = ImmutableOpenMap.builder();
+        MapBuilder<String, DiskUsage> leastAvailableUsages = MapBuilder.newMapBuilder();
         leastAvailableUsages.put("node_0", new DiskUsage("node_0", "node_0", "/node0/least", 100, 10)); // 90% used
         leastAvailableUsages.put("node_1", new DiskUsage("node_1", "node_1", "/node1/least", 100, 9)); // 91% used
 
-        ImmutableOpenMap.Builder<String, DiskUsage> mostAvailableUsage = ImmutableOpenMap.builder();
+        MapBuilder<String, DiskUsage> mostAvailableUsage = MapBuilder.newMapBuilder();
         mostAvailableUsage.put("node_0", new DiskUsage("node_0", "node_0", "/node0/most", 100, 90)); // 10% used
         mostAvailableUsage.put("node_1", new DiskUsage("node_1", "node_1", "/node1/most", 100, 90)); // 10% used
 
-        ImmutableOpenMap.Builder<String, Long> shardSizes = ImmutableOpenMap.builder();
+        MapBuilder<String, Long> shardSizes = MapBuilder.newMapBuilder();
         shardSizes.put("[_na_/test][0][p]", 10L); // 10 bytes
         shardSizes.put("[_na_/test][1][p]", 10L);
         shardSizes.put("[_na_/test][2][p]", 10L);
 
-        final ClusterInfo clusterInfo = new ClusterInfo(leastAvailableUsages.build(), mostAvailableUsage.build(),
-            shardSizes.build(), shardRoutingMap.build(), ImmutableOpenMap.of());
+        final ClusterInfo clusterInfo = new ClusterInfo(
+            leastAvailableUsages.immutableMap(),
+            mostAvailableUsage.immutableMap(),
+            shardSizes.immutableMap(),
+            shardRoutingMap.immutableMap(),
+            Map.of()
+        );
         RoutingAllocation allocation = new RoutingAllocation(new AllocationDeciders(Collections.singleton(decider)),
             clusterState.getRoutingNodes(), clusterState, clusterInfo, null, System.nanoTime());
         allocation.debugDecision(true);
@@ -285,12 +302,12 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
 
     @Test
     public void testShardSizeAndRelocatingSize() {
-        ImmutableOpenMap.Builder<String, Long> shardSizes = ImmutableOpenMap.builder();
+        HashMap<String, Long> shardSizes = new HashMap<>();
         shardSizes.put("[test/1234][0][r]", 10L);
         shardSizes.put("[test/1234][1][r]", 100L);
         shardSizes.put("[test/1234][2][r]", 1000L);
         shardSizes.put("[other/5678][0][p]", 10000L);
-        ClusterInfo info = new DevNullClusterInfo(ImmutableOpenMap.of(), ImmutableOpenMap.of(), shardSizes.build());
+        ClusterInfo info = new DevNullClusterInfo(Map.of(), Map.of(), shardSizes);
         Metadata.Builder metaBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         metaBuilder.put(IndexMetadata.builder("1234")
             .settings(settings(Version.CURRENT)
@@ -392,7 +409,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
 
     @Test
     public void testSizeShrinkIndex() {
-        ImmutableOpenMap.Builder<String, Long> shardSizes = ImmutableOpenMap.builder();
+        Map<String, Long> shardSizes = new HashMap<>();
         shardSizes.put("[test/1234][0][p]", 10L);
         shardSizes.put("[test/1234][1][p]", 100L);
         shardSizes.put("[test/1234][2][p]", 500L);
@@ -400,7 +417,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
 
         final Index index = new Index("test", "1234");
 
-        ClusterInfo info = new DevNullClusterInfo(ImmutableOpenMap.of(), ImmutableOpenMap.of(), shardSizes.build());
+        ClusterInfo info = new DevNullClusterInfo(Map.of(), Map.of(), shardSizes);
 
         // Setting the creation date is important here as shards of newer indices are allocated first, see PriorityComparator
         // Shards of the source index must be allocated first, so set the highest creation date

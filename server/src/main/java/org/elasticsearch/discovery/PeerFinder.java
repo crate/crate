@@ -50,8 +50,6 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 import org.jspecify.annotations.Nullable;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-
 import io.crate.common.unit.TimeValue;
 
 public abstract class PeerFinder {
@@ -246,8 +244,8 @@ public abstract class PeerFinder {
         }
 
         LOGGER.trace("probing master nodes from cluster state: {}", lastAcceptedNodes);
-        for (ObjectCursor<DiscoveryNode> discoveryNodeObjectCursor : lastAcceptedNodes.getMasterNodes().values()) {
-            startProbe(discoveryNodeObjectCursor.value.getAddress());
+        for (DiscoveryNode node : lastAcceptedNodes.getMasterNodes().values()) {
+            startProbe(node.getAddress());
         }
 
         configuredHostsResolver.resolveConfiguredHosts(providedAddresses -> {

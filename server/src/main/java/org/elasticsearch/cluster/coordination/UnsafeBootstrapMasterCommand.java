@@ -38,8 +38,6 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.node.Node;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-
 import io.crate.common.collections.Tuple;
 import joptsimple.OptionSet;
 
@@ -117,8 +115,7 @@ public class UnsafeBootstrapMasterCommand extends ElasticsearchNodeCommand {
                 .clusterUUIDCommitted(true)
                 .persistentSettings(persistentSettings)
                 .coordinationMetadata(newCoordinationMetadata);
-        for (ObjectCursor<IndexMetadata> idx : metadata.indices().values()) {
-            IndexMetadata indexMetadata = idx.value;
+        for (IndexMetadata indexMetadata : metadata.indices().values()) {
             newMetadata.put(IndexMetadata.builder(indexMetadata).settings(
                 Settings.builder().put(indexMetadata.getSettings())
                     .put(IndexMetadata.SETTING_HISTORY_UUID, UUIDs.randomBase64UUID())));

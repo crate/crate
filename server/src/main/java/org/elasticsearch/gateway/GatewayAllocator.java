@@ -25,7 +25,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,8 +50,6 @@ import org.elasticsearch.gateway.TransportNodesListGatewayStartedShards.NodeGate
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.store.TransportNodesListShardStoreMetadata;
 import org.elasticsearch.indices.store.TransportNodesListShardStoreMetadata.NodeStoreFilesMetadata;
-
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.collections.Sets;
 
@@ -180,8 +177,9 @@ public class GatewayAllocator implements ExistingShardsAllocator {
     private void ensureAsyncFetchStorePrimaryRecency(RoutingAllocation allocation) {
         DiscoveryNodes nodes = allocation.nodes();
         if (hasNewNodes(nodes)) {
-            final Set<String> newEphemeralIds = StreamSupport.stream(nodes.getDataNodes().spliterator(), false)
-                .map(node -> node.value.getEphemeralId()).collect(Collectors.toSet());
+            final Set<String> newEphemeralIds = nodes.getDataNodes().values().stream()
+                .map(DiscoveryNode::getEphemeralId)
+                .collect(Collectors.toSet());
             // Invalidate the cache if a data node has been added to the cluster. This ensures that we do not cancel a recovery if a node
             // drops out, we fetch the shard data, then some indexing happens and then the node rejoins the cluster again. There are other
             // ways we could decide to cancel a recovery based on stale data (e.g. changing allocation filters or a primary failure) but
@@ -203,8 +201,8 @@ public class GatewayAllocator implements ExistingShardsAllocator {
     }
 
     private boolean hasNewNodes(DiscoveryNodes nodes) {
-        for (ObjectObjectCursor<String, DiscoveryNode> node : nodes.getDataNodes()) {
-            if (lastSeenEphemeralIds.contains(node.value.getEphemeralId()) == false) {
+        for (DiscoveryNode node : nodes.getDataNodes().values()) {
+            if (lastSeenEphemeralIds.contains(node.getEphemeralId()) == false) {
                 return true;
             }
         }

@@ -31,6 +31,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -60,7 +61,6 @@ import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.TestFutureUtils;
 import org.elasticsearch.index.Index;
@@ -423,13 +423,18 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
 
         final RestoreInProgress.Builder restores =
             new RestoreInProgress.Builder(currentState.custom(RestoreInProgress.TYPE, RestoreInProgress.EMPTY));
-        final ImmutableOpenMap.Builder<ShardId, RestoreInProgress.ShardRestoreStatus> shards = ImmutableOpenMap.builder();
+        final HashMap<ShardId, RestoreInProgress.ShardRestoreStatus> shards = new HashMap<>();
         for (int i = 0; i < indexMetadata.getNumberOfShards(); i++) {
             shards.put( new ShardId(index, i), new RestoreInProgress.ShardRestoreStatus(clusterService.state().nodes().getLocalNodeId()));
         }
 
-        restores.add(new RestoreInProgress.Entry(recoverySource.restoreUUID(), recoverySource.snapshot(), RestoreInProgress.State.INIT,
-            Collections.singletonList(indexName), shards.build()));
+        restores.add(new RestoreInProgress.Entry(
+            recoverySource.restoreUUID(),
+            recoverySource.snapshot(),
+            RestoreInProgress.State.INIT,
+            Collections.singletonList(indexName),
+            shards
+        ));
 
         return ClusterState.builder(currentState)
             .putCustom(RestoreInProgress.TYPE, restores.build())

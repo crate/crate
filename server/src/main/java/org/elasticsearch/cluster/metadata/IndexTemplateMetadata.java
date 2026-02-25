@@ -31,15 +31,12 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.Diffable;
 import org.elasticsearch.cluster.Diffs;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.Constants;
 import io.crate.common.collections.MapBuilder;
@@ -84,12 +81,12 @@ public class IndexTemplateMetadata implements Diffable<IndexTemplateMetadata> {
 
     private final CompressedXContent mapping;
 
-    private final ImmutableOpenMap<String, AliasMetadata> aliases;
+    private final Map<String, AliasMetadata> aliases;
 
     public IndexTemplateMetadata(String name, Integer version,
                                  List<String> patterns, Settings settings,
                                  CompressedXContent mapping,
-                                 ImmutableOpenMap<String, AliasMetadata> aliases) {
+                                 Map<String, AliasMetadata> aliases) {
         if (patterns == null || patterns.isEmpty()) {
             throw new IllegalArgumentException("Index patterns must not be null or empty; got " + patterns);
         }
@@ -125,7 +122,7 @@ public class IndexTemplateMetadata implements Diffable<IndexTemplateMetadata> {
         return this.mapping;
     }
 
-    public ImmutableOpenMap<String, AliasMetadata> aliases() {
+    public Map<String, AliasMetadata> aliases() {
         return this.aliases;
     }
 
@@ -207,8 +204,8 @@ public class IndexTemplateMetadata implements Diffable<IndexTemplateMetadata> {
             mapping.writeTo(out);
         }
         out.writeVInt(aliases.size());
-        for (ObjectCursor<AliasMetadata> cursor : aliases.values()) {
-            cursor.value.writeTo(out);
+        for (AliasMetadata aliasMd : aliases.values()) {
+            aliasMd.writeTo(out);
         }
         out.writeOptionalVInt(version);
     }
@@ -228,11 +225,11 @@ public class IndexTemplateMetadata implements Diffable<IndexTemplateMetadata> {
 
         private CompressedXContent mapping;
 
-        private final ImmutableOpenMap.Builder<String, AliasMetadata> aliases;
+        private final MapBuilder<String, AliasMetadata> aliases;
 
         public Builder(String name) {
             this.name = name;
-            aliases = ImmutableOpenMap.builder();
+            aliases = MapBuilder.newMapBuilder();
         }
 
         public Builder(IndexTemplateMetadata indexTemplateMetadata) {
@@ -242,7 +239,7 @@ public class IndexTemplateMetadata implements Diffable<IndexTemplateMetadata> {
             settings(indexTemplateMetadata.settings());
 
             mapping = indexTemplateMetadata.mapping();
-            aliases = ImmutableOpenMap.builder(indexTemplateMetadata.aliases());
+            aliases = MapBuilder.newMapBuilder(indexTemplateMetadata.aliases());
         }
 
         public Builder version(Integer version) {
@@ -289,7 +286,7 @@ public class IndexTemplateMetadata implements Diffable<IndexTemplateMetadata> {
         }
 
         public IndexTemplateMetadata build() {
-            return new IndexTemplateMetadata(name, version, indexPatterns, settings, mapping, aliases.build());
+            return new IndexTemplateMetadata(name, version, indexPatterns, settings, mapping, aliases.immutableMap());
         }
 
         public static IndexTemplateMetadata fromXContent(XContentParser parser, String templateName) throws IOException {

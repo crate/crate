@@ -22,6 +22,7 @@ package org.elasticsearch.cluster.node;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -31,18 +32,14 @@ import java.util.stream.StreamSupport;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.Diffable;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.jspecify.annotations.Nullable;
 
-import com.carrotsearch.hppc.ObjectHashSet;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import io.crate.common.Booleans;
+import io.crate.common.collections.MapBuilder;
 import io.crate.common.collections.Sets;
 
 /**
@@ -53,9 +50,9 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
 
     public static final DiscoveryNodes EMPTY_NODES = builder().build();
 
-    private final ImmutableOpenMap<String, DiscoveryNode> nodes;
-    private final ImmutableOpenMap<String, DiscoveryNode> dataNodes;
-    private final ImmutableOpenMap<String, DiscoveryNode> masterNodes;
+    private final Map<String, DiscoveryNode> nodes;
+    private final Map<String, DiscoveryNode> dataNodes;
+    private final Map<String, DiscoveryNode> masterNodes;
 
     private final String masterNodeId;
     private final String localNodeId;
@@ -64,9 +61,9 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
     private final Version maxNodeVersion;
     private final Version minNodeVersion;
 
-    private DiscoveryNodes(ImmutableOpenMap<String, DiscoveryNode> nodes,
-                           ImmutableOpenMap<String, DiscoveryNode> dataNodes,
-                           ImmutableOpenMap<String, DiscoveryNode> masterNodes,
+    private DiscoveryNodes(Map<String, DiscoveryNode> nodes,
+                           Map<String, DiscoveryNode> dataNodes,
+                           Map<String, DiscoveryNode> masterNodes,
                            String masterNodeId,
                            String localNodeId,
                            Version minNonClientNodeVersion,
@@ -86,7 +83,7 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
 
     @Override
     public Iterator<DiscoveryNode> iterator() {
-        return nodes.valuesIt();
+        return nodes.values().iterator();
     }
 
     /**
@@ -114,41 +111,33 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
     }
 
     /**
-     * Get a {@link Map} of the discovered nodes arranged by their ids
-     *
      * @return {@link Map} of the discovered nodes arranged by their ids
      */
-    public ImmutableOpenMap<String, DiscoveryNode> getNodes() {
+    public Map<String, DiscoveryNode> getNodes() {
         return this.nodes;
     }
 
     /**
-     * Get a {@link Map} of the discovered data nodes arranged by their ids
-     *
      * @return {@link Map} of the discovered data nodes arranged by their ids
      */
-    public ImmutableOpenMap<String, DiscoveryNode> getDataNodes() {
+    public Map<String, DiscoveryNode> getDataNodes() {
         return this.dataNodes;
     }
 
     /**
-     * Get a {@link Map} of the discovered master nodes arranged by their ids
-     *
      * @return {@link Map} of the discovered master nodes arranged by their ids
      */
-    public ImmutableOpenMap<String, DiscoveryNode> getMasterNodes() {
+    public Map<String, DiscoveryNode> getMasterNodes() {
         return this.masterNodes;
     }
 
     /**
-     * Get a {@link Map} of the discovered master and data nodes arranged by their ids
-     *
      * @return {@link Map} of the discovered master and data nodes arranged by their ids
      */
-    public ImmutableOpenMap<String, DiscoveryNode> getMasterAndDataNodes() {
-        ImmutableOpenMap.Builder<String, DiscoveryNode> nodes = ImmutableOpenMap.builder(dataNodes);
+    public Map<String, DiscoveryNode> getMasterAndDataNodes() {
+        MapBuilder<String, DiscoveryNode> nodes = MapBuilder.newMapBuilder(dataNodes);
         nodes.putAll(masterNodes);
-        return nodes.build();
+        return nodes.immutableMap();
     }
 
     /**
@@ -156,18 +145,19 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
      *
      * @return {@link Map} of the coordinating only nodes arranged by their ids
      */
-    public ImmutableOpenMap<String, DiscoveryNode> getCoordinatingOnlyNodes() {
-        ImmutableOpenMap.Builder<String, DiscoveryNode> nodes = ImmutableOpenMap.builder(this.nodes);
-        nodes.removeAll(masterNodes.keys());
-        nodes.removeAll(dataNodes.keys());
-        return nodes.build();
+    public Map<String, DiscoveryNode> getCoordinatingOnlyNodes() {
+        MapBuilder<String, DiscoveryNode> nodes = MapBuilder.newMapBuilder(this.nodes);
+        nodes.removeAll(masterNodes.keySet());
+        nodes.removeAll(dataNodes.keySet());
+        return nodes.immutableMap();
     }
 
     /**
      * Returns a stream of all nodes, with master nodes at the front
      */
     public Stream<DiscoveryNode> mastersFirstStream() {
-        return Stream.concat(StreamSupport.stream(masterNodes.spliterator(), false).map(cur -> cur.value),
+        return Stream.concat(
+            masterNodes.values().stream(),
             StreamSupport.stream(this.spliterator(), false).filter(n -> n.isMasterEligibleNode() == false));
     }
 
@@ -257,8 +247,7 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
      * @return node identified by the given address or <code>null</code> if no such node exists
      */
     public DiscoveryNode findByAddress(TransportAddress address) {
-        for (ObjectCursor<DiscoveryNode> cursor : nodes.values()) {
-            DiscoveryNode node = cursor.value;
+        for (DiscoveryNode node : nodes.values()) {
             if (node.getAddress().equals(address)) {
                 return node;
             }
@@ -337,7 +326,7 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
         if (nodes == null || nodes.length == 0) {
             return StreamSupport.stream(this.spliterator(), false).map(DiscoveryNode::getId).toArray(String[]::new);
         } else {
-            ObjectHashSet<String> resolvedNodesIds = new ObjectHashSet<>(nodes.length);
+            HashSet<String> resolvedNodesIds = new HashSet<>(nodes.length);
             for (String nodeId : nodes) {
                 if (nodeId.equals("_local")) {
                     String localNodeId = getLocalNodeId();
@@ -366,21 +355,21 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
                         String matchAttrValue = nodeId.substring(index + 1);
                         if (DiscoveryNodeRole.DATA_ROLE.roleName().equals(matchAttrName)) {
                             if (Booleans.parseBoolean(matchAttrValue, true)) {
-                                resolvedNodesIds.addAll(dataNodes.keys());
+                                resolvedNodesIds.addAll(dataNodes.keySet());
                             } else {
-                                resolvedNodesIds.removeAll(dataNodes.keys());
+                                resolvedNodesIds.removeAll(dataNodes.keySet());
                             }
                         } else if (DiscoveryNodeRole.MASTER_ROLE.roleName().equals(matchAttrName)) {
                             if (Booleans.parseBoolean(matchAttrValue, true)) {
-                                resolvedNodesIds.addAll(masterNodes.keys());
+                                resolvedNodesIds.addAll(masterNodes.keySet());
                             } else {
-                                resolvedNodesIds.removeAll(masterNodes.keys());
+                                resolvedNodesIds.removeAll(masterNodes.keySet());
                             }
                         } else if (DiscoveryNode.COORDINATING_ONLY.equals(matchAttrName)) {
                             if (Booleans.parseBoolean(matchAttrValue, true)) {
-                                resolvedNodesIds.addAll(getCoordinatingOnlyNodes().keys());
+                                resolvedNodesIds.addAll(getCoordinatingOnlyNodes().keySet());
                             } else {
-                                resolvedNodesIds.removeAll(getCoordinatingOnlyNodes().keys());
+                                resolvedNodesIds.removeAll(getCoordinatingOnlyNodes().keySet());
                             }
                         } else {
                             for (DiscoveryNode node : this) {
@@ -407,7 +396,7 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
                     }
                 }
             }
-            return resolvedNodesIds.toArray(String.class);
+            return resolvedNodesIds.toArray(String[]::new);
         }
     }
 
@@ -594,18 +583,18 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
 
     public static class Builder {
 
-        private final ImmutableOpenMap.Builder<String, DiscoveryNode> nodes;
+        private final MapBuilder<String, DiscoveryNode> nodes;
         private String masterNodeId;
         private String localNodeId;
 
         public Builder() {
-            nodes = ImmutableOpenMap.builder();
+            nodes = MapBuilder.newMapBuilder();
         }
 
         public Builder(DiscoveryNodes nodes) {
             this.masterNodeId = nodes.getMasterNodeId();
             this.localNodeId = nodes.getLocalNodeId();
-            this.nodes = ImmutableOpenMap.builder(nodes.getNodes());
+            this.nodes = MapBuilder.newMapBuilder(nodes.getNodes());
         }
 
         /**
@@ -667,8 +656,7 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
          * exception
          */
         private String validateAdd(DiscoveryNode node) {
-            for (ObjectCursor<DiscoveryNode> cursor : nodes.values()) {
-                final DiscoveryNode existingNode = cursor.value;
+            for (DiscoveryNode existingNode : nodes.values()) {
                 if (node.getAddress().equals(existingNode.getAddress()) &&
                     node.getId().equals(existingNode.getId()) == false) {
                     return "can't add node " + node + ", found existing node " + existingNode + " with same address";
@@ -683,21 +671,23 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
         }
 
         public DiscoveryNodes build() {
-            ImmutableOpenMap.Builder<String, DiscoveryNode> dataNodesBuilder = ImmutableOpenMap.builder();
-            ImmutableOpenMap.Builder<String, DiscoveryNode> masterNodesBuilder = ImmutableOpenMap.builder();
+            MapBuilder<String, DiscoveryNode> dataNodesBuilder = MapBuilder.newMapBuilder();
+            MapBuilder<String, DiscoveryNode> masterNodesBuilder = MapBuilder.newMapBuilder();
             Version minNodeVersion = null;
             Version maxNodeVersion = null;
             Version minNonClientNodeVersion = null;
             Version maxNonClientNodeVersion = null;
-            for (ObjectObjectCursor<String, DiscoveryNode> nodeEntry : nodes) {
-                if (nodeEntry.value.isDataNode()) {
-                    dataNodesBuilder.put(nodeEntry.key, nodeEntry.value);
+            for (var nodeEntry : nodes.map().entrySet()) {
+                String key = nodeEntry.getKey();
+                DiscoveryNode value = nodeEntry.getValue();
+                if (value.isDataNode()) {
+                    dataNodesBuilder.put(key, value);
                 }
-                if (nodeEntry.value.isMasterEligibleNode()) {
-                    masterNodesBuilder.put(nodeEntry.key, nodeEntry.value);
+                if (value.isMasterEligibleNode()) {
+                    masterNodesBuilder.put(key, value);
                 }
-                final Version version = nodeEntry.value.getVersion();
-                if (nodeEntry.value.isDataNode() || nodeEntry.value.isMasterEligibleNode()) {
+                final Version version = value.getVersion();
+                if (value.isDataNode() || value.isMasterEligibleNode()) {
                     if (minNonClientNodeVersion == null) {
                         minNonClientNodeVersion = version;
                         maxNonClientNodeVersion = version;
@@ -711,9 +701,9 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
             }
 
             return new DiscoveryNodes(
-                nodes.build(),
-                dataNodesBuilder.build(),
-                masterNodesBuilder.build(),
+                nodes.immutableMap(),
+                dataNodesBuilder.immutableMap(),
+                masterNodesBuilder.immutableMap(),
                 masterNodeId,
                 localNodeId,
                 minNonClientNodeVersion == null ? Version.CURRENT : minNonClientNodeVersion,

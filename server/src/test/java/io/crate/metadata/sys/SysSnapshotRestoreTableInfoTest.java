@@ -23,13 +23,13 @@ package io.crate.metadata.sys;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.RestoreInProgress;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
@@ -50,9 +50,8 @@ public class SysSnapshotRestoreTableInfoTest extends CrateDummyClusterServiceUni
             .addTable("create table doc.t1 (id int)");
         String indexUuid = clusterService.state().metadata().getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
 
-        ImmutableOpenMap.Builder<ShardId, RestoreInProgress.ShardRestoreStatus> shardsBuilder
-            = ImmutableOpenMap.builder();
-        shardsBuilder.put(
+        HashMap<ShardId, RestoreInProgress.ShardRestoreStatus> shards = new HashMap<>();
+        shards.put(
             new ShardId(relationName.indexNameOrAlias(), indexUuid, 0),
             new RestoreInProgress.ShardRestoreStatus("nodeId", RestoreInProgress.State.STARTED)
         );
@@ -63,7 +62,7 @@ public class SysSnapshotRestoreTableInfoTest extends CrateDummyClusterServiceUni
                 new SnapshotId("snapshot", UUID.randomUUID().toString())),
             RestoreInProgress.State.SUCCESS,
             List.of(relationName.indexNameOrAlias()),
-            shardsBuilder.build()
+            shards
         );
 
         var restoreInProgressIt = SysSnapshotRestoreTableInfo

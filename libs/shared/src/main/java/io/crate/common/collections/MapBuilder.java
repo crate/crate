@@ -21,11 +21,15 @@
 
 package io.crate.common.collections;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+
+import org.jspecify.annotations.Nullable;
 
 public final class MapBuilder<K, V> {
 
@@ -60,6 +64,11 @@ public final class MapBuilder<K, V> {
         return this;
     }
 
+    @Nullable
+    public V get(K key) {
+        return map.get(key);
+    }
+
     public Map<K, V> map() {
         return this.map;
     }
@@ -68,8 +77,9 @@ public final class MapBuilder<K, V> {
         return Collections.unmodifiableMap(map);
     }
 
-    public void putAll(Map<K, V> value) {
+    public MapBuilder<K, V> putAll(Map<K, V> value) {
         map.putAll(value);
+        return this;
     }
 
     /// like [#put(Object, Object)] but fails if the entry already exists in the map.
@@ -91,5 +101,31 @@ public final class MapBuilder<K, V> {
             }
         }
         return this;
+    }
+
+    public void remove(K key) {
+        map.remove(key);
+    }
+
+    public Collection<V> values() {
+        return map.values();
+    }
+
+    public void removeAll(Set<K> keys) {
+        for (K key : keys) {
+            map.remove(key);
+        }
+    }
+
+    public void clear() {
+        map.clear();
+    }
+
+    public int size() {
+        return map.size();
+    }
+
+    public V getOrDefault(K key, V defaultValue) {
+        return map.getOrDefault(key, defaultValue);
     }
 }

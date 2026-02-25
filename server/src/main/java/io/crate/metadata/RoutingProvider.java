@@ -43,7 +43,6 @@ import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
@@ -89,9 +88,9 @@ public final class RoutingProvider {
         if (localNode.isMasterEligibleNode() || localNode.isDataNode()) {
             return forTableOnSingleNode(relationName, localNode.getId());
         }
-        ImmutableOpenMap<String, DiscoveryNode> masterAndDataNodes = nodes.getMasterAndDataNodes();
+        Map<String, DiscoveryNode> masterAndDataNodes = nodes.getMasterAndDataNodes();
         int randomIdx = Math.abs(seed % masterAndDataNodes.size());
-        Iterator<DiscoveryNode> it = masterAndDataNodes.valuesIt();
+        Iterator<DiscoveryNode> it = masterAndDataNodes.values().iterator();
         int currIdx = 0;
         while (it.hasNext()) {
             DiscoveryNode next = it.next();

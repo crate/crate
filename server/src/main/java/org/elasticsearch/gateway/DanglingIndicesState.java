@@ -46,8 +46,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-
 /**
  * The dangling indices state is responsible for finding new dangling indices (indices that have
  * their state written on disk, but don't exists in the metadata of the cluster), and importing
@@ -145,8 +143,8 @@ public class DanglingIndicesState implements ClusterStateListener {
      */
     Map<Index, IndexMetadata> findNewDanglingIndices(final Metadata metadata) {
         final Set<String> excludeIndexPathIds = new HashSet<>(metadata.indices().size() + danglingIndices.size());
-        for (ObjectCursor<IndexMetadata> cursor : metadata.indices().values()) {
-            excludeIndexPathIds.add(cursor.value.getIndex().getUUID());
+        for (IndexMetadata indexMetadata : metadata.indices().values()) {
+            excludeIndexPathIds.add(indexMetadata.getIndex().getUUID());
         }
         excludeIndexPathIds.addAll(danglingIndices.keySet().stream().map(Index::getUUID).collect(Collectors.toList()));
         try {

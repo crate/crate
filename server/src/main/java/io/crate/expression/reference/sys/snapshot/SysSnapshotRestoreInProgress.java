@@ -23,14 +23,12 @@ package io.crate.expression.reference.sys.snapshot;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.RestoreInProgress;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.shard.ShardId;
-
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -108,12 +106,12 @@ public class SysSnapshotRestoreInProgress {
 
     public static class ShardRestoreInfo {
 
-        public static List<ShardRestoreInfo> of(ImmutableOpenMap<ShardId, RestoreInProgress.ShardRestoreStatus> shards,
+        public static List<ShardRestoreInfo> of(Map<ShardId, RestoreInProgress.ShardRestoreStatus> shards,
                                                 ClusterState currentState) {
             var shardsRestoreInfo = new ArrayList<ShardRestoreInfo>(shards.size());
-            for (ObjectObjectCursor<ShardId, RestoreInProgress.ShardRestoreStatus> shardEntry : shards) {
-                ShardId shardId = shardEntry.key;
-                RestoreInProgress.ShardRestoreStatus status = shardEntry.value;
+            for (Map.Entry<ShardId, RestoreInProgress.ShardRestoreStatus> shardEntry : shards.entrySet()) {
+                ShardId shardId = shardEntry.getKey();
+                RestoreInProgress.ShardRestoreStatus status = shardEntry.getValue();
                 PartitionName partitionName = currentState.metadata().getPartitionName(shardId.getIndexUUID());
                 IndexParts indexParts = new IndexParts(
                     partitionName.relationName().schema(),

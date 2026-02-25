@@ -23,6 +23,7 @@ import static java.util.stream.Collectors.toSet;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,6 @@ import org.elasticsearch.cluster.RestoreInProgress;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
@@ -139,13 +139,13 @@ public class MetadataDeleteIndexService {
         ClusterBlocks blocks = clusterBlocksBuilder.build();
 
         // update snapshot restore entries
-        ImmutableOpenMap<String, ClusterState.Custom> customs = currentState.customs();
+        Map<String, ClusterState.Custom> customs = currentState.customs();
         final RestoreInProgress restoreInProgress = currentState.custom(RestoreInProgress.TYPE, RestoreInProgress.EMPTY);
         RestoreInProgress updatedRestoreInProgress = RestoreService.updateRestoreStateWithDeletedIndices(restoreInProgress, indicesToDelete);
         if (updatedRestoreInProgress != restoreInProgress) {
-            ImmutableOpenMap.Builder<String, ClusterState.Custom> builder = ImmutableOpenMap.builder(customs);
-            builder.put(RestoreInProgress.TYPE, updatedRestoreInProgress);
-            customs = builder.build();
+            HashMap<String, ClusterState.Custom> newCustoms = new HashMap<>(customs);
+            newCustoms.put(RestoreInProgress.TYPE, updatedRestoreInProgress);
+            customs = Collections.unmodifiableMap(newCustoms);
         }
 
         return allocationService.reroute(

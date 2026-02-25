@@ -55,7 +55,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.ShardLockObtainFailedException;
 import org.elasticsearch.index.shard.ShardId;
@@ -438,7 +437,7 @@ public class PrimaryShardAllocatorTests extends ESAllocationTestCase {
             .routingTable(routingTable)
             .nodes(DiscoveryNodes.builder().add(node1).add(node2).add(node3)).build();
         return new RoutingAllocation(allocationDeciders, new RoutingNodes(state, false), state, null,
-            new SnapshotShardSizeInfo(ImmutableOpenMap.of()) {
+            new SnapshotShardSizeInfo(Map.of()) {
                 @Override
                 public Long getShardSize(ShardRouting shardRouting) {
                     return shardSize;

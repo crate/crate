@@ -188,9 +188,9 @@ public class MetadataTest {
 
         assertThat(metadata.schemas()).isEmpty();
         assertThat(metadata.indices().size()).isEqualTo(1);
-        assertThat(metadata.indices().keysIt().next()).isEqualTo("t2");
+        assertThat(metadata.indices().keySet().iterator().next()).isEqualTo("t2");
         assertThat(metadata.templates().size()).isEqualTo(1);
-        assertThat(metadata.templates().keysIt().next()).isEqualTo(".partitioned.t1.");
+        assertThat(metadata.templates().keySet().iterator().next()).isEqualTo(".partitioned.t1.");
 
         var mdBuilder = Metadata.builder(metadata);
         Metadata upgraded = mdBuilder
@@ -232,9 +232,9 @@ public class MetadataTest {
         assertThat(upgraded.schemas().get("doc").relations().get("t1")).isNotNull();
         assertThat(upgraded.schemas().get("doc").relations().get("t2")).isNotNull();
         assertThat(upgraded.indices().size()).isEqualTo(1);
-        assertThat(upgraded.indices().keysIt().next()).isEqualTo("t2");
+        assertThat(upgraded.indices().keySet().iterator().next()).isEqualTo("t2");
         assertThat(upgraded.templates().size()).isEqualTo(1);
-        assertThat(upgraded.templates().keysIt().next()).isEqualTo(".partitioned.t1.");
+        assertThat(upgraded.templates().keySet().iterator().next()).isEqualTo(".partitioned.t1.");
 
         // diff that holds table(t1, t2) deletes
         var metadataDiff = Metadata.EMPTY_METADATA.diff(Version.CURRENT, metadata);

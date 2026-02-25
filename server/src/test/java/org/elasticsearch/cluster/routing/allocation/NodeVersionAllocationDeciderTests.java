@@ -31,6 +31,7 @@ import static org.elasticsearch.test.VersionUtils.randomVersion;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -66,7 +67,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.cluster.routing.allocation.decider.NodeVersionAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ReplicaAfterPrimaryActiveAllocationDecider;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
@@ -384,8 +384,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         }
         Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED).put(indexMetadata).build();
 
-        final ImmutableOpenMap.Builder<InternalSnapshotsInfoService.SnapshotShard, Long> snapshotShardSizes =
-            ImmutableOpenMap.builder(numberOfShards);
+        final HashMap<InternalSnapshotsInfoService.SnapshotShard, Long> snapshotShardSizes = HashMap.newHashMap(numberOfShards);
         final Index index = metadata.index("test").getIndex();
         for (int i = 0; i < numberOfShards; i++) {
             final ShardId shardId = new ShardId(index, i);
@@ -402,8 +401,11 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
             new NodeVersionAllocationDecider()));
         AllocationService strategy = new MockAllocationService(
             allocationDeciders,
-            new TestGatewayAllocator(), new BalancedShardsAllocator(Settings.EMPTY), EmptyClusterInfoService.INSTANCE,
-            () -> new SnapshotShardSizeInfo(snapshotShardSizes.build()));
+            new TestGatewayAllocator(),
+            new BalancedShardsAllocator(Settings.EMPTY),
+            EmptyClusterInfoService.INSTANCE,
+            () -> new SnapshotShardSizeInfo(snapshotShardSizes)
+        );
         state = strategy.reroute(state, new AllocationCommands(), true, false).getClusterState();
 
         // Make sure that primary shards are only allocated on the new node
