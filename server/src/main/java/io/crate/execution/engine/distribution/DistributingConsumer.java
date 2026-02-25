@@ -25,7 +25,6 @@ import static io.crate.execution.engine.distribution.TransportDistributedResultA
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -39,7 +38,6 @@ import java.util.function.BiConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
@@ -209,7 +207,7 @@ public class DistributingConsumer implements RowConsumer {
                     request,
                     it,
                     numActiveRequests,
-                    failure
+                    true
                 );
                 distributedResultAction.execute(request).whenComplete(responseHandler);
             }
@@ -265,7 +263,7 @@ public class DistributingConsumer implements RowConsumer {
                 request,
                 it,
                 numActiveRequests,
-                null
+                false
             );
             distributedResultAction.execute(request).whenComplete(responseHandler);
         }
@@ -277,28 +275,26 @@ public class DistributingConsumer implements RowConsumer {
         private final NodeRequest<DistributedResultRequest> request;
         private final BatchIterator<Row> it;
         private final AtomicInteger numActiveRequests;
-        private final Throwable originalFailure;
+        private final boolean isFailureReq;
         private final Iterator<TimeValue> retries;
 
         public ResponseHandler(Downstream downstream,
                                NodeRequest<DistributedResultRequest> request,
                                BatchIterator<Row> it,
                                AtomicInteger numActiveRequests,
-                               @Nullable Throwable originalFailure) {
-
+                               boolean isFailureReq) {
             this.downstream = downstream;
             this.request = request;
             this.it = it;
             this.numActiveRequests = numActiveRequests;
-            this.originalFailure = originalFailure;
+            this.isFailureReq = isFailureReq;
             this.retries = BackoffPolicy.exponentialBackoff().iterator();
         }
 
         @Override
         public void accept(DistributedResultResponse resp, Throwable err) {
             if (err == null) {
-                if (originalFailure != null) {
-                    // original failure has been forwarded without errors.
+                if (isFailureReq) {
                     downstream.needsMoreData = false;
                     countdownAndMaybeCloseIt(numActiveRequests, it);
                 } else {
@@ -309,7 +305,7 @@ public class DistributingConsumer implements RowConsumer {
             }
             err = SQLExceptions.unwrap(err);
             LOGGER.trace(
-                "Failure from downstream (or local failure) while sending result. job={} targetNode={} failure={}",
+                "Failure from downstream while sending result. job={} targetNode={} failure={}",
                 jobId,
                 downstream.nodeId,
                 err
@@ -350,21 +346,13 @@ public class DistributingConsumer implements RowConsumer {
             }
             downstream.needsMoreData = false;
             // continue because it's necessary to send something to the other downstreams still waiting for data
-            if (originalFailure != null) {
+            if (isFailureReq) {
                 countdownAndMaybeCloseIt(numActiveRequests, it);
-                if (err instanceof CircuitBreakingException) {
-                    // CBE on `forwardFailure` could imply that the downstream
-                    // didn't receive/handle the forwarded failure
-                    // -> broadcast kill to ensure tasks get cleaned up.
-
-                    // We don't exclude local node from the KILL broadcast
-                    // as it can be a handler node and leave behind unclosed DistResultRXTask
-                    broadcastKill(killNodeAction, jobId, List.of(), originalFailure);
-                }
             } else {
                 // If we get a JobKilled from downstream it was already broadcast
                 if (!(err instanceof JobKilledException)) {
-                    broadcastKill(killNodeAction, jobId, Collections.singletonList(localNodeId), err);
+                    String reason = "An error was encountered: " + err;
+                    broadcastKill(killNodeAction, jobId, localNodeId, reason);
                 }
                 it.close();
                 completionFuture.completeExceptionally(failure);

@@ -46,9 +46,7 @@ public class CountdownFuture extends CompletableFuture<Void> implements BiConsum
 
     public void onFailure(Throwable t) {
         Throwable previousFailure = lastFailure.getAndSet(t);
-        if (previousFailure != null && t != previousFailure) {
-            // killTasks re-uses same exception that it got from the KillJobsRequest.
-            // addSuppressed throws self suppression error, so we need a check to guard from that.
+        if (previousFailure != null) {
             t.addSuppressed(previousFailure);
         }
         countdown();

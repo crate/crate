@@ -49,7 +49,6 @@ import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportConnectionListener;
 import org.elasticsearch.transport.TransportService;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import io.crate.common.annotations.VisibleForTesting;
 
@@ -58,7 +57,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 import io.crate.common.collections.Lists;
 import io.crate.concurrent.CountdownFuture;
-import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.RootTask.Builder;
@@ -105,7 +103,7 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
     protected void doStop() throws ElasticsearchException {
         transportService.removeConnectionListener(this);
         for (RootTask rootTask : activeTasks.values()) {
-            rootTask.kill(JobKilledException.of("TasksService stopped"));
+            rootTask.kill("TasksService stopped");
         }
     }
 
@@ -144,7 +142,7 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
     public void onNodeDisconnected(DiscoveryNode node, Connection connection) {
         for (var task : activeTasks.values()) {
             if (task.participatingNodes().contains(node.getId())) {
-                task.kill(JobKilledException.of("Participating node " + node.getId() + " disconnected"));
+                task.kill("Participating node " + node.getId() + " disconnected");
             }
         }
     }
@@ -269,10 +267,10 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
         if (toKill.isEmpty()) {
             return CompletableFuture.completedFuture(0);
         }
-        return killTasks(toKill, userName, JobKilledException.of(null));
+        return killTasks(toKill, userName, null);
     }
 
-    private CompletableFuture<Integer> killTasks(Collection<UUID> toKill, String userName, @NonNull Throwable reason) {
+    private CompletableFuture<Integer> killTasks(Collection<UUID> toKill, String userName, @Nullable String reason) {
         assert !toKill.isEmpty() : "toKill must not be empty";
         int numKilled = 0;
         CountdownFuture countDownFuture = new CountdownFuture(toKill.size());
@@ -299,7 +297,7 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
         return countDownFuture.handle((r, f) -> finalNumKilled);
     }
 
-    public CompletableFuture<Integer> killJobs(Collection<UUID> toKill, String userName, @NonNull Throwable reason) {
+    public CompletableFuture<Integer> killJobs(Collection<UUID> toKill, String userName, @Nullable String reason) {
         boolean isSuperUser = userName.equals(Role.CRATE_USER.name());
         if (isSuperUser) {
             for (KillAllListener killAllListener : killAllListeners) {

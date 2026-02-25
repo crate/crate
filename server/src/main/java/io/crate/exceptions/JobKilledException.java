@@ -34,13 +34,7 @@ public class JobKilledException extends ElasticsearchException implements Unscop
     public static final String MESSAGE = "Job killed";
 
     public static JobKilledException of(@Nullable String reason) {
-        if (reason == null) {
-            return new JobKilledException();
-        } else if (reason.startsWith(MESSAGE)) {
-            return new JobKilledException(reason);
-        } else {
-            return new JobKilledException("Job killed. " + reason);
-        }
+        return reason == null ? new JobKilledException() : new JobKilledException(reason);
     }
 
     public JobKilledException(final StreamInput in) throws IOException {
@@ -48,7 +42,7 @@ public class JobKilledException extends ElasticsearchException implements Unscop
     }
 
     private JobKilledException(String reason) {
-        super(reason);
+        super("Job killed. " + reason);
     }
 
     private JobKilledException() {
