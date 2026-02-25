@@ -19,10 +19,11 @@
 
 package org.elasticsearch.index.seqno;
 
-import com.carrotsearch.hppc.LongObjectHashMap;
-import io.crate.common.SuppressForbidden;
-
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.lucene.internal.hppc.LongObjectHashMap;
+
+import io.crate.common.SuppressForbidden;
 
 /**
  * This class generates sequences numbers and keeps track of the so-called "local checkpoint" which is the highest number for which all

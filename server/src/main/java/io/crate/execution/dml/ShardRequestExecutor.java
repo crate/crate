@@ -33,6 +33,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -41,8 +42,6 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.where.DocKeys;
 import io.crate.concurrent.MultiActionListener;

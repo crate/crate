@@ -25,8 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import com.carrotsearch.hppc.ByteArrayList;
-
+import io.crate.collections.ByteList;
 import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
@@ -179,7 +178,7 @@ public class PGArray extends PGType<List<Object>> {
     @Override
     byte[] encodeAsUTF8Text(List<Object> array) {
         boolean isJson = JsonType.OID == innerType.oid();
-        ByteArrayList encodedValues = new ByteArrayList();
+        ByteList encodedValues = new ByteList();
         encodedValues.add((byte) '{');
         for (int i = 0; i < array.size(); i++) {
             Object o = array.get(i);
@@ -217,7 +216,7 @@ public class PGArray extends PGType<List<Object>> {
             }
         }
         encodedValues.add((byte) '}');
-        return Arrays.copyOfRange(encodedValues.buffer, 0, encodedValues.elementsCount);
+        return Arrays.copyOfRange(encodedValues.buffer, 0, encodedValues.numItems);
     }
 
     @SuppressWarnings("unchecked")

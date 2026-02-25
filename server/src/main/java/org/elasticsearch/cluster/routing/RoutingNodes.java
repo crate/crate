@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.internal.hppc.ObjectIntMap;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.cluster.ClusterState;
@@ -48,8 +49,6 @@ import org.elasticsearch.common.Randomness;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.ObjectIntHashMap;
 
 import io.crate.common.collections.Tuple;
 
@@ -82,7 +81,7 @@ public class RoutingNodes implements Iterable<RoutingNode> {
 
     private int relocatingShards = 0;
 
-    private final Map<String, ObjectIntHashMap<String>> nodesPerAttributeNames = new HashMap<>();
+    private final Map<String, ObjectIntMap<String>> nodesPerAttributeNames = new HashMap<>();
     private final Map<String, Recoveries> recoveriesPerNode = new HashMap<>();
 
     public RoutingNodes(ClusterState clusterState) {
@@ -240,12 +239,12 @@ public class RoutingNodes implements Iterable<RoutingNode> {
         return nodesToShards.get(nodeId);
     }
 
-    public ObjectIntHashMap<String> nodesPerAttributesCounts(String attributeName) {
-        ObjectIntHashMap<String> nodesPerAttributesCounts = nodesPerAttributeNames.get(attributeName);
+    public ObjectIntMap<String> nodesPerAttributesCounts(String attributeName) {
+        ObjectIntMap<String> nodesPerAttributesCounts = nodesPerAttributeNames.get(attributeName);
         if (nodesPerAttributesCounts != null) {
             return nodesPerAttributesCounts;
         }
-        nodesPerAttributesCounts = new ObjectIntHashMap<>();
+        nodesPerAttributesCounts = new ObjectIntMap<>();
         for (RoutingNode routingNode : this) {
             String attrValue = routingNode.node().getAttributes().get(attributeName);
             nodesPerAttributesCounts.addTo(attrValue, 1);

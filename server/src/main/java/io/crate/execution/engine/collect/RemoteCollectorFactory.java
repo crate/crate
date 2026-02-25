@@ -28,6 +28,7 @@ import java.util.concurrent.Executor;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -38,8 +39,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;

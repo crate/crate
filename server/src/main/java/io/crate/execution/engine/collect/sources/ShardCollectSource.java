@@ -36,6 +36,8 @@ import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntCursor;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
@@ -57,9 +59,6 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntIndexedContainer;
-import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.TypedRowAccounting;
@@ -266,7 +265,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
         }
 
         boolean hasShardProjections = Projections.hasAnyShardProjections(collectPhase.projections());
-        Map<String, IntIndexedContainer> indexShards = collectPhase.routing().locations().get(localNodeId);
+        Map<String, IntArrayList> indexShards = collectPhase.routing().locations().get(localNodeId);
         List<CompletableFuture<BatchIterator<Row>>> iterators = indexShards == null
             ? Collections.emptyList()
             : getIterators(collectTask, collectPhase, requireMoveToStartSupport, indexShards);
@@ -305,12 +304,12 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                                                                                     CollectTask collectTask,
                                                                                     String localNodeId) {
 
-        Map<String, Map<String, IntIndexedContainer>> locations = collectPhase.routing().locations();
+        Map<String, Map<String, IntArrayList>> locations = collectPhase.routing().locations();
         SharedShardContexts sharedShardContexts = collectTask.sharedShardContexts();
-        Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
+        Map<String, IntArrayList> indexShards = locations.get(localNodeId);
         List<CompletableFuture<OrderedDocCollector>> orderedDocCollectors = new ArrayList<>();
         Metadata metadata = clusterService.state().metadata();
-        for (Map.Entry<String, IntIndexedContainer> entry : indexShards.entrySet()) {
+        for (Map.Entry<String, IntArrayList> entry : indexShards.entrySet()) {
             String indexUUID = entry.getKey();
             IndexMetadata indexMetadata = metadata.index(indexUUID);
             if (indexMetadata == null) {
@@ -412,11 +411,11 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
     private List<CompletableFuture<BatchIterator<Row>>> getIterators(CollectTask collectTask,
                                                                      RoutedCollectPhase collectPhase,
                                                                      boolean requiresScroll,
-                                                                     Map<String, IntIndexedContainer> indexShards) {
+                                                                     Map<String, IntArrayList> indexShards) {
 
         Metadata metadata = clusterService.state().metadata();
         List<CompletableFuture<BatchIterator<Row>>> iterators = new ArrayList<>();
-        for (Map.Entry<String, IntIndexedContainer> entry : indexShards.entrySet()) {
+        for (Map.Entry<String, IntArrayList> entry : indexShards.entrySet()) {
             String indexUUID = entry.getKey();
             IndexMetadata indexMD = metadata.index(indexUUID);
             if (indexMD == null) {
@@ -448,21 +447,21 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
     }
 
     private Iterable<Row> getShardsIterator(TransactionContext txnCtx, RoutedCollectPhase collectPhase, String localNodeId) {
-        Map<String, Map<String, IntIndexedContainer>> locations = collectPhase.routing().locations();
+        Map<String, Map<String, IntArrayList>> locations = collectPhase.routing().locations();
         List<UnassignedShard> unassignedShards = new ArrayList<>();
         List<ShardRowContext> shardRowContexts = new ArrayList<>();
-        Map<String, IntIndexedContainer> indexShardsMap = locations.get(localNodeId);
+        Map<String, IntArrayList> indexShardsMap = locations.get(localNodeId);
         Metadata metadata = clusterService.state().metadata();
 
 
-        for (Map.Entry<String, IntIndexedContainer> indexShards : indexShardsMap.entrySet()) {
+        for (Map.Entry<String, IntArrayList> indexShards : indexShardsMap.entrySet()) {
             String indexUUID = indexShards.getKey();
             IndexMetadata indexMetadata = metadata.index(indexUUID);
             if (indexMetadata == null) {
                 continue;
             }
             Index index = indexMetadata.getIndex();
-            IntIndexedContainer shards = indexShards.getValue();
+            IntArrayList shards = indexShards.getValue();
             IndexService indexService = indicesService.indexService(index);
             if (indexService == null) {
                 for (IntCursor shard : shards) {

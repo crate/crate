@@ -38,6 +38,8 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
+import org.apache.lucene.internal.hppc.LongArrayList;
+import org.apache.lucene.internal.hppc.LongCursor;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.CollectorManager;
@@ -63,11 +65,8 @@ import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
+
 import io.crate.common.annotations.VisibleForTesting;
-
-import com.carrotsearch.hppc.LongArrayList;
-import com.carrotsearch.hppc.cursors.LongCursor;
-
 import io.crate.common.collections.Lists;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;

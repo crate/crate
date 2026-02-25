@@ -23,11 +23,10 @@ package io.crate.execution.dml;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
-
-import com.carrotsearch.hppc.IntCollection;
 
 import io.crate.concurrent.FutureActionListener;
 import io.crate.concurrent.MultiActionListener;
@@ -49,7 +48,7 @@ final class BulkShardResponseListener implements ActionListener<ShardResponse> {
      */
     BulkShardResponseListener(int numCallbacks,
                               int numBulkParams,
-                              IntCollection resultIndices) {
+                              IntArrayList resultIndices) {
         var bulkResponse = new BulkResponse(numBulkParams);
         this.results = new FutureActionListener<>();
         this.compressedResult = new ShardResponse.CompressedResult();

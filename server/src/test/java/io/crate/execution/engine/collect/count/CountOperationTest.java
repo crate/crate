@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -40,9 +41,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
@@ -72,7 +70,7 @@ public class CountOperationTest extends IntegTestCase {
 
         IntArrayList shards = new IntArrayList(1);
         shards.add(0);
-        Map<String, IntIndexedContainer> indexShards = Map.of(index.getUUID(), shards);
+        Map<String, IntArrayList> indexShards = Map.of(index.getUUID(), shards);
 
         {
             CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, Literal.BOOLEAN_TRUE, false);

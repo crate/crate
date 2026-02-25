@@ -187,18 +187,6 @@
                                     </ignoreVersion>
                                 </ignoreVersions>
                             </rule>
-                            <!-- ignore hppc new version, since our decision to inline its
-                            structures with ram accounting -->
-                            <rule>
-                                <groupId>com.carrotsearch</groupId>
-                                <artifactId>hppc</artifactId>
-                                <ignoreVersions>
-                                    <ignoreVersion>
-                                        <version>.*</version>
-                                        <type>regex</type>
-                                    </ignoreVersion>
-                                </ignoreVersions>
-                            </rule>
                             <!-- ignore datasketches >= 6.1.* and <= 8.* since they are not
                             compatible with JDK > 21 -->
                             <!-- https://github.com/apache/datasketches-java/issues/686 -->
@@ -339,7 +327,6 @@
         <versions.jopt_simple>6.0-alpha-3</versions.jopt_simple>
         <versions.antlr>4.13.2</versions.antlr>
         <versions.quickcheck>1.0</versions.quickcheck>
-        <versions.hppc>0.8.2</versions.hppc>
         <versions.netty>4.2.10.Final</versions.netty>
         <versions.lucene>10.3.2</versions.lucene>
         <versions.spatial4j>0.8</versions.spatial4j>

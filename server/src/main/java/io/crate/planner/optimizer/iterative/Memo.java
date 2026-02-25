@@ -29,9 +29,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.common.collections.Lists;
 import io.crate.planner.operators.LogicalPlan;

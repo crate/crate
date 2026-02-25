@@ -28,9 +28,8 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.auth.AccessControl;
 import io.crate.data.CollectionBucket;

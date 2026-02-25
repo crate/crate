@@ -26,10 +26,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.IntObjectMap;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
@@ -100,7 +98,7 @@ public class PGTypes {
         .put(DataTypes.OIDVECTOR, PgOidVectorType.INSTANCE)
         .immutableMap();
 
-    private static final IntObjectMap<DataType<?>> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();
+    private static final IntObjectHashMap<DataType<?>> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();
     private static final Set<PGType<?>> TYPES;
 
     static {

@@ -31,13 +31,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
+import org.apache.lucene.internal.hppc.IntObjectHashMap.IntObjectCursor;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.IntObjectMap;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 import io.crate.Streamer;
 import io.crate.breaker.ConcurrentRamAccounting;
@@ -112,9 +110,9 @@ public class NodeFetchOperation {
         this.circuitBreaker = circuitBreaker;
     }
 
-    public CompletableFuture<? extends IntObjectMap<StreamBucket>> fetch(UUID jobId,
+    public CompletableFuture<? extends IntObjectHashMap<StreamBucket>> fetch(UUID jobId,
                                                                          int phaseId,
-                                                                         @Nullable IntObjectMap<IntArrayList> docIdsToFetch,
+                                                                         @Nullable IntObjectHashMap<IntArrayList> docIdsToFetch,
                                                                          boolean closeTaskOnFinish) {
         if (docIdsToFetch == null) {
             if (closeTaskOnFinish) {
@@ -125,7 +123,7 @@ public class NodeFetchOperation {
 
         RootTask context = tasksService.getTask(jobId);
         FetchTask fetchTask = context.getTask(phaseId);
-        BiConsumer<? super IntObjectMap<StreamBucket>, ? super Throwable> whenComplete = (res, err) -> {
+        BiConsumer<? super IntObjectHashMap<StreamBucket>, ? super Throwable> whenComplete = (res, err) -> {
             if (closeTaskOnFinish) {
                 if (err == null) {
                     fetchTask.close();
@@ -161,7 +159,7 @@ public class NodeFetchOperation {
         return result;
     }
 
-    private CompletableFuture<? extends IntObjectMap<StreamBucket>> doFetch(FetchTask fetchTask, IntObjectMap<IntArrayList> toFetch) throws Exception {
+    private CompletableFuture<? extends IntObjectHashMap<StreamBucket>> doFetch(FetchTask fetchTask, IntObjectHashMap<IntArrayList> toFetch) throws Exception {
         HashMap<RelationName, TableFetchInfo> tableFetchInfos = getTableFetchInfos(fetchTask);
 
         // RamAccounting is per doFetch call instead of per FetchTask/fetchPhase

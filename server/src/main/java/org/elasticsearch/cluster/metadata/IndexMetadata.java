@@ -39,6 +39,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.apache.lucene.internal.hppc.IntObjectHashMap.IntObjectCursor;
+import org.apache.lucene.internal.hppc.LongArrayList;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -62,9 +64,6 @@ import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.LongArrayList;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 import io.crate.Constants;
 import io.crate.common.collections.MapBuilder;

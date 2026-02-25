@@ -24,10 +24,10 @@ package io.crate.execution.engine.fetch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.ESTestCase.randomIntBetween;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 
 @RunWith(RandomizedRunner.class)

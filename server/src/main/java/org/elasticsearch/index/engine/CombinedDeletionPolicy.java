@@ -31,12 +31,12 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.IndexDeletionPolicy;
 import org.apache.lucene.index.SegmentInfos;
+import org.apache.lucene.internal.hppc.ObjectIntMap;
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogDeletionPolicy;
 
-import com.carrotsearch.hppc.ObjectIntHashMap;
 
 /**
  * An {@link IndexDeletionPolicy} that coordinates between Lucene's commits and the retention of translog generation files,
@@ -51,7 +51,7 @@ public class CombinedDeletionPolicy extends IndexDeletionPolicy {
     private final TranslogDeletionPolicy translogDeletionPolicy;
     private final SoftDeletesPolicy softDeletesPolicy;
     private final LongSupplier globalCheckpointSupplier;
-    private final ObjectIntHashMap<IndexCommit> snapshottedCommits; // Number of snapshots held against each commit point.
+    private final ObjectIntMap<IndexCommit> snapshottedCommits; // Number of snapshots held against each commit point.
     private volatile IndexCommit safeCommit; // the most recent safe commit point - its max_seqno at most the persisted global checkpoint.
     private volatile long maxSeqNoOfNextSafeCommit;
     private volatile IndexCommit lastCommit; // the most recent commit point
@@ -63,7 +63,7 @@ public class CombinedDeletionPolicy extends IndexDeletionPolicy {
         this.translogDeletionPolicy = translogDeletionPolicy;
         this.softDeletesPolicy = softDeletesPolicy;
         this.globalCheckpointSupplier = globalCheckpointSupplier;
-        this.snapshottedCommits = new ObjectIntHashMap<>();
+        this.snapshottedCommits = new ObjectIntMap<>();
     }
 
     @Override

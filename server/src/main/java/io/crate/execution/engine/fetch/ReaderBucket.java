@@ -25,8 +25,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Locale;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntObjectHashMap;
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
 
 import io.crate.breaker.CellsSizeEstimator;
 import io.crate.data.Bucket;

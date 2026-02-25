@@ -26,11 +26,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;

@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -38,15 +39,13 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIndexedContainer;
 
 public class RoutingTest extends ESTestCase {
 
     @Test
     public void testStreamingWithLocations() throws Exception {
-        Map<String, Map<String, IntIndexedContainer>> locations = new TreeMap<>();
-        Map<String, IntIndexedContainer> indexMap = new TreeMap<>();
+        Map<String, Map<String, IntArrayList>> locations = new TreeMap<>();
+        Map<String, IntArrayList> indexMap = new TreeMap<>();
         indexMap.put("index-0", IntArrayList.from(1, 2));
         locations.put("node-0", indexMap);
 

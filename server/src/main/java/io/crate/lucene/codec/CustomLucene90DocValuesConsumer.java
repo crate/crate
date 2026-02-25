@@ -45,6 +45,8 @@ import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.internal.hppc.LongHashSet;
+import org.apache.lucene.internal.hppc.LongIntHashMap;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.SortedSetSelector;
 import org.apache.lucene.store.ByteArrayDataOutput;
@@ -62,9 +64,6 @@ import org.apache.lucene.util.StringHelper;
 import org.apache.lucene.util.compress.LZ4;
 import org.apache.lucene.util.packed.DirectMonotonicWriter;
 import org.apache.lucene.util.packed.DirectWriter;
-
-import com.carrotsearch.hppc.LongHashSet;
-import com.carrotsearch.hppc.LongIntHashMap;
 
 import io.crate.lucene.codec.CustomLucene90DocValuesFormat.Mode;
 

@@ -21,7 +21,7 @@ package org.elasticsearch.rest;
 
 import java.util.Locale;
 
-import com.carrotsearch.hppc.IntObjectHashMap;
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
 
 import io.crate.rest.action.HttpErrorStatus;
 import io.netty.handler.codec.http.HttpResponseStatus;

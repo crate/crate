@@ -29,10 +29,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.lucene.internal.hppc.IntHashSet;
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntHashSet;
-import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.breaker.CellsSizeEstimator;
 import io.crate.data.ArrayBucket;

@@ -28,13 +28,11 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-import io.crate.common.annotations.VisibleForTesting;
-
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.IntObjectMap;
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
 
 import io.crate.Streamer;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.FutureActionListener;
 import io.crate.data.Bucket;
 import io.crate.data.breaker.BlockBasedRamAccounting;
@@ -44,15 +42,15 @@ import io.crate.execution.support.ActionExecutor;
 
 public class TransportFetchOperation implements FetchOperation {
 
-    private static final Function<NodeFetchResponse, IntObjectMap<? extends Bucket>> GET_FETCHED = NodeFetchResponse::fetched;
+    private static final Function<NodeFetchResponse, IntObjectHashMap<? extends Bucket>> GET_FETCHED = NodeFetchResponse::fetched;
     private final ActionExecutor<NodeFetchRequest, NodeFetchResponse> fetchNodeAction;
-    private final Map<String, ? extends IntObjectMap<Streamer<?>[]>> nodeIdToReaderIdToStreamers;
+    private final Map<String, ? extends IntObjectHashMap<Streamer<?>[]>> nodeIdToReaderIdToStreamers;
     private final UUID jobId;
     private final int fetchPhaseId;
     private final RamAccounting ramAccounting;
 
     public TransportFetchOperation(ActionExecutor<NodeFetchRequest, NodeFetchResponse> fetchNodeAction,
-                                   Map<String, ? extends IntObjectMap<Streamer<?>[]>> nodeIdToReaderIdToStreamers,
+                                   Map<String, ? extends IntObjectHashMap<Streamer<?>[]>> nodeIdToReaderIdToStreamers,
                                    UUID jobId,
                                    int fetchPhaseId,
                                    RamAccounting ramAccounting) {
@@ -64,8 +62,8 @@ public class TransportFetchOperation implements FetchOperation {
     }
 
     @Override
-    public CompletableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId,
-                                                                   IntObjectMap<IntArrayList> toFetch,
+    public CompletableFuture<IntObjectHashMap<? extends Bucket>> fetch(String nodeId,
+                                                                   IntObjectHashMap<IntArrayList> toFetch,
                                                                    boolean closeContext) {
         FutureActionListener<NodeFetchResponse> listener = new FutureActionListener<>();
         return fetchNodeAction
@@ -83,7 +81,7 @@ public class TransportFetchOperation implements FetchOperation {
 
     @VisibleForTesting
     static RamAccounting ramAccountingForIncomingResponse(RamAccounting ramAccounting,
-                                                          IntObjectMap<? extends IntContainer> toFetch,
+                                                          IntObjectHashMap<IntArrayList> toFetch,
                                                           boolean closeContext) {
         if (toFetch.isEmpty() && closeContext) {
             // No data will arrive, so no ram accounting needed.

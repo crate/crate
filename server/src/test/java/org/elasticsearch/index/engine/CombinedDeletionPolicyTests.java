@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.lucene.index.IndexCommit;
+import org.apache.lucene.internal.hppc.LongArrayList;
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -47,8 +48,6 @@ import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogDeletionPolicy;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.LongArrayList;
 
 public class CombinedDeletionPolicyTests extends ESTestCase {
 

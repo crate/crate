@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
@@ -57,8 +58,6 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;

@@ -29,11 +29,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.node.Node;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.WhereClause;
 import io.crate.data.Paging;

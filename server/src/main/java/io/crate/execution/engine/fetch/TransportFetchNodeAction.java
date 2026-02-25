@@ -24,6 +24,7 @@ package io.crate.execution.engine.fetch;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.TransportAction;
@@ -35,8 +36,6 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import com.carrotsearch.hppc.IntObjectMap;
 
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.engine.distribution.StreamBucket;
@@ -94,7 +93,7 @@ public class TransportFetchNodeAction extends TransportAction<NodeFetchRequest, 
     }
 
     private CompletableFuture<NodeFetchResponse> nodeOperation(final NodeFetchRequest.FetchRequest request) {
-        CompletableFuture<? extends IntObjectMap<StreamBucket>> resultFuture = nodeFetchOperation.fetch(
+        CompletableFuture<? extends IntObjectHashMap<StreamBucket>> resultFuture = nodeFetchOperation.fetch(
             request.jobId(),
             request.fetchPhaseId(),
             request.toFetch(),

@@ -23,8 +23,7 @@ package io.crate.protocols.postgres.types;
 
 import java.util.List;
 
-import com.carrotsearch.hppc.ByteArrayList;
-
+import io.crate.collections.ByteList;
 import io.crate.data.Row;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
@@ -101,7 +100,7 @@ public class RecordType extends PGType<Row> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     byte[] encodeAsUTF8Text(Row record) {
-        ByteArrayList bytes = new ByteArrayList();
+        ByteList bytes = new ByteList();
         // See PostgreSQL src/backend/utils/adt/rowtypes.c record_out(PG_FUNCTION_ARGS)
         bytes.add((byte) '(');
         for (int i = 0; i < record.numColumns(); i++) {

@@ -25,10 +25,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;

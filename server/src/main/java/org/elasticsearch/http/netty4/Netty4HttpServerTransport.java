@@ -62,6 +62,7 @@ import java.util.regex.PatternSyntaxException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.internal.hppc.IntHashSet;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -96,9 +97,6 @@ import org.elasticsearch.transport.netty4.Netty4InboundStatsHandler;
 import org.elasticsearch.transport.netty4.Netty4OutboundStatsHandler;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntHashSet;
-import com.carrotsearch.hppc.IntSet;
 
 import io.crate.auth.Authentication;
 import io.crate.auth.HttpAuthUpstreamHandler;
@@ -396,7 +394,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
         // if no matching boundAddress found, check if there is a unique port for all bound addresses
         if (publishPort < 0) {
-            final IntSet ports = new IntHashSet();
+            final IntHashSet ports = new IntHashSet();
             for (TransportAddress boundAddress : boundAddresses) {
                 ports.add(boundAddress.getPort());
             }

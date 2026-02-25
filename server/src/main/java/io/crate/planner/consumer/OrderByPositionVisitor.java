@@ -24,10 +24,9 @@ package io.crate.planner.consumer;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.common.inject.Singleton;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;

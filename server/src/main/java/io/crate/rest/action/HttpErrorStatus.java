@@ -23,10 +23,9 @@ package io.crate.rest.action;
 
 import java.io.IOException;
 
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-
-import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 

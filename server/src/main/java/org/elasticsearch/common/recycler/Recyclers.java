@@ -21,7 +21,7 @@ package org.elasticsearch.common.recycler;
 
 import java.util.ArrayDeque;
 
-import com.carrotsearch.hppc.BitMixer;
+import org.apache.lucene.internal.hppc.BitMixer;
 
 public enum Recyclers {
     ;

@@ -29,13 +29,12 @@ import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeoReference;

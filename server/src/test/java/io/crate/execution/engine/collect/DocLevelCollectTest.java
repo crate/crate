@@ -35,6 +35,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.indices.IndicesService;
@@ -42,9 +43,6 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.analyze.WhereClause;
 import io.crate.data.Bucket;
@@ -131,17 +129,17 @@ public class DocLevelCollectTest extends IntegTestCase {
     }
 
     private Routing routing(String table) {
-        Map<String, Map<String, IntIndexedContainer>> locations = new TreeMap<>();
+        Map<String, Map<String, IntArrayList>> locations = new TreeMap<>();
 
         String indexUUID = resolveIndex(table).getUUID();
         for (final ShardRouting shardRouting : clusterService().state().routingTable().allShards(indexUUID)) {
-            Map<String, IntIndexedContainer> shardIds = locations.get(shardRouting.currentNodeId());
+            Map<String, IntArrayList> shardIds = locations.get(shardRouting.currentNodeId());
             if (shardIds == null) {
                 shardIds = new TreeMap<>();
                 locations.put(shardRouting.currentNodeId(), shardIds);
             }
 
-            IntIndexedContainer shardIdSet = shardIds.get(shardRouting.getIndexUUID());
+            IntArrayList shardIdSet = shardIds.get(shardRouting.getIndexUUID());
             if (shardIdSet == null) {
                 shardIdSet = new IntArrayList();
                 shardIds.put(shardRouting.index().getUUID(), shardIdSet);

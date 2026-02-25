@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
@@ -42,9 +43,6 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.shard.ShardId;
-
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
@@ -231,7 +229,7 @@ public class SysShardsTableInfo {
     }
 
     private static void processShardRouting(String localNodeId,
-                                            Map<String, Map<String, IntIndexedContainer>> routing,
+                                            Map<String, Map<String, IntArrayList>> routing,
                                             ShardRouting shardRouting,
                                             ShardId shardId) {
         String node;
@@ -245,9 +243,9 @@ public class SysShardsTableInfo {
             node = shardRouting.currentNodeId();
             id = shardRouting.id();
         }
-        Map<String, IntIndexedContainer> nodeMap = routing.computeIfAbsent(node, k -> new TreeMap<>());
+        Map<String, IntArrayList> nodeMap = routing.computeIfAbsent(node, k -> new TreeMap<>());
 
-        IntIndexedContainer shards = nodeMap.get(index);
+        IntArrayList shards = nodeMap.get(index);
         if (shards == null) {
             shards = new IntArrayList();
             nodeMap.put(index, shards);
@@ -279,7 +277,7 @@ public class SysShardsTableInfo {
                 }
             }
         }
-        Map<String, Map<String, IntIndexedContainer>> locations = new TreeMap<>();
+        Map<String, Map<String, IntArrayList>> locations = new TreeMap<>();
         GroupShardsIterator<ShardIterator> groupShardsIterator =
             clusterState.routingTable().allAssignedShardsGrouped(indexUUIDs.toArray(String[]::new), true);
         for (final ShardIterator shardIt : groupShardsIterator) {

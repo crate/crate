@@ -36,13 +36,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.action.UnavailableShardsException;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.data.Row1;
 import io.crate.exceptions.ConversionException;
@@ -178,11 +177,11 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
         QueryThenFetch qtf = e.plan(
             "SELECT * FROM t1 WHERE impression_id='10-uuid' AND daypart=1760306400000 ORDER BY a DESC LIMIT 3");
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) ((Collect) qtf.subPlan()).collectPhase();
-        Map<String, IntIndexedContainer> indicesAndShards = collectPhase.routing().locations().entrySet().iterator().next().getValue();
+        Map<String, IntArrayList> indicesAndShards = collectPhase.routing().locations().entrySet().iterator().next().getValue();
         assertThat(indicesAndShards)
             .as("Routing includes only one partition because of daypart filter")
             .hasSize(1);
-        Entry<String, IntIndexedContainer> firstEntry = indicesAndShards.entrySet().iterator().next();
+        Entry<String, IntArrayList> firstEntry = indicesAndShards.entrySet().iterator().next();
         assertThat(firstEntry.getValue())
             .as("Routing includes only one shard because of impression_id filter (clustered by)")
             .hasSize(1);

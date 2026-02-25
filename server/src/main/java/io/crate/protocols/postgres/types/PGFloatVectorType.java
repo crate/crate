@@ -24,8 +24,7 @@ package io.crate.protocols.postgres.types;
 import java.util.Arrays;
 import java.util.List;
 
-import com.carrotsearch.hppc.ByteArrayList;
-
+import io.crate.collections.ByteList;
 import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.types.FloatVectorType;
 import io.netty.buffer.ByteBuf;
@@ -96,7 +95,7 @@ public class PGFloatVectorType extends PGType<float[]> {
 
     @Override
     byte[] encodeAsUTF8Text(float[] value) {
-        ByteArrayList encodedValues = new ByteArrayList();
+        ByteList encodedValues = new ByteList();
         encodedValues.add((byte) '{');
         for (int i = 0; i < value.length; i++) {
             var f = value[i];
@@ -109,7 +108,7 @@ public class PGFloatVectorType extends PGType<float[]> {
             encodedValues.add((byte) '"');
         }
         encodedValues.add((byte) '}');
-        return Arrays.copyOfRange(encodedValues.buffer, 0, encodedValues.elementsCount);
+        return Arrays.copyOfRange(encodedValues.buffer, 0, encodedValues.numItems);
     }
 
     @SuppressWarnings("unchecked")

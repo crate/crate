@@ -26,8 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.carrotsearch.hppc.ObjectIntHashMap;
-import com.carrotsearch.hppc.ObjectIntMap;
+import org.apache.lucene.internal.hppc.ObjectIntMap;
 
 import io.crate.data.Row;
 import io.crate.expression.symbol.OuterColumn;
@@ -37,7 +36,7 @@ import io.crate.expression.symbol.Symbol;
 public class SubQueryResults {
     // Static fields on the jvm are initialized in their order.
     // EMPTY_OUTER_COLUMNS must be created before EMPTY to be referenced successfully insides EMPTY.
-    private static final ObjectIntHashMap<OuterColumn> EMPTY_OUTER_COLUMNS = new ObjectIntHashMap<>();
+    private static final ObjectIntMap<OuterColumn> EMPTY_OUTER_COLUMNS = new ObjectIntMap<>();
     public static final SubQueryResults EMPTY = new SubQueryResults(Collections.emptyMap());
 
 
@@ -73,7 +72,7 @@ public class SubQueryResults {
     }
 
     public SubQueryResults forCorrelation(SelectSymbol correlatedSubQuery, List<Symbol> subQueryOutputs) {
-        ObjectIntHashMap<OuterColumn> outerColumnPositions = new ObjectIntHashMap<>();
+        ObjectIntMap<OuterColumn> outerColumnPositions = new ObjectIntMap<>();
         correlatedSubQuery.relation().visitSymbols(tree -> tree.visit(OuterColumn.class, outerColumn -> {
             int index = subQueryOutputs.indexOf(outerColumn.symbol());
             if (index < 0) {

@@ -30,19 +30,18 @@ import org.jspecify.annotations.Nullable;
 
 import io.crate.types.DataType;
 import io.netty.util.collection.IntObjectHashMap;
-import io.netty.util.collection.IntObjectMap;
 
 public class BoundVariables {
 
     private final Map<String, DataType<?>> typeVariables;
-    private final IntObjectMap<DataType<?>> boundTypes;
+    private final IntObjectHashMap<DataType<?>> boundTypes;
 
     public BoundVariables(Map<String, DataType<?>> typeVariables) {
         this(typeVariables, new IntObjectHashMap<>(0));
     }
 
     public BoundVariables(Map<String, DataType<?>> typeVariables,
-                          IntObjectMap<DataType<?>> boundTypes) {
+                          IntObjectHashMap<DataType<?>> boundTypes) {
         this.typeVariables = Map.copyOf(typeVariables);
         this.boundTypes = boundTypes;
     }
@@ -92,7 +91,7 @@ public class BoundVariables {
 
     public static class Builder {
         private final Map<String, DataType<?>> typeVariables = new HashMap<>();
-        private final IntObjectMap<DataType<?>> boundTypes = new IntObjectHashMap<>();
+        private final IntObjectHashMap<DataType<?>> boundTypes = new IntObjectHashMap<>();
 
         public DataType<?> getTypeVariable(String variableName) {
             return typeVariables.get(variableName);

@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntCursor;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -35,15 +37,12 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.discovery.MasterNotDiscoveredException;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIndexedContainer;
-import com.carrotsearch.hppc.cursors.IntCursor;
 
 public class Routing implements Writeable {
 
-    private final Map<String, Map<String, IntIndexedContainer>> locations;
+    private final Map<String, Map<String, IntArrayList>> locations;
 
-    public Routing(Map<String, Map<String, IntIndexedContainer>> locations) {
+    public Routing(Map<String, Map<String, IntArrayList>> locations) {
         assert locations != null : "locations must not be null";
         assert assertLocationsAllTreeMap(locations) : "locations must be a TreeMap only and must contain only TreeMap's";
         this.locations = locations;
@@ -55,7 +54,7 @@ public class Routing implements Writeable {
      * &nbsp;&nbsp;&nbsp;&nbsp;Map&lt;indexName (string), List&lt;ShardId (int)&gt;&gt;&gt; <br>
      * </p>
      */
-    public Map<String, Map<String, IntIndexedContainer>> locations() {
+    public Map<String, Map<String, IntArrayList>> locations() {
         return locations;
     }
 
@@ -73,12 +72,12 @@ public class Routing implements Writeable {
      * @return int &gt;= 0
      */
     public int numShards(String nodeId) {
-        Map<String, IntIndexedContainer> indicesAndShards = locations.get(nodeId);
+        Map<String, IntArrayList> indicesAndShards = locations.get(nodeId);
         if (indicesAndShards == null) {
             return 0;
         }
         int numShards = 0;
-        for (IntIndexedContainer shardIds : indicesAndShards.values()) {
+        for (IntArrayList shardIds : indicesAndShards.values()) {
             numShards += shardIds.size();
         }
         return numShards;
@@ -88,11 +87,11 @@ public class Routing implements Writeable {
      * returns true if the routing contains shards for any table of the given node
      */
     public boolean containsShards(String nodeId) {
-        Map<String, IntIndexedContainer> indicesAndShards = locations.get(nodeId);
+        Map<String, IntArrayList> indicesAndShards = locations.get(nodeId);
         if (indicesAndShards == null) {
             return false;
         }
-        for (IntIndexedContainer shardIds : indicesAndShards.values()) {
+        for (IntArrayList shardIds : indicesAndShards.values()) {
             if (!shardIds.isEmpty()) {
                 return true;
             }
@@ -101,8 +100,8 @@ public class Routing implements Writeable {
     }
 
     public boolean containsShards() {
-        for (Map<String, IntIndexedContainer> indices : locations.values()) {
-            for (IntIndexedContainer shards : indices.values()) {
+        for (Map<String, IntArrayList> indices : locations.values()) {
+            for (IntArrayList shards : indices.values()) {
                 if (!shards.isEmpty()) {
                     return true;
                 }
@@ -128,7 +127,7 @@ public class Routing implements Writeable {
             for (int i = 0; i < numLocations; i++) {
                 String nodeId = in.readString();
                 int numInner = in.readVInt();
-                Map<String, IntIndexedContainer> shardsByIndex = new TreeMap<>();
+                Map<String, IntArrayList> shardsByIndex = new TreeMap<>();
 
                 locations.put(nodeId, shardsByIndex);
                 for (int j = 0; j < numInner; j++) {
@@ -147,17 +146,17 @@ public class Routing implements Writeable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(locations.size());
-        for (Map.Entry<String, Map<String, IntIndexedContainer>> entry : locations.entrySet()) {
+        for (Map.Entry<String, Map<String, IntArrayList>> entry : locations.entrySet()) {
             out.writeString(entry.getKey());
 
-            Map<String, IntIndexedContainer> shardsByIndex = entry.getValue();
+            Map<String, IntArrayList> shardsByIndex = entry.getValue();
             if (shardsByIndex == null) {
                 out.writeVInt(0);
             } else {
                 out.writeVInt(shardsByIndex.size());
-                for (Map.Entry<String, IntIndexedContainer> innerEntry : shardsByIndex.entrySet()) {
+                for (Map.Entry<String, IntArrayList> innerEntry : shardsByIndex.entrySet()) {
                     out.writeString(innerEntry.getKey());
-                    IntIndexedContainer shardIds = innerEntry.getValue();
+                    IntArrayList shardIds = innerEntry.getValue();
                     if (shardIds == null || shardIds.size() == 0) {
                         out.writeVInt(0);
                     } else {
@@ -171,14 +170,14 @@ public class Routing implements Writeable {
         }
     }
 
-    private boolean assertLocationsAllTreeMap(Map<String, Map<String, IntIndexedContainer>> locations) {
+    private boolean assertLocationsAllTreeMap(Map<String, Map<String, IntArrayList>> locations) {
         if (locations.isEmpty()) {
             return true;
         }
         if (!(locations instanceof TreeMap) && locations.size() > 1) {
             return false;
         }
-        for (Map<String, IntIndexedContainer> shardsByIndex : locations.values()) {
+        for (Map<String, IntArrayList> shardsByIndex : locations.values()) {
             if (shardsByIndex.size() > 1 && !(shardsByIndex instanceof TreeMap)) {
                 return false;
             }
@@ -190,16 +189,16 @@ public class Routing implements Writeable {
      * Return a routing for the given table on the given node id.
      */
     public static Routing forTableOnSingleNode(RelationName relationName, String nodeId) {
-        Map<String, Map<String, IntIndexedContainer>> locations = new TreeMap<>();
-        Map<String, IntIndexedContainer> tableLocation = new TreeMap<>();
+        Map<String, Map<String, IntArrayList>> locations = new TreeMap<>();
+        Map<String, IntArrayList> tableLocation = new TreeMap<>();
         tableLocation.put(relationName.fqn(), IntArrayList.from(IntArrayList.EMPTY_ARRAY));
         locations.put(nodeId, tableLocation);
         return new Routing(locations);
     }
 
     public static Routing forTableOnAllNodes(RelationName relationName, DiscoveryNodes nodes) {
-        TreeMap<String, Map<String, IntIndexedContainer>> indicesByNode = new TreeMap<>();
-        Map<String, IntIndexedContainer> shardsByIndex = Collections.singletonMap(
+        TreeMap<String, Map<String, IntArrayList>> indicesByNode = new TreeMap<>();
+        Map<String, IntArrayList> shardsByIndex = Collections.singletonMap(
             relationName.indexNameOrAlias(),
             IntArrayList.from(IntArrayList.EMPTY_ARRAY)
         );

@@ -23,12 +23,10 @@ package io.crate.execution.engine.fetch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
@@ -46,7 +44,7 @@ public class TransportFetchOperationTest extends ESTestCase {
 
     @Test
     public void test_ram_accounting_on_non_empty_fetch_ids_and_close() {
-        var toFetch = new IntObjectHashMap<IntContainer>();
+        var toFetch = new IntObjectHashMap<IntArrayList>();
         toFetch.put(1, new IntArrayList());
         RamAccounting ramAccounting = TransportFetchOperation.ramAccountingForIncomingResponse(
             RamAccounting.NO_ACCOUNTING,

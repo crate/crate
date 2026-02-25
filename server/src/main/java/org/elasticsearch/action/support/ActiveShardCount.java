@@ -23,6 +23,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_
 
 import java.io.IOException;
 
+import org.apache.lucene.internal.hppc.IntObjectHashMap.IntObjectCursor;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -30,8 +31,6 @@ import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 /**
  * A class whose instances represent a value for counting the number

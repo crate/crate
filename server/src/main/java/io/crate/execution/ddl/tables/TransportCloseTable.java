@@ -36,6 +36,7 @@ import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.internal.hppc.IntObjectHashMap.IntObjectCursor;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.ActionType;
@@ -75,8 +76,6 @@ import org.elasticsearch.snapshots.SnapshotInProgressException;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 import io.crate.concurrent.CountDown;
 import io.crate.concurrent.MultiActionListener;

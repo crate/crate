@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.lucene.internal.hppc.IntCursor;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.Diffable;
@@ -43,8 +44,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.snapshots.Snapshot;
-
-import com.carrotsearch.hppc.cursors.IntCursor;
 
 /**
  * The {@link IndexRoutingTable} represents routing information for a single

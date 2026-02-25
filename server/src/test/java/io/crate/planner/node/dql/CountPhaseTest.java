@@ -25,13 +25,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.execution.dsl.phases.CountPhase;
@@ -44,11 +42,11 @@ public class CountPhaseTest extends ESTestCase {
     @Test
     public void testStreaming() throws Exception {
         Routing routing = new Routing(
-            MapBuilder.<String, Map<String, IntIndexedContainer>>treeMapBuilder()
-                .put("n1", MapBuilder.<String, IntIndexedContainer>treeMapBuilder()
+            MapBuilder.<String, Map<String, IntArrayList>>treeMapBuilder()
+                .put("n1", MapBuilder.<String, IntArrayList>treeMapBuilder()
                     .put("i1", IntArrayList.from(1, 2))
                     .put("i2", IntArrayList.from(1, 2)).map())
-                .put("n2", MapBuilder.<String, IntIndexedContainer>treeMapBuilder()
+                .put("n2", MapBuilder.<String, IntArrayList>treeMapBuilder()
                     .put("i1", IntArrayList.from(3)).map()).map());
         CountPhase countPhase = new CountPhase(1, routing, Literal.BOOLEAN_TRUE, DistributionInfo.DEFAULT_BROADCAST, true);
 

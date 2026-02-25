@@ -26,14 +26,12 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.IntFunction;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntCursor;
+import org.apache.lucene.internal.hppc.IntHashSet;
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
+import org.apache.lucene.internal.hppc.IntObjectHashMap.IntObjectCursor;
 import org.apache.lucene.util.Accountable;
-
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.IntObjectMap;
-import com.carrotsearch.hppc.IntSet;
-import com.carrotsearch.hppc.cursors.IntCursor;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 import io.crate.breaker.CellsSizeEstimator;
 import io.crate.data.Bucket;
@@ -103,8 +101,8 @@ public class ReaderBuckets implements Accountable {
         readerBucket.require(docId);
     }
 
-    public CloseableIterator<Row> getOutputRows(List<IntObjectMap<? extends Bucket>> resultsByReader) {
-        for (IntObjectMap<? extends Bucket> result : resultsByReader) {
+    public CloseableIterator<Row> getOutputRows(List<IntObjectHashMap<? extends Bucket>> resultsByReader) {
+        for (IntObjectHashMap<? extends Bucket> result : resultsByReader) {
             if (result == null) {
                 continue;
             }
@@ -145,7 +143,7 @@ public class ReaderBuckets implements Accountable {
         };
     }
 
-    public IntObjectHashMap<IntArrayList> generateToFetch(IntSet readerIds) {
+    public IntObjectHashMap<IntArrayList> generateToFetch(IntHashSet readerIds) {
         IntObjectHashMap<IntArrayList> toFetch = new IntObjectHashMap<>(readerIds.size());
         for (IntCursor readerIdCursor : readerIds) {
             ReaderBucket readerBucket = readerBuckets.get(readerIdCursor.value);

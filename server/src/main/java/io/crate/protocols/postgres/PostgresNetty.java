@@ -34,6 +34,7 @@ import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.internal.hppc.IntHashSet;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -55,10 +56,6 @@ import org.elasticsearch.transport.netty4.Netty4OutboundStatsHandler;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.jspecify.annotations.Nullable;
 
-import com.carrotsearch.hppc.IntHashSet;
-import com.carrotsearch.hppc.IntSet;
-
-import io.crate.session.Sessions;
 import io.crate.auth.Authentication;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.netty.NettyBootstrap;
@@ -66,6 +63,7 @@ import io.crate.protocols.ConnectionStats;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.role.Roles;
+import io.crate.session.Sessions;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -219,7 +217,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         }
 
         // if no matching boundAddress found, check if there is a unique port for all bound addresses
-        final IntSet ports = new IntHashSet();
+        final IntHashSet ports = new IntHashSet();
         for (TransportAddress boundAddress : boundAddresses) {
             ports.add(boundAddress.getPort());
         }

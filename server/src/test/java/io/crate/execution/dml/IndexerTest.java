@@ -51,6 +51,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FloatField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -63,8 +64,6 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;

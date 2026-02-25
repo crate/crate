@@ -32,7 +32,7 @@ import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-import com.carrotsearch.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntArrayList;
 
 import io.crate.common.collections.AbstractIterator;
 import io.crate.common.collections.Iterables;

@@ -36,14 +36,13 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.WhereClause;
 import io.crate.data.breaker.RamAccounting;

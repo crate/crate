@@ -23,6 +23,7 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
@@ -35,6 +36,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -43,8 +45,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.DropColumn;
 import io.crate.exceptions.ColumnUnknownException;

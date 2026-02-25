@@ -30,6 +30,7 @@ import java.util.List;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.internal.hppc.BitMixer;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
@@ -40,8 +41,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.network.NetworkUtils;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.BitMixer;
 
 import io.crate.Streamer;
 import io.crate.common.annotations.VisibleForTesting;

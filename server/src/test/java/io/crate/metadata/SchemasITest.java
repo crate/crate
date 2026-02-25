@@ -29,13 +29,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.analyze.WhereClause;
 import io.crate.expression.symbol.Symbol;
@@ -91,8 +90,8 @@ public class SchemasITest extends IntegTestCase {
         assertThat(nodes.size()).isBetween(1, 2); // for the rare case
         // where all shards are on 1 node
         int numShards = 0;
-        for (Map.Entry<String, Map<String, IntIndexedContainer>> nodeEntry : routing.locations().entrySet()) {
-            for (Map.Entry<String, IntIndexedContainer> indexEntry : nodeEntry.getValue().entrySet()) {
+        for (Map.Entry<String, Map<String, IntArrayList>> nodeEntry : routing.locations().entrySet()) {
+            for (Map.Entry<String, IntArrayList> indexEntry : nodeEntry.getValue().entrySet()) {
                 assertThat(indexEntry.getKey()).isEqualTo(indexUUID);
                 numShards += indexEntry.getValue().size();
             }
@@ -127,8 +126,8 @@ public class SchemasITest extends IntegTestCase {
         Set<String> indexUUIDs = new HashSet<>();
         Set<String> expectedIndexUUIDs = Set.of(resolveIndex("t2").getUUID(), resolveIndex("t3").getUUID());
         int numShards = 0;
-        for (Map.Entry<String, Map<String, IntIndexedContainer>> nodeEntry : routing.locations().entrySet()) {
-            for (Map.Entry<String, IntIndexedContainer> indexEntry : nodeEntry.getValue().entrySet()) {
+        for (Map.Entry<String, Map<String, IntArrayList>> nodeEntry : routing.locations().entrySet()) {
+            for (Map.Entry<String, IntArrayList> indexEntry : nodeEntry.getValue().entrySet()) {
                 indexUUIDs.add(indexEntry.getKey());
                 numShards += indexEntry.getValue().size();
             }

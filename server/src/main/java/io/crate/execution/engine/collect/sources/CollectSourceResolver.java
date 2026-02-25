@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -33,8 +34,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
-
-import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.common.collections.Iterables;
 import io.crate.data.BatchIterator;
@@ -163,8 +162,8 @@ public class CollectSourceResolver {
                 return shardCollectSource;
             }
 
-            Map<String, Map<String, IntIndexedContainer>> locations = phase.routing().locations();
-            Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
+            Map<String, Map<String, IntArrayList>> locations = phase.routing().locations();
+            Map<String, IntArrayList> indexShards = locations.get(localNodeId);
             if (indexShards == null) {
                 throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + phase);
             }

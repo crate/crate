@@ -42,6 +42,7 @@ import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.apache.lucene.internal.hppc.ObjectLongMap;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
@@ -60,9 +61,6 @@ import org.elasticsearch.index.shard.AbstractIndexShardComponent;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ReplicationGroup;
 import org.elasticsearch.index.shard.ShardId;
-
-import com.carrotsearch.hppc.ObjectLongHashMap;
-import com.carrotsearch.hppc.ObjectLongMap;
 
 import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.Tuple;
@@ -703,7 +701,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
     public synchronized ObjectLongMap<String> getInSyncGlobalCheckpoints() {
         assert primaryMode;
         assert handoffInProgress == false;
-        final ObjectLongMap<String> globalCheckpoints = new ObjectLongHashMap<>(checkpoints.size()); // upper bound on the size
+        final ObjectLongMap<String> globalCheckpoints = new ObjectLongMap<>(checkpoints.size()); // upper bound on the size
         checkpoints
                 .entrySet()
                 .stream()

@@ -21,12 +21,11 @@
 
 package io.crate.execution.dml;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntCursor;
 import org.jspecify.annotations.Nullable;
+
 import io.crate.common.annotations.VisibleForTesting;
-
-import com.carrotsearch.hppc.IntCollection;
-import com.carrotsearch.hppc.cursors.IntCursor;
-
 import io.crate.data.Row1;
 
 public final class BulkResponse {
@@ -58,7 +57,7 @@ public final class BulkResponse {
      *      BulkResponse (rowCounts=[1, 1, 1, 1], failures=[null, null, null, null])
      * </pre>
      */
-    public BulkResponse update(ShardResponse.CompressedResult result, IntCollection items) {
+    public BulkResponse update(ShardResponse.CompressedResult result, IntArrayList items) {
         for (IntCursor c : items) {
             int itemLocation = c.index;
             int resultIdx = c.value;

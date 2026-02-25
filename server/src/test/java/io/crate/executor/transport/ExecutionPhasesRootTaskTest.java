@@ -31,10 +31,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.analyze.WhereClause;
 import io.crate.execution.dsl.phases.ExecutionPhase;
@@ -50,7 +48,7 @@ public class ExecutionPhasesRootTaskTest {
 
     @Test
     public void testGroupByServer() throws Exception {
-        var routingMap = new TreeMap<String, Map<String, IntIndexedContainer>>();
+        var routingMap = new TreeMap<String, Map<String, IntArrayList>>();
         routingMap.put("node1", Map.of("t1", IntArrayList.from(1, 2)));
         routingMap.put("node2", Map.of("t1", IntArrayList.from(3, 4)));
         Routing twoNodeRouting = new Routing(routingMap);

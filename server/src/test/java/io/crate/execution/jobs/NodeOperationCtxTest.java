@@ -29,10 +29,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.NodeOperation;

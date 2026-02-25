@@ -28,10 +28,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-
-import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.common.collections.Iterables;
 import io.crate.data.BatchIterator;
@@ -130,7 +129,7 @@ public class SystemCollectSource implements CollectSource {
                                                              boolean supportMoveToStart) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
 
-        Map<String, Map<String, IntIndexedContainer>> locations = collectPhase.routing().locations();
+        Map<String, Map<String, IntArrayList>> locations = collectPhase.routing().locations();
         String table = Iterables.getOnlyElement(locations.get(clusterService.localNode().getId()).keySet());
         RelationName relationName = RelationName.fromIndexName(table);
         StaticTableDefinition<?> tableDefinition = tableDefinition(relationName);

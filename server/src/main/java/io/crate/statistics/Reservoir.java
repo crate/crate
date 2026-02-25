@@ -24,7 +24,7 @@ package io.crate.statistics;
 import java.util.Arrays;
 import java.util.Random;
 
-import com.carrotsearch.hppc.LongArrayList;
+import org.apache.lucene.internal.hppc.LongArrayList;
 
 /**
  * Reservoir sampling as described in http://rosettacode.org/wiki/Knuth%27s_algorithm_S

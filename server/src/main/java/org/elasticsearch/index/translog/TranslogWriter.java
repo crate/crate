@@ -33,6 +33,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
+import org.apache.lucene.internal.hppc.LongArrayList;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefIterator;
@@ -49,9 +50,6 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
-
-import com.carrotsearch.hppc.LongArrayList;
-import com.carrotsearch.hppc.procedures.LongProcedure;
 
 import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.Tuple;
@@ -450,7 +448,7 @@ public class TranslogWriter extends BaseTranslogReader implements Closeable {
                         closeWithTragicEvent(ex);
                         throw ex;
                     }
-                    flushedSequenceNumbers.forEach((LongProcedure) persistedSequenceNumberConsumer::accept);
+                    flushedSequenceNumbers.forEach(x -> persistedSequenceNumberConsumer.accept(x.value));
                     assert lastSyncedCheckpoint.offset <= checkpointToSync.offset :
                         "illegal state: " + lastSyncedCheckpoint.offset + " <= " + checkpointToSync.offset;
                     lastSyncedCheckpoint = checkpointToSync; // write protected by syncLock

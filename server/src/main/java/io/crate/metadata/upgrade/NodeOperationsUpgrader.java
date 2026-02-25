@@ -29,12 +29,11 @@ import java.util.TreeMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.index.IndexNotFoundException;
-
-import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.dsl.phases.CountPhase;
@@ -114,14 +113,14 @@ public class NodeOperationsUpgrader {
     }
 
     private static Routing upgradeRouting(Routing routing, Metadata metadata) {
-        TreeMap<String, Map<String, IntIndexedContainer>> newLocations = new TreeMap<>();
-        Map<String, Map<String, IntIndexedContainer>> oldLocations = routing.locations();
+        TreeMap<String, Map<String, IntArrayList>> newLocations = new TreeMap<>();
+        Map<String, Map<String, IntArrayList>> oldLocations = routing.locations();
         for (String nodeId : oldLocations.keySet()) {
-            Map<String, IntIndexedContainer> tableLocations = oldLocations.get(nodeId);
-            TreeMap<String, IntIndexedContainer> newTableLocations = new TreeMap<>();
+            Map<String, IntArrayList> tableLocations = oldLocations.get(nodeId);
+            TreeMap<String, IntArrayList> newTableLocations = new TreeMap<>();
             newLocations.put(nodeId, newTableLocations);
             for (String tableName : tableLocations.keySet()) {
-                IntIndexedContainer shardIds = tableLocations.get(tableName);
+                IntArrayList shardIds = tableLocations.get(tableName);
                 newTableLocations.put(toIndexUUID(tableName, metadata), shardIds);
             }
         }
@@ -129,14 +128,14 @@ public class NodeOperationsUpgrader {
     }
 
     private static Routing downgradeRouting(Routing routing, Metadata metadata) {
-        TreeMap<String, Map<String, IntIndexedContainer>> newLocations = new TreeMap<>();
-        Map<String, Map<String, IntIndexedContainer>> oldLocations = routing.locations();
+        TreeMap<String, Map<String, IntArrayList>> newLocations = new TreeMap<>();
+        Map<String, Map<String, IntArrayList>> oldLocations = routing.locations();
         for (String nodeId : oldLocations.keySet()) {
-            Map<String, IntIndexedContainer> tableLocations = oldLocations.get(nodeId);
-            TreeMap<String, IntIndexedContainer> newTableLocations = new TreeMap<>();
+            Map<String, IntArrayList> tableLocations = oldLocations.get(nodeId);
+            TreeMap<String, IntArrayList> newTableLocations = new TreeMap<>();
             newLocations.put(nodeId, newTableLocations);
             for (String indexUUID : tableLocations.keySet()) {
-                IntIndexedContainer shardIds = tableLocations.get(indexUUID);
+                IntArrayList shardIds = tableLocations.get(indexUUID);
                 newTableLocations.put(toIndexName(indexUUID, metadata), shardIds);
             }
         }

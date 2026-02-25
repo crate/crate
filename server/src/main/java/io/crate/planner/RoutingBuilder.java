@@ -29,11 +29,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntCursor;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
-
-import com.carrotsearch.hppc.IntIndexedContainer;
-import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.RelationName;
@@ -128,12 +127,12 @@ final class RoutingBuilder {
             for (Routing routing : routingList) {
                 allocateRoutingNodes(shardNodes, routing.locations());
 
-                for (Map.Entry<String, Map<String, IntIndexedContainer>> entry : routing.locations().entrySet()) {
-                    Map<String, IntIndexedContainer> shardsByIndex = entry.getValue();
+                for (Map.Entry<String, Map<String, IntArrayList>> entry : routing.locations().entrySet()) {
+                    Map<String, IntArrayList> shardsByIndex = entry.getValue();
                     Collection<String> indices = indicesByTable.computeIfAbsent(table, ignored -> new ArrayList<>());
                     indices.addAll(shardsByIndex.keySet());
 
-                    for (Map.Entry<String, IntIndexedContainer> shardsByIndexEntry : shardsByIndex.entrySet()) {
+                    for (Map.Entry<String, IntArrayList> shardsByIndexEntry : shardsByIndex.entrySet()) {
                         indexBaseBuilder.allocate(shardsByIndexEntry.getKey(), shardsByIndexEntry.getValue());
                     }
                 }
@@ -143,12 +142,12 @@ final class RoutingBuilder {
     }
 
     private static void allocateRoutingNodes(Map<String, Map<Integer, String>> shardNodes,
-                                             Map<String, Map<String, IntIndexedContainer>> locations) {
-        for (Map.Entry<String, Map<String, IntIndexedContainer>> indicesByNodeId : locations.entrySet()) {
+                                             Map<String, Map<String, IntArrayList>> locations) {
+        for (Map.Entry<String, Map<String, IntArrayList>> indicesByNodeId : locations.entrySet()) {
             String nodeId = indicesByNodeId.getKey();
-            for (Map.Entry<String, IntIndexedContainer> shardsByIndexEntry : indicesByNodeId.getValue().entrySet()) {
+            for (Map.Entry<String, IntArrayList> shardsByIndexEntry : indicesByNodeId.getValue().entrySet()) {
                 String index = shardsByIndexEntry.getKey();
-                IntIndexedContainer shards = shardsByIndexEntry.getValue();
+                IntArrayList shards = shardsByIndexEntry.getValue();
 
                 Map<Integer, String> shardsOnIndex = shardNodes.get(index);
                 if (shardsOnIndex == null) {

@@ -27,11 +27,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntCursor;
 import org.elasticsearch.index.shard.ShardId;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntIndexedContainer;
-import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists;
@@ -279,16 +278,16 @@ public final class PlanPrinter {
     }
 
     /**
-     * Converts the shardId's of each node->table from a {@link IntIndexedContainer} to a list of Integers as custom
+     * Converts the shardId's of each node->table from a {@link IntArrayList} to a list of Integers as custom
      * classes are not supported by the {@link org.elasticsearch.common.xcontent.XContentBuilder}.
      */
     private static Map<String, Map<String, List<Integer>>> xContentSafeRoutingLocations(
-        Map<String, Map<String, IntIndexedContainer>> locations,
+        Map<String, Map<String, IntArrayList>> locations,
         Function<String, String> indexUUIDToIndexName) {
         HashMap<String, Map<String, List<Integer>>> safeLocations = new HashMap<>(locations.size(), 1f);
-        for (Map.Entry<String, Map<String, IntIndexedContainer>> nodeEntry : locations.entrySet()) {
+        for (Map.Entry<String, Map<String, IntArrayList>> nodeEntry : locations.entrySet()) {
             HashMap<String, List<Integer>> tableShards = new HashMap<>(nodeEntry.getValue().size(), 1f);
-            for (Map.Entry<String, IntIndexedContainer> tableEntry : nodeEntry.getValue().entrySet()) {
+            for (Map.Entry<String, IntArrayList> tableEntry : nodeEntry.getValue().entrySet()) {
                 ArrayList<Integer> shardList = new ArrayList<>(tableEntry.getValue().size());
                 for (IntCursor cursor : tableEntry.getValue()) {
                     shardList.add(cursor.value);

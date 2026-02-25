@@ -27,16 +27,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.lucene.internal.hppc.IntCursor;
+import org.apache.lucene.internal.hppc.IntHashSet;
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.monitor.jvm.JvmInfo;
-import io.crate.common.annotations.VisibleForTesting;
-
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.IntObjectMap;
-import com.carrotsearch.hppc.IntSet;
-import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.Streamer;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.data.Paging;
@@ -57,7 +55,7 @@ public class FetchProjection extends Projection {
     private final int fetchSize;
     private final Map<RelationName, FetchSource> fetchSources;
     private final List<Symbol> outputSymbols;
-    private final Map<String, IntSet> nodeReaders;
+    private final Map<String, IntHashSet> nodeReaders;
     private final TreeMap<Integer, String> readerIndices;
     private final Map<String, RelationName> indicesToIdents;
     private final List<DataType<?>> inputTypes;
@@ -67,7 +65,7 @@ public class FetchProjection extends Projection {
                            Map<RelationName, FetchSource> fetchSources,
                            List<Symbol> outputSymbols,
                            List<DataType<?>> inputTypes,
-                           Map<String, IntSet> nodeReaders,
+                           Map<String, IntHashSet> nodeReaders,
                            TreeMap<Integer, String> readerIndices,
                            Map<String, RelationName> indicesToIdents) {
         assert outputSymbols.stream().noneMatch(s ->
@@ -131,7 +129,7 @@ public class FetchProjection extends Projection {
         return inputTypes;
     }
 
-    public Map<String, IntSet> nodeReaders() {
+    public Map<String, IntHashSet> nodeReaders() {
         return nodeReaders;
     }
 
@@ -178,9 +176,9 @@ public class FetchProjection extends Projection {
             .map();
     }
 
-    public Map<String, ? extends IntObjectMap<Streamer<?>[]>> generateStreamersGroupedByReaderAndNode() {
+    public Map<String, ? extends IntObjectHashMap<Streamer<?>[]>> generateStreamersGroupedByReaderAndNode() {
         HashMap<String, IntObjectHashMap<Streamer<?>[]>> streamersByReaderByNode = new HashMap<>();
-        for (Map.Entry<String, IntSet> entry : nodeReaders.entrySet()) {
+        for (Map.Entry<String, IntHashSet> entry : nodeReaders.entrySet()) {
             IntObjectHashMap<Streamer<?>[]> streamersByReaderId = new IntObjectHashMap<>();
             String nodeId = entry.getKey();
             streamersByReaderByNode.put(nodeId, streamersByReaderId);

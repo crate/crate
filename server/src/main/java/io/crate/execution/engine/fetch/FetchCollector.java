@@ -28,10 +28,9 @@ import java.util.List;
 import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.index.SequentialStoredFieldsLeafReader;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.Streamer;
 import io.crate.data.breaker.RamAccounting;

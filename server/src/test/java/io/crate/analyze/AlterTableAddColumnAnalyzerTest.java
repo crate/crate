@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -29,9 +30,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.lucene.internal.hppc.IntCursor;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.analyze.TableElementsAnalyzer.RefBuilder;
 import io.crate.data.Row;

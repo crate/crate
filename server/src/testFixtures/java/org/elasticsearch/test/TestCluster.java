@@ -64,6 +64,8 @@ import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.internal.hppc.IntObjectHashMap.IntObjectCursor;
+import org.apache.lucene.internal.hppc.ObjectLongMap;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsRequest;
@@ -137,8 +139,6 @@ import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.TransportSettings;
 import org.jspecify.annotations.Nullable;
 
-import com.carrotsearch.hppc.ObjectLongMap;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.SeedUtils;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;

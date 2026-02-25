@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.IntFunction;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntObjectHashMap;
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
 
 import io.crate.common.collections.Lists;
 import io.crate.data.Input;

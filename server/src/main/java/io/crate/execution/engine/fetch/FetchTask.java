@@ -34,6 +34,9 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntCursor;
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -44,10 +47,6 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
-
-import com.carrotsearch.hppc.IntIndexedContainer;
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.common.annotations.GuardedBy;
 import io.crate.common.collections.BorrowedItem;
@@ -238,8 +237,8 @@ public class FetchTask implements Task {
 
             ArrayList<CompletableFuture<Void>> refreshActions = new ArrayList<>(routings.size());
             for (Routing routing : routings) {
-                Map<String, Map<String, IntIndexedContainer>> locations = routing.locations();
-                Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
+                Map<String, Map<String, IntArrayList>> locations = routing.locations();
+                Map<String, IntArrayList> indexShards = locations.get(localNodeId);
                 try {
                     refreshActions.add(sharedShardContexts.maybeRefreshReaders(metadata, indexShards, phase.bases()));
                 } catch (Throwable t) {
@@ -272,10 +271,10 @@ public class FetchTask implements Task {
         }
         String source = "fetch-task: " + jobId.toString() + '-' + phase.phaseId() + '-' + phase.name();
         for (Routing routing : routings) {
-            Map<String, Map<String, IntIndexedContainer>> locations = routing.locations();
-            Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
+            Map<String, Map<String, IntArrayList>> locations = routing.locations();
+            Map<String, IntArrayList> indexShards = locations.get(localNodeId);
 
-            for (Map.Entry<String, IntIndexedContainer> indexShardsEntry : indexShards.entrySet()) {
+            for (Map.Entry<String, IntArrayList> indexShardsEntry : indexShards.entrySet()) {
                 String indexUUID = indexShardsEntry.getKey();
                 Integer base = phase.bases().get(indexUUID);
                 if (base == null) {

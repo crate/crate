@@ -27,8 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.IntObjectMap;
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -168,7 +167,7 @@ public class InputFactory {
     private static class InputColumnVisitor extends BaseImplementationSymbolVisitor<Void> {
 
         private final List<CollectExpression<Row, ?>> expressions;
-        private final IntObjectMap<RowCollectExpression> inputCollectExpressions = new IntObjectHashMap<>();
+        private final IntObjectHashMap<RowCollectExpression> inputCollectExpressions = new IntObjectHashMap<>();
 
         InputColumnVisitor(TransactionContext txnCtx, NodeContext nodeCtx, List<CollectExpression<Row, ?>> expressions) {
             super(txnCtx, nodeCtx);

@@ -43,6 +43,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitions;
@@ -61,8 +62,6 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.SymbolEvaluator;

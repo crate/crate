@@ -31,6 +31,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntCursor;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -46,11 +48,8 @@ import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
+
 import io.crate.common.annotations.VisibleForTesting;
-
-import com.carrotsearch.hppc.IntIndexedContainer;
-import com.carrotsearch.hppc.cursors.IntCursor;
-
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.support.ThreadPools;
@@ -88,12 +87,12 @@ public class CountOperation {
     }
 
     public CompletableFuture<Long> count(TransactionContext txnCtx,
-                                         Map<String, IntIndexedContainer> indexShardMap,
+                                         Map<String, IntArrayList> indexShardMap,
                                          Symbol filter,
                                          boolean onPartitionedTable) {
         List<CompletableFuture<Supplier<Long>>> futureSuppliers = new ArrayList<>();
         Metadata metadata = clusterService.state().metadata();
-        for (Map.Entry<String, IntIndexedContainer> entry : indexShardMap.entrySet()) {
+        for (Map.Entry<String, IntArrayList> entry : indexShardMap.entrySet()) {
             String indexUUID = entry.getKey();
             IndexMetadata indexMetadata = metadata.index(indexUUID);
             if (indexMetadata == null) {

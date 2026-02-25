@@ -24,18 +24,15 @@ package io.crate.execution.engine.fetch;
 import java.io.IOException;
 import java.util.UUID;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntCursor;
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
+import org.apache.lucene.internal.hppc.IntObjectHashMap.IntObjectCursor;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.transport.TransportRequest;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.IntObjectMap;
-import com.carrotsearch.hppc.cursors.IntCursor;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 import io.crate.Streamer;
 import io.crate.data.breaker.RamAccounting;
@@ -49,8 +46,8 @@ public class NodeFetchRequest extends NodeRequest<NodeFetchRequest.FetchRequest>
                             UUID jobId,
                             int fetchPhaseId,
                             boolean closeContext,
-                            IntObjectMap<IntArrayList> toFetch,
-                            IntObjectMap<Streamer<?>[]> streamers,
+                            IntObjectHashMap<IntArrayList> toFetch,
+                            IntObjectHashMap<Streamer<?>[]> streamers,
                             RamAccounting ramAccounting) {
         super(nodeId, new FetchRequest(jobId, fetchPhaseId, closeContext, toFetch));
         responseReader = in -> new NodeFetchResponse(in, streamers, ramAccounting);
@@ -67,12 +64,12 @@ public class NodeFetchRequest extends NodeRequest<NodeFetchRequest.FetchRequest>
         private final boolean closeContext;
 
         @Nullable
-        private final IntObjectMap<IntArrayList> toFetch;
+        private final IntObjectHashMap<IntArrayList> toFetch;
 
         private FetchRequest(UUID jobId,
                      int fetchPhaseId,
                      boolean closeContext,
-                     IntObjectMap<IntArrayList> toFetch) {
+                     IntObjectHashMap<IntArrayList> toFetch) {
             this.jobId = jobId;
             this.fetchPhaseId = fetchPhaseId;
             this.closeContext = closeContext;
@@ -96,7 +93,7 @@ public class NodeFetchRequest extends NodeRequest<NodeFetchRequest.FetchRequest>
         }
 
         @Nullable
-        public IntObjectMap<IntArrayList> toFetch() {
+        public IntObjectHashMap<IntArrayList> toFetch() {
             return toFetch;
         }
 
@@ -134,7 +131,7 @@ public class NodeFetchRequest extends NodeRequest<NodeFetchRequest.FetchRequest>
                 out.writeVInt(0);
             } else {
                 out.writeVInt(toFetch.size());
-                for (IntObjectCursor<? extends IntContainer> toFetchCursor : toFetch) {
+                for (IntObjectCursor<IntArrayList> toFetchCursor : toFetch) {
                     out.writeVInt(toFetchCursor.key);
                     out.writeVInt(toFetchCursor.value.size());
                     for (IntCursor docCursor : toFetchCursor.value) {

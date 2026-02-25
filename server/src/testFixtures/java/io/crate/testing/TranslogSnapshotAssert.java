@@ -28,13 +28,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.lucene.internal.hppc.LongHashSet;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.index.translog.Translog;
-
-import com.carrotsearch.hppc.LongHashSet;
-import com.carrotsearch.hppc.LongSet;
 
 public class TranslogSnapshotAssert extends AbstractAssert<TranslogSnapshotAssert, Translog.Snapshot> {
 
@@ -62,7 +60,7 @@ public class TranslogSnapshotAssert extends AbstractAssert<TranslogSnapshotAsser
         describedAs("snapshot contains all sequence numbers from [" + minSeqNo + " to " + maxSeqNo + "]");
         try {
             List<Long> notFoundSeqNo = new ArrayList<>();
-            final LongSet seqNoList = new LongHashSet();
+            final LongHashSet seqNoList = new LongHashSet();
             Translog.Operation op;
             while ((op = actual.next()) != null) {
                 seqNoList.add(op.seqNo());

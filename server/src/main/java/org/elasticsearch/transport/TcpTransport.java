@@ -47,6 +47,7 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.internal.hppc.IntHashSet;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -75,11 +76,8 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
+
 import io.crate.common.annotations.VisibleForTesting;
-
-import com.carrotsearch.hppc.IntHashSet;
-import com.carrotsearch.hppc.IntSet;
-
 import io.crate.common.collections.Sets;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
@@ -466,7 +464,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
 
         // if no matching boundAddress found, check if there is a unique port for all bound addresses
         if (publishPort < 0) {
-            final IntSet ports = new IntHashSet();
+            final IntHashSet ports = new IntHashSet();
             for (InetSocketAddress boundAddress : boundAddresses) {
                 ports.add(boundAddress.getPort());
             }

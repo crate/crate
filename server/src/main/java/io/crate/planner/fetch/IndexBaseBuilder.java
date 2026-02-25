@@ -21,17 +21,17 @@
 
 package io.crate.planner.fetch;
 
-import com.carrotsearch.hppc.IntIndexedContainer;
-import com.carrotsearch.hppc.cursors.IntCursor;
-
 import java.util.Map;
 import java.util.TreeMap;
+
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntCursor;
 
 public final class IndexBaseBuilder {
 
     private final TreeMap<String, Integer> baseByIndex = new TreeMap<>();
 
-    public void allocate(String index, IntIndexedContainer shards) {
+    public void allocate(String index, IntArrayList shards) {
         if (shards.isEmpty()) {
             return;
         }
@@ -52,7 +52,7 @@ public final class IndexBaseBuilder {
         return baseByIndex;
     }
 
-    private static int getMax(IntIndexedContainer shards) {
+    private static int getMax(IntArrayList shards) {
         int max = -1;
         for (IntCursor shard: shards) {
             if (shard.value > max) {

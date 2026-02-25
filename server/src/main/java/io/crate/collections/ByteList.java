@@ -19,23 +19,40 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.fetch;
+package io.crate.collections;
 
-import java.util.concurrent.CompletableFuture;
+import org.apache.lucene.util.ArrayUtil;
 
-import org.apache.lucene.internal.hppc.IntArrayList;
-import org.apache.lucene.internal.hppc.IntObjectHashMap;
+public class ByteList {
 
-import io.crate.data.Bucket;
+    private static int DEFAULT_EXPECTED_ITEMS = 4;
 
-public interface FetchOperation {
+    public byte[] buffer;
+    public int numItems;
 
-    /**
-     * @param nodeId       the nodeId of the node from which to fetch from
-     * @param toFetch      a map from readerIds to docIds which should be fetched
-     * @param closeContext indicate if context must be closed after fetch
-     */
-    CompletableFuture<IntObjectHashMap<? extends Bucket>> fetch(String nodeId,
-                                                                IntObjectHashMap<IntArrayList> toFetch,
-                                                                boolean closeContext);
+    public ByteList() {
+        this.buffer = new byte[DEFAULT_EXPECTED_ITEMS];
+    }
+
+    public void add(byte b) {
+        ensureSpace(1);
+        buffer[numItems++] = b;
+    }
+
+    public void add(byte ... bytes) {
+        ensureSpace(bytes.length);
+        System.arraycopy(bytes, 0, buffer, numItems, bytes.length);
+        numItems += bytes.length;
+    }
+
+    private void ensureSpace(int additions) {
+        if (numItems + additions > buffer.length) {
+            this.buffer = ArrayUtil.grow(buffer, numItems + additions);
+        }
+    }
+
+    /** Return an array that matches exactly the number of elements */
+    public byte[] toArray() {
+        return ArrayUtil.copyOfSubArray(buffer, 0, numItems);
+    }
 }

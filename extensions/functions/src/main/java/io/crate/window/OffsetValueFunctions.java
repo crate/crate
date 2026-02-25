@@ -24,9 +24,8 @@ package io.crate.window;
 import java.util.List;
 import java.util.function.LongConsumer;
 
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -229,7 +228,7 @@ public class OffsetValueFunctions implements WindowFunction {
         }
         if (idxInPartition == 0) {
             indexToRow = new IntObjectHashMap<>(currentFrame.size());
-            allocateBytes.accept(indexToRow.ramBytesAllocated());
+            allocateBytes.accept(indexToRow.ramBytesUsed());
         }
         // if the offset is changed compared to the previous iteration, cache will be cleared
         if (idxInPartition == 0 || (cachedOffset != null && cachedOffset != offset)) {

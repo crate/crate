@@ -21,19 +21,19 @@
 
 package io.crate.planner;
 
-import com.carrotsearch.hppc.IntHashSet;
-import com.carrotsearch.hppc.IntSet;
-import io.crate.metadata.RelationName;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.lucene.internal.hppc.IntHashSet;
+
+import io.crate.metadata.RelationName;
+
 public final class ReaderAllocations {
 
     private final TreeMap<Integer, String> readerIndices = new TreeMap<>();
-    private final Map<String, IntSet> nodeReaders = new HashMap<>();
+    private final Map<String, IntHashSet> nodeReaders = new HashMap<>();
     private final TreeMap<String, Integer> bases;
     private final Map<RelationName, Collection<String>> tableIndices;
     private final Map<String, RelationName> indicesToIdents;
@@ -59,7 +59,7 @@ public final class ReaderAllocations {
             }
             for (Map.Entry<Integer, String> nodeEntries : entry.getValue().entrySet()) {
                 int readerId = base + nodeEntries.getKey();
-                IntSet readerIds = nodeReaders.get(nodeEntries.getValue());
+                IntHashSet readerIds = nodeReaders.get(nodeEntries.getValue());
                 if (readerIds == null) {
                     readerIds = new IntHashSet();
                     nodeReaders.put(nodeEntries.getValue(), readerIds);
@@ -77,7 +77,7 @@ public final class ReaderAllocations {
         return readerIndices;
     }
 
-    public Map<String, IntSet> nodeReaders() {
+    public Map<String, IntHashSet> nodeReaders() {
         return nodeReaders;
     }
 

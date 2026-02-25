@@ -24,14 +24,12 @@ package io.crate.execution.engine.fetch;
 import java.io.IOException;
 import java.util.Objects;
 
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
+import org.apache.lucene.internal.hppc.IntObjectHashMap.IntObjectCursor;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.IntObjectMap;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 import io.crate.Streamer;
 import io.crate.data.Bucket;
@@ -41,18 +39,18 @@ import io.crate.execution.engine.distribution.StreamBucket;
 public class NodeFetchResponse extends TransportResponse {
 
     @Nullable
-    private final IntObjectMap<StreamBucket> fetched;
+    private final IntObjectHashMap<StreamBucket> fetched;
 
-    public NodeFetchResponse(@Nullable IntObjectMap<StreamBucket> fetched) {
+    public NodeFetchResponse(@Nullable IntObjectHashMap<StreamBucket> fetched) {
         this.fetched = fetched;
     }
 
     @Nullable
-    public IntObjectMap<? extends Bucket> fetched() {
+    public IntObjectHashMap<? extends Bucket> fetched() {
         return fetched;
     }
 
-    public NodeFetchResponse(StreamInput in, IntObjectMap<Streamer<?>[]> streamers, RamAccounting ramAccounting) throws IOException {
+    public NodeFetchResponse(StreamInput in, IntObjectHashMap<Streamer<?>[]> streamers, RamAccounting ramAccounting) throws IOException {
         ramAccounting.addBytes(in.available());
         int numReaders = in.readVInt();
         if (numReaders > 0) {

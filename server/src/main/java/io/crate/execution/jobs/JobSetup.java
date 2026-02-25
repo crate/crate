@@ -40,6 +40,11 @@ import java.util.stream.Collector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntCursor;
+import org.apache.lucene.internal.hppc.IntHashSet;
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
+import org.apache.lucene.internal.hppc.LongObjectHashMap;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -52,19 +57,6 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntCollection;
-import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.IntHashSet;
-import com.carrotsearch.hppc.IntIndexedContainer;
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.IntObjectMap;
-import com.carrotsearch.hppc.LongObjectHashMap;
-import com.carrotsearch.hppc.LongObjectMap;
-import com.carrotsearch.hppc.cursors.IntCursor;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.carrotsearch.hppc.procedures.ObjectProcedure;
 
 import io.crate.Streamer;
 import io.crate.breaker.ConcurrentRamAccounting;
@@ -308,7 +300,7 @@ public class JobSetup {
      * {@link Context#opCtx#targetToSourceMap} will be used to traverse the nodeOperations
      */
     private void prepareSourceOperations(int startPhaseId, Context context) {
-        IntContainer sourcePhaseIds = context.opCtx.targetToSourceMap.get(startPhaseId);
+        IntArrayList sourcePhaseIds = context.opCtx.targetToSourceMap.get(startPhaseId);
         if (sourcePhaseIds == null) {
             return;
         }
@@ -343,8 +335,8 @@ public class JobSetup {
          * <p/>
          * (In the example above, NodeOp 0 might depend on the context/RowReceiver of NodeOp 1 being built first.)
          */
-        private final IntObjectMap<? extends IntContainer> targetToSourceMap;
-        private final IntObjectMap<NodeOperation> nodeOperationByPhaseId;
+        private final IntObjectHashMap<IntArrayList> targetToSourceMap;
+        private final IntObjectHashMap<NodeOperation> nodeOperationByPhaseId;
         private final BitSet builtNodeOperations;
         private final String localNodeId;
 
@@ -363,7 +355,7 @@ public class JobSetup {
             return map;
         }
 
-        static IntObjectHashMap<? extends IntContainer> createTargetToSourceMap(Iterable<? extends NodeOperation> nodeOperations) {
+        static IntObjectHashMap<IntArrayList> createTargetToSourceMap(Iterable<? extends NodeOperation> nodeOperations) {
             IntObjectHashMap<IntArrayList> targetToSource = new IntObjectHashMap<>();
             for (NodeOperation nodeOp : nodeOperations) {
                 if (nodeOp.downstreamExecutionPhaseId() == NodeOperation.NO_DOWNSTREAM) {
@@ -396,10 +388,10 @@ public class JobSetup {
          *     leafs = all keys in targetToSource map which have no entry in values (3 in the example above)
          * </pre>
          */
-        private static IntCollection findLeafs(IntObjectMap<? extends IntContainer> targetToSourceMap) {
+        private static IntArrayList findLeafs(IntObjectHashMap<IntArrayList> targetToSourceMap) {
             IntArrayList leafs = new IntArrayList();
             BitSet sources = new BitSet();
-            for (IntObjectCursor<? extends IntContainer> sourceIds : targetToSourceMap) {
+            for (var sourceIds : targetToSourceMap) {
                 for (IntCursor sourceId : sourceIds.value) {
                     sources.set(sourceId.value);
                 }
@@ -414,7 +406,7 @@ public class JobSetup {
         }
 
         public boolean upstreamsAreOnSameNode(int phaseId) {
-            IntContainer sourcePhases = targetToSourceMap.get(phaseId);
+            IntArrayList sourcePhases = targetToSourceMap.get(phaseId);
             if (sourcePhases == null) {
                 return false;
             }
@@ -441,7 +433,7 @@ public class JobSetup {
             return true;
         }
 
-        public Iterable<? extends IntCursor> findLeafs() {
+        public IntArrayList findLeafs() {
             return findLeafs(targetToSourceMap);
         }
 
@@ -457,8 +449,8 @@ public class JobSetup {
         /**
          * from toKey(phaseId, inputId) to BatchConsumer.
          */
-        private final LongObjectMap<RowConsumer> consumersByPhaseInputId = new LongObjectHashMap<>();
-        private final IntObjectMap<RowConsumer> handlerConsumersByPhaseId = new IntObjectHashMap<>();
+        private final LongObjectHashMap<RowConsumer> consumersByPhaseInputId = new LongObjectHashMap<>();
+        private final IntObjectHashMap<RowConsumer> handlerConsumersByPhaseId = new IntObjectHashMap<>();
 
         private final SharedShardContexts sharedShardContexts;
 
@@ -579,9 +571,9 @@ public class JobSetup {
 
         @Override
         public Void visitCountPhase(final CountPhase phase, final Context context) {
-            Map<String, Map<String, IntIndexedContainer>> locations = phase.routing().locations();
+            Map<String, Map<String, IntArrayList>> locations = phase.routing().locations();
             String localNodeId = clusterService.localNode().getId();
-            final Map<String, IntIndexedContainer> indexShardMap = locations.get(localNodeId);
+            final Map<String, IntArrayList> indexShardMap = locations.get(localNodeId);
             if (indexShardMap == null) {
                 throw new IllegalArgumentException("The routing of the countPhase doesn't contain the current nodeId");
             }
@@ -827,16 +819,16 @@ public class JobSetup {
         @Override
         public Void visitFetchPhase(final FetchPhase phase, final Context context) {
             List<Routing> routings = new ArrayList<>();
-            context.opCtx.nodeOperationByPhaseId.values().forEach((ObjectProcedure<NodeOperation>) value -> {
-                ExecutionPhase executionPhase = value.executionPhase();
-                if (executionPhase instanceof RoutedCollectPhase) {
-                    routings.add(((RoutedCollectPhase) executionPhase).routing());
+            context.opCtx.nodeOperationByPhaseId.values().forEach(value -> {
+                ExecutionPhase executionPhase = value.value.executionPhase();
+                if (executionPhase instanceof RoutedCollectPhase routedPhase) {
+                    routings.add(routedPhase.routing());
                 }
             });
 
             context.leafs.forEach(executionPhase -> {
-                if (executionPhase instanceof RoutedCollectPhase) {
-                    routings.add(((RoutedCollectPhase) executionPhase).routing());
+                if (executionPhase instanceof RoutedCollectPhase routedPhase) {
+                    routings.add(routedPhase.routing());
                 }
             });
             assert !routings.isEmpty()

@@ -39,10 +39,9 @@ import java.util.function.UnaryOperator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.internal.hppc.LongObjectHashMap;
 import org.apache.lucene.util.FixedBitSet;
 import org.elasticsearch.common.Strings;
-
-import com.carrotsearch.hppc.LongObjectHashMap;
 
 import io.crate.common.collections.Tuple;
 

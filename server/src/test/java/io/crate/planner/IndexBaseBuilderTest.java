@@ -25,9 +25,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.TreeMap;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.planner.fetch.IndexBaseBuilder;
 

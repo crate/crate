@@ -24,6 +24,8 @@ package io.crate.execution.engine.fetch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.apache.lucene.internal.hppc.IntHashSet;
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
 import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -33,11 +35,6 @@ import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.IntHashSet;
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.IntObjectMap;
 
 import io.crate.Streamer;
 import io.crate.breaker.ConcurrentRamAccounting;
@@ -49,15 +46,15 @@ import io.crate.types.DataTypes;
 
 public class NodeFetchResponseTest extends ESTestCase {
 
-    private IntObjectMap<Streamer<?>[]> streamers;
-    private IntObjectMap<StreamBucket> fetched;
+    private IntObjectHashMap<Streamer<?>[]> streamers;
+    private IntObjectHashMap<StreamBucket> fetched;
 
     @Before
     public void setUpStreamBucketsAndStreamer() throws Exception {
         streamers = new IntObjectHashMap<>(1);
         streamers.put(1, new Streamer[]{DataTypes.BOOLEAN.streamer()});
 
-        IntObjectHashMap<IntContainer> toFetch = new IntObjectHashMap<>();
+        IntObjectHashMap<IntHashSet> toFetch = new IntObjectHashMap<>();
         IntHashSet docIds = new IntHashSet(3);
         toFetch.put(1, docIds);
         StreamBucket.Builder builder = new StreamBucket.Builder(streamers.get(1), RamAccounting.NO_ACCOUNTING);

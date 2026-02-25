@@ -21,14 +21,13 @@
 
 package io.crate.expression.scalar;
 
-import com.carrotsearch.hppc.CharObjectHashMap;
-import com.carrotsearch.hppc.CharObjectMap;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Locale;
+
+import org.apache.lucene.internal.hppc.CharObjectHashMap;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 /**
  * Formatting DateTime instances using the MySQL date_format format:
@@ -41,7 +40,7 @@ public class TimestampFormatter {
     }
 
     private static final Locale LOCALE = Locale.ENGLISH;
-    private static final CharObjectMap<FormatTimestampPartFunction> PART_FORMATTERS = new CharObjectHashMap<>();
+    private static final CharObjectHashMap<FormatTimestampPartFunction> PART_FORMATTERS = new CharObjectHashMap<>();
 
     private static void addFormatter(char character, FormatTimestampPartFunction fun) {
         PART_FORMATTERS.put(character, fun);

@@ -36,10 +36,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.RowN;
@@ -348,8 +347,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
 
         Set<String> indices = new HashSet<>();
-        Map<String, Map<String, IntIndexedContainer>> locations = collectPhase.routing().locations();
-        for (Map.Entry<String, Map<String, IntIndexedContainer>> entry : locations.entrySet()) {
+        Map<String, Map<String, IntArrayList>> locations = collectPhase.routing().locations();
+        for (Map.Entry<String, Map<String, IntArrayList>> entry : locations.entrySet()) {
             indices.addAll(entry.getValue().keySet());
         }
         assertThat(indices).containsExactlyInAnyOrder(partition1UUID, partition2UUID);

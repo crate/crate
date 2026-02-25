@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.apache.lucene.internal.hppc.ObjectIntMap;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -34,8 +35,6 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-
-import com.carrotsearch.hppc.ObjectIntHashMap;
 
 import io.crate.types.DataTypes;
 
@@ -157,10 +156,10 @@ public class AwarenessAllocationDecider extends AllocationDecider {
             }
 
             // build attr_value -> nodes map
-            ObjectIntHashMap<String> nodesPerAttribute = allocation.routingNodes().nodesPerAttributesCounts(awarenessAttribute);
+            ObjectIntMap<String> nodesPerAttribute = allocation.routingNodes().nodesPerAttributesCounts(awarenessAttribute);
 
             // build the count of shards per attribute value
-            ObjectIntHashMap<String> shardPerAttribute = new ObjectIntHashMap<>();
+            ObjectIntMap<String> shardPerAttribute = new ObjectIntMap<>();
             for (ShardRouting assignedShard : allocation.routingNodes().assignedShards(shardRouting.shardId())) {
                 if (assignedShard.started() || assignedShard.initializing()) {
                     // Note: this also counts relocation targets as that will be the new location of the shard.

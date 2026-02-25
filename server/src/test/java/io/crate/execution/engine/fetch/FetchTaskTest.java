@@ -41,15 +41,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.jobs.SharedShardContexts;
@@ -108,7 +106,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
         SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService, (ignored, searcher) -> searcher) {
             @Override
             public CompletableFuture<Void> maybeRefreshReaders(Metadata metadata,
-                                                               Map<String, IntIndexedContainer> shardsByIndex,
+                                                               Map<String, IntArrayList> shardsByIndex,
                                                                Map<String, Integer> bases) {
                 calledRefreshReaders.set(true);
                 return CompletableFuture.completedFuture(null);

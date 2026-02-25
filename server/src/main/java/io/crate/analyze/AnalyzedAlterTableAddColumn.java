@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import com.carrotsearch.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntArrayList;
 
 import io.crate.analyze.TableElementsAnalyzer.RefBuilder;
 import io.crate.data.Row;

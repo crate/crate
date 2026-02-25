@@ -27,13 +27,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.IntObjectMap;
-import com.carrotsearch.hppc.IntSet;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntHashSet;
+import org.apache.lucene.internal.hppc.IntObjectHashMap;
 
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.data.AsyncFlatMapper;
@@ -46,19 +44,19 @@ public class FetchMapper implements AsyncFlatMapper<ReaderBuckets, Row> {
     private static final Logger LOGGER = LogManager.getLogger(FetchMapper.class);
 
     private final FetchOperation fetchOperation;
-    private final Map<String, IntSet> readerIdsByNode;
+    private final Map<String, IntHashSet> readerIdsByNode;
 
-    public FetchMapper(FetchOperation fetchOperation, Map<String, IntSet> readerIdsByNode) {
+    public FetchMapper(FetchOperation fetchOperation, Map<String, IntHashSet> readerIdsByNode) {
         this.fetchOperation = fetchOperation;
         this.readerIdsByNode = readerIdsByNode;
     }
 
     @Override
     public CompletableFuture<? extends CloseableIterator<Row>> apply(ReaderBuckets readerBuckets, boolean isLastCall) {
-        List<CompletableFuture<IntObjectMap<? extends Bucket>>> futures = new ArrayList<>();
-        Iterator<Map.Entry<String, IntSet>> it = readerIdsByNode.entrySet().iterator();
+        List<CompletableFuture<IntObjectHashMap<? extends Bucket>>> futures = new ArrayList<>();
+        Iterator<Map.Entry<String, IntHashSet>> it = readerIdsByNode.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<String, IntSet> entry = it.next();
+            Map.Entry<String, IntHashSet> entry = it.next();
             IntObjectHashMap<IntArrayList> toFetch = readerBuckets.generateToFetch(entry.getValue());
             if (toFetch.isEmpty() && !isLastCall) {
                 continue;

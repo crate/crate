@@ -19,13 +19,13 @@
 
 package org.elasticsearch.index.translog;
 
-import com.carrotsearch.hppc.LongObjectHashMap;
-import org.elasticsearch.index.seqno.CountedBitSet;
-import org.elasticsearch.index.seqno.SequenceNumbers;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
+
+import org.apache.lucene.internal.hppc.LongObjectHashMap;
+import org.elasticsearch.index.seqno.CountedBitSet;
+import org.elasticsearch.index.seqno.SequenceNumbers;
 
 /**
  * A snapshot composed out of multiple snapshots

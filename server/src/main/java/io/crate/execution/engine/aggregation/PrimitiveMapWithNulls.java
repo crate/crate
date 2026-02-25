@@ -34,7 +34,7 @@ import java.util.function.Function;
 import io.crate.common.collections.Lists;
 
 /**
- * Map that extends primitive maps like {@link io.netty.util.collection.IntObjectMap} with support for null keys (but no null values)
+ * Map that extends primitive maps like {@link io.netty.util.collection.IntObjectHashMap} with support for null keys (but no null values)
  */
 public class PrimitiveMapWithNulls<K, V> implements Map<K, V> {
 

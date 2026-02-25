@@ -56,6 +56,7 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.SegmentInfos;
+import org.apache.lucene.internal.hppc.ObjectLongMap;
 import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.ReferenceManager;
@@ -138,8 +139,6 @@ import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.ObjectLongMap;
 
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;

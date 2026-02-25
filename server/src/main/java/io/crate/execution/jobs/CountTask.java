@@ -26,7 +26,7 @@ import static io.crate.data.SentinelRow.SENTINEL;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import com.carrotsearch.hppc.IntIndexedContainer;
+import org.apache.lucene.internal.hppc.IntArrayList;
 
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row1;
@@ -42,7 +42,7 @@ public class CountTask extends AbstractTask {
     private final TransactionContext txnCtx;
     private final CountOperation countOperation;
     private final RowConsumer consumer;
-    private final Map<String, IntIndexedContainer> indexShardMap;
+    private final Map<String, IntArrayList> indexShardMap;
     private final RamAccounting ramAccounting;
     private CompletableFuture<Long> countFuture;
 
@@ -53,7 +53,7 @@ public class CountTask extends AbstractTask {
               TransactionContext txnCtx,
               CountOperation countOperation,
               RowConsumer consumer,
-              Map<String, IntIndexedContainer> indexShardMap,
+              Map<String, IntArrayList> indexShardMap,
               RamAccounting ramAccounting) {
         super(countPhase.phaseId());
         this.countPhase = countPhase;

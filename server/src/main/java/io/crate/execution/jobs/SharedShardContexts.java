@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -35,10 +36,8 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
+
 import io.crate.common.annotations.VisibleForTesting;
-
-import com.carrotsearch.hppc.IntIndexedContainer;
-
 import io.crate.execution.engine.fetch.FetchTask;
 import io.crate.metadata.IndexName;
 
@@ -58,7 +57,7 @@ public class SharedShardContexts {
     }
 
     public CompletableFuture<Void> maybeRefreshReaders(Metadata metadata,
-                                                       Map<String, IntIndexedContainer> shardsByIndex,
+                                                       Map<String, IntArrayList> shardsByIndex,
                                                        Map<String, Integer> bases) {
         ArrayList<CompletableFuture<Boolean>> refreshActions = new ArrayList<>();
         for (var entry : shardsByIndex.entrySet()) {

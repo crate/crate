@@ -30,10 +30,9 @@ import java.util.Map;
 import java.util.SequencedCollection;
 import java.util.Set;
 
+import org.apache.lucene.internal.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntCursor;
 import org.jspecify.annotations.Nullable;
-
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists;

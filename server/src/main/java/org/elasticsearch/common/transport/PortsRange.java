@@ -22,7 +22,7 @@ package org.elasticsearch.common.transport;
 
 import java.util.StringTokenizer;
 
-import com.carrotsearch.hppc.IntArrayList;
+import org.apache.lucene.internal.hppc.IntArrayList;
 
 public class PortsRange {
 
