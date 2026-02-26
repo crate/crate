@@ -67,6 +67,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
@@ -78,6 +79,7 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.execution.ddl.Templates;
 import io.crate.expression.symbol.RefReplacer;
+import io.crate.expression.symbol.ScopedColumn;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.ColumnIdent;
@@ -87,7 +89,9 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.view.ViewMetadata;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.rest.action.HttpErrorStatus;
 import io.crate.sql.tree.ColumnPolicy;
@@ -136,12 +140,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         false, false, true, HttpErrorStatus.RELATION_READ_DELETE_ONLY, EnumSet.of(ClusterBlockLevel.WRITE, ClusterBlockLevel.METADATA_WRITE));
 
     public static final Metadata EMPTY_METADATA = Metadata.builder(Metadata.OID_UNASSIGNED).build();
-
-    public static final String CONTEXT_MODE_PARAM = "context_mode";
-
-    public static final String CONTEXT_MODE_SNAPSHOT = XContentContext.SNAPSHOT.toString();
-
-    public static final String CONTEXT_MODE_GATEWAY = XContentContext.GATEWAY.toString();
 
     public static final String GLOBAL_STATE_FILE_PREFIX = "global-";
 
@@ -406,6 +404,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     }
 
     @Override
+    @NonNull
     public Iterator<IndexMetadata> iterator() {
         return indices.values().iterator();
     }
@@ -449,8 +448,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 customCount2++;
             }
         }
-        if (customCount1 != customCount2) return false;
-        return true;
+        return customCount1 == customCount2;
     }
 
     @Override
@@ -658,6 +656,25 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 builder.put(schemaName, schemaMetadata);
             }
         }
+
+        // Build RelationMetadata.View from old ViewsMetadata
+        if (in.getVersion().before(Version.V_6_3_0)) {
+            ViewsMetadata viewsMetadata = (ViewsMetadata) builder.customs.get(ViewsMetadata.TYPE);
+            if (viewsMetadata != null) {
+                for (var entry : viewsMetadata.views().entrySet()) {
+                    String name = entry.getKey();
+                    ViewMetadata viewMetadata = entry.getValue();
+                    builder.setView(
+                        RelationName.fromIndexName(name),
+                        viewMetadata.stmt(),
+                        viewMetadata.owner(),
+                        viewMetadata.searchPath(),
+                        viewMetadata.errorOnUnknownObjectKey()
+                    );
+                }
+            }
+            builder.customs.remove(ViewsMetadata.TYPE);
+        }
         return builder.build();
     }
 
@@ -689,15 +706,34 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 templateMetadata.writeTo(out);
             }
         }
+
+        // Build old ViewsMetadata from RelationMetadata.View entries
+        Map<String, Metadata.Custom> copyCustoms = customs;
+        if (out.getVersion().before(Version.V_6_3_0)) {
+            List<RelationMetadata.View> views = relations(RelationMetadata.View.class);
+            if (views.isEmpty() == false) {
+                copyCustoms = new HashMap<>(customs);
+                Map<String, ViewMetadata> viewsMap = new HashMap<>(views.size());
+                for (RelationMetadata.View view : views) {
+                    viewsMap.put(view.name().fqn(), new ViewMetadata(
+                        view.stmt(),
+                        view.owner(),
+                        view.searchPath(),
+                        view.errorOnUnknownObjectKey())
+                    );
+                }
+                copyCustoms.put(ViewsMetadata.TYPE, new ViewsMetadata(viewsMap));
+            }
+        }
         // filter out custom states not supported by the other node
         int numberOfCustoms = 0;
-        for (final Custom custom : customs.values()) {
+        for (final Custom custom : copyCustoms.values()) {
             if (VersionedNamedWriteable.shouldSerialize(out, custom)) {
                 numberOfCustoms++;
             }
         }
         out.writeVInt(numberOfCustoms);
-        for (final Custom custom : customs.values()) {
+        for (final Custom custom : copyCustoms.values()) {
             if (VersionedNamedWriteable.shouldSerialize(out, custom)) {
                 out.writeNamedWriteable(custom);
             }
@@ -913,14 +949,17 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
+        public MapBuilder<String, Custom> customs() {
+            return this.customs;
+        }
+
         public Builder indexGraveyard(final IndexGraveyard indexGraveyard) {
             putCustom(IndexGraveyard.TYPE, indexGraveyard);
             return this;
         }
 
         public IndexGraveyard indexGraveyard() {
-            IndexGraveyard graveyard = (IndexGraveyard) getCustom(IndexGraveyard.TYPE);
-            return graveyard;
+            return (IndexGraveyard) getCustom(IndexGraveyard.TYPE);
         }
 
         /**
@@ -1017,7 +1056,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 final String uuid = indexMetadata.getIndex().getUUID();
                 boolean added = allIndices.add(uuid);
                 assert added : "double index named [" + uuid + "]";
-                indexMetadata.getAliases().keySet().forEach(duplicateAliasesIndices::add);
+                duplicateAliasesIndices.addAll(indexMetadata.getAliases().keySet());
             }
             duplicateAliasesIndices.retainAll(allIndices);
             if (duplicateAliasesIndices.isEmpty() == false) {
@@ -1030,7 +1069,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                         }
                     }
                 }
-                assert duplicates.size() > 0;
+                assert !duplicates.isEmpty();
                 throw new IllegalStateException("index and alias names need to be unique, but the following duplicates were found ["
                     + String.join(", ", duplicates) + "]");
 
@@ -1066,7 +1105,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
                     // Skip below assert for tables created >= 6.0 and < 6.3.0 - for a single test case to pass -
                     // test_6_1_object_reference_with_undefined_inner_type_and_no_child_reference
-                    if (versionCreated.onOrAfter(Version.V_6_0_0) && versionCreated.before(Version.V_6_3_0) && relationOID == 0) {
+                    if (relationMetadata instanceof RelationMetadata.View ||
+                        (versionCreated.onOrAfter(Version.V_6_0_0) && versionCreated.before(Version.V_6_3_0) && relationOID == 0)) {
                         continue;
                     }
 
@@ -1145,11 +1185,11 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                     } else if ("settings".equals(currentFieldName)) {
                         builder.persistentSettings(Settings.fromXContent(parser));
                     } else if ("indices".equals(currentFieldName)) {
-                        while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+                        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
                             builder.put(IndexMetadata.Builder.fromXContent(parser), false);
                         }
                     } else if ("templates".equals(currentFieldName)) {
-                        while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+                        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
                             builder.put(IndexTemplateMetadata.Builder.fromXContent(parser, parser.currentName()));
                         }
                     } else {
@@ -1213,7 +1253,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             Map<ColumnIdent, Reference> columnMap = columns.stream()
                 .filter(ref -> !ref.isDropped())
                 .map(ref -> ref.withOidAndPosition(oidSupplier, positions::incrementAndGet))
-                .collect(Collectors.toMap(ref -> ref.column(), ref -> ref));
+                .collect(Collectors.toMap(ScopedColumn::column, ref -> ref));
 
             ArrayList<Reference> finalColumns = new ArrayList<>(columns.size());
             // Need to update linked columns for generated and index refs to ensure these have oid+position
@@ -1235,7 +1275,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             }
             columns.stream()
                 .filter(Reference::isDropped)
-                .forEach(ref -> finalColumns.add(ref));
+                .forEach(finalColumns::add);
             RelationMetadata.Table table = new RelationMetadata.Table(
                 tableOID,
                 relationName,
@@ -1309,6 +1349,19 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
+        /**
+         * Adds the view, overriding it if a view with the same schema and name exists.
+         **/
+        @VisibleForTesting
+        public Builder setView(RelationName name,
+                               String query,
+                               @Nullable String owner,
+                               SearchPath searchPath,
+                               boolean errorOnUnknownObjectKey) {
+            setRelation(new RelationMetadata.View(name, query, owner, searchPath, errorOnUnknownObjectKey));
+            return this;
+        }
+
         /// Explicitly adds a schema
         public Builder createSchema(String schemaName) {
             schemas.put(schemaName, new SchemaMetadata(Map.of(), true));
@@ -1324,14 +1377,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             }
             if (!schemaMetadata.relations().isEmpty()) {
                 throw new DependentObjectsExists("schema", schema);
-            }
-
-            ViewsMetadata views = (ViewsMetadata) customs.getOrDefault(ViewsMetadata.TYPE, ViewsMetadata.EMPTY);
-            for (String viewName : views.names()) {
-                RelationName relationName = RelationName.fromIndexName(viewName);
-                if (relationName.schema().equals(schema)) {
-                    throw new DependentObjectsExists("schema", schema);
-                }
             }
 
             UserDefinedFunctionsMetadata udfs = (UserDefinedFunctionsMetadata) customs.getOrDefault(
@@ -1414,10 +1459,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     public boolean contains(RelationName tableName) {
         if (templates.containsKey(PartitionName.templateName(tableName.schema(), tableName.name()))) {
-            return true;
-        }
-        ViewsMetadata views = custom(ViewsMetadata.TYPE);
-        if (views != null && views.contains(tableName)) {
             return true;
         }
         ForeignTablesMetadata foreignTables = custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
@@ -1602,6 +1643,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                     }
                 }
                 return result;
+            }
+            case RelationMetadata.View _ -> {
+                return List.of();
             }
             default -> {
             }

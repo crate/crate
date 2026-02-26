@@ -277,6 +277,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             restoreSettings,
             true,
             false,
+            false,
             Set.of(),
             false,
             List.of()

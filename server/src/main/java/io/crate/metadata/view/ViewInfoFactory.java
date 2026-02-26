@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Locale;
 
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
@@ -59,14 +60,11 @@ public class ViewInfoFactory {
     }
 
     public ViewInfo create(RelationName ident, ClusterState state) {
-        ViewsMetadata meta = state.metadata().custom(ViewsMetadata.TYPE);
-        if (meta == null) {
+        RelationMetadata relationMetadata = state.metadata().getRelation(ident);
+        if (relationMetadata == null || relationMetadata instanceof RelationMetadata.Table) {
             return null;
         }
-        ViewMetadata view = meta.getView(ident);
-        if (view == null) {
-            return null;
-        }
+        RelationMetadata.View view = (RelationMetadata.View) relationMetadata;
         List<Reference> columns;
         LinkedHashSet<ScopedColumn> usedSourceColumns = new LinkedHashSet<>();
         boolean analyzeError = false;

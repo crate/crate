@@ -107,7 +107,7 @@ import io.crate.metadata.doc.DocTableInfo;
  * <p>
  * Restore operation is performed in several stages.
  * <p>
- * First {@link #restoreSnapshot(RestoreRequest, List, org.elasticsearch.action.ActionListener)}
+ * First {@link #restoreSnapshot(RestoreSnapshotRequest, List, ActionListener)} 
  * method reads information about snapshot and metadata from repository. In update cluster state task it checks restore
  * preconditions, restores global state if needed, creates {@link RestoreInProgress} record with list of shards that needs
  * to be restored and adds this shard to the routing table using {@link RoutingTable.Builder#addAsRestore(IndexMetadata, SnapshotRecoverySource)}
@@ -318,6 +318,11 @@ public class RestoreService implements ClusterStateApplier {
                 for (RelationMetadata.Table relation : snapshotMetadata.relations(RelationMetadata.Table.class)) {
                     resolver.accept(relation.name(), List.of());
                 }
+            }
+        }
+        if (request.includeViews()) {
+            for (RelationMetadata.View relation : snapshotMetadata.relations(RelationMetadata.View.class)) {
+                resolver.accept(relation.name(), List.of());
             }
         }
         return restoreRelations;
@@ -544,6 +549,21 @@ public class RestoreService implements ClusterStateApplier {
                 mdBuilder.persistentSettings(settings);
             }
 
+            // Restore views
+            if (request.includeViews()) {
+                // old ViewsMetadata have already been migrated to RelationMetadata.View in
+                // MetadataUpgradeService#upgradeMetadata()
+                for (RelationMetadata.View view : snapshotMetadata.relations(RelationMetadata.View.class)) {
+                    mdBuilder.setView(
+                        view.name(),
+                        view.stmt(),
+                        view.owner(),
+                        view.searchPath(),
+                        view.errorOnUnknownObjectKey()
+                    );
+                }
+            }
+
             if (request.includeCustomMetadata() && snapshotMetadata.customs() != null) {
                 // CrateDB patch to only restore defined custom metadata types
                 List<String> customMetadataTypes = Arrays.asList(request.customMetadataTypes());
@@ -638,6 +658,14 @@ public class RestoreService implements ClusterStateApplier {
                         indexUUIDs,
                         table.tableVersion(),
                         mdBuilder.tableOidSupplier().nextOid()
+                    );
+                } else if (snapshotRelation instanceof RelationMetadata.View view) {
+                    mdBuilder.setView(
+                        view.name(),
+                        view.stmt(),
+                        view.owner(),
+                        view.searchPath(),
+                        view.errorOnUnknownObjectKey()
                     );
                 }
             } else {

@@ -23,6 +23,7 @@ package org.elasticsearch.action.admin.cluster.snapshots.restore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -48,7 +49,28 @@ public class RestoreSnapshotRequestTest {
             Settings.EMPTY,
             true,
             true,
+            true,
             Set.of("x"),
+            true,
+            List.of("a", "b")
+        );
+
+        // Preserve the order to ensure consistent equals assertion
+        Set<String> customMetadataTypes = new LinkedHashSet<>();
+        customMetadataTypes.add("x");
+        customMetadataTypes.add("VIEWS");
+        var reqOld = new RestoreSnapshotRequest(
+            "repoName",
+            "snapshotName",
+            List.of(
+                new TableOrPartition(new RelationName("s", "t1"), null)
+            ),
+            IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED,
+            Settings.EMPTY,
+            true,
+            true,
+            true,
+            customMetadataTypes,
             true,
             List.of("a", "b")
         );
@@ -65,9 +87,8 @@ public class RestoreSnapshotRequestTest {
             req.writeTo(out);
             try (var in = out.bytes().streamInput()) {
                 in.setVersion(Version.V_5_10_1);
-                assertThat(new RestoreSnapshotRequest(in)).isEqualTo(req);
+                assertThat(new RestoreSnapshotRequest(in)).isEqualTo(reqOld);
             }
         }
     }
 }
-

@@ -52,6 +52,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -638,6 +639,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
+    @NonNull
     public Iterator<Reference> iterator() {
         return allColumns.values().iterator();
     }
@@ -708,7 +710,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public DynamicReference getDynamic(ColumnIdent column,
                                        boolean forWrite,
                                        boolean errorOnUnknownObjectKey) {
-        boolean parentIsIgnored = false;
         ColumnPolicy parentPolicy = columnPolicy();
         int position = 0;
 
@@ -734,18 +735,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 }
                 return null;
             case IGNORED:
-                parentIsIgnored = true;
                 break;
             default:
                 break;
-        }
-        if (parentIsIgnored) {
-            return new DynamicReference(
-                ident(),
-                column,
-                rowGranularity(),
-                position
-            );
         }
         return new DynamicReference(ident(), column, rowGranularity(), position);
     }

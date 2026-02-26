@@ -54,8 +54,6 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.view.ViewsMetadata;
-import io.crate.metadata.view.ViewsMetadataTest;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.sql.tree.QualifiedName;
@@ -103,17 +101,6 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
             ).build();
         assertThat(Schemas.getNewCurrentSchemas(metadata)).containsExactlyInAnyOrder("doc", "new_schema");
     }
-
-    @Test
-    public void testSchemasFromViews() {
-        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
-            .putCustom(
-                ViewsMetadata.TYPE,
-                ViewsMetadataTest.createMetadata()
-            ).build();
-        assertThat(Schemas.getNewCurrentSchemas(metadata)).containsExactlyInAnyOrder("doc", "my_schema");
-    }
-
 
     @Test
     public void testCurrentSchemas() throws Exception {

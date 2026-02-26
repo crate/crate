@@ -151,7 +151,6 @@ import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.view.ViewsMetadata;
 import io.crate.planner.CreateForeignTablePlan;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -888,16 +887,14 @@ public class SQLExecutor {
      */
     public SQLExecutor addView(RelationName name, String query) {
         ClusterState prevState = clusterService.state();
-        ViewsMetadata newViews = ViewsMetadata.addOrReplace(
-            prevState.metadata().custom(ViewsMetadata.TYPE),
-            name,
-            query,
-            user == null ? null : user.name(),
-            SearchPath.createSearchPathFrom(searchPath),
-            coordinatorTxnCtx.sessionSettings().errorOnUnknownObjectKey()
-        );
+        Metadata.Builder newMetadata = Metadata.builder(prevState.metadata())
+            .setView(
+                name,
+                query,
+                user == null ? null : user.name(),
+                SearchPath.createSearchPathFrom(searchPath),
+                coordinatorTxnCtx.sessionSettings().errorOnUnknownObjectKey());
 
-        Metadata newMetadata = Metadata.builder(prevState.metadata()).putCustom(ViewsMetadata.TYPE, newViews).build();
         ClusterState newState = ClusterState.builder(prevState)
             .metadata(newMetadata)
             .build();

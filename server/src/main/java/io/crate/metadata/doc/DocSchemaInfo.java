@@ -21,7 +21,6 @@
 
 package io.crate.metadata.doc;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -53,7 +52,6 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.metadata.view.ViewInfoFactory;
-import io.crate.metadata.view.ViewsMetadata;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 
 /**
@@ -335,15 +333,13 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public Iterable<ViewInfo> getViews() {
-        ViewsMetadata viewMetadata = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
-        if (viewMetadata == null) {
-            return Collections.emptySet();
-        }
+        Metadata metadata = clusterService.state().metadata();
+        List<RelationMetadata.View> views = metadata.relations(schemaName, RelationMetadata.View.class);
         return () ->
-            StreamSupport.stream(viewMetadata.names().spliterator(), false)
-                .map(IndexName::decode)
-                .filter(indexParts -> indexParts.schema().equals(schemaName))
-                .map(indexParts -> getViewInfo(indexParts.table()))
+            StreamSupport.stream(views.spliterator(), false)
+                .map(RelationMetadata.View::name)
+                .filter(viewName -> schemaName.equals(viewName.schema()))
+                .map(viewName -> getViewInfo(viewName.name()))
                 .filter(Objects::nonNull)
                 .iterator();
     }

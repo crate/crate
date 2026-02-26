@@ -101,6 +101,7 @@ public class RestoreSnapshotPlan implements Plan {
         );
 
         boolean includeTables = stmt.includeTables();
+        boolean includeViews = stmt.includeViews();
 
         List<TableOrPartition> tablesToRestore = stmt.restoreTables().stream()
             .map(restoreTableInfo -> {
@@ -119,6 +120,7 @@ public class RestoreSnapshotPlan implements Plan {
             indicesOptions,
             settings,
             includeTables,
+            includeViews,
             stmt.includeCustomMetadata(),
             stmt.customMetadataTypes(),
             stmt.includeGlobalSettings(),
@@ -179,6 +181,7 @@ public class RestoreSnapshotPlan implements Plan {
             restoreSnapshot.snapshot(),
             restoreTables,
             restoreSnapshot.includeTables(),
+            restoreSnapshot.includeViews(),
             restoreSnapshot.includeCustomMetadata(),
             restoreSnapshot.customMetadataTypes(),
             restoreSnapshot.includeGlobalSettings(),

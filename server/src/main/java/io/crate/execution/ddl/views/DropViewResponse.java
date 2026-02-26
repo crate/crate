@@ -21,13 +21,14 @@
 
 package io.crate.execution.ddl.views;
 
-import io.crate.metadata.RelationName;
+import java.io.IOException;
+import java.util.List;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
 
-import java.io.IOException;
-import java.util.List;
+import io.crate.metadata.RelationName;
 
 public final class DropViewResponse extends TransportResponse {
 
