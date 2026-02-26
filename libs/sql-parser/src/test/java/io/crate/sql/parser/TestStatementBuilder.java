@@ -1153,6 +1153,10 @@ public class TestStatementBuilder {
         printStatement("select from foo");
         printStatement("select from foo where x = 1");
         printStatement("select exists (select from foo where x = 1)");
+        printStatement("select * from foo where a is true");
+        printStatement("select * from foo where a is false");
+        printStatement("select * from foo where a is not true");
+        printStatement("select * from foo where a is not false");
 
         printStatement("select - + 10");
         printStatement("select - ( - - 10)");

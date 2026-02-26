@@ -53,6 +53,7 @@ public class Operators implements FunctionsProvider {
         AndOperator.register(builder);
         OrOperator.register(builder);
         EqOperator.register(builder);
+        IsOperator.register(builder);
         CIDROperator.register(builder);
         LtOperator.register(builder);
         LteOperator.register(builder);
