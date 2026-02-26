@@ -40,6 +40,7 @@ import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.common.annotations.GuardedBy;
 import io.crate.common.collections.RefCountedItem;
+import io.crate.common.concurrent.Killable;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -80,7 +81,7 @@ public class CollectTask implements Task {
     private boolean releasedResources = false;
 
     private long totalBytes = -1;
-    private volatile Throwable killed;
+    private final KillToken killToken;
 
     public CollectTask(CollectPhase collectPhase,
                        TransactionContext txnCtx,
@@ -91,6 +92,7 @@ public class CollectTask implements Task {
                        SharedShardContexts sharedShardContexts,
                        Version minNodeVersion,
                        int ramAccountingBlockSizeInBytes) {
+        this.killToken = new KillToken();
         this.collectPhase = collectPhase;
         this.txnCtx = txnCtx;
         this.collectOperation = collectOperation;
@@ -153,7 +155,7 @@ public class CollectTask implements Task {
 
     @Override
     public void kill(Throwable throwable) {
-        killed = throwable;
+        killToken.kill(throwable);
         if (started.compareAndSet(false, true)) {
             consumer.accept(null, throwable);
         } else {
@@ -167,11 +169,32 @@ public class CollectTask implements Task {
         }
     }
 
-    public void raiseIfKilled() {
-        Throwable t = killed;
-        if (t != null) {
-            throw Exceptions.toRuntimeException(t);
+    /**
+     * Used to carry raiseIfKilled lambda to other components
+     * that need to be aware of the "killed" state.
+     * <br>
+     * For some structures that retain CollectTask instances (like query cache),
+     * it can be critical to not depend on the whole CollectTask via lambdas,
+     * and only depend on some small relevant object.
+     */
+    static class KillToken implements Killable {
+        private volatile Throwable killed;
+
+        @Override
+        public void kill(Throwable t) {
+            killed = t;
         }
+
+        public void raiseIfKilled() {
+            Throwable t = killed;
+            if (t != null) {
+                throw Exceptions.toRuntimeException(t);
+            }
+        }
+    }
+
+    public KillToken killToken() {
+        return killToken;
     }
 
     @Override
