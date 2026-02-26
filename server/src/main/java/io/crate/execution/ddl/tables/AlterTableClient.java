@@ -254,14 +254,17 @@ public class AlterTableClient {
             }
             CompletableFuture<ResizeResponse> resizeFuture;
             if (staleIndexUUID == null) {
+                LOGGER.info("resize is invoked WITHOUT preliminary GC dangling");
                 resizeFuture = client.execute(TransportResize.ACTION, request);
             } else {
+                LOGGER.info("resize is invoked WITH preliminary GC dangling");
                 GCDanglingArtifactsRequest gcReq = new GCDanglingArtifactsRequest(List.of(staleIndexUUID));
                 resizeFuture = client.execute(TransportGCDanglingArtifacts.ACTION, gcReq)
                     .thenCompose(_ -> client.execute(TransportResize.ACTION, request));
             }
             return resizeFuture.thenApply(_ -> 0L).exceptionally(err -> {
                 err = SQLExceptions.unwrap(err);
+                LOGGER.error("resize completed with an error:", err);
                 if (err instanceof IllegalArgumentException ex
                         && ex.getMessage().startsWith("Source index must exist: ")) {
                     throw JobKilledException.of("Resize operation killed due to removal of temporary resize index");
@@ -271,8 +274,10 @@ public class AlterTableClient {
         };
 
         Consumer<Throwable> kill = _ -> {
+            LOGGER.info("KILL is invoked, looking for staleIndexUUID");
             String staleIndexUUID = findResizeSourceUUID(sourceIndexMetadata);
             if (staleIndexUUID != null) {
+                LOGGER.info("KILL found staleIndexUUID, dangling stale index");
                 var gcReq = new GCDanglingArtifactsRequest(List.of(staleIndexUUID));
                 client.execute(TransportGCDanglingArtifacts.ACTION, gcReq);
             }
