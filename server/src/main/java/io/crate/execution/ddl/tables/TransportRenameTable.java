@@ -35,6 +35,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
@@ -45,7 +46,6 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.RenameTableClusterStateExecutor;
-import io.crate.metadata.view.ViewsMetadata;
 
 public class TransportRenameTable extends TransportMasterNodeAction<RenameTableRequest, AcknowledgedResponse> {
 
@@ -126,8 +126,8 @@ public class TransportRenameTable extends TransportMasterNodeAction<RenameTableR
 
     @Override
     protected ClusterBlockException checkBlock(RenameTableRequest request, ClusterState state) {
-        ViewsMetadata views = state.metadata().custom(ViewsMetadata.TYPE);
-        if (views != null && views.contains(request.sourceName())) {
+        RelationMetadata relationMetadata = state.metadata().getRelation(request.sourceName());
+        if (relationMetadata instanceof RelationMetadata.View) {
             return null;
         }
         boolean strict = !request.isPartitioned();

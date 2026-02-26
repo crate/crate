@@ -40,13 +40,12 @@ import org.jspecify.annotations.Nullable;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.SearchPath;
 import io.crate.sql.tree.ColumnPolicy;
 
-public sealed interface RelationMetadata extends Diffable<RelationMetadata> permits
-    RelationMetadata.BlobTable,
-    RelationMetadata.Table {
+public sealed interface RelationMetadata extends Diffable<RelationMetadata> permits RelationMetadata.BlobTable, RelationMetadata.Table, RelationMetadata.View {
 
-    static RelValueSerializer<String> VALUE_SERIALIZER = new RelValueSerializer<>();
+    RelValueSerializer<String> VALUE_SERIALIZER = new RelValueSerializer<>();
 
     int oid();
 
@@ -56,11 +55,16 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
 
     RelationName name();
 
+    List<String> indexUUIDs();
+
+    RelationMetadata withIndexUUIDs(List<String> indexUUIDs);
+
     static RelationMetadata of(StreamInput in) throws IOException {
         short ord = in.readShort();
         return switch (ord) {
             case BlobTable.ORD -> RelationMetadata.BlobTable.of(in);
             case Table.ORD -> RelationMetadata.Table.of(in);
+            case View.ORD -> RelationMetadata.View.of(in);
             default -> throw new IllegalArgumentException("Invalid RelationMetadata ord: " + ord);
         };
     }
@@ -82,7 +86,7 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
         return RelationMetadataDiff.EMPTY;
     }
 
-    static class RelValueSerializer<K> implements ValueSerializer<K, RelationMetadata> {
+    class RelValueSerializer<K> implements ValueSerializer<K, RelationMetadata> {
 
         @Override
         public void write(RelationMetadata value, StreamOutput out) throws IOException {
@@ -106,7 +110,7 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
 
         @Override
         public void writeDiff(Diff<RelationMetadata> value, StreamOutput out) throws IOException {
-            value.writeTo(out);;
+            value.writeTo(out);
         }
 
         @Override
@@ -115,10 +119,10 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
         }
     }
 
-    /// Similar to the CompleteDiff in [org.elasticsearch.cluster.AbstractDiffable] but streams the part
+    /// Similar to the {@link org.elasticsearch.cluster.CompleteDiff} but streams the part
     /// using [RelationMetadata#toStream(StreamOutput, RelationMetadata)] instead of part.writeTo
     /// To match the read variant and stream the ord
-    static class RelationMetadataDiff implements Diff<RelationMetadata> {
+    class RelationMetadataDiff implements Diff<RelationMetadata> {
 
         static final RelationMetadataDiff EMPTY = new RelationMetadataDiff(null);
 
@@ -145,14 +149,10 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
         }
     }
 
-    List<String> indexUUIDs();
-
     static void toStream(StreamOutput out, RelationMetadata v) throws IOException {
         out.writeShort(v.ord());
         v.writeTo(out);
     }
-
-    RelationMetadata withIndexUUIDs(List<String> indexUUIDs);
 
     record BlobTable(int oid,
                      RelationName name,
@@ -330,6 +330,59 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
                 state,
                 indexUUIDs,
                 tableVersion);
+        }
+    }
+
+    record View(RelationName name,
+                String stmt,
+                @Nullable String owner,
+                SearchPath searchPath,
+                boolean errorOnUnknownObjectKey) implements RelationMetadata {
+
+        private static final short ORD = 2;
+
+        static View of(StreamInput in) throws IOException {
+            RelationName name = new RelationName(in);
+            String stmt = in.readString();
+            String owner = in.readOptionalString();
+            SearchPath searchPath = SearchPath.createSearchPathFrom(in);
+            boolean errorOnUnknownObjectKey = in.readBoolean();
+            return new View(name, stmt, owner, searchPath, errorOnUnknownObjectKey);
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            name.writeTo(out);
+            out.writeString(stmt);
+            out.writeOptionalString(owner);
+            searchPath.writeTo(out);
+            out.writeBoolean(errorOnUnknownObjectKey);
+        }
+
+        @Override
+        public int oid() {
+            return Metadata.OID_UNASSIGNED;
+        }
+
+        @Override
+        public Settings settings() {
+            return Settings.EMPTY;
+        }
+
+        @Override
+        public short ord() {
+            return ORD;
+        }
+
+        @Override
+        public List<String> indexUUIDs() {
+            return List.of();
+        }
+
+        @Override
+        public RelationMetadata withIndexUUIDs(List<String> indexUUIDs) {
+            assert indexUUIDs.isEmpty() : "Cannot set indices to a view";
+            return this;
         }
     }
 }

@@ -37,12 +37,14 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
-import org.jspecify.annotations.Nullable;
 
-import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
 
+/**
+ * @deprecated has been replaced by {@link org.elasticsearch.cluster.metadata.RelationMetadata.View}
+ **/
+@Deprecated(since = "6.3.0")
 public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 
     public static final String TYPE = "views";
@@ -50,7 +52,7 @@ public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
 
     private final Map<String, ViewMetadata> viewByName;
 
-    ViewsMetadata(Map<String, ViewMetadata> viewByName) {
+    public ViewsMetadata(Map<String, ViewMetadata> viewByName) {
         this.viewByName = viewByName;
     }
 
@@ -85,7 +87,6 @@ public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
     public Version getMinimalSupportedVersion() {
         return Version.V_3_0_1;
     }
-
 
     /*
      * ViewsMetadata XContent has the following structure:
@@ -176,75 +177,7 @@ public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         return viewByName.containsKey(relationName.fqn());
     }
 
-    public Iterable<String> names() {
-        return viewByName.keySet();
-    }
-
-    /**
-     * @param searchPath
-     * @return A copy of the ViewsMetadata with the new view added (or replaced in case it already existed)
-     */
-    public static ViewsMetadata addOrReplace(@Nullable ViewsMetadata prevViews,
-                                             RelationName name,
-                                             String query,
-                                             @Nullable String owner,
-                                             SearchPath searchPath,
-                                             boolean errorOnUnknownObjectKey) {
-        HashMap<String, ViewMetadata> queryByName;
-        if (prevViews == null) {
-            queryByName = new HashMap<>();
-        } else {
-            queryByName = new HashMap<>(prevViews.viewByName);
-        }
-        queryByName.put(name.fqn(), new ViewMetadata(query, owner, searchPath, errorOnUnknownObjectKey));
-        return new ViewsMetadata(queryByName);
-    }
-
-    public RemoveResult remove(List<RelationName> names) {
-        HashMap<String, ViewMetadata> updatedQueryByName = new HashMap<>(this.viewByName);
-        ArrayList<RelationName> missing = new ArrayList<>(names.size());
-        for (RelationName name : names) {
-            ViewMetadata removed = updatedQueryByName.remove(name.fqn());
-            if (removed == null) {
-                missing.add(name);
-            }
-        }
-        return new RemoveResult(new ViewsMetadata(updatedQueryByName), missing);
-    }
-
-    /**
-     * @throws RelationUnknown if source view doesn't exist.
-     */
-    public ViewsMetadata rename(RelationName source, RelationName target) {
-        HashMap<String, ViewMetadata> newViewByName = new HashMap<>(viewByName);
-        ViewMetadata removed = newViewByName.remove(source.fqn());
-        if (removed == null) {
-            throw new RelationUnknown(source);
-        }
-        newViewByName.put(target.fqn(), removed);
-        return new ViewsMetadata(newViewByName);
-    }
-
-    @Nullable
-    public ViewMetadata getView(RelationName name) {
-        return viewByName.get(name.fqn());
-    }
-
-    public class RemoveResult {
-        private final ViewsMetadata updatedViews;
-        private final List<RelationName> missing;
-
-        RemoveResult(ViewsMetadata updatedViews, List<RelationName> missing) {
-            this.updatedViews = updatedViews;
-            this.missing = missing;
-        }
-
-        public ViewsMetadata updatedViews() {
-            return updatedViews;
-        }
-
-        public List<RelationName> missing() {
-            return missing;
-        }
+    public Map<String, ViewMetadata> views() {
+        return viewByName;
     }
 }

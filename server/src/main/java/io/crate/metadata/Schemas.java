@@ -30,7 +30,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.StreamSupport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -65,10 +64,7 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.view.View;
 import io.crate.metadata.view.ViewInfo;
-import io.crate.metadata.view.ViewMetadata;
-import io.crate.metadata.view.ViewsMetadata;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
@@ -197,11 +193,11 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 if (schemaInfo == null) {
                     continue;
                 }
-                relationInfo = schemaInfo.getTableInfo(tableName);
+                relationInfo = schemaInfo.getViewInfo(tableName);
                 if (relationInfo != null) {
                     break;
                 }
-                relationInfo = schemaInfo.getViewInfo(tableName);
+                relationInfo = schemaInfo.getTableInfo(tableName);
                 if (relationInfo != null) {
                     break;
                 }
@@ -217,17 +213,15 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 }
             }
         } else {
-            if (relationInfo == null) {
-                relationInfo = getForeignTable(schemaName, tableName);
-            }
+            relationInfo = getForeignTable(schemaName, tableName);
             if (relationInfo == null) {
                 SchemaInfo schemaInfo = schemas.get(schemaName);
                 if (schemaInfo == null) {
                     throw SchemaUnknownException.of(schemaName, getSimilarSchemas(user, schemaName));
                 }
-                relationInfo = schemaInfo.getTableInfo(tableName);
+                relationInfo = schemaInfo.getViewInfo(tableName);
                 if (relationInfo == null) {
-                    relationInfo = schemaInfo.getViewInfo(tableName);
+                    relationInfo = schemaInfo.getTableInfo(tableName);
                     if (relationInfo == null) {
                         throw RelationUnknown.of(schemaName + "." + tableName,
                             getSimilarTables(user, tableName, schemaInfo.getTables()));
@@ -404,16 +398,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 .map(UserDefinedFunctionMetadata::schema)
                 .forEach(schemas::add);
         }
-        ViewsMetadata viewsMetadata = metadata.custom(ViewsMetadata.TYPE);
-        if (viewsMetadata != null) {
-            StreamSupport.stream(viewsMetadata.names().spliterator(), false)
-                .map(IndexName::decode)
-                .map(IndexParts::schema)
-                .forEach(schemas::add);
-        }
-        for (String schemaName : metadata.schemas().keySet()) {
-            schemas.add(schemaName);
-        }
+        schemas.addAll(metadata.schemas().keySet());
         return schemas;
     }
 
@@ -448,11 +433,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
             return false;
         }
         TableInfo tableInfo = schemaInfo.getTableInfo(relationName.name());
-        if (tableInfo == null) {
-            return false;
-        } else {
-            return true;
-        }
+        return tableInfo != null;
     }
 
     @Override
@@ -484,34 +465,30 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     /**
      * @throws RelationUnknown if the view cannot be resolved against the search path.
      */
-    public View findView(QualifiedName ident, SearchPath searchPath) {
-        ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
-        ViewMetadata metadata = null;
-        RelationName name = null;
+    public ViewInfo findView(QualifiedName ident, SearchPath searchPath) {
         String identSchema = schemaName(ident);
         String viewName = relationName(ident);
-        if (views != null) {
-            if (identSchema == null) {
-                for (String pathSchema : searchPath) {
-                    SchemaInfo schemaInfo = schemas.get(pathSchema);
-                    if (schemaInfo != null) {
-                        name = new RelationName(pathSchema, viewName);
-                        metadata = views.getView(name);
-                        if (metadata != null) {
-                            break;
-                        }
+        ViewInfo viewInfo = null;
+        if (identSchema == null) {
+            for (String pathSchema : searchPath) {
+                SchemaInfo schemaInfo = schemas.get(pathSchema);
+                if (schemaInfo != null) {
+                    viewInfo = schemaInfo.getViewInfo(viewName);
+                    if (viewInfo != null) {
+                        break;
                     }
                 }
-            } else {
-                name = new RelationName(identSchema, viewName);
-                metadata = views.getView(name);
+            }
+        } else {
+            SchemaInfo schemaInfo = schemas.get(identSchema);
+            if (schemaInfo != null) {
+                viewInfo = schemaInfo.getViewInfo(viewName);
             }
         }
-
-        if (metadata == null) {
-            throw new RelationUnknown(viewName);
+        if (viewInfo == null) {
+            throw new RelationUnknown(new RelationName(identSchema, viewName));
         }
-        return new View(name, metadata);
+        return viewInfo;
     }
 
     @Nullable

@@ -23,7 +23,6 @@ package io.crate.metadata.view;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.Map;
@@ -33,8 +32,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
 
 public class ViewsMetadataTest extends ESTestCase {
@@ -59,25 +56,4 @@ public class ViewsMetadataTest extends ESTestCase {
         ViewsMetadata views2 = new ViewsMetadata(in);
         assertThat(views).isEqualTo(views2);
     }
-
-    @Test
-    public void test_raises_error_on_rename_if_source_is_missing() throws Exception {
-        ViewsMetadata views = createMetadata();
-        assertThatThrownBy(() -> views.rename(new RelationName("missing", "views"), new RelationName("doc", "v2")))
-            .isExactlyInstanceOf(RelationUnknown.class);
-    }
-
-    @Test
-    public void test_rename_creates_new_instance_with_old_view_removed_and_new_added() throws Exception {
-        ViewsMetadata views = createMetadata();
-        RelationName source = new RelationName("doc", "my_view");
-        ViewMetadata sourceView = views.getView(source);
-        RelationName target = new RelationName("doc", "v2");
-        ViewsMetadata result = views.rename(source, target);
-        assertThat(views).isNotSameAs(result);
-        assertThat(result.contains(target)).isTrue();
-        assertThat(result.contains(source)).isFalse();
-        assertThat(result.getView(target)).isEqualTo(sourceView);
-    }
-
 }

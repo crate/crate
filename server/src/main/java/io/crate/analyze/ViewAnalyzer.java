@@ -93,7 +93,7 @@ public final class ViewAnalyzer {
         ArrayList<RelationName> missing = new ArrayList<>();
         for (QualifiedName qualifiedName : dropView.names()) {
             try {
-                views.add(schemas.findView(qualifiedName, txnCtx.sessionSettings().searchPath()).name());
+                views.add(schemas.findView(qualifiedName, txnCtx.sessionSettings().searchPath()).ident());
             } catch (RelationUnknown e) {
                 if (!dropView.ifExists()) {
                     missing.add(RelationName.of(qualifiedName, txnCtx.sessionSettings().searchPath().currentSchema()));

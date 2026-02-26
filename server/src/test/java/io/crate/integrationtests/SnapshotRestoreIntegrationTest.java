@@ -71,6 +71,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.view.ViewsMetadata;
 import io.crate.role.Permission;
 import io.crate.role.Policy;
 import io.crate.role.Privilege;
@@ -131,6 +132,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
     public void cleanUp() {
         var stmts = List.of(
             "REVOKE ALL FROM my_user",
+            "REVOKE ALL FROM \"John\"",
             "DROP ANALYZER a1",
             "DROP FUNCTION custom(string)"
         );
@@ -143,7 +145,10 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         }
 
         execute("DROP USER IF EXISTS my_user");
+        execute("DROP USER IF EXISTS \"John\"");
         execute("DROP VIEW IF EXISTS my_view");
+        execute("DROP VIEW IF EXISTS doc.v1");
+        execute("DROP VIEW IF EXISTS john.v1");
         execute("DROP TABLE IF EXISTS my_table");
     }
 
@@ -1179,6 +1184,36 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows("1", "2");
         execute("SELECT i, p FROM doc.p1 ORDER BY i");
         assertThat(response).hasRows("1| 1", "2| 2");
+    }
+
+    @Test
+    public void test_restore_old_views() throws IOException {
+        File repoDir = TEMPORARY_FOLDER.newFolder().toPath().toAbsolutePath().toFile();
+        try (InputStream stream = Files.newInputStream(getDataPath("/repos/oldviewsmetadata_repo.zip"))) {
+            TestUtil.unzip(stream, repoDir.toPath());
+        }
+        execute(
+            "CREATE REPOSITORY views_repo TYPE \"fs\" with (location=?, compress=true, readonly=true)",
+            new Object[]{repoDir.getAbsolutePath()}
+        );
+
+        // CREATE USER "John" WITH (password='johns-password');
+        // GRANT DQL, DDL, DML ON SCHEMA john TO "John";
+        // CREATE VIEW doc.v1 AS SELECT 1; -- as user crate
+        // CREATE VIEW john.v1 AS SELECT * FROM generate_series(1, 10, 1); -- as user John
+        execute("RESTORE SNAPSHOT views_repo.s1 ALL with (wait_for_completion=true)");
+
+        execute("SELECT * FROM doc.v1");
+        assertThat(response).hasRows("1");
+        execute("SELECT count(*) FROM john.v1");
+        assertThat(response).hasRows("10");
+        Metadata metadata = cluster().clusterService().state().metadata();
+        ViewsMetadata viewsMetadata = metadata.custom(ViewsMetadata.TYPE);
+        assertThat(viewsMetadata).isNull();
+        RelationMetadata.View view = metadata.getRelation(new RelationName("doc", "v1"));
+        assertThat(view.owner()).isEqualTo("crate");
+        view = metadata.getRelation(new RelationName("john", "v1"));
+        assertThat(view.owner()).isEqualTo("John");
     }
 
     private void execute_statements_that_restore_tables_with_different_fqn(boolean partitioned) throws Exception {

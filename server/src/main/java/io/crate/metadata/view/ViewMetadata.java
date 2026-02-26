@@ -31,6 +31,10 @@ import org.jspecify.annotations.Nullable;
 
 import io.crate.metadata.SearchPath;
 
+/**
+ * @deprecated has been replaced by {@link org.elasticsearch.cluster.metadata.RelationMetadata.View}
+ **/
+@Deprecated(since = "6.3.0")
 public record ViewMetadata(
         String stmt,
         @Nullable String owner,

@@ -36,6 +36,7 @@ public class AnalyzedRestoreSnapshot implements DDLStatement {
     private final String snapshot;
     private final List<Table<Symbol>> tables;
     private final boolean includeTables;
+    private final boolean includeViews;
     private final boolean includeCustomMetadata;
     private final Set<String> customMetadataTypes;
     private final boolean includeGlobalSettings;
@@ -46,6 +47,7 @@ public class AnalyzedRestoreSnapshot implements DDLStatement {
                             String snapshot,
                             List<Table<Symbol>> tables,
                             boolean includeTables,
+                            boolean includeViews,
                             boolean includeCustomMetadata,
                             Set<String> customMetadataTypes,
                             boolean includeGlobalSettings,
@@ -55,6 +57,7 @@ public class AnalyzedRestoreSnapshot implements DDLStatement {
         this.snapshot = snapshot;
         this.tables = tables;
         this.includeTables = includeTables;
+        this.includeViews = includeViews;
         this.includeCustomMetadata = includeCustomMetadata;
         this.customMetadataTypes = customMetadataTypes;
         this.includeGlobalSettings = includeGlobalSettings;
@@ -76,6 +79,10 @@ public class AnalyzedRestoreSnapshot implements DDLStatement {
 
     public boolean includeTables() {
         return includeTables;
+    }
+
+    public boolean includeViews() {
+        return includeViews;
     }
 
     public boolean includeCustomMetadata() {
