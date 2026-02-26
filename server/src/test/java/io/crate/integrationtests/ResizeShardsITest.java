@@ -286,7 +286,7 @@ public class ResizeShardsITest extends IntegTestCase {
     }
 
     @Test
-    @Repeat(iterations = 200)
+    @Repeat(iterations = 1000)
     @TestLogging("io.crate.execution:TRACE")
     public void test_can_kill_resize_operation() throws Exception {
         execute("create table tbl (x int, p int) clustered into 1 shards partitioned by (p) with (\"routing.allocation.total_shards_per_node\" = 2)");
