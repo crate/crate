@@ -176,7 +176,7 @@ final class GroupByOptimizedIterator {
             table,
             shardCreatedVersion,
             indexService.cache(),
-            collectTask::raiseIfKilled
+            collectTask.killToken()::raiseIfKilled
         );
 
         return getIterator(

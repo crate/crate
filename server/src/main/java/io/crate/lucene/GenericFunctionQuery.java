@@ -82,7 +82,8 @@ public class GenericFunctionQuery extends Query implements Accountable {
             + RamUsageEstimator.shallowSizeOf(collectorContext)
             + RamUsageEstimator.shallowSizeOf(docInputFactory)
             + RamUsageEstimator.shallowSizeOf(txnCtx)
-            + RamUsageEstimator.NUM_BYTES_OBJECT_HEADER // raiseIfKilled
+            // raiseIfKilled references KillToken which has a link to Throwable.
+            + RamUsageEstimator.NUM_BYTES_OBJECT_HEADER + RamUsageEstimator.NUM_BYTES_OBJECT_REF
             + 8; // ramBytesUsed
     }
 

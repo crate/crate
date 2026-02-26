@@ -80,7 +80,7 @@ public class GenericFunctionQueryTest extends CrateDummyClusterServiceUnitTest {
         try (QueryTester tester = builder.build()) {
             var query = tester.toQuery("abs(a) * abs(b) = 1");
             assertThat(query).isInstanceOf(GenericFunctionQuery.class);
-            assertThat(CustomLRUQueryCache.getRamBytesUsed(query)).isEqualTo(1668L);
+            assertThat(CustomLRUQueryCache.getRamBytesUsed(query)).isEqualTo(1672L);
         }
     }
 
@@ -97,7 +97,7 @@ public class GenericFunctionQueryTest extends CrateDummyClusterServiceUnitTest {
         try (QueryTester tester = builder.build()) {
             var query = tester.toQuery("abs(a) = 1 AND abs(b) = 1");
             assertThat(query).isInstanceOf(BooleanQuery.class);
-            assertThat(CustomLRUQueryCache.getRamBytesUsed(query)).isEqualTo(1808L);
+            assertThat(CustomLRUQueryCache.getRamBytesUsed(query)).isEqualTo(1816L);
         }
     }
 }
