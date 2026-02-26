@@ -99,6 +99,10 @@ SQL Standard and PostgreSQL Compatibility
   compatibility with tools like TinyETL that use reflection queries such as
   ``SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = $1)``.
 
+- `Sahin Akyol <https://github.com/sahinakyol>`_ added support for the
+    :ref:`IS [ NOT ] TRUE | FALSE <sql_dql_is_true_or_false>` boolean
+    predicates.
+
 Data Types
 ----------
 
@@ -122,6 +126,7 @@ Scalar and Aggregation Functions
 - `Dhruv Patel <https://github.com/DHRUV6029>`_ added support for the
   :ref:`parse_ident <scalar-parse_ident>` scalar function to split a qualified
   SQL identifier string into an array of identifiers.
+
 
 Performance and Resilience Improvements
 ---------------------------------------

@@ -1921,6 +1921,25 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitIsBoolean(SqlBaseParser.IsBooleanContext context) {
+        Expression value = (Expression) visit(context.value);
+
+        boolean isTrue = context.boolValue.getType() == SqlBaseLexer.TRUE;
+        Expression booleanLiteral = isTrue ? BooleanLiteral.TRUE_LITERAL : BooleanLiteral.FALSE_LITERAL;
+
+        Expression result = new FunctionCall(
+            QualifiedName.of("op_is"),
+            List.of(value, booleanLiteral)
+        );
+
+        if (context.NOT() != null) {
+            return new NotExpression(result);
+        }
+
+        return result;
+    }
+
+    @Override
     public Node visitLike(SqlBaseParser.LikeContext context) {
         Expression escape = null;
         if (context.escape != null) {

@@ -304,6 +304,7 @@ predicate[ParserRuleContext value]
         OPEN_ROUND_BRACKET v=valueExpression CLOSE_ROUND_BRACKET
         (ESCAPE escape=valueExpression)?                                             #arrayLike
     | IS NOT? NULL                                                                   #nullPredicate
+    | IS NOT? boolValue=(TRUE | FALSE)                                               #isBoolean
     | IS NOT? DISTINCT FROM right=valueExpression                                    #distinctFrom
     ;
 
