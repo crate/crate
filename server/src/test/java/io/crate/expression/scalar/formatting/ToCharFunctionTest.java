@@ -21,36 +21,38 @@
 
 package io.crate.expression.scalar.formatting;
 
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.ABBREVIATED_DAY_CAPITALIZED;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.ABBREVIATED_DAY_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.ABBREVIATED_DAY_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.ABBREVIATED_MONTH_CAPITALIZED;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.ABBREVIATED_MONTH_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.ABBREVIATED_MONTH_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.AD_ERA_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.AD_ERA_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.AM_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.AM_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.A_D_ERA_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.A_D_ERA_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.A_M_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.A_M_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.BC_ERA_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.BC_ERA_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.B_C_ERA_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.B_C_ERA_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.DAY_CAPITALIZED;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.DAY_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.DAY_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.MONTH_CAPITALIZED;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.MONTH_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.MONTH_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.PM_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.PM_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.P_M_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.P_M_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.ROMAN_MONTH_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.ROMAN_MONTH_UPPER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.ABBREVIATED_DAY_CAPITALIZED;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.ABBREVIATED_DAY_LOWER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.ABBREVIATED_DAY_UPPER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.ABBREVIATED_MONTH_CAPITALIZED;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.ABBREVIATED_MONTH_LOWER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.ABBREVIATED_MONTH_UPPER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.AD_ERA_LOWER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.AD_ERA_UPPER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.AM_LOWER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.AM_UPPER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.A_D_ERA_LOWER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.A_D_ERA_UPPER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.A_M_LOWER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.A_M_UPPER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.BC_ERA_LOWER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.BC_ERA_UPPER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.B_C_ERA_LOWER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.B_C_ERA_UPPER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.DAY_CAPITALIZED;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.DAY_LOWER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.DAY_UPPER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.MONTH_CAPITALIZED;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.MONTH_LOWER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.MONTH_UPPER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.ORDINAL_SUFFIX;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.ORDINAL_SUFFIX_LOWER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.PM_LOWER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.PM_UPPER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.P_M_LOWER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.P_M_UPPER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.ROMAN_MONTH_LOWER;
+import static io.crate.expression.scalar.formatting.DateTimeFormatter.TokenType.ROMAN_MONTH_UPPER;
 import static io.crate.testing.Asserts.isNotSameInstance;
 import static io.crate.testing.Asserts.isSameInstance;
 
@@ -66,7 +68,7 @@ import io.crate.expression.symbol.Literal;
 public class ToCharFunctionTest extends ScalarTestCase {
 
     // Patterns that must NOT behave in the same way for upper/lower case,
-    private static final Set<DateTimeFormatter.Token> FIXED_CASE_PATTERNS =
+    private static final Set<DateTimeFormatter.TokenType> FIXED_CASE_PATTERNS =
         Set.of(
             MONTH_UPPER,
             MONTH_CAPITALIZED,
@@ -97,7 +99,9 @@ public class ToCharFunctionTest extends ScalarTestCase {
             A_D_ERA_UPPER,
             A_D_ERA_LOWER,
             ROMAN_MONTH_UPPER,
-            ROMAN_MONTH_LOWER
+            ROMAN_MONTH_LOWER,
+            ORDINAL_SUFFIX,
+            ORDINAL_SUFFIX_LOWER
         );
 
     @Test
@@ -123,7 +127,7 @@ public class ToCharFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_lower_case_same_result_as_upper_case_for_non_mixed_case_patterns() throws Exception {
-        for (DateTimeFormatter.Token token: DateTimeFormatter.Token.values()) {
+        for (DateTimeFormatter.TokenType token: DateTimeFormatter.TokenType.values()) {
             var tokenValue = token.toString();
             if (FIXED_CASE_PATTERNS.contains(token) == false && Character.isLowerCase(tokenValue.charAt(0))) {
                 assertEvaluate(
@@ -181,5 +185,64 @@ public class ToCharFunctionTest extends ScalarTestCase {
     @Test
     public void testCompileWithRefs() throws Exception {
         assertCompile("to_char(timestamp, name)", isSameInstance());
+    }
+
+    @Test
+    public void testOrdinalSuffixTh() {
+        // Day of month (DD)
+        assertEvaluate("to_char(timestamp '2024-01-15', 'DDth')", "15th");
+        assertEvaluate("to_char(timestamp '2024-01-15', 'DDTH')", "15TH");
+        // Test special cases: 11th, 12th, 13th (not 11st, 12nd, 13rd)
+        assertEvaluate("to_char(timestamp '2024-01-11', 'DDth')", "11th");
+        assertEvaluate("to_char(timestamp '2024-01-12', 'DDth')", "12th");
+        assertEvaluate("to_char(timestamp '2024-01-13', 'DDth')", "13th");
+        // Test 1st, 2nd, 3rd, 21st, 22nd, 23rd
+        assertEvaluate("to_char(timestamp '2024-01-01', 'DDth')", "01st");
+        assertEvaluate("to_char(timestamp '2024-01-02', 'DDth')", "02nd");
+        assertEvaluate("to_char(timestamp '2024-01-03', 'DDth')", "03rd");
+        assertEvaluate("to_char(timestamp '2024-01-21', 'DDth')", "21st");
+        assertEvaluate("to_char(timestamp '2024-01-22', 'DDth')", "22nd");
+        assertEvaluate("to_char(timestamp '2024-01-23', 'DDth')", "23rd");
+        // Mixed case Th/tH are parsed as literals (not tokens)
+        assertEvaluate("to_char(timestamp '2024-01-01', 'DDTh')", "01Th");
+        assertEvaluate("to_char(timestamp '2024-01-01', 'DDtH')", "01tH");
+        // Week of month (W)
+        assertEvaluate("to_char(timestamp '2024-03-15', 'Wth')", "3rd");
+        // Week of year (WW)
+        assertEvaluate("to_char(timestamp '2024-03-15', 'WWth')", "11th");
+        // ISO week (IW)
+        assertEvaluate("to_char(timestamp '2024-03-15', 'IWth')", "11th");
+        // Quarter (Q)
+        assertEvaluate("to_char(timestamp '2024-03-15', 'Qth')", "1st");
+        // Month number (MM)
+        assertEvaluate("to_char(timestamp '2024-03-15', 'MMth')", "03rd");
+        // Day of year (DDD)
+        assertEvaluate("to_char(timestamp '2024-03-15', 'DDDth')", "075th");
+        // Day of week (D) - Sunday=1, Friday=6
+        assertEvaluate("to_char(timestamp '2024-03-15', 'Dth')", "6th");
+        // ISO day of week (ID) - Friday=5
+        assertEvaluate("to_char(timestamp '2024-03-15', 'IDth')", "5th");
+        // Hour 24 (HH24)
+        assertEvaluate("to_char(timestamp '2024-03-15 14:30:45', 'HH24th')", "14th");
+        // Hour 12 (HH12)
+        assertEvaluate("to_char(timestamp '2024-03-15 14:30:45', 'HH12th')", "02nd");
+        // Minute (MI)
+        assertEvaluate("to_char(timestamp '2024-03-15 14:30:45', 'MIth')", "30th");
+        // Second (SS)
+        assertEvaluate("to_char(timestamp '2024-03-15 14:30:45', 'SSth')", "45th");
+        // Year (YYYY)
+        assertEvaluate("to_char(timestamp '2024-03-15', 'YYYYth')", "2024th");
+        assertEvaluate("to_char(timestamp '2001-03-15', 'YYYYth')", "2001st");
+        // Non-numeric tokens with th suffix: suffix is dropped
+        assertEvaluate("to_char(timestamp '2024-03-15', 'Monthth')", "March  ");
+        assertEvaluate("to_char(timestamp '2024-03-15', 'Dayth')", "Friday  ");
+        // Backtracked token with th: SSSth parses as SS + "S" + literal "th"
+        assertEvaluate("to_char(timestamp '2024-03-15 14:30:45', 'SSSth')", "45Sth");
+        assertEvaluate("to_char(timestamp '2024-03-15 14:30:01', 'SSSth')", "01Sth");
+        // Standalone th/TH outputs literal (no preceding numeric value)
+        assertEvaluate("to_char(timestamp '2024-01-15', 'th')", "th");
+        assertEvaluate("to_char(timestamp '2024-01-15', 'TH')", "TH");
+        assertEvaluate("to_char(timestamp '2024-01-15', 'th DD')", "th 15");
+        assertEvaluate("to_char(timestamp '2024-01-15', 'Day th')", "Monday   th");
     }
 }

@@ -44,8 +44,7 @@ import io.crate.common.collections.Lists;
 
 public class DateTimeFormatter {
 
-
-    public enum Token {
+    public enum TokenType {
         HOUR_OF_DAY("HH"),
         HOUR_OF_DAY_LOWER("hh"),
         HOUR_OF_DAY12("HH12"),
@@ -155,63 +154,90 @@ public class DateTimeFormatter {
         TIMEZONE_MINUTES("TZM"),
         TIMEZONE_MINUTES_LOWER("tzm"),
         TIMEZONE_OFFSET_FROM_UTC("OF"),
-        TIMEZONE_OFFSET_FROM_UTC_LOWER("of");
+        TIMEZONE_OFFSET_FROM_UTC_LOWER("of"),
+        ORDINAL_SUFFIX("TH"),
+        ORDINAL_SUFFIX_LOWER("th");
 
-        private final String token;
+        private final String pattern;
 
-        Token(final String token) {
-            this.token = token;
+        TokenType(final String pattern) {
+            this.pattern = pattern;
         }
 
         @Override
         public String toString() {
-            return this.token;
+            return this.pattern;
+        }
+    }
+
+    enum OrdinalSuffix {
+        TH_UPPER,
+        TH_LOWER
+    }
+
+    static class FormatElement {
+        private final TokenType type;
+        private final OrdinalSuffix ordinalSuffix;
+
+        FormatElement(TokenType type) {
+            this(type, null);
         }
 
+        FormatElement(TokenType type, OrdinalSuffix ordinalSuffix) {
+            this.type = type;
+            this.ordinalSuffix = ordinalSuffix;
+        }
+
+        TokenType getType() {
+            return type;
+        }
+
+        OrdinalSuffix getOrdinalSuffix() {
+            return ordinalSuffix;
+        }
     }
 
     static class TokenNode {
         private final Map<Character, TokenNode> children = new HashMap<>();
-        private Token token;
+        private TokenType tokenType;
         public final TokenNode parent;
 
         public TokenNode() {
-            this.token = null;
+            this.tokenType = null;
             this.parent = null;
         }
 
-        private TokenNode(String tokenString, Token token, TokenNode parent) {
+        private TokenNode(String tokenString, TokenType tokenType, TokenNode parent) {
             this.parent = parent;
             if (tokenString.length() == 1) {
-                // Last character of the token string, so a terminal leaf.
-                this.token = token;
+                this.tokenType = tokenType;
             } else {
-                this.token = null;
-                this.addChild(tokenString.substring(1), token);
+                this.tokenType = null;
+                this.addChild(tokenString.substring(1), tokenType);
             }
         }
 
-        public void addChild(Token token) {
-            this.addChild(token.toString(), token);
+        public void addChild(TokenType tokenType) {
+            this.addChild(tokenType.toString(), tokenType);
         }
 
-        private void addChild(String tokenString, Token token) {
+        private void addChild(String tokenString, TokenType tokenType) {
             // If a child for the first character of the string exists, add the rest of the string to it as a child.
             TokenNode child = this.children.get(tokenString.charAt(0));
             if (child == null) {
-                this.children.put(tokenString.charAt(0), new TokenNode(tokenString, token, this));
+                this.children.put(tokenString.charAt(0), new TokenNode(tokenString, tokenType, this));
             } else {
                 // If the length of token string is 1, the child node is upgraded to a terminal token node.
                 if (tokenString.length() == 1) {
-                    child.token = token;
+                    child.tokenType = tokenType;
                 } else {
-                    child.addChild(tokenString.substring(1), token);
+                    child.addChild(tokenString.substring(1), tokenType);
                 }
             }
         }
 
         public boolean isTokenNode() {
-            return this.token != null;
+            return this.tokenType != null;
         }
 
         public boolean isRootNode() {
@@ -223,21 +249,21 @@ public class DateTimeFormatter {
     private static final TokenNode ROOT_TOKEN_NODE = new TokenNode();
 
     static {
-        for (Token token: Token.values()) {
-            ROOT_TOKEN_NODE.addChild(token);
+        for (TokenType tokenType : TokenType.values()) {
+            ROOT_TOKEN_NODE.addChild(tokenType);
         }
     }
 
-    private final List<Object> tokens;
+    private final List<Object> formatElements;
 
     private static final TemporalField WEEK_OF_YEAR = WeekFields.of(Locale.ENGLISH).weekOfWeekBasedYear();
 
     public DateTimeFormatter(String pattern) {
-        this.tokens = DateTimeFormatter.parse(pattern);
+        this.formatElements = DateTimeFormatter.parse(pattern);
     }
 
     private static List<Object> parse(String pattern) {
-        ArrayList<Object> tokens = new ArrayList<>();
+        ArrayList<Object> elements = new ArrayList<>();
         String pattern_to_consume = pattern;
         int idx = 0;
 
@@ -257,7 +283,7 @@ public class DateTimeFormatter {
                 if (currentTokenNode.isTokenNode()) {
                     // If the current node is a token, then a valid token is found and added to the list.
                     // The token will then be removed from the rest of the string to parse.
-                    tokens.add(currentTokenNode.token);
+                    elements.add(toFormatElement(elements, currentTokenNode.tokenType));
                 } else {
                     // If the current node is not a token, the parser then traverses back up the tree until it either
                     // finds a token node, or the root.
@@ -270,12 +296,12 @@ public class DateTimeFormatter {
                         if (currentTokenNode.isTokenNode()) {
                             // We have found the valid token, it should be added to the stack and the remaining rest
                             // of the parsed pattern should be added as a string.
-                            tokens.add(currentTokenNode.token);
+                            elements.add(toFormatElement(elements, currentTokenNode.tokenType));
                             break;
                         }
                     }
 
-                    tokens.add(pattern_to_consume.substring(depth, idx));
+                    elements.add(pattern_to_consume.substring(depth, idx));
                 }
 
                 pattern_to_consume = pattern_to_consume.substring(idx);
@@ -284,7 +310,7 @@ public class DateTimeFormatter {
             } else if (nextTokenNode == null) {
                 // If there is no path forward and index is 0, then we're at at the beginning, parsing a non-valid
                 // character. Add as a string.
-                tokens.add(pattern_to_consume.substring(0, idx + 1));
+                elements.add(pattern_to_consume.substring(0, idx + 1));
                 pattern_to_consume = pattern_to_consume.substring(idx + 1);
             } else {
                 idx += 1;
@@ -292,21 +318,63 @@ public class DateTimeFormatter {
             }
         }
 
-        return tokens;
+        return elements;
+    }
+
+    // May remove the last element from `elements` to merge it with an ordinal suffix.
+    private static Object toFormatElement(ArrayList<Object> elements, TokenType tokenType) {
+        OrdinalSuffix suffix = switch (tokenType) {
+            case ORDINAL_SUFFIX -> OrdinalSuffix.TH_UPPER;
+            case ORDINAL_SUFFIX_LOWER -> OrdinalSuffix.TH_LOWER;
+            default -> null;
+        };
+        if (suffix == null) {
+            return new FormatElement(tokenType);
+        }
+        if (!elements.isEmpty() && elements.getLast() instanceof FormatElement preceding) {
+            elements.removeLast();
+            return new FormatElement(preceding.getType(), suffix);
+        }
+        return suffix == OrdinalSuffix.TH_UPPER ? "TH" : "th";
     }
 
     public String format(LocalDateTime datetime) {
-        return Lists.joinOn("", this.tokens, x -> {
-            if (x instanceof Token) {
-                return getElement((Token) x, datetime);
+        return Lists.joinOn("", this.formatElements, x -> {
+            if (x instanceof FormatElement element) {
+                String formatted = formatTokenType(element.getType(), datetime);
+                if (element.getOrdinalSuffix() != null) {
+                    return formatted + computeOrdinalSuffix(formatted, element.getOrdinalSuffix());
+                }
+                return formatted;
             } else {
                 return String.valueOf(x);
             }
         });
     }
 
-    private static String getElement(Token token, LocalDateTime datetime) {
-        Object element = switch (token) {
+    private static String computeOrdinalSuffix(String formattedValue, OrdinalSuffix suffix) {
+        try {
+            int number = Integer.parseInt(formattedValue.trim());
+            int absNumber = Math.abs(number);
+            String suffixStr;
+            if (absNumber % 100 >= 11 && absNumber % 100 <= 13) {
+                suffixStr = "th";
+            } else {
+                suffixStr = switch (absNumber % 10) {
+                    case 1 -> "st";
+                    case 2 -> "nd";
+                    case 3 -> "rd";
+                    default -> "th";
+                };
+            }
+            return suffix == OrdinalSuffix.TH_UPPER ? suffixStr.toUpperCase(Locale.ROOT) : suffixStr;
+        } catch (NumberFormatException e) {
+            return "";
+        }
+    }
+
+    private static String formatTokenType(TokenType tokenType, LocalDateTime datetime) {
+        Object element = switch (tokenType) {
             case HOUR_OF_DAY, HOUR_OF_DAY12, HOUR_OF_DAY_LOWER, HOUR_OF_DAY12_LOWER -> {
                 if (datetime.getHour() >= 12) {
                     yield padStart(

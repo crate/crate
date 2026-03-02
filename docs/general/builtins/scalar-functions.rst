@@ -1758,6 +1758,9 @@ The syntax for the ``format_string`` differs based the type of the
       - Time-zone minutes
     * - ``OF`` / ``of``
       - Time-zone offset from UTC
+    * - ``TH`` / ``th``
+      - Ordinal number suffix appended to the preceding numeric value
+        (e.g., ``DDth`` produces ``15th``, ``1st``, ``2nd``, ``3rd``)
 
 Example::
 
