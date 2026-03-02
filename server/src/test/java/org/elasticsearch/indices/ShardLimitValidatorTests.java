@@ -25,6 +25,7 @@ import static org.elasticsearch.cluster.shards.ShardCounts.forDataNodeCount;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.HashMap;
 import java.util.Optional;
 
 import org.elasticsearch.Version;
@@ -36,7 +37,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.shards.ShardCounts;
 import org.elasticsearch.common.ValidationException;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -82,12 +82,12 @@ public class ShardLimitValidatorTests extends CrateDummyClusterServiceUnitTest {
 
 
     private static ClusterState createClusterForShardLimitTest(int nodesInCluster, int shardsInIndex, int replicas) {
-        ImmutableOpenMap.Builder<String, DiscoveryNode> dataNodes = ImmutableOpenMap.builder();
+        HashMap<String, DiscoveryNode> dataNodes = new HashMap<>();
         for (int i = 0; i < nodesInCluster; i++) {
             dataNodes.put(randomAlphaOfLengthBetween(5, 15), mock(DiscoveryNode.class));
         }
         DiscoveryNodes nodes = mock(DiscoveryNodes.class);
-        when(nodes.getDataNodes()).thenReturn(dataNodes.build());
+        when(nodes.getDataNodes()).thenReturn(dataNodes);
 
         IndexMetadata.Builder indexMetadata = IndexMetadata.builder(randomAlphaOfLengthBetween(5, 15))
             .settings(Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT))

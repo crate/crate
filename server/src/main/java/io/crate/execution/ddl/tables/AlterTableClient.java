@@ -49,9 +49,9 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.BoundAlterTable;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
@@ -209,8 +209,7 @@ public class AlterTableClient {
 
     @Nullable
     private String findResizeSourceUUID(IndexMetadata index) {
-        for (var cursor : clusterService.state().metadata().indices().values()) {
-            IndexMetadata indexMetadata = cursor.value;
+        for (var indexMetadata : clusterService.state().metadata().indices().values()) {
             Settings settings = indexMetadata.getSettings();
             String sourceUUID = IndexMetadata.INDEX_RESIZE_SOURCE_UUID.get(settings);
             if (index.getIndexUUID().equals(sourceUUID)) {

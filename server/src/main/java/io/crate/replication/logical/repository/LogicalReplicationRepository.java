@@ -73,8 +73,8 @@ import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
@@ -158,8 +158,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         return getPublicationsState()
             .thenApply(stateResponse -> {
                 List<String> indexUUIDs = new ArrayList<>();
-                for (var container : stateResponse.metadata().indices().values()) {
-                    IndexMetadata im = container.value;
+                for (IndexMetadata im : stateResponse.metadata().indices().values()) {
                     if (REPLICATION_INDEX_ROUTING_ACTIVE.get(im.getSettings())) {
                         indexUUIDs.add(im.getIndex().getUUID());
                     }
@@ -230,12 +229,13 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         return getRemoteClusterState(remoteRelationNames).thenApply(response -> {
             var result = new ArrayList<IndexMetadata>();
             ClusterState remoteClusterState = response.getState();
-            for (var i : remoteClusterState.metadata().indices()) {
-                if (remoteClusterState.routingTable().index(i.key).allPrimaryShardsActive() == false) {
+            for (var entry : remoteClusterState.metadata().indices().entrySet()) {
+                String indexUUID = entry.getKey();
+                IndexMetadata indexMetadata = entry.getValue();
+                if (remoteClusterState.routingTable().index(indexUUID).allPrimaryShardsActive() == false) {
                     // skip indices where not all shards are active yet, restore will fail if primaries are not (yet) assigned
                     continue;
                 }
-                var indexMetadata = i.value;
                 // Add replication specific settings, this setting will trigger a custom engine, see {@link SQLPlugin#getEngineFactory}
                 var builder = Settings.builder().put(indexMetadata.getSettings());
                 builder.put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName);
@@ -245,7 +245,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 builder.remove(REPLICATION_INDEX_ROUTING_ACTIVE.getKey());
 
                 var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
-                indexMetadata.getAliases().valuesIt().forEachRemaining(indexMdBuilder::putAlias);
+                indexMetadata.getAliases().values().forEach(indexMdBuilder::putAlias);
                 result.add(indexMdBuilder.build());
             }
             return result;
@@ -263,7 +263,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 var remoteClusterState = remoteStateResp.getState();
                 var remoteMetadata = remoteClusterState.metadata();
                 var shardGenerations = ShardGenerations.builder();
-                var it = remoteMetadata.indices().valuesIt();
+                var it = remoteMetadata.indices().values().iterator();
                 while (it.hasNext()) {
                     var indexMetadata = it.next();
                     var indexId = new IndexId(indexMetadata.getIndex().getName(), indexMetadata.getIndexUUID());

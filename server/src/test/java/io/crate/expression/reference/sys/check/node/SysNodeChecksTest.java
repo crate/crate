@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.sys.check.node;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -42,7 +42,6 @@ import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.TestShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.GatewayService;
@@ -69,8 +68,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRecoveryExpectedNodesCheckWithDefaultSetting() {
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
-        var dataNodes = ImmutableOpenMap.<String, DiscoveryNode>builder().build();
-        when(clusterService.state().nodes().getDataNodes()).thenReturn(dataNodes);
+        when(clusterService.state().nodes().getDataNodes()).thenReturn(Map.of());
         when(clusterService.state().nodes().getSize()).thenReturn(1);
 
         RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
@@ -85,10 +83,10 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRecoveryExpectedNodesCheckWithLessThanQuorum() {
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
-        var dataNodes = ImmutableOpenMap.<String, DiscoveryNode>builder()
-            .fPut("data_node1", mock(DiscoveryNode.class))
-            .fPut("data_node2", mock(DiscoveryNode.class))
-            .build();
+        var dataNodes = Map.of(
+            "data_node1", mock(DiscoveryNode.class),
+            "data_node2", mock(DiscoveryNode.class)
+        );
         when(clusterService.state().nodes().getDataNodes()).thenReturn(dataNodes);
 
         var settings = Settings.builder()
@@ -106,8 +104,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_recovery_expected_nodes_check_BWC_with_deprecated_settings() {
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
-        var dataNodes = ImmutableOpenMap.<String, DiscoveryNode>builder().build();
-        when(clusterService.state().nodes().getDataNodes()).thenReturn(dataNodes);
+        when(clusterService.state().nodes().getDataNodes()).thenReturn(Map.of());
         when(clusterService.state().nodes().getSize()).thenReturn(2);
 
         var settings = Settings.builder()
@@ -125,11 +122,11 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRecoveryExpectedNodesCheckWithCorrectSetting() {
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
-        var dataNodes = ImmutableOpenMap.<String, DiscoveryNode>builder()
-            .fPut("data_node1", mock(DiscoveryNode.class))
-            .fPut("data_node2", mock(DiscoveryNode.class))
-            .fPut("data_node3", mock(DiscoveryNode.class))
-            .build();
+        var dataNodes = Map.of(
+            "data_node1", mock(DiscoveryNode.class),
+            "data_node2", mock(DiscoveryNode.class),
+            "data_node3", mock(DiscoveryNode.class)
+        );
         when(clusterService.state().nodes().getDataNodes()).thenReturn(dataNodes);
 
         var settings = Settings.builder()
@@ -147,11 +144,11 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRecoveryExpectedNodesCheckWithBiggerThanNumberOfNodes() {
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
-        var dataNodes = ImmutableOpenMap.<String, DiscoveryNode>builder()
-            .fPut("data_node1", mock(DiscoveryNode.class))
-            .fPut("data_node2", mock(DiscoveryNode.class))
-            .fPut("data_node3", mock(DiscoveryNode.class))
-            .build();
+        var dataNodes = Map.of(
+            "data_node1", mock(DiscoveryNode.class),
+            "data_node2", mock(DiscoveryNode.class),
+            "data_node3", mock(DiscoveryNode.class)
+        );
         when(clusterService.state().nodes().getDataNodes()).thenReturn(dataNodes);
 
         var settings = Settings.builder()
@@ -179,10 +176,10 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRecoveryAfterNodesCheckWithLessThanQuorum() {
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
-        var dataNodes = ImmutableOpenMap.<String, DiscoveryNode>builder()
-            .fPut("data_node1", mock(DiscoveryNode.class))
-            .fPut("data_node2", mock(DiscoveryNode.class))
-            .build();
+        var dataNodes = Map.of(
+            "data_node1", mock(DiscoveryNode.class),
+            "data_node2", mock(DiscoveryNode.class)
+        );
         when(clusterService.state().nodes().getDataNodes()).thenReturn(dataNodes);
 
         var settings = Settings.builder()
@@ -201,8 +198,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_recovery_after_nodes_check_BWC_with_deprecated_setting() {
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
-        var dataNodes = ImmutableOpenMap.<String, DiscoveryNode>builder().build();
-        when(clusterService.state().nodes().getDataNodes()).thenReturn(dataNodes);
+        when(clusterService.state().nodes().getDataNodes()).thenReturn(Map.of());
         when(clusterService.state().nodes().getSize()).thenReturn(8);
 
         var settings = Settings.builder()
@@ -221,10 +217,10 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRecoveryAfterNodesCheckWithCorrectSetting() {
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
-        var dataNodes = ImmutableOpenMap.<String, DiscoveryNode>builder()
-            .fPut("data_node1", mock(DiscoveryNode.class))
-            .fPut("data_node2", mock(DiscoveryNode.class))
-            .build();
+        var dataNodes = Map.of(
+            "data_node1", mock(DiscoveryNode.class),
+            "data_node2", mock(DiscoveryNode.class)
+        );
         when(clusterService.state().nodes().getDataNodes()).thenReturn(dataNodes);
 
         var settings = Settings.builder()

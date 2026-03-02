@@ -40,7 +40,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.util.SetOnce;
@@ -1155,8 +1154,10 @@ public class IndexRecoveryIT extends IntegTestCase {
     @Test
     public void testRecoverLocallyUpToGlobalCheckpoint() throws Exception {
         cluster().ensureAtLeastNumDataNodes(2);
-        List<String> nodes = randomSubsetOf(2, StreamSupport.stream(clusterService().state().nodes().getDataNodes().spliterator(), false)
-            .map(node -> node.value.getName()).collect(Collectors.toSet()));
+        DiscoveryNodes discoveryNodes = clusterService().state().nodes();
+        List<String> nodes = randomSubsetOf(2, discoveryNodes.getDataNodes().values().stream()
+            .map(node -> node.getName())
+            .collect(Collectors.toSet()));
         execute("CREATE TABLE doc.test (num INT)" +
                 " CLUSTERED INTO 1 SHARDS" +
                 " WITH (" +

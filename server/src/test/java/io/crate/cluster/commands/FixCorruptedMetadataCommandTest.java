@@ -32,6 +32,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF
 import static org.elasticsearch.index.IndexSettings.INDEX_REFRESH_INTERVAL_SETTING;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 
 import org.elasticsearch.Version;
@@ -39,7 +40,6 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -58,10 +58,10 @@ public class FixCorruptedMetadataCommandTest {
         corruptedBuilder.putMapping(mapping);
         IndexTemplateMetadata corrupted = corruptedBuilder.build();
 
-        ImmutableOpenMap.Builder<String, IndexTemplateMetadata> mapBuilder = ImmutableOpenMap.builder();
-        mapBuilder.put(corruptedName, corrupted);
+        HashMap<String, IndexTemplateMetadata> templates = new HashMap<>();
+        templates.put(corruptedName, corrupted);
         Metadata.Builder fixedMetadata = new Metadata.Builder(Metadata.OID_UNASSIGNED);
-        fixNameOfTemplateMetadata(mapBuilder.build(), fixedMetadata);
+        fixNameOfTemplateMetadata(templates, fixedMetadata);
 
         // only the name of the corrupted template is fixed
         String fixedName = "m1..partitioned.s1.";
@@ -92,11 +92,11 @@ public class FixCorruptedMetadataCommandTest {
         existingBuilder.putMapping(mappingOfExistingTemplate);
         IndexTemplateMetadata existingTemplate = existingBuilder.build();
 
-        ImmutableOpenMap.Builder<String, IndexTemplateMetadata> mapBuilder = ImmutableOpenMap.builder();
-        mapBuilder.put(corruptedName, corrupted);
-        mapBuilder.put(nameOfExistingTemplate, existingTemplate);
+        HashMap<String, IndexTemplateMetadata> templates = new HashMap<>();
+        templates.put(corruptedName, corrupted);
+        templates.put(nameOfExistingTemplate, existingTemplate);
         Metadata.Builder fixedMetadata = new Metadata.Builder(Metadata.OID_UNASSIGNED);
-        fixNameOfTemplateMetadata(mapBuilder.build(), fixedMetadata);
+        fixNameOfTemplateMetadata(templates, fixedMetadata);
 
         // only the name of the corrupted template is fixed
         String fixedName = "m1..partitioned.s1.";
@@ -134,12 +134,12 @@ public class FixCorruptedMetadataCommandTest {
         dummyBuilder.putMapping(dummyMapping);
         IndexTemplateMetadata dummy = dummyBuilder.build();
 
-        ImmutableOpenMap.Builder<String, IndexTemplateMetadata> mapBuilder = ImmutableOpenMap.builder();
-        mapBuilder.put(corruptedName, corrupted);
-        mapBuilder.put(dummyName, dummy);
-        mapBuilder.put(nameOfExistingTemplate, existingTemplate);
+        HashMap<String, IndexTemplateMetadata> templates = new HashMap<>();
+        templates.put(corruptedName, corrupted);
+        templates.put(dummyName, dummy);
+        templates.put(nameOfExistingTemplate, existingTemplate);
         Metadata.Builder fixedMetadata = new Metadata.Builder(Metadata.OID_UNASSIGNED);
-        fixNameOfTemplateMetadata(mapBuilder.build(), fixedMetadata);
+        fixNameOfTemplateMetadata(templates, fixedMetadata);
 
         // only the name of the corrupted template is fixed
         String fixedName = "m1..partitioned.s1.";
@@ -247,9 +247,9 @@ public class FixCorruptedMetadataCommandTest {
         String existingTemplateName = "m7..partitioned.s7.";
         IndexTemplateMetadata.Builder templateBuilder = new IndexTemplateMetadata.Builder(existingTemplateName);
         templateBuilder.patterns(List.of(existingTemplateName + "*")).putMapping("{\"default\": {}}");
-        ImmutableOpenMap.Builder<String, IndexTemplateMetadata> mapBuilder = ImmutableOpenMap.builder();
-        mapBuilder.put(existingTemplateName, templateBuilder.build());
-        upgradedMetadata.templates(mapBuilder.build());
+        HashMap<String, IndexTemplateMetadata> templates = new HashMap<>();
+        templates.put(existingTemplateName, templateBuilder.build());
+        upgradedMetadata.templates(templates);
 
         fixInconsistencyBetweenIndexAndTemplates(corruptedMetadata, upgradedMetadata);
 
@@ -293,9 +293,9 @@ public class FixCorruptedMetadataCommandTest {
         String invalidTemplateName = "m7..partitioned.s7.";
         IndexTemplateMetadata.Builder templateBuilder = new IndexTemplateMetadata.Builder(invalidTemplateName);
         templateBuilder.patterns(List.of(invalidTemplateName + "*")).putMapping("{\"default\": {}}");
-        ImmutableOpenMap.Builder<String, IndexTemplateMetadata> mapBuilder = ImmutableOpenMap.builder();
-        mapBuilder.put(invalidTemplateName, templateBuilder.build());
-        fixedMetadata.templates(mapBuilder.build());
+        HashMap<String, IndexTemplateMetadata> templates = new HashMap<>();
+        templates.put(invalidTemplateName, templateBuilder.build());
+        fixedMetadata.templates(templates);
 
         fixInconsistencyBetweenIndexAndTemplates(nonPartitioned, fixedMetadata);
         var afterFix = fixedMetadata.get("m7.s7");

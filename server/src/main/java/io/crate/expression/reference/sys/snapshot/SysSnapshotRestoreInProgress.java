@@ -23,14 +23,12 @@ package io.crate.expression.reference.sys.snapshot;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.RestoreInProgress;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.shard.ShardId;
-
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -106,14 +104,14 @@ public class SysSnapshotRestoreInProgress {
         return Objects.hash(id, name, repository, state, shards);
     }
 
-    public static class ShardRestoreInfo {
+    public record ShardRestoreInfo(int id, IndexParts indexParts, RestoreInProgress.State state) {
 
-        public static List<ShardRestoreInfo> of(ImmutableOpenMap<ShardId, RestoreInProgress.ShardRestoreStatus> shards,
+        public static List<ShardRestoreInfo> of(Map<ShardId, RestoreInProgress.ShardRestoreStatus> shards,
                                                 ClusterState currentState) {
             var shardsRestoreInfo = new ArrayList<ShardRestoreInfo>(shards.size());
-            for (ObjectObjectCursor<ShardId, RestoreInProgress.ShardRestoreStatus> shardEntry : shards) {
-                ShardId shardId = shardEntry.key;
-                RestoreInProgress.ShardRestoreStatus status = shardEntry.value;
+            for (Map.Entry<ShardId, RestoreInProgress.ShardRestoreStatus> shardEntry : shards.entrySet()) {
+                ShardId shardId = shardEntry.getKey();
+                RestoreInProgress.ShardRestoreStatus status = shardEntry.getValue();
                 PartitionName partitionName = currentState.metadata().getPartitionName(shardId.getIndexUUID());
                 IndexParts indexParts = new IndexParts(
                     partitionName.relationName().schema(),
@@ -129,49 +127,5 @@ public class SysSnapshotRestoreInProgress {
             }
             return shardsRestoreInfo;
         }
-
-        private final int id;
-        private final IndexParts indexParts;
-        private final RestoreInProgress.State state;
-
-        public ShardRestoreInfo(int id, IndexParts indexParts, RestoreInProgress.State state) {
-            this.id = id;
-            this.indexParts = indexParts;
-            this.state = state;
-        }
-
-        public int id() {
-            return id;
-        }
-
-        public IndexParts indexParts() {
-            return indexParts;
-        }
-
-        public RestoreInProgress.State state() {
-            return state;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            ShardRestoreInfo that = (ShardRestoreInfo) o;
-            return id == that.id &&
-                   Objects.equals(indexParts.table(), that.indexParts.table()) &&
-                   Objects.equals(indexParts.schema(), that.indexParts.schema()) &&
-                   Objects.equals(indexParts.partitionIdent(), that.indexParts.partitionIdent()) &&
-                   state == that.state;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(id, indexParts, state);
-        }
     }
-
 }

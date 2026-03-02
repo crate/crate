@@ -22,6 +22,7 @@ package org.elasticsearch.common.lucene.search;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -41,7 +42,6 @@ import org.apache.lucene.search.QueryVisitor;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.StringHelper;
 
-import com.carrotsearch.hppc.ObjectHashSet;
 
 public class MultiPhrasePrefixQuery extends Query {
 
@@ -159,7 +159,7 @@ public class MultiPhrasePrefixQuery extends Query {
         }
         Term[] suffixTerms = termArrays.get(sizeMinus1);
         int position = positions.get(sizeMinus1);
-        ObjectHashSet<Term> terms = new ObjectHashSet<>();
+        HashSet<Term> terms = new HashSet<>();
         for (Term term : suffixTerms) {
             getPrefixTerms(terms, term, searcher.getIndexReader());
             if (terms.size() > maxExpansions) {
@@ -179,7 +179,7 @@ public class MultiPhrasePrefixQuery extends Query {
                 .add(new MatchNoDocsQuery("No terms supplied for " + MultiPhrasePrefixQuery.class.getName()),
                     BooleanClause.Occur.MUST).build();
         }
-        query.add(terms.toArray(Term.class), position);
+        query.add(terms.toArray(Term[]::new), position);
         return query.build();
     }
 
@@ -187,7 +187,7 @@ public class MultiPhrasePrefixQuery extends Query {
     public void visit(QueryVisitor visitor) {
     }
 
-    private void getPrefixTerms(ObjectHashSet<Term> terms, final Term prefix, final IndexReader reader) throws IOException {
+    private void getPrefixTerms(HashSet<Term> terms, final Term prefix, final IndexReader reader) throws IOException {
         // SlowCompositeReaderWrapper could be used... but this would merge all terms from each segment into one terms
         // instance, which is very expensive. Therefore I think it is better to iterate over each leaf individually.
         List<LeafReaderContext> leaves = reader.leaves();

@@ -43,7 +43,6 @@ import org.apache.lucene.util.Constants;
 import org.assertj.core.data.Offset;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.test.ESTestCase;
@@ -490,38 +489,6 @@ public class BytesStreamsTests extends ESTestCase {
         final Map<String, String> loaded = in.readMap(StreamInput::readString, StreamInput::readString);
 
         assertThat(loaded).hasSize(expected.size());
-        assertThat(expected).isEqualTo(loaded);
-    }
-
-    public void testWriteImmutableMap() throws IOException {
-        final int size = randomIntBetween(0, 100);
-        final ImmutableOpenMap.Builder<String, String> expectedBuilder = ImmutableOpenMap.builder(randomIntBetween(0, 100));
-        for (int i = 0; i < size; ++i) {
-            expectedBuilder.put(randomAlphaOfLength(2), randomAlphaOfLength(5));
-        }
-
-        final ImmutableOpenMap<String, String> expected = expectedBuilder.build();
-        final BytesStreamOutput out = new BytesStreamOutput();
-        out.writeMap(expected, StreamOutput::writeString, StreamOutput::writeString);
-        final StreamInput in = StreamInput.wrap(BytesReference.toBytes(out.bytes()));
-        final ImmutableOpenMap<String, String> loaded = in.readImmutableMap(StreamInput::readString, StreamInput::readString);
-
-        assertThat(expected).isEqualTo(loaded);
-    }
-
-    public void testWriteImmutableMapOfWritable() throws IOException {
-        final int size = randomIntBetween(0, 100);
-        final ImmutableOpenMap.Builder<TestWriteable, TestWriteable> expectedBuilder = ImmutableOpenMap.builder(randomIntBetween(0, 100));
-        for (int i = 0; i < size; ++i) {
-            expectedBuilder.put(new TestWriteable(randomBoolean()), new TestWriteable(randomBoolean()));
-        }
-
-        final ImmutableOpenMap<TestWriteable, TestWriteable> expected = expectedBuilder.build();
-        final BytesStreamOutput out = new BytesStreamOutput();
-        out.writeMap(expected);
-        final StreamInput in = StreamInput.wrap(BytesReference.toBytes(out.bytes()));
-        final ImmutableOpenMap<TestWriteable, TestWriteable> loaded = in.readImmutableMap(TestWriteable::new, TestWriteable::new);
-
         assertThat(expected).isEqualTo(loaded);
     }
 

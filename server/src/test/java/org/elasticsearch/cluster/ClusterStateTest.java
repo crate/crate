@@ -32,11 +32,11 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
+import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
@@ -68,8 +68,8 @@ public class ClusterStateTest extends CrateDummyClusterServiceUnitTest {
         indicesRoutingField.setAccessible(true);
         RoutingTable.Builder routingTableBuilder = RoutingTable.builder();
         //noinspection unchecked
-        ImmutableOpenMap.Builder<String, IndexRoutingTable> indicesRouting =
-            (ImmutableOpenMap.Builder<String, IndexRoutingTable>) indicesRoutingField.get(routingTableBuilder);
+        MapBuilder<String, IndexRoutingTable> indicesRouting =
+            (MapBuilder<String, IndexRoutingTable>) indicesRoutingField.get(routingTableBuilder);
         indicesRouting.put(indexMetadata.getIndex().getName(), indexRouting);
 
         ClusterState clusterState = ClusterState.builder(new ClusterName("test"))

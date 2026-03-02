@@ -24,12 +24,12 @@ package org.elasticsearch.cluster.metadata;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
@@ -63,7 +63,7 @@ public class SchemaMetadataTest extends ESTestCase {
 
     private void assertRelations(int expected, SchemaMetadata schemaMetadata) {
         ArrayList<RelationMetadata> actualRelations = new ArrayList<>();
-        schemaMetadata.relations().valuesIt().forEachRemaining(actualRelations::add);
+        schemaMetadata.relations().values().forEach(actualRelations::add);
         if (expected == 3) {
             assertThat(actualRelations).containsExactlyInAnyOrder(relT1, relT2, relT3);
         } else {
@@ -73,16 +73,16 @@ public class SchemaMetadataTest extends ESTestCase {
 
     @Test
     public void test_diff_streaming() throws Exception {
-        ImmutableOpenMap.Builder<String, RelationMetadata> relationsV1 = ImmutableOpenMap.builder();
+        HashMap<String, RelationMetadata> relationsV1 = new HashMap<>();
         relationsV1.put("t1", relT1);
         relationsV1.put("t2", relT2);
-        SchemaMetadata schemaV1 = new SchemaMetadata(relationsV1.build(), true);
+        SchemaMetadata schemaV1 = new SchemaMetadata(relationsV1, true);
 
-        ImmutableOpenMap.Builder<String, RelationMetadata> relationsV2 = ImmutableOpenMap.builder();
+        HashMap<String, RelationMetadata> relationsV2 = new HashMap<>();
         relationsV2.put("t1", relT1);
         relationsV2.put("t2", relT2);
         relationsV2.put("t3", relT3);
-        SchemaMetadata schemaV2 = new SchemaMetadata(relationsV2.build(), true);
+        SchemaMetadata schemaV2 = new SchemaMetadata(relationsV2, true);
 
         SchemaMetadata before;
         SchemaMetadata after;

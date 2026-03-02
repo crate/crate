@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.concurrent.CompletableFuture;
@@ -45,7 +46,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.IndexMetaDataGenerations;
 import org.elasticsearch.repositories.Repository;
@@ -85,7 +85,7 @@ public class SysSnapshotsTest extends ESTestCase {
         when(r1.getMetadata()).thenReturn(new RepositoryMetadata("repo1", "fs", Settings.EMPTY));
 
         Metadata metadata = mock(Metadata.class);
-        when(metadata.templates()).thenReturn(ImmutableOpenMap.of());
+        when(metadata.templates()).thenReturn(Map.of());
 
         // s1 fails for SnapshotInfo
         doReturn(CompletableFuture.completedFuture(metadata))
@@ -147,7 +147,7 @@ public class SysSnapshotsTest extends ESTestCase {
         when(r1.getMetadata()).thenReturn(new RepositoryMetadata("repo1", "fs", Settings.EMPTY));
 
         Metadata metadata = mock(Metadata.class);
-        when(metadata.templates()).thenReturn(ImmutableOpenMap.of());
+        when(metadata.templates()).thenReturn(Map.of());
 
         doReturn(CompletableFuture.completedFuture(metadata))
             .when(r1)
@@ -201,7 +201,7 @@ public class SysSnapshotsTest extends ESTestCase {
         when(r1.getMetadata()).thenReturn(new RepositoryMetadata("repo1", "fs", Settings.EMPTY));
 
         Metadata metadata = mock(Metadata.class);
-        when(metadata.templates()).thenReturn(ImmutableOpenMap.of());
+        when(metadata.templates()).thenReturn(Map.of());
 
         doReturn(CompletableFuture.completedFuture(metadata))
             .when(r1)
@@ -268,7 +268,7 @@ public class SysSnapshotsTest extends ESTestCase {
             List.of(relationName),
             123L,
             1L,
-            ImmutableOpenMap.of(),
+            Map.of(),
             Version.CURRENT
         );
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);

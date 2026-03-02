@@ -46,7 +46,6 @@ import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.common.collections.MapBuilder;
@@ -483,8 +482,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         // We need to ensure that partition is not left behind if row validation failed.
         Metadata updatedMetadata = cluster().clusterService().state().metadata();
         String tableTemplateName = PartitionName.templateName("doc", "quotes");
-        for (ObjectCursor<String> cursor : updatedMetadata.indices().keys()) {
-            String indexName = cursor.value;
+        for (String indexName : updatedMetadata.indices().keySet()) {
             assertThat(PartitionName.templateName(indexName)).isNotEqualTo(tableTemplateName);
         }
     }
@@ -1920,8 +1918,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         // Checking that neither of them has created a partition.
         Metadata updatedMetadata = cluster().clusterService().state().metadata();
         String tableTemplateName = PartitionName.templateName("doc", "t");
-        for (ObjectCursor<String> cursor : updatedMetadata.indices().keys()) {
-            String indexName = cursor.value;
+        for (String indexName : updatedMetadata.indices().keySet()) {
             assertThat(PartitionName.templateName(indexName)).isNotEqualTo(tableTemplateName);
         }
     }

@@ -94,7 +94,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -786,7 +785,6 @@ public abstract class IntegTestCase extends ESTestCase {
                     .usingRecursiveComparison(RecursiveComparisonConfiguration.builder()
                         // routingNodes is built on demand
                         .withIgnoredFields("routingNodes")
-                        .withComparatorForType((x, y) -> x.equals(y) ? 0 : 1, ImmutableOpenMap.class)
                         .withComparatorForType((x, y) -> x.equals(y) ? 0 : 1, ImmutableOpenIntMap.class)
                         .withIgnoreAllOverriddenEquals(false)
                         .build())

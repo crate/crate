@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -49,7 +50,6 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.node.DiscoveryNodeFilters;
 import org.elasticsearch.cluster.routing.allocation.IndexMetadataUpdater;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -65,7 +65,6 @@ import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.Constants;
 import io.crate.common.collections.MapBuilder;
@@ -284,7 +283,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
      *             RelationMetadata.BlobTable#indexUUID()}
      **/
     @Deprecated
-    private final ImmutableOpenMap<String, AliasMetadata> aliases;
+    private final Map<String, AliasMetadata> aliases;
 
 
     private final List<String> partitionValues;
@@ -321,7 +320,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
                           int numberOfReplicas,
                           Settings settings,
                           MappingMetadata mapping,
-                          ImmutableOpenMap<String, AliasMetadata> aliases,
+                          Map<String, AliasMetadata> aliases,
                           List<String> partitionValues,
                           ImmutableOpenIntMap<Set<String>> inSyncAllocationIds,
                           DiscoveryNodeFilters requireFilters,
@@ -451,7 +450,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         return settings;
     }
 
-    public ImmutableOpenMap<String, AliasMetadata> getAliases() {
+    public Map<String, AliasMetadata> getAliases() {
         return this.aliases;
     }
 
@@ -563,8 +562,8 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         private final State state;
         private final Settings settings;
         private final List<String> partitionValues;
-        private final Diff<ImmutableOpenMap<String, MappingMetadata>> mappings;
-        private final Diff<ImmutableOpenMap<String, AliasMetadata>> aliases;
+        private final Diff<Map<String, MappingMetadata>> mappings;
+        private final Diff<Map<String, AliasMetadata>> aliases;
         private final Diff<ImmutableOpenIntMap<Set<String>>> inSyncAllocationIds;
 
         IndexMetadataDiff(Version v, IndexMetadata before, IndexMetadata after) {
@@ -577,15 +576,15 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             settings = after.settings;
             primaryTerms = after.primaryTerms;
             partitionValues = after.partitionValues;
-            ImmutableOpenMap.Builder<String, MappingMetadata> beforeMappings = ImmutableOpenMap.builder();
+            HashMap<String, MappingMetadata> beforeMappings = new HashMap<>();
             if (before.mapping != null) {
                 beforeMappings.put(Constants.DEFAULT_MAPPING_TYPE, before.mapping);
             }
-            ImmutableOpenMap.Builder<String, MappingMetadata> afterMappings = ImmutableOpenMap.builder();
+            HashMap<String, MappingMetadata> afterMappings = new HashMap<>();
             if (after.mapping != null) {
                 afterMappings.put(Constants.DEFAULT_MAPPING_TYPE, after.mapping);
             }
-            mappings = Diffs.diff(v, beforeMappings.build(), afterMappings.build(), Diffs.stringKeySerializer());
+            mappings = Diffs.diff(v, beforeMappings, afterMappings, Diffs.stringKeySerializer());
             aliases = Diffs.diff(v, before.aliases, after.aliases, Diffs.stringKeySerializer());
             inSyncAllocationIds = Diffs.diff(
                 v,
@@ -646,10 +645,10 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             mappings.writeTo(out);
             aliases.writeTo(out);
             if (out.getVersion().before(Version.V_5_8_0)) {
-                Diff<ImmutableOpenMap<String, DiffableStringMap>> customData = Diffs.diff(
+                Diff<Map<String, DiffableStringMap>> customData = Diffs.diff(
                     out.getVersion(),
-                    ImmutableOpenMap.<String, DiffableStringMap>of(),
-                    ImmutableOpenMap.<String, DiffableStringMap>of(),
+                    Map.<String, DiffableStringMap>of(),
+                    Map.<String, DiffableStringMap>of(),
                     Diffs.stringKeySerializer()
                 );
                 customData.writeTo(out);
@@ -676,10 +675,10 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             builder.settings(settings);
             builder.primaryTerms(primaryTerms);
             builder.partitionValues(partitionValues);
-            ImmutableOpenMap.Builder<String, MappingMetadata> mappingBuilder = ImmutableOpenMap.<String, MappingMetadata>builder();
+            HashMap<String, MappingMetadata> mapping = new HashMap<>();
             if (part.mapping != null) {
-                mappingBuilder.put(Constants.DEFAULT_MAPPING_TYPE, part.mapping);
-                MappingMetadata appliedMapping = mappings.apply(mappingBuilder.build()).get(Constants.DEFAULT_MAPPING_TYPE);
+                mapping.put(Constants.DEFAULT_MAPPING_TYPE, part.mapping);
+                MappingMetadata appliedMapping = mappings.apply(mapping).get(Constants.DEFAULT_MAPPING_TYPE);
                 if (appliedMapping != null) {
                     builder.mapping = appliedMapping;
                 }
@@ -757,8 +756,8 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             mapping.writeTo(out);
         }
         out.writeVInt(aliases.size());
-        for (ObjectCursor<AliasMetadata> cursor : aliases.values()) {
-            cursor.value.writeTo(out);
+        for (AliasMetadata aliasMd : aliases.values()) {
+            aliasMd.writeTo(out);
         }
         // customData
         if (out.getVersion().before(Version.V_5_8_0)) {
@@ -797,7 +796,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         private Settings settings = Settings.EMPTY;
         private MappingMetadata mapping;
         private List<String> partitionValues;
-        private final ImmutableOpenMap.Builder<String, AliasMetadata> aliases;
+        private final MapBuilder<String, AliasMetadata> aliases;
         private final ImmutableOpenIntMap.Builder<Set<String>> inSyncAllocationIds;
         private Integer routingNumShards;
 
@@ -807,7 +806,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
         public Builder(String indexUUID) {
             this.indexUUID = indexUUID;
-            this.aliases = ImmutableOpenMap.builder();
+            this.aliases = MapBuilder.newMapBuilder();
             this.inSyncAllocationIds = ImmutableOpenIntMap.builder();
             this.partitionValues = List.of();
         }
@@ -822,7 +821,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             this.settings = indexMetadata.getSettings();
             this.primaryTerms = indexMetadata.primaryTerms.clone();
             this.mapping = indexMetadata.mapping;
-            this.aliases = ImmutableOpenMap.builder(indexMetadata.aliases);
+            this.aliases = MapBuilder.newMapBuilder(indexMetadata.aliases);
             this.partitionValues = indexMetadata.partitionValues;
             this.routingNumShards = indexMetadata.routingNumShards;
             this.inSyncAllocationIds = ImmutableOpenIntMap.builder(indexMetadata.inSyncAllocationIds);
@@ -1050,7 +1049,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
                 throw new IllegalArgumentException("index uuid must not be null or empty");
             }
 
-            final ImmutableOpenMap.Builder<String, AliasMetadata> tmpAliases = aliases;
+            final MapBuilder<String, AliasMetadata> tmpAliases = aliases;
             indexName = indexName == null ? indexUUID : indexName;
             final Settings tmpSettings = Settings.builder()
                 .put(settings)
@@ -1146,7 +1145,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
                 numberOfReplicas,
                 tmpSettings,
                 mapping,
-                tmpAliases.build(),
+                tmpAliases.immutableMap(),
                 partitionValues,
                 filledInSyncAllocationIds.build(),
                 requireFilters,

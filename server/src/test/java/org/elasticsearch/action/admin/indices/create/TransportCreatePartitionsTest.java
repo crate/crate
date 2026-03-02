@@ -22,6 +22,7 @@
 package org.elasticsearch.action.admin.indices.create;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
@@ -33,8 +34,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -83,8 +82,8 @@ public class TransportCreatePartitionsTest extends IntegTestCase {
         // See BoundCreateTable.templateName
         String tableTemplateName = PartitionName.templateName("doc", "test");
 
-        for (ObjectCursor<IndexMetadata> cursor : updatedMetadata.indices().values()) {
-            String indexName = cursor.value.getIndex().getName(); // Something like "partitioned.{table_name}.{part}
+        for (IndexMetadata imd : updatedMetadata.indices().values()) {
+            String indexName = imd.getIndex().getName(); // Something like "partitioned.{table_name}.{part}
             assertThat(PartitionName.templateName(indexName)).isEqualTo(tableTemplateName);
         }
     }
@@ -107,8 +106,8 @@ public class TransportCreatePartitionsTest extends IntegTestCase {
         execute("refresh table table1");
         Metadata updatedMetadata = cluster().clusterService().state().metadata();
         List<String> indexUUIDs = new ArrayList<>();
-        for (ObjectCursor<String> cursor: updatedMetadata.indices().keys()) {
-            indexUUIDs.add(updatedMetadata.index(cursor.value).getIndexUUID());
+        for (String index: updatedMetadata.indices().keySet()) {
+            indexUUIDs.add(updatedMetadata.index(index).getIndexUUID());
         }
 
         // Try to insert into same partitions, when index is created it should not be re-created
@@ -117,8 +116,8 @@ public class TransportCreatePartitionsTest extends IntegTestCase {
         ClusterState currentState = cluster().clusterService().state();
         updatedMetadata = currentState.metadata();
         List<String> newUUIDs = new ArrayList<>();
-        for (ObjectCursor<String> cursor: updatedMetadata.indices().keys()) {
-            newUUIDs.add(updatedMetadata.index(cursor.value).getIndexUUID());
+        for (String index: updatedMetadata.indices().keySet()) {
+            newUUIDs.add(updatedMetadata.index(index).getIndexUUID());
         }
         assertThat(newUUIDs).containsAll(indexUUIDs); // old indices are still there, they were not overwritten
 

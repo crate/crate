@@ -20,20 +20,18 @@
 package org.elasticsearch.cluster;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.StoreStats;
 
-import com.carrotsearch.hppc.ObjectHashSet;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import io.crate.common.collections.MapBuilder;
 
 /**
  * ClusterInfo is an object representing a map of nodes to {@link DiskUsage}
@@ -43,20 +41,20 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
  */
 public class ClusterInfo implements Writeable {
 
-    private final ImmutableOpenMap<String, DiskUsage> leastAvailableSpaceUsage;
-    private final ImmutableOpenMap<String, DiskUsage> mostAvailableSpaceUsage;
-    final ImmutableOpenMap<String, Long> shardSizes;
+    private final Map<String, DiskUsage> leastAvailableSpaceUsage;
+    private final Map<String, DiskUsage> mostAvailableSpaceUsage;
+    final Map<String, Long> shardSizes;
     public static final ClusterInfo EMPTY = new ClusterInfo();
-    final ImmutableOpenMap<ShardRouting, String> routingToDataPath;
-    final ImmutableOpenMap<NodeAndPath, ReservedSpace> reservedSpace;
+    final Map<ShardRouting, String> routingToDataPath;
+    final Map<NodeAndPath, ReservedSpace> reservedSpace;
 
     protected ClusterInfo() {
         this(
-            ImmutableOpenMap.of(),
-            ImmutableOpenMap.of(),
-            ImmutableOpenMap.of(),
-            ImmutableOpenMap.of(),
-            ImmutableOpenMap.of());
+            Map.of(),
+            Map.of(),
+            Map.of(),
+            Map.of(),
+            Map.of());
     }
 
     /**
@@ -69,11 +67,11 @@ public class ClusterInfo implements Writeable {
      * @param reservedSpace reserved space per shard broken down by node and data path
      * @see #shardIdentifierFromRouting
      */
-    public ClusterInfo(ImmutableOpenMap<String, DiskUsage> leastAvailableSpaceUsage,
-                       ImmutableOpenMap<String, DiskUsage> mostAvailableSpaceUsage,
-                       ImmutableOpenMap<String, Long> shardSizes,
-                       ImmutableOpenMap<ShardRouting, String> routingToDataPath,
-                       ImmutableOpenMap<NodeAndPath, ReservedSpace> reservedSpace) {
+    public ClusterInfo(Map<String, DiskUsage> leastAvailableSpaceUsage,
+                       Map<String, DiskUsage> mostAvailableSpaceUsage,
+                       Map<String, Long> shardSizes,
+                       Map<ShardRouting, String> routingToDataPath,
+                       Map<NodeAndPath, ReservedSpace> reservedSpace) {
         this.leastAvailableSpaceUsage = leastAvailableSpaceUsage;
         this.shardSizes = shardSizes;
         this.mostAvailableSpaceUsage = mostAvailableSpaceUsage;
@@ -88,35 +86,35 @@ public class ClusterInfo implements Writeable {
         final Map<ShardRouting, String> routingMap = in.readMap(ShardRouting::new, StreamInput::readString);
         Map<NodeAndPath, ReservedSpace> reservedSpaceMap;
         if (in.getVersion().onOrAfter(StoreStats.RESERVED_BYTES_VERSION)) {
-            reservedSpaceMap = in.readMap(NodeAndPath::new, ReservedSpace::new);
+            reservedSpaceMap = in.readMap(NodeAndPath::new, ReservedSpace::of);
         } else {
             reservedSpaceMap = Map.of();
         }
 
-        ImmutableOpenMap.Builder<String, DiskUsage> leastBuilder = ImmutableOpenMap.builder();
-        this.leastAvailableSpaceUsage = leastBuilder.putAll(leastMap).build();
-        ImmutableOpenMap.Builder<String, DiskUsage> mostBuilder = ImmutableOpenMap.builder();
-        this.mostAvailableSpaceUsage = mostBuilder.putAll(mostMap).build();
-        ImmutableOpenMap.Builder<String, Long> sizeBuilder = ImmutableOpenMap.builder();
-        this.shardSizes = sizeBuilder.putAll(sizeMap).build();
-        ImmutableOpenMap.Builder<ShardRouting, String> routingBuilder = ImmutableOpenMap.builder();
-        this.routingToDataPath = routingBuilder.putAll(routingMap).build();
-        ImmutableOpenMap.Builder<NodeAndPath, ReservedSpace> reservedSpaceBuilder = ImmutableOpenMap.builder();
-        this.reservedSpace = reservedSpaceBuilder.putAll(reservedSpaceMap).build();
+        MapBuilder<String, DiskUsage> leastBuilder = MapBuilder.newMapBuilder();
+        this.leastAvailableSpaceUsage = leastBuilder.putAll(leastMap).immutableMap();
+        MapBuilder<String, DiskUsage> mostBuilder = MapBuilder.newMapBuilder();
+        this.mostAvailableSpaceUsage = mostBuilder.putAll(mostMap).immutableMap();
+        MapBuilder<String, Long> sizeBuilder = MapBuilder.newMapBuilder();
+        this.shardSizes = sizeBuilder.putAll(sizeMap).immutableMap();
+        MapBuilder<ShardRouting, String> routingBuilder = MapBuilder.newMapBuilder();
+        this.routingToDataPath = routingBuilder.putAll(routingMap).immutableMap();
+        MapBuilder<NodeAndPath, ReservedSpace> reservedSpaceBuilder = MapBuilder.newMapBuilder();
+        this.reservedSpace = reservedSpaceBuilder.putAll(reservedSpaceMap).immutableMap();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(this.leastAvailableSpaceUsage.size());
-        for (ObjectObjectCursor<String, DiskUsage> c : this.leastAvailableSpaceUsage) {
-            out.writeString(c.key);
-            c.value.writeTo(out);
+        for (Map.Entry<String, DiskUsage> c : this.leastAvailableSpaceUsage.entrySet()) {
+            out.writeString(c.getKey());
+            c.getValue().writeTo(out);
         }
         out.writeMap(this.mostAvailableSpaceUsage, StreamOutput::writeString, (o, v) -> v.writeTo(o));
         out.writeMap(this.shardSizes, StreamOutput::writeString, (o, v) -> out.writeLong(v == null ? -1 : v));
         out.writeMap(this.routingToDataPath, (o, k) -> k.writeTo(o), StreamOutput::writeString);
         if (out.getVersion().onOrAfter(StoreStats.RESERVED_BYTES_VERSION)) {
-            out.writeMap(this.reservedSpace);
+            out.writeWritableMap(this.reservedSpace);
         }
     }
 
@@ -125,7 +123,7 @@ public class ClusterInfo implements Writeable {
      * Returns a node id to disk usage mapping for the path that has the least available space on the node.
      * Note that this does not take account of reserved space: there may be another path with less available _and unreserved_ space.
      */
-    public ImmutableOpenMap<String, DiskUsage> getNodeLeastAvailableDiskUsages() {
+    public Map<String, DiskUsage> getNodeLeastAvailableDiskUsages() {
         return this.leastAvailableSpaceUsage;
     }
 
@@ -133,7 +131,7 @@ public class ClusterInfo implements Writeable {
      * Returns a node id to disk usage mapping for the path that has the most available space on the node.
      * Note that this does not take account of reserved space: there may be another path with more available _and unreserved_ space.
      */
-    public ImmutableOpenMap<String, DiskUsage> getNodeMostAvailableDiskUsages() {
+    public Map<String, DiskUsage> getNodeMostAvailableDiskUsages() {
         return this.mostAvailableSpaceUsage;
     }
 
@@ -215,62 +213,36 @@ public class ClusterInfo implements Writeable {
     /**
      * Represents the total amount of "reserved" space on a particular data path, together with the set of shards considered.
      */
-    public static class ReservedSpace implements Writeable {
+    public record ReservedSpace(long total, HashSet<ShardId> shardIds) implements Writeable {
 
-        public static final ReservedSpace EMPTY = new ReservedSpace(0, new ObjectHashSet<>());
+        public static final ReservedSpace EMPTY = new ReservedSpace(0, new HashSet<>());
 
-        private final long total;
-        private final ObjectHashSet<ShardId> shardIds;
-
-        private ReservedSpace(long total, ObjectHashSet<ShardId> shardIds) {
-            this.total = total;
-            this.shardIds = shardIds;
-        }
-
-        ReservedSpace(StreamInput in) throws IOException {
-            total = in.readVLong();
+        public static ReservedSpace of(StreamInput in) throws IOException {
+            long total = in.readVLong();
             final int shardIdCount = in.readVInt();
-            shardIds = new ObjectHashSet<>(shardIdCount);
+            HashSet<ShardId> shardIds = HashSet.newHashSet(shardIdCount);
             for (int i = 0; i < shardIdCount; i++) {
                 shardIds.add(new ShardId(in));
             }
+            return new ReservedSpace(total, shardIds);
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeVLong(total);
             out.writeVInt(shardIds.size());
-            for (ObjectCursor<ShardId> shardIdCursor : shardIds) {
-                shardIdCursor.value.writeTo(out);
+            for (ShardId shardId : shardIds) {
+                shardId.writeTo(out);
             }
-        }
-
-        public long getTotal() {
-            return total;
         }
 
         public boolean containsShardId(ShardId shardId) {
             return shardIds.contains(shardId);
         }
 
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            ReservedSpace that = (ReservedSpace) o;
-            return total == that.total &&
-                shardIds.equals(that.shardIds);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(total, shardIds);
-        }
-
-
         public static class Builder {
             private long total;
-            private ObjectHashSet<ShardId> shardIds = new ObjectHashSet<>();
+            private HashSet<ShardId> shardIds = new HashSet<>();
 
             public ReservedSpace build() {
                 assert shardIds != null : "already built";

@@ -34,13 +34,13 @@ import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.common.collections.MapBuilder;
 import io.crate.common.unit.TimeValue;
 
 public class MockInternalClusterInfoService extends InternalClusterInfoService {
@@ -84,16 +84,16 @@ public class MockInternalClusterInfoService extends InternalClusterInfoService {
     @Override
     protected CompletableFuture<NodesStatsResponse> updateNodeStats() {
         return super.updateNodeStats().thenApply(resp -> {
-            ImmutableOpenMap.Builder<String, DiskUsage> leastAvailableUsagesBuilder = ImmutableOpenMap.builder();
-            ImmutableOpenMap.Builder<String, DiskUsage> mostAvailableUsagesBuilder = ImmutableOpenMap.builder();
+            MapBuilder<String, DiskUsage> leastAvailableUsagesBuilder = MapBuilder.newMapBuilder();
+            MapBuilder<String, DiskUsage> mostAvailableUsagesBuilder = MapBuilder.newMapBuilder();
             fillDiskUsagePerNode(
                 LOGGER,
                 adjustNodesStats(resp.getNodes()),
                 leastAvailableUsagesBuilder,
                 mostAvailableUsagesBuilder
             );
-            leastAvailableSpaceUsages = leastAvailableUsagesBuilder.build();
-            mostAvailableSpaceUsages = mostAvailableUsagesBuilder.build();
+            leastAvailableSpaceUsages = leastAvailableUsagesBuilder.immutableMap();
+            mostAvailableSpaceUsages = mostAvailableUsagesBuilder.immutableMap();
             return resp;
         });
     }

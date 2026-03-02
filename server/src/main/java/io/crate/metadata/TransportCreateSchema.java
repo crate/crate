@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -36,7 +37,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.SchemaMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -117,7 +117,7 @@ public class TransportCreateSchema extends TransportMasterNodeAction<CreateSchem
         @Override
         public ClusterState execute(ClusterState currentState) throws Exception {
             Metadata currentMetadata = currentState.metadata();
-            ImmutableOpenMap<String, SchemaMetadata> schemas = currentMetadata.schemas();
+            Map<String, SchemaMetadata> schemas = currentMetadata.schemas();
             String schemaName = request.name();
             if (schemas.containsKey(schemaName)) {
                 if (request.ifNotExists()) {

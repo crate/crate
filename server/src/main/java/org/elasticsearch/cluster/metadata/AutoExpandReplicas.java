@@ -33,8 +33,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-
 import io.crate.common.Booleans;
 import io.crate.types.DataTypes;
 
@@ -112,8 +110,8 @@ public final class AutoExpandReplicas {
     private OptionalInt getDesiredNumberOfReplicas(IndexMetadata indexMetadata, RoutingAllocation allocation) {
         if (enabled) {
             int numMatchingDataNodes = 0;
-            for (ObjectCursor<DiscoveryNode> cursor : allocation.nodes().getDataNodes().values()) {
-                Decision decision = allocation.deciders().shouldAutoExpandToNode(indexMetadata, cursor.value, allocation);
+            for (DiscoveryNode node : allocation.nodes().getDataNodes().values()) {
+                Decision decision = allocation.deciders().shouldAutoExpandToNode(indexMetadata, node, allocation);
                 if (decision.type() != Decision.Type.NO) {
                     numMatchingDataNodes ++;
                 }

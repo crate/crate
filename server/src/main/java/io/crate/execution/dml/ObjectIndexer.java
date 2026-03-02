@@ -265,14 +265,24 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
             Object innerValue = entry.getValue();
-            DataType<?> type = DynamicIndexer.guessType(innerValue);
             ObjectIndexer.Child child = children.get(innerName);
             if (child != null) {
                 var childType = child.reference.valueType();
                 // We allow overwriting undefined typed children with new typed ones
-                if (!(childType instanceof UndefinedType) || type instanceof UndefinedType) {
+                if (!(childType instanceof UndefinedType)) {
                     continue;
                 }
+            }
+            // Type guessing is only required if no child exists or is undefined.
+            // On a nested list of map values with different map element types, guessing would raise an exception while
+            // trying to guess a common array element type (map with same inner types) even that the related map/object
+            // column policy is IGNORED.
+            DataType<?> type = DynamicIndexer.guessType(innerValue);
+            if (type instanceof UndefinedType && child != null) {
+                assert child.reference.valueType() instanceof UndefinedType
+                    : "Should only be reached if the existing child is undefined";
+                // Child exists already with undefined type
+                continue;
             }
             if (isStrict) {
                 throw new IllegalArgumentException(String.format(

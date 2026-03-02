@@ -27,8 +27,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -147,8 +145,9 @@ public class ClusterFormationFailureHelper {
             if (statusInfo.status() == UNHEALTHY) {
                 return String.format(Locale.ROOT, "this node is unhealthy: %s", statusInfo.info());
             }
-            final List<String> clusterStateNodes = StreamSupport.stream(clusterState.nodes().getMasterNodes().values().spliterator(), false)
-                .map(n -> n.value.toString()).collect(Collectors.toList());
+            final List<String> clusterStateNodes = clusterState.nodes().getMasterNodes().values().stream()
+                .map(n -> n.toString())
+                .toList();
 
             final String discoveryWillContinueDescription = String.format(Locale.ROOT,
                 "discovery will continue using %s from hosts providers and %s from last-known cluster state; " +

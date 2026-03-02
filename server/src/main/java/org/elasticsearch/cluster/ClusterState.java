@@ -40,14 +40,12 @@ import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.VersionedNamedWriteable;
 import org.elasticsearch.common.settings.Settings;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import io.crate.common.collections.MapBuilder;
 
 /**
  * Represents the current state of the cluster.
@@ -105,7 +103,7 @@ public class ClusterState implements Diffable<ClusterState> {
 
     private final ClusterBlocks blocks;
 
-    private final ImmutableOpenMap<String, Custom> customs;
+    private final Map<String, Custom> customs;
 
     private final ClusterName clusterName;
 
@@ -120,7 +118,7 @@ public class ClusterState implements Diffable<ClusterState> {
     }
 
     public ClusterState(ClusterName clusterName, long version, String stateUUID, Metadata metadata, RoutingTable routingTable,
-                        DiscoveryNodes nodes, ClusterBlocks blocks, ImmutableOpenMap<String, Custom> customs,
+                        DiscoveryNodes nodes, ClusterBlocks blocks, Map<String, Custom> customs,
                         boolean wasReadFromDiff) {
         this.version = version;
         this.stateUUID = stateUUID;
@@ -169,7 +167,7 @@ public class ClusterState implements Diffable<ClusterState> {
         return this.blocks;
     }
 
-    public ImmutableOpenMap<String, Custom> customs() {
+    public Map<String, Custom> customs() {
         return this.customs;
     }
 
@@ -270,9 +268,9 @@ public class ClusterState implements Diffable<ClusterState> {
         }
         if (metadata.customs().isEmpty() == false) {
             sb.append("metadata customs:\n");
-            for (final ObjectObjectCursor<String, Metadata.Custom> cursor : metadata.customs()) {
-                final String type = cursor.key;
-                final Metadata.Custom custom = cursor.value;
+            for (final Map.Entry<String, Metadata.Custom> cursor : metadata.customs().entrySet()) {
+                final String type = cursor.getKey();
+                final Metadata.Custom custom = cursor.getValue();
                 sb.append(TAB).append(type).append(": ").append(custom);
             }
             sb.append("\n");
@@ -283,9 +281,9 @@ public class ClusterState implements Diffable<ClusterState> {
         sb.append(getRoutingNodes());
         if (customs.isEmpty() == false) {
             sb.append("customs:\n");
-            for (ObjectObjectCursor<String, Custom> cursor : customs) {
-                final String type = cursor.key;
-                final Custom custom = cursor.value;
+            for (Map.Entry<String, Custom> cursor : customs.entrySet()) {
+                final String type = cursor.getKey();
+                final Custom custom = cursor.getValue();
                 sb.append(TAB).append(type).append(": ").append(custom);
             }
         }
@@ -372,7 +370,7 @@ public class ClusterState implements Diffable<ClusterState> {
         private RoutingTable routingTable = RoutingTable.EMPTY_ROUTING_TABLE;
         private DiscoveryNodes nodes = DiscoveryNodes.EMPTY_NODES;
         private ClusterBlocks blocks = ClusterBlocks.EMPTY_CLUSTER_BLOCK;
-        private final ImmutableOpenMap.Builder<String, Custom> customs;
+        private final MapBuilder<String, Custom> customs;
         private boolean fromDiff;
 
         public Builder(ClusterState state) {
@@ -383,12 +381,12 @@ public class ClusterState implements Diffable<ClusterState> {
             this.routingTable = state.routingTable();
             this.metadata = state.metadata();
             this.blocks = state.blocks();
-            this.customs = ImmutableOpenMap.builder(state.customs());
+            this.customs = MapBuilder.newMapBuilder(state.customs());
             this.fromDiff = false;
         }
 
         public Builder(ClusterName clusterName) {
-            customs = ImmutableOpenMap.builder();
+            customs = MapBuilder.newMapBuilder();
             this.clusterName = clusterName;
         }
 
@@ -454,7 +452,7 @@ public class ClusterState implements Diffable<ClusterState> {
             return this;
         }
 
-        public Builder customs(ImmutableOpenMap<String, Custom> customs) {
+        public Builder customs(Map<String, Custom> customs) {
             this.customs.putAll(customs);
             return this;
         }
@@ -468,7 +466,7 @@ public class ClusterState implements Diffable<ClusterState> {
             if (UNKNOWN_UUID.equals(uuid)) {
                 uuid = UUIDs.randomBase64UUID();
             }
-            return new ClusterState(clusterName, version, uuid, metadata, routingTable, nodes, blocks, customs.build(), fromDiff);
+            return new ClusterState(clusterName, version, uuid, metadata, routingTable, nodes, blocks, customs.immutableMap(), fromDiff);
         }
     }
 
@@ -509,15 +507,15 @@ public class ClusterState implements Diffable<ClusterState> {
         blocks.writeTo(out);
         // filter out custom states not supported by the other node
         int numberOfCustoms = 0;
-        for (final ObjectCursor<Custom> cursor : customs.values()) {
-            if (VersionedNamedWriteable.shouldSerialize(out, cursor.value)) {
+        for (final Custom custom : customs.values()) {
+            if (VersionedNamedWriteable.shouldSerialize(out, custom)) {
                 numberOfCustoms++;
             }
         }
         out.writeVInt(numberOfCustoms);
-        for (final ObjectCursor<Custom> cursor : customs.values()) {
-            if (VersionedNamedWriteable.shouldSerialize(out, cursor.value)) {
-                out.writeNamedWriteable(cursor.value);
+        for (final Custom custom : customs.values()) {
+            if (VersionedNamedWriteable.shouldSerialize(out, custom)) {
+                out.writeNamedWriteable(custom);
             }
         }
     }
@@ -540,7 +538,7 @@ public class ClusterState implements Diffable<ClusterState> {
 
         private final Diff<ClusterBlocks> blocks;
 
-        private final Diff<ImmutableOpenMap<String, Custom>> customs;
+        private final Diff<Map<String, Custom>> customs;
 
         ClusterStateDiff(Version version, ClusterState before, ClusterState after) {
             fromUuid = before.stateUUID;

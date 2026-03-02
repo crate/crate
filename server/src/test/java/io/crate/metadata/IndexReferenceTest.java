@@ -80,7 +80,7 @@ public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
             .containsEntry("sources", List.of(titleRef.storageIdent(), descRef.storageIdent()))
             .containsEntry("oid", 3L)
             .containsEntry("analyzer", "stop");
-        IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
+        IndexMetadata indexMetadata = clusterService.state().metadata().indices().values().iterator().next();
         assertThat(indexMetadata.mapping()).isNull();
         assertThat(reference.columns()).satisfiesExactly(
             x -> assertThat(x).isEqualTo(titleRef),

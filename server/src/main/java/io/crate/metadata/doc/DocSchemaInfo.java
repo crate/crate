@@ -39,7 +39,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.metadata.SchemaMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.Index;
 import org.jspecify.annotations.Nullable;
 
@@ -312,10 +311,10 @@ public class DocSchemaInfo implements SchemaInfo {
         }
     }
 
-    private void invalidateAliases(ImmutableOpenMap<String, AliasMetadata> aliases) {
+    private void invalidateAliases(Map<String, AliasMetadata> aliases) {
         assert aliases != null : "aliases must not be null";
         if (aliases.size() > 0) {
-            aliases.keysIt().forEachRemaining(docTableByName::remove);
+            aliases.keySet().forEach(docTableByName::remove);
         }
     }
 

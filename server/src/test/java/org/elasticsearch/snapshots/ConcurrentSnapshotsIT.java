@@ -22,6 +22,7 @@
 package org.elasticsearch.snapshots;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.assertj.core.api.InstanceOfAssertFactories.THROWABLE;
 import static org.elasticsearch.snapshots.SnapshotsService.MAX_CONCURRENT_SNAPSHOT_OPERATIONS_SETTING;
@@ -67,8 +68,6 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPoolStats;
 import org.junit.Test;
-
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.unit.TimeValue;
@@ -1359,8 +1358,8 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
     private static boolean snapshotHasCompletedShard(String snapshot, SnapshotsInProgress snapshotsInProgress) {
         for (SnapshotsInProgress.Entry entry : snapshotsInProgress.entries()) {
             if (entry.snapshot().getSnapshotId().getName().equals(snapshot)) {
-                for (ObjectCursor<SnapshotsInProgress.ShardSnapshotStatus> shard : entry.shards().values()) {
-                    if (shard.value.state().completed()) {
+                for (SnapshotsInProgress.ShardSnapshotStatus shard : entry.shards().values()) {
+                    if (shard.state().completed()) {
                         return true;
                     }
                 }

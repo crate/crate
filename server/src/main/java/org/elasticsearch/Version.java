@@ -24,13 +24,14 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.Lucene;
@@ -224,11 +225,11 @@ public class Version implements Comparable<Version> {
     public static final Version CURRENT = V_6_3_0;
 
     private static final ImmutableOpenIntMap<Version> ID_TO_VERSION;
-    private static final ImmutableOpenMap<String, Version> STRING_TO_VERSION;
+    private static final Map<String, Version> STRING_TO_VERSION;
 
     static {
         final ImmutableOpenIntMap.Builder<Version> builder = ImmutableOpenIntMap.builder();
-        final ImmutableOpenMap.Builder<String, Version> builderByString = ImmutableOpenMap.builder();
+        final HashMap<String, Version> builderByString = new HashMap<>();
 
         for (final Field declaredField : Version.class.getFields()) {
             if (declaredField.getType().equals(Version.class)) {
@@ -264,7 +265,7 @@ public class Version implements Comparable<Version> {
         builder.put(V_EMPTY_ID, V_EMPTY);
         builderByString.put(V_EMPTY.toString(), V_EMPTY);
         ID_TO_VERSION = builder.build();
-        STRING_TO_VERSION = builderByString.build();
+        STRING_TO_VERSION = Map.copyOf(builderByString);
     }
 
     public static Version readVersion(StreamInput in) throws IOException {

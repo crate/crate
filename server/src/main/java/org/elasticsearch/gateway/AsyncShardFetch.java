@@ -47,8 +47,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.transport.ReceiveTimeoutTransportException;
 import org.jspecify.annotations.Nullable;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import io.crate.exceptions.SQLExceptions;
 
 /**
@@ -250,8 +248,7 @@ public abstract class AsyncShardFetch<T extends BaseNodeResponse> implements Rel
      */
     private void fillShardCacheWithDataNodes(Map<String, NodeEntry<T>> shardCache, DiscoveryNodes nodes) {
         // verify that all current data nodes are there
-        for (ObjectObjectCursor<String, DiscoveryNode> cursor : nodes.getDataNodes()) {
-            DiscoveryNode node = cursor.value;
+        for (DiscoveryNode node : nodes.getDataNodes().values()) {
             if (shardCache.containsKey(node.getId()) == false) {
                 shardCache.put(node.getId(), new NodeEntry<T>(node.getId()));
             }

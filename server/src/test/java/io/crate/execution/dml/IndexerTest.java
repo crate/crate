@@ -30,7 +30,6 @@ import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
 import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
@@ -1833,6 +1832,34 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         ParsedDocument parsedDoc = indexer.index(item1, updatedTable.rootColumns());
         assertThat(source(parsedDoc, updatedTable)).isEqualTo("{\"points\":[{\"x\":1},{\"x\":null}]}");
         assertTranslogParses(parsedDoc, updatedTable);
+    }
+
+    @Test
+    public void test_can_index_nested_array_of_ignored_objects_with_mixed_inner_types() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE tbl (o OBJECT AS (arr ARRAY(OBJECT (IGNORED))))");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        var indexer = getIndexer(e, "tbl", "o");
+        IndexItem item = item(Map.of("arr", List.of(Map.of("k1", List.of(Map.of("k2", "text"), Map.of("k2", List.of("text", "array")))))));
+
+        // check that schema updates do not cause errors, nothing should be collected since the inner object elements are ignored
+        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
+        assertThat(newColumns).isEmpty();
+
+        // Ensure that the document is indexed and parsed correctly, even if the inner object contains mixed types (string and array)
+        ParsedDocument doc = indexer.index(item);
+        assertThat(source(doc, table)).isEqualToIgnoringWhitespace(
+            """
+            {"o":{"arr":[{"k1":[{"k2":"text"},{"k2":["text","array"]}]}]}}
+            """
+        );
+        assertThat(doc.doc().getFields("o.arr")).isEmpty();
+        assertThat(doc.doc().getFields("o.arr.k1")).isEmpty();
+        assertThat(doc.doc().getFields())
+            .as("source, seqNo, id...")
+            .hasSize(10);
+        assertTranslogParses(doc, table);
     }
 
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) {

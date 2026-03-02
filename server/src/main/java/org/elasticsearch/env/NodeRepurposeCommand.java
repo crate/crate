@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cli.Terminal;
@@ -42,8 +41,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.gateway.PersistedClusterStateService;
-
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.collections.Sets;
 import io.crate.common.io.IOUtils;
@@ -107,9 +104,12 @@ public class NodeRepurposeCommand extends ElasticsearchNodeCommand {
             return;
         }
 
-        final Set<String> indexUUIDs = Sets.union(indexUUIDsFor(indexPaths),
-                                                  StreamSupport.stream(metadata.indices().values().spliterator(), false)
-                                                      .map(imd -> imd.value.getIndexUUID()).collect(Collectors.toSet()));
+        final Set<String> indexUUIDs = Sets.union(
+            indexUUIDsFor(indexPaths),
+            metadata.indices().values().stream()
+                .map(imd -> imd.getIndexUUID())
+                .collect(Collectors.toSet())
+        );
 
         outputVerboseInformation(terminal, indexPaths, indexUUIDs, metadata);
 
@@ -179,9 +179,9 @@ public class NodeRepurposeCommand extends ElasticsearchNodeCommand {
 
     private String toIndexName(String uuid, Metadata metadata) {
         if (metadata != null) {
-            for (ObjectObjectCursor<String, IndexMetadata> indexMetadata : metadata.indices()) {
-                if (indexMetadata.value.getIndexUUID().equals(uuid)) {
-                    return indexMetadata.value.getIndex().getName();
+            for (IndexMetadata indexMetadata : metadata.indices().values()) {
+                if (indexMetadata.getIndexUUID().equals(uuid)) {
+                    return indexMetadata.getIndex().getName();
                 }
             }
         }

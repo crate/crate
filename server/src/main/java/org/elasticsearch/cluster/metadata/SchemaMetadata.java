@@ -22,12 +22,12 @@
 package org.elasticsearch.cluster.metadata;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.Diffable;
 import org.elasticsearch.cluster.Diffs;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jspecify.annotations.Nullable;
@@ -36,17 +36,17 @@ import io.crate.metadata.RelationName;
 
 public class SchemaMetadata implements Diffable<SchemaMetadata> {
 
-    private final ImmutableOpenMap<String, RelationMetadata> relations;
+    private final Map<String, RelationMetadata> relations;
     private final boolean explicit;
 
     /// @param explicit true indicates this was created via CREATE SCHEMA
-    public SchemaMetadata(ImmutableOpenMap<String, RelationMetadata> relations, boolean explicit) {
+    public SchemaMetadata(Map<String, RelationMetadata> relations, boolean explicit) {
         this.relations = relations;
         this.explicit = explicit;
     }
 
     public static SchemaMetadata of(StreamInput in) throws IOException {
-        ImmutableOpenMap<String, RelationMetadata> relations = in.readImmutableMap(
+        Map<String, RelationMetadata> relations = in.readMap(
             StreamInput::readString,
             RelationMetadata::of
         );
@@ -81,7 +81,7 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
         }
     }
 
-    public ImmutableOpenMap<String, RelationMetadata> relations() {
+    public Map<String, RelationMetadata> relations() {
         return relations;
     }
 
@@ -117,7 +117,7 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
         private static final Diffs.DiffableValueReader<String, RelationMetadata> REL_DIFF_VALUE_READER =
             new Diffs.DiffableValueReader<>(RelationMetadata::of, RelationMetadata::readDiffFrom);
 
-        private final Diff<ImmutableOpenMap<String, RelationMetadata>> relations;
+        private final Diff<Map<String, RelationMetadata>> relations;
         private final boolean explicit;
 
         SchemaMetadataDiff(Version version, SchemaMetadata before, SchemaMetadata after) {
@@ -144,7 +144,7 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
 
         @Override
         public SchemaMetadata apply(SchemaMetadata part) {
-            ImmutableOpenMap<String, RelationMetadata> newRelations = relations.apply(part.relations);
+            Map<String, RelationMetadata> newRelations = relations.apply(part.relations);
             return new SchemaMetadata(newRelations, explicit);
         }
     }
