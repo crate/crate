@@ -767,4 +767,8 @@ public abstract class AstVisitor<R, C> {
     public R visitDropSchema(DropSchema dropSchema, C context) {
         return visitStatement(dropSchema, context);
     }
+
+    public R visitEmpty(EmptyStatement emptyStatement, C context) {
+        return visitStatement(emptyStatement, context);
+    }
 }

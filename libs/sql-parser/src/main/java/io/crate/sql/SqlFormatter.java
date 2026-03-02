@@ -91,6 +91,7 @@ import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUserMapping;
 import io.crate.sql.tree.DropView;
+import io.crate.sql.tree.EmptyStatement;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
@@ -195,6 +196,12 @@ public final class SqlFormatter {
         @Override
         protected Void visitNode(Node node, Integer indent) {
             throw new UnsupportedOperationException("not yet implemented: " + node);
+        }
+
+        @Override
+        public Void visitEmpty(EmptyStatement emptyStatement, Integer indent) {
+            append(indent, "");
+            return null;
         }
 
         @Override

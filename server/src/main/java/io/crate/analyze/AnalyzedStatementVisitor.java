@@ -339,4 +339,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitDropSchema(AnalyzedDropSchema dropSchema, C context) {
         return visitAnalyzedStatement(dropSchema, context);
     }
+
+    public R visitEmpty(AnalyzedEmpty empty, C context) {
+        return visitAnalyzedStatement(empty, context);
+    }
 }
