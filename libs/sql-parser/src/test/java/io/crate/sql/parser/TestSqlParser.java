@@ -220,14 +220,6 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testEmptyStatement() {
-        assertThatThrownBy(
-            () -> SqlParser.createStatement(""))
-            .isExactlyInstanceOf(ParsingException.class)
-            .hasMessageStartingWith("line 1:1: mismatched input '<EOF>' expecting");
-    }
-
-    @Test
     public void testExpressionWithTrailingJunk() {
         assertThatThrownBy(
             () -> SqlParser.createExpression("1 + 1 x"))

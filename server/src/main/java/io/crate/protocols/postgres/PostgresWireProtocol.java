@@ -48,13 +48,13 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.auth.AccessControl;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Credentials;
 import io.crate.auth.Protocol;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -807,17 +807,16 @@ public class PostgresWireProtocol {
         String queryString = readCString(buffer);
         assert queryString != null : "query must not be nulL";
 
-        if (queryString.isEmpty() || ";".equals(queryString)) {
-            Messages.sendEmptyQueryResponse(channel);
-            sendReadyForQuery(channel, TransactionState.IDLE);
-            return;
-        }
-
         List<Statement> statements;
         try {
             statements = session.simpleQuery(queryString);
         } catch (Exception ex) {
             Messages.sendErrorResponse(channel, getAccessControl.apply(session.sessionSettings()), ex);
+            sendReadyForQuery(channel, TransactionState.IDLE);
+            return;
+        }
+        if (statements.isEmpty()) {
+            Messages.sendEmptyQueryResponse(channel);
             sendReadyForQuery(channel, TransactionState.IDLE);
             return;
         }

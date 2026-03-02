@@ -24,11 +24,11 @@ parser grammar SqlBaseParser;
 options { tokenVocab=SqlBaseLexer; } // use tokens from SqlBaseLexer.g4
 
 statements
-    : statement (SEMICOLON statement)* SEMICOLON? EOF
+    : statement? (SEMICOLON statement)* SEMICOLON? EOF
     ;
 
 singleStatement
-    : statement SEMICOLON? EOF
+    : statement? SEMICOLON? EOF
     ;
 
 singleExpression

@@ -79,6 +79,7 @@ import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.AnalyzedDropTable;
 import io.crate.analyze.AnalyzedDropUserMapping;
 import io.crate.analyze.AnalyzedDropView;
+import io.crate.analyze.AnalyzedEmpty;
 import io.crate.analyze.AnalyzedFetch;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
 import io.crate.analyze.AnalyzedInsertStatement;
@@ -282,6 +283,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitBegin(AnalyzedBegin analyzedBegin, PlannerContext context) {
+        return NoopPlan.INSTANCE;
+    }
+
+    @Override
+    public Plan visitEmpty(AnalyzedEmpty empty, PlannerContext context) {
         return NoopPlan.INSTANCE;
     }
 

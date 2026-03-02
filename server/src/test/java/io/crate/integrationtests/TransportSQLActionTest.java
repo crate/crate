@@ -2308,4 +2308,13 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("SELECT _id, a FROM tbl_pk WHERE a = '::ffff:192.168.0.1'");
         assertThat(response).hasRows("192.168.0.1| 192.168.0.1");
     }
+
+    @Test
+    public void test_empty_statements() throws Exception {
+        execute("");
+        execute("-- ping");
+        assertThat(response).isEmpty();
+        assertThat(response).hasColumns();
+        execute("-- ping ; /* ping2 */");
+    }
 }

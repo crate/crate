@@ -79,6 +79,9 @@ SQL Statements
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
+- Added support for statements containing only comments like ``/* ping */`` for
+  compatibility with clients like pgx - which is used by Grafana since 12.4.
+
 - Added support for ``DEFAULT`` expressions in :ref:`INSERT INTO <sql-insert>`
   statements to explicitly declare that the default expression of a column
   should be used.
