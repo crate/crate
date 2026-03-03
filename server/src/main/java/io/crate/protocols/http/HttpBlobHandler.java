@@ -69,7 +69,7 @@ import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.stream.ChunkedFile;
-
+import io.netty.util.ReferenceCountUtil;
 
 public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
 
@@ -86,7 +86,12 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
 
     private final Matcher blobsMatcher = BLOBS_PATTERN.matcher("");
     private final BlobService blobService;
-    private HttpRequest currentMessage;
+
+
+    private HttpMethod method;
+    private boolean is100ContinueExpected;
+    private boolean isKeepAlive;
+    private String range;
 
     private RemoteDigestBlob digestBlob;
     private ChannelHandlerContext ctx;
@@ -98,23 +103,22 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         this.blobService = blobService;
     }
 
-    private boolean possibleRedirect(HttpRequest request, String index, String digest) {
-        HttpMethod method = request.method();
+    private boolean possibleRedirect(String index, String digest) {
         if (method.equals(HttpMethod.GET) ||
             method.equals(HttpMethod.HEAD) ||
             (method.equals(HttpMethod.PUT) &&
-             HttpUtil.is100ContinueExpected(request))) {
+             is100ContinueExpected)) {
             String redirectAddress;
             try {
                 redirectAddress = blobService.getRedirectAddress(index, digest);
             } catch (MissingHTTPEndpointException ex) {
-                simpleResponse(request, HttpResponseStatus.BAD_GATEWAY);
+                simpleResponse(HttpResponseStatus.BAD_GATEWAY);
                 return true;
             }
 
             if (redirectAddress != null) {
                 LOGGER.trace("redirectAddress: {}", redirectAddress);
-                sendRedirect(request, activeScheme() + redirectAddress);
+                sendRedirect(activeScheme() + redirectAddress);
                 return true;
             }
         }
@@ -123,8 +127,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (msg instanceof HttpRequest) {
-            HttpRequest request = currentMessage = (HttpRequest) msg;
+        if (msg instanceof HttpRequest request) {
             String uri = request.uri();
 
             if (!uri.startsWith(BLOBS_ENDPOINT)) {
@@ -133,9 +136,17 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
                 return;
             }
 
+            method = request.method();
+            isKeepAlive = HttpUtil.isKeepAlive(request);
+            is100ContinueExpected = HttpUtil.is100ContinueExpected(request);
+            range = request.headers().get(HttpHeaderNames.RANGE);
+            // This handler has auto-release disabled,
+            // releasing request as we are not forwarding it.
+            ReferenceCountUtil.release(msg);
+
             Matcher matcher = blobsMatcher.reset(uri);
             if (!matcher.matches()) {
-                simpleResponse(request, HttpResponseStatus.NOT_FOUND);
+                simpleResponse(HttpResponseStatus.NOT_FOUND);
                 return;
             }
             digestBlob = null;
@@ -145,16 +156,16 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
                 LOGGER.trace("matches index:{} digest:{}", index, digest);
                 LOGGER.trace("HTTPMessage:%n{}", request);
             }
-            handleBlobRequest(request, null);
+            handleBlobRequest(null);
         } else if (msg instanceof HttpContent) {
-            if (currentMessage == null) {
+            if (method == null) {
                 // the chunk is probably from a regular non-blob request.
                 reset();
                 ctx.fireChannelRead(msg);
                 return;
             }
 
-            handleBlobRequest(currentMessage, (HttpContent) msg);
+            handleBlobRequest((HttpContent) msg);
         } else {
             // Neither HttpMessage or HttpChunk
             reset();
@@ -162,36 +173,37 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         }
     }
 
-    private void handleBlobRequest(HttpRequest request, @Nullable HttpContent content) throws IOException {
-        if (possibleRedirect(request, index, digest)) {
+    private void handleBlobRequest(@Nullable HttpContent content) throws IOException {
+        if (possibleRedirect(index, digest)) {
             return;
         }
 
-        HttpMethod method = request.method();
         if (method.equals(HttpMethod.GET)) {
-            get(request, index, digest);
+            get(index, digest);
             reset();
         } else if (method.equals(HttpMethod.HEAD)) {
-            head(request, index, digest);
+            head(index, digest);
         } else if (method.equals(HttpMethod.PUT)) {
-            put(request, content, index, digest);
+            put(content, index, digest);
         } else if (method.equals(HttpMethod.DELETE)) {
-            delete(request, index, digest);
+            delete(index, digest);
         } else {
-            simpleResponse(request, HttpResponseStatus.METHOD_NOT_ALLOWED);
+            simpleResponse(HttpResponseStatus.METHOD_NOT_ALLOWED);
         }
     }
 
     private void reset() {
         index = null;
         digest = null;
-        currentMessage = null;
+        method = null;
+        is100ContinueExpected = false;
+        isKeepAlive = false;
     }
 
-    private void sendRedirect(HttpRequest request, String newUri) {
+    private void sendRedirect(String newUri) {
         HttpResponse response = prepareResponse(TEMPORARY_REDIRECT);
         response.headers().add(HttpHeaderNames.LOCATION, newUri);
-        sendResponse(request, response);
+        sendResponse(response);
     }
 
     private HttpResponse prepareResponse(HttpResponseStatus status) {
@@ -201,13 +213,13 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         return response;
     }
 
-    private void simpleResponse(HttpRequest request, HttpResponseStatus status) {
-        sendResponse(request, prepareResponse(status));
+    private void simpleResponse(HttpResponseStatus status) {
+        sendResponse(prepareResponse(status));
     }
 
-    private void simpleResponse(HttpRequest request, HttpResponseStatus status, String body) {
+    private void simpleResponse(HttpResponseStatus status, String body) {
         if (body == null) {
-            simpleResponse(request, status);
+            simpleResponse(status);
             return;
         }
         if (!body.endsWith("\n")) {
@@ -217,18 +229,18 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         DefaultFullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, status, content);
         HttpUtil.setContentLength(response, body.length());
         maybeSetConnectionCloseHeader(response);
-        sendResponse(request, response);
+        sendResponse(response);
     }
 
     private void maybeSetConnectionCloseHeader(HttpResponse response) {
-        if (currentMessage == null || !HttpUtil.isKeepAlive(currentMessage)) {
+        if (method == null || !isKeepAlive) {
             response.headers().set(HttpHeaderNames.CONNECTION, "close");
         }
     }
 
-    private void sendResponse(HttpRequest request, HttpResponse response) {
+    private void sendResponse(HttpResponse response) {
         ChannelFuture cf = ctx.channel().writeAndFlush(response);
-        if (currentMessage != null && !HttpUtil.isKeepAlive(currentMessage)) {
+        if (method != null && isKeepAlive == false) {
             cf.addListener(ChannelFutureListener.CLOSE);
         }
         reset();
@@ -252,10 +264,10 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         if (body != null) {
             LOGGER.debug(body);
         }
-        simpleResponse(null, status, body);
+        simpleResponse(status, body);
     }
 
-    private void head(HttpRequest request, String index, String digest) throws IOException {
+    private void head(String index, String digest) throws IOException {
 
         // this method only supports local mode, which is ok, since there
         // should be a redirect upfront if data is not local
@@ -263,31 +275,30 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         BlobShard blobShard = blobService.localBlobShard(index, digest);
         long length = blobShard.blobContainer().getFile(digest).length();
         if (length < 1) {
-            simpleResponse(request, HttpResponseStatus.NOT_FOUND);
+            simpleResponse(HttpResponseStatus.NOT_FOUND);
             return;
         }
         HttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, HttpResponseStatus.OK);
         HttpUtil.setContentLength(response, length);
         setDefaultGetHeaders(response);
-        sendResponse(request, response);
+        sendResponse(response);
     }
 
-    private void get(HttpRequest request, String index, final String digest) throws IOException {
-        String range = request.headers().get(HttpHeaderNames.RANGE);
+    private void get(String index, final String digest) throws IOException {
         if (range != null) {
-            partialContentResponse(range, request, index, digest);
+            partialContentResponse(index, digest);
         } else {
-            fullContentResponse(request, index, digest);
+            fullContentResponse(index, digest);
         }
     }
 
-    private void partialContentResponse(String range, HttpRequest request, String index, final String digest)
+    private void partialContentResponse(String index, final String digest)
         throws IOException {
         assert range != null : "Getting partial response but no byte-range is not present.";
         Matcher matcher = CONTENT_RANGE_PATTERN.matcher(range);
         if (!matcher.matches()) {
             LOGGER.warn("Invalid byte-range: {}; returning full content", range);
-            fullContentResponse(request, index, digest);
+            fullContentResponse(index, digest);
             return;
         }
         BlobShard blobShard = blobService.localBlobShard(index, digest);
@@ -300,7 +311,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
                 start = Long.parseLong(matcher.group(1));
                 if (start > raf.length()) {
                     LOGGER.warn("416 Requested Range not satisfiable");
-                    simpleResponse(request, HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE);
+                    simpleResponse(HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE);
                     raf.close();
                     return;
                 }
@@ -322,7 +333,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
 
             ctx.channel().write(response);
             ChannelFuture writeFuture = transferFile(digest, raf, start, end - start + 1);
-            if (!HttpUtil.isKeepAlive(request)) {
+            if (isKeepAlive == false) {
                 writeFuture.addListener(ChannelFutureListener.CLOSE);
             }
         } catch (Throwable t) {
@@ -336,7 +347,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         }
     }
 
-    private void fullContentResponse(HttpRequest request, String index, final String digest) throws IOException {
+    private void fullContentResponse(String index, final String digest) throws IOException {
         BlobShard blobShard = blobService.localBlobShard(index, digest);
         HttpResponse response = new DefaultHttpResponse(HTTP_1_1, HttpResponseStatus.OK);
         final RandomAccessFile raf = blobShard.blobContainer().getRandomAccessFile(digest);
@@ -345,10 +356,9 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
             HttpUtil.setContentLength(response, raf.length());
             setDefaultGetHeaders(response);
             LOGGER.trace("HttpResponse: {}", response);
-            boolean keepAlive = HttpUtil.isKeepAlive(request);
             ctx.channel().write(response);
             ChannelFuture writeFuture = transferFile(digest, raf, 0, raf.length());
-            if (!keepAlive) {
+            if (isKeepAlive == false) {
                 writeFuture.addListener(ChannelFutureListener.CLOSE);
             }
         } catch (Throwable t) {
@@ -410,13 +420,12 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         response.headers().set(HttpHeaderNames.CACHE_CONTROL, CACHE_CONTROL_VALUE);
     }
 
-    private void put(HttpRequest request, HttpContent content, String index, String digest) throws IOException {
+    private void put(HttpContent content, String index, String digest) throws IOException {
         if (digestBlob == null) {
             digestBlob = blobService.newBlob(index, digest);
         }
-        boolean continueExpected = HttpUtil.is100ContinueExpected(currentMessage);
         if (content == null) {
-            if (continueExpected) {
+            if (is100ContinueExpected) {
                 ctx.writeAndFlush(new DefaultFullHttpResponse(HTTP_1_1, CONTINUE));
             }
             return;
@@ -426,23 +435,23 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         boolean isLast = content instanceof LastHttpContent;
         ByteBuf byteBuf = content.content();
         try {
-            writeToFile(request, byteBuf, isLast, continueExpected);
+            writeToFile(byteBuf, isLast);
         } finally {
             byteBuf.release();
         }
     }
 
-    private void delete(HttpRequest request, String index, String digest) throws IOException {
+    private void delete(String index, String digest) throws IOException {
         digestBlob = blobService.newBlob(index, digest);
         if (digestBlob.delete()) {
             // 204 for success
-            simpleResponse(request, HttpResponseStatus.NO_CONTENT);
+            simpleResponse(HttpResponseStatus.NO_CONTENT);
         } else {
-            simpleResponse(request, HttpResponseStatus.NOT_FOUND);
+            simpleResponse(HttpResponseStatus.NOT_FOUND);
         }
     }
 
-    private void writeToFile(HttpRequest request, ByteBuf input, boolean last, final boolean continueExpected) throws IOException {
+    private void writeToFile(ByteBuf input, boolean last) throws IOException {
         if (digestBlob == null) {
             throw new IllegalStateException("digestBlob is null in writeToFile");
         }
@@ -455,7 +464,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
                 break;
             case PARTIAL:
                 // tell the client to continue
-                if (continueExpected) {
+                if (is100ContinueExpected) {
                     ctx.write(new DefaultFullHttpResponse(HTTP_1_1, HttpResponseStatus.CONTINUE));
                 }
                 return;
@@ -474,7 +483,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
 
         assert exitStatus != null : "exitStatus should not be null";
         LOGGER.trace("writeToFile exit status http:{} blob: {}", exitStatus, status);
-        simpleResponse(request, exitStatus);
+        simpleResponse(exitStatus);
     }
 
     @Override
