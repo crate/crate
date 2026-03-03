@@ -56,6 +56,7 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.VersionedNamedWriteable;
@@ -163,6 +164,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     private final Map<String, SchemaMetadata> schemas;
 
     private final transient Map<String, RelationMetadata> indexUUIDsRelations;
+    private final transient ImmutableOpenIntMap<RelationMetadata> oidsRelations;
     private final transient int totalNumberOfShards; // Transient ? not serializable anyway?
     private final int totalOpenIndexShards;
     private final int numberOfShards;
@@ -210,15 +212,18 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         this.numberOfShards = numberOfShards;
         this.aliasAndIndexLookup = aliasAndIndexLookup;
         HashMap<String, RelationMetadata> indexUUIDsRelationsBuilder = HashMap.newHashMap(indices.size());
+        ImmutableOpenIntMap.Builder<RelationMetadata> oidsRelationsBuilder = ImmutableOpenIntMap.builder();
         for (var schema : schemas.values()) {
             for (var relEntry : schema.relations().entrySet()) {
                 var relationMetadata = relEntry.getValue();
+                oidsRelationsBuilder.put(relationMetadata.oid(), relationMetadata);
                 for (String indexUUID : relationMetadata.indexUUIDs()) {
                     RelationMetadata old = indexUUIDsRelationsBuilder.put(indexUUID, relationMetadata);
                     assert old == null : "A index must not be referenced from multiple relations";
                 }
             }
         }
+        oidsRelations = oidsRelationsBuilder.build();
         indexUUIDsRelations = Map.copyOf(indexUUIDsRelationsBuilder);
     }
 
@@ -1495,14 +1500,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     @SuppressWarnings("unchecked")
     public <T extends RelationMetadata> T getRelation(int tableOID) {
         assert tableOID > Metadata.OID_UNASSIGNED : "Invalid tableOID: " + tableOID;
-        for (SchemaMetadata schemaMetadata : schemas.values()) {
-            for (RelationMetadata relationMetadata : schemaMetadata.relations().values()) {
-                if (relationMetadata.oid() == tableOID) {
-                    return (T) relationMetadata;
-                }
-            }
-        }
-        return null;
+        return (T) oidsRelations.get(tableOID);
     }
 
     /**
