@@ -48,3 +48,6 @@ series.
 
 Fixes
 =====
+
+- Fixed an issue causing memory leaks when accessing
+  :ref:`BLOB endpoint<blob-endpoint>`.

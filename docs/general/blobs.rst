@@ -121,6 +121,7 @@ Blob tables can be deleted similar to normal tables::
     sh$ crash -c "create blob table myblobs clustered into 3 shards with (number_of_replicas=0)"
     CREATE OK, 1 row affected (... sec)
 
+.. _blob-endpoint:
 
 Using blob tables
 =================
