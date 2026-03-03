@@ -38,9 +38,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.StringJoiner;
 
 import io.crate.common.StringUtils;
-import io.crate.common.collections.Lists;
 
 public class DateTimeFormatter {
 
@@ -155,12 +155,20 @@ public class DateTimeFormatter {
         TIMEZONE_MINUTES("TZM"),
         TIMEZONE_MINUTES_LOWER("tzm"),
         TIMEZONE_OFFSET_FROM_UTC("OF"),
-        TIMEZONE_OFFSET_FROM_UTC_LOWER("of");
+        TIMEZONE_OFFSET_FROM_UTC_LOWER("of"),
+        ORDINAL_SUFFIX("TH", true),
+        ORDINAL_SUFFIX_LOWER("th", true);
 
         private final String token;
+        private final boolean boundToPrecedingToken;
 
         Token(final String token) {
+            this(token, false);
+        }
+
+        Token(final String token, boolean boundToPrecedingToken) {
             this.token = token;
+            this.boundToPrecedingToken = boundToPrecedingToken;
         }
 
         @Override
@@ -168,6 +176,9 @@ public class DateTimeFormatter {
             return this.token;
         }
 
+        public boolean isBoundToPrecedingToken() {
+            return this.boundToPrecedingToken;
+        }
     }
 
     static class TokenNode {
@@ -296,13 +307,47 @@ public class DateTimeFormatter {
     }
 
     public String format(LocalDateTime datetime) {
-        return Lists.joinOn("", this.tokens, x -> {
-            if (x instanceof Token) {
-                return getElement((Token) x, datetime);
+        StringJoiner joiner = new StringJoiner("");
+        for (int i = 0; i < tokens.size(); i++) {
+            Object currentElement = tokens.get(i);
+            if (currentElement instanceof Token currentToken) {
+                String formattedValue = getElement(currentToken, datetime);
+                String suffix = "";
+                if (tokens.size() > i + 1) {
+                    Object nextElement = tokens.get(i + 1);
+                    if (nextElement instanceof Token nextToken && nextToken.isBoundToPrecedingToken()) {
+                        suffix = computeOrdinalSuffix(formattedValue, nextToken);
+                        i++;
+                    }
+                }
+                joiner.add(formattedValue + suffix);
             } else {
-                return String.valueOf(x);
+                joiner.add(String.valueOf(currentElement));
             }
-        });
+
+        }
+        return joiner.toString();
+    }
+
+    private static String computeOrdinalSuffix(String formattedValue, Token suffix) {
+        try {
+            int number = Integer.parseInt(formattedValue.trim());
+            int absNumber = Math.abs(number);
+            String suffixStr;
+            if (absNumber % 100 >= 11 && absNumber % 100 <= 13) {
+                suffixStr = "th";
+            } else {
+                suffixStr = switch (absNumber % 10) {
+                    case 1 -> "st";
+                    case 2 -> "nd";
+                    case 3 -> "rd";
+                    default -> "th";
+                };
+            }
+            return suffix == Token.ORDINAL_SUFFIX ? suffixStr.toUpperCase(Locale.ROOT) : suffixStr;
+        } catch (NumberFormatException e) {
+            return "";
+        }
     }
 
     private static String getElement(Token token, LocalDateTime datetime) {
@@ -462,6 +507,11 @@ public class DateTimeFormatter {
                  TIMEZONE_MINUTES_LOWER,
                  TIMEZONE_OFFSET_FROM_UTC,
                  TIMEZONE_OFFSET_FROM_UTC_LOWER -> "";
+            // The suffix tokens are handled separately in the format method,
+            // so that they can be computed based on the value of the preceding token.
+            // Standalone suffix tokens that are not bound to a preceding token will be returned as-is.
+            case ORDINAL_SUFFIX,
+                 ORDINAL_SUFFIX_LOWER -> token.toString();
             default -> "";
         };
 
