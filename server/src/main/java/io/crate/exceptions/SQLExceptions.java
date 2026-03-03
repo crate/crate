@@ -170,18 +170,19 @@ public class SQLExceptions {
      * @return true if the error may be temporary; E.g. a network error, a shard initializing or a node booting up
      */
     public static boolean maybeTemporary(Throwable t) {
+        return maybeTemporaryNetworkError(t)
+            || isShardNotAvailable(t)
+            || t instanceof ClusterBlockException
+            || t instanceof ElasticsearchTimeoutException;
+    }
+
+    public static boolean maybeTemporaryNetworkError(Throwable t) {
         return t instanceof NodeNotConnectedException
             || t instanceof NodeClosedException
             || t instanceof NodeDisconnectedException
             || t instanceof ConnectTransportException
             || t instanceof ConnectException
-            || t instanceof ClusterBlockException
-            || t instanceof NoSeedNodeLeftException
-            || t instanceof IndexNotFoundException
-            || t instanceof NoShardAvailableActionException
-            || t instanceof UnavailableShardsException
-            || t instanceof AlreadyClosedException
-            || t instanceof ElasticsearchTimeoutException;
+            || t instanceof NoSeedNodeLeftException;
     }
 
     public static Throwable prepareForClientTransmission(AccessControl accessControl, Throwable e) {

@@ -154,7 +154,7 @@ final class DocValuesGroupByOptimizedIterator {
             table,
             shardCreatedVersion,
             indexService.cache(),
-            collectTask::raiseIfKilled
+            collectTask.killToken()::raiseIfKilled
         );
 
         if (columnKeyRefs.size() == 1) {

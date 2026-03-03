@@ -50,6 +50,7 @@ import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata.Table;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -66,10 +67,10 @@ import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-import io.crate.common.annotations.VisibleForTesting;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.NodeContext;
@@ -138,26 +139,23 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
     protected void masterOperation(final CreatePartitionsRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) throws ElasticsearchException {
-        final CreatePartitionsRequest upgradedRequest = upgradeCreatePartitionsRequest(request, state.metadata());
         createIndices(request, ActionListener.wrap(response -> {
             if (response.isAcknowledged()) {
                 Metadata metadata = clusterService.state().metadata();
-                final String[] indices = upgradedRequest.partitionValuesList().stream()
-                    .map(partitionValues -> metadata
-                        .getIndex(metadata.getRelationName(upgradedRequest.tableOID()), partitionValues, false, IndexMetadata::getIndexUUID))
+                RelationMetadata.Table relation = getTable(metadata, request);
+                final String[] indices = request.partitionValuesList().stream()
+                    .map(partitionValues -> metadata.getIndex(relation.name(), partitionValues, false, IndexMetadata::getIndexUUID))
                     .toArray(String[]::new);
-                activeShardsObserver.waitForActiveShards(indices, ActiveShardCount.DEFAULT, upgradedRequest.ackTimeout(),
+                activeShardsObserver.waitForActiveShards(indices, ActiveShardCount.DEFAULT, request.ackTimeout(),
                     shardsAcked -> {
                         if (!shardsAcked && logger.isInfoEnabled()) {
-                            RelationMetadata.Table table = state.metadata().getRelation(upgradedRequest.tableOID());
-                            assert table != null : "table should be present in the cluster state";
-
                             logger.info("[{}] Table partitions created, but the operation timed out while waiting for " +
                                          "enough shards to be started. Timeout={}, wait_for_active_shards={}. " +
                                          "Consider decreasing the 'number_of_shards' table setting (currently: {}) or adding nodes to the cluster.",
-                                upgradedRequest.relationName(), upgradedRequest.timeout(),
-                                SETTING_WAIT_FOR_ACTIVE_SHARDS.get(table.settings()),
-                                INDEX_NUMBER_OF_SHARDS_SETTING.get(table.settings()));
+                                relation.name(),
+                                request.timeout(),
+                                SETTING_WAIT_FOR_ACTIVE_SHARDS.get(relation.settings()),
+                                INDEX_NUMBER_OF_SHARDS_SETTING.get(relation.settings()));
                         }
                         listener.onResponse(new AcknowledgedResponse(response.isAcknowledged()));
                     }, listener::onFailure);
@@ -317,11 +315,9 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                 ClusterStateTaskExecutor.ClusterTasksResult.Builder<CreatePartitionsRequest> builder = ClusterStateTaskExecutor.ClusterTasksResult.builder();
                 for (CreatePartitionsRequest request1 : tasks) {
                     try {
-                        RelationMetadata.Table table = currentState.metadata().getRelation(request1.tableOID());
-                        if (table == null) {
-                            throw new RelationUnknown(request1.relationName());
-                        }
-                        DocTableInfo docTableInfo = docTableInfoFactory.create(table.name(), currentState.metadata());
+                        Metadata metadata = currentState.metadata();
+                        RelationMetadata.Table table = getTable(metadata, request1);
+                        DocTableInfo docTableInfo = docTableInfoFactory.create(table.name(), metadata);
                         currentState = executeCreateIndices(currentState, table, docTableInfo, request1);
                         builder.success(request);
                     } catch (Exception e) {
@@ -333,10 +329,7 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
             new AckedClusterStateUpdateTask<>(request, listener) {
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
-                    RelationMetadata.Table table = currentState.metadata().getRelation(request.tableOID());
-                    if (table == null) {
-                        throw new RelationUnknown(request.relationName());
-                    }
+                    RelationMetadata.Table table = getTable(currentState.metadata(), request);
                     DocTableInfo docTableInfo = docTableInfoFactory.create(table.name(), currentState.metadata());
                     return executeCreateIndices(currentState, table, docTableInfo, request);
                 }
@@ -349,14 +342,26 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
         );
     }
 
+    /// @throws RelationUnknown
+    private static RelationMetadata.Table getTable(Metadata metadata, CreatePartitionsRequest request) {
+        RelationMetadata.Table table = request.tableOID() == Metadata.OID_UNASSIGNED
+            ? metadata.getRelation(request.relationName())
+            : metadata.getRelation(request.tableOID());
+        if (table == null) {
+            throw new RelationUnknown(request.relationName());
+        }
+        return table;
+    }
+
     private static List<PartitionName> getPartitionsToCreate(ClusterState state, CreatePartitionsRequest request) {
         Metadata metadata = state.metadata();
         ArrayList<PartitionName> partitions = new ArrayList<>(request.partitionValuesList().size());
+        Table table = getTable(metadata, request);
         for (List<String> partitionValues : request.partitionValuesList()) {
             // Don't be strict, it should not fail if the partition already exists
-            List<IndexMetadata> indices = metadata.getIndices(metadata.getRelationName(request.tableOID()), partitionValues, false, imd -> imd);
+            List<IndexMetadata> indices = metadata.getIndices(table.name(), partitionValues, false, imd -> imd);
             if (indices.isEmpty()) {
-                PartitionName partition = new PartitionName(metadata.getRelation(request.tableOID()).name(), partitionValues);
+                PartitionName partition = new PartitionName(table.name(), partitionValues);
                 partitions.add(partition);
             }
             // else: exists already
@@ -384,19 +389,5 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
             ClusterBlockLevel.METADATA_WRITE,
             request.indexNames().toArray(String[]::new)
         );
-    }
-
-    /**
-     * Upgrades CreatePartitionsRequest instance from a node < 6.3 which contains invalid table OID.
-     */
-    private static CreatePartitionsRequest upgradeCreatePartitionsRequest(CreatePartitionsRequest createPartitionsRequest, Metadata metadata) {
-        if (createPartitionsRequest.tableOID() == Metadata.OID_UNASSIGNED) {
-            RelationMetadata relationMetadata = metadata.getRelation(createPartitionsRequest.relationName());
-            return new CreatePartitionsRequest(
-                relationMetadata.oid(),
-                createPartitionsRequest.relationName(),
-                createPartitionsRequest.partitionValuesList());
-        }
-        return createPartitionsRequest;
     }
 }

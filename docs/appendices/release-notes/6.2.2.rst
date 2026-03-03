@@ -115,3 +115,6 @@ Fixes
        {"arr":[{"b": "str_val"}, {"b": ["array_val"]}]}
     $$);
 
+- Fixed an issue causing cache to retain some heavy structures, potentially
+  leading to an ``OutOfMemoryError``.
+
