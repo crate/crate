@@ -34,9 +34,9 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.Operation;
 
-public class ForeignTableRelation extends AbstractTableRelation<ForeignTable> {
+public class ForeignTableRelation extends AbstractTableRelation<ForeignTableInfo> {
 
-    public ForeignTableRelation(ForeignTable table) {
+    public ForeignTableRelation(ForeignTableInfo table) {
         super(table, List.copyOf(table.rootColumns()), List.of());
     }
 

@@ -67,7 +67,7 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
             null
         );
         Map<ColumnIdent, Reference> references = Map.of(nameRef.column(), nameRef);
-        ForeignTable foreignTable = new ForeignTable(relationName, references, server.name(), Settings.EMPTY);
+        ForeignTableInfo foreignTable = new ForeignTableInfo(relationName, references, server.name(), Settings.EMPTY);
         assertThatThrownBy(() -> fdw.getIterator(arthur, server, foreignTable, txnCtx, List.of(nameRef), Literal.BOOLEAN_TRUE))
             .hasMessage("Only a super user can connect to localhost unless `fdw.allow_local` is set to true");
     }
@@ -92,7 +92,7 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
             null
         );
         Map<ColumnIdent, Reference> references = Map.of(nameRef.column(), nameRef);
-        ForeignTable foreignTable = new ForeignTable(relationName, references, server.name(), Settings.EMPTY);
+        ForeignTableInfo foreignTable = new ForeignTableInfo(relationName, references, server.name(), Settings.EMPTY);
         // validates that no exception is thrown
         fdw.getIterator(arthur, server, foreignTable, txnCtx, List.of(nameRef), Literal.BOOLEAN_TRUE);
     }

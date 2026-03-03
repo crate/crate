@@ -66,7 +66,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.tablefunctions.TableFunctionFactory;
 import io.crate.expression.tablefunctions.ValuesFunction;
-import io.crate.fdw.ForeignTable;
+import io.crate.fdw.ForeignTableInfo;
 import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
@@ -696,7 +696,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 case DocTableInfo docTable ->
                     // Dispatching of doc relations is based on the returned class of the schema information.
                     relation = new DocTableRelation(docTable);
-                case ForeignTable table -> relation = new ForeignTableRelation(table);
+                case ForeignTableInfo table -> relation = new ForeignTableRelation(table);
                 case TableInfo table -> relation = new TableRelation(table);
                 case ViewInfo viewInfo -> {
                     Statement viewQuery = SqlParser.createStatement(viewInfo.definition());

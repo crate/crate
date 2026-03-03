@@ -50,19 +50,19 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
 public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom>
-        implements Metadata.Custom, Iterable<ForeignTable> {
+        implements Metadata.Custom, Iterable<ForeignTableInfo> {
 
     public static final String TYPE = "foreign_tables";
     public static final ForeignTablesMetadata EMPTY = new ForeignTablesMetadata(Map.of());
 
-    private final Map<RelationName, ForeignTable> tables;
+    private final Map<RelationName, ForeignTableInfo> tables;
 
-    ForeignTablesMetadata(Map<RelationName, ForeignTable> tables) {
+    ForeignTablesMetadata(Map<RelationName, ForeignTableInfo> tables) {
         this.tables = tables;
     }
 
     public ForeignTablesMetadata(StreamInput in) throws IOException {
-        this.tables = in.readMap(RelationName::new, ForeignTable::new);
+        this.tables = in.readMap(RelationName::new, ForeignTableInfo::new);
     }
 
     @Override
@@ -71,7 +71,7 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
     }
 
     public static ForeignTablesMetadata fromXContent(NodeContext nodeCtx, XContentParser parser) throws IOException {
-        HashMap<RelationName, ForeignTable> tables = new HashMap<>();
+        HashMap<RelationName, ForeignTableInfo> tables = new HashMap<>();
         if (parser.currentToken() == START_OBJECT) {
             parser.nextToken();
         }
@@ -83,7 +83,7 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
             if (parser.currentToken() == FIELD_NAME) {
                 RelationName name = RelationName.fromIndexName(parser.currentName());
                 parser.nextToken();
-                ForeignTable table = ForeignTable.fromXContent(nodeCtx, name, parser);
+                ForeignTableInfo table = ForeignTableInfo.fromXContent(nodeCtx, name, parser);
                 tables.put(name, table);
             }
         }
@@ -114,8 +114,8 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
                                      Collection<Reference> columns,
                                      String server,
                                      Settings options) {
-        HashMap<RelationName, ForeignTable> newTables = new HashMap<>(tables);
-        ForeignTable value = new ForeignTable(
+        HashMap<RelationName, ForeignTableInfo> newTables = new HashMap<>(tables);
+        ForeignTableInfo value = new ForeignTableInfo(
             tableName,
             columns.stream().collect(Collectors.toMap(Reference::column, x -> x)),
             server,
@@ -126,7 +126,7 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
     }
 
     @Nullable
-    public ForeignTable get(RelationName name) {
+    public ForeignTableInfo get(RelationName name) {
         return tables.get(name);
     }
 
@@ -135,7 +135,7 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
     }
 
     public ForeignTablesMetadata removeAllForServers(List<String> names) {
-        HashMap<RelationName, ForeignTable> newTables = new HashMap<>();
+        HashMap<RelationName, ForeignTableInfo> newTables = new HashMap<>();
         for (var entry : tables.entrySet()) {
             var relationName = entry.getKey();
             var foreignTable = entry.getValue();
@@ -147,9 +147,9 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
     }
 
     public ForeignTablesMetadata remove(List<RelationName> relations, boolean ifExists) {
-        HashMap<RelationName, ForeignTable> newTables = new HashMap<>(tables);
+        HashMap<RelationName, ForeignTableInfo> newTables = new HashMap<>(tables);
         for (var relation : relations) {
-            ForeignTable removed = newTables.remove(relation);
+            ForeignTableInfo removed = newTables.remove(relation);
             if (removed == null && !ifExists) {
                 throw new RelationUnknown(relation);
             }
@@ -158,7 +158,7 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
     }
 
     @Override
-    public Iterator<ForeignTable> iterator() {
+    public Iterator<ForeignTableInfo> iterator() {
         return tables.values().iterator();
     }
 
@@ -173,7 +173,7 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
             && tables.equals(other.tables);
     }
 
-    public Iterable<ForeignTable.Option> tableOptions() {
+    public Iterable<ForeignTableInfo.Option> tableOptions() {
         return () -> tables.values().stream()
             .flatMap(table -> table.getOptions())
             .iterator();

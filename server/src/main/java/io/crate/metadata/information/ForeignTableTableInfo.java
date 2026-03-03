@@ -22,7 +22,7 @@
 package io.crate.metadata.information;
 
 import io.crate.Constants;
-import io.crate.fdw.ForeignTable;
+import io.crate.fdw.ForeignTableInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.types.DataTypes;
@@ -32,11 +32,11 @@ public class ForeignTableTableInfo {
     public static final String NAME = "foreign_tables";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static SystemTable<ForeignTable> INSTANCE = SystemTable.<ForeignTable>builder(IDENT)
+    public static SystemTable<ForeignTableInfo> INSTANCE = SystemTable.<ForeignTableInfo>builder(IDENT)
         .add("foreign_table_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
         .add("foreign_table_schema", DataTypes.STRING, table -> table.name().schema())
         .add("foreign_table_name", DataTypes.STRING, table -> table.name().name())
         .add("foreign_server_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
-        .add("foreign_server_name", DataTypes.STRING, ForeignTable::server)
+        .add("foreign_server_name", DataTypes.STRING, ForeignTableInfo::server)
         .build();
 }

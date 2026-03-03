@@ -51,7 +51,7 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
-import io.crate.fdw.ForeignTable;
+import io.crate.fdw.ForeignTableInfo;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -286,7 +286,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      * </p>
      *
      * @return {@link TableInfo}. Can be upcast to {@link DocTableInfo} or
-     *         {@link ForeignTable}
+     *         {@link ForeignTableInfo }
      * @throws io.crate.exceptions.SchemaUnknownException if schema given in
      *                                                    <code>ident</code>
      *                                                    does not exist
@@ -453,7 +453,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
 
     @Nullable
-    private ForeignTable getForeignTable(String schemaName, String tableName) {
+    private ForeignTableInfo getForeignTable(String schemaName, String tableName) {
         Metadata metadata = clusterService.state().metadata();
         ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
         if (foreignTables == null) {
@@ -507,9 +507,9 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         }
         Metadata metadata = clusterService.state().metadata();
         ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
-        for (ForeignTable foreignTable : foreignTables) {
-            if (oid == OidHash.relationOid(foreignTable)) {
-                return foreignTable.ident();
+        for (ForeignTableInfo foreignTableInfo : foreignTables) {
+            if (oid == OidHash.relationOid(foreignTableInfo)) {
+                return foreignTableInfo.ident();
             }
         }
         return null;

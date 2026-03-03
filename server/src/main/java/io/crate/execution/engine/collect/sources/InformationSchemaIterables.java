@@ -47,7 +47,7 @@ import io.crate.common.collections.Iterators;
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
-import io.crate.fdw.ForeignTable;
+import io.crate.fdw.ForeignTableInfo;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.fdw.ServersMetadata;
 import io.crate.fdw.ServersMetadata.Server;
@@ -372,12 +372,12 @@ public class InformationSchemaIterables {
         return servers.getUserMappingOptions();
     }
 
-    public Iterable<ForeignTable> foreignTables() {
+    public Iterable<ForeignTableInfo> foreignTables() {
         Metadata metadata = clusterService.state().metadata();
         return metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
     }
 
-    public Iterable<ForeignTable.Option> foreignTableOptions() {
+    public Iterable<ForeignTableInfo.Option> foreignTableOptions() {
         Metadata metadata = clusterService.state().metadata();
         ForeignTablesMetadata foreignTables = metadata.custom(
             ForeignTablesMetadata.TYPE,

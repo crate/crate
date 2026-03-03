@@ -116,7 +116,7 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
     @Override
     public CompletableFuture<BatchIterator<Row>> getIterator(Role currentUser,
                                                              Server server,
-                                                             ForeignTable foreignTable,
+                                                             ForeignTableInfo foreignTableInfo,
                                                              TransactionContext txnCtx,
                                                              List<Symbol> collect,
                                                              Symbol query) {
@@ -167,11 +167,11 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
             throw new UnsupportedOperationException(
                 "Only a super user can connect to localhost unless `fdw.allow_local` is set to true");
         }
-        String remoteSchema = schemaName.get(foreignTable.options());
-        String remoteTable = tableName.get(foreignTable.options());
+        String remoteSchema = schemaName.get(foreignTableInfo.options());
+        String remoteTable = tableName.get(foreignTableInfo.options());
         RelationName remoteName = new RelationName(
-            remoteSchema.isEmpty() ? foreignTable.name().schema() : remoteSchema,
-            remoteTable.isEmpty() ? foreignTable.name().name() : remoteTable);
+            remoteSchema.isEmpty() ? foreignTableInfo.name().schema() : remoteSchema,
+            remoteTable.isEmpty() ? foreignTableInfo.name().name() : remoteTable);
 
         assert supportsQueryPushdown(query)
             : "ForeignCollect must only have a query where `supportsQueryPushDown` is true";

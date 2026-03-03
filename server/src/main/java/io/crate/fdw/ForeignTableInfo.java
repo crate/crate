@@ -65,12 +65,12 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataTypes;
 
-public record ForeignTable(RelationName name,
-                           Map<ColumnIdent, Reference> references,
-                           String server,
-                           Settings options) implements Writeable, TableInfo {
+public record ForeignTableInfo(RelationName name,
+                               Map<ColumnIdent, Reference> references,
+                               String server,
+                               Settings options) implements Writeable, TableInfo {
 
-    ForeignTable(StreamInput in) throws IOException {
+    ForeignTableInfo(StreamInput in) throws IOException {
         this(
             new RelationName(in),
             in.readMap(LinkedHashMap::new, ColumnIdent::of, Reference::fromStream),
@@ -87,7 +87,7 @@ public record ForeignTable(RelationName name,
         Settings.writeSettingsToStream(out, options);
     }
 
-    public static ForeignTable fromXContent(NodeContext nodeCtx, RelationName name, XContentParser parser) throws IOException {
+    public static ForeignTableInfo fromXContent(NodeContext nodeCtx, RelationName name, XContentParser parser) throws IOException {
         Map<ColumnIdent, Reference> references = null;
         String server = null;
         Settings options = null;
@@ -140,7 +140,7 @@ public record ForeignTable(RelationName name,
                 }
             }
         }
-        return new ForeignTable(
+        return new ForeignTableInfo(
             requireNonNull(name),
             requireNonNull(references),
             requireNonNull(server),

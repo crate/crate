@@ -52,14 +52,14 @@ public interface ForeignDataWrapper {
      *
      * If this returns `false` filtering must be done via dedicated filter operator
      * because the query parameter to
-     * {@link #getIterator(Role, Server, ForeignTable, TransactionContext, List, Symbol)}
+     * {@link #getIterator(Role, Server, ForeignTableInfo, TransactionContext, List, Symbol)}
      * is ignored.
      **/
     boolean supportsQueryPushdown(Symbol query);
 
     CompletableFuture<BatchIterator<Row>> getIterator(Role user,
                                                       Server server,
-                                                      ForeignTable foreignTable,
+                                                      ForeignTableInfo foreignTableInfo,
                                                       TransactionContext txnCtx,
                                                       List<Symbol> collect,
                                                       Symbol query);

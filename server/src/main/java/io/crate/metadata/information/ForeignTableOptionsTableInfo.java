@@ -22,7 +22,7 @@
 package io.crate.metadata.information;
 
 import io.crate.Constants;
-import io.crate.fdw.ForeignTable;
+import io.crate.fdw.ForeignTableInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.types.DataTypes;
@@ -32,11 +32,11 @@ public class ForeignTableOptionsTableInfo {
     public static final String NAME = "foreign_table_options";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static SystemTable<ForeignTable.Option> INSTANCE = SystemTable.<ForeignTable.Option>builder(IDENT)
+    public static SystemTable<ForeignTableInfo.Option> INSTANCE = SystemTable.<ForeignTableInfo.Option>builder(IDENT)
         .add("foreign_table_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
         .add("foreign_table_schema", DataTypes.STRING, x -> x.relationName().schema())
         .add("foreign_table_name", DataTypes.STRING, x -> x.relationName().name())
-        .add("option_name", DataTypes.STRING, ForeignTable.Option::name)
-        .add("option_value", DataTypes.STRING, ForeignTable.Option::value)
+        .add("option_name", DataTypes.STRING, ForeignTableInfo.Option::name)
+        .add("option_value", DataTypes.STRING, ForeignTableInfo.Option::value)
         .build();
 }

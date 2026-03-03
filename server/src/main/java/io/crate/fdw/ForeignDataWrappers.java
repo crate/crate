@@ -60,7 +60,6 @@ public class ForeignDataWrappers implements CollectSource {
     );
 
     private final ClusterService clusterService;
-    private final InputFactory inputFactory;
     private final Map<String, ForeignDataWrapper> wrappers;
     private final Roles roles;
 
@@ -69,9 +68,8 @@ public class ForeignDataWrappers implements CollectSource {
                                ClusterService clusterService,
                                NodeContext nodeContext) {
         this.clusterService = clusterService;
-        this.inputFactory = new InputFactory(nodeContext);
         this.wrappers = Map.of(
-            "jdbc", new JdbcForeignDataWrapper(settings, inputFactory)
+            "jdbc", new JdbcForeignDataWrapper(settings, new InputFactory(nodeContext))
         );
         this.roles = nodeContext.roles();
     }
@@ -103,23 +101,23 @@ public class ForeignDataWrappers implements CollectSource {
         if (foreignTables == null) {
             throw new RelationUnknown(phase.relationName());
         }
-        ForeignTable foreignTable = foreignTables.get(phase.relationName());
-        if (foreignTable == null) {
+        ForeignTableInfo foreignTableInfo = foreignTables.get(phase.relationName());
+        if (foreignTableInfo == null) {
             throw new RelationUnknown(phase.relationName());
         }
         ServersMetadata servers = metadata.custom(ServersMetadata.TYPE);
         if (servers == null) {
             throw new ResourceNotFoundException(
-                String.format(Locale.ENGLISH, "Server `%s` not found", foreignTable.server()));
+                String.format(Locale.ENGLISH, "Server `%s` not found", foreignTableInfo.server()));
         }
-        Server server = servers.get(foreignTable.server());
+        Server server = servers.get(foreignTableInfo.server());
         ForeignDataWrapper fdw = wrappers.get(server.fdw());
         if (fdw == null) {
             throw new ResourceNotFoundException(String.format(
                 Locale.ENGLISH,
                 "Foreign data wrapper '%s' used by server '%s' no longer exists",
                 server.fdw(),
-                foreignTable.server()
+                foreignTableInfo.server()
             ));
         }
         String executeAs = phase.executeAs();
@@ -129,7 +127,7 @@ public class ForeignDataWrappers implements CollectSource {
         return fdw.getIterator(
             requireNonNull(roles.findUser(executeAs), "current user must exist"),
             server,
-            foreignTable,
+            foreignTableInfo,
             txnCtx,
             collectPhase.toCollect(),
             phase.query()
