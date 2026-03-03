@@ -574,7 +574,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         sqlExecutor.jobsLogs.updateJobsLog(new QueueSink<>(new BlockingEvictingQueue<>(1), () -> {}));
         try (Session session = sqlExecutor.createSession()) {
             assertThatThrownBy(() -> session.simpleQuery("sele"))
-                .hasMessageContaining("mismatched input 'sele' expecting");
+                .hasMessageContaining("extraneous input 'sele' expecting");
 
             assertThat(sqlExecutor.jobsLogs.activeJobs()).isEmpty();
             assertThat(sqlExecutor.jobsLogs.jobsLog()).satisfiesExactly(

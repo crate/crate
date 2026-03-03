@@ -305,6 +305,14 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_empty() throws Exception {
+        printStatement("");
+        printStatement("--- foo");
+        printStatement("/* ping */");
+        printStatement("/* ping */ ; -- foo");
+    }
+
+    @Test
     public void testNullNotAllowedAsArgToExtractField() {
         assertThatThrownBy(
             () -> printStatement("select extract(null from x)"))
@@ -1888,7 +1896,7 @@ public class TestStatementBuilder {
         assertThatThrownBy(
             () -> printStatement("mismatched input 'default'"))
             .isExactlyInstanceOf(ParsingException.class)
-            .hasMessageStartingWith("line 1:1: mismatched input 'mismatched' expecting {'");
+            .hasMessageStartingWith("line 1:1: mismatched input 'mismatched' expecting {");
     }
 
 
