@@ -29,7 +29,6 @@ import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Locale;
@@ -500,5 +499,25 @@ public class AlterTableIntegrationTest extends IntegTestCase {
             "20",
             "NULL"
         );
+    }
+
+    @Test
+    public void test_alter_column_set_default() {
+        execute("create table t (a int, b text)");
+        execute("alter table t alter column a set default 42");
+        execute("insert into t (b) values ('hello')");
+        execute("refresh table t");
+        execute("select a, b from t");
+        assertThat(response).hasRows("42| hello");
+
+        execute("show create table t");
+        assertThat((String) response.rows()[0][0]).contains("DEFAULT 42");
+    }
+
+    @Test
+    public void test_alter_column_set_default_type_mismatch() {
+        execute("create table t (a int)");
+        assertThatThrownBy(() -> execute("alter table t alter column a set default 'hello'"))
+            .hasMessageContaining("Cannot cast");
     }
 }

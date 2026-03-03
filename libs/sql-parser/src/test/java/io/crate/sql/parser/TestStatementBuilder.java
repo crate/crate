@@ -664,6 +664,12 @@ public class TestStatementBuilder {
         printStatement("alter table t rename foo['x'] to foo['y']");
         printStatement("alter table t rename column foo to bar");
 
+        printStatement("alter table t alter column foo set default 42");
+        printStatement("alter table t alter foo set default 'hello'");
+        printStatement("alter table t alter column foo drop default");
+        printStatement("alter table t alter foo drop default");
+        printStatement("alter table t alter column foo['x'] set default 1");
+
         printStatement("alter table t partition (partitioned_col=1) set (number_of_replicas=4)");
         printStatement("alter table only t set (number_of_replicas=4)");
     }
