@@ -182,6 +182,13 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         return globalSettings;
     }
 
+    public boolean hasNonDefaultRenamePatterns() {
+        return SnapshotSettings.TABLE_RENAME_PATTERN.exists(settings)
+            || SnapshotSettings.TABLE_RENAME_REPLACEMENT.exists(settings)
+            || SnapshotSettings.SCHEMA_RENAME_PATTERN.exists(settings)
+            || SnapshotSettings.SCHEMA_RENAME_REPLACEMENT.exists(settings);
+    }
+
     public RestoreSnapshotRequest(StreamInput in) throws IOException {
         super(in);
         snapshot = in.readString();
