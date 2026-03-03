@@ -20,10 +20,6 @@
 package org.elasticsearch.snapshots;
 
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
-import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_PATTERN;
-import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_REPLACEMENT;
-import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_PATTERN;
-import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_REPLACEMENT;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_UUID_NA_VALUE;
 import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 
@@ -48,8 +44,8 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateApplier;
@@ -92,7 +88,6 @@ import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
 
-import io.crate.analyze.SnapshotSettings;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
@@ -175,21 +170,21 @@ public class RestoreService implements ClusterStateApplier {
      *                        and NULL when used in logical replication.
      * @param listener restore listener
      */
-    public void restoreSnapshot(final RestoreRequest request,
+    public void restoreSnapshot(final RestoreSnapshotRequest request,
                                 final List<TableOrPartition> tablesToRestore,
                                 final ActionListener<RestoreCompletionResponse> listener) {
-        final String repositoryName = request.repositoryName;
+        final String repositoryName = request.repository();
         Repository repository;
         try {
             // Read snapshot info and metadata from the repository
             repository = repositoriesService.repository(repositoryName);
         } catch (Exception e) {
-            LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to restore snapshot", request.repositoryName + ":" + request.snapshotName), e);
+            LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to restore snapshot", request.repository() + ":" + request.snapshot()), e);
             listener.onFailure(e);
             return;
         }
         repository.getRepositoryData().thenCompose(repositoryData -> {
-            final String snapshotName = request.snapshotName;
+            final String snapshotName = request.snapshot();
             final Optional<SnapshotId> matchingSnapshotId = repositoryData.getSnapshotIds().stream()
                 .filter(s -> snapshotName.equals(s.getName())).findFirst();
             if (matchingSnapshotId.isPresent() == false) {
@@ -259,10 +254,10 @@ public class RestoreService implements ClusterStateApplier {
     }
 
     static Map<RelationName, RestoreRelation> resolveRelations(List<TableOrPartition> tablesToRestore,
-                                                               RestoreRequest request,
+                                                               RestoreSnapshotRequest request,
                                                                Metadata snapshotMetadata,
                                                                SnapshotInfo snapshotInfo) {
-        boolean strict = !IGNORE_UNAVAILABLE.get(request.settings);
+        boolean strict = !IGNORE_UNAVAILABLE.get(request.settings());
         HashMap<RelationName, RestoreRelation> restoreRelations = new HashMap<>();
 
         BiConsumer<RelationName, List<String>> resolver = (relationName, partitionValues) -> {
@@ -369,7 +364,7 @@ public class RestoreService implements ClusterStateApplier {
         private final RepositoryData repositoryData;
         private final Snapshot snapshot;
         private final ActionListener<RestoreCompletionResponse> listener;
-        private final RestoreRequest request;
+        private final RestoreSnapshotRequest request;
         private final Map<RelationName, RestoreRelation> restoreRelations;
 
         private final Metadata snapshotMetadata;
@@ -381,7 +376,7 @@ public class RestoreService implements ClusterStateApplier {
                                           RepositoryData repositoryData,
                                           Snapshot snapshot,
                                           ActionListener<RestoreCompletionResponse> listener,
-                                          RestoreRequest request,
+                                          RestoreSnapshotRequest request,
                                           Map<RelationName, RestoreRelation> restoreRelations,
                                           Metadata snapshotMetadata) {
             this.snapshotInfo = snapshotInfo;
@@ -412,7 +407,7 @@ public class RestoreService implements ClusterStateApplier {
             Map<ShardId, RestoreInProgress.ShardRestoreStatus> shards;
 
             MapBuilder<ShardId, RestoreInProgress.ShardRestoreStatus> shardsBuilder = MapBuilder.newMapBuilder();
-            boolean ignoreUnavailable = IGNORE_UNAVAILABLE.get(request.settings);
+            boolean ignoreUnavailable = IGNORE_UNAVAILABLE.get(request.settings());
             HashSet<String> restoreIndexNames = new HashSet<>();
 
             for (Map.Entry<RelationName, RestoreRelation> entry : restoreRelations.entrySet()) {
@@ -936,7 +931,7 @@ public class RestoreService implements ClusterStateApplier {
         return failedShards;
     }
 
-    private static RelationName applyRenameToRelation(RestoreRequest request, RelationName relationName) {
+    private static RelationName applyRenameToRelation(RestoreSnapshotRequest request, RelationName relationName) {
         boolean applyRenamePattern = request.hasNonDefaultRenamePatterns();
         RelationName renamed = relationName;
         // At least one non-default value is provided.
@@ -1004,50 +999,6 @@ public class RestoreService implements ClusterStateApplier {
             }
         } catch (Exception t) {
             LOGGER.warn("Failed to update restore state ", t);
-        }
-    }
-
-    /**
-     * Restore snapshot request
-     */
-    public record RestoreRequest(String repositoryName,
-                                 String snapshotName,
-                                 IndicesOptions indicesOptions,
-                                 Settings settings,
-                                 TimeValue masterNodeTimeout,
-                                 boolean includeTables,
-                                 boolean includeCustomMetadata,
-                                 String[] customMetadataTypes,
-                                 boolean includeGlobalSettings,
-                                 String[] globalSettings) {
-
-        /**
-         * @return rename pattern
-         */
-        public String tableRenamePattern() {
-            return SnapshotSettings.TABLE_RENAME_PATTERN.get(settings);
-        }
-
-        /**
-         * @return table rename replacement
-         */
-        public String tableRenameReplacement() {
-            return SnapshotSettings.TABLE_RENAME_REPLACEMENT.get(settings);
-        }
-
-        public String schemaRenamePattern() {
-            return SnapshotSettings.SCHEMA_RENAME_PATTERN.get(settings);
-        }
-
-        public String schemaRenameReplacement() {
-            return SnapshotSettings.SCHEMA_RENAME_REPLACEMENT.get(settings);
-        }
-
-        public boolean hasNonDefaultRenamePatterns() {
-            return TABLE_RENAME_PATTERN.exists(settings)
-                || TABLE_RENAME_REPLACEMENT.exists(settings)
-                || SCHEMA_RENAME_PATTERN.exists(settings)
-                || SCHEMA_RENAME_REPLACEMENT.exists(settings);
         }
     }
 
