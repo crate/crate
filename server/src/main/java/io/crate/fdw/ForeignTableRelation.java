@@ -23,6 +23,7 @@ package io.crate.fdw;
 
 import java.util.List;
 
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.relations.AbstractTableRelation;
@@ -34,9 +35,9 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.Operation;
 
-public class ForeignTableRelation extends AbstractTableRelation<ForeignTable> {
+public class ForeignTableRelation extends AbstractTableRelation<RelationMetadata.ForeignTable> {
 
-    public ForeignTableRelation(ForeignTable table) {
+    public ForeignTableRelation(RelationMetadata.ForeignTable table) {
         super(table, List.copyOf(table.rootColumns()), List.of());
     }
 

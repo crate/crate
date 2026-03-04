@@ -65,9 +65,8 @@ public final class AddForeignTableTask extends AckedClusterStateUpdateTask<Ackno
                 ));
         }
 
-
-        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
-        ForeignTablesMetadata updatedTables = foreignTables.add(
+        Metadata.Builder mdBuilder = Metadata.builder(metadata);
+        mdBuilder.setForeignTable(
             tableName,
             request.columns(),
             request.server(),
@@ -75,9 +74,7 @@ public final class AddForeignTableTask extends AckedClusterStateUpdateTask<Ackno
         );
 
         return ClusterState.builder(currentState)
-            .metadata(Metadata.builder(metadata)
-                .putCustom(ForeignTablesMetadata.TYPE, updatedTables)
-            )
+            .metadata(mdBuilder)
             .build();
     }
 }

@@ -43,6 +43,7 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
@@ -105,6 +106,14 @@ public class MetadataUpgradeService {
                     viewMetadata.errorOnUnknownObjectKey());
             }
             newMetadata.removeCustom(ViewsMetadata.TYPE);
+        }
+
+        ForeignTablesMetadata foreignTablesMetadata = metadata.custom(ForeignTablesMetadata.TYPE);
+        if (foreignTablesMetadata != null) {
+            for (var foreignTable : foreignTablesMetadata) {
+                newMetadata.setForeignTable(foreignTable);
+            }
+            newMetadata.removeCustom(ForeignTablesMetadata.TYPE);
         }
 
         // Templates only exist in Metadata from < 6.1.0

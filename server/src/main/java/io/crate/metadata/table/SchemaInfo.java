@@ -23,6 +23,7 @@ package io.crate.metadata.table;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.metadata.RelationName;
@@ -38,6 +39,10 @@ public interface SchemaInfo extends AutoCloseable {
         return null;
     }
 
+    default RelationMetadata.@Nullable ForeignTable getForeignTableInfo(String name) {
+        return null;
+    }
+
     String name();
 
     /**
@@ -48,6 +53,8 @@ public interface SchemaInfo extends AutoCloseable {
     Iterable<TableInfo> getTables();
 
     Iterable<ViewInfo> getViews();
+
+    Iterable<RelationMetadata.ForeignTable> getForeignTables();
 
     @Nullable
     default TableInfo create(RelationName relationName, Metadata metadata) {
