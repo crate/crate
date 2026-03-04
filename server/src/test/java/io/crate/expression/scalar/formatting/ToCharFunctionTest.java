@@ -244,5 +244,7 @@ public class ToCharFunctionTest extends ScalarTestCase {
         assertEvaluate("to_char(timestamp '2024-01-15', 'TH')", "TH");
         assertEvaluate("to_char(timestamp '2024-01-15', 'th DD')", "th 15");
         assertEvaluate("to_char(timestamp '2024-01-15', 'Day th')", "Monday   th");
+        // Two standalone th followed by DD: both th should be literal
+        assertEvaluate("to_char(timestamp '2024-01-15', 'ththDD')", "thth15");
     }
 }
