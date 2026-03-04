@@ -26,6 +26,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import java.util.List;
 
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.SchemaMetadata;
 import org.junit.Test;
 
 import io.crate.analyze.FunctionArgumentDefinition;
@@ -40,14 +42,12 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
         DocSchemaInfo.NAME, "same", List.of(), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function same(){ return 3; }"
     );
-    private final UserDefinedFunctionMetadata same2 = new UserDefinedFunctionMetadata(
-        DocSchemaInfo.NAME, "same", List.of(), DataTypes.INTEGER,
-        DUMMY_LANG.name(), "function same() { return 2; }"
-    );
+
     private final UserDefinedFunctionMetadata different = new UserDefinedFunctionMetadata(
         DocSchemaInfo.NAME, "different", List.of(), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function different() { return 3; }"
     );
+
     private static final UserDefinedFunctionMetadata FOO = new UserDefinedFunctionMetadata(
         DocSchemaInfo.NAME, "foo", List.of(FunctionArgumentDefinition.of("i", DataTypes.INTEGER)), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function foo(i) { return i; }"
@@ -60,55 +60,37 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
     }
 
     @Test
-    public void testFirstFunction() throws Exception {
-        UserDefinedFunctionsMetadata metadata = udfService.putFunction(null, same1, true);
-        assertThat(metadata.functionsMetadata()).hasSize(1);
-        assertThat(metadata.functionsMetadata()).containsExactly(same1);
+    public void test_create_replace_and_remove_functions() throws Exception {
+        ClusterState state1 = UserDefinedFunctionService.addUDF(same1, true, ClusterState.EMPTY_STATE);
+        SchemaMetadata schema1 = state1.metadata().schemas().get(DocSchemaInfo.NAME);
+        assertThat(schema1).isNotNull();
+        assertThat(schema1.udfs()).containsExactly(same1);
+
+        ClusterState state2 = UserDefinedFunctionService.addUDF(same1, true, state1);
+        SchemaMetadata schema2 = state2.metadata().schemas().get(DocSchemaInfo.NAME);
+        assertThat(schema2).isNotNull();
+        assertThat(schema2.udfs()).containsExactly(same1);
+
+        assertThatThrownBy(() -> UserDefinedFunctionService.addUDF(same1, false, state2))
+            .isExactlyInstanceOf(UserDefinedFunctionAlreadyExistsException.class);
+
+        ClusterState state3 = UserDefinedFunctionService.addUDF(different, true, state2);
+        SchemaMetadata schema3 = state3.metadata().schemas().get(DocSchemaInfo.NAME);
+        assertThat(schema3).isNotNull();
+        assertThat(schema3.udfs()).containsExactly(same1, different);
+
+        ClusterState state4 = udfService.dropUDF("doc", "different", List.of(), true, state3);
+        SchemaMetadata schema4 = state4.metadata().schemas().get(DocSchemaInfo.NAME);
+        assertThat(schema4).isNotNull();
+        assertThat(schema4.udfs()).containsExactly(same1);
+
+        assertThatThrownBy(() -> udfService.dropUDF("doc", "different", List.of(), false, state4))
+            .isExactlyInstanceOf(UserDefinedFunctionUnknownException.class);
+
+        ClusterState state5 = udfService.dropUDF("doc", "different", List.of(), true, state4);
+        assertThat(state5).isEqualTo(state4);
     }
 
-    @Test
-    public void testReplaceExistingFunction() throws Exception {
-        UserDefinedFunctionsMetadata metadata = udfService.putFunction(UserDefinedFunctionsMetadata.of(same1), same2, true);
-        assertThat(metadata.functionsMetadata()).hasSize(1);
-        assertThat(metadata.functionsMetadata()).containsExactly(same2);
-    }
-
-    @Test
-    public void testReplaceNotExistingFunction() throws Exception {
-        UserDefinedFunctionsMetadata metadata =
-            udfService.putFunction(UserDefinedFunctionsMetadata.of(same1), different, true);
-        assertThat(metadata.functionsMetadata()).containsExactlyInAnyOrder(same1, different);
-    }
-
-    @Test
-    public void testRemoveFunction() throws Exception {
-        UserDefinedFunctionsMetadata metadata = UserDefinedFunctionsMetadata.of(same1);
-        UserDefinedFunctionsMetadata newMetadata = udfService.removeFunction(metadata, same1.schema(), same1.name(), same1.argumentTypes(), false);
-        assertThat(metadata).isNotEqualTo(newMetadata); // A new instance of metadata must be returned on a change
-        assertThat(newMetadata.functionsMetadata()).hasSize(0);
-    }
-
-    @Test
-    public void testRemoveIfExistsEmptyMetadata() throws Exception {
-        UserDefinedFunctionsMetadata newMetadata = udfService.removeFunction(null, same1.schema(), same1.name(), same1.argumentTypes(), true);
-        assertThat(newMetadata).isNotNull();
-    }
-
-    @Test
-    public void testRemoveDoesNotExist() throws Exception {
-        UserDefinedFunctionsMetadata metadata = UserDefinedFunctionsMetadata.of(same1);
-        assertThatThrownBy(() ->
-                udfService.removeFunction(metadata, different.schema(), different.name(), different.argumentTypes(), false))
-            .isExactlyInstanceOf(UserDefinedFunctionUnknownException.class)
-            .hasMessage("Cannot resolve user defined function: 'doc.different()'");
-    }
-
-    @Test
-    public void testReplaceIsFalse() throws Exception {
-        assertThatThrownBy(() -> udfService.putFunction(UserDefinedFunctionsMetadata.of(same1), same2, false))
-            .isExactlyInstanceOf(UserDefinedFunctionAlreadyExistsException.class)
-            .hasMessage("User defined Function 'doc.same()' already exists.");
-    }
 
     @Test
     public void test_validate_table_while_dropping_udf() throws Exception {
@@ -125,11 +107,11 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
             ))
             .addTable("create table doc.t1 (id int, gen as foo(id))");
 
-        assertThatThrownBy(() -> udfService.ensureFunctionIsUnused(DocSchemaInfo.NAME, "foo", List.of(DataTypes.LONG)))
+        assertThatThrownBy(() -> udfService.ensureFunctionIsUnused(DocSchemaInfo.NAME, "foo", List.of(DataTypes.INTEGER)))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Cannot drop function 'doc.foo'. It is in use by column 'gen' of table 'doc.t1'");
 
-        sqlExecutor.udfService().ensureFunctionIsUnused(DocSchemaInfo.NAME, "foo", List.of(DataTypes.INTEGER));
+        sqlExecutor.udfService().ensureFunctionIsUnused(DocSchemaInfo.NAME, "foo", List.of(DataTypes.LONG));
     }
 
     @Test

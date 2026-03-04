@@ -22,7 +22,6 @@
 package io.crate.metadata;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Locale;
 
@@ -33,7 +32,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.common.collections.Iterators;
-import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.FulltextAnalyzerResolver.CustomType;
 
 public class RoutineInfos implements Iterable<RoutineInfo> {
@@ -90,21 +88,18 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
 
     private Iterator<RoutineInfo> userDefinedFunctions() {
         Metadata metadata = clusterService.state().metadata();
-        UserDefinedFunctionsMetadata udf = metadata.custom(UserDefinedFunctionsMetadata.TYPE);
-        if (udf == null) {
-            return Collections.emptyIterator();
-        }
-        return udf.functionsMetadata().stream()
-            .map(x -> new RoutineInfo(
-                        x.name(),
-                        RoutineType.FUNCTION.getName(),
-                        x.schema(),
-                        x.specificName(),
-                        x.definition(),
-                        x.language(),
-                        x.returnType().getName(),
-                        true)
-            )
+        return metadata.schemas().values().stream()
+            .flatMap(schema -> schema.udfs().stream())
+            .map(udf -> new RoutineInfo(
+                udf.name(),
+                RoutineType.FUNCTION.getName(),
+                udf.schema(),
+                udf.specificName(),
+                udf.definition(),
+                udf.language(),
+                udf.returnType().getName(),
+                true
+            ))
             .iterator();
     }
 

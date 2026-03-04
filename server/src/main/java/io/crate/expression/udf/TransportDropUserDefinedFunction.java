@@ -79,7 +79,7 @@ public class TransportDropUserDefinedFunction
     protected void masterOperation(final DropUserDefinedFunctionRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
-        udfService.dropFunction(
+        udfService.submitDropUDF(
             request.schema(),
             request.name(),
             request.argumentTypes(),

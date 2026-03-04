@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.Diff;
@@ -76,13 +77,13 @@ public class SchemaMetadataTest extends ESTestCase {
         HashMap<String, RelationMetadata> relationsV1 = new HashMap<>();
         relationsV1.put("t1", relT1);
         relationsV1.put("t2", relT2);
-        SchemaMetadata schemaV1 = new SchemaMetadata(relationsV1, true);
+        SchemaMetadata schemaV1 = new SchemaMetadata(relationsV1, List.of(), true);
 
         HashMap<String, RelationMetadata> relationsV2 = new HashMap<>();
         relationsV2.put("t1", relT1);
         relationsV2.put("t2", relT2);
         relationsV2.put("t3", relT3);
-        SchemaMetadata schemaV2 = new SchemaMetadata(relationsV2, true);
+        SchemaMetadata schemaV2 = new SchemaMetadata(relationsV2, List.of(), true);
 
         SchemaMetadata before;
         SchemaMetadata after;

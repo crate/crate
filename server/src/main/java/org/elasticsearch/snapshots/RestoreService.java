@@ -96,6 +96,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -552,10 +553,10 @@ public class RestoreService implements ClusterStateApplier {
                 mdBuilder.persistentSettings(settings);
             }
 
+            // old UDF/ViewsMetadata were already migrated to new structures in
+            // MetadataUpgradeService#upgradeMetadata()
             // Restore views
             if (request.includeViews()) {
-                // old ViewsMetadata have already been migrated to RelationMetadata.View in
-                // MetadataUpgradeService#upgradeMetadata()
                 for (RelationMetadata.View view : snapshotMetadata.relations(RelationMetadata.View.class)) {
                     mdBuilder.setView(
                         view.name(),
@@ -579,6 +580,13 @@ public class RestoreService implements ClusterStateApplier {
                 List<String> customMetadataTypes = Arrays.asList(request.customMetadataTypes());
                 boolean includeAll = customMetadataTypes.isEmpty();
 
+                if (includeAll || customMetadataTypes.contains(UserDefinedFunctionsMetadata.TYPE)) {
+                    for (var schema : snapshotMetadata.schemas().values()) {
+                        for (var udf : schema.udfs()) {
+                            mdBuilder.setUDF(udf);
+                        }
+                    }
+                }
                 for (Map.Entry<String, Metadata.Custom> entry : snapshotMetadata.customs().entrySet()) {
                     if (!RepositoriesMetadata.TYPE.equals(entry.getKey())) {
                         // Don't restore repositories while we are working with them

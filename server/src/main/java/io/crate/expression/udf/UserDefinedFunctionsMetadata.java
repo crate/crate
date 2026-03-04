@@ -35,10 +35,12 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentParser;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.types.DataType;
 
+/// @deprecated Use [org.elasticsearch.cluster.metadata.SchemaMetadata#udfs()] instead
+@Deprecated (since = "6.3.0")
 public class UserDefinedFunctionsMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 
     public static final String TYPE = "user_defined_functions";

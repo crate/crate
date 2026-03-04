@@ -22,6 +22,7 @@
 package org.elasticsearch.cluster.metadata;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
@@ -32,16 +33,21 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.metadata.RelationName;
 
 public class SchemaMetadata implements Diffable<SchemaMetadata> {
 
     private final Map<String, RelationMetadata> relations;
+    private final List<UserDefinedFunctionMetadata> udfs;
     private final boolean explicit;
 
     /// @param explicit true indicates this was created via CREATE SCHEMA
-    public SchemaMetadata(Map<String, RelationMetadata> relations, boolean explicit) {
+    public SchemaMetadata(Map<String, RelationMetadata> relations,
+                          List<UserDefinedFunctionMetadata> udfs,
+                          boolean explicit) {
         this.relations = relations;
+        this.udfs = udfs;
         this.explicit = explicit;
     }
 
@@ -53,7 +59,22 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
         boolean explicit = in.getVersion().onOrAfter(Version.V_6_2_0)
             ? in.readBoolean()
             : false;
-        return new SchemaMetadata(relations, explicit);
+        List<UserDefinedFunctionMetadata> udfs = in.getVersion().onOrAfter(Version.V_6_3_0)
+            ? in.readList(UserDefinedFunctionMetadata::new)
+            : List.of();
+        return new SchemaMetadata(relations, udfs, explicit);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeMap(relations, StreamOutput::writeString, RelationMetadata::toStream);
+        Version version = out.getVersion();
+        if (version.onOrAfter(Version.V_6_2_0)) {
+            out.writeBoolean(explicit);
+        }
+        if (version.onOrAfter(Version.V_6_3_0)) {
+            out.writeList(udfs);
+        }
     }
 
     public static Diff<SchemaMetadata> readDiffFrom(StreamInput in) throws IOException {
@@ -73,16 +94,12 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
         }
     }
 
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeMap(relations, StreamOutput::writeString, RelationMetadata::toStream);
-        if (out.getVersion().onOrAfter(Version.V_6_2_0)) {
-            out.writeBoolean(explicit);
-        }
-    }
-
     public Map<String, RelationMetadata> relations() {
         return relations;
+    }
+
+    public List<UserDefinedFunctionMetadata> udfs() {
+        return udfs;
     }
 
     @Nullable
@@ -101,15 +118,23 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
         return explicit;
     }
 
+
     @Override
     public int hashCode() {
-        return relations.hashCode();
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + relations.hashCode();
+        result = prime * result + udfs.hashCode();
+        result = prime * result + (explicit ? 1231 : 1237);
+        return result;
     }
 
     @Override
     public boolean equals(Object obj) {
         return obj instanceof SchemaMetadata other
-            && relations.equals(other.relations);
+            && relations.equals(other.relations)
+            && udfs.equals(other.udfs)
+            && explicit == other.explicit;
     }
 
     static class SchemaMetadataDiff implements Diff<SchemaMetadata> {
@@ -118,6 +143,7 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
             new Diffs.DiffableValueReader<>(RelationMetadata::of, RelationMetadata::readDiffFrom);
 
         private final Diff<Map<String, RelationMetadata>> relations;
+        private final List<UserDefinedFunctionMetadata> udfs;
         private final boolean explicit;
 
         SchemaMetadataDiff(Version version, SchemaMetadata before, SchemaMetadata after) {
@@ -128,24 +154,31 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
                 Diffs.stringKeySerializer(),
                 RelationMetadata.VALUE_SERIALIZER
             );
+            this.udfs = after.udfs();
             this.explicit = after.explicit;
         }
 
         SchemaMetadataDiff(StreamInput in) throws IOException {
             relations = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), REL_DIFF_VALUE_READER);
             explicit = in.readBoolean();
+            udfs = in.getVersion().onOrAfter(Version.V_6_3_0)
+                ? in.readList(UserDefinedFunctionMetadata::new)
+                : List.of();
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             relations.writeTo(out);
             out.writeBoolean(explicit);
+            if (out.getVersion().onOrAfter(Version.V_6_3_0)) {
+                out.writeList(udfs);
+            }
         }
 
         @Override
         public SchemaMetadata apply(SchemaMetadata part) {
             Map<String, RelationMetadata> newRelations = relations.apply(part.relations);
-            return new SchemaMetadata(newRelations, explicit);
+            return new SchemaMetadata(newRelations, udfs, explicit);
         }
     }
 }

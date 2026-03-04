@@ -21,8 +21,8 @@ package org.elasticsearch.cluster.metadata;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_UPGRADED;
-import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 
 import java.util.List;
 import java.util.function.LongSupplier;
@@ -89,7 +89,11 @@ public class MetadataUpgradeService {
 
         UserDefinedFunctionsMetadata udfMetadata = metadata.custom(UserDefinedFunctionsMetadata.TYPE);
         if (udfMetadata != null) {
-            userDefinedFunctionService.updateImplementations(udfMetadata.functionsMetadata());
+            for (var udf : udfMetadata.functionsMetadata()) {
+                newMetadata.setUDF(udf);
+            }
+            newMetadata.removeCustom(UserDefinedFunctionsMetadata.TYPE);
+            userDefinedFunctionService.updateImplementations(newMetadata.build());
         }
 
         ViewsMetadata viewsMetadata = metadata.custom(ViewsMetadata.TYPE);
