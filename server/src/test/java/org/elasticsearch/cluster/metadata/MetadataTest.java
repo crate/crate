@@ -36,6 +36,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.exceptions.DependentObjectsExists;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
@@ -51,6 +52,7 @@ import io.crate.metadata.view.ViewsMetadata;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
+@SuppressWarnings("deprecation")
 public class MetadataTest extends ESTestCase {
 
     @Test
@@ -301,5 +303,33 @@ public class MetadataTest extends ESTestCase {
             )
         );
         assertThat((ForeignTablesMetadata) receivedMetadata.custom(ForeignTablesMetadata.TYPE)).isNull();
+    }
+
+    @Test
+    public void test_bwc_streaming_udfs() throws Exception {
+        UserDefinedFunctionMetadata udf = new UserDefinedFunctionMetadata(
+            "my_schema",
+            "foo",
+            List.of(FunctionArgumentDefinition.of(DataTypes.INTEGER)),
+            DataTypes.INTEGER,
+            "x-lang",
+            "return 42"
+        );
+        Metadata metadata = Metadata.builder(Metadata.OID_UNASSIGNED)
+            .setUDF(udf)
+            .build();
+        try (var out = new BytesStreamOutput()) {
+            out.setVersion(Version.V_6_2_0);
+            metadata.writeTo(out);
+            try (var in = new NamedWriteableAwareStreamInput(out.bytes().streamInput(), writableRegistry())) {
+                in.setVersion(Version.V_6_2_0);
+                Metadata receivedMetadata = Metadata.readFrom(in);
+                UserDefinedFunctionsMetadata udfMetadata = receivedMetadata.custom(UserDefinedFunctionsMetadata.TYPE);
+                assertThat(udfMetadata).isNull();
+                SchemaMetadata schemaMetadata = receivedMetadata.schemas().get("my_schema");
+                assertThat(schemaMetadata).isNotNull();
+                assertThat(schemaMetadata.udfs()).containsExactly(udf);
+            }
+        }
     }
 }

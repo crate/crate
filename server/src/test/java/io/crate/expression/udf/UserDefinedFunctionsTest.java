@@ -22,6 +22,7 @@
 package io.crate.expression.udf;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -147,7 +148,8 @@ public class UserDefinedFunctionsTest extends UdfUnitTest {
             "function valid() { return 42; }"
         );
         // if a functionImpl can't be created, it won't be registered
-        udfService.updateImplementations(List.of(invalid, valid));
+        sqlExecutor.addUDF(invalid);
+        sqlExecutor.addUDF(valid);
 
         Functions functions = sqlExecutor.nodeCtx.functions();
         SearchPath searchPath = SearchPath.pathWithPGCatalogAndDoc();

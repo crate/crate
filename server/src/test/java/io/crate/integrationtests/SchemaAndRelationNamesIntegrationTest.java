@@ -28,14 +28,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.List;
 
 import org.elasticsearch.cluster.metadata.RelationMetadata;
+import org.elasticsearch.cluster.metadata.SchemaMetadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.FunctionArgumentDefinition;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.RelationName;
-import io.crate.types.StringType;
+import io.crate.types.DataTypes;
 
 public class SchemaAndRelationNamesIntegrationTest extends IntegTestCase {
 
@@ -63,7 +65,8 @@ public class SchemaAndRelationNamesIntegrationTest extends IntegTestCase {
         assertThat(meta.indices().values().iterator().next().getIndex().getName()).isEqualTo("_Abc..partitioned._T.04132");
 
         // check viewMetadata names as well as its target query
-        RelationMetadata view = meta.schemas().get("_Abc").get(new RelationName("_Abc", "v1"));
+        SchemaMetadata schemaMetadata = meta.schemas().get("_Abc");
+        RelationMetadata view = schemaMetadata.get(new RelationName("_Abc", "v1"));
         assertThat(view).isNotNull();
         assertThat(view).isExactlyInstanceOf(RelationMetadata.View.class);
         assertThat(((RelationMetadata.View) view).stmt()).isEqualTo(
@@ -74,8 +77,18 @@ public class SchemaAndRelationNamesIntegrationTest extends IntegTestCase {
         );
 
         // check udfMetadata for proper schema name
-        UserDefinedFunctionsMetadata userDefinedFunctionsMetadata = meta.custom(UserDefinedFunctionsMetadata.TYPE);
-        assertThat(userDefinedFunctionsMetadata.contains("_Abc", "func", List.of(StringType.INSTANCE))).isTrue();
+        assertThat(schemaMetadata.udfs()).containsExactly(
+            new UserDefinedFunctionMetadata(
+                "_Abc",
+                "func",
+                List.of(
+                    FunctionArgumentDefinition.of(DataTypes.STRING)
+                ),
+                DataTypes.STRING,
+                "dummy_lang",
+                "DUMMY EATS text"
+            )
+        );
 
         // a little more complex scenario involving schema names with upper cases
         execute("create table Abc.\"_T\" (b string, c string as \"_Abc\".func(b))");

@@ -124,7 +124,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.AddForeignTableTask;
 import io.crate.fdw.AddServerTask;
 import io.crate.fdw.CreateServerRequest;
@@ -332,6 +331,7 @@ public class SQLExecutor {
                 tableStats
             );
             var udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
+            udfService.start();
 
             var relationAnalyzer = new RelationAnalyzer(nodeCtx);
             relationAnalyzerRef.set(relationAnalyzer);
@@ -1046,8 +1046,14 @@ public class SQLExecutor {
     }
 
     public SQLExecutor addUDF(UserDefinedFunctionMetadata udf) {
-        UserDefinedFunctionsMetadata udfs = clusterService.state().metadata().custom(UserDefinedFunctionsMetadata.TYPE);
-        udfService.updateImplementations(Lists.concat(udfs == null ? List.of() : udfs.functionsMetadata(), udf));
+        ClusterState state = clusterService.state();
+        Metadata newMetadata = new Metadata.Builder(state.metadata())
+            .setUDF(udf)
+            .build();
+        ClusterState newState = ClusterState.builder(state)
+            .metadata(newMetadata)
+            .build();
+        ClusterServiceUtils.setState(clusterService, newState);
         return this;
     }
 

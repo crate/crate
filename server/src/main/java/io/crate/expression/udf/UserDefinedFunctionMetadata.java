@@ -128,7 +128,7 @@ public class UserDefinedFunctionMetadata implements Writeable {
         return specificName;
     }
 
-    boolean sameSignature(String schema, String name, List<DataType<?>> types) {
+    public boolean sameSignature(String schema, String name, List<DataType<?>> types) {
         return this.schema().equals(schema) && this.name().equals(name) && this.argumentTypes().equals(types);
     }
 
@@ -243,4 +243,8 @@ public class UserDefinedFunctionMetadata implements Writeable {
             types.stream().map(DataType::getName).collect(Collectors.joining(", ")));
     }
 
+    @Override
+    public String toString() {
+        return "UDF{" + schema + "." + name + "}";
+    }
 }

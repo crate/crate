@@ -79,9 +79,11 @@ import io.crate.exceptions.DependentObjectsExists;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.execution.ddl.Templates;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.ScopedColumn;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.ColumnIdent;
@@ -97,6 +99,7 @@ import io.crate.metadata.view.ViewMetadata;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.rest.action.HttpErrorStatus;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.DataType;
 
 public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
@@ -619,6 +622,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public static Metadata readFrom(StreamInput in) throws IOException {
         Builder builder;
         if (in.getVersion().onOrAfter(Version.V_6_3_0)) {
@@ -690,11 +694,21 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 }
             }
             builder.customs.remove(ForeignTablesMetadata.TYPE);
+
+            UserDefinedFunctionsMetadata udfs = (UserDefinedFunctionsMetadata) builder.customs.getOrDefault(
+                UserDefinedFunctionsMetadata.TYPE,
+                UserDefinedFunctionsMetadata.EMPTY
+            );
+            for (var udf : udfs.functionsMetadata()) {
+                builder.setUDF(udf);
+            }
+            builder.customs.remove(UserDefinedFunctionsMetadata.TYPE);
         }
         return builder.build();
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void writeTo(StreamOutput out) throws IOException {
         if (out.getVersion().onOrAfter(Version.V_6_3_0)) {
             out.writeInt(currentMaxTableOid);
@@ -751,6 +765,24 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                     foreignTableMap.put(foreignTable.name(), foreignTable);
                 }
                 copyCustoms.put(ForeignTablesMetadata.TYPE, new ForeignTablesMetadata(foreignTableMap));
+            }
+
+            // Build old UDF Metdata
+            List<UserDefinedFunctionMetadata> udfs = null;
+            for (var schema : schemas.values()) {
+                for (var udf : schema.udfs()) {
+                    if (udfs == null) {
+                        udfs = new ArrayList<>();
+                    }
+                    udfs.add(udf);
+                }
+            }
+            if (udfs != null) {
+                copyCustoms = new HashMap<>(copyCustoms);
+                copyCustoms.put(
+                    UserDefinedFunctionsMetadata.TYPE,
+                    UserDefinedFunctionsMetadata.of(udfs.toArray(UserDefinedFunctionMetadata[]::new))
+                );
             }
         }
         // filter out custom states not supported by the other node
@@ -901,10 +933,15 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             }
             HashMap<String, RelationMetadata> newRelations = new HashMap<>(schemaMetadata.relations());
             newRelations.remove(relationName.name());
-            if (newRelations.isEmpty() && !schemaMetadata.explicit()) {
+            if (newRelations.isEmpty() && schemaMetadata.udfs().isEmpty() && !schemaMetadata.explicit()) {
                 schemas.remove(relationName.schema());
             } else {
-                schemas.put(relationName.schema(), new SchemaMetadata(newRelations, schemaMetadata.explicit()));
+                SchemaMetadata newSchemaMetadata = new SchemaMetadata(
+                    newRelations,
+                    schemaMetadata.udfs(),
+                    schemaMetadata.explicit()
+                );
+                schemas.put(relationName.schema(), newSchemaMetadata);
             }
             return this;
         }
@@ -929,16 +966,24 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             String schema = relationName.schema();
             SchemaMetadata schemaMetadata = schemas.get(schema);
             boolean explicit;
+            List<UserDefinedFunctionMetadata> udfs;
             if (schemaMetadata == null) {
                 relations = HashMap.newHashMap(1);
                 relations.put(relationName.name(), relation);
                 explicit = false;
+                udfs = List.of();
             } else {
                 relations = new HashMap<>(schemaMetadata.relations());
                 relations.put(relationName.name(), relation);
                 explicit = schemaMetadata.explicit();
+                udfs = schemaMetadata.udfs();
             }
-            schemas.put(schema, new SchemaMetadata(Collections.unmodifiableMap(relations), explicit));
+            SchemaMetadata newSchemaMetadata = new SchemaMetadata(
+                Collections.unmodifiableMap(relations),
+                udfs,
+                explicit
+            );
+            schemas.put(schema, newSchemaMetadata);
         }
 
         @Deprecated
@@ -1255,6 +1300,61 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return builder.build();
         }
 
+        public Builder setUDF(UserDefinedFunctionMetadata udf) {
+            SchemaMetadata schemaMetadata = schemas.get(udf.schema());
+            if (schemaMetadata == null) {
+                List<UserDefinedFunctionMetadata> udfs = List.of(udf);
+                schemaMetadata = new SchemaMetadata(Map.of(), udfs, false);
+            } else {
+                if (schemaMetadata.udfs().contains(udf)) {
+                    return this;
+                }
+                List<UserDefinedFunctionMetadata> newUdfs = new ArrayList<>(schemaMetadata.udfs());
+                newUdfs.add(udf);
+                schemaMetadata = new SchemaMetadata(
+                    schemaMetadata.relations(),
+                    Collections.unmodifiableList(newUdfs),
+                    schemaMetadata.explicit()
+                );
+            }
+            schemas.put(udf.schema(), schemaMetadata);
+            return this;
+        }
+
+        public Builder dropUDF(String schema,
+                               String name,
+                               List<DataType<?>> argTypes,
+                               boolean ifExists) {
+            SchemaMetadata schemaMetadata = schemas.get(schema);
+            if (schemaMetadata == null) {
+                if (ifExists) {
+                    return this;
+                }
+                throw new UserDefinedFunctionUnknownException(schema, name, argTypes);
+            }
+            List<UserDefinedFunctionMetadata> udfs = schemaMetadata.udfs();
+            ArrayList<UserDefinedFunctionMetadata> newUdfs = new ArrayList<>(Math.max(0, udfs.size() - 1));
+            for (var udf : udfs) {
+                if (!(udf.sameSignature(schema, name, argTypes))) {
+                    newUdfs.add(udf);
+                }
+            }
+            if (udfs.size() == newUdfs.size() && !ifExists) {
+                throw new UserDefinedFunctionUnknownException(schema, name, argTypes);
+            }
+            if (newUdfs.isEmpty() && schemaMetadata.relations().isEmpty() && !schemaMetadata.explicit()) {
+                schemas.remove(schema);
+            } else {
+                SchemaMetadata newSchemaMetadata = new SchemaMetadata(
+                    schemaMetadata.relations(),
+                    Collections.unmodifiableList(newUdfs),
+                    schemaMetadata.explicit()
+                );
+                schemas.put(schema, newSchemaMetadata);
+            }
+            return this;
+        }
+
         /**
          * <p>
          * Adds the table, overriding it if a table with the same schema and name exists.
@@ -1420,7 +1520,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
         /// Explicitly adds a schema
         public Builder createSchema(String schemaName) {
-            schemas.put(schemaName, new SchemaMetadata(Map.of(), true));
+            schemas.put(schemaName, new SchemaMetadata(Map.of(), List.of(), true));
             return this;
         }
 
@@ -1742,5 +1842,11 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         public int peek() {
             return nextOid;
         }
+    }
+
+    public long numUDFs() {
+        return schemas.values().stream()
+            .mapToLong(schema -> schema.udfs().size())
+            .sum();
     }
 }

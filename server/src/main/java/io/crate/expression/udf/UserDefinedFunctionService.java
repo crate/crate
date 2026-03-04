@@ -40,15 +40,15 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.SchemaMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
-import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionName;
@@ -89,23 +89,15 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent imple
         languageRegistry.put(language.name(), language);
     }
 
-    void registerFunction(final UserDefinedFunctionMetadata metadata,
-                          final boolean replace,
-                          final ActionListener<AcknowledgedResponse> listener,
-                          final TimeValue timeout) {
-        clusterService.submitStateUpdateTask("put_udf [" + metadata.name() + "]",
+    void submitAddUDF(final UserDefinedFunctionMetadata udf,
+                      final boolean replace,
+                      final ActionListener<AcknowledgedResponse> listener,
+                      final TimeValue timeout) {
+        clusterService.submitStateUpdateTask("add_udf [" + udf.name() + "]",
             new ClusterStateUpdateTask() {
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
-                    Metadata currentMetadata = currentState.metadata();
-                    Metadata.Builder mdBuilder = Metadata.builder(currentMetadata);
-                    UserDefinedFunctionsMetadata functions = putFunction(
-                        currentMetadata.custom(UserDefinedFunctionsMetadata.TYPE),
-                        metadata,
-                        replace
-                    );
-                    mdBuilder.putCustom(UserDefinedFunctionsMetadata.TYPE, functions);
-                    return ClusterState.builder(currentState).metadata(mdBuilder).build();
+                    return addUDF(udf, replace, currentState);
                 }
 
                 @Override
@@ -125,28 +117,36 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent imple
             });
     }
 
-    void dropFunction(final String schema,
-                      final String name,
-                      final List<DataType<?>> argumentTypes,
-                      final boolean ifExists,
-                      final ActionListener<AcknowledgedResponse> listener,
-                      final TimeValue timeout) {
+
+    @VisibleForTesting
+    static ClusterState addUDF(UserDefinedFunctionMetadata udf,
+                               boolean replace,
+                               ClusterState currentState) {
+        if (!replace) {
+            SchemaMetadata schemaMetadata = currentState.metadata().schemas().get(udf.schema());
+            if (schemaMetadata != null && schemaMetadata.udfs().contains(udf)) {
+                throw new UserDefinedFunctionAlreadyExistsException(udf);
+            }
+        }
+        Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata())
+            .setUDF(udf);
+        return ClusterState.builder(currentState)
+            .metadata(mdBuilder)
+            .build();
+    }
+
+
+    void submitDropUDF(final String schema,
+                       final String name,
+                       final List<DataType<?>> argumentTypes,
+                       final boolean ifExists,
+                       final ActionListener<AcknowledgedResponse> listener,
+                       final TimeValue timeout) {
         clusterService.submitStateUpdateTask("drop_udf [" + schema + "." + name + " - " + argumentTypes + "]",
             new ClusterStateUpdateTask() {
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
-                    Metadata metadata = currentState.metadata();
-                    Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
-                    ensureFunctionIsUnused(schema, name, argumentTypes);
-                    UserDefinedFunctionsMetadata functions = removeFunction(
-                        metadata.custom(UserDefinedFunctionsMetadata.TYPE),
-                        schema,
-                        name,
-                        argumentTypes,
-                        ifExists
-                    );
-                    mdBuilder.putCustom(UserDefinedFunctionsMetadata.TYPE, functions);
-                    return ClusterState.builder(currentState).metadata(mdBuilder).build();
+                    return dropUDF(schema, name, argumentTypes, ifExists, currentState);
                 }
 
                 @Override
@@ -167,59 +167,26 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent imple
     }
 
     @VisibleForTesting
-    UserDefinedFunctionsMetadata putFunction(@Nullable UserDefinedFunctionsMetadata oldMetadata,
-                                             UserDefinedFunctionMetadata functionMetadata,
-                                             boolean replace) {
-        if (oldMetadata == null) {
-            return UserDefinedFunctionsMetadata.of(functionMetadata);
+    ClusterState dropUDF(final String schema,
+                         final String name,
+                         final List<DataType<?>> argumentTypes,
+                         final boolean ifExists,
+                         ClusterState currentState) {
+        ensureFunctionIsUnused(schema, name, argumentTypes);
+        Metadata metadata = currentState.metadata();
+        Metadata newMetadata = Metadata.builder(metadata)
+            .dropUDF(schema, name, argumentTypes, ifExists)
+            .build();
+
+        if (newMetadata.numUDFs() == metadata.numUDFs()) {
+            return currentState;
         }
 
-        // create a new instance of the metadata, to guarantee the cluster changed action.
-        UserDefinedFunctionsMetadata newMetadata = UserDefinedFunctionsMetadata.newInstance(oldMetadata);
-        if (oldMetadata.contains(functionMetadata.schema(), functionMetadata.name(), functionMetadata.argumentTypes())) {
-            if (!replace) {
-                throw new UserDefinedFunctionAlreadyExistsException(functionMetadata);
-            }
-            newMetadata.replace(functionMetadata);
-        } else {
-            newMetadata.add(functionMetadata);
-        }
-
-        assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
-        return newMetadata;
+        return ClusterState.builder(currentState)
+            .metadata(newMetadata)
+            .build();
     }
 
-    @VisibleForTesting
-    UserDefinedFunctionsMetadata removeFunction(@Nullable UserDefinedFunctionsMetadata functions,
-                                                String schema,
-                                                String name,
-                                                List<DataType<?>> argumentDataTypes,
-                                                boolean ifExists) {
-        if (!ifExists && (functions == null || !functions.contains(schema, name, argumentDataTypes))) {
-            throw new UserDefinedFunctionUnknownException(schema, name, argumentDataTypes);
-        } else if (functions == null) {
-            return UserDefinedFunctionsMetadata.of();
-        } else {
-            // create a new instance of the metadata, to guarantee the cluster changed action.
-            UserDefinedFunctionsMetadata newMetadata = UserDefinedFunctionsMetadata.newInstance(functions);
-            newMetadata.remove(schema, name, argumentDataTypes);
-            return newMetadata;
-        }
-    }
-
-    public void updateImplementations(List<UserDefinedFunctionMetadata> userDefinedFunctions) {
-        final Map<FunctionName, List<FunctionProvider>> implementations = new HashMap<>();
-        for (var functionMetadata : userDefinedFunctions) {
-            FunctionProvider provider = buildFunctionResolver(functionMetadata);
-            if (provider == null) {
-                continue;
-            }
-            FunctionName name = provider.signature().getName();
-            var providers = implementations.computeIfAbsent(name, k -> new ArrayList<>());
-            providers.add(provider);
-        }
-        nodeCtx.functions().setUDFs(implementations);
-    }
 
     @Nullable
     public FunctionProvider buildFunctionResolver(UserDefinedFunctionMetadata udf) {
@@ -282,11 +249,26 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent imple
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        if (event.changedCustomMetadataSet().contains(UserDefinedFunctionsMetadata.TYPE)) {
-            Metadata newMetadata = event.state().metadata();
-            UserDefinedFunctionsMetadata udfMetadata = newMetadata.custom(UserDefinedFunctionsMetadata.TYPE);
-            updateImplementations(udfMetadata == null ? List.of() : udfMetadata.functionsMetadata());
+        if (!event.metadataChanged()) {
+            return;
         }
+        updateImplementations(event.state().metadata());
+    }
+
+    public void updateImplementations(Metadata newMetadata) {
+        final Map<FunctionName, List<FunctionProvider>> implementations = new HashMap<>();
+        for (var schema : newMetadata.schemas().values()) {
+            for (var udf : schema.udfs()) {
+                FunctionProvider provider = buildFunctionResolver(udf);
+                if (provider == null) {
+                    continue;
+                }
+                FunctionName name = provider.signature().getName();
+                var providers = implementations.computeIfAbsent(name, k -> new ArrayList<>());
+                providers.add(provider);
+            }
+        }
+        nodeCtx.functions().setUDFs(implementations);
     }
 
     @Override

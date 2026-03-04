@@ -86,7 +86,7 @@ public class TransportCreateUserDefinedFunction
         if (errorMessage != null) {
             throw new ScriptException(errorMessage, metadata.language());
         }
-        udfService.registerFunction(metadata, request.replace(), listener, request.masterNodeTimeout());
+        udfService.submitAddUDF(metadata, request.replace(), listener, request.masterNodeTimeout());
     }
 
     @Override
