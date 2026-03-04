@@ -25,6 +25,7 @@ import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -662,8 +663,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             }
         }
 
-        // Build RelationMetadata.View from old ViewsMetadata
         if (in.getVersion().before(Version.V_6_3_0)) {
+            // Build RelationMetadata.View from old ViewsMetadata
             ViewsMetadata viewsMetadata = (ViewsMetadata) builder.customs.get(ViewsMetadata.TYPE);
             if (viewsMetadata != null) {
                 for (var entry : viewsMetadata.views().entrySet()) {
@@ -679,6 +680,16 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 }
             }
             builder.customs.remove(ViewsMetadata.TYPE);
+
+            // Build RelationMetadata.ForeignTable from old ForeignTablesMetadata
+            ForeignTablesMetadata foreignTablesMetadata =
+                (ForeignTablesMetadata) builder.customs.get(ForeignTablesMetadata.TYPE);
+            if (foreignTablesMetadata != null) {
+                for (var foreignTable : foreignTablesMetadata) {
+                    builder.setForeignTable(foreignTable);
+                }
+            }
+            builder.customs.remove(ForeignTablesMetadata.TYPE);
         }
         return builder.build();
     }
@@ -712,9 +723,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             }
         }
 
-        // Build old ViewsMetadata from RelationMetadata.View entries
         Map<String, Metadata.Custom> copyCustoms = customs;
         if (out.getVersion().before(Version.V_6_3_0)) {
+            // Build old ViewsMetadata from RelationMetadata.View entries
             List<RelationMetadata.View> views = relations(RelationMetadata.View.class);
             if (views.isEmpty() == false) {
                 copyCustoms = new HashMap<>(customs);
@@ -728,6 +739,18 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                     );
                 }
                 copyCustoms.put(ViewsMetadata.TYPE, new ViewsMetadata(viewsMap));
+            }
+
+            // Build old ForeignTablesMetadata from RelationMetada.ForeignTable entries
+            List<RelationMetadata.ForeignTable> foreignTables = relations(RelationMetadata.ForeignTable.class);
+            if (foreignTables.isEmpty() == false) {
+                copyCustoms = new HashMap<>(copyCustoms);
+                Map<RelationName, RelationMetadata.ForeignTable> foreignTableMap =
+                    HashMap.newHashMap(foreignTables.size());
+                for (var foreignTable : foreignTables) {
+                    foreignTableMap.put(foreignTable.name(), foreignTable);
+                }
+                copyCustoms.put(ForeignTablesMetadata.TYPE, new ForeignTablesMetadata(foreignTableMap));
             }
         }
         // filter out custom states not supported by the other node
@@ -1111,6 +1134,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                     // Skip below assert for tables created >= 6.0 and < 6.3.0 - for a single test case to pass -
                     // test_6_1_object_reference_with_undefined_inner_type_and_no_child_reference
                     if (relationMetadata instanceof RelationMetadata.View ||
+                        relationMetadata instanceof RelationMetadata.ForeignTable ||
                         (versionCreated.onOrAfter(Version.V_6_0_0) && versionCreated.before(Version.V_6_3_0) && relationOID == 0)) {
                         continue;
                     }
@@ -1367,6 +1391,33 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
+        /**
+         * Adds the foreign table, overriding it if a view with the same schema and name exists.
+         **/
+        @VisibleForTesting
+        public Builder setForeignTable(RelationName name,
+                                       Collection<Reference> references,
+                                       String server,
+                                       Settings settings) {
+            setRelation(
+                new RelationMetadata.ForeignTable(
+                    name,
+                    references.stream().collect(Collectors.toMap(Reference::column, x -> x)),
+                    server,
+                    settings)
+            );
+            return this;
+        }
+
+        /**
+         * Adds the foreign table, overriding it if a view with the same schema and name exists.
+         **/
+        @VisibleForTesting
+        public Builder setForeignTable(RelationMetadata.ForeignTable foreignTable) {
+            setRelation(foreignTable);
+            return this;
+        }
+
         /// Explicitly adds a schema
         public Builder createSchema(String schemaName) {
             schemas.put(schemaName, new SchemaMetadata(Map.of(), true));
@@ -1389,14 +1440,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 UserDefinedFunctionsMetadata.EMPTY
             );
             if (udfs.contains(schema)) {
-                throw new DependentObjectsExists("schema", schema);
-            }
-
-            ForeignTablesMetadata foreignTables = (ForeignTablesMetadata) customs.getOrDefault(
-                ForeignTablesMetadata.TYPE,
-                ForeignTablesMetadata.EMPTY
-            );
-            if (foreignTables.contains(schema)) {
                 throw new DependentObjectsExists("schema", schema);
             }
 
@@ -1464,10 +1507,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     public boolean contains(RelationName tableName) {
         if (templates.containsKey(PartitionName.templateName(tableName.schema(), tableName.name()))) {
-            return true;
-        }
-        ForeignTablesMetadata foreignTables = custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
-        if (foreignTables.contains(tableName)) {
             return true;
         }
         SchemaMetadata schemaMetadata = schemas.get(tableName.schema());
@@ -1643,6 +1682,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 return result;
             }
             case RelationMetadata.View _ -> {
+                return List.of();
+            }
+            case RelationMetadata.ForeignTable _ -> {
                 return List.of();
             }
             default -> {

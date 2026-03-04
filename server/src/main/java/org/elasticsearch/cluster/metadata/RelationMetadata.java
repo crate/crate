@@ -23,27 +23,45 @@
 package org.elasticsearch.cluster.metadata;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.Diffable;
 import org.elasticsearch.cluster.Diffs.ValueSerializer;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.metadata.table.Operation;
+import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.DataTypes;
 
-public sealed interface RelationMetadata extends Diffable<RelationMetadata> permits RelationMetadata.BlobTable, RelationMetadata.Table, RelationMetadata.View {
+public sealed interface RelationMetadata extends Diffable<RelationMetadata>
+    permits RelationMetadata.BlobTable, RelationMetadata.Table, RelationMetadata.View, RelationMetadata.ForeignTable {
 
     RelValueSerializer<String> VALUE_SERIALIZER = new RelValueSerializer<>();
 
@@ -65,6 +83,7 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
             case BlobTable.ORD -> RelationMetadata.BlobTable.of(in);
             case Table.ORD -> RelationMetadata.Table.of(in);
             case View.ORD -> RelationMetadata.View.of(in);
+            case ForeignTable.ORD -> new RelationMetadata.ForeignTable(in);
             default -> throw new IllegalArgumentException("Invalid RelationMetadata ord: " + ord);
         };
     }
@@ -383,6 +402,131 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
         public RelationMetadata withIndexUUIDs(List<String> indexUUIDs) {
             assert indexUUIDs.isEmpty() : "Cannot set indices to a view";
             return this;
+        }
+    }
+
+    record ForeignTable(RelationName name,
+                        Map<ColumnIdent, Reference> references,
+                        String server,
+                        Settings settings) implements RelationMetadata, Writeable, TableInfo {
+
+        private static final short ORD = 3;
+
+        public ForeignTable(StreamInput in) throws IOException {
+            this(
+                new RelationName(in),
+                in.readMap(LinkedHashMap::new, ColumnIdent::of, Reference::fromStream),
+                in.readString(),
+                Settings.readSettingsFromStream(in)
+            );
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            name.writeTo(out);
+            out.writeMap(references, (o, v) -> v.writeTo(o), Reference::toStream);
+            out.writeString(server);
+            Settings.writeSettingsToStream(out, settings);
+        }
+
+        @Override
+        public int oid() {
+            return Metadata.OID_UNASSIGNED;
+        }
+
+        @Override
+        public Settings settings() {
+            return settings;
+        }
+
+        @Override
+        public short ord() {
+            return ORD;
+        }
+
+        @Override
+        public List<String> indexUUIDs() {
+            return List.of();
+        }
+
+        @Override
+        public RelationMetadata withIndexUUIDs(List<String> indexUUIDs) {
+            assert indexUUIDs.isEmpty() : "Cannot set indices to a view";
+            return this;
+        }
+
+        @Override
+        public Collection<Reference> rootColumns() {
+            return references.values();
+        }
+
+        @Override
+        public Stream<Reference> allColumnsSorted() {
+            return references.values().stream()
+                .sorted(Reference.CMP_BY_POSITION_THEN_NAME);
+        }
+
+        @Override
+        @NonNull
+        public Iterator<Reference> iterator() {
+            return references.values().iterator();
+        }
+
+        @Override
+        public RowGranularity rowGranularity() {
+            return RowGranularity.DOC;
+        }
+
+        @Override
+        public RelationName ident() {
+            return name;
+        }
+
+        @Override
+        public List<ColumnIdent> primaryKey() {
+            return List.of();
+        }
+
+        @Override
+        public Settings parameters() {
+            return Settings.EMPTY;
+        }
+
+        @Override
+        public Set<Operation> supportedOperations() {
+            return EnumSet.of(Operation.READ, Operation.SHOW_CREATE);
+        }
+
+        @Override
+        public RelationInfo.RelationType relationType() {
+            return RelationInfo.RelationType.FOREIGN;
+        }
+
+        @Nullable
+        @Override
+        public Reference getReference(ColumnIdent columnIdent) {
+            return references.get(columnIdent);
+        }
+
+        @Override
+        public Routing getRouting(ClusterState state,
+                                  RoutingProvider routingProvider,
+                                  WhereClause whereClause,
+                                  RoutingProvider.ShardSelection shardSelection,
+                                  CoordinatorSessionSettings sessionSettings) {
+            return Routing.forTableOnSingleNode(name, state.nodes().getLocalNodeId());
+        }
+
+        public record Option(RelationName relationName, String name, String value) {
+        }
+
+        public Stream<Option> getOptions() {
+            return settings.getAsStructuredMap().entrySet().stream()
+                .map(entry -> new Option(
+                    name,
+                    entry.getKey(),
+                    DataTypes.STRING.implicitCast(entry.getValue())
+                ));
         }
     }
 }

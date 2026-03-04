@@ -21,48 +21,58 @@
 
 package io.crate.fdw;
 
+import static java.util.Objects.requireNonNull;
 import static org.elasticsearch.common.xcontent.XContentParser.Token.END_OBJECT;
 import static org.elasticsearch.common.xcontent.XContentParser.Token.FIELD_NAME;
 import static org.elasticsearch.common.xcontent.XContentParser.Token.START_OBJECT;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.Metadata.XContentContext;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import io.crate.exceptions.RelationUnknown;
+import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfoFactory;
 
+@Deprecated(since = "6.3.0")
 public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom>
-        implements Metadata.Custom, Iterable<ForeignTable> {
+        implements Metadata.Custom, Iterable<RelationMetadata.ForeignTable> {
 
     public static final String TYPE = "foreign_tables";
     public static final ForeignTablesMetadata EMPTY = new ForeignTablesMetadata(Map.of());
 
-    private final Map<RelationName, ForeignTable> tables;
+    private final Map<RelationName, RelationMetadata.ForeignTable> tables;
 
-    ForeignTablesMetadata(Map<RelationName, ForeignTable> tables) {
+    public ForeignTablesMetadata(Map<RelationName, RelationMetadata.ForeignTable> tables) {
         this.tables = tables;
     }
 
     public ForeignTablesMetadata(StreamInput in) throws IOException {
-        this.tables = in.readMap(RelationName::new, ForeignTable::new);
+        this.tables = in.readMap(RelationName::new, RelationMetadata.ForeignTable::new);
     }
 
     @Override
@@ -71,7 +81,7 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
     }
 
     public static ForeignTablesMetadata fromXContent(NodeContext nodeCtx, XContentParser parser) throws IOException {
-        HashMap<RelationName, ForeignTable> tables = new HashMap<>();
+        HashMap<RelationName, RelationMetadata.ForeignTable> tables = new HashMap<>();
         if (parser.currentToken() == START_OBJECT) {
             parser.nextToken();
         }
@@ -83,7 +93,7 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
             if (parser.currentToken() == FIELD_NAME) {
                 RelationName name = RelationName.fromIndexName(parser.currentName());
                 parser.nextToken();
-                ForeignTable table = ForeignTable.fromXContent(nodeCtx, name, parser);
+                RelationMetadata.ForeignTable table = fromXContent(nodeCtx, name, parser);
                 tables.put(name, table);
             }
         }
@@ -110,55 +120,13 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
         return tables.containsKey(tableName);
     }
 
-    public ForeignTablesMetadata add(RelationName tableName,
-                                     Collection<Reference> columns,
-                                     String server,
-                                     Settings options) {
-        HashMap<RelationName, ForeignTable> newTables = new HashMap<>(tables);
-        ForeignTable value = new ForeignTable(
-            tableName,
-            columns.stream().collect(Collectors.toMap(Reference::column, x -> x)),
-            server,
-            options
-        );
-        newTables.put(tableName, value);
-        return new ForeignTablesMetadata(newTables);
-    }
-
-    @Nullable
-    public ForeignTable get(RelationName name) {
+    public RelationMetadata.@Nullable ForeignTable get(RelationName name) {
         return tables.get(name);
     }
 
-    public boolean anyDependOnServer(String serverName) {
-        return tables.values().stream().anyMatch(x -> x.server().equals(serverName));
-    }
-
-    public ForeignTablesMetadata removeAllForServers(List<String> names) {
-        HashMap<RelationName, ForeignTable> newTables = new HashMap<>();
-        for (var entry : tables.entrySet()) {
-            var relationName = entry.getKey();
-            var foreignTable = entry.getValue();
-            if (!names.contains(foreignTable.server())) {
-                newTables.put(relationName, foreignTable);
-            }
-        }
-        return newTables.size() == tables.size() ? this : new ForeignTablesMetadata(newTables);
-    }
-
-    public ForeignTablesMetadata remove(List<RelationName> relations, boolean ifExists) {
-        HashMap<RelationName, ForeignTable> newTables = new HashMap<>(tables);
-        for (var relation : relations) {
-            ForeignTable removed = newTables.remove(relation);
-            if (removed == null && !ifExists) {
-                throw new RelationUnknown(relation);
-            }
-        }
-        return newTables.size() == tables.size() ? this : new ForeignTablesMetadata(newTables);
-    }
-
     @Override
-    public Iterator<ForeignTable> iterator() {
+    @NonNull
+    public Iterator<RelationMetadata.ForeignTable> iterator() {
         return tables.values().iterator();
     }
 
@@ -173,18 +141,64 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
             && tables.equals(other.tables);
     }
 
-    public Iterable<ForeignTable.Option> tableOptions() {
-        return () -> tables.values().stream()
-            .flatMap(table -> table.getOptions())
-            .iterator();
-    }
+    private static RelationMetadata.ForeignTable fromXContent(NodeContext nodeCtx, RelationName name, XContentParser parser) throws IOException {
+        Map<ColumnIdent, Reference> references = null;
+        String server = null;
+        Settings options = null;
 
-    public boolean contains(String schema) {
-        for (var relationName : tables.keySet()) {
-            if (relationName.schema().contains(schema)) {
-                return true;
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+            CoordinatorTxnCtx.systemTransactionContext(),
+            nodeCtx,
+            ParamTypeHints.EMPTY,
+            FieldProvider.UNSUPPORTED,
+            null
+        );
+
+        while (parser.nextToken() != END_OBJECT) {
+            if (parser.currentToken() == FIELD_NAME) {
+                String fieldName = parser.currentName();
+                parser.nextToken();
+                switch (fieldName) {
+                    case "server":
+                        server = parser.text();
+                        break;
+
+                    case "options":
+                        options = Settings.fromXContent(parser);
+                        break;
+
+                    case "references":
+                        references = new HashMap<>();
+                        Map<ColumnIdent, IndexReference.Builder> indexColumns = new HashMap<>();
+                        Set<Reference> droppedColumns = new HashSet<>();
+
+                        Map<String, Object> properties = parser.map();
+                        DocTableInfoFactory.parseColumns(
+                            expressionAnalyzer,
+                            name,
+                            null,
+                            Map.of(),
+                            Set.of(),
+                            List.of(),
+                            List.of(),
+                            properties,
+                            indexColumns,
+                            references,
+                            droppedColumns
+                        );
+                        break;
+
+                    default:
+                        // skip over unknown fields for forward compatibility
+                        parser.skipChildren();
+                }
             }
         }
-        return false;
+        return new RelationMetadata.ForeignTable(
+            requireNonNull(name),
+            requireNonNull(references),
+            requireNonNull(server),
+            requireNonNull(options)
+        );
     }
 }

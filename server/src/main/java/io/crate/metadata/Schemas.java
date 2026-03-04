@@ -51,8 +51,6 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
-import io.crate.fdw.ForeignTable;
-import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
@@ -185,13 +183,14 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         RelationInfo relationInfo = null;
         if (schemaName == null) {
             for (String schema : searchPath) {
-                relationInfo = getForeignTable(schema, tableName);
-                if (relationInfo != null) {
-                    break;
-                }
                 SchemaInfo schemaInfo = schemas.get(schema);
                 if (schemaInfo == null) {
                     continue;
+                }
+
+                relationInfo = schemaInfo.getForeignTableInfo(tableName);
+                if (relationInfo != null) {
+                    break;
                 }
                 relationInfo = schemaInfo.getViewInfo(tableName);
                 if (relationInfo != null) {
@@ -213,12 +212,12 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 }
             }
         } else {
-            relationInfo = getForeignTable(schemaName, tableName);
+            SchemaInfo schemaInfo = schemas.get(schemaName);
+            if (schemaInfo == null) {
+                throw SchemaUnknownException.of(schemaName, getSimilarSchemas(user, schemaName));
+            }
+            relationInfo = schemaInfo.getForeignTableInfo(tableName);
             if (relationInfo == null) {
-                SchemaInfo schemaInfo = schemas.get(schemaName);
-                if (schemaInfo == null) {
-                    throw SchemaUnknownException.of(schemaName, getSimilarSchemas(user, schemaName));
-                }
                 relationInfo = schemaInfo.getViewInfo(tableName);
                 if (relationInfo == null) {
                     relationInfo = schemaInfo.getTableInfo(tableName);
@@ -286,7 +285,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      * </p>
      *
      * @return {@link TableInfo}. Can be upcast to {@link DocTableInfo} or
-     *         {@link ForeignTable}
+     *         {@link RelationMetadata.ForeignTable}
      * @throws io.crate.exceptions.SchemaUnknownException if schema given in
      *                                                    <code>ident</code>
      *                                                    does not exist
@@ -309,12 +308,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         }
         TableInfo info = schemaInfo.getTableInfo(ident.name());
         if (info == null) {
-            Metadata metadata = clusterService.state().metadata();
-            ForeignTablesMetadata foreignTables = metadata.custom(
-                ForeignTablesMetadata.TYPE,
-                ForeignTablesMetadata.EMPTY
-            );
-            info = foreignTables.get(ident);
+            info = schemaInfo.getForeignTableInfo(ident.name());
             if (info == null) {
                 throw new RelationUnknown(ident);
             }
@@ -451,17 +445,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     protected void doClose() {
     }
 
-
-    @Nullable
-    private ForeignTable getForeignTable(String schemaName, String tableName) {
-        Metadata metadata = clusterService.state().metadata();
-        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
-        if (foreignTables == null) {
-            return null;
-        }
-        return foreignTables.get(new RelationName(schemaName, tableName));
-    }
-
     /**
      * @throws RelationUnknown if the view cannot be resolved against the search path.
      */
@@ -504,12 +487,10 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                     return view.ident();
                 }
             }
-        }
-        Metadata metadata = clusterService.state().metadata();
-        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
-        for (ForeignTable foreignTable : foreignTables) {
-            if (oid == OidHash.relationOid(foreignTable)) {
-                return foreignTable.ident();
+            for (RelationMetadata.ForeignTable foreignTable : schema.getForeignTables()) {
+                if (oid == OidHash.relationOid(foreignTable)) {
+                    return foreignTable.ident();
+                }
             }
         }
         return null;

@@ -31,6 +31,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
@@ -116,7 +117,7 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
     @Override
     public CompletableFuture<BatchIterator<Row>> getIterator(Role currentUser,
                                                              Server server,
-                                                             ForeignTable foreignTable,
+                                                             RelationMetadata.ForeignTable foreignTable,
                                                              TransactionContext txnCtx,
                                                              List<Symbol> collect,
                                                              Symbol query) {
@@ -167,8 +168,8 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
             throw new UnsupportedOperationException(
                 "Only a super user can connect to localhost unless `fdw.allow_local` is set to true");
         }
-        String remoteSchema = schemaName.get(foreignTable.options());
-        String remoteTable = tableName.get(foreignTable.options());
+        String remoteSchema = schemaName.get(foreignTable.settings());
+        String remoteTable = tableName.get(foreignTable.settings());
         RelationName remoteName = new RelationName(
             remoteSchema.isEmpty() ? foreignTable.name().schema() : remoteSchema,
             remoteTable.isEmpty() ? foreignTable.name().name() : remoteTable);

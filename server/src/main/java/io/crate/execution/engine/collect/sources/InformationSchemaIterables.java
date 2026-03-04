@@ -39,6 +39,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
@@ -47,13 +48,10 @@ import io.crate.common.collections.Iterators;
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
-import io.crate.fdw.ForeignTable;
-import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.fdw.ServersMetadata;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.PartitionInfos;
@@ -122,17 +120,8 @@ public class InformationSchemaIterables {
         this.schemas = nodeCtx.schemas();
         views = () -> viewsStream(schemas).iterator();
         tables = () -> tablesStream(schemas).iterator();
-        relations = () -> {
-            Metadata metadata = clusterService.state().metadata();
-            ForeignTablesMetadata foreignTables = metadata.custom(
-                ForeignTablesMetadata.TYPE,
-                ForeignTablesMetadata.EMPTY
-            );
-            return concat(
-                concat(tablesStream(schemas), viewsStream(schemas)),
-                StreamSupport.stream(foreignTables.spliterator(), false)
-            ).iterator();
-        };
+        relations = () -> concat(
+            concat(tablesStream(schemas), viewsStream(schemas)), foreignTablesStream(schemas)).iterator();
         primaryKeys = () -> sequentialStream(relations)
             .filter(this::isPrimaryKey)
             .iterator();
@@ -260,13 +249,17 @@ public class InformationSchemaIterables {
 
     private static Stream<ViewInfo> viewsStream(Schemas schemas) {
         return sequentialStream(schemas)
-            .flatMap(schema -> sequentialStream(schema.getViews()))
-            .filter(i -> !IndexName.isPartitioned(i.ident().indexNameOrAlias()));
+            .flatMap(schema -> sequentialStream(schema.getViews()));
     }
 
     public static Stream<TableInfo> tablesStream(Schemas schemas) {
         return sequentialStream(schemas)
             .flatMap(s -> sequentialStream(s.getTables()));
+    }
+
+    private static Stream<RelationMetadata.ForeignTable> foreignTablesStream(Schemas schemas) {
+        return sequentialStream(schemas)
+            .flatMap(schema -> sequentialStream(schema.getForeignTables()));
     }
 
     public Iterable<SchemaInfo> schemas() {
@@ -372,20 +365,18 @@ public class InformationSchemaIterables {
         return servers.getUserMappingOptions();
     }
 
-    public Iterable<ForeignTable> foreignTables() {
+    public Iterable<RelationMetadata.ForeignTable> foreignTables() {
         Metadata metadata = clusterService.state().metadata();
-        return metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
+        return metadata.relations(RelationMetadata.ForeignTable.class);
     }
 
-    public Iterable<ForeignTable.Option> foreignTableOptions() {
+    public Iterable<RelationMetadata.ForeignTable.Option> foreignTableOptions() {
         Metadata metadata = clusterService.state().metadata();
-        ForeignTablesMetadata foreignTables = metadata.custom(
-            ForeignTablesMetadata.TYPE,
-            ForeignTablesMetadata.EMPTY
-        );
-        return foreignTables.tableOptions();
+        return metadata.relations(RelationMetadata.ForeignTable.class)
+            .stream()
+            .flatMap(RelationMetadata.ForeignTable::getOptions)
+            .toList();
     }
-
 
     public Iterable<String> enabledRoles(Role role, Roles roles) {
         boolean isAdmin = roles.hasALPrivileges(role);

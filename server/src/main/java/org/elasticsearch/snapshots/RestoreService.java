@@ -107,7 +107,7 @@ import io.crate.metadata.doc.DocTableInfo;
  * <p>
  * Restore operation is performed in several stages.
  * <p>
- * First {@link #restoreSnapshot(RestoreSnapshotRequest, List, ActionListener)} 
+ * First {@link #restoreSnapshot(RestoreSnapshotRequest, List, ActionListener)}
  * method reads information about snapshot and metadata from repository. In update cluster state task it checks restore
  * preconditions, restores global state if needed, creates {@link RestoreInProgress} record with list of shards that needs
  * to be restored and adds this shard to the routing table using {@link RoutingTable.Builder#addAsRestore(IndexMetadata, SnapshotRecoverySource)}
@@ -324,6 +324,9 @@ public class RestoreService implements ClusterStateApplier {
             for (RelationMetadata.View relation : snapshotMetadata.relations(RelationMetadata.View.class)) {
                 resolver.accept(relation.name(), List.of());
             }
+        }
+        for (RelationMetadata.ForeignTable relation : snapshotMetadata.relations(RelationMetadata.ForeignTable.class)) {
+            resolver.accept(relation.name(), List.of());
         }
         return restoreRelations;
     }
@@ -564,6 +567,13 @@ public class RestoreService implements ClusterStateApplier {
                 }
             }
 
+            // Restore ForeignTables
+            // old ForeignTablesMetadata have already been migrated to RelationMetadata.ForeignTable in
+            // MetadataUpgradeService#upgradeMetadata()
+            for (RelationMetadata.ForeignTable foreignTable : snapshotMetadata.relations(RelationMetadata.ForeignTable.class)) {
+                mdBuilder.setForeignTable(foreignTable);
+            }
+
             if (request.includeCustomMetadata() && snapshotMetadata.customs() != null) {
                 // CrateDB patch to only restore defined custom metadata types
                 List<String> customMetadataTypes = Arrays.asList(request.customMetadataTypes());
@@ -667,6 +677,8 @@ public class RestoreService implements ClusterStateApplier {
                         view.searchPath(),
                         view.errorOnUnknownObjectKey()
                     );
+                } else if (snapshotRelation instanceof RelationMetadata.ForeignTable foreignTable) {
+                    mdBuilder.setForeignTable(foreignTable);
                 }
             } else {
                 throw new IllegalArgumentException(String.format(

@@ -36,9 +36,13 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.DataTypes;
 
 public class RelationMetadataTest {
 
@@ -156,6 +160,34 @@ public class RelationMetadataTest {
         assertThat(view2.owner()).isEqualTo(view1.owner());
         assertThat(view2.searchPath()).isEqualTo(view1.searchPath());
         assertThat(view2.errorOnUnknownObjectKey()).isEqualTo(view1.errorOnUnknownObjectKey());
+    }
+
+    @Test
+    public void test_streaming_foreignTable() throws IOException {
+        var name = new RelationName("doc", "dummy");
+        var col = ColumnIdent.of("col");
+        RelationMetadata.ForeignTable foreignTable1 = new RelationMetadata.ForeignTable(
+            name,
+            Map.of(
+                col,
+                new SimpleReference(
+                    name,
+                    col,
+                    RowGranularity.DOC,
+                    DataTypes.STRING,
+                    1,
+                    null
+                )
+            ),
+            "my_server",
+            Settings.builder().put("foo", "bar").build()
+        );
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        RelationMetadata.toStream(out, foreignTable1);
+
+        StreamInput in = out.bytes().streamInput();
+        assertThat((RelationMetadata.ForeignTable) RelationMetadata.of(in)).isEqualTo(foreignTable1);
     }
 }
 

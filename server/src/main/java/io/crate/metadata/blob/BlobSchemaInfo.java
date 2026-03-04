@@ -90,6 +90,11 @@ public class BlobSchemaInfo implements SchemaInfo {
     }
 
     @Override
+    public Iterable<RelationMetadata.ForeignTable> getForeignTables() {
+        return Collections.emptyList();
+    }
+
+    @Override
     public void close() throws Exception {
     }
 

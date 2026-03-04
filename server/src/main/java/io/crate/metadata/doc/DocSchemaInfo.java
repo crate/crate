@@ -29,7 +29,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
-import java.util.stream.StreamSupport;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
@@ -176,6 +175,15 @@ public class DocSchemaInfo implements SchemaInfo {
     @Override
     public ViewInfo getViewInfo(String name) {
         return viewInfoFactory.create(new RelationName(schemaName, name), clusterService.state());
+    }
+
+    @Override
+    public RelationMetadata.ForeignTable getForeignTableInfo(String name) {
+        RelationMetadata relationMetadata = clusterService.state().metadata().getRelation(new RelationName(schemaName, name));
+        if (relationMetadata instanceof RelationMetadata.ForeignTable foreignTable) {
+            return foreignTable;
+        }
+        return null;
     }
 
     @Override
@@ -335,13 +343,17 @@ public class DocSchemaInfo implements SchemaInfo {
     public Iterable<ViewInfo> getViews() {
         Metadata metadata = clusterService.state().metadata();
         List<RelationMetadata.View> views = metadata.relations(schemaName, RelationMetadata.View.class);
-        return () ->
-            StreamSupport.stream(views.spliterator(), false)
-                .map(RelationMetadata.View::name)
-                .filter(viewName -> schemaName.equals(viewName.schema()))
-                .map(viewName -> getViewInfo(viewName.name()))
-                .filter(Objects::nonNull)
-                .iterator();
+        return () -> views.stream()
+            .map(view -> getViewInfo(view.name().name()))
+            .filter(Objects::nonNull)
+            .iterator();
+    }
+
+    @Override
+    public Iterable<RelationMetadata.ForeignTable> getForeignTables() {
+        Metadata metadata = clusterService.state().metadata();
+        return metadata.relations(
+            schemaName, RelationMetadata.ForeignTable.class);
     }
 
     @Override
