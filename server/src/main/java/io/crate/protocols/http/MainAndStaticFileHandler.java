@@ -112,14 +112,19 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
                     .addListener(ChannelFutureListener.CLOSE);
             }
             case IOException _ -> {
-                if (message.contains("Connection reset")) {
+                if (LOGGER.isDebugEnabled() && message.contains("Connection reset")) {
                     LOGGER.debug(message);
                 } else {
                     LOGGER.warn(message, cause);
                     send500(ctx, message);
                 }
             }
-            default -> send500(ctx, message);
+            default -> {
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(message);
+                }
+                send500(ctx, message);
+            }
         }
     }
 
