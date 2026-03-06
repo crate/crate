@@ -55,6 +55,7 @@ import io.crate.sql.parser.antlr.SqlBaseParserBaseListener;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.MultiStatement;
 import io.crate.sql.tree.Node;
+import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.Statement;
 
 public class SqlParser {
@@ -116,6 +117,28 @@ public class SqlParser {
 
     public static Expression createExpression(String expression) {
         return INSTANCE.generateExpression(expression);
+    }
+
+    /**
+     * Parses the leading qualified name from the input using the parser's
+     * {@code qname} rule. Since {@code qname} does not require EOF, any
+     * trailing non-identifier characters are simply ignored.
+     *
+     * @return the parsed qualified name parts
+     * @throws ParsingException if the input does not start with a valid identifier
+     */
+    public static List<String> parseLeadingQualifiedName(String input) {
+        Node node = INSTANCE.invokeParser("qualifiedName", input, SqlBaseParser::qname, null);
+        if (node instanceof QualifiedNameReference ref) {
+            List<String> parts = ref.getName().getParts();
+            for (String part : parts) {
+                if (part.isEmpty()) {
+                    throw new ParsingException("Input does not start with a valid identifier: " + input);
+                }
+            }
+            return parts;
+        }
+        throw new ParsingException("Input does not start with a valid identifier: " + input);
     }
 
     private Expression generateExpression(String expression) {

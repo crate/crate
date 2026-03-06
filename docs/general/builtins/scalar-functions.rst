@@ -608,6 +608,42 @@ The quoted string can be used as an identifier in an SQL statement.
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-parse_ident:
+
+``pg_catalog.parse_ident(text [, boolean])``
+--------------------------------------------
+
+Returns: ``text[]``
+
+Splits a qualified identifier string into an array of identifiers, removing any
+quoting of individual identifiers. By default, extra characters after the last
+identifier are considered an error; but if the second parameter is ``false``,
+then such extra characters are ignored.
+
+Unquoted identifiers are case-folded to lowercase. Quoted identifiers preserve
+their original case.
+
+::
+
+    cr> select pg_catalog.parse_ident('"SomeSchema".sometable') AS parsed;
+    +-----------------------------+
+    | parsed                      |
+    +-----------------------------+
+    | ["SomeSchema", "sometable"] |
+    +-----------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select pg_catalog.parse_ident('myschema.mytable') AS parsed;
+    +-------------------------+
+    | parsed                  |
+    +-------------------------+
+    | ["myschema", "mytable"] |
+    +-------------------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-left:
 
 ``left('string', len)``
