@@ -119,6 +119,10 @@ Scalar and Aggregation Functions
   :ref:`regexp_instr <scalar-regexp_instr>` scalar function to find the
   position of the ``N`` th regular expression match.
 
+- `Dhruv Patel <https://github.com/DHRUV6029>`_ added support for the
+  :ref:`parse_ident <scalar-parse_ident>` scalar function to split a qualified
+  SQL identifier string into an array of identifiers.
+
 Performance and Resilience Improvements
 ---------------------------------------
 
