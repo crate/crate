@@ -109,32 +109,45 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) {
-        if (request.uri().startsWith("/_sql")) {
-            Session session = ensureSession(
+        if (!request.uri().startsWith("/_sql")) {
+            ctx.fireChannelRead(request);
+            return;
+        }
+
+        Session session;
+        Map<String, List<String>> parameters;
+        try {
+            session = ensureSession(
                 new ConnectionProperties(
                     null, // not used
                     Netty4HttpServerTransport.getRemoteAddress(ctx.channel()),
                     Protocol.HTTP,
-                    getSession(ctx.channel())),
-                request);
-            Map<String, List<String>> parameters = new QueryStringDecoder(request.uri()).parameters();
-            ByteBuf content = request.content();
-            ByteBuf resultBuffer = ctx.alloc().buffer();
-            handleSQLRequest(session, resultBuffer, content, paramContainFlag(parameters, "types"))
-                .whenComplete((_, t) -> {
-                    try {
-                        sendResponse(ctx, request, parameters, resultBuffer, t);
-                    } catch (Throwable ex) {
-                        resultBuffer.release();
-                        LOGGER.error("Error sending response", ex);
-                        throw ex;
-                    } finally {
-                        request.release();
-                    }
-                });
-        } else {
-            ctx.fireChannelRead(request);
+                    getSession(ctx.channel())
+                ),
+                request
+            );
+            parameters = new QueryStringDecoder(request.uri()).parameters();
+        } catch (Exception ex) {
+            request.release();
+            // Let the last handler deal with it and maybe send failure info to the user.
+            throw ex;
         }
+
+        ByteBuf content = request.content();
+        ByteBuf resultBuffer = ctx.alloc().buffer();
+        handleSQLRequest(session, resultBuffer, content, paramContainFlag(parameters, "types"))
+            .whenComplete((_, t) -> {
+                try {
+                    sendResponse(ctx, request, parameters, resultBuffer, t);
+                } catch (Throwable ex) {
+                    resultBuffer.release();
+                    LOGGER.error("Error sending response", ex);
+                    throw ex;
+                } finally {
+                    request.release();
+                }
+            });
+
     }
 
     /**
