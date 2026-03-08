@@ -385,9 +385,6 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
 
     @Override
     protected ClusterBlockException checkBlock(CreatePartitionsRequest request, ClusterState state) {
-        return state.blocks().indicesBlockedException(
-            ClusterBlockLevel.METADATA_WRITE,
-            request.indexNames().toArray(String[]::new)
-        );
+        return state.blocks().indexBlockedException(ClusterBlockLevel.WRITE, request.relationName().fqn());
     }
 }
