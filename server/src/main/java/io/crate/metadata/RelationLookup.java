@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.jspecify.annotations.Nullable;
 
 public interface RelationLookup {
@@ -29,4 +30,7 @@ public interface RelationLookup {
 
     @Nullable
     RelationName getRelationName(int oid);
+
+    @Nullable
+    RelationMetadata getRelation(String indexUUID);
 }

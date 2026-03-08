@@ -24,6 +24,10 @@ import static io.crate.lucene.CrateLuceneTestCase.rarely;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_BLOCKS_METADATA;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_BLOCKS_READ;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_BLOCKS_WRITE;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_READ_ONLY;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_TYPE_SETTING;
 import static org.elasticsearch.discovery.DiscoveryModule.ZEN2_DISCOVERY_TYPE;
 import static org.elasticsearch.test.ESTestCase.assertBusy;
@@ -148,13 +152,16 @@ import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.execution.ddl.tables.DropTableRequest;
+import io.crate.execution.ddl.tables.TransportAlterTable;
 import io.crate.execution.ddl.tables.TransportDropTable;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.RelationInfo.RelationType;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.session.Sessions;
 import io.crate.testing.SQLTransportExecutor;
@@ -390,7 +397,27 @@ public final class TestCluster implements Closeable {
             for (var relation : infoSchema.relations()) {
                 if (relation.relationType() == RelationType.BASE_TABLE && relation instanceof SystemTable<?> == false) {
                     relationNames.add(relation.ident());
-                    futures.add(client().execute(TransportDropTable.ACTION, new DropTableRequest(relation.ident())));
+                    boolean isPartitioned = relation instanceof DocTableInfo docTableInfo && docTableInfo.isPartitioned();
+                    Settings clearAllBlocksSettings = Settings.builder()
+                        .put(SETTING_BLOCKS_WRITE, false)
+                        .put(SETTING_BLOCKS_READ, false)
+                        .put(SETTING_BLOCKS_METADATA, false)
+                        .put(SETTING_READ_ONLY, false)
+                        .build();
+                    AlterTableRequest clearAllBlocksRequest;
+                    try {
+                        clearAllBlocksRequest = new AlterTableRequest(relation.ident(), List.of(), isPartitioned, false, clearAllBlocksSettings);
+                    } catch (Exception e) {
+                        throw new IllegalStateException("Could not clear all blocks on " + relation.ident());
+                    }
+                    futures.add(
+                        client().execute(TransportAlterTable.ACTION, clearAllBlocksRequest)
+                            .thenCompose(
+                                r -> {
+                                    assertAcked(r);
+                                    return client().execute(TransportDropTable.ACTION, new DropTableRequest(relation.ident()));
+                                })
+                    );
                 }
             }
             CompletableFuture<List<AcknowledgedResponse>> allResponses = CompletableFutures.allAsList(futures);

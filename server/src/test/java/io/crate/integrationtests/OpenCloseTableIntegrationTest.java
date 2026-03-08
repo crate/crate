@@ -215,6 +215,7 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
             "blocks.read_only_allow_delete"
         )) {
             try {
+                System.out.println("!!!!!!!!!!!!!!   " + blockSetting);
                 execute("alter table test set (\"" + blockSetting + "\" = true)");
                 execute("alter table test close");
             } catch (Exception e) {

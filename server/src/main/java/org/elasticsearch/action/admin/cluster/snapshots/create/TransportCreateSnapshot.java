@@ -87,7 +87,7 @@ public class TransportCreateSnapshot extends TransportMasterNodeAction<CreateSna
             .flatMap(Collection::stream)
             .toArray(String[]::new);
         return state.blocks()
-            .indicesBlockedException(ClusterBlockLevel.READ, indices);
+            .indicesBlockedException(ClusterBlockLevel.READ, state.metadata(), indices);
     }
 
     @Override

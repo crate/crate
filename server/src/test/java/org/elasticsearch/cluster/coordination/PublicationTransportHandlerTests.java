@@ -300,9 +300,9 @@ public class PublicationTransportHandlerTests extends ESTestCase {
             .build();
 
         // Index block is registered by the index name.
-        assertThat(clusterState.blocks().hasIndexBlock(relationName.indexNameOrAlias(), IndexMetadata.INDEX_READ_ONLY_BLOCK))
+        assertThat(clusterState.blocks().hasIndexBlock(relationName.indexNameOrAlias(), IndexMetadata.INDEX_READ_ONLY_BLOCK, clusterState.metadata()))
             .isTrue();
-        assertThat(clusterState.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_BLOCK))
+        assertThat(clusterState.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_BLOCK, clusterState.metadata()))
             .isFalse();
 
         BytesStreamOutput bStream = new BytesStreamOutput();
@@ -327,9 +327,9 @@ public class PublicationTransportHandlerTests extends ESTestCase {
         ClusterState recievedClusterState = publishRequestRef.get().getAcceptedState();
 
         // Index block is registered by the index UUID now.
-        assertThat(recievedClusterState.blocks().hasIndexBlock(relationName.indexNameOrAlias(), IndexMetadata.INDEX_READ_ONLY_BLOCK))
+        assertThat(recievedClusterState.blocks().hasIndexBlock(relationName.indexNameOrAlias(), IndexMetadata.INDEX_READ_ONLY_BLOCK, recievedClusterState.metadata()))
             .isFalse();
-        assertThat(recievedClusterState.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_BLOCK))
+        assertThat(recievedClusterState.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_BLOCK, recievedClusterState.metadata()))
             .isTrue();
     }
 }

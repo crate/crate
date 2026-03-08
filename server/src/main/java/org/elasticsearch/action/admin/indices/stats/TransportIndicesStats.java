@@ -88,7 +88,7 @@ public class TransportIndicesStats extends TransportBroadcastByNodeAction<Indice
 
     @Override
     protected ClusterBlockException checkRequestBlock(ClusterState state, IndicesStatsRequest request, String[] concreteIndices) {
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_READ, concreteIndices);
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_READ, state.metadata(), concreteIndices);
     }
 
     @Override

@@ -92,16 +92,18 @@ import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationLookup;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.view.ViewMetadata;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.rest.action.HttpErrorStatus;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 
-public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
+public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, RelationLookup {
 
     private static final Logger LOGGER = LogManager.getLogger(Metadata.class);
     public static final int OID_UNASSIGNED = 0;
@@ -1616,6 +1618,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return getRelation(tableName) != null;
     }
 
+    @Override
     public RelationName getRelationName(int tableOID) {
         RelationMetadata relationMetadata = getRelation(tableOID);
         if (relationMetadata == null) {
@@ -1630,9 +1633,16 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return getRelation(relation, schemas::get);
     }
 
+    @Override
     @Nullable
     public RelationMetadata getRelation(String indexUUID) {
         return indexUUIDsRelations.get(indexUUID);
+    }
+
+    @Override
+    public int getRelationOid(RelationName relationName) {
+        RelationMetadata relationMetadata = getRelation(relationName);
+        return relationMetadata == null ? OidHash.relationOid(OidHash.Type.TABLE, relationName) : relationMetadata.oid();
     }
 
     @Nullable

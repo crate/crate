@@ -72,7 +72,7 @@ public class CloseIndexIT extends IntegTestCase {
             assertThat(indexSettings.hasValue(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey())).isTrue();
             assertThat(indexSettings.getAsBoolean(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey(), false)).isTrue();
             assertThat(clusterState.routingTable().index(index)).isNotNull();
-            assertThat(clusterState.blocks().hasIndexBlock(index.getUUID(), IndexMetadata.INDEX_CLOSED_BLOCK)).isTrue();
+            assertThat(clusterState.blocks().hasIndexBlock(index.getUUID(), IndexMetadata.INDEX_CLOSED_BLOCK, clusterState.metadata())).isTrue();
             assertThat(clusterState.blocks().indices().getOrDefault(index.getUUID(), emptySet()).stream()
                            .filter(clusterBlock -> clusterBlock.id() == TransportCloseTable.INDEX_CLOSED_BLOCK_ID).count()).as("Index " + index + " must have only 1 block with [id=" + TransportCloseTable.INDEX_CLOSED_BLOCK_ID + "]").isEqualTo(1L);
         }

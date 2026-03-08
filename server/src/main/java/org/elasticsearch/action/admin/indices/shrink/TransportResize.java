@@ -100,7 +100,7 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
             false,
             idxMd -> idxMd.getIndex().getUUID()
         ).toArray(String[]::new);
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indices);
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, state.metadata(), indices);
     }
 
     @Override

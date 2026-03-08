@@ -291,7 +291,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
                                     assertThat(clusterState.blocks().hasGlobalBlock(block)).as("Global block must exist").isTrue();
                                 } else {
                                     String indexUUID = primary.shardId().getIndexUUID();
-                                    assertThat(clusterState.blocks().hasIndexBlock(indexUUID, block)).as("Index block must exist").isTrue();
+                                    assertThat(clusterState.blocks().hasIndexBlock(indexUUID, block, clusterState.metadata())).as("Index block must exist").isTrue();
                                 }
                             }
                         }
@@ -326,7 +326,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
                             blocks.addGlobalBlock(block);
                         } else {
                             String indexUUID = reference.indexShard.shardId().getIndexUUID();
-                            assertThat(clusterState.blocks().hasIndexBlock(indexUUID, block)).as("Index block must not exist yet").isFalse();
+                            assertThat(clusterState.blocks().hasIndexBlock(indexUUID, block, clusterState.metadata())).as("Index block must not exist yet").isFalse();
                             blocks.addIndexBlock(indexUUID, block);
                         }
 
@@ -545,7 +545,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         private void assertNoBlocks(final String error) {
             final ClusterState clusterState = clusterService.state();
             assertThat(clusterState.blocks().hasGlobalBlock(block)).as("Global level " + error).isFalse();
-            assertThat(clusterState.blocks().hasIndexBlock(shardId.getIndexUUID(), block)).as("Index level " + error).isFalse();
+            assertThat(clusterState.blocks().hasIndexBlock(shardId.getIndexUUID(), block, clusterState.metadata())).as("Index level " + error).isFalse();
         }
     }
 

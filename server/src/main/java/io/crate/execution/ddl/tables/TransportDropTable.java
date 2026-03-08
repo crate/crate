@@ -21,8 +21,6 @@
 
 package io.crate.execution.ddl.tables;
 
-import java.util.List;
-
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
@@ -79,12 +77,6 @@ public class TransportDropTable extends AbstractDDLTransportAction<DropTableRequ
 
     @Override
     protected ClusterBlockException checkBlock(DropTableRequest request, ClusterState state) {
-        String[] indexUUIDS = state.metadata().getIndices(
-            request.tableIdent(),
-            List.of(),
-            false,
-            imd -> imd.getIndex().getUUID()
-        ).toArray(String[]::new);
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexUUIDS);
+        return state.blocks().tableBlockedException(ClusterBlockLevel.METADATA_WRITE, state.metadata().getRelationOid(request.tableIdent()));
     }
 }

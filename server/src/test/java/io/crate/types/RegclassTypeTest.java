@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.jspecify.annotations.Nullable;
 import org.junit.Test;
 
@@ -70,6 +71,11 @@ public class RegclassTypeTest extends DataTypeTestCase<Regclass> {
             public @Nullable RelationName getRelationName(int oid) {
                 return null;
             }
+
+            @Override
+            public @Nullable RelationMetadata getRelation(String indexUUID) {
+                return null;
+            }
         };
         var sessionSettings = new SessionSettings("crate", SearchPath.createSearchPathFrom("my_schema"));
         var regclass = RegclassType.INSTANCE.explicitCast("my_table", sessionSettings, relationLookup);
@@ -91,6 +97,11 @@ public class RegclassTypeTest extends DataTypeTestCase<Regclass> {
             public @Nullable RelationName getRelationName(int oid) {
                 return null;
             }
+
+            @Override
+            public @Nullable RelationMetadata getRelation(String indexUUID) {
+                return null;
+            }
         };
         var regclass = RegclassType.INSTANCE.explicitCast("\"my_table\"", SESSION_SETTINGS, relationLookup);
         assertThat(regclass.oid()).isEqualTo(123);
@@ -109,6 +120,11 @@ public class RegclassTypeTest extends DataTypeTestCase<Regclass> {
 
             @Override
             public @Nullable RelationName getRelationName(int oid) {
+                return null;
+            }
+
+            @Override
+            public @Nullable RelationMetadata getRelation(String indexUUID) {
                 return null;
             }
         };

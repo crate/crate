@@ -246,7 +246,7 @@ public abstract class TransportReplicationAction<
         return null;
     }
 
-    private ClusterBlockException blockExceptions(final ClusterState state, final String indexName) {
+    private ClusterBlockException blockExceptions(final ClusterState state, final String indexUUID) {
         ClusterBlockLevel globalBlockLevel = globalBlockLevel();
         if (globalBlockLevel != null) {
             ClusterBlockException blockException = state.blocks().globalBlockedException(globalBlockLevel);
@@ -256,10 +256,7 @@ public abstract class TransportReplicationAction<
         }
         ClusterBlockLevel indexBlockLevel = indexBlockLevel();
         if (indexBlockLevel != null) {
-            ClusterBlockException blockException = state.blocks().indexBlockedException(indexBlockLevel, indexName);
-            if (blockException != null) {
-                return blockException;
-            }
+            return state.blocks().indexBlockedException(indexBlockLevel, state.metadata(), indexUUID);
         }
         return null;
     }
