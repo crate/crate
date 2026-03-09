@@ -54,6 +54,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -199,6 +200,31 @@ public class SqlHttpHandlerTest {
         assertThat(responseBody).doesNotContain("dummy data written before it was interrupted");
         assertThat(responseBody).contains("CBE");
         assertThat(response.status()).isEqualTo(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @Test
+    public void session_creation_failure_does_not_leak_request() {
+        Role dummyUser = RolesHelper.userOf("crate");
+        var sessionSettings = new CoordinatorSessionSettings(dummyUser);
+        var mockedSession = mock(Session.class);
+        when(mockedSession.sessionSettings()).thenReturn(sessionSettings);
+
+        var sessions = mock(Sessions.class);
+        when(sessions.newSession(any(), any(), any())).thenThrow(new RuntimeException("dummy"));
+
+        SqlHttpHandler sqlHttpHandler = new SqlHttpHandler(
+            Settings.EMPTY,
+            sessions,
+            _ -> new NoopCircuitBreaker("dummy"),
+            () -> List.of(Role.CRATE_USER)
+        );
+
+        EmbeddedChannel channel = new EmbeddedChannel(sqlHttpHandler);
+        var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        try {
+            channel.writeInbound(request);
+        } catch (Exception ignored) { }
+        assertThat(request.refCnt()).isEqualTo(0);
     }
 }
 

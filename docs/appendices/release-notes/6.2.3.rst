@@ -51,3 +51,6 @@ Fixes
 
 - Fixed an issue causing memory leaks when accessing
   :ref:`BLOB endpoint<blob-endpoint>`.
+
+- Fixed an issue causing memory leaks if requests to the ``HTTP`` endpoint
+  failed to create a session, for example, due to wrong authentication headers.
