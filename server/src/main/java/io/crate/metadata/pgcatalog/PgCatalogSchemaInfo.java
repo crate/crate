@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.metadata.SystemTable;
@@ -108,6 +109,11 @@ public final class PgCatalogSchemaInfo implements SchemaInfo {
 
     @Override
     public Iterable<ViewInfo> getViews() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public Iterable<RelationMetadata.ForeignTable> getForeignTables() {
         return Collections.emptyList();
     }
 

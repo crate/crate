@@ -21,12 +21,14 @@
 
 package io.crate.fdw;
 
+import java.util.List;
 import java.util.Locale;
 
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.Priority;
 
 import io.crate.sql.tree.CascadeMode;
@@ -49,11 +51,12 @@ public class DropServerTask extends AckedClusterStateUpdateTask<AcknowledgedResp
     public ClusterState execute(ClusterState currentState) throws Exception {
         Metadata metadata = currentState.metadata();
         ServersMetadata servers = metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
-        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
-        ForeignTablesMetadata updatedForeignTables = foreignTables;
+        List<RelationMetadata.ForeignTable> foreignTables = metadata.relations(RelationMetadata.ForeignTable.class);
+        boolean dropped = false;
+        Metadata.Builder mdBuilder = Metadata.builder(metadata);
         if (request.mode() == CascadeMode.RESTRICT) {
             for (String serverName : request.names()) {
-                if (foreignTables.anyDependOnServer(serverName)) {
+                if (anyDependOnServer(metadata, serverName)) {
                     throw new IllegalArgumentException(String.format(
                         Locale.ENGLISH,
                         "Cannot drop server `%s` because foreign tables depend on it",
@@ -62,7 +65,12 @@ public class DropServerTask extends AckedClusterStateUpdateTask<AcknowledgedResp
                 }
             }
         } else {
-            updatedForeignTables = foreignTables.removeAllForServers(request.names());
+            for (var foreignTable : foreignTables) {
+                if (request.names().contains(foreignTable.server())) {
+                    mdBuilder.dropRelation(foreignTable.name());
+                    dropped = true;
+                }
+            }
         }
 
         ServersMetadata updatedServers = servers.remove(
@@ -70,16 +78,18 @@ public class DropServerTask extends AckedClusterStateUpdateTask<AcknowledgedResp
             request.ifExists(),
             request.mode()
         );
-        if (updatedServers == servers && updatedForeignTables == foreignTables) {
+        if (updatedServers == servers && dropped == false) {
             return currentState;
         }
+        mdBuilder.putCustom(ServersMetadata.TYPE, updatedServers);
         return ClusterState.builder(currentState)
-            .metadata(
-                Metadata.builder(metadata)
-                    .putCustom(ServersMetadata.TYPE, updatedServers)
-                    .putCustom(ForeignTablesMetadata.TYPE, updatedForeignTables)
-            )
+            .metadata(mdBuilder)
             .build();
+    }
+
+    private static boolean anyDependOnServer(Metadata metadata, String serverName) {
+        return metadata.relations(RelationMetadata.ForeignTable.class)
+            .stream().anyMatch(x -> x.server().equals(serverName));
     }
 }
 

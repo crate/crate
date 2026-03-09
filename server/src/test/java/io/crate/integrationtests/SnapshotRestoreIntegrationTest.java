@@ -69,6 +69,8 @@ import org.junit.rules.TemporaryFolder;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.fdw.ForeignTablesMetadata;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.view.ViewsMetadata;
@@ -82,6 +84,7 @@ import io.crate.role.metadata.UsersPrivilegesMetadata;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseRandomizedSchema;
+import io.crate.types.DataTypes;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class SnapshotRestoreIntegrationTest extends IntegTestCase {
@@ -134,7 +137,9 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
             "REVOKE ALL FROM my_user",
             "REVOKE ALL FROM \"John\"",
             "DROP ANALYZER a1",
-            "DROP FUNCTION custom(string)"
+            "DROP FUNCTION custom(string)",
+            "DROP FOREIGN TABLE myschema.remote_documents",
+            "DROP SERVER my_postgresql"
         );
         for (var stmt : stmts) {
             try {
@@ -1214,6 +1219,64 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(view.owner()).isEqualTo("crate");
         view = metadata.getRelation(new RelationName("john", "v1"));
         assertThat(view.owner()).isEqualTo("John");
+    }
+
+    @Test
+    public void test_restore_old_foreign_tables() throws IOException {
+        File repoDir = TEMPORARY_FOLDER.newFolder().toPath().toAbsolutePath().toFile();
+        try (InputStream stream = Files.newInputStream(getDataPath("/repos/oldforeigntablesmetadata_repo.zip"))) {
+            TestUtil.unzip(stream, repoDir.toPath());
+        }
+        execute(
+            "CREATE REPOSITORY fw_repo TYPE \"fs\" with (location=?, compress=true, readonly=true)",
+            new Object[]{repoDir.getAbsolutePath()}
+        );
+
+
+        // CREATE SERVER my_postgresql FOREIGN DATA WRAPPER jdbc OPTIONS (url 'jdbc:postgresql://example.com:5432/');
+        // CREATE FOREIGN TABLE myschema.remote_documents (name text) SERVER my_postgresql OPTIONS (schema_name 'public', table_name 'documents');
+        // CREATE USER MAPPING FOR USER SERVER my_postgresql OPTIONS ("user" 'trillian', password 'secret');
+        execute("RESTORE SNAPSHOT fw_repo.s1 ALL with (wait_for_completion=true)");
+
+        execute("select foreign_table_schema, foreign_table_name from information_schema.foreign_tables");
+        assertThat(response).hasRows(
+            "myschema| remote_documents"
+        );
+        execute(
+            """
+            SELECT
+                foreign_table_schema,
+                foreign_table_name,
+                option_name,
+                option_value
+            FROM
+                information_schema.foreign_table_options
+            ORDER BY
+                option_name DESC
+            """);
+        assertThat(response).hasRows(
+            "myschema| remote_documents| table_name| documents",
+            "myschema| remote_documents| schema_name| public"
+        );
+
+        Metadata metadata = cluster().clusterService().state().metadata();
+        ForeignTablesMetadata foreignTablesMetadata = metadata.custom(ForeignTablesMetadata.TYPE);
+        assertThat(foreignTablesMetadata).isNull();
+        RelationMetadata.ForeignTable foreignTable = metadata.getRelation(new RelationName("myschema", "remote_documents"));
+        assertThat(foreignTable.server()).isEqualTo("my_postgresql");
+        assertThat(foreignTable.references().entrySet()).satisfiesExactly(
+            entry -> {
+                assertThat(entry.getKey()).isEqualTo(ColumnIdent.of("name"));
+                assertThat(entry.getValue())
+                    .hasOid(0)
+                    .hasName("name")
+                    .hasType(DataTypes.STRING);
+            }
+        );
+        assertThat(foreignTable.settings())
+            .hasSize(2)
+            .hasEntry("schema_name", "public")
+            .hasEntry("table_name", "documents");
     }
 
     private void execute_statements_that_restore_tables_with_different_fqn(boolean partitioned) throws Exception {

@@ -29,6 +29,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -99,11 +100,7 @@ public class ForeignDataWrappers implements CollectSource {
                 "ForeignDataWrappers requires ForeignCollectPhase, not: " + collectPhase);
         }
         Metadata metadata = clusterService.state().metadata();
-        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE);
-        if (foreignTables == null) {
-            throw new RelationUnknown(phase.relationName());
-        }
-        ForeignTable foreignTable = foreignTables.get(phase.relationName());
+        RelationMetadata.ForeignTable foreignTable = metadata.getRelation(phase.relationName());
         if (foreignTable == null) {
             throw new RelationUnknown(phase.relationName());
         }

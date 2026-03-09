@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -67,7 +68,7 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
             null
         );
         Map<ColumnIdent, Reference> references = Map.of(nameRef.column(), nameRef);
-        ForeignTable foreignTable = new ForeignTable(relationName, references, server.name(), Settings.EMPTY);
+        RelationMetadata.ForeignTable foreignTable = new RelationMetadata.ForeignTable(relationName, references, server.name(), Settings.EMPTY);
         assertThatThrownBy(() -> fdw.getIterator(arthur, server, foreignTable, txnCtx, List.of(nameRef), Literal.BOOLEAN_TRUE))
             .hasMessage("Only a super user can connect to localhost unless `fdw.allow_local` is set to true");
     }
@@ -92,7 +93,7 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
             null
         );
         Map<ColumnIdent, Reference> references = Map.of(nameRef.column(), nameRef);
-        ForeignTable foreignTable = new ForeignTable(relationName, references, server.name(), Settings.EMPTY);
+        RelationMetadata.ForeignTable foreignTable = new RelationMetadata.ForeignTable(relationName, references, server.name(), Settings.EMPTY);
         // validates that no exception is thrown
         fdw.getIterator(arthur, server, foreignTable, txnCtx, List.of(nameRef), Literal.BOOLEAN_TRUE);
     }

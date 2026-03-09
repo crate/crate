@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -41,8 +42,11 @@ import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
@@ -99,14 +103,11 @@ public class MetadataTest extends ESTestCase {
         assertThatThrownBy(() ->
             new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .createSchema("foo")
-                .putCustom(
-                    ForeignTablesMetadata.TYPE,
-                    ForeignTablesMetadata.EMPTY.add(
-                        new RelationName("foo", "bar"),
-                        List.of(),
-                        "server1",
-                        Settings.EMPTY
-                    )
+                .setForeignTable(
+                    new RelationName("foo", "bar"),
+                    List.of(),
+                    "server1",
+                    Settings.EMPTY
                 )
                 .dropSchema("foo")
         ).isExactlyInstanceOf(DependentObjectsExists.class);
@@ -263,5 +264,42 @@ public class MetadataTest extends ESTestCase {
             )
         );
         assertThat((ViewsMetadata) receivedMetadata.custom(ViewsMetadata.TYPE)).isNull();
+    }
+
+    @Test
+    public void test_bwc_streaming_foreign_tables() throws IOException {
+        var name = new RelationName("mySchema", "myFT");
+        List<Reference> references = List.of(new SimpleReference(
+            name,
+            ColumnIdent.of("col"),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            1,
+            null)
+        );
+        Metadata metadata = Metadata.builder(Metadata.OID_UNASSIGNED)
+            .setForeignTable(
+                name,
+                references,
+                "myServer",
+                Settings.builder().put("foo", "bar").build()
+            )
+            .build();
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_2_0);
+        metadata.writeTo(out);
+        var in = new NamedWriteableAwareStreamInput(out.bytes().streamInput(), writableRegistry());
+        in.setVersion(Version.V_6_2_0);
+        Metadata receivedMetadata = Metadata.readFrom(in);
+        assertThat(receivedMetadata.relations(RelationMetadata.ForeignTable.class)).containsExactly(
+            new RelationMetadata.ForeignTable(
+                name,
+                references.stream().collect(Collectors.toMap(Reference::column, x -> x)),
+                "myServer",
+                Settings.builder().put("foo", "bar").build()
+            )
+        );
+        assertThat((ForeignTablesMetadata) receivedMetadata.custom(ForeignTablesMetadata.TYPE)).isNull();
     }
 }

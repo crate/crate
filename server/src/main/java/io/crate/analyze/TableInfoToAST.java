@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -41,7 +42,6 @@ import org.jspecify.annotations.Nullable;
 import io.crate.common.unit.TimeValue;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
-import io.crate.fdw.ForeignTable;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.GeneratedReference;
@@ -106,9 +106,9 @@ public class TableInfoToAST {
                 extractTableProperties(),
                 true
             );
-        } else if (tableInfo instanceof ForeignTable foreignTable) {
+        } else if (tableInfo instanceof RelationMetadata.ForeignTable foreignTable) {
             Map<String, Expression> options = new HashMap<>();
-            for (var entry : foreignTable.options().getAsStructuredMap().entrySet()) {
+            for (var entry : foreignTable.settings().getAsStructuredMap().entrySet()) {
                 String optionName = entry.getKey();
                 Object optionValue = entry.getValue();
                 options.put(optionName, Literal.fromObject(optionValue));

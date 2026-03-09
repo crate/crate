@@ -61,7 +61,7 @@ public class ViewInfoFactory {
 
     public ViewInfo create(RelationName ident, ClusterState state) {
         RelationMetadata relationMetadata = state.metadata().getRelation(ident);
-        if (relationMetadata == null || relationMetadata instanceof RelationMetadata.Table) {
+        if (relationMetadata instanceof RelationMetadata.View == false) {
             return null;
         }
         RelationMetadata.View view = (RelationMetadata.View) relationMetadata;

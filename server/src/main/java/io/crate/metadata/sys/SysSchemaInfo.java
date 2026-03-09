@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -97,12 +98,15 @@ public class SysSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public void close() throws Exception {
+    public Iterable<RelationMetadata.ForeignTable> getForeignTables() {
+        return Collections.emptyList();
+    }
 
+    @Override
+    public void close() throws Exception {
     }
 
     @Override
     public void update(ClusterChangedEvent event) {
-
     }
 }

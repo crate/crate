@@ -25,13 +25,16 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.Priority;
 
+import io.crate.exceptions.RelationUnknown;
+import io.crate.metadata.RelationName;
 import io.crate.sql.tree.CascadeMode;
 
 public class DropForeignTableTask extends AckedClusterStateUpdateTask<AcknowledgedResponse> {
 
-    private DropForeignTableRequest request;
+    private final DropForeignTableRequest request;
 
     DropForeignTableTask(DropForeignTableRequest request) {
         super(Priority.NORMAL, request);
@@ -48,16 +51,26 @@ public class DropForeignTableTask extends AckedClusterStateUpdateTask<Acknowledg
         if (request.cascadeMode() == CascadeMode.CASCADE) {
             throw new UnsupportedOperationException("DROP FOREIGN TABLE with CASCADE is not supported");
         }
+
         Metadata metadata = currentState.metadata();
-        ForeignTablesMetadata foreignTables = metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
-        var updatedTables = foreignTables.remove(request.names(), request.ifExists());
-        if (foreignTables == updatedTables) {
+        Metadata.Builder mdBuilder = Metadata.builder(metadata);
+        boolean dropped = false;
+
+        for (RelationName name : request.names()) {
+            RelationMetadata relationMetadata = metadata.getRelation(name);
+            if (relationMetadata instanceof RelationMetadata.ForeignTable) {
+                mdBuilder.dropRelation(name);
+                dropped = true;
+            } else if (request.ifExists() == false) {
+                throw new RelationUnknown(name);
+            }
+        }
+
+        if (dropped == false) {
             return currentState;
         }
         return ClusterState.builder(currentState)
-            .metadata(Metadata.builder(metadata)
-                .putCustom(ForeignTablesMetadata.TYPE, updatedTables)
-            )
+            .metadata(mdBuilder)
             .build();
     }
 }
