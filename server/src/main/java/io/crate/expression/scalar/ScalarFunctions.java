@@ -79,6 +79,7 @@ import io.crate.expression.scalar.string.LengthFunction;
 import io.crate.expression.scalar.string.ParseURIFunction;
 import io.crate.expression.scalar.string.ParseURLFunction;
 import io.crate.expression.scalar.string.QuoteIdentFunction;
+import io.crate.expression.scalar.string.ParseIdentFunction;
 import io.crate.expression.scalar.string.ReplaceFunction;
 import io.crate.expression.scalar.string.ReverseFunction;
 import io.crate.expression.scalar.string.StringCaseFunction;
@@ -199,6 +200,7 @@ public class ScalarFunctions implements FunctionsProvider {
         HashFunctions.register(builder);
         ReplaceFunction.register(builder);
         QuoteIdentFunction.register(builder);
+        ParseIdentFunction.register(builder);
 
         Ignore3vlFunction.register(builder);
 
