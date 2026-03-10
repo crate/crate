@@ -118,6 +118,9 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
         return explicit;
     }
 
+    public boolean isEmpty() {
+        return relations.isEmpty() && udfs.isEmpty();
+    }
 
     @Override
     public int hashCode() {

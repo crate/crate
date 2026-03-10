@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.ScopedColumn;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -52,6 +53,9 @@ public class ViewInfo implements RelationInfo {
     private final SearchPath searchPath;
     private final boolean errorOnUnknownObjectKey;
 
+    @Nullable
+    private final AnalyzedRelation relation;
+
 
     /// @param allColumns all output columns (including sub-columns) with relation=ident of the view
     /// @param usedSourceColumns columns from other tables/views used in the view definition
@@ -61,7 +65,8 @@ public class ViewInfo implements RelationInfo {
                     List<ScopedColumn> usedSourceColumns,
                     @Nullable String owner,
                     SearchPath searchPath,
-                    boolean errorOnUnknownObjectKey) {
+                    boolean errorOnUnknownObjectKey,
+                    @Nullable AnalyzedRelation relation) {
         this.ident = ident;
         this.definition = definition;
         this.allColumns = allColumns
@@ -75,6 +80,7 @@ public class ViewInfo implements RelationInfo {
         this.owner = owner;
         this.searchPath = searchPath;
         this.errorOnUnknownObjectKey = errorOnUnknownObjectKey;
+        this.relation = relation;
     }
 
     /// Columns from other tables or views used in the view definition.
@@ -165,5 +171,10 @@ public class ViewInfo implements RelationInfo {
 
     public boolean errorOnUnknownObjectKey() {
         return errorOnUnknownObjectKey;
+    }
+
+    @Nullable
+    public AnalyzedRelation relation() {
+        return relation;
     }
 }

@@ -270,6 +270,7 @@ public final class SqlFormatter {
                     append(indent, ", ");
                 }
             }
+            append(indent, dropSchema.mode() == CascadeMode.CASCADE ? "CASCADE" : "RESTRICT");
             return null;
         }
 

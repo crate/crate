@@ -12,15 +12,13 @@ Synopsis
 
 .. code-block:: psql
 
-  DROP SCHEMA [IF EXISTS] name [, ...]
+  DROP SCHEMA [IF EXISTS] name [, ...] [ CASCADE | RESTRICT ]
 
 
 Description
 ===========
 
 ``DROP SCHEMA`` is a DDL statement that drops one or more schemas.
-
-If a schema still contains other objects the statement raises an error.
 
 Parameters
 ==========
@@ -35,6 +33,20 @@ Clauses
 -----------------
 
 Do not raise an error if the schema is missing.
+
+
+``CASCADE``
+-----------------
+
+Drop all objects (tables, views, ...) within the schema and all objects that
+depend on those.
+
+``RESTRICT``
+------------
+
+``RESTRICT`` causes ``DROP SCHEMA`` to raise an error if a schema still contains
+ other objects (tables, views, :ref:`UDFs <user-defined-functions>`).
+ This is the default behavior.
 
 
 .. seealso::

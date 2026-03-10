@@ -22,7 +22,6 @@
 package org.elasticsearch.cluster.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.List;
@@ -38,7 +37,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.analyze.FunctionArgumentDefinition;
-import io.crate.exceptions.DependentObjectsExists;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTablesMetadata;
@@ -70,51 +68,6 @@ public class MetadataTest extends ESTestCase {
         in.setVersion(Version.V_6_1_0);
         Metadata recievedMetadata = Metadata.readFrom(in); // We are reading from 6.1.0, which sends out OID.
         assertThat(recievedMetadata.columnOID()).isEqualTo(123L);
-    }
-
-    @Test
-    public void test_cant_drop_schema_with_dependent_view() throws Exception {
-        assertThatThrownBy(() ->
-            new Metadata.Builder(Metadata.OID_UNASSIGNED)
-                .createSchema("foo")
-                .setView(
-                    new RelationName("foo", "bar"),
-                    "select 1",
-                    null,
-                    SearchPath.pathWithPGCatalogAndDoc(),
-                    true)
-                .dropSchema("foo")
-        ).isExactlyInstanceOf(DependentObjectsExists.class);
-    }
-
-    @Test
-    public void test_cant_drop_schema_with_dependent_udf() throws Exception {
-        assertThatThrownBy(() ->
-            new Metadata.Builder(Metadata.OID_UNASSIGNED)
-                .createSchema("foo")
-                .putCustom(
-                    UserDefinedFunctionsMetadata.TYPE,
-                    UserDefinedFunctionsMetadata.of(
-                        new UserDefinedFunctionMetadata("foo", "bar", List.of(), DataTypes.INTEGER, "js", "")
-                    )
-                )
-                .dropSchema("foo")
-        ).isExactlyInstanceOf(DependentObjectsExists.class);
-    }
-
-    @Test
-    public void test_cant_drop_schema_with_dependent_foreign_table() throws Exception {
-        assertThatThrownBy(() ->
-            new Metadata.Builder(Metadata.OID_UNASSIGNED)
-                .createSchema("foo")
-                .setForeignTable(
-                    new RelationName("foo", "bar"),
-                    List.of(),
-                    "server1",
-                    Settings.EMPTY
-                )
-                .dropSchema("foo")
-        ).isExactlyInstanceOf(DependentObjectsExists.class);
     }
 
     @Test

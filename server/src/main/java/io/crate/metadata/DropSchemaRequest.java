@@ -23,30 +23,44 @@ package io.crate.metadata;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.sql.tree.CascadeMode;
 
 public class DropSchemaRequest extends AcknowledgedRequest<DropSchemaRequest> {
 
     private final List<String> names;
     private final boolean ifExists;
+    private final CascadeMode mode;
 
-    public DropSchemaRequest(List<String> names, boolean ifExists) {
+    public DropSchemaRequest(List<String> names, boolean ifExists, CascadeMode mode) {
         this.names = names;
         this.ifExists = ifExists;
+        this.mode = mode;
     }
 
     public DropSchemaRequest(StreamInput in) throws IOException {
         this.names = in.readStringList();
         this.ifExists = in.readBoolean();
+        if (in.getVersion().onOrAfter(Version.V_6_3_0)) {
+            this.mode = in.readEnum(CascadeMode.class);
+        } else {
+            this.mode = CascadeMode.RESTRICT;
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeStringCollection(names);
         out.writeBoolean(ifExists);
+        if (out.getVersion().onOrAfter(Version.V_6_3_0)) {
+            out.writeEnum(mode);
+        }
     }
 
     public List<String> names() {
@@ -55,5 +69,23 @@ public class DropSchemaRequest extends AcknowledgedRequest<DropSchemaRequest> {
 
     public boolean ifExists() {
         return ifExists;
+    }
+
+    public CascadeMode mode() {
+        return mode;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        DropSchemaRequest that = (DropSchemaRequest) o;
+        return ifExists == that.ifExists && mode == that.mode && Objects.equals(names, that.names);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(names, ifExists, mode);
     }
 }

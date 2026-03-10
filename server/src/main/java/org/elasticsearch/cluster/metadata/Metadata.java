@@ -75,10 +75,8 @@ import org.jspecify.annotations.Nullable;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
-import io.crate.exceptions.DependentObjectsExists;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.execution.ddl.Templates;
 import io.crate.expression.symbol.RefReplacer;
@@ -948,6 +946,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
+        public Iterable<RelationMetadata> relations() {
+            return () -> schemas.values().stream()
+                .flatMap(schema -> schema.relations().values().stream())
+                .iterator();
+        }
+
         public Builder put(String schemaName, SchemaMetadata schemaMetadata) {
             schemas.put(schemaName, schemaMetadata);
             return this;
@@ -1551,25 +1555,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
-        /// @throws [SchemaUnknownException]
-        /// @throws [DependentObjectsExists]
         public Builder dropSchema(String schema) {
-            SchemaMetadata schemaMetadata = schemas.get(schema);
-            if (schemaMetadata == null) {
-                throw new SchemaUnknownException(schema);
-            }
-            if (!schemaMetadata.relations().isEmpty()) {
-                throw new DependentObjectsExists("schema", schema);
-            }
-
-            UserDefinedFunctionsMetadata udfs = (UserDefinedFunctionsMetadata) customs.getOrDefault(
-                UserDefinedFunctionsMetadata.TYPE,
-                UserDefinedFunctionsMetadata.EMPTY
-            );
-            if (udfs.contains(schema)) {
-                throw new DependentObjectsExists("schema", schema);
-            }
-
             schemas.remove(schema);
             return this;
         }
