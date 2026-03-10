@@ -54,7 +54,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.expression.symbol.ScopedColumn;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.view.ViewInfo;
@@ -167,7 +167,7 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
                 if (!schemasMetadata.containsKey(schema) && request.ifExists()) {
                     continue;
                 }
-                Set<RelationName> viewsToDrop = getViewsToDrop(currentState, schema);
+                Set<RelationName> viewsToDrop = getViewsToDrop(viewInfoFactory, currentState, schema);
                 mdBuilder.canDropSchema(schema, request.mode(), viewsToDrop);
 
                 for (RelationMetadata.Table table : currentMetadata.relations(RelationMetadata.Table.class)) {
@@ -193,29 +193,30 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
                 .metadata(newMetadata)
                 .build();
         }
+    }
 
-        private Set<RelationName> getViewsToDrop(ClusterState currentState, String schema) {
-            Set<RelationName> viewsToDrop = new HashSet<>();
-            for (RelationMetadata.View view : currentState.metadata().relations(RelationMetadata.View.class)) {
-                if (schema.equals(view.name().schema()) == false) {
-                    Consumer<RelationName> ensureNotInSchema = relationName -> {
-                        if (schema.equals(relationName.schema())) {
-                            viewsToDrop.add(view.name());
-                        }
-                    };
-                    ViewInfo viewInfo = viewInfoFactory.create(view.name(), currentState);
-                    viewInfo.forDependentObjects(ensureNotInSchema, symbol -> {
-                        if (symbol instanceof io.crate.expression.symbol.Function fn
-                                     && schema.equals(fn.signature().getName().schema())) {
-                            viewsToDrop.add(view.name());
-                        }
-                        if (symbol instanceof ScopedColumn column && schema.equals(column.relation().schema())) {
-                            viewsToDrop.add(view.name());
-                        }
-                    });
-                }
+    static Set<RelationName> getViewsToDrop(ViewInfoFactory viewInfoFactory, ClusterState currentState, String schema) {
+        Set<RelationName> viewsToDrop = new HashSet<>();
+        for (RelationMetadata.View view : currentState.metadata().relations(RelationMetadata.View.class)) {
+            if (schema.equals(view.name().schema()) == false) {
+                ViewInfo viewInfo = viewInfoFactory.create(view.name(), currentState);
+                Consumer<RelationName> ensureNotInSchema = relationName -> {
+                    if (schema.equals(relationName.schema())) {
+                        viewsToDrop.add(view.name());
+                    }
+                };
+                viewInfo.forDependentObjects(ensureNotInSchema, symbol -> {
+                    if (symbol instanceof io.crate.expression.symbol.Function fn
+                        && schema.equals(fn.signature().getName().schema())) {
+                        viewsToDrop.add(view.name());
+                    }
+                    if (symbol instanceof SelectSymbol select &&
+                        schema.equals(select.relation().relationName().schema())) {
+                        viewsToDrop.add(view.name());
+                    }
+                });
             }
-            return viewsToDrop;
         }
+        return viewsToDrop;
     }
 }

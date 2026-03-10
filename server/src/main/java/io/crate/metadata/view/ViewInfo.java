@@ -33,6 +33,7 @@ import java.util.stream.Stream;
 import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.analyze.Relations;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.expression.symbol.ScopedColumn;
@@ -189,9 +190,6 @@ public class ViewInfo implements RelationInfo {
             }
 
         }, null);
-        relation.visitSymbols(symbol -> symbol.any(child -> {
-            onSymbol.accept(child);
-            return false;
-        }));
+        Relations.traverseDeepSymbols(relation, symbol -> symbol.visit(Symbol.class, onSymbol));
     }
 }
