@@ -2721,10 +2721,15 @@ Reflecting the types of the columns::
 
     Furthermore, values for dynamically added sub-columns of an ``IGNORED``
     objects aren't stored in a column store, which means that ordering on these
-    columns or using them with aggregates is also slower than using the same
-    operations on regular columns. For some operations it may also be necessary
-    to add an explicit type cast because there is no type information available
-    in the schema.
+    columns or using them with aggregates is slower than using the same
+    operations on regular columns.
+
+    If ordering on ``object(ignored)`` child columns containing values of mixed
+    types, the sort order is undefined and isn't deterministic. Add an explicit
+    cast to avoid that.
+
+    For some operations it may also be necessary to add an explicit type cast
+    because there is no type information available in the schema.
 
     An example::
 

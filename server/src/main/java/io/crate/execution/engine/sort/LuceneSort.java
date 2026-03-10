@@ -34,9 +34,9 @@ import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.search.SortedSetSelector;
 import org.apache.lucene.search.SortedSetSortField;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.OrderBy;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.InputFactory;
@@ -44,6 +44,7 @@ import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.NullSentinelValues;
 import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -118,6 +119,11 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
             sortFields[i] = sortSymbol.accept(this, sortSymbolContext);
         }
         return sortFields;
+    }
+
+    @Override
+    public SortField visitDynamicReference(DynamicReference ref, SortSymbolContext context) {
+        return customSortField(ref.toString(), ref, context);
     }
 
     /**

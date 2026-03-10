@@ -2317,4 +2317,19 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response).hasColumns();
         execute("-- ping ; /* ping2 */");
     }
+
+    @Test
+    public void test_can_sort_on_ignored_column() throws Exception {
+        execute("create table tbl (obj object (ignored))");
+        execute("insert into tbl (obj) values ({x=1}), ({x=2}), ({x=NULL}), ({x=3})");
+        execute("refresh table tbl");
+
+        execute("select obj from tbl order by obj['x']");
+        assertThat(response).hasRows(
+            "{x=1}",
+            "{x=2}",
+            "{x=3}",
+            "{x=NULL}"
+        );
+    }
 }

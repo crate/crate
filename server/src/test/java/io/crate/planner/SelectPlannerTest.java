@@ -41,6 +41,7 @@ import org.junit.Test;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.RowN;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -71,6 +72,7 @@ import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.Reference;
@@ -508,21 +510,6 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.plan("select * from sys.shards where match(table_name, 'characters')"))
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
             .hasMessage("Cannot use MATCH on system tables");
-    }
-
-    @Test
-    public void testSortOnUnknownColumn() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .setNumNodes(2)
-            .build()
-            .addTable(
-                "create table doc.ignored_nested (" +
-                "  details object(ignored)" +
-                ")");
-
-        assertThatThrownBy(() -> e.plan("select details from ignored_nested order by details['unknown_column']"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Cannot ORDER BY 'details['unknown_column']': invalid data type 'undefined'.");
     }
 
     @Test
@@ -1750,5 +1737,30 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         //   [o, o['x'], o]
         //    0, 1,      2
         assertThat(join.joinPhase().joinCondition()).isSQL("(INPUT(1) = INPUT(2)['x'])");
+    }
+
+    @Test
+    public void test_order_by_null_or_literals_is_pruned() throws Exception {
+        var executor = SQLExecutor.of(clusterService);
+        QueriedSelectRelation relation = executor.analyze(
+            "select * from sys.summits order by (select null)"
+        );
+        assertThat(relation.orderBy().orderBySymbols()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(SelectSymbol.class)
+        );
+        // Collect#build prunes out literals
+        Collect plan = executor.plan("select * from sys.summits order by (select null)");
+        assertThat(plan.orderBy()).isNull();
+        assertThat(((RoutedCollectPhase) plan.collectPhase()).orderBy()).isNull();
+
+        relation = executor.analyze(
+            "select * from sys.summits order by null"
+        );
+        assertThat(relation.orderBy().orderBySymbols()).satisfiesExactly(
+            x -> assertThat(x).isLiteral(null)
+        );
+        plan = executor.plan("select * from sys.summits order by null");
+        assertThat(plan.orderBy()).isNull();
+        assertThat(((RoutedCollectPhase) plan.collectPhase()).orderBy()).isNull();
     }
 }
