@@ -57,13 +57,16 @@ public class TransportDropSchemaTest extends CrateDummyClusterServiceUnitTest {
             .addView(new RelationName("bar", "v2"),
                 "SELECT foo.fn(g) FROM generate_series(1, 10, 1) as g")
             .addView(new RelationName("bar", "v3"),
+                "SELECT * FROM generate_series(1, 10, 1) as g WHERE g IN (SELECT foo.fn(x) FROM foo.tbl)")
+            .addView(new RelationName("bar", "v4"),
                 "SELECT * FROM (select * from unnest([1])) as t1(x) INNER JOIN (select * from unnest([1]) as u(x) WHERE x IN (SELECT * FROM foo.tbl)) as t2 ON t1.x = t2.x");
 
         Set<RelationName> viewsToDrop = TransportDropSchema.getViewsToDrop(
             new ViewInfoFactory(new RelationAnalyzer(e.nodeCtx)), clusterService.state(), "foo");
-        assertThat(viewsToDrop).containsExactly(
+        assertThat(viewsToDrop).containsExactlyInAnyOrder(
             new RelationName("bar", "v1"),
             new RelationName("bar", "v2"),
-            new RelationName("bar", "v3"));
+            new RelationName("bar", "v3"),
+            new RelationName("bar", "v4"));
     }
 }

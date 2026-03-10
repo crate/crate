@@ -52,8 +52,8 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.analyze.RelationNames;
 import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.cluster.DDLClusterStateService;
@@ -214,12 +214,11 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
                     }
                 };
                 viewInfo.forDependentObjects(ensureNotInSchema, symbol -> {
-                    if (symbol instanceof io.crate.expression.symbol.Function fn
-                        && schema.equals(fn.signature().getName().schema())) {
+                    if (RelationNames.getDeep(symbol).stream().anyMatch(rn -> schema.equals(rn.schema()))) {
                         viewsToDrop.add(view.name());
                     }
-                    if (symbol instanceof SelectSymbol select &&
-                        schema.equals(select.relation().relationName().schema())) {
+                    if (symbol instanceof io.crate.expression.symbol.Function fn
+                        && schema.equals(fn.signature().getName().schema())) {
                         viewsToDrop.add(view.name());
                     }
                 });
