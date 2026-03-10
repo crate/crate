@@ -30,6 +30,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.URI;
 import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
@@ -43,11 +44,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.test.IntegTestCase;
 import org.jspecify.annotations.Nullable;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.blob.v2.BlobIndicesService;
@@ -78,6 +79,15 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         return digest;
     }
 
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        return Settings.builder()
+            .put(super.nodeSettings(nodeOrdinal))
+            .put("http.cors.enabled", true)
+            .put("http.cors.allow-origin", "*")
+            .build();
+    }
+
     @Test
     public void testUploadInvalidSha1() throws Exception {
         var response = put("test", "d937ea65641c23fadc83616309e5b0e11acc5806", "asdf");
@@ -85,10 +95,10 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     }
 
     @Test
-    @Ignore("Flakiness introduced with JDK 24.0.2")
     public void testCorsHeadersAreSet() throws Exception {
         String digest = uploadTinyBlob();
         HttpRequest request = HttpRequest.newBuilder(blobUri(digest))
+            .method("OPTIONS", BodyPublishers.noBody())
             .header("Origin", "Http://example.com")
             .build();
         var response = httpClient.send(request, BodyHandlers.discarding());
