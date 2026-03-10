@@ -104,6 +104,10 @@ SQL Standard and PostgreSQL Compatibility
 - `Sahin Akyol <https://github.com/sahinakyol>`_ added support for the
   :ref:`IS [ NOT ] TRUE | FALSE <sql_dql_is_true_or_false>` boolean predicates.
 
+- Added support for using ``null`` and child columns of an ``object(ignored)``
+  type within ``ORDER BY``. Note that the latter has worse performance compared
+  to ordering on a properly typed column.
+
 Data Types
 ----------
 

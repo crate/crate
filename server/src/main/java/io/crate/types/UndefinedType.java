@@ -91,9 +91,20 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
         return value;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public int compare(Object val1, Object val2) {
+        if (val1.getClass() == val2.getClass()) {
+            if (val1 instanceof Comparable cmp) {
+                return cmp.compareTo(val2);
+            }
+            return compare(val1, val2, DataTypes.guessType(val1));
+        }
         return 0;
+    }
+
+    private static <T> int compare(Object val1, Object val2, DataType<T> type) {
+        return type.compare(type.sanitizeValue(val1), type.sanitizeValue(val2));
     }
 
     @Override
@@ -116,7 +127,7 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
 
     @Override
     public Sort sortSupport() {
-        return Sort.NONE;
+        return Sort.COMPARATOR;
     }
 
     @Override
