@@ -205,6 +205,10 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
                     };
                     ViewInfo viewInfo = viewInfoFactory.create(view.name(), currentState);
                     viewInfo.forDependentObjects(ensureNotInSchema, symbol -> {
+                        if (symbol instanceof io.crate.expression.symbol.Function fn
+                                     && schema.equals(fn.signature().getName().schema())) {
+                            viewsToDrop.add(view.name());
+                        }
                         if (symbol instanceof ScopedColumn column && schema.equals(column.relation().schema())) {
                             viewsToDrop.add(view.name());
                         }

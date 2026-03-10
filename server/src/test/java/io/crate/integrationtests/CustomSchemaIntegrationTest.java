@@ -30,14 +30,27 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class CustomSchemaIntegrationTest extends IntegTestCase {
+
+    @Override
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        var dummyLang = new UserDefinedFunctionsIntegrationTest.DummyLang();
+        Iterable<UserDefinedFunctionService> udfServices = cluster().getInstances(UserDefinedFunctionService.class);
+        for (UserDefinedFunctionService udfService : udfServices) {
+            udfService.registerLanguage(dummyLang);
+        }
+    }
 
     @After
     public void dropSchemas() {
@@ -202,8 +215,10 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
         execute("create schema foo");
         execute("create schema bar");
         execute("create table foo.tbl (x int)");
+        execute("create function foo.fn(int)" +
+                " returns string language dummy_lang as 'function fn(x) { return \"1\"; }'");
         execute("create view bar.v1 as (select count(*) as cnt from foo.tbl)");
-        execute("create view bar.v2 as (SELECT (SELECT t.x), count(*) FROM foo.tbl t GROUP BY (SELECT t.x))");
+        execute("create view bar.v2 as (SELECT foo.fn(g) FROM generate_series(1, 10, 1) as g)");
         execute("drop schema foo cascade");
         ClusterState state = cluster().getInstance(ClusterService.class).state();
         Metadata metadata = state.metadata();
