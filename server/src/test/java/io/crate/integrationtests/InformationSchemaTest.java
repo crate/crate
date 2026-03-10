@@ -177,15 +177,16 @@ public class InformationSchemaTest extends IntegTestCase {
                 """);
 
         // SELECT information_schema.columns
-        execute("SELECT table_name, column_name " +
+        execute("SELECT table_name, column_name, udt_name " +
                 "FROM information_schema.columns " +
                 "WHERE table_name LIKE 't1%' " +
                 "ORDER BY 1, 2");
-        assertThat(response).hasRows("t1| id",
-                                                                    "t1| name",
-                                                                    "t1_view1| id",
-                                                                    "t1_view1| name",
-                                                                    "t1_view2| id");
+        assertThat(response).hasRows(
+            "t1| id| integer",
+            "t1| name| text",
+            "t1_view1| id| integer",
+            "t1_view1| name| text",
+            "t1_view2| id| integer");
 
         // After dropping the target table of the view, the view still shows up in information_schema.tables and
         // information_schema.views,  but not in information_schema.columns, because the SELECT statement could not be
