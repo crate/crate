@@ -1540,22 +1540,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             }
         }
 
-        public Builder dropSchema(String schema, Set<RelationName> viewsToDrop) {
-            SchemaMetadata schemaMetadata = schemas.get(schema);
-            if (schemaMetadata == null) {
-                return this;
-            }
-
-            for (String relation : schemaMetadata.relations().keySet()) {
-                dropRelation(new RelationName(schema, relation));
-            }
-            for (RelationName view : viewsToDrop) {
-                dropRelation(view);
-            }
-            for (UserDefinedFunctionMetadata udf : schemaMetadata.udfs()) {
-                dropUDF(schema, udf.name(), udf.argumentTypes(), false);
-            }
-
+        public Builder dropSchema(String schema) {
             schemas.remove(schema);
             return this;
         }

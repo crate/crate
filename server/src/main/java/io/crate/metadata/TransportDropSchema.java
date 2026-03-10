@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -55,6 +54,7 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.view.ViewInfo;
@@ -161,17 +161,17 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
         @Override
         public ClusterState execute(ClusterState currentState) throws Exception {
             Metadata currentMetadata = currentState.metadata();
-            Map<String, SchemaMetadata> schemasMetadata = currentMetadata.schemas();
             Builder mdBuilder = Metadata.builder(currentMetadata);
             for (String schema : request.names()) {
-                if (!schemasMetadata.containsKey(schema) && request.ifExists()) {
+                SchemaMetadata schemaMetadata = currentMetadata.schemas().get(schema);
+                if (schemaMetadata == null && request.ifExists()) {
                     continue;
                 }
                 Set<RelationName> viewsToDrop = getViewsToDrop(viewInfoFactory, currentState, schema);
                 mdBuilder.canDropSchema(schema, request.mode(), viewsToDrop);
 
-                for (RelationMetadata.Table table : currentMetadata.relations(RelationMetadata.Table.class)) {
-                    if (schema.equals(table.name().schema())) {
+                for (RelationMetadata relationMetadata : schemaMetadata.relations().values()) {
+                    if (relationMetadata instanceof RelationMetadata.Table table) {
                         Collection<Index> indices = currentMetadata.getIndices(
                             table.name(),
                             List.of(),
@@ -183,9 +183,17 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
                         currentState = deleteIndexService.deleteIndices(currentState, indices);
                         currentState = ddlClusterStateService.onDropTable(currentState, table.name());
                         mdBuilder = Metadata.builder(currentState.metadata());
+                    } else {
+                        mdBuilder = mdBuilder.dropRelation(relationMetadata.name());
                     }
                 }
-                mdBuilder = mdBuilder.dropSchema(schema, viewsToDrop);
+                for (UserDefinedFunctionMetadata udf : schemaMetadata.udfs()) {
+                    mdBuilder = mdBuilder.dropUDF(schema, udf.name(), udf.argumentTypes(), false);
+                }
+                for (RelationName view : viewsToDrop) {
+                    mdBuilder = mdBuilder.dropRelation(view);
+                }
+                mdBuilder = mdBuilder.dropSchema(schema);
             }
             Metadata newMetadata = mdBuilder.build();
             udfService.updateImplementations(newMetadata);
