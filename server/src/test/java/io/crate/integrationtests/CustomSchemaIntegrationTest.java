@@ -29,6 +29,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.After;
 import org.junit.Test;
 
 import io.crate.protocols.postgres.PGErrorStatus;
@@ -37,6 +38,11 @@ import io.crate.testing.UseRandomizedSchema;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class CustomSchemaIntegrationTest extends IntegTestCase {
+
+    @After
+    public void dropSchemas() {
+        execute("drop schema if exists foo, bar, foobar, custom cascade");
+    }
 
     @Test
     @UseRandomizedSchema(random = false)
@@ -177,7 +183,6 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
             .hasHTTPError(HttpResponseStatus.NOT_FOUND, 4045)
             .hasPGError(PGErrorStatus.INVALID_SCHEMA_NAME)
             .hasMessageContaining("Schema 'foobar' unknown");
-        execute("drop schema if exists foobar");
     }
 
     @Test
@@ -205,6 +210,5 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
         assertThat(metadata.indices()).isEmpty();
         assertThat(metadata.schemas()).hasSize(1);
         assertThat(metadata.schemas().get("bar").relations()).isEmpty();
-        execute("drop schema if exists bar");
     }
 }

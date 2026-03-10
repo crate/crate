@@ -54,7 +54,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.ScopedColumn;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.cluster.DDLClusterStateService;
@@ -183,9 +182,9 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
                         currentState = ClusterState.builder(currentState).metadata(mdBuilder).build();
                         currentState = deleteIndexService.deleteIndices(currentState, indices);
                         currentState = ddlClusterStateService.onDropTable(currentState, table.name());
+                        mdBuilder = Metadata.builder(currentState.metadata());
                     }
                 }
-                mdBuilder = Metadata.builder(currentState.metadata());
                 mdBuilder = mdBuilder.dropSchema(schema, viewsToDrop);
             }
             Metadata newMetadata = mdBuilder.build();

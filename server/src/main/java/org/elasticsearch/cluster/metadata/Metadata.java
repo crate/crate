@@ -1542,6 +1542,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
         public Builder dropSchema(String schema, Set<RelationName> viewsToDrop) {
             SchemaMetadata schemaMetadata = schemas.get(schema);
+            if (schemaMetadata == null) {
+                return this;
+            }
+
             for (String relation : schemaMetadata.relations().keySet()) {
                 dropRelation(new RelationName(schema, relation));
             }
