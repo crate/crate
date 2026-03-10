@@ -2194,8 +2194,12 @@ public class TestStatementBuilder {
         printStatement("create schema \"foo bar\"");
         printStatement("create schema if not exists foo");
         printStatement("drop schema foo");
+        printStatement("drop schema foo RESTRICT");
         printStatement("drop schema foo, bar, \"foo bar\"");
         printStatement("drop schema if exists foo");
+        printStatement("drop schema if exists foo CASCADE");
+        printStatement("drop schema if exists foo, bar CASCADE");
+        printStatement("drop schema if exists foo, bar RESTRICT");
     }
 
     @Test

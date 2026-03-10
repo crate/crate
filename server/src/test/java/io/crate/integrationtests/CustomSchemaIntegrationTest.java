@@ -23,9 +23,11 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -178,4 +180,31 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
         execute("drop schema if exists foobar");
     }
 
+    @Test
+    public void test_drop_schema_with_cascade_deletes_tables() throws Exception {
+        execute("create schema foo");
+        execute("create table foo.tbl (x int)");
+        execute("create view foo.v1 as (select * from foo.tbl)");
+        execute("drop schema foo cascade");
+        ClusterState state = cluster().getInstance(ClusterService.class).state();
+        Metadata metadata = state.metadata();
+        assertThat(metadata.indices()).isEmpty();
+        assertThat(metadata.schemas()).isEmpty();
+    }
+
+    @Test
+    public void test_drop_schema_with_cascade_deletes_dependent_views() throws Exception {
+        execute("create schema foo");
+        execute("create schema bar");
+        execute("create table foo.tbl (x int)");
+        execute("create view bar.v1 as (select count(*) as cnt from foo.tbl)");
+        execute("create view bar.v2 as (SELECT (SELECT t.x), count(*) FROM foo.tbl t GROUP BY (SELECT t.x))");
+        execute("drop schema foo cascade");
+        ClusterState state = cluster().getInstance(ClusterService.class).state();
+        Metadata metadata = state.metadata();
+        assertThat(metadata.indices()).isEmpty();
+        assertThat(metadata.schemas()).hasSize(1);
+        assertThat(metadata.schemas().get("bar").relations()).isEmpty();
+        execute("drop schema if exists bar");
+    }
 }

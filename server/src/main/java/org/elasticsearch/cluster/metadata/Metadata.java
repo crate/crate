@@ -98,6 +98,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.view.ViewMetadata;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.rest.action.HttpErrorStatus;
+import io.crate.sql.tree.CascadeMode;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 
@@ -1526,21 +1527,29 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
         /// @throws [SchemaUnknownException]
         /// @throws [DependentObjectsExists]
-        public Builder dropSchema(String schema) {
+        public void canDropSchema(String schema, CascadeMode mode, Set<RelationName> viewsToDrop) {
             SchemaMetadata schemaMetadata = schemas.get(schema);
             if (schemaMetadata == null) {
                 throw new SchemaUnknownException(schema);
             }
-            if (!schemaMetadata.relations().isEmpty()) {
+
+            if (mode == CascadeMode.RESTRICT && (
+                !schemaMetadata.relations().isEmpty() || !schemaMetadata.udfs().isEmpty() || !viewsToDrop.isEmpty())) {
+
                 throw new DependentObjectsExists("schema", schema);
             }
+        }
 
-            UserDefinedFunctionsMetadata udfs = (UserDefinedFunctionsMetadata) customs.getOrDefault(
-                UserDefinedFunctionsMetadata.TYPE,
-                UserDefinedFunctionsMetadata.EMPTY
-            );
-            if (udfs.contains(schema)) {
-                throw new DependentObjectsExists("schema", schema);
+        public Builder dropSchema(String schema, Set<RelationName> viewsToDrop) {
+            SchemaMetadata schemaMetadata = schemas.get(schema);
+            for (String relation : schemaMetadata.relations().keySet()) {
+                dropRelation(new RelationName(schema, relation));
+            }
+            for (RelationName view : viewsToDrop) {
+                dropRelation(view);
+            }
+            for (UserDefinedFunctionMetadata udf : schemaMetadata.udfs()) {
+                dropUDF(schema, udf.name(), udf.argumentTypes(), false);
             }
 
             schemas.remove(schema);

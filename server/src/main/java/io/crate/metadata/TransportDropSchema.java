@@ -23,7 +23,12 @@
 package io.crate.metadata;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -34,15 +39,27 @@ import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.Metadata.Builder;
+import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.metadata.SchemaMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.ScopedColumn;
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.cluster.DDLClusterStateService;
+import io.crate.metadata.view.ViewInfo;
+import io.crate.metadata.view.ViewInfoFactory;
 
 public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaRequest, AcknowledgedResponse> {
 
@@ -56,10 +73,19 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
         }
     }
 
+    private final MetadataDeleteIndexService deleteIndexService;
+    private final DDLClusterStateService ddlClusterStateService;
+    private final UserDefinedFunctionService udfService;
+    private final ViewInfoFactory viewInfoFactory;
+
     @Inject
     public TransportDropSchema(TransportService transportService,
                                ClusterService clusterService,
-                               ThreadPool threadPool) {
+                               MetadataDeleteIndexService deleteIndexService,
+                               DDLClusterStateService ddlClusterStateService,
+                               UserDefinedFunctionService udfService,
+                               ThreadPool threadPool,
+                               NodeContext nodeCtx) {
         super(
             ACTION.name(),
             transportService,
@@ -67,6 +93,10 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
             threadPool,
             DropSchemaRequest::new
         );
+        this.deleteIndexService = deleteIndexService;
+        this.ddlClusterStateService = ddlClusterStateService;
+        this.udfService = udfService;
+        this.viewInfoFactory = new ViewInfoFactory(new RelationAnalyzer(nodeCtx));
     }
 
     @Override
@@ -83,11 +113,16 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
     protected void masterOperation(DropSchemaRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
-        if (state.nodes().getMinNodeVersion().before(Version.V_6_2_0)) {
+        if (state.nodes().getMinNodeVersion().before(Version.V_6_3_0)) {
             throw new IllegalStateException(
-                "Cannot execute DROP SCHEMA while there are <6.2.0 nodes in the cluster");
+                "Cannot execute DROP SCHEMA while there are <6.3.0 nodes in the cluster");
         }
-        DropSchemaTask task = new DropSchemaTask(request);
+        DropSchemaTask task = new DropSchemaTask(
+            request,
+            deleteIndexService,
+            ddlClusterStateService,
+            udfService,
+            viewInfoFactory);
         task.completionFuture().whenComplete(listener);
         clusterService.submitStateUpdateTask("drop-schema", task);
     }
@@ -101,10 +136,22 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
     static class DropSchemaTask extends AckedClusterStateUpdateTask<AcknowledgedResponse> {
 
         private final DropSchemaRequest request;
+        private final MetadataDeleteIndexService deleteIndexService;
+        private final DDLClusterStateService ddlClusterStateService;
+        private final UserDefinedFunctionService udfService;
+        private final ViewInfoFactory viewInfoFactory;
 
-        protected DropSchemaTask(DropSchemaRequest request) {
+        protected DropSchemaTask(DropSchemaRequest request,
+                                 MetadataDeleteIndexService deleteIndexService,
+                                 DDLClusterStateService ddlClusterStateService,
+                                 UserDefinedFunctionService udfService,
+                                 ViewInfoFactory viewInfoFactory) {
             super(Priority.NORMAL, request);
             this.request = request;
+            this.deleteIndexService = deleteIndexService;
+            this.ddlClusterStateService = ddlClusterStateService;
+            this.udfService = udfService;
+            this.viewInfoFactory = viewInfoFactory;
         }
 
         @Override
@@ -115,17 +162,57 @@ public class TransportDropSchema extends TransportMasterNodeAction<DropSchemaReq
         @Override
         public ClusterState execute(ClusterState currentState) throws Exception {
             Metadata currentMetadata = currentState.metadata();
-            Map<String, SchemaMetadata> schemas = currentMetadata.schemas();
-            Builder newMetadata = Metadata.builder(currentMetadata);
+            Map<String, SchemaMetadata> schemasMetadata = currentMetadata.schemas();
+            Builder mdBuilder = Metadata.builder(currentMetadata);
             for (String schema : request.names()) {
-                if (!schemas.containsKey(schema) && request.ifExists()) {
+                if (!schemasMetadata.containsKey(schema) && request.ifExists()) {
                     continue;
                 }
-                newMetadata.dropSchema(schema);
+                Set<RelationName> viewsToDrop = getViewsToDrop(currentState, schema);
+                mdBuilder.canDropSchema(schema, request.mode(), viewsToDrop);
+
+                for (RelationMetadata.Table table : currentMetadata.relations(RelationMetadata.Table.class)) {
+                    if (schema.equals(table.name().schema())) {
+                        Collection<Index> indices = currentMetadata.getIndices(
+                            table.name(),
+                            List.of(),
+                            false,
+                            IndexMetadata::getIndex
+                        );
+                        mdBuilder.dropRelation(table.name());
+                        currentState = ClusterState.builder(currentState).metadata(mdBuilder).build();
+                        currentState = deleteIndexService.deleteIndices(currentState, indices);
+                        currentState = ddlClusterStateService.onDropTable(currentState, table.name());
+                    }
+                }
+                mdBuilder = Metadata.builder(currentState.metadata());
+                mdBuilder = mdBuilder.dropSchema(schema, viewsToDrop);
             }
+            Metadata newMetadata = mdBuilder.build();
+            udfService.updateImplementations(newMetadata);
             return ClusterState.builder(currentState)
                 .metadata(newMetadata)
                 .build();
+        }
+
+        private Set<RelationName> getViewsToDrop(ClusterState currentState, String schema) {
+            Set<RelationName> viewsToDrop = new HashSet<>();
+            for (RelationMetadata.View view : currentState.metadata().relations(RelationMetadata.View.class)) {
+                if (schema.equals(view.name().schema()) == false) {
+                    Consumer<RelationName> ensureNotInSchema = relationName -> {
+                        if (schema.equals(relationName.schema())) {
+                            viewsToDrop.add(view.name());
+                        }
+                    };
+                    ViewInfo viewInfo = viewInfoFactory.create(view.name(), currentState);
+                    viewInfo.forDependentObjects(ensureNotInSchema, symbol -> {
+                        if (symbol instanceof ScopedColumn column && schema.equals(column.relation().schema())) {
+                            viewsToDrop.add(view.name());
+                        }
+                    });
+                }
+            }
+            return viewsToDrop;
         }
     }
 }
