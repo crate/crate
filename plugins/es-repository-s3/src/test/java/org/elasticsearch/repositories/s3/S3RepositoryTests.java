@@ -24,8 +24,11 @@ package org.elasticsearch.repositories.s3;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.IOException;
+
 import org.apache.opendal.AsyncExecutor;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
+import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -54,6 +57,17 @@ public class S3RepositoryTests extends ESTestCase {
     @After
     public void teardown() {
         executor.close();
+    }
+
+    @Test
+    public void test_no_endpoint_can_create_blob_store() {
+        var settings = Settings.builder().put("bucket", "dummy").build();
+        try (S3Repository s3Repository = createS3Repo(getRepositoryMetadata(settings))) {
+            BlobStore blobStore = s3Repository.createBlobStore();
+            blobStore.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test

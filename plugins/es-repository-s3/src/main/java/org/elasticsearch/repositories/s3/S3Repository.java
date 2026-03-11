@@ -168,8 +168,8 @@ public class S3Repository extends BlobStoreRepository {
         Settings settings = metadata.settings();
         SecureString accessKey = S3RepositorySettings.ACCESS_KEY_SETTING.getOrNull(settings);
         SecureString secretKey = S3RepositorySettings.SECRET_KEY_SETTING.getOrNull(settings);
-        String endpoint = S3RepositorySettings.ENDPOINT_SETTING.getOrNull(settings);
-        if (endpoint != null && !(endpoint.startsWith("http://") || endpoint.startsWith("https://"))) {
+        String endpoint = S3RepositorySettings.ENDPOINT_SETTING.get(settings);
+        if (!(endpoint.startsWith("http://") || endpoint.startsWith("https://"))) {
             String protocol = S3RepositorySettings.PROTOCOL_SETTING.get(settings);
             endpoint = protocol + "://" + endpoint;
         }
