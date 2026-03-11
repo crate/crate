@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.ElasticsearchException;
@@ -45,6 +46,7 @@ import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressorFactory;
@@ -63,9 +65,12 @@ import org.elasticsearch.transport.TestTransportChannel;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
+import org.mockito.Mockito;
 
+import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -142,7 +147,12 @@ public class PublicationTransportHandlerTests extends ESTestCase {
 
         AtomicReference<PublishRequest> publishRequestRef = new AtomicReference<>();
 
-        MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(createNodeContext(), null, null);
+        NodeContext nodeContext = createNodeContext();
+        MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(
+            nodeContext,
+            new IndexScopedSettings(Settings.EMPTY, Set.of()),
+            new UserDefinedFunctionService(Mockito.mock(ClusterService.class), nodeContext)
+        );
         new PublicationTransportHandler(
             localTransportService,
             writableRegistry(),
@@ -258,7 +268,12 @@ public class PublicationTransportHandlerTests extends ESTestCase {
 
         AtomicReference<PublishRequest> publishRequestRef = new AtomicReference<>();
 
-        MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(createNodeContext(), IndexScopedSettings.DEFAULT_SCOPED_SETTINGS, null);
+        NodeContext nodeContext = createNodeContext();
+        MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(
+            nodeContext,
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            new UserDefinedFunctionService(Mockito.mock(ClusterService.class), nodeContext)
+        );
         new PublicationTransportHandler(
             localTransportService,
             writableRegistry(),

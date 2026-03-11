@@ -24,7 +24,6 @@ package io.crate.replication.logical.repository;
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.test.ESTestCase.settings;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -48,10 +47,13 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 import org.junit.Test;
 
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.NodeContext;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
-public class LogicalReplicationRepositoryTest {
+public class LogicalReplicationRepositoryTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_getRemoteClusterState_upgrades_indexMetadata() throws Exception {
@@ -80,10 +82,15 @@ public class LogicalReplicationRepositoryTest {
         when(remoteClient.state(any())).thenReturn(CompletableFuture.completedFuture(resp));
         when(repositoryMetadata.name()).thenReturn(REMOTE_REPOSITORY_PREFIX);
 
+        NodeContext nodeContext = createNodeContext();
         LogicalReplicationRepository logicalReplicationRepository = new LogicalReplicationRepository(
             mock(ClusterService.class),
             mock(LogicalReplicationService.class),
-            new MetadataUpgradeService(createNodeContext(), IndexScopedSettings.DEFAULT_SCOPED_SETTINGS, null),
+            new MetadataUpgradeService(
+                nodeContext,
+                IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+                new UserDefinedFunctionService(clusterService, nodeContext)
+            ),
             remoteClusters,
             repositoryMetadata,
             mock(ThreadPool.class),

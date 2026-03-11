@@ -36,6 +36,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.analyze.FunctionArgumentDefinition;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -245,6 +246,10 @@ public class UserDefinedFunctionMetadata implements Writeable {
 
     @Override
     public String toString() {
-        return "UDF{" + schema + "." + name + "}";
+        return "UDF{"
+            + schema
+            + "."
+            + name
+            + "(" + Lists.joinOn(", ", argumentTypes, DataType::getName) + ")}";
     }
 }

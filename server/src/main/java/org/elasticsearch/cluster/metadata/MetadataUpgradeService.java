@@ -88,7 +88,9 @@ public class MetadataUpgradeService {
         final Metadata.Builder newMetadata = Metadata.builder(metadata);
 
         UserDefinedFunctionsMetadata udfMetadata = metadata.custom(UserDefinedFunctionsMetadata.TYPE);
-        if (udfMetadata != null) {
+        if (udfMetadata == null) {
+            userDefinedFunctionService.updateImplementations(metadata);
+        } else {
             for (var udf : udfMetadata.functionsMetadata()) {
                 newMetadata.setUDF(udf);
             }
