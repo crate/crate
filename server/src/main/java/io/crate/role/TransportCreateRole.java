@@ -120,7 +120,7 @@ public class TransportCreateRole extends TransportMasterNodeAction<CreateRoleReq
 
     @Override
     protected ClusterBlockException checkBlock(CreateRoleRequest request, ClusterState state) {
-        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_READ);
+        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 
     /**

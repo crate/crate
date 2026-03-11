@@ -118,6 +118,6 @@ public class TransportDropRole extends TransportMasterNodeAction<DropRoleRequest
 
     @Override
     protected ClusterBlockException checkBlock(DropRoleRequest request, ClusterState state) {
-        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_READ);
+        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 }
