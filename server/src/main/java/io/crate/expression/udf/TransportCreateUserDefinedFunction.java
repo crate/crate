@@ -91,6 +91,6 @@ public class TransportCreateUserDefinedFunction
 
     @Override
     protected ClusterBlockException checkBlock(CreateUserDefinedFunctionRequest request, ClusterState state) {
-        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_READ);
+        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 }
