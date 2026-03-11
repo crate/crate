@@ -35,16 +35,20 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.junit.Test;
 
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
 public class ClusterStateUpgraderTest extends CrateDummyClusterServiceUnitTest {
 
+    private final NodeContext nodeContext = createNodeContext();
     private final MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(
-        createNodeContext(),
+        nodeContext,
         IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
-        null);
+        new UserDefinedFunctionService(clusterService, nodeContext)
+    );
 
     @Test
     public void test_routing_table_index_name_compatibility() throws Exception {

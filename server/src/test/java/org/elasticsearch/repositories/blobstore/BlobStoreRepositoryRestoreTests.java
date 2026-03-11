@@ -66,8 +66,11 @@ import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import io.crate.common.io.IOUtils;
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.NodeContext;
 
 /**
  * This class tests the behavior of {@link BlobStoreRepository} when it
@@ -174,8 +177,11 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
             }
             assertDocCount(shard, numDocs);
 
+            NodeContext nodeContext = createNodeContext();
             MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(
-                createNodeContext(), IndexScopedSettings.DEFAULT_SCOPED_SETTINGS, null
+                nodeContext,
+                IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+                new UserDefinedFunctionService(Mockito.mock(ClusterService.class), nodeContext)
             );
             Metadata metadata = metadataUpgradeService.upgradeMetadata(
                 new Metadata.Builder(Metadata.OID_UNASSIGNED).put(shard.indexSettings().getIndexMetadata(), false).build()

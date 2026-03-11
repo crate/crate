@@ -48,6 +48,7 @@ import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
+import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.sys.SysSchemaInfo;
@@ -71,7 +72,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         metadataUpgradeService = new MetadataUpgradeService(
             nodeCtx,
             new IndexScopedSettings(Settings.EMPTY, Set.of()),
-            null
+            new UserDefinedFunctionService(clusterService, nodeCtx)
         );
     }
 

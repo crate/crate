@@ -41,18 +41,19 @@ import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.exceptions.RelationUnknown;
+import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 
-public class DocTableInfoFactoryTest extends ESTestCase {
+public class DocTableInfoFactoryTest extends CrateDummyClusterServiceUnitTest {
 
     private NodeContext nodeCtx = createNodeContext();
     private MetadataUpgradeService metadataUpgradeService;
@@ -70,7 +71,7 @@ public class DocTableInfoFactoryTest extends ESTestCase {
         metadataUpgradeService = new MetadataUpgradeService(
             nodeCtx,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
-            null
+            new UserDefinedFunctionService(clusterService, nodeCtx)
         );
     }
 
