@@ -121,7 +121,7 @@ public enum Operation {
             }
             operations = Sets.intersection(entry.getValue(), operations);
         }
-        return EnumSet.copyOf(Operation.ALL);
+        return EnumSet.copyOf(operations);
     }
 
     public static boolean isReplicated(Settings settings) {
