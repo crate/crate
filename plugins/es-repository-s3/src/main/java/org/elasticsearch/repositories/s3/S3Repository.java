@@ -127,7 +127,7 @@ public class S3Repository extends BlobStoreRepository {
             buildBasePath(metadata)
         );
         this.bucket = BUCKET_SETTING.get(metadata.settings());
-        if (bucket == null) {
+        if (bucket.isBlank()) {
             throw new RepositoryException(metadata.name(), "No bucket defined for s3 repository");
         }
         this.executor = executor;

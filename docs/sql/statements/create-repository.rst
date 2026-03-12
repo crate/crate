@@ -284,6 +284,7 @@ Parameters
 
 **bucket**
   | *Type:*    ``text``
+  | *Required*
 
   Name of the Amazon S3 bucket used for storing snapshots.
 

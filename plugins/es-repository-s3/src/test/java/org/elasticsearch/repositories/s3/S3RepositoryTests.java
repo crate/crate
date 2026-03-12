@@ -57,6 +57,14 @@ public class S3RepositoryTests extends ESTestCase {
     }
 
     @Test
+    public void test_no_bucket_throws_an_error() {
+         assertThatThrownBy(() -> createS3Repo(getRepositoryMetadata(Settings.EMPTY)))
+             .isExactlyInstanceOf(RepositoryException.class)
+             .hasMessageContaining("No bucket defined for s3 repository");
+
+    }
+
+    @Test
     public void testCreateRepositoryWithValidChunkBufferSizeSettings() {
         // chunk > buffer should pass
         final Settings s2 = bufferAndChunkSettings(5, 10);
@@ -96,6 +104,8 @@ public class S3RepositoryTests extends ESTestCase {
                  new ByteSizeValue(buffer, ByteSizeUnit.MB).getStringRep())
             .put(S3RepositorySettings.CHUNK_SIZE_SETTING.getKey(),
                  new ByteSizeValue(chunk, ByteSizeUnit.MB).getStringRep())
+            // Required field.
+            .put("bucket", "dummy")
             .build();
     }
 
@@ -106,7 +116,10 @@ public class S3RepositoryTests extends ESTestCase {
     @Test
     public void testBasePathSetting() {
         final RepositoryMetadata metadata = new RepositoryMetadata("dummy-repo", "mock", Settings.builder()
-            .put(S3RepositorySettings.BASE_PATH_SETTING.getKey(), "foo/bar").build());
+            .put(S3RepositorySettings.BASE_PATH_SETTING.getKey(), "foo/bar")
+            .put("bucket", "dummy")
+            .build()
+        );
         try (S3Repository s3repo = createS3Repo(metadata)) {
             assertThat(s3repo.basePath().buildAsString()).isEqualTo("foo/bar/");
         }
