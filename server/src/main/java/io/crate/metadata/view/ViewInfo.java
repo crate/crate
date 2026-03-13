@@ -27,12 +27,17 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.analyze.Relations;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.expression.symbol.ScopedColumn;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
@@ -52,6 +57,9 @@ public class ViewInfo implements RelationInfo {
     private final SearchPath searchPath;
     private final boolean errorOnUnknownObjectKey;
 
+    @Nullable
+    private final AnalyzedRelation relation;
+
 
     /// @param allColumns all output columns (including sub-columns) with relation=ident of the view
     /// @param usedSourceColumns columns from other tables/views used in the view definition
@@ -61,7 +69,8 @@ public class ViewInfo implements RelationInfo {
                     List<ScopedColumn> usedSourceColumns,
                     @Nullable String owner,
                     SearchPath searchPath,
-                    boolean errorOnUnknownObjectKey) {
+                    boolean errorOnUnknownObjectKey,
+                    @Nullable AnalyzedRelation relation) {
         this.ident = ident;
         this.definition = definition;
         this.allColumns = allColumns
@@ -75,6 +84,7 @@ public class ViewInfo implements RelationInfo {
         this.owner = owner;
         this.searchPath = searchPath;
         this.errorOnUnknownObjectKey = errorOnUnknownObjectKey;
+        this.relation = relation;
     }
 
     /// Columns from other tables or views used in the view definition.
@@ -165,5 +175,21 @@ public class ViewInfo implements RelationInfo {
 
     public boolean errorOnUnknownObjectKey() {
         return errorOnUnknownObjectKey;
+    }
+
+    public void forDependentObjects(Consumer<RelationName> onRelation, Consumer<Symbol> onSymbol) {
+        if (relation == null) {
+            return;
+        }
+        relation.accept(new AnalyzedRelationVisitor<Void, Void>() {
+
+            @Override
+            protected Void visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
+                onRelation.accept(relation.relationName());
+                return null;
+            }
+
+        }, null);
+        Relations.traverseDeepSymbols(relation, symbol -> symbol.visit(Symbol.class, onSymbol));
     }
 }

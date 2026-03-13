@@ -2490,7 +2490,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @Override
     public Node visitDropSchema(DropSchemaContext ctx) {
         List<String> names = identsToStrings(ctx.names.ident());
-        return new DropSchema(names, ctx.EXISTS() != null);
+        CascadeMode mode = ctx.CASCADE() == null ? CascadeMode.RESTRICT : CascadeMode.CASCADE;
+        return new DropSchema(names, ctx.EXISTS() != null, mode);
     }
 
     @Override

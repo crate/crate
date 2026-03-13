@@ -23,18 +23,39 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class CustomSchemaIntegrationTest extends IntegTestCase {
+
+    @Override
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        var dummyLang = new UserDefinedFunctionsIntegrationTest.DummyLang();
+        Iterable<UserDefinedFunctionService> udfServices = cluster().getInstances(UserDefinedFunctionService.class);
+        for (UserDefinedFunctionService udfService : udfServices) {
+            udfService.registerLanguage(dummyLang);
+        }
+    }
+
+    @After
+    public void dropSchemas() {
+        execute("drop schema if exists foo, bar, foobar, custom cascade");
+    }
 
     @Test
     @UseRandomizedSchema(random = false)
@@ -175,7 +196,34 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
             .hasHTTPError(HttpResponseStatus.NOT_FOUND, 4045)
             .hasPGError(PGErrorStatus.INVALID_SCHEMA_NAME)
             .hasMessageContaining("Schema 'foobar' unknown");
-        execute("drop schema if exists foobar");
     }
 
+    @Test
+    public void test_drop_schema_with_cascade_deletes_tables() throws Exception {
+        execute("create schema foo");
+        execute("create table foo.tbl (x int)");
+        execute("create view foo.v1 as (select * from foo.tbl)");
+        execute("drop schema foo cascade");
+        ClusterState state = cluster().getInstance(ClusterService.class).state();
+        Metadata metadata = state.metadata();
+        assertThat(metadata.indices()).isEmpty();
+        assertThat(metadata.schemas()).isEmpty();
+    }
+
+    @Test
+    public void test_drop_schema_with_cascade_deletes_dependent_views() throws Exception {
+        execute("create schema foo");
+        execute("create schema bar");
+        execute("create table foo.tbl (x int)");
+        execute("create function foo.fn(int)" +
+                " returns string language dummy_lang as 'function fn(x) { return \"1\"; }'");
+        execute("create view bar.v1 as (select count(*) as cnt from foo.tbl)");
+        execute("create view bar.v2 as (SELECT foo.fn(g) FROM generate_series(1, 10, 1) as g)");
+        execute("drop schema foo cascade");
+        ClusterState state = cluster().getInstance(ClusterService.class).state();
+        Metadata metadata = state.metadata();
+        assertThat(metadata.indices()).isEmpty();
+        assertThat(metadata.schemas()).hasSize(1);
+        assertThat(metadata.schemas().get("bar").relations()).isEmpty();
+    }
 }

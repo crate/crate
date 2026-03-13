@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
@@ -49,6 +50,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.sql.tree.CascadeMode;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
@@ -81,7 +83,25 @@ public class MetadataTest extends ESTestCase {
                     null,
                     SearchPath.pathWithPGCatalogAndDoc(),
                     true)
-                .dropSchema("foo")
+                .canDropSchema("foo", CascadeMode.RESTRICT, Set.of())
+        ).isExactlyInstanceOf(DependentObjectsExists.class);
+        assertThatThrownBy(() ->
+            new Metadata.Builder(Metadata.OID_UNASSIGNED)
+                .createSchema("foo")
+                .createSchema("bar")
+                .setView(
+                    new RelationName("foo", "v"),
+                    "select 1",
+                    null,
+                    SearchPath.pathWithPGCatalogAndDoc(),
+                    true)
+                .setView(
+                    new RelationName("bar", "v"),
+                    "select * from foo.v",
+                    null,
+                    SearchPath.pathWithPGCatalogAndDoc(),
+                    true)
+                .canDropSchema("foo", CascadeMode.RESTRICT, Set.of(new RelationName("bar", "v")))
         ).isExactlyInstanceOf(DependentObjectsExists.class);
     }
 
@@ -90,13 +110,10 @@ public class MetadataTest extends ESTestCase {
         assertThatThrownBy(() ->
             new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .createSchema("foo")
-                .putCustom(
-                    UserDefinedFunctionsMetadata.TYPE,
-                    UserDefinedFunctionsMetadata.of(
-                        new UserDefinedFunctionMetadata("foo", "bar", List.of(), DataTypes.INTEGER, "js", "")
-                    )
+                .setUDF(
+                    new UserDefinedFunctionMetadata("foo", "bar", List.of(), DataTypes.INTEGER, "js", "")
                 )
-                .dropSchema("foo")
+                .canDropSchema("foo", CascadeMode.RESTRICT, Set.of())
         ).isExactlyInstanceOf(DependentObjectsExists.class);
     }
 
@@ -111,7 +128,7 @@ public class MetadataTest extends ESTestCase {
                     "server1",
                     Settings.EMPTY
                 )
-                .dropSchema("foo")
+                .canDropSchema("foo", CascadeMode.RESTRICT, Set.of())
         ).isExactlyInstanceOf(DependentObjectsExists.class);
     }
 

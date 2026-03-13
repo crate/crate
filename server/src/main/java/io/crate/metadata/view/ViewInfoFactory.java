@@ -69,12 +69,13 @@ public class ViewInfoFactory {
         LinkedHashSet<ScopedColumn> usedSourceColumns = new LinkedHashSet<>();
         boolean analyzeError = false;
         boolean errorOnUnknownObjectKey = view.errorOnUnknownObjectKey();
+        AnalyzedRelation relation = null;
         try {
             CoordinatorTxnCtx transactionContext = CoordinatorTxnCtx.systemTransactionContext();
             transactionContext.sessionSettings().setSearchPath(view.searchPath());
             transactionContext.sessionSettings().setErrorOnUnknownObjectKey(errorOnUnknownObjectKey);
 
-            AnalyzedRelation relation = analyzerProvider.analyze(
+            relation = analyzerProvider.analyze(
                 (Query) SqlParser.createStatement(view.stmt()),
                 transactionContext,
                 ParamTypeHints.EMPTY
@@ -142,7 +143,8 @@ public class ViewInfoFactory {
             List.copyOf(usedSourceColumns),
             view.owner(),
             view.searchPath(),
-            errorOnUnknownObjectKey
+            errorOnUnknownObjectKey,
+            relation
         );
     }
 
