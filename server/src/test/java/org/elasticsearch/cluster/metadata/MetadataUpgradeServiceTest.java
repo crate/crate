@@ -39,6 +39,8 @@ import org.elasticsearch.test.TestCustomMetadata;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.FunctionArgumentDefinition;
+import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.expression.udf.UdfUnitTest;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
@@ -421,6 +423,55 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
         assertThat(tblRelation).isNotNull();
         RelationMetadata.Table kaputtRelation = upgraded.getRelation(new RelationName("doc", "kaputt"));
         assertThat(kaputtRelation).isNull();
+    }
+
+    @Test
+    public void test_can_upgrade_indexmetadata_using_63_udf_format() throws Exception {
+        var udf = new UserDefinedFunctionMetadata(
+            "custom",
+            "foo",
+            List.of(FunctionArgumentDefinition.of(DataTypes.INTEGER)),
+            DataTypes.INTEGER,
+            "dummy",
+            "def foo(x): return x * 2"
+        );
+        e.addUDF(udf);
+        e.addTable("create table doc.tbl (x int, y int generated always as custom.foo(x))");
+
+        Metadata metadata = clusterService.state().metadata();
+        IndexMetadata index = metadata.indices().values().iterator().next();
+        RelationMetadata.Table table = metadata.getRelation(new RelationName("doc", "tbl"));
+        Map<String, Object> mapping = MappingUtil.createMapping(
+            MappingUtil.AllocPosition.forExistingRefs(),
+            table.pkConstraintName(),
+            table.columns(),
+            table.primaryKeys(),
+            table.checkConstraints(),
+            table.partitionedBy(),
+            table.columnPolicy(),
+            table.routingColumn()
+        );
+        IndexMetadata oldIndex = IndexMetadata.builder(index)
+            .putMapping(new MappingMetadata(mapping))
+            .settings(
+                Settings.builder()
+                    .put(index.getSettings())
+                    .put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_6_2_2)
+                    .put(IndexMetadata.SETTING_VERSION_UPGRADED, Version.V_6_2_2)
+                    .build()
+            )
+            .build();
+
+        Metadata metadataToUpgrade = new Metadata.Builder(metadata)
+            .indices(Map.of(index.getIndexUUID(), oldIndex))
+            .build();
+
+        // Clear udfs first as if recovering metadata on a node booting up
+        e.nodeCtx.functions().setUDFs(Map.of());
+        Metadata upgraded = metadataUpgradeService.upgradeMetadata(metadataToUpgrade);
+
+        assertThat(upgraded.indices().get(index.getIndexUUID()).getUpgradedVersion()).isEqualTo(Version.CURRENT);
+        assertThat(upgraded.schemas().get("custom").udfs()).containsExactly(udf);
     }
 
     @Test
