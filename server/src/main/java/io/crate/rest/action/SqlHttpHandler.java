@@ -58,6 +58,7 @@ import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.netty.AccountedByteBuf;
 import io.crate.protocols.http.Headers;
 import io.crate.protocols.postgres.ConnectionProperties;
@@ -93,7 +94,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private final Roles roles;
     private final boolean checkJwtProperties;
 
-    private Session session;
+    @VisibleForTesting
+    Session session;
 
     public SqlHttpHandler(Settings settings,
                           Sessions sessions,
@@ -138,7 +140,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         handleSQLRequest(session, resultBuffer, content, paramContainFlag(parameters, "types"))
             .whenComplete((_, t) -> {
                 try {
-                    sendResponse(ctx, request, parameters, resultBuffer, t);
+                    // Use local sessionSettings to avoid async ref mutation from channelUnregistered
+                    sendResponse(session.sessionSettings(), ctx, request, parameters, resultBuffer, t);
                 } catch (Throwable ex) {
                     resultBuffer.release();
                     LOGGER.error("Error sending response", ex);
@@ -168,7 +171,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         super.channelUnregistered(ctx);
     }
 
-    void sendResponse(ChannelHandlerContext ctx,
+    void sendResponse(CoordinatorSessionSettings sessionSettings,
+                      ChannelHandlerContext ctx,
                       FullHttpRequest request,
                       Map<String, List<String>> parameters,
                       ByteBuf result,
@@ -184,7 +188,6 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             // In case of partial success buffer can contain some data
             // Clearing buffer to ensure that error is not mixed with partial result.
             result.clear();
-            var sessionSettings = session.sessionSettings();
             AccessControl accessControl = roles.getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
             var throwable = SQLExceptions.prepareForClientTransmission(accessControl, t);
             HttpError httpError = HttpError.fromThrowable(throwable);
@@ -214,7 +217,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         ctx.writeAndFlush(resp, promise);
     }
 
-    private CompletableFuture<XContentBuilder> handleSQLRequest(Session session,
+    @VisibleForTesting
+    CompletableFuture<XContentBuilder> handleSQLRequest(Session session,
                                                                 ByteBuf resultBuffer,
                                                                 ByteBuf content,
                                                                 boolean includeTypes) {
