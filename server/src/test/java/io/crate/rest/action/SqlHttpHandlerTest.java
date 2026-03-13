@@ -252,7 +252,6 @@ public class SqlHttpHandlerTest {
         var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
 
         channel.writeInbound(request);
-        channel.releaseInbound();
 
         assertThat(request.refCnt()).isEqualTo(0);
         FullHttpResponse response = null;
