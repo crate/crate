@@ -193,8 +193,8 @@ public class SqlHttpHandlerTest {
         when(ctx.writeAndFlush(responseCaptor.capture(), eq(promise))).thenReturn(promise);
 
         // Create internal session as it shouldn't be null for the test.
-        handler.ensureSession(null, request);
-        handler.sendResponse(ctx, request, Map.of(), resultBuffer, new CircuitBreakingException("CBE"));
+        var session = handler.ensureSession(null, request);
+        handler.sendResponse(session, ctx, request, Map.of(), resultBuffer, new CircuitBreakingException("CBE"));
 
         FullHttpResponse response = responseCaptor.getValue();
         ByteBuf responseContent = response.content();

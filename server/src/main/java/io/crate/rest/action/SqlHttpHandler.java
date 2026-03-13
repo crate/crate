@@ -138,11 +138,14 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         handleSQLRequest(session, resultBuffer, content, paramContainFlag(parameters, "types"))
             .whenComplete((_, t) -> {
                 try {
-                    // channelRead returns immediately as handleSQLRequest is done async (not in netty thread)
-                    // it means channelUnregistered can happen durig the async execution, nullify the session
-                    // and cause NPE when execution is done. sendResponse will see null session and throw NPE.
-                    channelUnregistered(ctx);
-                    sendResponse(ctx, request, parameters, resultBuffer, t);
+                    // It's important to capture a session that was created above, instead of using "session" field in sendResponse().
+                    // channelUnregistered() can be fired during handleSQLRequest (because it's done async and not anymore in event loop)
+                    // and such sendResponse might operate with nullified session.
+
+                    // Also, it's semantically okay to use session that was maybe closed,
+                    // because it's merely used to piggyback session settings.
+                    channelUnregistered(ctx); // Keep reproduction with the fix to show CI, to be reverted.
+                    sendResponse(session, ctx, request, parameters, resultBuffer, t);
                 } catch (Throwable ex) {
                     resultBuffer.release();
                     LOGGER.error("Error sending response", ex);
@@ -172,7 +175,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         super.channelUnregistered(ctx);
     }
 
-    void sendResponse(ChannelHandlerContext ctx,
+    void sendResponse(Session session,
+                      ChannelHandlerContext ctx,
                       FullHttpRequest request,
                       Map<String, List<String>> parameters,
                       ByteBuf result,
