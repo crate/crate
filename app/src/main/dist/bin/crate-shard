@@ -18,7 +18,7 @@
 
 ##############################################################################
 #
-#   crate-node start up script for POSIX
+#   crate-shard start up script for POSIX
 #   This is derived from the gradle generated script.
 #
 #   Important for running:
@@ -28,7 +28,7 @@
 #       bash, then to run this script, type that shell name before the whole
 #       command line, like:
 #
-#           ksh crate-node
+#           ksh crate-shard
 #
 #       Busybox and similar reduced shells will NOT work, because this script
 #       requires all of these POSIX shell features:
@@ -49,7 +49,7 @@
 #       options in "$@", and eventually passing that to Java.
 #
 #       Where the inherited environment variables (DEFAULT_JVM_OPTS, JAVA_OPTS,
-#       and CRATE_NODE_OPTS) rely on word-splitting, this is performed explicitly;
+#       and CLI_JAVA_OPTS) rely on word-splitting, this is performed explicitly;
 #       see the in-line comments for details.
 #
 #       There are tweaks for specific operating systems such as AIX, CygWin,
@@ -83,7 +83,7 @@ done
 
 APP_HOME=$( cd "${APP_HOME:-./}.." && pwd -P ) || exit
 
-# Add default JVM options here. You can also use JAVA_OPTS and CRATE_NODE_OPTS to pass JVM options to this script.
+# Add default JVM options here. You can also use JAVA_OPTS and CLI_JAVA_OPTS to pass JVM options to this script.
 DEFAULT_JVM_OPTS=""
 
 
@@ -99,6 +99,9 @@ done
 
 JAVACMD="${APP_HOME}/jdk/bin/java"
 
+# Lucene uses native access and vector module
+JAVA_OPTS="$JAVA_OPTS --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector"
+
 
 # Collect all arguments for the java command, stacking in reverse order:
 #   * args from the command line
@@ -106,18 +109,18 @@ JAVACMD="${APP_HOME}/jdk/bin/java"
 #   * -classpath
 #   * -D...appname settings
 #   * --module-path (only if needed)
-#   * DEFAULT_JVM_OPTS, JAVA_OPTS, and CRATE_NODE_OPTS environment variables.
+#   * DEFAULT_JVM_OPTS, JAVA_OPTS, and CLI_JAVA_OPTS environment variables.
 
 
 # Collect all arguments for the java command;
-#   * $DEFAULT_JVM_OPTS, $JAVA_OPTS, and $CRATE_NODE_OPTS can contain fragments of
+#   * $DEFAULT_JVM_OPTS, $JAVA_OPTS, and $CLI_JAVA_OPTS can contain fragments of
 #     shell script including quotes and variable substitutions, so put them in
 #     double quotes to make sure that they get re-expanded; and
 #   * put everything else in single quotes, so that it's not re-expanded.
 
 set -- \
         -classpath "$CLASSPATH" \
-        org.elasticsearch.cluster.coordination.NodeToolCli \
+        org.elasticsearch.index.shard.ShardToolCli \
         "$@"
 
 # Use "xargs" to parse quoted args.
@@ -140,7 +143,7 @@ set -- \
 #
 
 eval "set -- $(
-        printf '%s\n' "$DEFAULT_JVM_OPTS $JAVA_OPTS $CRATE_NODE_OPTS" |
+        printf '%s\n' "$DEFAULT_JVM_OPTS $JAVA_OPTS $CLI_JAVA_OPTS" |
         xargs -n1 |
         sed ' s~[^-[:alnum:]+,./:=@_]~\\&~g; ' |
         tr '\n' ' '

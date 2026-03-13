@@ -38,6 +38,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
+import io.crate.sql.tree.AllocatePrimaryShard;
 import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
@@ -137,6 +138,29 @@ public class AlterTableRerouteAnalyzer {
                     p -> p.map(a -> context.exprAnalyzerWithFields.convert(a, context.exprCtx))
                 ),
                 node.map(x -> context.exprAnalyzer.convert((Expression) x, context.exprCtx))
+            );
+        }
+
+        @Override
+        public RerouteAnalyzedStatement visitRerouteAllocatePrimaryShard(AllocatePrimaryShard<?> node,
+                                                                         Context context) {
+            AllocatePrimaryShard<Symbol> allocatePrimaryShard =
+                node.map(x -> context.exprAnalyzer.convert((Expression) x, context.exprCtx));
+
+            Map<String, Symbol> properties = allocatePrimaryShard.properties().toMap(HashMap::new);
+            Symbol acceptDataLoss = properties.remove(AllocatePrimaryShard.Properties.ACCEPT_DATA_LOSS);
+            if (!properties.isEmpty()) {
+                throw new IllegalArgumentException(
+                    "Unsupported options provided to REROUTE ALLOCATE " + allocatePrimaryShard.type() + " PRIMARY SHARD: " + properties.keySet());
+            }
+            return new AnalyzedRerouteAllocatePrimaryShard(
+                context.tableInfo,
+                Lists.map(
+                    context.partitionProperties,
+                    p -> p.map(a -> context.exprAnalyzerWithFields.convert(a, context.exprCtx))
+                ),
+                allocatePrimaryShard,
+                acceptDataLoss == null ? Literal.BOOLEAN_FALSE : acceptDataLoss
             );
         }
 

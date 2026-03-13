@@ -55,6 +55,7 @@ public final class CorruptionUtils {
                     boolean segmentFile = name.startsWith("segments_") || name.endsWith(".si");
                         return Files.isRegularFile(p)
                             && name.startsWith("extra") == false // Skip files added by Lucene's ExtrasFS
+                            && name.endsWith(".cfs") == false // does not check the checksum of CFS file (CompoundFileS, like an archive)
                             && IndexWriter.WRITE_LOCK_NAME.equals(name) == false
                             && (corruptSegments ? segmentFile : segmentFile == false);
                     }
@@ -86,9 +87,9 @@ public final class CorruptionUtils {
             long actualChecksumAfterCorruption;
             try (ChecksumIndexInput input = dir.openChecksumInput(fileToCorrupt.getFileName().toString())) {
                 assertThat(input.getFilePointer()).isEqualTo(0L);
-                input.seek(input.length() - 8); // one long is the checksum... 8 bytes
+                input.seek(input.length() - CodecUtil.footerLength()); // one long is the checksum... 8 bytes
                 checksumAfterCorruption = input.getChecksum();
-                actualChecksumAfterCorruption = input.readLong();
+                actualChecksumAfterCorruption =  CodecUtil.readBELong(input);
             }
             // we need to add assumptions here that the checksums actually really don't match there is a small chance to get collisions
             // in the checksum which is ok though....
