@@ -142,7 +142,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 } catch (Throwable ex) {
                     resultBuffer.release();
                     LOGGER.error("Error sending response", ex);
-                    throw ex;
+                    // Let the last handler deal with it and maybe send failure info to the user.
+                    ctx.fireExceptionCaught(ex);
                 } finally {
                     request.release();
                 }
