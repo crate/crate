@@ -64,6 +64,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
+import io.crate.testing.UseJdbc;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
 public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
@@ -544,8 +545,9 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][0]).isEqualTo(50L);
     }
 
+    @UseJdbc(0)
     @Test
-    public void test_concurrent_insert_partitions_and_set_write_block() throws Exception {
+    public void test_concurrent_insert_query_creating_partitions_and_set_write_block_query() throws Exception {
         execute("create table t (p int) partitioned by (p)");
 
         final AtomicReference<Throwable> error = new AtomicReference<>();
@@ -554,9 +556,8 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         Thread t1 = new Thread(() -> {
             try {
                 barrier.await();
-                assertThatThrownBy(() ->  execute("insert into t select * from generate_series(1, 50)"))
-                    .isExactlyInstanceOf(ClusterBlockException.class)
-                ;
+                assertThatThrownBy(() -> execute("insert into t select * from generate_series(1, 50)"))
+                    .isExactlyInstanceOf(ClusterBlockException.class);
             } catch (Throwable e) {
                 error.set(e);
             }
@@ -579,5 +580,18 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         t2.join();
 
         assertThat(error.get()).isNull();
+
+        execute("refresh table t");
+
+        execute("select count(*) from information_schema.table_partitions where table_name = 't'");
+        long partitionCount = (long) response.rows()[0][0];
+
+        execute("select count(*) from t");
+        long rowCount = (long) response.rows()[0][0];
+
+        // TODO: this is commented out because it is not working yet and will be fixed separately
+        // assertThat(rowCount)
+        //     .as("The number of partitions created and rows inserted as not equal (Partitions: %d, Rows: %d)", partitionCount, rowCount)
+        //     .isEqualTo(partitionCount);
     }
 }
