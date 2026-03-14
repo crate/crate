@@ -353,7 +353,7 @@ public class MetadataCreateIndexService {
             if (metadata.hasIndex(resizedIndexUUID)) {
                 throw new ResourceAlreadyExistsException(resizedIndexUUID);
             }
-            if (!currentState.blocks().indexBlocked(ClusterBlockLevel.WRITE, sourceIndexUUID)) {
+            if (!currentState.blocks().isBlocked(ClusterBlockLevel.WRITE, metadata.getRelationOid(sourceIndexUUID), sourceIndexUUID)) {
                 throw new IllegalStateException("index " + sourceIndex + " must be read-only to resize index. use \"index.blocks.write=true\"");
             }
 

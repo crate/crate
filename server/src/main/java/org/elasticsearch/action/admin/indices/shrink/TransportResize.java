@@ -94,13 +94,13 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
 
     @Override
     protected ClusterBlockException checkBlock(ResizeRequest request, ClusterState state) {
-        String[] indices = state.metadata().getIndices(
+        String[] indexUUIDs = state.metadata().getIndices(
             request.table(),
             request.partitionValues(),
             false,
             idxMd -> idxMd.getIndex().getUUID()
         ).toArray(String[]::new);
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indices);
+        return state.blocks().blockedException(ClusterBlockLevel.METADATA_WRITE, new int[]{state.metadata().getRelationOid(request.table())}, indexUUIDs);
     }
 
     @Override

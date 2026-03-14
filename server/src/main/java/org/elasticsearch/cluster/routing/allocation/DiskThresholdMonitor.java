@@ -312,7 +312,7 @@ public class DiskThresholdMonitor {
             listener.onResponse(null);
         }
 
-        indicesToMarkReadOnly.removeIf(indexUUID -> state.blocks().indexBlocked(ClusterBlockLevel.WRITE, indexUUID));
+        indicesToMarkReadOnly.removeIf(indexUUID -> state.blocks().isBlocked(ClusterBlockLevel.WRITE, metadata.getRelationOid(indexUUID), indexUUID));
         LOGGER.trace("marking indices as read-only: [{}]", indicesToMarkReadOnly);
         if (indicesToMarkReadOnly.isEmpty() == false) {
             updateIndicesReadOnly(indicesToMarkReadOnly, metadata::index, listener, true);

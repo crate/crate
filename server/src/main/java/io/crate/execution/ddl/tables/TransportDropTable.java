@@ -79,12 +79,12 @@ public class TransportDropTable extends AbstractDDLTransportAction<DropTableRequ
 
     @Override
     protected ClusterBlockException checkBlock(DropTableRequest request, ClusterState state) {
-        String[] indexUUIDS = state.metadata().getIndices(
+        String[] indexUUIDs = state.metadata().getIndices(
             request.tableIdent(),
             List.of(),
             false,
             imd -> imd.getIndex().getUUID()
         ).toArray(String[]::new);
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexUUIDS);
+        return state.blocks().blockedException(ClusterBlockLevel.METADATA_WRITE, new int[]{state.metadata().getRelationOid(request.tableIdent())}, indexUUIDs);
     }
 }

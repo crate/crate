@@ -80,7 +80,7 @@ public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAn
             .build();
         mdBuilder.put(newIndexMetadata, true);
         routingBuilder.addAsFromCloseToOpen(newIndexMetadata);
-        blocksBuilder.addBlocks(newIndexMetadata);
+        blocksBuilder.addIndexBlocks(newIndexMetadata);
 
         RelationMetadata relation = metadata.getRelation(originalIndexUUID);
         if (relation instanceof RelationMetadata.Table table) {

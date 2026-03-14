@@ -30,6 +30,8 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
+import org.elasticsearch.cluster.metadata.SchemaMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -85,8 +87,14 @@ public final class ClusterStateUpdaters {
             blocks.addGlobalBlock(Metadata.CLUSTER_READ_ONLY_ALLOW_DELETE_BLOCK);
         }
 
+        for (SchemaMetadata schemaMetadata : state.metadata().schemas().values()) {
+            for (RelationMetadata relationMetadata : schemaMetadata.relations().values()) {
+                blocks.updateTableBlocks(relationMetadata);
+            }
+        }
+
         for (final IndexMetadata indexMetadata : state.metadata()) {
-            blocks.addBlocks(indexMetadata);
+            blocks.addIndexBlocks(indexMetadata);
         }
 
         return ClusterState.builder(state).blocks(blocks).build();

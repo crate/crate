@@ -1648,6 +1648,19 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return indexUUIDsRelations.get(indexUUID);
     }
 
+    public int getRelationOid(String indexUUID) {
+        RelationMetadata relationMetadata = getRelation(indexUUID);
+        if (relationMetadata == null) {
+            return OID_UNASSIGNED;
+        }
+        return relationMetadata.oid();
+    }
+
+    public int getRelationOid(RelationName relationName) {
+        RelationMetadata relationMetadata = getRelation(relationName);
+        return relationMetadata == null ? OID_UNASSIGNED : relationMetadata.oid();
+    }
+
     @Nullable
     @SuppressWarnings("unchecked")
     public <T extends RelationMetadata> T getRelation(int tableOID) {

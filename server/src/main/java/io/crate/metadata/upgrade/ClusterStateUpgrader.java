@@ -31,6 +31,8 @@ import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
+import org.elasticsearch.cluster.metadata.SchemaMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
 
@@ -131,8 +133,13 @@ public class ClusterStateUpgrader {
         for (ClusterBlock block : state.blocks().global()) {
             builder.addGlobalBlock(block);
         }
+        for (SchemaMetadata schemaMetadata : state.metadata().schemas().values()) {
+            for (RelationMetadata relationMetadata : schemaMetadata.relations().values()) {
+                builder.updateTableBlocks(relationMetadata);
+            }
+        }
         for (final IndexMetadata indexMetadata : state.metadata()) {
-            builder.addBlocks(indexMetadata);
+            builder.addIndexBlocks(indexMetadata);
         }
         return builder.build();
     }

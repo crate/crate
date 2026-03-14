@@ -118,7 +118,7 @@ public class MetadataUpdateSettingsService {
 
             @Override
             public ClusterState execute(ClusterState currentState) {
-                return updateState(
+                return updateStateForPartitions(
                     currentState,
                     request.partitions(),
                     skippedSettings,
@@ -130,11 +130,11 @@ public class MetadataUpdateSettingsService {
         clusterService.submitStateUpdateTask("update-settings", updateTask);
     }
 
-    public ClusterState updateState(ClusterState currentState,
-                                    List<PartitionName> partitions,
-                                    final Set<String> skippedSettings,
-                                    final Settings closedSettings,
-                                    final Settings openSettings) {
+    public ClusterState updateStateForPartitions(ClusterState currentState,
+                                                 List<PartitionName> partitions,
+                                                 final Set<String> skippedSettings,
+                                                 final Settings closedSettings,
+                                                 final Settings openSettings) {
         RoutingTable.Builder routingTableBuilder = RoutingTable.builder(currentState.routingTable());
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
 
@@ -178,15 +178,15 @@ public class MetadataUpdateSettingsService {
 
         ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
         maybeUpdateClusterBlock(indexes, blocks, IndexMetadata.INDEX_READ_ONLY_BLOCK,
-                IndexMetadata.INDEX_READ_ONLY_SETTING, openSettings);
+            IndexMetadata.INDEX_READ_ONLY_SETTING, openSettings);
         maybeUpdateClusterBlock(indexes, blocks, IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK,
-                IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING, openSettings);
+            IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING, openSettings);
         maybeUpdateClusterBlock(indexes, blocks, IndexMetadata.INDEX_METADATA_BLOCK,
-                IndexMetadata.INDEX_BLOCKS_METADATA_SETTING, openSettings);
+            IndexMetadata.INDEX_BLOCKS_METADATA_SETTING, openSettings);
         maybeUpdateClusterBlock(indexes, blocks, IndexMetadata.INDEX_WRITE_BLOCK,
-                IndexMetadata.INDEX_BLOCKS_WRITE_SETTING, openSettings);
+            IndexMetadata.INDEX_BLOCKS_WRITE_SETTING, openSettings);
         maybeUpdateClusterBlock(indexes, blocks, IndexMetadata.INDEX_READ_BLOCK,
-                IndexMetadata.INDEX_BLOCKS_READ_SETTING, openSettings);
+            IndexMetadata.INDEX_BLOCKS_READ_SETTING, openSettings);
 
         for (IndexMetadata indexMetadata : indexes) {
             Settings.Builder updates = Settings.builder();
@@ -246,12 +246,13 @@ public class MetadataUpdateSettingsService {
     private static void maybeUpdateClusterBlock(List<IndexMetadata> indexes, ClusterBlocks.Builder blocks, ClusterBlock block, Setting<Boolean> setting, Settings openSettings) {
         if (setting.exists(openSettings)) {
             final boolean updateBlock = setting.get(openSettings);
-            for (IndexMetadata im : indexes) {
-                String indexUUID = im.getIndex().getUUID();
-                if (updateBlock) {
-                    blocks.addIndexBlock(indexUUID, block);
-                } else {
-                    blocks.removeIndexBlock(indexUUID, block);
+            if (updateBlock) {
+                for (IndexMetadata im : indexes) {
+                    blocks.addIndexBlock(im.getIndex().getUUID(), block);
+                }
+            } else {
+                for (IndexMetadata im : indexes) {
+                    blocks.removeIndexBlock(im.getIndex().getUUID(), block);
                 }
             }
         }

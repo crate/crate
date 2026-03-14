@@ -134,7 +134,7 @@ public class RenameTableClusterStateExecutor {
                     .build();
                 newMetadata.put(targetMd, true);
                 newRoutingTable.addAsFromCloseToOpen(targetMd);
-                blocksBuilder.addBlocks(targetMd);
+                blocksBuilder.addIndexBlocks(targetMd);
             }
         }
 

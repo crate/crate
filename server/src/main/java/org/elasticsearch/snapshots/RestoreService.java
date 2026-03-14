@@ -482,7 +482,7 @@ public class RestoreService implements ClusterStateApplier {
                         shardLimitValidator.validateShardLimit(snapshotIndexMetadata.getSettings(), currentState);
                         IndexMetadata updatedIndexMetadata = indexMdBuilder.build();
                         rtBuilder.addAsNewRestore(updatedIndexMetadata, recoverySource);
-                        blocks.addBlocks(updatedIndexMetadata);
+                        blocks.addIndexBlocks(updatedIndexMetadata);
                         mdBuilder.put(updatedIndexMetadata, true);
                         renamedIndex = updatedIndexMetadata.getIndex();
                     } else {

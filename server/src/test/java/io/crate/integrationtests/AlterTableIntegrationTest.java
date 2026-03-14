@@ -520,4 +520,54 @@ public class AlterTableIntegrationTest extends IntegTestCase {
         assertThatThrownBy(() -> execute("alter table t alter column a set default 'hello'"))
             .hasMessageContaining("Cannot cast");
     }
+
+    @Test
+    public void test_table_level_blocks_on_empty_partitioned_table() {
+        execute("create table t (a int) partitioned by (a)");
+        execute("ALTER TABLE t SET (\"blocks.write\" = true)");
+        execute("ALTER TABLE t SET (\"blocks.read\" = true)");
+
+        execute("SELECT table_name, settings['blocks'] FROM information_schema.tables WHERE table_name = 't' ORDER BY 1");
+        assertThat(response).hasRows(
+            "t| {metadata=false, read=true, read_only=false, read_only_allow_delete=false, write=true}"
+        );
+    }
+
+    @Test
+    public void test_table_level_blocks_on_non_empty_partitioned_table() {
+        execute("create table t (a int) partitioned by (a)");
+        execute("insert into t values (1), (2)");
+        execute("refresh table t");
+        execute("ALTER TABLE t SET (\"blocks.write\" = true)");
+        execute("ALTER TABLE t SET (\"blocks.read\" = true)");
+
+        execute("SELECT table_name, settings['blocks'] FROM information_schema.tables WHERE table_name = 't' ORDER BY 1");
+        assertThat(response).hasRows(
+            "t| {metadata=false, read=true, read_only=false, read_only_allow_delete=false, write=true}"
+        );
+        execute("SELECT partition_ident, settings['blocks'] FROM information_schema.table_partitions WHERE table_name = 't' ORDER BY 1");
+        assertThat(response).hasRows(
+            "04132| {metadata=false, read=true, read_only=false, read_only_allow_delete=false, write=true}",
+            "04134| {metadata=false, read=true, read_only=false, read_only_allow_delete=false, write=true}"
+        );
+    }
+
+    @Test
+    public void test_partition_level_blocks_on_non_empty_partitioned_table() {
+        execute("create table t (a int) partitioned by (a)");
+        execute("insert into t values (1), (2)");
+        execute("refresh table t");
+        execute("ALTER TABLE t PARTITION (a=1) SET (\"blocks.write\" = true)");
+        execute("ALTER TABLE t PARTITION (a=1) SET (\"blocks.read\" = true)");
+
+        execute("SELECT table_name, settings['blocks'] FROM information_schema.tables WHERE table_name = 't' ORDER BY 1");
+        assertThat(response).hasRows(
+            "t| {metadata=false, read=false, read_only=false, read_only_allow_delete=false, write=false}"
+        );
+        execute("SELECT partition_ident, settings['blocks'] FROM information_schema.table_partitions WHERE table_name = 't' ORDER BY 1");
+        assertThat(response).hasRows(
+            "04132| {metadata=false, read=true, read_only=false, read_only_allow_delete=false, write=true}",
+            "04134| {metadata=false, read=false, read_only=false, read_only_allow_delete=false, write=false}"
+        );
+    }
 }

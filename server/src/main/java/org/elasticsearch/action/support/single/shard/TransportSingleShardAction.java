@@ -183,7 +183,8 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
                 index = indexMetadata.getIndex();
             }
 
-            blockException = blocks.indexBlockedException(ClusterBlockLevel.READ, index.getUUID());
+            String indexUUID = index.getUUID();
+            blockException = blocks.blockedException(ClusterBlockLevel.READ, clusterState.metadata().getRelationOid(indexUUID), indexUUID);
             if (blockException != null) {
                 throw blockException;
             }

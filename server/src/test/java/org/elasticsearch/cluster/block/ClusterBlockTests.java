@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -79,8 +80,8 @@ public class ClusterBlockTests extends ESTestCase {
 
     public void testGlobalBlocksCheckedIfNoIndicesSpecified() {
         ClusterBlock globalBlock = randomClusterBlock();
-        ClusterBlocks clusterBlocks = new ClusterBlocks(Collections.singleton(globalBlock), Map.of());
-        ClusterBlockException exception = clusterBlocks.indicesBlockedException(randomFrom(globalBlock.levels()), new String[0]);
+        ClusterBlocks clusterBlocks = new ClusterBlocks(Collections.singleton(globalBlock), Map.of(), Map.of());
+        ClusterBlockException exception = clusterBlocks.blockedException(randomFrom(globalBlock.levels()), new int[]{Metadata.OID_UNASSIGNED}, new String[0]);
         assertThat(exception).isNotNull();
         assertThat(Collections.singleton(globalBlock)).isEqualTo(exception.blocks());
     }
@@ -139,7 +140,7 @@ public class ClusterBlockTests extends ESTestCase {
         assertThat(builder.build().getIndexBlockWithId("index", randomValueOtherThan(blockId, ESTestCase::randomInt))).isNull();
     }
 
-    private ClusterBlock randomClusterBlock() {
+    static ClusterBlock randomClusterBlock() {
         final String uuid = randomBoolean() ? UUIDs.randomBase64UUID() : null;
         final List<ClusterBlockLevel> levels = Arrays.asList(ClusterBlockLevel.values());
         return new ClusterBlock(randomInt(), uuid, "cluster block #" + randomInt(), randomBoolean(), randomBoolean(), randomBoolean(),
