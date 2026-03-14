@@ -248,7 +248,7 @@ public class SwapRelationsOperation {
                 .build();
             onProcessedIndex.accept(sourceIndex.getUUID());
             updatedMetadata.put(targetMd, true);
-            blocksBuilder.addBlocks(targetMd);
+            blocksBuilder.addIndexBlocks(targetMd);
             routingBuilder.addAsFromCloseToOpen(targetMd);
         }
     }

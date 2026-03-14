@@ -20,6 +20,7 @@
 package org.elasticsearch.action.admin.indices.forcemerge;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import org.elasticsearch.action.ActionListener;
@@ -107,6 +108,7 @@ public class TransportForceMergeAction extends TransportBroadcastByNodeAction<Fo
 
     @Override
     protected ClusterBlockException checkRequestBlock(ClusterState state, ForceMergeRequest request, String[] concreteIndices) {
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, concreteIndices);
+        int[] oids = Arrays.stream(concreteIndices).mapToInt(index -> state.metadata().getRelationOid(index)).toArray();
+        return state.blocks().blockedException(ClusterBlockLevel.METADATA_WRITE, oids, concreteIndices);
     }
 }

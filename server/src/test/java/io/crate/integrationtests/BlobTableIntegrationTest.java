@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 
 import org.elasticsearch.cluster.metadata.RelationMetadata;
@@ -128,9 +127,9 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
         execute("alter blob table b1 set (\"blocks.read_only_allow_delete\"=true)");
 
         Asserts.assertSQLError(() -> execute("drop blob table b1"))
-                .hasPGError(INTERNAL_ERROR)
-                .hasHTTPError(FORBIDDEN, 4037)
-                .hasMessageContaining("blocked by: ");
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(FORBIDDEN, 4037)
+            .hasMessageContaining("blocked by: ");
 
         execute("alter blob table b1 set (\"blocks.read_only_allow_delete\"=false)");
         execute("drop blob table b1");

@@ -131,14 +131,14 @@ public class TransportRenameTable extends TransportMasterNodeAction<RenameTableR
             return null;
         }
         boolean strict = !request.isPartitioned();
-        return state.blocks().indicesBlockedException(
+        String[] indexUUIDs = state.metadata().getIndices(
+            request.sourceName(),
+            List.of(),
+            strict,
+            imd -> imd.getIndex().getUUID()).toArray(String[]::new);
+        return state.blocks().blockedException(
             ClusterBlockLevel.METADATA_WRITE,
-            state.metadata().getIndices(
-                request.sourceName(),
-                List.of(),
-                strict,
-                imd -> imd.getIndex().getName()
-            ).toArray(String[]::new)
-        );
+            new int[]{relationMetadata.oid()},
+            indexUUIDs);
     }
 }

@@ -20,6 +20,7 @@
 package org.elasticsearch.action.admin.indices.stats;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.lucene.store.AlreadyClosedException;
@@ -88,7 +89,7 @@ public class TransportIndicesStats extends TransportBroadcastByNodeAction<Indice
 
     @Override
     protected ClusterBlockException checkRequestBlock(ClusterState state, IndicesStatsRequest request, String[] concreteIndices) {
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_READ, concreteIndices);
+        return state.blocks().blockedException(ClusterBlockLevel.METADATA_READ, Arrays.stream(concreteIndices).mapToInt(index -> state.metadata().getRelationOid(index)).toArray(), concreteIndices);
     }
 
     @Override

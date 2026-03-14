@@ -166,7 +166,7 @@ public class LocalAllocateDangledIndices {
                                 .version(indexMetadata.getVersion() + 1).build();
                         }
                         metadataBuilder.put(upgradedIndexMetadata, false);
-                        blocks.addBlocks(upgradedIndexMetadata);
+                        blocks.addIndexBlocks(upgradedIndexMetadata);
                         if (upgradedIndexMetadata.getState() == IndexMetadata.State.OPEN || isIndexVerifiedBeforeClosed(indexMetadata)) {
                             routingTableBuilder.addAsFromDangling(upgradedIndexMetadata);
                         }

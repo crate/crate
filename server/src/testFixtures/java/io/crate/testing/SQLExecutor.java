@@ -774,7 +774,7 @@ public class SQLExecutor {
             mdBuilder.put(indexMetadata, true);
             routingBuilder.addAsNew(indexMetadata);
             indexUUIDs.add(indexMetadata.getIndexUUID());
-            blocksBuilder.addBlocks(indexMetadata);
+            blocksBuilder.addIndexBlocks(indexMetadata);
         }
         RelationMetadata relation = prevState.metadata().getRelation(boundCreateTable.tableName());
         if (partitioned && relation instanceof RelationMetadata.Table table) {
@@ -798,6 +798,7 @@ public class SQLExecutor {
             0,
             mdBuilder.tableOidSupplier().nextOid()
         );
+        blocksBuilder.updateTableBlocks(mdBuilder.getRelation(boundCreateTable.tableName()));
         ClusterState newState = ClusterState.builder(prevState)
             .metadata(mdBuilder.build())
             .routingTable(routingBuilder.build())

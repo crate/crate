@@ -22,6 +22,7 @@ package org.elasticsearch.action.admin.indices.settings.put;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
@@ -86,10 +87,10 @@ public class TransportUpdateSettings extends TransportMasterNodeAction<UpdateSet
             || IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING.exists(settings)) {
             return null;
         }
-        String[] indices = state.metadata()
-            .getIndices(request.partitions(), false, im -> im.getIndex().getName())
+        String[] indexUUIDs = state.metadata()
+            .getIndices(request.partitions(), false, im -> im.getIndex().getUUID())
             .toArray(String[]::new);
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indices);
+        return state.blocks().blockedException(ClusterBlockLevel.METADATA_WRITE, Arrays.stream(indexUUIDs).mapToInt(index -> state.metadata().getRelationOid(index)).toArray(), indexUUIDs);
     }
 
     @Override

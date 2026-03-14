@@ -39,8 +39,8 @@ public class AlterTableRequestTest {
     public void test_streaming_bwc() throws Exception {
         RelationName tbl = new RelationName("doc", "tbl");
         List<AlterTableRequest> requests = List.of(
-            new AlterTableRequest(tbl, List.of(), true, false, Settings.EMPTY),
-            new AlterTableRequest(tbl, Arrays.asList("1", null, "3"), true, false, Settings.EMPTY)
+            new AlterTableRequest(tbl, List.of(), true, false, false, Settings.EMPTY),
+            new AlterTableRequest(tbl, Arrays.asList("1", null, "3"), true, false, false, Settings.EMPTY)
         );
         for (var request : requests) {
             try (var out = new BytesStreamOutput()) {

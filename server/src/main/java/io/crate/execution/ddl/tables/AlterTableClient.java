@@ -187,13 +187,14 @@ public class AlterTableClient {
     private CompletableFuture<Long> setSettings(BoundAlterTable analysis) {
         try {
             PartitionName partitionName = analysis.partitionName();
+            boolean isTableLevelRequest = partitionName == null;
             AlterTableRequest request = new AlterTableRequest(
                 analysis.table().ident(),
-                partitionName == null ? List.of() : partitionName.values(),
+                isTableLevelRequest ? List.of() : partitionName.values(),
                 analysis.isPartitioned(),
                 analysis.excludePartitions(),
-                analysis.settings()
-            );
+                isTableLevelRequest,
+                analysis.settings());
             GenericProperties<Object> withProperties = analysis.withProperties();
             Object timeout = withProperties.get("timeout");
             if (timeout != null) {

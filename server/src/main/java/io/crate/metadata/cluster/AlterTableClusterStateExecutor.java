@@ -29,11 +29,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
@@ -73,6 +75,18 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
 
     @Override
     protected ClusterState execute(ClusterState currentState, AlterTableRequest request) throws Exception {
+        if (!request.isTableLevelRequest()) {
+            for (var tableOnlySetting : TableParameters.TABLE_ONLY_SETTINGS) {
+                if (tableOnlySetting.exists(request.settings())) {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH,
+                        "\"%s\" cannot be changed on partition level",
+                        tableOnlySetting.getKey()
+                    ));
+                }
+            }
+        }
+
         String policy = request.settings().get(TableParameters.COLUMN_POLICY.getKey());
         ColumnPolicy columnPolicy = policy == null ? null : ColumnPolicy.of(policy);
 
@@ -82,46 +96,57 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         Settings settings = settingsBuilder.build();
 
         Metadata metadata = currentState.metadata();
-        RelationMetadata relation = metadata.getRelation(request.tableIdent());
-        if (request.partitionValues().isEmpty() && relation instanceof RelationMetadata.Table table) {
+        if (request.isTableLevelRequest()) {
+            RelationMetadata relation = metadata.getRelation(request.tableIdent());
             Metadata.Builder newMetadata = Metadata.builder(metadata);
-            Builder newSettings = Settings.builder()
-                .put(table.settings())
-                .put(settings);
-            for (String setting : settings.keySet()) {
-                if (!settings.hasValue(setting)) {
-                    newSettings.remove(setting);
+            ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
+            if (relation instanceof RelationMetadata.Table table) {
+                Builder newSettings = Settings.builder()
+                    .put(table.settings())
+                    .put(settings);
+                for (String setting : settings.keySet()) {
+                    if (!settings.hasValue(setting)) {
+                        newSettings.remove(setting);
+                    }
                 }
+                newMetadata.setTable(
+                    table.name(),
+                    table.columns(),
+                    newSettings.build(),
+                    table.routingColumn(),
+                    columnPolicy == null ? table.columnPolicy() : columnPolicy,
+                    table.pkConstraintName(),
+                    table.checkConstraints(),
+                    table.primaryKeys(),
+                    table.partitionedBy(),
+                    table.state(),
+                    table.indexUUIDs(),
+                    table.tableVersion() + 1,
+                    table.oid()
+                );
+            } else if (relation instanceof RelationMetadata.BlobTable blob) {
+                Builder newSettings = Settings.builder()
+                    .put(blob.settings())
+                    .put(settings);
+                for (String setting : settings.keySet()) {
+                    if (!settings.hasValue(setting)) {
+                        newSettings.remove(setting);
+                    }
+                }
+                newMetadata.setBlobTable(
+                    blob.name(),
+                    blob.indexUUID(),
+                    newSettings.build(),
+                    blob.state()
+                );
             }
-            newMetadata.setTable(
-                table.name(),
-                table.columns(),
-                newSettings.build(),
-                table.routingColumn(),
-                columnPolicy == null ? table.columnPolicy() : columnPolicy,
-                table.pkConstraintName(),
-                table.checkConstraints(),
-                table.primaryKeys(),
-                table.partitionedBy(),
-                table.state(),
-                table.indexUUIDs(),
-                table.tableVersion() + 1,
-                table.oid()
-            );
+            blocks.updateTableBlocks(Objects.requireNonNull(newMetadata.getRelation(request.tableIdent())));
             currentState = ClusterState.builder(currentState)
                 .metadata(newMetadata)
+                .blocks(blocks)
                 .build();
-        } else if (!request.partitionValues().isEmpty()) {
-            for (var tableOnlySetting : TableParameters.TABLE_ONLY_SETTINGS) {
-                if (tableOnlySetting.exists(settings)) {
-                    throw new IllegalArgumentException(String.format(
-                        Locale.ENGLISH,
-                        "\"%s\" cannot be changed on partition level",
-                        tableOnlySetting.getKey()
-                    ));
-                }
-            }
         }
+
         List<Index> concreteIndices = metadata.getIndices(
             request.tableIdent(),
             request.partitionValues(),
@@ -131,7 +156,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         List<PartitionName> partitions = partitions(request);
         if (request.isPartitioned()) {
             if (!request.partitionValues().isEmpty()) {
-                currentState = updateSettings(currentState, settings, partitions);
+                currentState = updateSettingsForPartitions(currentState, settings, partitions);
             } else {
                 if (!request.excludePartitions()) {
                     // These settings only apply for already existing partitions
@@ -143,13 +168,13 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                     // auto_expand_replicas must be explicitly added as it is hidden under NumberOfReplicasSetting
                     supportedSettings.add(AutoExpandReplicas.SETTING);
 
-                    currentState = updateSettings(currentState, filterSettings(settings, supportedSettings), partitions);
+                    currentState = updateSettingsForPartitions(currentState, filterSettings(settings, supportedSettings), partitions);
                     currentState = updateMapping(currentState, concreteIndices, columnPolicy);
                 }
             }
         } else {
             currentState = updateMapping(currentState, concreteIndices, columnPolicy);
-            currentState = updateSettings(currentState, settings, partitions);
+            currentState = updateSettingsForPartitions(currentState, settings, partitions);
         }
 
         // ensure the new table can still be parsed into a Doc|BlobTableInfo to avoid breaking the table.
@@ -196,7 +221,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     /**
      * The logic is taken over from {@link MetadataUpdateSettingsService#updateSettings(UpdateSettingsRequest, ActionListener)}
      */
-    private ClusterState updateSettings(final ClusterState currentState, final Settings settings, List<PartitionName> partitions) {
+    private ClusterState updateSettingsForPartitions(final ClusterState currentState, final Settings settings, List<PartitionName> partitions) {
         final Settings normalizedSettings = Settings.builder()
             .put(markArchivedSettings(settings))
             .normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX)
@@ -222,7 +247,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         }
         final Settings closedSettings = settingsForClosedIndices.build();
         final Settings openSettings = settingsForOpenIndices.build();
-        return updateSettingsService.updateState(
+        return updateSettingsService.updateStateForPartitions(
             currentState,
             partitions,
             skippedSettings,

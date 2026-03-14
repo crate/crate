@@ -44,16 +44,19 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
     private final boolean isPartitioned;
     private final boolean excludePartitions;
     private final Settings settings;
+    private final boolean isTableLevelRequest;
 
     public AlterTableRequest(RelationName table,
                              List<String> partitionValues,
                              boolean isPartitioned,
                              boolean excludePartitions,
+                             boolean isTableLevelRequest,
                              Settings settings) throws IOException {
         this.table = table;
         this.partitionValues = partitionValues;
         this.isPartitioned = isPartitioned;
         this.excludePartitions = excludePartitions;
+        this.isTableLevelRequest = isTableLevelRequest;
         this.settings = settings;
     }
 
@@ -75,6 +78,11 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
         }
         isPartitioned = in.readBoolean();
         excludePartitions = in.readBoolean();
+        if (in.getVersion().onOrAfter(Version.V_6_3_0)) {
+            isTableLevelRequest = in.readBoolean();
+        } else {
+            isTableLevelRequest = false;
+        }
         settings = readSettingsFromStream(in);
         if (before510) {
             in.readOptionalString(); // mappingDelta
@@ -101,6 +109,9 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
         }
         out.writeBoolean(isPartitioned);
         out.writeBoolean(excludePartitions);
+        if (out.getVersion().onOrAfter(Version.V_6_3_0)) {
+            out.writeBoolean(isTableLevelRequest);
+        }
         writeSettingsToStream(out, settings);
         if (before510) {
             out.writeOptionalString(null);
@@ -123,6 +134,10 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
         return excludePartitions;
     }
 
+    public boolean isTableLevelRequest() {
+        return isTableLevelRequest;
+    }
+
     public Settings settings() {
         return settings;
     }
@@ -135,6 +150,7 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
         result = prime * result + partitionValues.hashCode();
         result = prime * result + (isPartitioned ? 1231 : 1237);
         result = prime * result + (excludePartitions ? 1231 : 1237);
+        result = prime * result + (isTableLevelRequest ? 1231 : 1237);
         result = prime * result + settings.hashCode();
         return result;
     }
@@ -146,6 +162,7 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
             && partitionValues.equals(other.partitionValues)
             && isPartitioned == other.isPartitioned
             && excludePartitions == other.excludePartitions
+            && isTableLevelRequest == other.isTableLevelRequest
             && settings.equals(other.settings);
     }
 }

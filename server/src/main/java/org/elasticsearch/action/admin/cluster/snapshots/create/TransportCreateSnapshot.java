@@ -20,6 +20,7 @@
 package org.elasticsearch.action.admin.cluster.snapshots.create;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -81,13 +82,13 @@ public class TransportCreateSnapshot extends TransportMasterNodeAction<CreateSna
         if (clusterBlockException != null) {
             return clusterBlockException;
         }
-        String[] indices = request.relationNames().stream()
+        String[] indexUUIDs = request.relationNames().stream()
             .map(r ->
                 state.metadata().getIndices(r, List.of(), false, IndexMetadata::getIndexUUID))
             .flatMap(Collection::stream)
             .toArray(String[]::new);
         return state.blocks()
-            .indicesBlockedException(ClusterBlockLevel.READ, indices);
+            .blockedException(ClusterBlockLevel.READ, Arrays.stream(indexUUIDs).mapToInt(indexUUID -> state.metadata().getRelationOid(indexUUID)).toArray(), indexUUIDs);
     }
 
     @Override

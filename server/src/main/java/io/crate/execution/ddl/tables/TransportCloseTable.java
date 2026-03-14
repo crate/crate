@@ -194,13 +194,15 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                     continue;
                 }
                 final IndexMetadata indexMetadata = metadata.getSafe(index);
+                final String indexUUID = index.getUUID();
+
                 if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
                     LOGGER.debug("verification of shards before closing {} succeeded but index is already closed", index);
-                    assert currentState.blocks().hasIndexBlock(index.getUUID(), IndexMetadata.INDEX_CLOSED_BLOCK);
+                    assert currentState.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_CLOSED_BLOCK);
                     continue;
                 }
                 final ClusterBlock closingBlock = blockedIndices.get(index);
-                if (currentState.blocks().hasIndexBlock(index.getUUID(), closingBlock) == false) {
+                if (currentState.blocks().hasIndexBlock(indexUUID, closingBlock) == false) {
                     LOGGER.debug("verification of shards before closing {} succeeded but block has been removed in the meantime", index);
                     continue;
                 }
@@ -247,13 +249,13 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         if (isEmptyPartitionedTable(request.table(), state)) {
             return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
         }
-        String[] indexNames = state.metadata().getIndices(
+        String[] indexUUIDs = state.metadata().getIndices(
             request.table(),
             request.partitionValues(),
             false,
-            idxMd -> idxMd.getIndex().getName()
+            idxMd -> idxMd.getIndex().getUUID()
         ).toArray(String[]::new);
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNames);
+        return state.blocks().blockedException(ClusterBlockLevel.METADATA_WRITE, new int[]{state.metadata().getRelationOid(request.table())}, indexUUIDs);
     }
 
     public static boolean isEmptyPartitionedTable(RelationName relationName,
