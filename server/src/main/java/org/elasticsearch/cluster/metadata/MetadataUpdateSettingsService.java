@@ -51,7 +51,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.ShardLimitValidator;
 
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 /**
  * Service responsible for submitting update index settings requests
@@ -177,16 +179,27 @@ public class MetadataUpdateSettingsService {
         }
 
         ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
-        maybeUpdateClusterBlock(indexes, blocks, IndexMetadata.INDEX_READ_ONLY_BLOCK,
+        if (partitions.size() == 1 && partitions.getFirst().values().isEmpty()) {
+            // If partitionName.values() is empty we know that the original request was for the entire table
+            // adding table level block but to indicesBlocks because it is nothing but a string to Set<ClusterBlock> map.
+            RelationName relationName = partitions.getFirst().relationName();
+            RelationMetadata relationMetadata = currentState.metadata().getRelation(relationName);
+            if (relationMetadata == null) {
+                throw new RelationUnknown(relationName);
+            }
+            blocks.updateTableBlocks(relationMetadata);
+        } else {
+            maybeUpdateClusterBlock(indexes, blocks, IndexMetadata.INDEX_READ_ONLY_BLOCK,
                 IndexMetadata.INDEX_READ_ONLY_SETTING, openSettings);
-        maybeUpdateClusterBlock(indexes, blocks, IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK,
+            maybeUpdateClusterBlock(indexes, blocks, IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK,
                 IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING, openSettings);
-        maybeUpdateClusterBlock(indexes, blocks, IndexMetadata.INDEX_METADATA_BLOCK,
+            maybeUpdateClusterBlock(indexes, blocks, IndexMetadata.INDEX_METADATA_BLOCK,
                 IndexMetadata.INDEX_BLOCKS_METADATA_SETTING, openSettings);
-        maybeUpdateClusterBlock(indexes, blocks, IndexMetadata.INDEX_WRITE_BLOCK,
+            maybeUpdateClusterBlock(indexes, blocks, IndexMetadata.INDEX_WRITE_BLOCK,
                 IndexMetadata.INDEX_BLOCKS_WRITE_SETTING, openSettings);
-        maybeUpdateClusterBlock(indexes, blocks, IndexMetadata.INDEX_READ_BLOCK,
+            maybeUpdateClusterBlock(indexes, blocks, IndexMetadata.INDEX_READ_BLOCK,
                 IndexMetadata.INDEX_BLOCKS_READ_SETTING, openSettings);
+        }
 
         for (IndexMetadata indexMetadata : indexes) {
             Settings.Builder updates = Settings.builder();
@@ -246,12 +259,13 @@ public class MetadataUpdateSettingsService {
     private static void maybeUpdateClusterBlock(List<IndexMetadata> indexes, ClusterBlocks.Builder blocks, ClusterBlock block, Setting<Boolean> setting, Settings openSettings) {
         if (setting.exists(openSettings)) {
             final boolean updateBlock = setting.get(openSettings);
-            for (IndexMetadata im : indexes) {
-                String indexUUID = im.getIndex().getUUID();
-                if (updateBlock) {
-                    blocks.addIndexBlock(indexUUID, block);
-                } else {
-                    blocks.removeIndexBlock(indexUUID, block);
+            if (updateBlock) {
+                for (IndexMetadata im : indexes) {
+                    blocks.addIndexBlock(im.getIndex().getUUID(), block);
+                }
+            } else {
+                for (IndexMetadata im : indexes) {
+                    blocks.removeIndexBlock(im.getIndex().getUUID(), block);
                 }
             }
         }

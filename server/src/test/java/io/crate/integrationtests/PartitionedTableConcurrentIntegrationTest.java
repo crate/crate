@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -492,7 +494,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_concurrent_swaps() throws Exception {
+    public void test_concurrent_swaps_and_insert_creating_partitions() throws Exception {
         execute("create table t1 (p int) partitioned by (p)");
         execute("create table t2 (p2 int)");
 
@@ -540,5 +542,42 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][0]).isEqualTo(50L);
         execute("select count(*) from information_schema.table_partitions where table_name = 't2'");
         assertThat(response.rows()[0][0]).isEqualTo(50L);
+    }
+
+    @Test
+    public void test_concurrent_insert_partitions_and_set_write_block() throws Exception {
+        execute("create table t (p int) partitioned by (p)");
+
+        final AtomicReference<Throwable> error = new AtomicReference<>();
+        final CyclicBarrier barrier = new CyclicBarrier(2);
+
+        Thread t1 = new Thread(() -> {
+            try {
+                barrier.await();
+                assertThatThrownBy(() ->  execute("insert into t select * from generate_series(1, 50)"))
+                    .isExactlyInstanceOf(ClusterBlockException.class)
+                ;
+            } catch (Throwable e) {
+                error.set(e);
+            }
+        });
+
+        Thread t2 = new Thread(() -> {
+            try {
+                barrier.await();
+                Thread.sleep(500);
+                execute("ALTER TABLE t SET (\"blocks.write\" = true)");
+            } catch (Throwable e) {
+                error.set(e);
+            }
+        });
+
+        t1.start();
+        t2.start();
+
+        t1.join();
+        t2.join();
+
+        assertThat(error.get()).isNull();
     }
 }
