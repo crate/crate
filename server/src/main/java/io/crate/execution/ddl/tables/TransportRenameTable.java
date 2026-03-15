@@ -138,7 +138,7 @@ public class TransportRenameTable extends TransportMasterNodeAction<RenameTableR
                 request.sourceName(),
                 List.of(),
                 strict,
-                imd -> imd.getIndex().getName()
+                imd -> imd.getIndex().getUUID()
             ).toArray(String[]::new));
     }
 }

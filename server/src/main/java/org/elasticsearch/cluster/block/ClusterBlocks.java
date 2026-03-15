@@ -98,8 +98,8 @@ public class ClusterBlocks implements Diffable<ClusterBlocks> {
         return levelHolders.get(level).indices();
     }
 
-    private Set<ClusterBlock> blocksForIndex(ClusterBlockLevel level, String index) {
-        return indices(level).getOrDefault(index, emptySet());
+    private Set<ClusterBlock> blocksForIndex(ClusterBlockLevel level, String indexUUID) {
+        return indices(level).getOrDefault(indexUUID, emptySet());
     }
 
     private static EnumMap<ClusterBlockLevel, ImmutableLevelHolder> generateLevelHolders(Set<ClusterBlock> global,
@@ -227,23 +227,24 @@ public class ClusterBlocks implements Diffable<ClusterBlocks> {
         throw new ClusterBlockException(blocks);
     }
 
-    public ClusterBlockException indexBlockedException(ClusterBlockLevel level, RelationLookup relationLookup, String index) {
-        if (!indexBlocked(level, relationLookup, index)) {
+    public ClusterBlockException indexBlockedException(ClusterBlockLevel level, RelationLookup relationLookup, String indexUUID) {
+        if (!indexBlocked(level, relationLookup, indexUUID)) {
             return null;
         }
         Stream<ClusterBlock> blocks = concat(
                 global(level).stream(),
-                blocksForIndex(level, index).stream());
+                blocksForIndex(level, indexUUID).stream());
         return new ClusterBlockException(unmodifiableSet(blocks.collect(toSet())));
     }
 
-    public boolean indexBlocked(ClusterBlockLevel level, RelationLookup relationLookup, String index) {
-        return globalBlocked(level) || !tableBlocks(level, relationLookup.getRelation(index).oid()).isEmpty() || blocksForIndex(level, index).isEmpty() == false;
+    public boolean indexBlocked(ClusterBlockLevel level, RelationLookup relationLookup, String indexUUID) {
+        assert relationLookup.getRelation(indexUUID) != null : "As long as the indexUUID is valid, the table must exist";
+        return globalBlocked(level) || !tableBlocks(level, relationLookup.getRelation(indexUUID).oid()).isEmpty() || blocksForIndex(level, indexUUID).isEmpty() == false;
     }
 
-    public ClusterBlockException indicesBlockedException(ClusterBlockLevel level, RelationLookup relationLookup, String[] indices) {
+    public ClusterBlockException indicesBlockedException(ClusterBlockLevel level, RelationLookup relationLookup, String[] indexUUIDs) {
         boolean indexIsBlocked = false;
-        for (String index : indices) {
+        for (String index : indexUUIDs) {
             if (indexBlocked(level, relationLookup, index)) {
                 indexIsBlocked = true;
             }
@@ -251,10 +252,10 @@ public class ClusterBlocks implements Diffable<ClusterBlocks> {
         if (globalBlocked(level) == false && indexIsBlocked == false) {
             return null;
         }
-        Function<String, Stream<ClusterBlock>> blocksForIndexAtLevel = index -> blocksForIndex(level, index).stream();
+        Function<String, Stream<ClusterBlock>> blocksForIndexAtLevel = indexUUID -> blocksForIndex(level, indexUUID).stream();
         Stream<ClusterBlock> blocks = concat(
                 global(level).stream(),
-                Stream.of(indices).flatMap(blocksForIndexAtLevel));
+                Stream.of(indexUUIDs).flatMap(blocksForIndexAtLevel));
         return new ClusterBlockException(unmodifiableSet(blocks.collect(toSet())));
     }
 
