@@ -127,6 +127,6 @@ public class TransportDropPartitionsAction extends AbstractDDLTransportAction<Dr
     @Override
     protected ClusterBlockException checkBlock(DropPartitionsRequest request, ClusterState state) {
         String[] indexNames = getIndices(state, request, im -> im.getIndex().getName()).toArray(String[]::new);
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNames);
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, state.metadata(), indexNames);
     }
 }

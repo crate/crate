@@ -97,6 +97,6 @@ public class TransportOpenTable extends AbstractDDLTransportAction<OpenTableRequ
             true,
             imd -> imd.getIndex().getName()
         ).toArray(String[]::new);
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNames);
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, state.metadata(), indexNames);
     }
 }

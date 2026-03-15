@@ -43,6 +43,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.metadata.RelationLookup;
 import io.crate.rest.action.HttpErrorStatus;
 
 /**
@@ -214,16 +215,20 @@ public class ClusterBlocks implements Diffable<ClusterBlocks> {
         return new ClusterBlockException(global(level));
     }
 
+    private Set<ClusterBlock> tableBlocks(ClusterBlockLevel level, int tableOid) {
+        return levelHolders.get(level).tables().getOrDefault(tableOid, emptySet());
+    }
+
     public ClusterBlockException tableBlockedException(ClusterBlockLevel level, int tableOid) {
-        Set<ClusterBlock> blocks = levelHolders.get(level).tables().getOrDefault(tableOid, emptySet());
+        Set<ClusterBlock> blocks = tableBlocks(level, tableOid);
         if (blocks.isEmpty()) {
             return null;
         }
         throw new ClusterBlockException(blocks);
     }
 
-    public ClusterBlockException indexBlockedException(ClusterBlockLevel level, String index) {
-        if (!indexBlocked(level, index)) {
+    public ClusterBlockException indexBlockedException(ClusterBlockLevel level, RelationLookup relationLookup, String index) {
+        if (!indexBlocked(level, relationLookup, index)) {
             return null;
         }
         Stream<ClusterBlock> blocks = concat(
@@ -232,14 +237,14 @@ public class ClusterBlocks implements Diffable<ClusterBlocks> {
         return new ClusterBlockException(unmodifiableSet(blocks.collect(toSet())));
     }
 
-    public boolean indexBlocked(ClusterBlockLevel level, String index) {
-        return globalBlocked(level) || blocksForIndex(level, index).isEmpty() == false;
+    public boolean indexBlocked(ClusterBlockLevel level, RelationLookup relationLookup, String index) {
+        return globalBlocked(level) || !tableBlocks(level, relationLookup.getRelation(index).oid()).isEmpty() || blocksForIndex(level, index).isEmpty() == false;
     }
 
-    public ClusterBlockException indicesBlockedException(ClusterBlockLevel level, String[] indices) {
+    public ClusterBlockException indicesBlockedException(ClusterBlockLevel level, RelationLookup relationLookup, String[] indices) {
         boolean indexIsBlocked = false;
         for (String index : indices) {
-            if (indexBlocked(level, index)) {
+            if (indexBlocked(level, relationLookup, index)) {
                 indexIsBlocked = true;
             }
         }

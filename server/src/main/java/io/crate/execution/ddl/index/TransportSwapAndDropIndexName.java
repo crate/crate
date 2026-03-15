@@ -76,7 +76,6 @@ public class TransportSwapAndDropIndexName extends AbstractDDLTransportAction<Sw
     @Override
     protected ClusterBlockException checkBlock(SwapAndDropIndexRequest request, ClusterState state) {
         return state.blocks().indicesBlockedException(
-            ClusterBlockLevel.METADATA_WRITE,
-            new String[] { request.source(), request.target() });
+            ClusterBlockLevel.METADATA_WRITE, state.metadata(), new String[] { request.source(), request.target() });
     }
 }

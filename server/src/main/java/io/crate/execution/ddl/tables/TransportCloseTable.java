@@ -253,7 +253,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             false,
             idxMd -> idxMd.getIndex().getName()
         ).toArray(String[]::new);
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNames);
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, state.metadata(), indexNames);
     }
 
     public static boolean isEmptyPartitionedTable(RelationName relationName,

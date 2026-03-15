@@ -30,12 +30,16 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
+import org.jspecify.annotations.Nullable;
 import org.junit.Test;
 
+import io.crate.metadata.RelationLookup;
+import io.crate.metadata.RelationName;
 import io.crate.rest.action.HttpErrorStatus;
 
 public class ClusterBlockTests extends ESTestCase {
@@ -78,9 +82,25 @@ public class ClusterBlockTests extends ESTestCase {
     }
 
     public void testGlobalBlocksCheckedIfNoIndicesSpecified() {
+        RelationLookup relationLookup = new RelationLookup() {
+            @Override
+            public int getRelationOid(RelationName relationName) {
+                return 0;
+            }
+
+            @Override
+            public @Nullable RelationName getRelationName(int oid) {
+                return null;
+            }
+
+            @Override
+            public @Nullable RelationMetadata getRelation(String indexUUID) {
+                return null;
+            }
+        };
         ClusterBlock globalBlock = randomClusterBlock();
         ClusterBlocks clusterBlocks = new ClusterBlocks(Collections.singleton(globalBlock), Map.of(), Map.of());
-        ClusterBlockException exception = clusterBlocks.indicesBlockedException(randomFrom(globalBlock.levels()), new String[0]);
+        ClusterBlockException exception = clusterBlocks.indicesBlockedException(randomFrom(globalBlock.levels()), relationLookup, new String[0]);
         assertThat(exception).isNotNull();
         assertThat(Collections.singleton(globalBlock)).isEqualTo(exception.blocks());
     }
