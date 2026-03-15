@@ -373,7 +373,12 @@ public class ClusterBlocks implements Diffable<ClusterBlocks> {
 
         public Builder blocks(ClusterBlocks blocks) {
             global.addAll(blocks.global());
-            tables.putAll(blocks.tablesBlocks);
+            for (var entry : blocks.tablesBlocks.entrySet()) {
+                Integer oid = entry.getKey();
+                for (ClusterBlock block : entry.getValue()) {
+                    addTableBlock(oid, block);
+                }
+            }
             for (var entry : blocks.indices().entrySet()) {
                 String key = entry.getKey();
                 Set<ClusterBlock> value = entry.getValue();
