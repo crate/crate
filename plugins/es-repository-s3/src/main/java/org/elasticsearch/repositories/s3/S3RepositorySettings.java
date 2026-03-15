@@ -140,7 +140,7 @@ class S3RepositorySettings {
      */
     static final Setting<String> ENDPOINT_SETTING = new Setting<>(
         "endpoint",
-        "",
+        "s3.amazonaws.com",
         s -> s.toLowerCase(Locale.ROOT),
         DataTypes.STRING,
         Setting.Property.NodeScope);

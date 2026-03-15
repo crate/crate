@@ -24,8 +24,11 @@ package org.elasticsearch.repositories.s3;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.IOException;
+
 import org.apache.opendal.AsyncExecutor;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
+import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -54,6 +57,25 @@ public class S3RepositoryTests extends ESTestCase {
     @After
     public void teardown() {
         executor.close();
+    }
+
+    @Test
+    public void test_no_endpoint_can_create_blob_store() {
+        var settings = Settings.builder().put("bucket", "dummy").build();
+        try (S3Repository s3Repository = createS3Repo(getRepositoryMetadata(settings))) {
+            BlobStore blobStore = s3Repository.createBlobStore();
+            blobStore.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    public void test_no_bucket_throws_an_error() {
+         assertThatThrownBy(() -> createS3Repo(getRepositoryMetadata(Settings.EMPTY)))
+             .isExactlyInstanceOf(RepositoryException.class)
+             .hasMessageContaining("No bucket defined for s3 repository");
+
     }
 
     @Test
@@ -96,6 +118,8 @@ public class S3RepositoryTests extends ESTestCase {
                  new ByteSizeValue(buffer, ByteSizeUnit.MB).getStringRep())
             .put(S3RepositorySettings.CHUNK_SIZE_SETTING.getKey(),
                  new ByteSizeValue(chunk, ByteSizeUnit.MB).getStringRep())
+            // Required field.
+            .put("bucket", "dummy")
             .build();
     }
 
@@ -106,7 +130,10 @@ public class S3RepositoryTests extends ESTestCase {
     @Test
     public void testBasePathSetting() {
         final RepositoryMetadata metadata = new RepositoryMetadata("dummy-repo", "mock", Settings.builder()
-            .put(S3RepositorySettings.BASE_PATH_SETTING.getKey(), "foo/bar").build());
+            .put(S3RepositorySettings.BASE_PATH_SETTING.getKey(), "foo/bar")
+            .put("bucket", "dummy")
+            .build()
+        );
         try (S3Repository s3repo = createS3Repo(metadata)) {
             assertThat(s3repo.basePath().buildAsString()).isEqualTo("foo/bar/");
         }

@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -45,6 +46,7 @@ import org.mockito.ArgumentCaptor;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Protocol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.protocols.http.MainAndStaticFileHandler;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.metadata.RolesHelper;
@@ -225,6 +227,47 @@ public class SqlHttpHandlerTest {
             channel.writeInbound(request);
         } catch (Exception ignored) { }
         assertThat(request.refCnt()).isEqualTo(0);
+    }
+
+    @Test
+    public void test_send_response_failure_sent_to_a_client() throws Exception {
+        var mockedSession = mock(Session.class);
+        // Imitate that sendResponse failed for whatever reason
+        when(mockedSession.sessionSettings()).thenThrow(new RuntimeException("dummy"));
+        var sessions = mock(Sessions.class);
+        when(sessions.newSession(any(), any(), any())).thenReturn(mockedSession);
+
+        SqlHttpHandler handler = new SqlHttpHandler(
+            Settings.EMPTY,
+            sessions,
+            _ -> new NoopCircuitBreaker("dummy"),
+            () -> List.of(RolesHelper.userOf("crate"))
+        );
+
+        EmbeddedChannel channel = new EmbeddedChannel(
+            handler,
+            // Last handler that is catching all exceptions and sending error back to the client.
+            new MainAndStaticFileHandler("node", Path.of("a", "b"), null)
+        );
+        var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+
+        channel.writeInbound(request);
+
+        assertThat(request.refCnt()).isEqualTo(0);
+        FullHttpResponse response = null;
+        try {
+            response = channel.readOutbound();
+            assertThat(response).isNotNull();
+            assertThat(response.status()).isEqualTo(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+            assertThat(response.content().toString(StandardCharsets.UTF_8)).contains("dummy");
+        } finally {
+            if (response != null) {
+                // EmbeddedChannel.doWrite retains buffer written in MainAndStaticFileHandler.send500().
+                // After readOutbound() call, test gets an ownership of the buffer, need to release it explicitly.
+                response.release();
+            }
+
+        }
     }
 }
 
