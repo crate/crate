@@ -84,6 +84,7 @@ import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateTableAs;
+import io.crate.sql.tree.CreateTableLike;
 import io.crate.sql.tree.CreateUserMapping;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.DeallocateStatement;
@@ -145,6 +146,7 @@ public class Analyzer {
     private final DropCheckConstraintAnalyzer dropCheckConstraintAnalyzer;
     private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
     private final CreateTableAsAnalyzer createTableAsAnalyzer;
+    private final CreateTableLikeAnalyzer createTableLikeAnalyzer;
     private final ExplainStatementAnalyzer explainStatementAnalyzer;
     private final ShowStatementAnalyzer showStatementAnalyzer;
     private final CreateBlobTableAnalyzer createBlobTableAnalyzer;
@@ -215,6 +217,7 @@ public class Analyzer {
         this.deleteAnalyzer = new DeleteAnalyzer(nodeCtx, relationAnalyzer);
         this.insertAnalyzer = new InsertAnalyzer(nodeCtx, schemas, relationAnalyzer);
         this.createTableAsAnalyzer = new CreateTableAsAnalyzer(createTableStatementAnalyzer, insertAnalyzer, relationAnalyzer);
+        this.createTableLikeAnalyzer = new CreateTableLikeAnalyzer(schemas, createTableStatementAnalyzer);
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas, nodeCtx);
         this.createRepositoryAnalyzer = new CreateRepositoryAnalyzer(repositoryService, nodeCtx);
         this.dropRepositoryAnalyzer = new DropRepositoryAnalyzer(repositoryService);
@@ -458,6 +461,14 @@ public class Analyzer {
         public AnalyzedStatement visitCreateTableAs(CreateTableAs<?> node, Analysis analysis) {
             return createTableAsAnalyzer.analyze(
                 (CreateTableAs<Expression>) node,
+                analysis.paramTypeHints(),
+                analysis.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateTableLike(CreateTableLike<?> node, Analysis analysis) {
+            return createTableLikeAnalyzer.analyze(
+                (CreateTableLike<Expression>) node,
                 analysis.paramTypeHints(),
                 analysis.transactionContext());
         }

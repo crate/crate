@@ -144,6 +144,10 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(createTableAs, context);
     }
 
+    public R visitCreateTableLike(AnalyzedCreateTableLike createTableLike, C context) {
+        return visitAnalyzedStatement(createTableLike, context);
+    }
+
     public R visitDropRepositoryAnalyzedStatement(AnalyzedDropRepository analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
