@@ -26,6 +26,7 @@ import static java.util.Collections.emptyList;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,6 +34,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.RandomAccess;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -135,7 +137,9 @@ import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateTableAs;
+import io.crate.sql.tree.CreateTableLike;
 import io.crate.sql.tree.CreateUserMapping;
+import io.crate.sql.tree.LikeOption;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DeallocateStatement;
@@ -539,6 +543,39 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             (Table<?>) visit(context.table()),
             (Query) visit(context.insertSource().query()),
             context.EXISTS() != null);
+    }
+
+    @Override
+    public Node visitCreateTableLike(SqlBaseParser.CreateTableLikeContext context) {
+        Set<LikeOption> includedOptions = EnumSet.noneOf(LikeOption.class);
+        Set<LikeOption> excludedOptions = EnumSet.noneOf(LikeOption.class);
+        for (SqlBaseParser.LikeOptionContext optCtx : context.likeOption()) {
+            boolean isIncluding = optCtx.INCLUDING() != null;
+            Set<LikeOption> options = optCtx.ALL() != null
+                ? EnumSet.allOf(LikeOption.class)
+                : EnumSet.of(toLikeOption(optCtx));
+            if (isIncluding) {
+                includedOptions.addAll(options);
+                excludedOptions.removeAll(options);
+            } else {
+                excludedOptions.addAll(options);
+                includedOptions.removeAll(options);
+            }
+        }
+        return new CreateTableLike<>(
+            (Table<?>) visit(context.table()),
+            getQualifiedName(context.likeTable),
+            context.EXISTS() != null,
+            includedOptions);
+    }
+
+    private static LikeOption toLikeOption(SqlBaseParser.LikeOptionContext ctx) {
+        if (ctx.CONSTRAINTS() != null) return LikeOption.CONSTRAINTS;
+        if (ctx.DEFAULTS() != null) return LikeOption.DEFAULTS;
+        if (ctx.GENERATED() != null) return LikeOption.GENERATED;
+        if (ctx.INDEXES() != null) return LikeOption.INDEXES;
+        if (ctx.STORAGE() != null) return LikeOption.STORAGE;
+        throw new IllegalArgumentException("Unknown LIKE option");
     }
 
     @Override

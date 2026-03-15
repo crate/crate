@@ -709,6 +709,13 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_create_table_like_requires_DDL_on_target_and_DQL_on_source() {
+        analyze("create table target_schema.target_table (LIKE doc.users)");
+        assertAskedForSchema(Permission.DDL, "target_schema");
+        assertAskedForTable(Permission.DQL, "doc.users");
+    }
+
+    @Test
     public void test_optimize_table_is_allowed_with_ddl_privileges_on_table() {
         analyze("optimize table users");
         assertAskedForTable(Permission.DDL, "doc.users");

@@ -34,6 +34,7 @@ SQL Statements
     create-subscription
     create-table
     create-table-as
+    create-table-like
     create-user
     create-user-mapping
     create-view
