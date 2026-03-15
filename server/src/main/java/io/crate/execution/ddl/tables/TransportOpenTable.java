@@ -91,12 +91,12 @@ public class TransportOpenTable extends AbstractDDLTransportAction<OpenTableRequ
         if (isEmptyPartitionedTable(relation, state)) {
             return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
         }
-        String[] indexNames = state.metadata().getIndices(
+        String[] indexUUIDs = state.metadata().getIndices(
             relation,
             request.partitionValues(),
             true,
-            imd -> imd.getIndex().getName()
+            imd -> imd.getIndex().getUUID()
         ).toArray(String[]::new);
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNames);
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, state.metadata(), indexUUIDs);
     }
 }

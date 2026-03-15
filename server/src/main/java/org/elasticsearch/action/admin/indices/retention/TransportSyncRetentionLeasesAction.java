@@ -124,6 +124,6 @@ public class TransportSyncRetentionLeasesAction extends TransportBroadcastByNode
 
     @Override
     protected ClusterBlockException checkRequestBlock(ClusterState state, SyncRetentionLeasesRequest request, String[] concreteIndices) {
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, concreteIndices);
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, state.metadata(), concreteIndices);
     }
 }

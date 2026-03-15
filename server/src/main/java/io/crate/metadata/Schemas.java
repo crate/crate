@@ -474,6 +474,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return viewInfo;
     }
 
+    @Override
     @Nullable
     public RelationName getRelationName(int oid) {
         for (SchemaInfo schema : this) {
@@ -496,6 +497,13 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return null;
     }
 
+    @Override
+    @Nullable
+    public RelationMetadata getRelation(String indexUUID) {
+        return clusterService.state().metadata().getRelation(indexUUID);
+    }
+
+    @Override
     public int getRelationOid(RelationName relationName) {
         RelationMetadata relationMetadata = clusterService.state().metadata().getRelation(relationName);
         return relationMetadata == null ? OidHash.relationOid(OidHash.Type.TABLE, relationName) : relationMetadata.oid();
