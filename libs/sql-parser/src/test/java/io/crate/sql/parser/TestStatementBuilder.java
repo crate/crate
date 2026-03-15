@@ -776,6 +776,23 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testCreateTableLike() {
+        printStatement("create table test (LIKE source_table)");
+        printStatement("create table test (LIKE source_table INCLUDING ALL)");
+        printStatement("create table if not exists test (LIKE source_table INCLUDING ALL)");
+        printStatement("create table test (LIKE my_schema.source_table)");
+        printStatement("create table test (LIKE my_schema.source_table INCLUDING ALL)");
+        printStatement("create table custom_schema.test (LIKE source_table INCLUDING DEFAULTS)");
+        printStatement("create table test (LIKE source_table INCLUDING CONSTRAINTS)");
+        printStatement("create table test (LIKE source_table INCLUDING GENERATED)");
+        printStatement("create table test (LIKE source_table INCLUDING INDEXES)");
+        printStatement("create table test (LIKE source_table INCLUDING STORAGE)");
+        printStatement("create table test (LIKE source_table INCLUDING DEFAULTS INCLUDING CONSTRAINTS)");
+        printStatement("create table test (LIKE source_table EXCLUDING ALL)");
+        printStatement("create table test (LIKE source_table INCLUDING ALL EXCLUDING DEFAULTS)");
+    }
+
+    @Test
     public void test_named_primary_key_constraint_without_name_is_not_allowed() {
         assertThatThrownBy(
             () -> printStatement("create table t (a int CONSTRAINT primary key)"))
