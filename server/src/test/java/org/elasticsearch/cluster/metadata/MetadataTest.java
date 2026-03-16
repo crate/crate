@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.settings.Settings;
@@ -49,6 +50,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.role.Role;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
@@ -329,6 +331,113 @@ public class MetadataTest extends ESTestCase {
                 SchemaMetadata schemaMetadata = receivedMetadata.schemas().get("my_schema");
                 assertThat(schemaMetadata).isNotNull();
                 assertThat(schemaMetadata.udfs()).containsExactly(udf);
+            }
+        }
+    }
+
+    @Test
+    public void test_preserves_udfs_if_customs_from_6_2_contain_no_deletes() throws Exception {
+        UserDefinedFunctionMetadata udf1 = new UserDefinedFunctionMetadata(
+            "my_schema",
+            "foo",
+            List.of(FunctionArgumentDefinition.of(DataTypes.INTEGER)),
+            DataTypes.INTEGER,
+            "x-lang",
+            "return 42"
+        );
+        Metadata v62Metadata1 = Metadata.builder(Metadata.OID_UNASSIGNED)
+            .customs(Map.of(UserDefinedFunctionsMetadata.TYPE, UserDefinedFunctionsMetadata.of(udf1)))
+            // Add view in the schema to simulate a change in the SchemaMetadata
+            .setView(
+                new RelationName("my_schema", "v1"),
+                "select 1",
+                Role.CRATE_USER.name(),
+                SearchPath.pathWithPGCatalogAndDoc(),
+                false
+            )
+            .build();
+
+        Metadata v62Metadata2 = Metadata.builder(Metadata.OID_UNASSIGNED)
+            .customs(Map.of(UserDefinedFunctionsMetadata.TYPE, UserDefinedFunctionsMetadata.of(udf1)))
+            .build();
+
+        Metadata v63Metadata = Metadata.builder(Metadata.OID_UNASSIGNED)
+            .setUDF(udf1)
+            .build();
+
+        try (var out = new BytesStreamOutput()) {
+            Version version = Version.V_6_2_2;
+            out.setVersion(version);
+
+            Diff<Metadata> diff = v62Metadata2.diff(version, v62Metadata1);
+            diff.writeTo(out);
+            try (var in = new NamedWriteableAwareStreamInput(out.bytes().streamInput(), writableRegistry())) {
+                in.setVersion(version);
+                Diff<Metadata> diffFrom = Metadata.readDiffFrom(in);
+                Metadata receivedMetadata = diffFrom.apply(v63Metadata);
+                UserDefinedFunctionsMetadata udfMetadata = receivedMetadata.custom(UserDefinedFunctionsMetadata.TYPE);
+                assertThat(udfMetadata).isNull();
+                SchemaMetadata schemaMetadata = receivedMetadata.schemas().get("my_schema");
+                assertThat(schemaMetadata).isNotNull();
+                assertThat(schemaMetadata.udfs()).containsExactly(udf1);
+            }
+        }
+    }
+
+    @Test
+    public void test_preserves_udfs_if_customs_from_6_2_delete_udf_subset() throws Exception {
+        UserDefinedFunctionMetadata udf1 = new UserDefinedFunctionMetadata(
+            "my_schema",
+            "foo",
+            List.of(FunctionArgumentDefinition.of(DataTypes.INTEGER)),
+            DataTypes.INTEGER,
+            "x-lang",
+            "return 42"
+        );
+        UserDefinedFunctionMetadata udf2 = new UserDefinedFunctionMetadata(
+            "my_schema",
+            "bar",
+            List.of(FunctionArgumentDefinition.of(DataTypes.INTEGER)),
+            DataTypes.INTEGER,
+            "x-lang",
+            "return 24"
+        );
+        Metadata v62Metadata1 = Metadata.builder(Metadata.OID_UNASSIGNED)
+            .customs(Map.of(UserDefinedFunctionsMetadata.TYPE, UserDefinedFunctionsMetadata.of(udf1, udf2)))
+            // Add view in the schema to simulate a change in the SchemaMetadata
+            .setView(
+                new RelationName("my_schema", "v1"),
+                "select 1",
+                Role.CRATE_USER.name(),
+                SearchPath.pathWithPGCatalogAndDoc(),
+                false
+            )
+            .build();
+
+        Metadata v62Metadata2 = Metadata.builder(Metadata.OID_UNASSIGNED)
+            .customs(Map.of(UserDefinedFunctionsMetadata.TYPE, UserDefinedFunctionsMetadata.of(udf1)))
+            .build();
+
+        Metadata v63Metadata = Metadata.builder(Metadata.OID_UNASSIGNED)
+            .setUDF(udf1)
+            .setUDF(udf2)
+            .build();
+
+        try (var out = new BytesStreamOutput()) {
+            Version version = Version.V_6_2_2;
+            out.setVersion(version);
+
+            Diff<Metadata> diff = v62Metadata2.diff(version, v62Metadata1);
+            diff.writeTo(out);
+            try (var in = new NamedWriteableAwareStreamInput(out.bytes().streamInput(), writableRegistry())) {
+                in.setVersion(version);
+                Diff<Metadata> diffFrom = Metadata.readDiffFrom(in);
+                Metadata receivedMetadata = diffFrom.apply(v63Metadata);
+                UserDefinedFunctionsMetadata udfMetadata = receivedMetadata.custom(UserDefinedFunctionsMetadata.TYPE);
+                assertThat(udfMetadata).isNull();
+                SchemaMetadata schemaMetadata = receivedMetadata.schemas().get("my_schema");
+                assertThat(schemaMetadata).isNotNull();
+                assertThat(schemaMetadata.udfs()).containsExactly(udf1);
             }
         }
     }

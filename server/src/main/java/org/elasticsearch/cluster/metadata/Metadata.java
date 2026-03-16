@@ -480,6 +480,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     private static class MetadataDiff implements Diff<Metadata> {
 
+        private final transient Version inVersion;
         private final long version;
         private final long columnOID;
         private final int currentMaxTableOid;
@@ -491,11 +492,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         private final Settings persistentSettings;
         private final Diffs.MapDiff<String, IndexMetadata, Map<String, IndexMetadata>> indices;
         private final Diffs.MapDiff<String, IndexTemplateMetadata, Map<String, IndexTemplateMetadata>> templates;
-        private final Diff<Map<String, Custom>> customs;
+        private final Diffs.MapDiff<String, Custom, Map<String, Custom>> customs;
         private final Diff<Map<String, SchemaMetadata>> schemas;
 
         MetadataDiff(Version v, Metadata before, Metadata after) {
             assert before.currentMaxTableOid <= after.currentMaxTableOid : "after.currentMaxTableOid must be greater than or equal to before.currentMaxTableOid";
+            inVersion = v;
             currentMaxTableOid = after.currentMaxTableOid;
             clusterUUID = after.clusterUUID;
             clusterUUIDCommitted = after.clusterUUIDCommitted;
@@ -518,6 +520,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             new Diffs.DiffableValueReader<>(SchemaMetadata::of, SchemaMetadata::readDiffFrom);
 
         MetadataDiff(StreamInput in) throws IOException {
+            inVersion = in.getVersion();
             clusterUUID = in.readString();
             clusterUUIDCommitted = in.readBoolean();
             version = in.readLong();
@@ -588,8 +591,29 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             builder.persistentSettings(persistentSettings);
             builder.indices(indices.apply(part.indices));
             builder.templates(templates.apply(part.templates));
-            builder.customs(customs.apply(part.customs));
-            builder.schemas.putAll(schemas.apply(part.schemas));
+
+            Map<String, Custom> newCustoms = new HashMap<>(customs.apply(part.customs));
+            Map<String, SchemaMetadata> newSchemas = schemas.apply(part.schemas);
+            builder.schemas.putAll(newSchemas);
+
+            // Metadata before 6.3 contained UDFs in customs
+            if (inVersion.before(Version.V_6_3_0)) {
+                var udfs = (UserDefinedFunctionsMetadata) newCustoms.remove(UserDefinedFunctionsMetadata.TYPE);
+                // udfs can be absent if there was no change; preserve all udfs
+                if (udfs == null && !customs.getDeletes().contains(UserDefinedFunctionsMetadata.TYPE)) {
+                    for (var schema : part.schemas.values()) {
+                        for (var udf : schema.udfs()) {
+                            builder.setUDF(udf);
+                        }
+                    }
+                } else {
+                    for (var udf : udfs.functionsMetadata()) {
+                        builder.setUDF(udf);
+                    }
+                }
+            }
+
+            builder.customs(newCustoms);
 
             // For BWC: when MetadataDiff is streamed from a node < 6.0, MetadataDiff.deletes applied to indices and templates
             // must also be applied to schemas.
@@ -767,7 +791,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 copyCustoms.put(ForeignTablesMetadata.TYPE, new ForeignTablesMetadata(foreignTableMap));
             }
 
-            // Build old UDF Metdata
+            assert copyCustoms.get(UserDefinedFunctionsMetadata.TYPE) == null
+                : "Node on 6.3.0+ must always have upgraded Metadata where udfs are within schemas";
+
+            // Build old UDF Metadata
             List<UserDefinedFunctionMetadata> udfs = null;
             for (var schema : schemas.values()) {
                 for (var udf : schema.udfs()) {

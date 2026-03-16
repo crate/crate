@@ -137,6 +137,17 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
             && explicit == other.explicit;
     }
 
+    @Override
+    public String toString() {
+        return "Schema{relations="
+            + relations.size()
+            + ", udfs="
+            + udfs.size()
+            + ", explicit="
+            + explicit
+            + "}";
+    }
+
     static class SchemaMetadataDiff implements Diff<SchemaMetadata> {
 
         private static final Diffs.DiffableValueReader<String, RelationMetadata> REL_DIFF_VALUE_READER =
