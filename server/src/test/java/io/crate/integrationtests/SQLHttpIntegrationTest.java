@@ -113,7 +113,9 @@ public abstract class SQLHttpIntegrationTest extends IntegTestCase {
 
     @After
     public void closeClient() throws Exception {
-        this.httpClient.close();
+        if (httpClient != null) {
+            httpClient.close();
+        }
     }
 
     @Override
