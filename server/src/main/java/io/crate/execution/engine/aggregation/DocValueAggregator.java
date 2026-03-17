@@ -23,12 +23,13 @@ package io.crate.execution.engine.aggregation;
 
 import java.io.IOException;
 
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.search.DocAndFloatFeatureBuffer;
+import org.elasticsearch.Version;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.data.breaker.RamAccounting;
 import io.crate.memory.MemoryManager;
-import org.apache.lucene.index.LeafReaderContext;
-import org.elasticsearch.Version;
 
 public interface DocValueAggregator<T> {
 
@@ -37,6 +38,12 @@ public interface DocValueAggregator<T> {
     void loadDocValues(LeafReaderContext leafReaderContext) throws IOException;
 
     void apply(RamAccounting ramAccounting, int doc, T state) throws IOException;
+
+    default void applyBulk(RamAccounting ramAccounting, DocAndFloatFeatureBuffer buffer, T state) throws IOException {
+        for (int i = 0; i < buffer.size; i++) {
+            apply(ramAccounting, buffer.docs[i], state);
+        }
+    }
 
     // Aggregations are executed on shard level,
     // that means there is always a final reduce step necessary
