@@ -22,14 +22,14 @@
 package io.crate.statistics;
 
 import java.io.IOException;
+import java.lang.foreign.MemorySegment;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
 import org.apache.datasketches.frequencies.ErrorType;
-import org.apache.datasketches.frequencies.ItemsSketch;
-import org.apache.datasketches.memory.Memory;
+import org.apache.datasketches.frequencies.FrequentItemsSketch;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -39,18 +39,18 @@ public class MostCommonValuesSketch<T> {
 
     private static final int MAX_VALUES = 100;
 
-    private final ItemsSketch<T> sketch;
+    private final FrequentItemsSketch<T> sketch;
     private final SketchStreamer<T> streamer;
 
     public MostCommonValuesSketch(Streamer<T> streamer) {
         this.streamer = new SketchStreamer<>(streamer);
-        this.sketch = new ItemsSketch<>(256);
+        this.sketch = new FrequentItemsSketch<>(256);
     }
 
     public MostCommonValuesSketch(Streamer<T> streamer, StreamInput in) throws IOException {
         this.streamer = new SketchStreamer<>(streamer);
         byte[] bytes = in.readByteArray();
-        this.sketch = ItemsSketch.getInstance(Memory.wrap(bytes), this.streamer);
+        this.sketch = FrequentItemsSketch.getInstance(MemorySegment.ofArray(bytes), this.streamer);
     }
 
     public void writeTo(StreamOutput out) throws IOException {
@@ -59,7 +59,7 @@ public class MostCommonValuesSketch<T> {
 
     @SuppressWarnings("unchecked")
     public MostCommonValuesSketch<T> merge(MostCommonValuesSketch<?> other) {
-        var otherSketch = (ItemsSketch<T>) other.sketch;
+        var otherSketch = (FrequentItemsSketch<T>) other.sketch;
         this.sketch.merge(otherSketch);
         return this;
     }

@@ -23,15 +23,15 @@ package io.crate.execution.engine.aggregation.impl;
 
 
 import java.io.IOException;
+import java.lang.foreign.MemorySegment;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.datasketches.common.Util;
 import org.apache.datasketches.frequencies.ErrorType;
-import org.apache.datasketches.frequencies.ItemsSketch;
-import org.apache.datasketches.frequencies.LongsSketch;
-import org.apache.datasketches.memory.Memory;
+import org.apache.datasketches.frequencies.FrequentItemsSketch;
+import org.apache.datasketches.frequencies.FrequentLongsSketch;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
@@ -349,10 +349,10 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         static long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(TopKState.class);
         static final int ID = 1;
 
-        private final ItemsSketch<Object> sketch;
+        private final FrequentItemsSketch<Object> sketch;
         private final int limit;
 
-        TopKState(ItemsSketch<Object> sketch, int limit) {
+        TopKState(FrequentItemsSketch<Object> sketch, int limit) {
             this.sketch = sketch;
             this.limit = limit;
         }
@@ -361,14 +361,14 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         TopKState(StreamInput in, DataType<?> innerType) throws IOException {
             this.limit = in.readInt();
             SketchStreamer streamer = new SketchStreamer(innerType.streamer());
-            this.sketch = ItemsSketch.getInstance(Memory.wrap(in.readByteArray()), streamer);
+            this.sketch = FrequentItemsSketch.getInstance(MemorySegment.ofArray(in.readByteArray()), streamer);
         }
 
         public Map<String, Object> result(DataType<?> dataType) {
             if (sketch.isEmpty()) {
                 return Map.of();
             }
-            ItemsSketch.Row<Object>[] frequentItems = sketch.getFrequentItems(ErrorType.NO_FALSE_NEGATIVES);
+            FrequentItemsSketch.Row<Object>[] frequentItems = sketch.getFrequentItems(ErrorType.NO_FALSE_NEGATIVES);
             int limit = Math.min(frequentItems.length, this.limit);
             var frequencies = new ArrayList<Map<String, Object>>(limit);
             for (int i = 0; i < limit; i++) {
@@ -423,17 +423,17 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         static long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(TopKLongState.class);
         static final int ID = 2;
 
-        private final LongsSketch sketch;
+        private final FrequentLongsSketch sketch;
         private final int limit;
 
-        TopKLongState(LongsSketch sketch, int limit) {
+        TopKLongState(FrequentLongsSketch sketch, int limit) {
             this.sketch = sketch;
             this.limit = limit;
         }
 
         TopKLongState(StreamInput in) throws IOException {
             this.limit = in.readInt();
-            this.sketch = LongsSketch.getInstance(Memory.wrap(in.readByteArray()));
+            this.sketch = FrequentLongsSketch.getInstance(MemorySegment.ofArray(in.readByteArray()));
         }
 
         @Override
@@ -441,7 +441,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             if (sketch.isEmpty()) {
                 return Map.of();
             }
-            LongsSketch.Row[] frequentItems = sketch.getFrequentItems(ErrorType.NO_FALSE_NEGATIVES);
+            FrequentLongsSketch.Row[] frequentItems = sketch.getFrequentItems(ErrorType.NO_FALSE_NEGATIVES);
             int limit = Math.min(frequentItems.length, this.limit);
             var frequencies = new ArrayList<Map<String, Object>>();
             for (int i = 0; i < limit; i++) {
@@ -548,12 +548,12 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
 
     private TopKState topKState(RamAccounting ramAccounting, int limit, int capacity) {
         ramAccounting.addBytes(calculateRamUsage(capacity) + TopKState.SHALLOW_SIZE);
-        return new TopKState(new ItemsSketch<>(capacity), limit);
+        return new TopKState(new FrequentItemsSketch<>(capacity), limit);
     }
 
     private TopKLongState topKLongState(RamAccounting ramAccounting, int limit, int capacity) {
         ramAccounting.addBytes(calculateRamUsage(capacity) + TopKLongState.SHALLOW_SIZE);
-        return new TopKLongState(new LongsSketch(capacity), limit);
+        return new TopKLongState(new FrequentLongsSketch(capacity), limit);
     }
 
     static final class StateType extends DataType<State> implements Streamer<State> {

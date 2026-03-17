@@ -22,14 +22,14 @@
 package io.crate.statistics;
 
 import java.io.IOException;
+import java.lang.foreign.MemorySegment;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.datasketches.memory.Memory;
-import org.apache.datasketches.quantiles.ItemsSketch;
-import org.apache.datasketches.quantiles.ItemsUnion;
+import org.apache.datasketches.quantiles.QuantilesItemsSketch;
+import org.apache.datasketches.quantiles.QuantilesItemsUnion;
 import org.apache.datasketches.quantilescommon.QuantileSearchCriteria;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -42,25 +42,25 @@ import io.crate.types.DataType;
  */
 public class HistogramSketch<T> {
 
-    private final ItemsSketch<T> sketch;
+    private final QuantilesItemsSketch<T> sketch;
     private final SketchStreamer<T> streamer;
 
     public HistogramSketch(Class<T> clazz, DataType<T> dataType) {
-        this.sketch = ItemsSketch.getInstance(clazz, dataType);
+        this.sketch = QuantilesItemsSketch.getInstance(clazz, dataType);
         this.streamer = new SketchStreamer<>(dataType.streamer());
     }
 
     public HistogramSketch(Class<T> clazz, DataType<T> dataType, StreamInput in) throws IOException {
         byte[] bytes = in.readByteArray();
         this.streamer = new SketchStreamer<>(dataType.streamer());
-        this.sketch = ItemsSketch.getInstance(clazz, Memory.wrap(bytes), dataType, streamer);
+        this.sketch = QuantilesItemsSketch.heapify(clazz, MemorySegment.ofArray(bytes), dataType, streamer);
     }
 
     public void writeTo(StreamOutput out) throws IOException {
         out.writeByteArray(this.sketch.toByteArray(streamer));
     }
 
-    private HistogramSketch(SketchStreamer<T> streamer, ItemsSketch<T> sketch) {
+    private HistogramSketch(SketchStreamer<T> streamer, QuantilesItemsSketch<T> sketch) {
         this.streamer = streamer;
         this.sketch = sketch;
     }
@@ -71,8 +71,8 @@ public class HistogramSketch<T> {
 
     @SuppressWarnings("unchecked")
     public HistogramSketch<T> merge(HistogramSketch<?> other) {
-        ItemsUnion<T> union = ItemsUnion.getInstance(this.sketch);
-        union.union((ItemsSketch<T>) other.sketch);
+        QuantilesItemsUnion<T> union = QuantilesItemsUnion.initialize(this.sketch);
+        union.union((QuantilesItemsSketch<T>) other.sketch);
         return new HistogramSketch<>(streamer, union.getResult());
     }
 

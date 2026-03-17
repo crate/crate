@@ -24,12 +24,12 @@ package io.crate.statistics;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.foreign.MemorySegment;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.datasketches.common.ArrayOfItemsSerDe;
-import org.apache.datasketches.memory.Buffer;
-import org.apache.datasketches.memory.Memory;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 
@@ -61,13 +61,13 @@ public class SketchStreamer<T> extends ArrayOfItemsSerDe<T> {
     }
 
     @Override
-    public T[] deserializeFromMemory(Memory mem, int numItems) {
+    public T[] deserializeFromMemorySegment(MemorySegment seg, int numItems) {
         throw new UnsupportedOperationException();
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public T[] deserializeFromMemory(Memory mem, long offsetBytes, int numItems) {
+    public T[] deserializeFromMemorySegment(MemorySegment mem, long offsetBytes, int numItems) {
         try (MemoryStreamInput in = new MemoryStreamInput(mem)) {
             List<T> values = new ArrayList<>();
             for (int i = 0; i < numItems; i++) {
@@ -85,7 +85,7 @@ public class SketchStreamer<T> extends ArrayOfItemsSerDe<T> {
     }
 
     @Override
-    public int sizeOf(Memory mem, long offsetBytes, int numItems) {
+    public int sizeOf(MemorySegment mem, long offsetBytes, int numItems) {
         throw new UnsupportedOperationException();
     }
 
@@ -101,20 +101,20 @@ public class SketchStreamer<T> extends ArrayOfItemsSerDe<T> {
 
     private static class MemoryStreamInput extends StreamInput {
 
-        final Buffer buffer;
+        final ByteBuffer buffer;
 
-        private MemoryStreamInput(Memory memory) {
-            this.buffer = memory.asBuffer();
+        private MemoryStreamInput(MemorySegment memory) {
+            this.buffer = memory.asByteBuffer();
         }
 
         @Override
         public byte readByte() throws IOException {
-            return this.buffer.getByte();
+            return this.buffer.get();
         }
 
         @Override
         public void readBytes(byte[] b, int offset, int len) throws IOException {
-            this.buffer.getByteArray(b, offset, len);
+            this.buffer.get(b, offset, len);
         }
 
         @Override

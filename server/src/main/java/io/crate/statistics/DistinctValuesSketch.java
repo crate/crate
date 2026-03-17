@@ -22,13 +22,13 @@
 package io.crate.statistics;
 
 import java.io.IOException;
+import java.lang.foreign.MemorySegment;
 
-import org.apache.datasketches.memory.Memory;
-import org.apache.datasketches.theta.SetOperation;
-import org.apache.datasketches.theta.Sketch;
-import org.apache.datasketches.theta.Sketches;
-import org.apache.datasketches.theta.Union;
-import org.apache.datasketches.theta.UpdateSketch;
+
+import org.apache.datasketches.theta.ThetaSetOperation;
+import org.apache.datasketches.theta.ThetaSketch;
+import org.apache.datasketches.theta.ThetaUnion;
+import org.apache.datasketches.theta.UpdatableThetaSketch;
 import org.elasticsearch.common.io.stream.StreamInput;
 
 /**
@@ -49,7 +49,7 @@ public abstract class DistinctValuesSketch {
     /**
      * Get the internal sketch data structure
      */
-    public abstract Sketch getSketch();
+    public abstract ThetaSketch getSketch();
 
     /**
      * Creates a new empty sketch
@@ -57,7 +57,7 @@ public abstract class DistinctValuesSketch {
     public static DistinctValuesSketch newSketch() {
         return new DistinctValuesSketch() {
 
-            final UpdateSketch distinctSketch = UpdateSketch.builder().build();
+            final UpdatableThetaSketch distinctSketch = UpdatableThetaSketch.builder().build();
 
             @Override
             public void update(String v) {
@@ -66,20 +66,20 @@ public abstract class DistinctValuesSketch {
 
             @Override
             public DistinctValuesSketch merge(DistinctValuesSketch other) {
-                Union union = SetOperation.builder().buildUnion();
+                ThetaUnion union = ThetaSetOperation.builder().buildUnion();
                 union.union(distinctSketch);
                 union.union(other.getSketch());
                 return mergedSketch(union);
             }
 
             @Override
-            public Sketch getSketch() {
+            public ThetaSketch getSketch() {
                 return distinctSketch;
             }
         };
     }
 
-    private static DistinctValuesSketch mergedSketch(Union union) {
+    private static DistinctValuesSketch mergedSketch(ThetaUnion union) {
         return new DistinctValuesSketch() {
             @Override
             public void update(String v) {
@@ -93,7 +93,7 @@ public abstract class DistinctValuesSketch {
             }
 
             @Override
-            public Sketch getSketch() {
+            public ThetaSketch getSketch() {
                 return union.getResult();
             }
         };
@@ -104,7 +104,7 @@ public abstract class DistinctValuesSketch {
      */
     public static DistinctValuesSketch fromStream(StreamInput in) throws IOException {
         byte[] distinctSketchBytes = in.readByteArray();
-        var sketch = Sketches.wrapSketch(Memory.wrap(distinctSketchBytes));
+        var sketch = ThetaSketch.wrap(MemorySegment.ofArray(distinctSketchBytes));
         return new DistinctValuesSketch() {
             @Override
             public void update(String v) {
@@ -113,14 +113,14 @@ public abstract class DistinctValuesSketch {
 
             @Override
             public DistinctValuesSketch merge(DistinctValuesSketch other) {
-                Union union = SetOperation.builder().buildUnion();
+                ThetaUnion union = ThetaSetOperation.builder().buildUnion();
                 union.union(sketch);
                 union.union(other.getSketch());
                 return mergedSketch(union);
             }
 
             @Override
-            public Sketch getSketch() {
+            public ThetaSketch getSketch() {
                 return sketch;
             }
         };
