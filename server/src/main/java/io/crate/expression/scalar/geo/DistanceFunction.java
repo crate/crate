@@ -193,7 +193,7 @@ public class DistanceFunction extends Scalar<Double, Point> {
                 return LatLonPoint.newDistanceQuery(columnName, lonLat.getY(), lonLat.getX(), distance);
             case GteOperator.NAME:
                 if (distance - GeoUtils.TOLERANCE <= 0.0d) {
-                    return new MatchAllDocsQuery();
+                    return MatchAllDocsQuery.INSTANCE;
                 }
                 // fall through
             case GtOperator.NAME:

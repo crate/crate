@@ -156,7 +156,7 @@ public class GroupingLongCollectorBenchmark {
 
     @Benchmark
     public LongObjectHashMap<Long> measureGroupingOnNumericDocValues() throws Exception {
-        Weight weight = searcher.createWeight(new MatchAllDocsQuery(), ScoreMode.COMPLETE_NO_SCORES, 1.0f);
+        Weight weight = searcher.createWeight(MatchAllDocsQuery.INSTANCE, ScoreMode.COMPLETE_NO_SCORES, 1.0f);
         LeafReaderContext leaf = searcher.getTopReaderContext().leaves().getFirst();
         Scorer scorer = weight.scorer(leaf);
         NumericDocValues docValues = DocValues.getNumeric(leaf.reader(), "x");
@@ -179,7 +179,7 @@ public class GroupingLongCollectorBenchmark {
 
     @Benchmark
     public LongObjectHashMap<Long> measureGroupingOnSortedNumericDocValues() throws Exception {
-        var weight = searcher.createWeight(new MatchAllDocsQuery(), ScoreMode.COMPLETE_NO_SCORES, 1.0f);
+        var weight = searcher.createWeight(MatchAllDocsQuery.INSTANCE, ScoreMode.COMPLETE_NO_SCORES, 1.0f);
         var leaf = searcher.getTopReaderContext().leaves().getFirst();
         var scorer = weight.scorer(leaf);
         var docValues = DocValues.getSortedNumeric(leaf.reader(), "y");

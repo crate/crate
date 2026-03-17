@@ -58,7 +58,7 @@ public class Queries {
             }
         }
         return new BooleanQuery.Builder()
-            .add(new MatchAllDocsQuery(), Occur.MUST)
+            .add(MatchAllDocsQuery.INSTANCE, Occur.MUST)
             .add(q, Occur.MUST_NOT)
             .build();
     }

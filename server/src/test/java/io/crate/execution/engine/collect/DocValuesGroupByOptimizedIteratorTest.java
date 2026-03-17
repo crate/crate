@@ -163,7 +163,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             RamAccounting.NO_ACCOUNTING,
             null,
             null,
-            new MatchAllDocsQuery(),
+            MatchAllDocsQuery.INSTANCE,
             new CollectorContext(() -> null)
         );
 
@@ -240,7 +240,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             RamAccounting.NO_ACCOUNTING,
             null,
             null,
-            new MatchAllDocsQuery(),
+            MatchAllDocsQuery.INSTANCE,
             new CollectorContext(() -> null)
         );
 
@@ -372,7 +372,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             },
             (expressions) -> expressions.get(0).value(),
             (key, cells) -> cells[0] = key,
-            new MatchAllDocsQuery(),
+            MatchAllDocsQuery.INSTANCE,
             new CollectorContext(() -> null)
         );
     }

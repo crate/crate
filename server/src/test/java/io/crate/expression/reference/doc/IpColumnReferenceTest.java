@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -97,7 +97,7 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
         columnReference.startCollect(ctx);
         columnReference.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
-        TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 21);
+        TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, 21);
         assertThat(topDocs.scoreDocs.length).isEqualTo(21);
 
         int i = 0;
@@ -121,7 +121,7 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
         columnReference.startCollect(ctx);
         columnReference.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
-        TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
+        TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, 10);
 
         ScoreDoc doc = topDocs.scoreDocs[0];
         columnReference.setNextDocId(doc.doc);

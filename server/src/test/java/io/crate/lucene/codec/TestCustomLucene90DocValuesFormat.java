@@ -38,7 +38,7 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.PostingsFormat;
-import org.apache.lucene.codecs.lucene103.Lucene103Codec;
+import org.apache.lucene.codecs.lucene104.Lucene104Codec;
 import org.apache.lucene.codecs.perfield.PerFieldDocValuesFormat;
 import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
@@ -77,12 +77,11 @@ import org.apache.lucene.tests.index.RandomIndexWriter;
 import org.apache.lucene.tests.util.TestUtil;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
-import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.index.codec.CrateCodec;
 
 public class TestCustomLucene90DocValuesFormat extends BaseDocValuesFormatTestCase {
 
-    private final Codec codec = new CrateCodec(Lucene103Codec.Mode.BEST_SPEED);
+    private final Codec codec = new CrateCodec(Lucene104Codec.Mode.BEST_SPEED);
 
     @Override
     protected Codec getCodec() {
@@ -791,7 +790,7 @@ public class TestCustomLucene90DocValuesFormat extends BaseDocValuesFormatTestCa
 
     public void testReseekAfterSkipDecompression() throws IOException {
         final int CARDINALITY = (CustomLucene90DocValuesFormat.TERMS_DICT_BLOCK_LZ4_SIZE << 1) + 11;
-        Set<String> valueSet = CollectionUtil.newHashSet(CARDINALITY);
+        Set<String> valueSet = HashSet.newHashSet(CARDINALITY);
         for (int i = 0; i < CARDINALITY; i++) {
             valueSet.add(TestUtil.randomSimpleString(random(), 64));
         }

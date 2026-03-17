@@ -61,7 +61,7 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
             IndexWriterConfig iwc = newIndexWriterConfig();
             RecoverySourcePruneMergePolicy mp = new RecoverySourcePruneMergePolicy(
                 "extra_source",
-                MatchNoDocsQuery::new,
+                () -> MatchNoDocsQuery.INSTANCE,
                 newLogMergePolicy()
             );
             iwc.setMergePolicy(mp);
@@ -171,8 +171,7 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
     public void testPruneNone() throws IOException {
         try (Directory dir = newDirectory()) {
             IndexWriterConfig iwc = newIndexWriterConfig();
-            iwc.setMergePolicy(new RecoverySourcePruneMergePolicy("extra_source",
-                MatchAllDocsQuery::new, iwc.getMergePolicy()));
+            iwc.setMergePolicy(new RecoverySourcePruneMergePolicy("extra_source", () -> MatchAllDocsQuery.INSTANCE, iwc.getMergePolicy()));
             try (IndexWriter writer = new IndexWriter(dir, iwc)) {
                 for (int i = 0; i < 20; i++) {
                     if (i > 0 && randomBoolean()) {

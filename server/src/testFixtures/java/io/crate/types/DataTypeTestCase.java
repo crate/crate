@@ -164,7 +164,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             LeafReaderContext leafReader = leaves.getFirst();
 
             Weight weight = indexSearcher.createWeight(
-                new MatchAllDocsQuery(),
+                MatchAllDocsQuery.INSTANCE,
                 ScoreMode.COMPLETE_NO_SCORES,
                 1.0f
             );

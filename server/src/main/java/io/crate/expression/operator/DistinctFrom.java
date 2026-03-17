@@ -113,7 +113,7 @@ public class DistinctFrom extends Operator<Object> {
         if (value == null) {
             if (!ref.isNullable()) {
                 // If the column is NOT NULL, `x IS DISTINCT FROM NULL` is true for all documents
-                return new MatchAllDocsQuery();
+                return MatchAllDocsQuery.INSTANCE;
             }
             return IsNullPredicate.refExistsQuery(ref, context);
         }

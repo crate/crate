@@ -63,11 +63,11 @@ import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import io.crate.common.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.cursors.LongCursor;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
@@ -238,7 +238,7 @@ public final class ReservoirSampler {
     @VisibleForTesting
     static void sampleDocIds(Reservoir reservoir, int readerIdx, IndexSearcher searcher) {
         try {
-            searcher.search(new MatchAllDocsQuery(), new ReservoirCollectorManager(reservoir, readerIdx));
+            searcher.search(MatchAllDocsQuery.INSTANCE, new ReservoirCollectorManager(reservoir, readerIdx));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

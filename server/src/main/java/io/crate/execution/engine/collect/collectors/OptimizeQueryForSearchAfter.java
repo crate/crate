@@ -81,7 +81,7 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
                 // nulls already gone, so they should be excluded
                 if (nullsFirst) {
                     BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
-                    booleanQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
+                    booleanQuery.add(MatchAllDocsQuery.INSTANCE, BooleanClause.Occur.MUST);
                     Query rangeQuery;
                     if (orderBy.reverseFlags()[i]) {
                         rangeQuery = eqQuery.rangeQuery(

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.function.UnaryOperator;
 
 import org.apache.lucene.index.DirectoryReader;
@@ -65,6 +66,7 @@ public final class NoOpEngine extends ReadOnlyEngine {
         final List<IndexCommit> indexCommits = DirectoryReader.listCommits(directory);
         final IndexCommit indexCommit = indexCommits.get(indexCommits.size() - 1);
         return new DirectoryReader(directory, new LeafReader[0], null) {
+
             @Override
             protected DirectoryReader doOpenIfChanged() throws IOException {
                 return null;
@@ -101,6 +103,22 @@ public final class NoOpEngine extends ReadOnlyEngine {
 
             @Override
             public CacheHelper getReaderCacheHelper() {
+                return null;
+            }
+
+            @Override
+            protected DirectoryReader doOpenIfChanged(ExecutorService arg0) throws IOException {
+                return null;
+            }
+
+            @Override
+            protected DirectoryReader doOpenIfChanged(IndexCommit arg0, ExecutorService arg1) throws IOException {
+                return null;
+            }
+
+            @Override
+            protected DirectoryReader doOpenIfChanged(IndexWriter arg0, boolean arg1, ExecutorService arg2)
+                    throws IOException {
                 return null;
             }
         };

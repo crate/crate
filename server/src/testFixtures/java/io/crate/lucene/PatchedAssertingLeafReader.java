@@ -19,7 +19,6 @@ package io.crate.lucene;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 
 import org.apache.lucene.index.BinaryDocValues;
@@ -27,7 +26,7 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FilterLeafReader;
-import org.apache.lucene.index.Impact;
+import org.apache.lucene.index.FreqAndNormBuffer;
 import org.apache.lucene.index.Impacts;
 import org.apache.lucene.index.ImpactsEnum;
 import org.apache.lucene.index.LeafReader;
@@ -558,12 +557,11 @@ public class PatchedAssertingLeafReader extends FilterLeafReader {
         }
 
         @Override
-        public List<Impact> getImpacts(int level) {
+        public FreqAndNormBuffer getImpacts(int level) {
             assert validFor == Math.max(impactsEnum.docID(), impactsEnum.lastShallowTarget)
                 : "Cannot reuse impacts after advancing the iterator";
             return in.getImpacts(level);
         }
-
     }
 
     /** Wraps a NumericDocValues but with additional asserts */

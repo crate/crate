@@ -217,7 +217,7 @@ public class MatchQuery {
             case NONE:
                 return new MatchNoDocsQuery("Matching no documents because no terms present");
             case ALL:
-                return new MatchAllDocsQuery();
+                return MatchAllDocsQuery.INSTANCE;
             default:
                 throw new IllegalStateException("unknown zeroTermsQuery " + zeroTermsQuery);
         }

@@ -76,7 +76,7 @@ public class LuceneBatchIteratorBenchmark {
     public void measureConsumeLuceneBatchIterator(Blackhole blackhole) throws Exception {
         LuceneBatchIterator it = new LuceneBatchIterator(
             indexSearcher,
-            new MatchAllDocsQuery(),
+            MatchAllDocsQuery.INSTANCE,
             null,
             false,
             collectorContext,

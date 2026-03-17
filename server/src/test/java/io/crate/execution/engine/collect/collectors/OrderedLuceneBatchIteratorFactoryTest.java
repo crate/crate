@@ -252,7 +252,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
         return new LuceneOrderedDocCollector(
             new ShardId("dummy", UUIDs.randomBase64UUID(), shardId),
             searcher,
-            new MatchAllDocsQuery(),
+            MatchAllDocsQuery.INSTANCE,
             null,
             false,
             5, // batchSize < 10 to have at least one searchMore call.

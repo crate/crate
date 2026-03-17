@@ -128,7 +128,7 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
             } else if (matchFalse) {
                 return termQuery(field, Boolean.FALSE, hasDocValues, isIndexed);
             } else {
-                return new MatchNoDocsQuery();
+                return MatchNoDocsQuery.INSTANCE;
             }
         }
 

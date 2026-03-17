@@ -59,17 +59,17 @@ public interface EqQuery<T> {
         return new EqQuery<>() {
             @Override
             public Query termQuery(String field, T value, boolean hasDocValues, boolean isIndexed) {
-                return new MatchNoDocsQuery();
+                return MatchNoDocsQuery.INSTANCE;
             }
 
             @Override
             public Query rangeQuery(String field, T lowerTerm, T upperTerm, boolean includeLower, boolean includeUpper, boolean hasDocValues, boolean isIndexed) {
-                return new MatchNoDocsQuery();
+                return MatchNoDocsQuery.INSTANCE;
             }
 
             @Override
             public Query termsQuery(String field, List<T> nonNullValues, boolean hasDocValues, boolean isIndexed) {
-                return new MatchNoDocsQuery();
+                return MatchNoDocsQuery.INSTANCE;
             }
         };
     }

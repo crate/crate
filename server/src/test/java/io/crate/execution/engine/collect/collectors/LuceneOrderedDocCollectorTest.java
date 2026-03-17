@@ -132,7 +132,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
             // searchAfterQuery is actually a query for all before last doc, so negate it
             query = Queries.not(searchAfterQuery);
         } else {
-            query = new MatchAllDocsQuery();
+            query = MatchAllDocsQuery.INSTANCE;
         }
         TopFieldDocs docs = searcher.search(query, 10, sort);
         return docs;

@@ -39,7 +39,7 @@ public class EngineSearcherAssert extends AbstractAssert<EngineSearcherAssert, E
     }
 
     public EngineSearcherAssert hasTotalHits(int totalHits) {
-        return hasTotalHits(new MatchAllDocsQuery(), totalHits);
+        return hasTotalHits(MatchAllDocsQuery.INSTANCE, totalHits);
     }
 
     public EngineSearcherAssert hasTotalHits(Query query, int totalHits) {
