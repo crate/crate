@@ -108,6 +108,9 @@ SQL Standard and PostgreSQL Compatibility
   type within ``ORDER BY``. Note that the latter has worse performance compared
   to ordering on a properly typed column.
 
+- The :ref:`INFORMATION_SCHEMA.COLUMNS <information_schema_columns>` table now
+  shows values for the ``udt_name`` and ``udt_catalog`` columns.
+
 Data Types
 ----------
 
