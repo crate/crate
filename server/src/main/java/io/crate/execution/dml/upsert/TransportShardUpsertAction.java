@@ -31,7 +31,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
-import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -44,8 +43,6 @@ import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.Engine.IndexResult;
-import org.elasticsearch.index.engine.Engine.Operation.Origin;
-import org.elasticsearch.index.engine.Engine.Result.Type;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.Uid;
@@ -61,7 +58,6 @@ import org.jspecify.annotations.Nullable;
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.TransportAddColumn;
@@ -263,116 +259,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
 
     @Override
     protected WriteReplicaResult processRequestItemsOnReplica(IndexShard indexShard, UpsertReplicaRequest request) throws IOException {
-        List<Reference> columns = request.columns();
-        Translog.Location location = null;
-        String indexUUID = indexShard.shardId().getIndexUUID();
-        boolean traceEnabled = logger.isTraceEnabled();
-
-        Metadata metadata = clusterService.state().metadata();
-        DocTableInfo tableInfo = schemas.getTableInfo(indexShard.shardId().getIndex());
-        IndexMetadata indexMetadata = metadata.index(indexUUID);
-        assert indexMetadata != null : "IndexMetadata for index " + indexUUID + " not found in cluster state";
-        List<String> partitionValues = indexMetadata.partitionValues();
-
-        TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
-
-        // Refresh insertColumns References from cluster state because ObjectType
-        // may have new children due to dynamic cluster state updates
-        // Not doing this would result in indefinite `Mappings are not available on the replica yet` errors below
-        List<Reference> targetColumns = Lists.map(columns,
-            ref -> {
-                Reference updatedRef = tableInfo.getReference(ref.column());
-                return updatedRef == null ? ref : updatedRef;
-            });
-
-        RawIndexer rawIndexer;
-        Indexer indexer;
-        if (columns.get(0).column().equals(SysColumns.RAW)) {
-            // Even if insertColumns supposed to have a single column _raw,
-            // insertColumns can be expanded to add non-deterministic synthetics.
-            // We must not check that insertColumns.length is 1
-            // in order not to fall back to regular Indexer which cannot handle _raw and persists it as String.
-            indexer = null;
-            rawIndexer = new RawIndexer(
-                partitionValues,
-                tableInfo,
-                indexShard.getVersionCreated(),
-                txnCtx,
-                nodeCtx,
-                null,
-                targetColumns.subList(1, targetColumns.size()), // expanded refs (non-deterministic synthetics),
-                targetColumns
-            );
-        } else {
-            rawIndexer = null;
-            indexer = new Indexer(
-                partitionValues,
-                tableInfo,
-                indexShard.getVersionCreated(),
-                txnCtx,
-                nodeCtx,
-                targetColumns,
-                null,
-                null
-            );
-        }
-        for (UpsertReplicaRequest.Item item : request.items()) {
-
-            // For BWC
-            if (item.seqNo() == SequenceNumbers.SKIP_ON_REPLICA) {
-                if (traceEnabled) {
-                    logger.trace(
-                        "[{} (R)] Document with id={}, marked as skip_on_replica",
-                        indexShard.shardId(),
-                        item.id()
-                    );
-                }
-                continue;
-            }
-
-            long startTime = System.nanoTime();
-            List<Reference> newColumns = rawIndexer != null ? rawIndexer.collectSchemaUpdates(item) : indexer.collectSchemaUpdates(item);
-
-            if (!newColumns.isEmpty()) {
-                // Even though the primary waits on all nodes to ack the mapping changes to the master
-                // (see MappingUpdatedAction.updateMappingOnMaster) we still need to protect against missing mappings
-                // and wait for them. The reason is concurrent requests. Request r1 which has new field f triggers a
-                // mapping update. Assume that that update is first applied on the primary, and only later on the replica
-                // (it’s happening concurrently). Request r2, which now arrives on the primary and which also has the new
-                // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
-                // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
-                // applied the new mapping, so there is no other option than to wait.
-                logger.trace("Mappings are not available on the replica columns={}", newColumns);
-                throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
-                    "Mappings are not available on the replica yet, triggered update: " + newColumns);
-            }
-
-            ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index() : indexer.index(item);
-            BytesRef uid = Uid.encodeId(item.id());
-            boolean isRetry = false;
-            Engine.Index index = new Engine.Index(
-                uid,
-                parsedDoc,
-                item.seqNo(),
-                item.primaryTerm(),
-                item.version(),
-                null, // versionType
-                Origin.REPLICA,
-                startTime,
-                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-                isRetry,
-                SequenceNumbers.UNASSIGNED_SEQ_NO,
-                SequenceNumbers.UNASSIGNED_PRIMARY_TERM
-            );
-            IndexResult result = indexShard.index(index);
-            if (result.getResultType() != Type.SUCCESS) {
-                assert false : "doc-level index failure must not happen on replica";
-                throw Exceptions.toRuntimeException(result.getFailure());
-            }
-            assert result.getSeqNo() == item.seqNo() : "Result of replica index operation must have item seqNo";
-            location = locationToSync(location, result.getTranslogLocation());
-        }
-        return new WriteReplicaResult(location, indexShard);
+        throw new IllegalArgumentException("dummy");
     }
 
     @Nullable
