@@ -91,9 +91,17 @@ Fixes
   The new behavior is that it will use the type with the higher precendence,
   and cast the other values if possible.
 
-- Fixed incorrect JSON response formatting for bulk operations with a single
-  argument that results in a runtime error. The response now follows the
-  structure specified in :ref:`bulk-errors <http-bulk-errors>`.
+- Fixed incorrect JSON response formatting for
+  :ref:`HTTP bulk operations <http-bulk-ops>` with a single argument that
+  results in a runtime error. The response now follows the structure
+  specified in :ref:`bulk-errors <http-bulk-errors>`, independent of the number
+  of bulk arguments.
+
+  .. WARNING::
+
+    This change may break clients that rely on the previous error response
+    format when using :ref:`bulk_args <http-bulk-ops>` with a single bulk
+    argument.
 
 - Fixed an issue that caused a user to have duplicate roles granted by
   different grantors.
