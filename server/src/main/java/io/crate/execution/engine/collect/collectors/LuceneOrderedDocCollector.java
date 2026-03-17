@@ -167,8 +167,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
             sort,
             batchSize,
             null,
-            0, // do not process any hits
-            false
+            0 // do not process any hits
         );
         return doSearch(topFieldCollectorManager, minScore, query);
     }
@@ -186,8 +185,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
             sort,
             batchSize,
             lastDoc,
-            0, // do not process any hits,
-            false
+            0 // do not process any hits,
         );
         return doSearch(topFieldCollectorManager, minScore, query(lastDoc));
     }
