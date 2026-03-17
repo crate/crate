@@ -132,7 +132,6 @@
         <exclude>org.apache.lucene:lucene-analysis-phonetic</exclude>
 
         <exclude>io.crate:es-repository-azure</exclude>
-        <exclude>com.microsoft.azure:*</exclude>
         <exclude>io.crate:repository-gcs</exclude>
         <exclude>io.crate:dns-discovery</exclude>
       </excludes>
@@ -228,7 +227,6 @@
       <binaries>
         <includes>
           <include>io.crate:es-repository-azure</include>
-          <include>com.microsoft.azure:*</include>
         </includes>
         <includeDependencies>true</includeDependencies>
         <unpack>false</unpack>
