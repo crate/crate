@@ -29,7 +29,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.DocAndFloatFeatureBuffer;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreMode;
@@ -245,6 +245,7 @@ public final class DocValuesAggregates {
         for (int i = 0; i < aggregators.size(); i++) {
             cells[i] = aggregators.get(i).initialState(ramAccounting, memoryManager, minNodeVersion);
         }
+        DocAndFloatFeatureBuffer buffer = new DocAndFloatFeatureBuffer();
         for (var leaf : leaves) {
             Scorer scorer = weight.scorer(leaf);
             if (scorer == null) {
@@ -253,18 +254,20 @@ public final class DocValuesAggregates {
             for (int i = 0; i < aggregators.size(); i++) {
                 aggregators.get(i).loadDocValues(leaf);
             }
-            DocIdSetIterator docs = scorer.iterator();
+            int max = leaf.reader().maxDoc();
             Bits liveDocs = leaf.reader().getLiveDocs();
-            for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
-                if (liveDocs != null && !liveDocs.get(doc)) {
-                    continue;
-                }
+            if (scorer.docID() < 0) {
+                scorer.iterator().advance(0);
+            }
+            for (scorer.nextDocsAndScores(max, liveDocs, buffer);
+                    buffer.size > 0;
+                    scorer.nextDocsAndScores(max, liveDocs, buffer)) {
                 Throwable killCause = killed.get();
                 if (killCause != null) {
                     Exceptions.rethrowUnchecked(killCause);
                 }
                 for (int i = 0; i < aggregators.size(); i++) {
-                    aggregators.get(i).apply(ramAccounting, doc, cells[i]);
+                    aggregators.get(i).applyBulk(ramAccounting, buffer, cells[i]);
                 }
             }
         }
