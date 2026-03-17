@@ -210,7 +210,7 @@ public class InternalEngineTests extends EngineTestCase {
 
         try (Engine.Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL)) {
             assertThat(searcher.getIndexReader().numDocs()).isEqualTo(1);
-            TopDocs search = searcher.search(new MatchAllDocsQuery(), 1);
+            TopDocs search = searcher.search(MatchAllDocsQuery.INSTANCE, 1);
             org.apache.lucene.document.Document luceneDoc = searcher.storedFields().document(search.scoreDocs[0].doc);
             assertThat(luceneDoc.get("value")).isEqualTo("test");
         }
@@ -223,7 +223,7 @@ public class InternalEngineTests extends EngineTestCase {
         assertThat(engine.isSafeAccessRequired()).as("safe access should be required we carried it over").isTrue();
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
             assertThat(searcher.getIndexReader().numDocs()).isEqualTo(1);
-            TopDocs search = searcher.search(new MatchAllDocsQuery(), 1);
+            TopDocs search = searcher.search(MatchAllDocsQuery.INSTANCE, 1);
             org.apache.lucene.document.Document luceneDoc = searcher.storedFields().document(search.scoreDocs[0].doc);
             assertThat(luceneDoc.get("value")).isEqualTo("updated");
         }
@@ -536,7 +536,7 @@ public class InternalEngineTests extends EngineTestCase {
             recoveringEngine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);
             recoveringEngine.refresh("test");
             try (Engine.Searcher searcher = recoveringEngine.acquireSearcher("test")) {
-                var totalHits = searcher.count(new MatchAllDocsQuery());
+                var totalHits = searcher.count(MatchAllDocsQuery.INSTANCE);
                 assertThat(totalHits).isEqualTo(operations.getLast() instanceof Engine.Delete ? 0 : 1);
             }
         }
@@ -605,7 +605,7 @@ public class InternalEngineTests extends EngineTestCase {
             recoveringEngine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);
             recoveringEngine.refresh("test");
             try (Engine.Searcher searcher = recoveringEngine.acquireSearcher("test")) {
-                TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), docs);
+                TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, docs);
                 assertThat(topDocs.totalHits.value()).isEqualTo(docs);
             }
         } finally {
@@ -1098,9 +1098,9 @@ public class InternalEngineTests extends EngineTestCase {
         try (Directory dir = newDirectory()) {
             IndexWriterConfig indexWriterConfig = new IndexWriterConfig(Lucene.STANDARD_ANALYZER);
             indexWriterConfig.setSoftDeletesField(Lucene.SOFT_DELETES_FIELD);
-            try (IndexWriter writer = new IndexWriter(dir,
-                                                      indexWriterConfig.setMergePolicy(new SoftDeletesRetentionMergePolicy(Lucene.SOFT_DELETES_FIELD,
-                                                                                                                           MatchAllDocsQuery::new, new PrunePostingsMergePolicy(indexWriterConfig.getMergePolicy(), "_id"))))) {
+            try (IndexWriter writer = new IndexWriter(
+                    dir,
+                    indexWriterConfig.setMergePolicy(new SoftDeletesRetentionMergePolicy(Lucene.SOFT_DELETES_FIELD, () -> MatchAllDocsQuery.INSTANCE, new PrunePostingsMergePolicy(indexWriterConfig.getMergePolicy(), "_id"))))) {
                 org.apache.lucene.document.Document doc = new org.apache.lucene.document.Document();
                 doc.add(new Field(SysColumns.Names.ID, "1", SysColumns.ID.FIELD_TYPE));
                 doc.add(new NumericDocValuesField(SysColumns.VERSION.name(), -1));
@@ -1858,7 +1858,7 @@ public class InternalEngineTests extends EngineTestCase {
             replicaEngine,
             new Engine.Get(lastReplicaOp.id(), lastReplicaOp.uid())).v1();
         try (Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL)) {
-            var totalHits = searcher.count(new MatchAllDocsQuery());
+            var totalHits = searcher.count(MatchAllDocsQuery.INSTANCE);
             if (totalHits > 0) {
                 // last op wasn't delete
                 assertThat(currentSeqNo).isEqualTo(finalReplicaSeqNo + opsOnPrimary);
@@ -2729,7 +2729,7 @@ public class InternalEngineTests extends EngineTestCase {
         try (InternalEngine engine = new InternalEngine(config)) {
             engine.skipTranslogRecovery();
             try (Engine.Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL)) {
-                TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), randomIntBetween(numDocs, numDocs + 10));
+                TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, randomIntBetween(numDocs, numDocs + 10));
                 assertThat(topDocs.totalHits.value()).isEqualTo(0L);
             }
         }
@@ -2782,7 +2782,7 @@ public class InternalEngineTests extends EngineTestCase {
         engine.refresh("test");
         assertThat(result.getVersion()).isEqualTo(2L);
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), numDocs + 1);
+            TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, numDocs + 1);
             assertThat(topDocs.totalHits.value()).isEqualTo(numDocs + 1L);
         }
 
@@ -2791,7 +2791,7 @@ public class InternalEngineTests extends EngineTestCase {
         engine = createEngine(store, primaryTranslogDir, inSyncGlobalCheckpointSupplier);
         engine.refresh("warm_up");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), numDocs + 1);
+            TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, numDocs + 1);
             assertThat(topDocs.totalHits.value()).isEqualTo(numDocs + 1L);
         }
         engine.delete(new Engine.Delete(
@@ -2812,7 +2812,7 @@ public class InternalEngineTests extends EngineTestCase {
         }
         engine.refresh("test");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), numDocs);
+            TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, numDocs);
             assertThat(topDocs.totalHits.value()).isEqualTo((long) numDocs);
         }
     }
@@ -3168,7 +3168,7 @@ public class InternalEngineTests extends EngineTestCase {
 
         engine.refresh("test");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
+            TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, 10);
             assertThat(topDocs.totalHits.value()).isEqualTo(1);
         }
         operation = appendOnlyPrimary(doc, false, 1, create);
@@ -3203,7 +3203,7 @@ public class InternalEngineTests extends EngineTestCase {
 
         engine.refresh("test");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
+            TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, 10);
             assertThat(topDocs.totalHits.value()).isEqualTo(1);
         }
     }
@@ -3257,7 +3257,7 @@ public class InternalEngineTests extends EngineTestCase {
 
         engine.refresh("test");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
+            TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, 10);
             assertThat(topDocs.totalHits.value()).isEqualTo(0);
         }
     }
@@ -3277,7 +3277,7 @@ public class InternalEngineTests extends EngineTestCase {
         // promote to primary: first do refresh
         engine.refresh("test");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
+            TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, 10);
             assertThat(topDocs.totalHits.value()).isEqualTo(1);
         }
 
@@ -3317,7 +3317,7 @@ public class InternalEngineTests extends EngineTestCase {
 
         engine.refresh("test");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
+            TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, 10);
             assertThat(topDocs.totalHits.value()).isEqualTo(1);
         }
     }
@@ -3358,12 +3358,12 @@ public class InternalEngineTests extends EngineTestCase {
 
         engine.refresh("test");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
+            TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, 10);
             assertThat(topDocs.totalHits.value()).isEqualTo(1);
         }
         engine.refresh("test");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
+            TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, 10);
             assertThat(topDocs.totalHits.value()).isEqualTo(1);
         }
         List<Translog.Operation> ops = readAllOperationsInLucene(engine);
@@ -3420,7 +3420,7 @@ public class InternalEngineTests extends EngineTestCase {
         assertThat(indexResult.getSeqNo()).isNotEqualTo(UNASSIGNED_SEQ_NO);
         engine.refresh("test");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
+            TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, 10);
             assertThat(topDocs.totalHits.value()).isEqualTo(1);
         }
 
@@ -3430,7 +3430,7 @@ public class InternalEngineTests extends EngineTestCase {
         assertThat(indexResult.getResultType()).isEqualTo(Engine.Result.Type.SUCCESS);
         replicaEngine.refresh("test");
         try (Engine.Searcher searcher = replicaEngine.acquireSearcher("test")) {
-            TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
+            TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, 10);
             assertThat(topDocs.totalHits.value()).isEqualTo(1);
         }
     }
@@ -3483,7 +3483,7 @@ public class InternalEngineTests extends EngineTestCase {
         assertThat(indexResult.isCreated()).isFalse();
         engine.refresh("test");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
+            TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, 10);
             assertThat(topDocs.totalHits.value()).isEqualTo(1);
         }
 
@@ -3492,7 +3492,7 @@ public class InternalEngineTests extends EngineTestCase {
         replicaEngine.index(secondIndexRequestReplica);
         replicaEngine.refresh("test");
         try (Engine.Searcher searcher = replicaEngine.acquireSearcher("test")) {
-            TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
+            TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, 10);
             assertThat(topDocs.totalHits.value()).isEqualTo(1);
         }
     }
@@ -3571,7 +3571,7 @@ public class InternalEngineTests extends EngineTestCase {
 
         engine.refresh("test");
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            int count = searcher.count(new MatchAllDocsQuery());
+            int count = searcher.count(MatchAllDocsQuery.INSTANCE);
             assertThat(count).isEqualTo(docs.size());
         }
         assertThat(engine.getNumVersionLookups()).isEqualTo(0);
@@ -4015,7 +4015,7 @@ public class InternalEngineTests extends EngineTestCase {
                 localCheckpoint);
             EngineConfig noopEngineConfig = copy(engine.config(), new SoftDeletesRetentionMergePolicy(
                 Lucene.SOFT_DELETES_FIELD,
-                () -> new MatchAllDocsQuery(), engine.config().getMergePolicy()));
+                () -> MatchAllDocsQuery.INSTANCE, engine.config().getMergePolicy()));
             noOpEngine = new InternalEngine(noopEngineConfig, IndexWriter.MAX_DOCS, supplier) {
                 @Override
                 protected long doGenerateSeqNoForOperation(Operation operation) {
@@ -4635,7 +4635,7 @@ public class InternalEngineTests extends EngineTestCase {
         thread.join();
         engine.refresh("test", Engine.SearcherScope.INTERNAL, true);
         try (Engine.Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL)) {
-            TopDocs search = searcher.search(new MatchAllDocsQuery(), searcher.getIndexReader().numDocs());
+            TopDocs search = searcher.search(MatchAllDocsQuery.INSTANCE, searcher.getIndexReader().numDocs());
             for (int i = 0; i < search.scoreDocs.length; i++) {
                 org.apache.lucene.document.Document luceneDoc = searcher.storedFields().document(search.scoreDocs[i].doc);
                 assertThat(luceneDoc.get("value")).isEqualTo("updated");
@@ -5084,7 +5084,7 @@ public class InternalEngineTests extends EngineTestCase {
 
     private void assertOperationHistoryInLucene(List<Engine.Operation> operations) throws IOException {
         final MergePolicy keepSoftDeleteDocsMP = new SoftDeletesRetentionMergePolicy(
-            Lucene.SOFT_DELETES_FIELD, MatchAllDocsQuery::new, engine.config().getMergePolicy());
+            Lucene.SOFT_DELETES_FIELD, () -> MatchAllDocsQuery.INSTANCE, engine.config().getMergePolicy());
         Settings.Builder settings = Settings.builder()
             .put(defaultSettings.getSettings())
             .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(), randomLongBetween(0, 10));

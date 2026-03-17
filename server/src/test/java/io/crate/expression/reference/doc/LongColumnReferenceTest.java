@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -61,7 +61,7 @@ public class LongColumnReferenceTest extends DocLevelExpressionsTest {
         longColumn.startCollect(ctx);
         longColumn.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
-        TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 20);
+        TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, 20);
         long l = Long.MIN_VALUE;
         for (ScoreDoc doc : topDocs.scoreDocs) {
             longColumn.setNextDocId(doc.doc);

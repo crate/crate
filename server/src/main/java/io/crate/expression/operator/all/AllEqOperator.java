@@ -66,7 +66,7 @@ public final class AllEqOperator extends AllOperator<Object> {
             .stream(((Iterable<?>) literal.value()).spliterator(), false)
             .collect(Collectors.toSet());
         if (uniqueValues.isEmpty()) {
-            return new MatchAllDocsQuery();
+            return MatchAllDocsQuery.INSTANCE;
         }
         if (uniqueValues.contains(null)) {
             // i.e.::

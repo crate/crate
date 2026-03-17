@@ -142,7 +142,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
         return new LuceneOrderedDocCollector(
             dummyShardId,
             searcher,
-            new MatchAllDocsQuery(),
+            MatchAllDocsQuery.INSTANCE,
             null,
             false,
             10_000_000,

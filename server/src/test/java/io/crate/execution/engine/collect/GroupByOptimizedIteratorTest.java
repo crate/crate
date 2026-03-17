@@ -144,7 +144,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             new OnHeapMemoryManager(usedBytes -> {}),
             Version.CURRENT,
             new InputRow(Collections.singletonList(inExpr)),
-            new MatchAllDocsQuery(),
+            MatchAllDocsQuery.INSTANCE,
             new CollectorContext(() -> null),
             AggregateMode.ITER_FINAL
         );

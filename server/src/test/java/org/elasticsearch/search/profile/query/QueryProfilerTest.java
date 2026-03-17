@@ -65,7 +65,7 @@ public class QueryProfilerTest extends ESTestCase {
         for (int i = 0; i < concurrency; i++) {
             executor.submit(() -> {
                 try {
-                    profiler.getProfileBreakdown(new MatchAllDocsQuery());
+                    profiler.getProfileBreakdown(MatchAllDocsQuery.INSTANCE);
                 } catch (Exception e) {
                     lastThrowable.set(e);
                 } finally {

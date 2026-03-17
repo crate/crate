@@ -264,7 +264,7 @@ public class LuceneQueryBuilder {
         public Query visitFunction(Function function, Context context) {
             assert function != null : "function must not be null";
             if (fieldIgnored(function, context)) {
-                return new MatchAllDocsQuery();
+                return MatchAllDocsQuery.INSTANCE;
             }
             function = rewriteAndValidateFields(function, context);
 
@@ -368,7 +368,7 @@ public class LuceneQueryBuilder {
             }
             try {
                 return (boolean) value
-                    ? new MatchAllDocsQuery()
+                    ? MatchAllDocsQuery.INSTANCE
                     : new MatchNoDocsQuery("WHERE false -> no match");
             } catch (ClassCastException e) {
                 // Throw a nice error if the top-level literal doesn't have a boolean type

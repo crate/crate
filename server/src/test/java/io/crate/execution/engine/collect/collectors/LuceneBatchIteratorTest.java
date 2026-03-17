@@ -71,7 +71,7 @@ public class LuceneBatchIteratorTest {
         var tester = BatchIteratorTester.forRows(
             () -> new LuceneBatchIterator(
                 indexSearcher,
-                new MatchAllDocsQuery(),
+                MatchAllDocsQuery.INSTANCE,
                 null,
                 false,
                 new CollectorContext(() -> null),

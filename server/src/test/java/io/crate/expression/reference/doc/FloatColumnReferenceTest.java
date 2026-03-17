@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -59,7 +59,7 @@ public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
         floatColumn.startCollect(ctx);
         floatColumn.setNextReader(new ReaderContext(readerContext));
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
-        TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
+        TopDocs topDocs = searcher.search(MatchAllDocsQuery.INSTANCE, 10);
         float f = -0.5f;
         for (ScoreDoc doc : topDocs.scoreDocs) {
             floatColumn.setNextDocId(doc.doc);

@@ -198,7 +198,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                     return null;
                 }
                 if (!ref.isNullable()) {
-                    return new MatchAllDocsQuery();
+                    return MatchAllDocsQuery.INSTANCE;
                 }
                 return IsNullPredicate.refExistsQuery(ref, context);
             }

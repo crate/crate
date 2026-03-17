@@ -149,7 +149,7 @@ public class MultiPhrasePrefixQuery extends Query {
             return rewritten;
         }
         if (termArrays.isEmpty()) {
-            return new MatchNoDocsQuery();
+            return MatchNoDocsQuery.INSTANCE;
         }
         MultiPhraseQuery.Builder query = new MultiPhraseQuery.Builder();
         query.setSlop(slop);

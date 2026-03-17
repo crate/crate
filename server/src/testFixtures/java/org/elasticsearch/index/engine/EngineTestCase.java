@@ -828,7 +828,7 @@ public abstract class EngineTestCase extends ESTestCase {
             engine.refresh("test");
         }
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            int totalHits = searcher.count(new MatchAllDocsQuery());
+            int totalHits = searcher.count(MatchAllDocsQuery.INSTANCE);
             assertThat(totalHits).isEqualTo(numDocs);
         }
     }
