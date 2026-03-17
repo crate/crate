@@ -53,8 +53,11 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${versions.plugin.compiler}</version>
                 <configuration>
+                    <enablePreview>true</enablePreview>
                     <compilerArgs>
                         <arg>-proc:full</arg>
+                        <arg>--add-modules</arg>
+                        <arg>jdk.incubator.vector</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
@@ -301,7 +304,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.release>25</maven.compiler.release>
+        <maven.compiler.release>26</maven.compiler.release>
 
         <!-- see surefire plugin configuration for explanation -->
         <skipRunTests>false</skipRunTests>

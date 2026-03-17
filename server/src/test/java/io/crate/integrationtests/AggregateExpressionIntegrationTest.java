@@ -45,6 +45,16 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    public void test_max_long() throws Exception {
+        execute("create table tbl (x long)");
+        execute("insert into tbl (x) values (1), (2), (3)");
+        execute("refresh table tbl");
+
+        execute("select max(x) from tbl");
+        assertThat(response).hasRows("3");
+    }
+
+    @Test
     public void test_min_and_max_by() {
         execute("create table tbl (name text, x int)");
         execute("insert into tbl (name, x) values (?, ?)",
