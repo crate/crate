@@ -1,20 +1,26 @@
-.. _version_6.2.3:
+.. _version_6.2.4:
 
-=============
-Version 6.2.3
-=============
+==========================
+Version 6.2.4 - Unreleased
+==========================
 
-Released on 2026-03-17.
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+.. NOTE::
+
+    In development. 6.2.4 isn't released yet. These are the release notes for
+    the upcoming release.
 
 .. NOTE::
 
     If you are upgrading a cluster, you must be running CrateDB 5.0.0 or higher
-    before you upgrade to 6.2.3.
+    before you upgrade to 6.2.4.
 
     We recommend that you upgrade to the latest 6.1 release before moving to
-    6.2.3.
+    6.2.4.
 
-    A rolling upgrade from >= 6.1.2 to 6.2.3 is supported. Doing a rolling
+    A rolling upgrade from >= 6.1.2 to 6.2.4 is supported. Doing a rolling
     upgrade from an earlier version than 6.1.2 can cause runtime errors when
     executing statements relying on implicit casts.
 
@@ -42,12 +48,3 @@ series.
 
 Fixes
 =====
-
-- Fixed an issue causing memory leaks when accessing
-  :ref:`BLOB endpoint<blob-endpoint>`.
-
-- Fixed an issue causing memory leaks if requests to the ``HTTP`` endpoint
-  failed to create a session, for example, due to wrong authentication headers.
-
-- Fixed an issue causing clients to not receive errors, happened on sending a
-  response from ``HTTP`` endpoint.
