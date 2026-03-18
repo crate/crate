@@ -46,7 +46,13 @@ import io.crate.common.collections.Lists;
 /// https://www.postgresql.org/docs/18/functions-formatting.html#FUNCTIONS-FORMATTING-DATETIME-TABLE
 public class PGDateTimeTemplates {
 
-    public enum Token {
+    sealed interface Token permits TemplateLiteral, TemplatePattern {
+    }
+
+    public record TemplateLiteral(String value) implements Token {
+    }
+
+    public enum TemplatePattern implements Token {
         HOUR_OF_DAY("HH"),
         HOUR_OF_DAY_LOWER("hh"),
         HOUR_OF_DAY12("HH12"),
@@ -158,17 +164,16 @@ public class PGDateTimeTemplates {
         TIMEZONE_OFFSET_FROM_UTC("OF"),
         TIMEZONE_OFFSET_FROM_UTC_LOWER("of");
 
-        private final String token;
+        private final String pattern;
 
-        Token(final String token) {
-            this.token = token;
+        TemplatePattern(final String pattern) {
+            this.pattern = pattern;
         }
 
         @Override
         public String toString() {
-            return this.token;
+            return this.pattern;
         }
-
     }
 
     static class TokenNode {
@@ -224,12 +229,12 @@ public class PGDateTimeTemplates {
     private static final TokenNode ROOT_TOKEN_NODE = new TokenNode();
 
     static {
-        for (Token token: Token.values()) {
-            ROOT_TOKEN_NODE.addChild(token);
+        for (var pattern : TemplatePattern.values()) {
+            ROOT_TOKEN_NODE.addChild(pattern);
         }
     }
 
-    private final List<Object> tokens;
+    private final List<Token> tokens;
 
     private static final TemporalField WEEK_OF_YEAR = WeekFields.of(Locale.ENGLISH).weekOfWeekBasedYear();
 
@@ -237,8 +242,8 @@ public class PGDateTimeTemplates {
         this.tokens = PGDateTimeTemplates.parse(pattern);
     }
 
-    private static List<Object> parse(String pattern) {
-        ArrayList<Object> tokens = new ArrayList<>();
+    private static List<Token> parse(String pattern) {
+        ArrayList<Token> tokens = new ArrayList<>();
         String pattern_to_consume = pattern;
         int idx = 0;
 
@@ -276,7 +281,7 @@ public class PGDateTimeTemplates {
                         }
                     }
 
-                    tokens.add(pattern_to_consume.substring(depth, idx));
+                    tokens.add(new TemplateLiteral(pattern_to_consume.substring(depth, idx)));
                 }
 
                 pattern_to_consume = pattern_to_consume.substring(idx);
@@ -285,7 +290,7 @@ public class PGDateTimeTemplates {
             } else if (nextTokenNode == null) {
                 // If there is no path forward and index is 0, then we're at at the beginning, parsing a non-valid
                 // character. Add as a string.
-                tokens.add(pattern_to_consume.substring(0, idx + 1));
+                tokens.add(new TemplateLiteral(pattern_to_consume.substring(0, idx + 1)));
                 pattern_to_consume = pattern_to_consume.substring(idx + 1);
             } else {
                 idx += 1;
@@ -297,17 +302,14 @@ public class PGDateTimeTemplates {
     }
 
     public String format(LocalDateTime datetime) {
-        return Lists.joinOn("", this.tokens, x -> {
-            if (x instanceof Token) {
-                return getElement((Token) x, datetime);
-            } else {
-                return String.valueOf(x);
-            }
+        return Lists.joinOn("", this.tokens, x -> switch (x) {
+            case TemplatePattern pattern -> getElement(pattern, datetime);
+            case TemplateLiteral literal -> literal.value();
         });
     }
 
-    private static String getElement(Token token, LocalDateTime datetime) {
-        Object element = switch (token) {
+    private static String getElement(TemplatePattern pattern, LocalDateTime datetime) {
+        return switch (pattern) {
             case HOUR_OF_DAY, HOUR_OF_DAY12, HOUR_OF_DAY_LOWER, HOUR_OF_DAY12_LOWER -> {
                 if (datetime.getHour() >= 12) {
                     yield padStart(
@@ -323,12 +325,12 @@ public class PGDateTimeTemplates {
             case SECOND, SECOND_LOWER -> padStart(String.valueOf(datetime.getSecond()), 2, '0');
             case MILLISECOND, MILLISECOND_LOWER -> padStart(String.valueOf(datetime.getNano() / 1000000), 3, '0');
             case MICROSECOND, MICROSECOND_LOWER -> padStart(String.valueOf(datetime.getNano() / 1000), 6, '0');
-            case TENTH_OF_SECOND, TENTH_OF_SECOND_LOWER -> datetime.getNano() / 100000000;
-            case HUNDREDTH_OF_SECOND, HUNDREDTH_OF_SECOND_LOWER -> datetime.getNano() / 10000000;
-            case MILLISECOND_FF, MILLISECOND_FF_LOWER -> datetime.getNano() / 1000000;
-            case TENTH_OF_MILLISECOND, TENTH_OF_MILLISECOND_LOWER -> datetime.getNano() / 100000;
-            case HUNDREDTH_OF_MILLISECOND, HUNDREDTH_OF_MILLISECOND_LOWER -> datetime.getNano() / 10000;
-            case MICROSECOND_FF, MICROSECOND_FF_LOWER -> datetime.getNano() / 1000;
+            case TENTH_OF_SECOND, TENTH_OF_SECOND_LOWER -> String.valueOf(datetime.getNano() / 100000000);
+            case HUNDREDTH_OF_SECOND, HUNDREDTH_OF_SECOND_LOWER -> String.valueOf(datetime.getNano() / 10000000);
+            case MILLISECOND_FF, MILLISECOND_FF_LOWER -> String.valueOf(datetime.getNano() / 1000000);
+            case TENTH_OF_MILLISECOND, TENTH_OF_MILLISECOND_LOWER -> String.valueOf(datetime.getNano() / 100000);
+            case HUNDREDTH_OF_MILLISECOND, HUNDREDTH_OF_MILLISECOND_LOWER -> String.valueOf(datetime.getNano() / 10000);
+            case MICROSECOND_FF, MICROSECOND_FF_LOWER -> String.valueOf(datetime.getNano() / 1000);
             case SECONDS_PAST_MIDNIGHT, SECONDS_PAST_MIDNIGHT_S, SECONDS_PAST_MIDNIGHT_LOWER, SECONDS_PAST_MIDNIGHT_S_LOWER -> {
                 Instant midnight = datetime.toLocalDate().atStartOfDay().toInstant(ZoneOffset.UTC);
                 yield String.valueOf(Duration.between(midnight, datetime.toInstant(ZoneOffset.UTC)).getSeconds());
@@ -429,9 +431,9 @@ public class PGDateTimeTemplates {
                     2,
                     '0'
                 );
-            case DAY_OF_WEEK, DAY_OF_WEEK_LOWER -> (datetime.getDayOfWeek().getValue() % 7) + 1;
-            case ISO_DAY_OF_WEEK, ISO_DAY_OF_WEEK_LOWER -> datetime.getDayOfWeek().getValue();
-            case WEEK_OF_MONTH, WEEK_OF_MONTH_LOWER -> (datetime.getDayOfMonth() / 7) + 1;
+            case DAY_OF_WEEK, DAY_OF_WEEK_LOWER -> String.valueOf((datetime.getDayOfWeek().getValue() % 7) + 1);
+            case ISO_DAY_OF_WEEK, ISO_DAY_OF_WEEK_LOWER -> String.valueOf(datetime.getDayOfWeek().getValue());
+            case WEEK_OF_MONTH, WEEK_OF_MONTH_LOWER -> String.valueOf((datetime.getDayOfMonth() / 7) + 1);
             case WEEK_NUMBER_OF_YEAR, WEEK_NUMBER_OF_YEAR_LOWER -> padStart(
                     String.valueOf(datetime.get(WEEK_OF_YEAR)),
                     2,
@@ -442,9 +444,9 @@ public class PGDateTimeTemplates {
                     2,
                     '0'
                 );
-            case CENTURY, CENTURY_LOW -> ((datetime.getYear() - 1) / 100) + 1;
-            case JULIAN_DAY, JULIAN_DAY_LOWER -> datetime.getLong(JulianFields.JULIAN_DAY);
-            case QUARTER, QUARTER_LOWER -> (datetime.getMonthValue() + 2) / 3;
+            case CENTURY, CENTURY_LOW -> String.valueOf(((datetime.getYear() - 1) / 100) + 1);
+            case JULIAN_DAY, JULIAN_DAY_LOWER -> String.valueOf(datetime.getLong(JulianFields.JULIAN_DAY));
+            case QUARTER, QUARTER_LOWER -> String.valueOf((datetime.getMonthValue() + 2) / 3);
             case ROMAN_MONTH_UPPER -> padEnd(
                     toRoman(datetime.getMonthValue()).toUpperCase(Locale.ENGLISH),
                     4,
@@ -463,10 +465,7 @@ public class PGDateTimeTemplates {
                  TIMEZONE_MINUTES_LOWER,
                  TIMEZONE_OFFSET_FROM_UTC,
                  TIMEZONE_OFFSET_FROM_UTC_LOWER -> "";
-            default -> "";
         };
-
-        return String.valueOf(element);
     }
 
     private static String toRoman(int number) {
