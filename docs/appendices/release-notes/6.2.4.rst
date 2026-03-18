@@ -48,3 +48,9 @@ series.
 
 Fixes
 =====
+
+- Fixed an issue that could lead to a ``ClassCastException`` if using a query
+  involving a correlated sub-query with a ``WHERE`` clause containing an equal
+  expression matching a primary key column on an outer column that is untyped
+  (part of an ``object(ignored)``), and if that primary key column had another
+  primary key column derived from it as generated column.

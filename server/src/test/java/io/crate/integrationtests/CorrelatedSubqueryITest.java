@@ -31,6 +31,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Stream;
 
@@ -531,5 +532,51 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             ) as b"""
         );
         assertThat(response).hasRows("111");
+    }
+
+
+    @Test
+    public void test_pk_lookup_with_generated_column_expansion_from_untyped_outer_column() throws Exception {
+        execute(
+            """
+            CREATE TABLE sensors (
+                topic TEXT NOT NULL,
+                ts TIMESTAMP WITH TIME ZONE NOT NULL,
+                ts_month TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('month', "ts") NOT NULL,
+                PRIMARY KEY (topic, ts, ts_month)
+            )
+            """
+        );
+        execute("INSERT INTO sensors (ts, topic) VALUES (1773736312002, 'debug')");
+        execute("create table errors (payload object(ignored))");
+
+        execute(
+            "insert into errors (payload) values (?)",
+            new Object[] { Map.of("timeStamp", "1773736312002", "topic", "debug") }
+        );
+        execute("refresh table errors, sensors");
+
+        // - `e.payload['timeStamp']` is untyped because it is `object(ignored)`. The actual value is a string
+        // - The correlated sub-query will create a `Get` plan at runtime using the value from e.payload
+        // - It injects the `ts_month` column as `date_trunc('month', value from e.payload['timeStamp'])`
+        // - "value from e.payload['timeStamp']" having type undefined with a string value led to a
+        //   ClassCastException because a timestamp is expected.
+        execute(
+            """
+            SELECT
+                payload['timeStamp'],
+                payload['topic'],
+                (
+                    SELECT TRUE
+                    FROM sensors s
+                    WHERE
+                        s.ts = e.payload['timeStamp']
+                        AND s.topic = 'debug'
+                    LIMIT 1
+                )
+            FROM errors e
+            """
+        );
+        assertThat(response).hasRows("1773736312002| debug| true");
     }
 }
