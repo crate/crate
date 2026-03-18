@@ -80,6 +80,9 @@ SQL Statements
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
+- `Dhruv Patel <https://github.com/DHRUV6029>`_ added support for :ref:`CREATE
+  TABLE ... LIKE <ref-create-table-like>`.
+
 - Added support for ``RESTRICT`` and ``CASCADE`` to :ref:`DROP SCHEMA
   <ref-drop-schema>`.
 

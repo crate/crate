@@ -72,7 +72,9 @@ import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateTableAs;
+import io.crate.sql.tree.CreateTableLike;
 import io.crate.sql.tree.CreateUserMapping;
+import io.crate.sql.tree.LikeOption;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.DefaultConstraint;
@@ -835,6 +837,27 @@ public final class SqlFormatter {
             node.name().accept(this, indent);
             builder.append(" AS ");
             node.query().accept(this, indent);
+            return null;
+        }
+
+        @Override
+        public Void visitCreateTableLike(CreateTableLike<?> node, Integer indent) {
+            builder.append("CREATE TABLE ");
+            if (node.ifNotExists()) {
+                builder.append("IF NOT EXISTS ");
+            }
+            node.name().accept(this, indent);
+            builder.append(" (LIKE ");
+            builder.append(formatQualifiedName(node.likeTableName()));
+            if (node.includedOptions().equals(LikeOption.ALL)) {
+                builder.append(" INCLUDING ALL");
+            } else {
+                for (LikeOption option : node.includedOptions()) {
+                    builder.append(" INCLUDING ");
+                    builder.append(option.name());
+                }
+            }
+            builder.append(")");
             return null;
         }
 

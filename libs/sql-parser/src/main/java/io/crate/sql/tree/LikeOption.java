@@ -19,34 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.tablefunctions;
+package io.crate.sql.tree;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.EnumSet;
+import java.util.Set;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+public enum LikeOption {
+    CONSTRAINTS,
+    DEFAULTS,
+    GENERATED,
+    INDEXES,
+    STORAGE;
 
-import org.junit.Test;
-
-import io.crate.data.Row;
-import io.crate.data.RowN;
-
-public class PgGetKeywordsFunctionTest extends AbstractTableFunctionsTest {
-
-    @Test
-    public void test_pg_get_keywords() {
-        var it = execute("pg_catalog.pg_get_keywords()").iterator();
-        List<Row> rows = new ArrayList<>();
-        while (it.hasNext()) {
-            rows.add(new RowN(it.next().materialize()));
-        }
-        rows.sort(Comparator.comparing(x -> ((String) x.get(0))));
-        assertThat(rows).hasSize(288);
-        Row row = rows.get(0);
-
-        assertThat(row.get(0)).isEqualTo("absolute");
-        assertThat(row.get(1)).isEqualTo("U");
-        assertThat(row.get(2)).isEqualTo("unreserved");
-    }
+    public static final Set<LikeOption> ALL = EnumSet.allOf(LikeOption.class);
 }

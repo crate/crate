@@ -62,6 +62,7 @@ import io.crate.analyze.AnalyzedCreateServer;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateTableAs;
+import io.crate.analyze.AnalyzedCreateTableLike;
 import io.crate.analyze.AnalyzedCreateUserMapping;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDeclare;
@@ -395,6 +396,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         return CreateTableAsPlan.of(
             createTableAs, numberOfShards, tableCreator, context, logicalPlanner
         );
+    }
+
+    @Override
+    public Plan visitCreateTableLike(AnalyzedCreateTableLike createTableLike, PlannerContext context) {
+        return new CreateTablePlan(createTableLike.analyzedCreateTable(), numberOfShards, tableCreator);
     }
 
     @Override

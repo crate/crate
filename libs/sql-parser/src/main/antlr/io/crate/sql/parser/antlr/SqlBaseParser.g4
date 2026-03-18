@@ -605,6 +605,8 @@ createStmt
         OPEN_ROUND_BRACKET tableElement (COMMA tableElement)* CLOSE_ROUND_BRACKET
          partitionedByOrClusteredInto withProperties?                                #createTable
     | CREATE TABLE (IF NOT EXISTS)? table AS insertSource                            #createTableAs
+    | CREATE TABLE (IF NOT EXISTS)? table
+        OPEN_ROUND_BRACKET LIKE likeTable=qname likeOption* CLOSE_ROUND_BRACKET         #createTableLike
     | CREATE FOREIGN TABLE (IF NOT EXISTS)? tableName=qname
         OPEN_ROUND_BRACKET tableElement (COMMA tableElement)* CLOSE_ROUND_BRACKET
         SERVER server=ident kvOptions?                                               #createForeignTable
@@ -633,6 +635,10 @@ createStmt
     | CREATE SERVER (IF NOT EXISTS)? name=ident
           FOREIGN DATA WRAPPER fdw=ident kvOptions?                                  #createServer
     | CREATE SCHEMA (IF NOT EXISTS)? name=ident                                      #createSchema
+    ;
+
+likeOption
+    : (INCLUDING | EXCLUDING) (ALL | CONSTRAINTS | DEFAULTS | GENERATED | INDEXES | STORAGE)
     ;
 
 
@@ -969,6 +975,11 @@ nonReserved
     | IGNORE
     | IGNORED
     | ILIKE
+    | INCLUDING
+    | EXCLUDING
+    | CONSTRAINTS
+    | DEFAULTS
+    | INDEXES
     | INSENSITIVE
     | INT
     | INTEGER
