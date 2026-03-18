@@ -27,7 +27,6 @@ import java.util.List;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
-import org.apache.lucene.search.DocAndFloatFeatureBuffer;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -121,18 +120,18 @@ public abstract class MaximumAggregation extends AggregationFunction<Object, Obj
             }
         }
 
-        @Override
-        public void applyBulk(RamAccounting ramAccounting, DocAndFloatFeatureBuffer buffer, MutableLong state) throws IOException {
-            for (int i = 0; i < buffer.size; i++) {
-                int doc = buffer.docs[i];
-                if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                    long value = values.nextValue();
-                    if (value >= state.value()) {
-                        state.setValue(value);
-                    }
-                }
-            }
-        }
+        // @Override
+        // public void applyBulk(RamAccounting ramAccounting, DocAndFloatFeatureBuffer buffer, MutableLong state) throws IOException {
+        //     for (int i = 0; i < buffer.size; i++) {
+        //         int doc = buffer.docs[i];
+        //         if (values.advanceExact(doc) && values.docValueCount() == 1) {
+        //             long value = values.nextValue();
+        //             if (value >= state.value()) {
+        //                 state.setValue(value);
+        //             }
+        //         }
+        //     }
+        // }
 
         @Override
         public Object partialResult(RamAccounting ramAccounting, MutableLong state) {
