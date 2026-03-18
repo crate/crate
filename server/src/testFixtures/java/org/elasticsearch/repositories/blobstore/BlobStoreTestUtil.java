@@ -58,7 +58,6 @@ import org.elasticsearch.cluster.service.ClusterApplierService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.blobstore.BlobContainer;
-import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -133,7 +132,7 @@ public final class BlobStoreTestUtil {
     }
 
     private static void assertIndexGenerations(BlobContainer repoRoot, long latestGen) throws IOException {
-        final long[] indexGenerations = repoRoot.listBlobsByPrefix(BlobStoreRepository.INDEX_FILE_PREFIX).keySet().stream()
+        final long[] indexGenerations = repoRoot.listBlobsByPrefix(BlobStoreRepository.INDEX_FILE_PREFIX).stream()
             .map(s -> s.replace(BlobStoreRepository.INDEX_FILE_PREFIX, ""))
             .mapToLong(Long::parseLong).sorted().toArray();
         assertThat(indexGenerations[indexGenerations.length - 1]).isEqualTo(latestGen);
@@ -154,7 +153,7 @@ public final class BlobStoreTestUtil {
                         final String shardId = Integer.toString(i);
                         assertThat(shardContainers).containsKey(shardId);
                         assertThat(shardContainers.get(shardId).listBlobsByPrefix(BlobStoreRepository.INDEX_FILE_PREFIX))
-                            .containsKey(BlobStoreRepository.INDEX_FILE_PREFIX + generation);
+                            .contains(BlobStoreRepository.INDEX_FILE_PREFIX + generation);
                     }
                 }
             }
@@ -176,7 +175,7 @@ public final class BlobStoreTestUtil {
         assertThat(foundIndexUUIDs).containsExactlyInAnyOrder(expectedIndexUUIDs.toArray(Strings.EMPTY_ARRAY));
         for (String indexId : foundIndexUUIDs) {
             final Set<String> indexMetaGenerationsFound = indicesContainer.children().get(indexId)
-                .listBlobsByPrefix(BlobStoreRepository.METADATA_PREFIX).keySet().stream()
+                .listBlobsByPrefix(BlobStoreRepository.METADATA_PREFIX).stream()
                 .map(p -> p.replace(BlobStoreRepository.METADATA_PREFIX, "").replace(".dat", ""))
                 .collect(Collectors.toSet());
             final Set<String> indexMetaGenerationsExpected = new HashSet<>();
@@ -196,7 +195,7 @@ public final class BlobStoreTestUtil {
         final Collection<SnapshotId> snapshotIds = repositoryData.getSnapshotIds();
         final List<String> expectedSnapshotUUIDs = snapshotIds.stream().map(SnapshotId::getUUID).toList();
         for (String prefix : new String[]{BlobStoreRepository.SNAPSHOT_PREFIX, BlobStoreRepository.METADATA_PREFIX}) {
-            final Collection<String> foundSnapshotUUIDs = repoRoot.listBlobs().keySet().stream().filter(p -> p.startsWith(prefix))
+            final Collection<String> foundSnapshotUUIDs = repoRoot.listBlobs().stream().filter(p -> p.startsWith(prefix))
                 .map(p -> p.replace(prefix, "").replace(".dat", ""))
                 .collect(Collectors.toSet());
             assertThat(foundSnapshotUUIDs).containsExactlyInAnyOrder(expectedSnapshotUUIDs.toArray(Strings.EMPTY_ARRAY));
@@ -219,7 +218,7 @@ public final class BlobStoreTestUtil {
                 final IndexId indexId = repositoryData.resolveIndexId(index);
                 assertThat(indices).containsKey(indexId.getId());
                 final BlobContainer indexContainer = indices.get(indexId.getId());
-                assertThat(indexContainer.listBlobs()).containsKey(
+                assertThat(indexContainer.listBlobs()).contains(
                     String.format(Locale.ROOT, BlobStoreRepository.METADATA_NAME_FORMAT,
                         repositoryData.indexMetaDataGenerations().indexMetaBlobId(snapshotId, indexId)));
                 IndexMetadata indexMetadata = repository.getSnapshotIndexMetadata(
@@ -240,17 +239,17 @@ public final class BlobStoreTestUtil {
                     final BlobContainer shardContainer = entry.getValue();
                     // TODO: we shouldn't be leaking empty shard directories when a shard (but not all of the index it belongs to)
                     //       becomes unreferenced. We should fix that and remove this conditional once its fixed.
-                    if (shardContainer.listBlobs().keySet().stream().anyMatch(blob -> blob.startsWith("extra") == false)) {
+                    if (shardContainer.listBlobs().stream().anyMatch(blob -> blob.startsWith("extra") == false)) {
                         final int impliedCount = shardId - 1;
                         maxShardCountsSeen.compute(
                             indexId, (i, existing) -> existing == null || existing < impliedCount ? impliedCount : existing);
                     }
                     if (shardId < shardCount && snapshotInfo.shardFailures().stream().noneMatch(
                         shardFailure -> shardFailure.index().equals(index) && shardFailure.shardId() == shardId)) {
-                        final Map<String, BlobMetadata> shardPathContents = shardContainer.listBlobs();
-                        assertThat(shardPathContents).containsKey(
+                        final Set<String> shardPathContents = shardContainer.listBlobs();
+                        assertThat(shardPathContents).contains(
                             String.format(Locale.ROOT, BlobStoreRepository.SNAPSHOT_NAME_FORMAT, snapshotId.getUUID()));
-                        assertThat(shardPathContents.keySet().stream()
+                        assertThat(shardPathContents.stream()
                                 .filter(name -> name.startsWith(BlobStoreRepository.INDEX_FILE_PREFIX)).count())
                             .isLessThanOrEqualTo(2L);
                     }

@@ -82,7 +82,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Numbers;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.blobstore.BlobContainer;
-import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.blobstore.fs.FsBlobContainer;
@@ -561,7 +560,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(new RejectableRunnable() {
                 @Override
                 public void doRun() throws Exception {
-                    final Map<String, BlobMetadata> rootBlobs = blobContainer().listBlobs();
+                    final Set<String> rootBlobs = blobContainer().listBlobs();
                     final RepositoryData repositoryData = safeRepositoryData(repositoryStateId, rootBlobs);
                     // Cache the indices that were found before writing out the new index-N blob so that a stuck master will never
                     // delete an index that was created by another master node after writing this index-N blob.
@@ -591,8 +590,8 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      * @param rootBlobs         Blobs at the repository root
      * @return RepositoryData
      */
-    private RepositoryData safeRepositoryData(long repositoryStateId, Map<String, BlobMetadata> rootBlobs) {
-        final long generation = latestGeneration(rootBlobs.keySet());
+    private RepositoryData safeRepositoryData(long repositoryStateId, Set<String> rootBlobs) {
+        final long generation = latestGeneration(rootBlobs);
         final long genToLoad;
         if (bestEffortConsistency) {
             genToLoad = latestKnownRepoGen.updateAndGet(known -> Math.max(known, repositoryStateId));
@@ -627,7 +626,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      * @param listener          Listener to invoke once finished
      */
     private void doDeleteShardSnapshots(Collection<SnapshotId> snapshotIds, long repositoryStateId, Map<String, BlobContainer> foundIndices,
-                                        Map<String, BlobMetadata> rootBlobs, RepositoryData repositoryData, Version repoMetaVersion,
+                                        Set<String> rootBlobs, RepositoryData repositoryData, Version repoMetaVersion,
                                         ActionListener<RepositoryData> listener) {
 
         if (SnapshotsService.useShardGenerations(repoMetaVersion)) {
@@ -677,7 +676,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     private void asyncCleanupUnlinkedRootAndIndicesBlobs(Collection<SnapshotId> deletedSnapshots, Map<String, BlobContainer> foundIndices,
-                                                         Map<String, BlobMetadata> rootBlobs, RepositoryData updatedRepoData,
+                                                         Set<String> rootBlobs, RepositoryData updatedRepoData,
                                                          ActionListener<Void> listener) {
         threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.wrap(
             listener,
@@ -761,7 +760,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                         @Override
                         public void doRun() throws Exception {
                             final BlobContainer shardContainer = shardContainer(indexId, finalShardId);
-                            final Set<String> blobs = shardContainer.listBlobs().keySet();
+                            final Set<String> blobs = shardContainer.listBlobs();
                             final BlobStoreIndexShardSnapshots blobStoreIndexShardSnapshots;
                             final long newGen;
                             if (useUUIDs) {
@@ -834,14 +833,14 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      */
     private void cleanupStaleBlobs(Collection<SnapshotId> deletedSnapshots,
                                    Map<String, BlobContainer> foundIndices,
-                                   Map<String, BlobMetadata> rootBlobs,
+                                   Set<String> rootBlobs,
                                    RepositoryData newRepoData,
                                    ActionListener<Long> listener) {
         final ActionListener<Long> groupedListener = new MultiActionListener<>(2, Collectors.summingLong(Long::longValue), listener);
 
         final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
         executor.execute(ActionRunnable.supply(groupedListener, () -> {
-            List<String> deletedBlobs = cleanupStaleRootFiles(deletedSnapshots, staleRootBlobs(newRepoData, rootBlobs.keySet()));
+            List<String> deletedBlobs = cleanupStaleRootFiles(deletedSnapshots, staleRootBlobs(newRepoData, rootBlobs));
             return (long) deletedBlobs.size();
         }));
 
@@ -1699,7 +1698,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     private long listBlobsToGetLatestIndexId() throws IOException {
-        return latestGeneration(blobContainer().listBlobsByPrefix(INDEX_FILE_PREFIX).keySet());
+        return latestGeneration(blobContainer().listBlobsByPrefix(INDEX_FILE_PREFIX));
     }
 
     private long latestGeneration(Collection<String> rootBlobs) {
@@ -1747,7 +1746,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             final Set<String> blobs;
             if (generation == null) {
                 try {
-                    blobs = shardContainer.listBlobsByPrefix(INDEX_FILE_PREFIX).keySet();
+                    blobs = shardContainer.listBlobsByPrefix(INDEX_FILE_PREFIX);
                 } catch (IOException e) {
                     throw new IndexShardSnapshotFailedException(shardId, "failed to list blobs", e);
                 }

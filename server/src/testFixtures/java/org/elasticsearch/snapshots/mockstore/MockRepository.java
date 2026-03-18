@@ -31,10 +31,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,7 +43,6 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.blobstore.BlobContainer;
-import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.blobstore.fs.FsBlobContainer;
@@ -405,8 +404,8 @@ public class MockRepository extends FsRepository {
                 for (BlobContainer child : children().values()) {
                     child.delete();
                 }
-                final Map<String, BlobMetadata> blobs = listBlobs();
-                for (String blob : blobs.values().stream().map(BlobMetadata::name).collect(Collectors.toList())) {
+                final Set<String> blobs = listBlobs();
+                for (String blob : blobs) {
                     maybeIOExceptionOrBlock(blob);
                     deleteBlobsIgnoringIfNotExists(Collections.singletonList(blob));
                 }
@@ -424,7 +423,7 @@ public class MockRepository extends FsRepository {
             }
 
             @Override
-            public Map<String, BlobMetadata> listBlobs() throws IOException {
+            public Set<String> listBlobs() throws IOException {
                 maybeIOExceptionOrBlock("");
                 return super.listBlobs();
             }
@@ -439,7 +438,7 @@ public class MockRepository extends FsRepository {
             }
 
             @Override
-            public Map<String, BlobMetadata> listBlobsByPrefix(String blobNamePrefix) throws IOException {
+            public Set<String> listBlobsByPrefix(String blobNamePrefix) throws IOException {
                 maybeIOExceptionOrBlock(blobNamePrefix);
                 return super.listBlobsByPrefix(blobNamePrefix);
             }

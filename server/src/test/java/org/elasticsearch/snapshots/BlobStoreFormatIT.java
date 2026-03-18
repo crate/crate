@@ -25,12 +25,11 @@ import static org.assertj.core.api.Assertions.fail;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map;
+import java.util.Set;
 
 import org.elasticsearch.ElasticsearchCorruptionException;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.blobstore.BlobContainer;
-import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.blobstore.fs.FsBlobStore;
@@ -128,20 +127,20 @@ public class BlobStoreFormatIT extends AbstractSnapshotIntegTestCase {
         BlobObj blobObj = new BlobObj(veryRedundantText.toString());
         checksumFormat.write(blobObj, blobContainer, "blob-comp", true);
         checksumFormat.write(blobObj, blobContainer, "blob-not-comp", false);
-        Map<String, BlobMetadata> blobs = blobContainer.listBlobsByPrefix("blob-");
+        Set<String> blobs = blobContainer.listBlobsByPrefix("blob-");
         assertThat(2).isEqualTo(blobs.size());
-        assertThat(blobs.get("blob-not-comp").length()).isGreaterThan(blobs.get("blob-comp").length());
     }
 
     public void testBlobCorruption() throws IOException {
         BlobStore blobStore = createTestBlobStore();
         BlobContainer blobContainer = blobStore.blobContainer(BlobPath.cleanPath());
+
         String testString = randomAlphaOfLength(randomInt(10000));
         BlobObj blobObj = new BlobObj(testString);
         ChecksumBlobStoreFormat<BlobObj> checksumFormat = new ChecksumBlobStoreFormat<>(BLOB_CODEC, "%s", BlobObj::fromXContent, BlobObj::new);
         checksumFormat.write(blobObj, blobContainer, "test-path", randomBoolean());
         assertThat(testString).isEqualTo(checksumFormat.read(blobContainer, "test-path", writableRegistry(), xContentRegistry()).getText());
-        randomCorruption(blobContainer, "test-path");
+        randomCorruption(blobContainer, "test-path", testString.length());
         try {
             checksumFormat.read(blobContainer, "test-path", writableRegistry(), xContentRegistry());
             fail("Should have failed due to corruption");
@@ -156,8 +155,8 @@ public class BlobStoreFormatIT extends AbstractSnapshotIntegTestCase {
         return new FsBlobStore(randomIntBetween(1, 8) * 1024, createTempDir(), false);
     }
 
-    protected void randomCorruption(BlobContainer blobContainer, String blobName) throws IOException {
-        byte[] buffer = new byte[(int) blobContainer.listBlobsByPrefix(blobName).get(blobName).length()];
+    protected void randomCorruption(BlobContainer blobContainer, String blobName, int lentgh) throws IOException {
+        byte[] buffer = new byte[lentgh];
         long originalChecksum = checksum(buffer);
         try (InputStream inputStream = blobContainer.readBlob(blobName)) {
             Streams.readFully(inputStream, buffer);

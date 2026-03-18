@@ -40,7 +40,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.settings.Settings;
@@ -107,15 +106,15 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
         });
         future.get();
         assertChildren(repo.basePath(), Collections.singleton("foo"));
-        assertBlobsByPrefix(repo.basePath(), "fo", Collections.emptyMap());
+        assertBlobsByPrefix(repo.basePath(), "fo", Collections.emptySet());
         assertChildren(repo.basePath().add("foo"), List.of("nested", "nested2"));
         assertBlobsByPrefix(repo.basePath().add("foo"), "nest",
-                            Collections.singletonMap("nested-blob", new BlobMetadata("nested-blob", testBlobLen)));
+                            Set.of("nested-blob"));
         assertChildren(repo.basePath().add("foo").add("nested"), Collections.emptyList());
     }
 
-    void assertBlobsByPrefix(BlobPath path, String prefix, Map<String, BlobMetadata> blobs) throws Exception {
-        final FutureActionListener<Map<String, BlobMetadata>> future = new FutureActionListener<>();
+    void assertBlobsByPrefix(BlobPath path, String prefix, Set<String> blobs) throws Exception {
+        final FutureActionListener<Set<String>> future = new FutureActionListener<>();
         final BlobStoreRepository repository = getRepository();
         repository.threadPool().generic().execute(new ActionRunnable<>(future) {
             @Override
@@ -124,14 +123,11 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
                 future.onResponse(blobStore.blobContainer(path).listBlobsByPrefix(prefix));
             }
         });
-        Map<String, BlobMetadata> foundBlobs = future.get();
+        Set<String> foundBlobs = future.get();
         if (blobs.isEmpty()) {
-            assertThat(foundBlobs.keySet()).isEmpty();
+            assertThat(foundBlobs).isEmpty();
         } else {
-            assertThat(foundBlobs).containsOnlyKeys(blobs.keySet().toArray(Strings.EMPTY_ARRAY));
-            for (Map.Entry<String, BlobMetadata> entry : foundBlobs.entrySet()) {
-                assertThat(blobs.get(entry.getKey()).length()).isEqualTo(entry.getValue().length());
-            }
+            assertThat(foundBlobs).containsOnly(blobs.toArray(Strings.EMPTY_ARRAY));
         }
     }
 

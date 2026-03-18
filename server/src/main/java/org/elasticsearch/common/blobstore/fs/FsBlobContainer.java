@@ -20,6 +20,7 @@
 package org.elasticsearch.common.blobstore.fs;
 
 import static java.util.Collections.unmodifiableMap;
+import static java.util.Collections.unmodifiableSet;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -39,12 +40,13 @@ import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.blobstore.BlobContainer;
-import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
 import org.elasticsearch.common.io.Streams;
@@ -73,7 +75,7 @@ public class FsBlobContainer extends AbstractBlobContainer {
     }
 
     @Override
-    public Map<String, BlobMetadata> listBlobs() throws IOException {
+    public Set<String> listBlobs() throws IOException {
         return listBlobsByPrefix(null);
     }
 
@@ -92,8 +94,8 @@ public class FsBlobContainer extends AbstractBlobContainer {
     }
 
     @Override
-    public Map<String, BlobMetadata> listBlobsByPrefix(String blobNamePrefix) throws IOException {
-        Map<String, BlobMetadata> builder = new HashMap<>();
+    public Set<String> listBlobsByPrefix(String blobNamePrefix) throws IOException {
+        Set<String> blobs = new HashSet<>();
 
         blobNamePrefix = blobNamePrefix == null ? "" : blobNamePrefix;
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, blobNamePrefix + "*")) {
@@ -106,11 +108,11 @@ public class FsBlobContainer extends AbstractBlobContainer {
                     continue;
                 }
                 if (attrs.isRegularFile()) {
-                    builder.put(file.getFileName().toString(), new BlobMetadata(file.getFileName().toString(), attrs.size()));
+                    blobs.add(file.getFileName().toString());
                 }
             }
         }
-        return unmodifiableMap(builder);
+        return unmodifiableSet(blobs);
     }
 
     @Override

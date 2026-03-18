@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
@@ -38,7 +39,6 @@ import java.util.stream.Collectors;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.blobstore.BlobContainer;
-import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -256,7 +256,7 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
             }
 
             @Override
-            public Map<String, BlobMetadata> listBlobs() {
+            public Set<String> listBlobs() {
                 ensureNotClosed();
                 final String thisPath = path.buildAsString();
                 synchronized (context.actions) {
@@ -264,10 +264,8 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
                         .filter(
                             action -> action.path.startsWith(thisPath) && action.path.substring(thisPath.length()).indexOf('/') == -1
                                 && action.operation == Operation.PUT)
-                        .collect(
-                            Collectors.toMap(
-                                action -> action.path.substring(thisPath.length()),
-                                action -> new BlobMetadata(action.path.substring(thisPath.length()), action.data.length))));
+                        .map(action -> action.path.substring(thisPath.length()))
+                        .collect(Collectors.toSet()));
                 }
             }
 
@@ -287,19 +285,18 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
             }
 
             @Override
-            public Map<String, BlobMetadata> listBlobsByPrefix(String blobNamePrefix) {
-                return maybeMissLatestIndexN(listBlobs().entrySet().stream().filter(entry -> entry.getKey().startsWith(
-                    blobNamePrefix)).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+            public Set<String> listBlobsByPrefix(String blobNamePrefix) {
+                return maybeMissLatestIndexN(listBlobs().stream().filter(entry -> entry.startsWith(
+                    blobNamePrefix)).collect(Collectors.toSet()));
             }
 
             // Randomly filter out the index-N blobs from a listing to test that tracking of it in latestKnownRepoGen and the cluster state
             // ensures consistent repository operations
-            private Map<String, BlobMetadata> maybeMissLatestIndexN(Map<String, BlobMetadata> listing) {
+            private Set<String> maybeMissLatestIndexN(Set<String> listing) {
                 // Randomly filter out index-N blobs at the repo root to proof that we don't need them to be consistently listed
                 if (path.parent() == null && context.consistent == false) {
-                    final Map<String, BlobMetadata> filtered = new HashMap<>(listing);
-                    filtered.keySet().removeIf(b -> b.startsWith(BlobStoreRepository.INDEX_FILE_PREFIX) && random.nextBoolean());
-                    return Map.copyOf(filtered);
+                    listing.removeIf(b -> b.startsWith(BlobStoreRepository.INDEX_FILE_PREFIX) && random.nextBoolean());
+                    return Set.copyOf(listing);
                 }
                 return listing;
             }

@@ -25,8 +25,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.FileAlreadyExistsException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,7 +36,6 @@ import org.apache.opendal.OpenDALException;
 import org.apache.opendal.OpenDALException.Code;
 import org.apache.opendal.Operator;
 import org.elasticsearch.common.blobstore.BlobContainer;
-import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
 
 public class OpenDALBlobContainer implements BlobContainer {
@@ -120,18 +121,16 @@ public class OpenDALBlobContainer implements BlobContainer {
     }
 
     @Override
-    public Map<String, BlobMetadata> listBlobs() throws IOException {
+    public Set<String> listBlobs() throws IOException {
         return listBlobsByPrefix("");
     }
 
     @Override
-    public Map<String, BlobMetadata> listBlobsByPrefix(String blobNamePrefix) throws IOException {
+    public Set<String> listBlobsByPrefix(String blobNamePrefix) throws IOException {
         String fullPath = this.path.buildAsString() + blobNamePrefix;
-        HashMap<String, BlobMetadata> result = new HashMap<>();
+        HashSet<String> result = new HashSet<>();
         for (var entry : operator.list(fullPath)) {
-            String path = entry.getPath();
-            var blobMetadata = new BlobMetadata(path, entry.getMetadata().getContentLength());
-            result.put(path, blobMetadata);
+            result.add(entry.getPath());
         }
         return result;
     }

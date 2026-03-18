@@ -23,9 +23,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.elasticsearch.common.blobstore.BlobContainer;
-import org.elasticsearch.common.blobstore.BlobMetadata;
 import org.elasticsearch.common.blobstore.BlobPath;
 
 public class BlobContainerWrapper implements BlobContainer {
@@ -77,7 +77,7 @@ public class BlobContainerWrapper implements BlobContainer {
     }
 
     @Override
-    public Map<String, BlobMetadata> listBlobs() throws IOException {
+    public Set<String> listBlobs() throws IOException {
         return delegate.listBlobs();
     }
 
@@ -87,7 +87,7 @@ public class BlobContainerWrapper implements BlobContainer {
     }
 
     @Override
-    public Map<String, BlobMetadata> listBlobsByPrefix(String blobNamePrefix) throws IOException {
+    public Set<String> listBlobsByPrefix(String blobNamePrefix) throws IOException {
         return delegate.listBlobsByPrefix(blobNamePrefix);
     }
 }
