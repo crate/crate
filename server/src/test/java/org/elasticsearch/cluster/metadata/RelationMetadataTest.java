@@ -37,6 +37,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.metadata.RelationName;
+import io.crate.metadata.SearchPath;
 import io.crate.sql.tree.ColumnPolicy;
 
 public class RelationMetadataTest {
@@ -132,6 +133,29 @@ public class RelationMetadataTest {
         table2 = RelationMetadata.of(in);
 
         assertThat(table2.oid()).isEqualTo(Metadata.OID_UNASSIGNED);
+    }
+
+    @Test
+    public void test_streaming_view() throws IOException {
+        String stmt = "SELECT * FROM sys.nodes ORDER BY 2";
+        RelationMetadata.View view1 = new RelationMetadata.View(
+            new RelationName("doc", "dummy"),
+            stmt,
+            "John",
+            SearchPath.createSearchPathFrom("schema1", "schema2"),
+            true);
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        RelationMetadata.toStream(out, view1);
+
+        StreamInput in = out.bytes().streamInput();
+        RelationMetadata.View view2 = (RelationMetadata.View) RelationMetadata.of(in);
+
+        assertThat(view2.name()).isEqualTo(view1.name());
+        assertThat(view2.stmt()).isEqualTo(view1.stmt());
+        assertThat(view2.owner()).isEqualTo(view1.owner());
+        assertThat(view2.searchPath()).isEqualTo(view1.searchPath());
+        assertThat(view2.errorOnUnknownObjectKey()).isEqualTo(view1.errorOnUnknownObjectKey());
     }
 }
 

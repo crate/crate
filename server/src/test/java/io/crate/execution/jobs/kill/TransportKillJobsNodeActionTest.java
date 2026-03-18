@@ -34,6 +34,8 @@ import java.util.concurrent.TimeUnit;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.transport.MockTransportService;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,4 +78,26 @@ public class TransportKillJobsNodeActionTest extends CrateDummyClusterServiceUni
             .get(5, TimeUnit.SECONDS);
         verify(tasksService, times(1)).killJobs(eq(toKill), eq("dummy-user"), any(JobKilledException.class));
     }
+
+    @Test
+    public void test_kill_cannot_be_tripped_by_circuit_breaker() throws Exception {
+        TasksService tasksService = mock(TasksService.class, Answers.RETURNS_DEEP_STUBS);
+        TransportService transportService = mock(TransportService.class);
+        new TransportKillJobsNodeAction(
+            tasksService,
+            clusterService,
+            transportService
+        );
+
+        verify(transportService, times(1))
+            .registerRequestHandler(
+                eq(KillJobsNodeAction.NAME),
+                eq(ThreadPool.Names.SAME),
+                eq(true), // forceExecution
+                eq(false), // canTripBreaker
+                any(),
+                any()
+            );
+    }
+
 }

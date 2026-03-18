@@ -19,35 +19,57 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.ddl.views;
+package io.crate.execution.ddl.tables;
 
 import java.io.IOException;
-import java.util.List;
 
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportResponse;
+import org.jspecify.annotations.Nullable;
 
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
-public final class DropViewResponse extends TransportResponse {
+public class AlterColumnDefaultRequest extends AcknowledgedRequest<AlterColumnDefaultRequest> {
 
-    private final List<RelationName> missing;
+    private final RelationName relationName;
+    private final Reference ref;
+    @Nullable
+    private final Symbol newDefault;
 
-    DropViewResponse(List<RelationName> missing) {
-        this.missing = missing;
+    public AlterColumnDefaultRequest(RelationName relationName, Reference ref, @Nullable Symbol newDefault) {
+        this.relationName = relationName;
+        this.ref = ref;
+        this.newDefault = newDefault;
     }
 
-    public List<RelationName> missing() {
-        return missing;
-    }
-
-    public DropViewResponse(StreamInput in) throws IOException {
-        missing = in.readList(RelationName::new);
+    public AlterColumnDefaultRequest(StreamInput in) throws IOException {
+        super(in);
+        this.relationName = new RelationName(in);
+        this.ref = Reference.fromStream(in);
+        this.newDefault = Symbol.nullableFromStream(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeList(missing);
+        super.writeTo(out);
+        relationName.writeTo(out);
+        Reference.toStream(out, ref);
+        Symbol.nullableToStream(newDefault, out);
+    }
+
+    public RelationName relationName() {
+        return relationName;
+    }
+
+    public Reference ref() {
+        return ref;
+    }
+
+    @Nullable
+    public Symbol newDefault() {
+        return newDefault;
     }
 }

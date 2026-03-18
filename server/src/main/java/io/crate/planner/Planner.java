@@ -39,6 +39,7 @@ import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.analyze.AnalyzedAlterServer;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
+import io.crate.analyze.AnalyzedAlterTableAlterColumnDefault;
 import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
 import io.crate.analyze.AnalyzedAlterTableDropColumn;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
@@ -78,6 +79,7 @@ import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.AnalyzedDropTable;
 import io.crate.analyze.AnalyzedDropUserMapping;
 import io.crate.analyze.AnalyzedDropView;
+import io.crate.analyze.AnalyzedEmpty;
 import io.crate.analyze.AnalyzedFetch;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
 import io.crate.analyze.AnalyzedInsertStatement;
@@ -116,6 +118,7 @@ import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.AlterRolePlan;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
+import io.crate.planner.node.ddl.AlterTableAlterColumnDefaultPlan;
 import io.crate.planner.node.ddl.AlterTableDropCheckConstraintPlan;
 import io.crate.planner.node.ddl.AlterTableDropColumnPlan;
 import io.crate.planner.node.ddl.AlterTableOpenClosePlan;
@@ -280,6 +283,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitBegin(AnalyzedBegin analyzedBegin, PlannerContext context) {
+        return NoopPlan.INSTANCE;
+    }
+
+    @Override
+    public Plan visitEmpty(AnalyzedEmpty empty, PlannerContext context) {
         return NoopPlan.INSTANCE;
     }
 
@@ -457,6 +465,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     public Plan visitAlterTableRenameColumn(AnalyzedAlterTableRenameColumn alterTableRenameColumn,
                                             PlannerContext context) {
         return new AlterTableRenameColumnPlan(alterTableRenameColumn);
+    }
+
+    @Override
+    public Plan visitAlterTableAlterColumnDefault(AnalyzedAlterTableAlterColumnDefault alterColumnDefault,
+                                                  PlannerContext context) {
+        return new AlterTableAlterColumnDefaultPlan(alterColumnDefault);
     }
 
     @Override

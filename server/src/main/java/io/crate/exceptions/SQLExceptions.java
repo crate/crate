@@ -171,11 +171,8 @@ public class SQLExceptions {
      */
     public static boolean maybeTemporary(Throwable t) {
         return maybeTemporaryNetworkError(t)
+            || isShardNotAvailable(t)
             || t instanceof ClusterBlockException
-            || t instanceof IndexNotFoundException
-            || t instanceof NoShardAvailableActionException
-            || t instanceof UnavailableShardsException
-            || t instanceof AlreadyClosedException
             || t instanceof ElasticsearchTimeoutException;
     }
 

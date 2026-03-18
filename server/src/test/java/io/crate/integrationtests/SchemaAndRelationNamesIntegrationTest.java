@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,8 +35,6 @@ import org.junit.Test;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.view.ViewMetadata;
-import io.crate.metadata.view.ViewsMetadata;
 import io.crate.types.StringType;
 
 public class SchemaAndRelationNamesIntegrationTest extends IntegTestCase {
@@ -64,10 +63,10 @@ public class SchemaAndRelationNamesIntegrationTest extends IntegTestCase {
         assertThat(meta.indices().values().iterator().next().getIndex().getName()).isEqualTo("_Abc..partitioned._T.04132");
 
         // check viewMetadata names as well as its target query
-        ViewsMetadata viewsMetadata = meta.custom(ViewsMetadata.TYPE);
-        ViewMetadata viewMetadata = viewsMetadata.getView(new RelationName("_Abc", "v1"));
-        assertThat(viewMetadata).isNotNull();
-        assertThat(viewMetadata.stmt()).isEqualTo(
+        RelationMetadata view = meta.schemas().get("_Abc").get(new RelationName("_Abc", "v1"));
+        assertThat(view).isNotNull();
+        assertThat(view).isExactlyInstanceOf(RelationMetadata.View.class);
+        assertThat(((RelationMetadata.View) view).stmt()).isEqualTo(
             """
                 SELECT "a"
                 FROM "_Abc"."_T"

@@ -29,14 +29,14 @@ import java.util.TreeMap;
 
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.monitor.jvm.JvmInfo;
-import io.crate.common.annotations.VisibleForTesting;
 
+import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
-import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.Streamer;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.data.Paging;
@@ -57,7 +57,7 @@ public class FetchProjection extends Projection {
     private final int fetchSize;
     private final Map<RelationName, FetchSource> fetchSources;
     private final List<Symbol> outputSymbols;
-    private final Map<String, IntSet> nodeReaders;
+    private final Map<String, IntArrayList> nodeReaders;
     private final TreeMap<Integer, String> readerIndices;
     private final Map<String, RelationName> indicesToIdents;
     private final List<DataType<?>> inputTypes;
@@ -67,7 +67,7 @@ public class FetchProjection extends Projection {
                            Map<RelationName, FetchSource> fetchSources,
                            List<Symbol> outputSymbols,
                            List<DataType<?>> inputTypes,
-                           Map<String, IntSet> nodeReaders,
+                           Map<String, IntArrayList> nodeReaders,
                            TreeMap<Integer, String> readerIndices,
                            Map<String, RelationName> indicesToIdents) {
         assert outputSymbols.stream().noneMatch(s ->
@@ -131,7 +131,7 @@ public class FetchProjection extends Projection {
         return inputTypes;
     }
 
-    public Map<String, IntSet> nodeReaders() {
+    public Map<String, IntArrayList> nodeReaders() {
         return nodeReaders;
     }
 
@@ -180,7 +180,7 @@ public class FetchProjection extends Projection {
 
     public Map<String, ? extends IntObjectMap<Streamer<?>[]>> generateStreamersGroupedByReaderAndNode() {
         HashMap<String, IntObjectHashMap<Streamer<?>[]>> streamersByReaderByNode = new HashMap<>();
-        for (Map.Entry<String, IntSet> entry : nodeReaders.entrySet()) {
+        for (Map.Entry<String, IntArrayList> entry : nodeReaders.entrySet()) {
             IntObjectHashMap<Streamer<?>[]> streamersByReaderId = new IntObjectHashMap<>();
             String nodeId = entry.getKey();
             streamersByReaderByNode.put(nodeId, streamersByReaderId);

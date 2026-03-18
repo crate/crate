@@ -21,19 +21,20 @@
 
 package io.crate.planner;
 
-import com.carrotsearch.hppc.IntHashSet;
-import com.carrotsearch.hppc.IntSet;
-import io.crate.metadata.RelationName;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntHashSet;
+
+import io.crate.metadata.RelationName;
+
 public final class ReaderAllocations {
 
     private final TreeMap<Integer, String> readerIndices = new TreeMap<>();
-    private final Map<String, IntSet> nodeReaders = new HashMap<>();
+    private final Map<String, IntArrayList> nodeReaders = new HashMap<>();
     private final TreeMap<String, Integer> bases;
     private final Map<RelationName, Collection<String>> tableIndices;
     private final Map<String, RelationName> indicesToIdents;
@@ -59,12 +60,14 @@ public final class ReaderAllocations {
             }
             for (Map.Entry<Integer, String> nodeEntries : entry.getValue().entrySet()) {
                 int readerId = base + nodeEntries.getKey();
-                IntSet readerIds = nodeReaders.get(nodeEntries.getValue());
+                IntArrayList readerIds = nodeReaders.get(nodeEntries.getValue());
                 if (readerIds == null) {
-                    readerIds = new IntHashSet();
+                    readerIds = new IntArrayList();
                     nodeReaders.put(nodeEntries.getValue(), readerIds);
                 }
                 readerIds.add(readerId);
+                assert new IntHashSet(readerIds).size() == readerIds.size()
+                    : "readerIds must be unique";
             }
         }
     }
@@ -77,7 +80,7 @@ public final class ReaderAllocations {
         return readerIndices;
     }
 
-    public Map<String, IntSet> nodeReaders() {
+    public Map<String, IntArrayList> nodeReaders() {
         return nodeReaders;
     }
 

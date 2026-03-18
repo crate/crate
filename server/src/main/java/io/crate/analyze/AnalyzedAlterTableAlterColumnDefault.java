@@ -19,35 +19,30 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.ddl.views;
+package io.crate.analyze;
 
-import java.io.IOException;
-import java.util.List;
+import java.util.function.Consumer;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportResponse;
+import org.jspecify.annotations.Nullable;
 
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
-public final class DropViewResponse extends TransportResponse {
+public record AnalyzedAlterTableAlterColumnDefault(RelationName table,
+                                                   Reference ref,
+                                                   @Nullable Symbol newDefault) implements DDLStatement {
 
-    private final List<RelationName> missing;
-
-    DropViewResponse(List<RelationName> missing) {
-        this.missing = missing;
-    }
-
-    public List<RelationName> missing() {
-        return missing;
-    }
-
-    public DropViewResponse(StreamInput in) throws IOException {
-        missing = in.readList(RelationName::new);
+    @Override
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitAlterTableAlterColumnDefault(this, context);
     }
 
     @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeList(missing);
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        consumer.accept(ref);
+        if (newDefault != null) {
+            consumer.accept(newDefault);
+        }
     }
 }

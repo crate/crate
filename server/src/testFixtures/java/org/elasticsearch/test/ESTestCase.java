@@ -131,7 +131,9 @@ import com.carrotsearch.randomizedtesting.rules.TestRuleAdapter;
 
 import io.crate.analyze.OptimizeTableSettings;
 import io.crate.common.SuppressForbidden;
+import io.crate.common.collections.Lists;
 import io.crate.lucene.CrateLuceneTestCase;
+import io.crate.metadata.MetadataModule;
 import io.crate.server.xcontent.LoggingDeprecationHandler;
 
 /**
@@ -950,7 +952,8 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
      * The {@link NamedWriteableRegistry} to use for this test. Subclasses should override and use liberally.
      */
     protected static NamedWriteableRegistry writableRegistry() {
-        return new NamedWriteableRegistry(ClusterModule.getNamedWriteables());
+        return new NamedWriteableRegistry(Lists.concat(
+            ClusterModule.getNamedWriteables(), MetadataModule.getNamedWriteables()));
     }
 
     /**

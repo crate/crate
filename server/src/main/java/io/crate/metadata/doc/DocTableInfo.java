@@ -52,6 +52,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -638,6 +639,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
+    @NonNull
     public Iterator<Reference> iterator() {
         return allColumns.values().iterator();
     }
@@ -708,7 +710,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public DynamicReference getDynamic(ColumnIdent column,
                                        boolean forWrite,
                                        boolean errorOnUnknownObjectKey) {
-        boolean parentIsIgnored = false;
         ColumnPolicy parentPolicy = columnPolicy();
         int position = 0;
 
@@ -734,18 +735,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 }
                 return null;
             case IGNORED:
-                parentIsIgnored = true;
                 break;
             default:
                 break;
-        }
-        if (parentIsIgnored) {
-            return new DynamicReference(
-                ident(),
-                column,
-                rowGranularity(),
-                position
-            );
         }
         return new DynamicReference(ident(), column, rowGranularity(), position);
     }
@@ -910,6 +902,75 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             pkConstraintName,
             primaryKeys,
             newConstraints,
+            clusteredBy,
+            tableParameters,
+            partitionedBy,
+            columnPolicy,
+            versionCreated,
+            versionUpgraded,
+            closed,
+            supportedOperations,
+            tableVersion + 1
+        );
+    }
+
+    public DocTableInfo alterColumn(Reference targetRef, UnaryOperator<Reference> update) {
+        long targetOid = targetRef.oid();
+        Map<ColumnIdent, Reference> newReferences = new HashMap<>(allColumns);
+        Reference updatedRef = null;
+
+        // Fast path: lookup by name, verify OID matches
+        Reference existing = newReferences.get(targetRef.column());
+        if (existing != null && existing.oid() == targetOid) {
+            updatedRef = update.apply(existing);
+            if (existing.equals(updatedRef)) {
+                return this;
+            }
+            newReferences.put(targetRef.column(), updatedRef);
+        } else {
+            // Fallback: O(N) scan by OID
+            for (var entry : newReferences.entrySet()) {
+                Reference ref = entry.getValue();
+                if (ref.oid() == targetOid) {
+                    updatedRef = update.apply(ref);
+                    if (ref.equals(updatedRef)) {
+                        return this;
+                    }
+                    entry.setValue(updatedRef);
+                    break;
+                }
+            }
+        }
+        if (updatedRef == null) {
+            throw new ColumnUnknownException(targetRef.column(), ident);
+        }
+
+        // Update generated references whose referencedReferences contain the altered column
+        final Reference finalUpdatedRef = updatedRef;
+        for (var entry : newReferences.entrySet()) {
+            Reference ref = entry.getValue();
+            if (ref instanceof GeneratedReference genRef) {
+                boolean referencesTarget = genRef.referencedReferences().stream()
+                    .anyMatch(r -> r.oid() == targetOid);
+                if (referencesTarget) {
+                    Symbol newExpression = RefReplacer.replaceRefs(
+                        genRef.generatedExpression(),
+                        r -> r.oid() == targetOid ? finalUpdatedRef : r
+                    );
+                    entry.setValue(new GeneratedReference(genRef.reference(), newExpression));
+                }
+            }
+        }
+
+        return new DocTableInfo(
+            tableOID,
+            ident,
+            newReferences,
+            indexColumns,
+            droppedColumns,
+            pkConstraintName,
+            primaryKeys,
+            checkConstraints,
             clusteredBy,
             tableParameters,
             partitionedBy,

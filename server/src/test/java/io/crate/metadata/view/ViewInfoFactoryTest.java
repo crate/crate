@@ -23,8 +23,6 @@ package io.crate.metadata.view;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Map;
-
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
@@ -47,11 +45,11 @@ public class ViewInfoFactoryTest {
 
         String statement = "SELECT * FROM users";
         RelationName ident = new RelationName(null, "test");
-        ViewMetadata viewMetadata = new ViewMetadata(statement, null, SearchPath.pathWithPGCatalogAndDoc(), false);
-        ViewsMetadata views = new ViewsMetadata(Map.of(ident.fqn(), viewMetadata));
-
         ClusterState state = ClusterState.builder(ClusterState.EMPTY_STATE)
-            .metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED).putCustom(ViewsMetadata.TYPE, views)).build();
+            .metadata(
+                new Metadata.Builder(Metadata.OID_UNASSIGNED)
+                    .setView(ident, statement, null, SearchPath.pathWithPGCatalogAndDoc(), false))
+            .build();
 
         // `definition` col includes a hint about an error in the view's query
         ViewInfo viewInfo = factory.create(ident, state);

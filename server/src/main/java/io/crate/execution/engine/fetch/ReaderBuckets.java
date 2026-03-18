@@ -31,7 +31,6 @@ import org.apache.lucene.util.Accountable;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
-import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
@@ -145,7 +144,7 @@ public class ReaderBuckets implements Accountable {
         };
     }
 
-    public IntObjectHashMap<IntArrayList> generateToFetch(IntSet readerIds) {
+    public IntObjectHashMap<IntArrayList> generateToFetch(IntArrayList readerIds) {
         IntObjectHashMap<IntArrayList> toFetch = new IntObjectHashMap<>(readerIds.size());
         for (IntCursor readerIdCursor : readerIds) {
             ReaderBucket readerBucket = readerBuckets.get(readerIdCursor.value);

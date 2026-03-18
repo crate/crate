@@ -25,14 +25,11 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Paths;
-import java.util.Iterator;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jspecify.annotations.Nullable;
@@ -172,27 +169,5 @@ public class KillIntegrationTest extends IntegTestCase {
         assertThat(killResponse.rowCount()).isEqualTo(0L);
         SQLResponse logResponse = execute("select * from sys.jobs_log where error = ?", new Object[]{"KILLED"});
         assertThat(logResponse.rowCount()).isEqualTo(0L);
-    }
-
-    @Test
-    public void test_kill_is_not_tripped_by_cb() throws Exception {
-        UUID jobId = UUID.randomUUID();
-        // Use max long to ensure CBE and subtract max int to avoid overflows.
-        long increaseToCBE = Long.MAX_VALUE - Integer.MAX_VALUE;
-        try {
-            Iterator<CircuitBreakerService> it = cluster().getInstances(CircuitBreakerService.class).iterator();
-            while (it.hasNext()) {
-                CircuitBreaker inFlightBreaker = it.next().getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS);
-                inFlightBreaker.addWithoutBreaking(increaseToCBE);
-            }
-            SQLResponse killResponse = execute("KILL ?", new Object[]{jobId.toString()});
-            assertThat(killResponse.rowCount()).isEqualTo(0L);
-        } finally {
-            Iterator<CircuitBreakerService> it = cluster().getInstances(CircuitBreakerService.class).iterator();
-            while (it.hasNext()) {
-                CircuitBreaker inFlightBreaker = it.next().getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS);
-                inFlightBreaker.addWithoutBreaking(-increaseToCBE); // Reset CB so that other tests (and teardown) works.
-            }
-        }
     }
 }

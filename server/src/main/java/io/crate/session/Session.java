@@ -130,10 +130,6 @@ public class Session implements AutoCloseable {
     // Logger name should be SQLOperations here
     private static final Logger LOGGER = LogManager.getLogger(Sessions.class);
 
-    // Parser can't handle empty statement but postgres requires support for it.
-    // This rewrite is done so that bind/describe calls on an empty statement will work as well
-    private static final Statement EMPTY_STMT = SqlParser.createStatement("select '' from sys.cluster limit 0");
-
     public static final String UNNAMED = "";
     private final DependencyCarrier executor;
     private final CoordinatorSessionSettings sessionSettings;
@@ -346,12 +342,8 @@ public class Session implements AutoCloseable {
         try {
             statement = SqlParser.createStatement(query);
         } catch (Throwable t) {
-            if ("".equals(query)) {
-                statement = EMPTY_STMT;
-            } else {
-                jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), query, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
-                throw t;
-            }
+            jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), query, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
+            throw t;
         }
         timeoutToken.check("parse");
 

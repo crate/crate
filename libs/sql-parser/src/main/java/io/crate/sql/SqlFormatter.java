@@ -48,6 +48,7 @@ import io.crate.sql.tree.AlterRoleSet;
 import io.crate.sql.tree.AlterServer;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.AlterTable;
+import io.crate.sql.tree.AlterTableAlterColumnDefault;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.CascadeMode;
@@ -90,6 +91,7 @@ import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUserMapping;
 import io.crate.sql.tree.DropView;
+import io.crate.sql.tree.EmptyStatement;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
@@ -194,6 +196,12 @@ public final class SqlFormatter {
         @Override
         protected Void visitNode(Node node, Integer indent) {
             throw new UnsupportedOperationException("not yet implemented: " + node);
+        }
+
+        @Override
+        public Void visitEmpty(EmptyStatement emptyStatement, Integer indent) {
+            append(indent, "");
+            return null;
         }
 
         @Override
@@ -799,6 +807,21 @@ public final class SqlFormatter {
                 builder.append(")");
             }
 
+            return null;
+        }
+
+        @Override
+        public Void visitAlterTableAlterColumnDefaultStatement(AlterTableAlterColumnDefault<?> node, Integer indent) {
+            builder.append("ALTER TABLE ");
+            node.table().accept(this, indent);
+            builder.append(" ALTER COLUMN ");
+            builder.append(formatExpression(node.column()));
+            if (node.defaultExpression() != null) {
+                builder.append(" SET DEFAULT ");
+                builder.append(formatExpression(node.defaultExpression()));
+            } else {
+                builder.append(" DROP DEFAULT");
+            }
             return null;
         }
 

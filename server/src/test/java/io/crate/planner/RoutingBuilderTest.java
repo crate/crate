@@ -31,7 +31,7 @@ import org.elasticsearch.common.Randomness;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.carrotsearch.hppc.IntSet;
+import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.WhereClause;
 import io.crate.expression.operator.EqOperator;
@@ -101,12 +101,12 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
         assertThat(readerAllocations.indices().get(0)).isEqualTo(indexUUID);
         assertThat(readerAllocations.nodeReaders()).hasSize(2);
 
-        IntSet n1 = readerAllocations.nodeReaders().get("n1");
+        IntArrayList n1 = readerAllocations.nodeReaders().get("n1");
         assertThat(n1).hasSize(2);
         assertThat(n1.contains(0)).isTrue();
         assertThat(n1.contains(2)).isTrue();
 
-        IntSet n2 = readerAllocations.nodeReaders().get("n2");
+        IntArrayList n2 = readerAllocations.nodeReaders().get("n2");
         assertThat(n2).hasSize(2);
         assertThat(n2.contains(1)).isTrue();
         assertThat(n2.contains(3)).isTrue();

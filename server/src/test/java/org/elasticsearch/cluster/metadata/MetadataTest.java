@@ -23,7 +23,6 @@ package org.elasticsearch.cluster.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.elasticsearch.test.ESTestCase.settings;
 
 import java.io.IOException;
 import java.util.List;
@@ -31,7 +30,9 @@ import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.exceptions.DependentObjectsExists;
@@ -46,22 +47,18 @@ import io.crate.metadata.view.ViewsMetadata;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
-public class MetadataTest {
+public class MetadataTest extends ESTestCase {
 
     @Test
     public void test_bwc_read_writes_with_6_1_0() throws Exception {
         Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .columnOID(123L)
-                // builder() adds IndexGraveyard custom, which causes "can't read named writeable from StreamInput" error on reads.
-                // In production NamedWriteableAwareStreamInput is used.
-                // Resetting it here for simplicity as it's irrelevant for the test.
-                .removeCustom(IndexGraveyard.TYPE)
                 .build();
 
         BytesStreamOutput out = new BytesStreamOutput();
         out.setVersion(Version.V_6_1_0);
         metadata.writeTo(out); // OID should be written, 6.1.0 expects it.
-        var in = out.bytes().streamInput();
+        var in = new NamedWriteableAwareStreamInput(out.bytes().streamInput(), writableRegistry());
         in.setVersion(Version.V_6_1_0);
         Metadata recievedMetadata = Metadata.readFrom(in); // We are reading from 6.1.0, which sends out OID.
         assertThat(recievedMetadata.columnOID()).isEqualTo(123L);
@@ -72,16 +69,12 @@ public class MetadataTest {
         assertThatThrownBy(() ->
             new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .createSchema("foo")
-                .putCustom(
-                    ViewsMetadata.TYPE,
-                    ViewsMetadata.addOrReplace(
-                        null,
-                        new RelationName("foo", "bar"),
-                        "select 1",
-                        null,
-                        SearchPath.pathWithPGCatalogAndDoc(),
-                        true
-                    ))
+                .setView(
+                    new RelationName("foo", "bar"),
+                    "select 1",
+                    null,
+                    SearchPath.pathWithPGCatalogAndDoc(),
+                    true)
                 .dropSchema("foo")
         ).isExactlyInstanceOf(DependentObjectsExists.class);
     }
@@ -123,24 +116,20 @@ public class MetadataTest {
     public void test_bwc_streaming_table_oid() throws IOException {
         int tableOID = 123;
         Metadata metadata = Metadata.builder(tableOID)
-            // builder() adds IndexGraveyard custom, which causes "can't read named writeable from StreamInput" error on reads.
-            // In production NamedWriteableAwareStreamInput is used.
-            // Resetting it here for simplicity as it's irrelevant for the test.
-            .removeCustom(IndexGraveyard.TYPE)
             .build();
         assertThat(metadata.currentMaxTableOid()).isEqualTo(tableOID);
 
         BytesStreamOutput out = new BytesStreamOutput();
         out.setVersion(Version.V_6_2_0);
         metadata.writeTo(out);
-        var in = out.bytes().streamInput();
+        var in = new NamedWriteableAwareStreamInput(out.bytes().streamInput(), writableRegistry());
         in.setVersion(Version.V_6_2_0);
         Metadata recievedMetadata = Metadata.readFrom(in);
         assertThat(recievedMetadata.currentMaxTableOid()).isEqualTo(Metadata.OID_UNASSIGNED);
 
         out = new BytesStreamOutput();
         metadata.writeTo(out);
-        in = out.bytes().streamInput();
+        in = new NamedWriteableAwareStreamInput(out.bytes().streamInput(), writableRegistry());
         recievedMetadata = Metadata.readFrom(in);
         assertThat(recievedMetadata.currentMaxTableOid()).isEqualTo(tableOID);
 
@@ -153,7 +142,7 @@ public class MetadataTest {
 
         out = new BytesStreamOutput();
         metadataDiff.writeTo(out);
-        in = out.bytes().streamInput();
+        in = new NamedWriteableAwareStreamInput(out.bytes().streamInput(), writableRegistry());
         var receivedMetadataDiff = Metadata.readDiffFrom(in);
         // check that currMetadata.currentMaxTableOid is overridden by metadataDiff.currentMaxTableOid which is greater
         var currMetadata = Metadata.builder(120).build();
@@ -162,7 +151,7 @@ public class MetadataTest {
         out = new BytesStreamOutput();
         out.setVersion(Version.V_6_2_0);
         metadataDiff.writeTo(out);
-        in = out.bytes().streamInput();
+        in = new NamedWriteableAwareStreamInput(out.bytes().streamInput(), writableRegistry());
         in.setVersion(Version.V_6_2_0);
         receivedMetadataDiff = Metadata.readDiffFrom(in);
         // check that currMetadata.currentMaxTableOid is not overridden by metadataDiff.currentMaxTableOid which is UNASSIGNED
@@ -244,5 +233,35 @@ public class MetadataTest {
         assertThat(deletesApplied.indices().size()).isEqualTo(0);
         assertThat(deletesApplied.templates().size()).isEqualTo(0);
         assertThat(deletesApplied.schemas().size()).isEqualTo(0); // make sure deleted from schemas as well
+    }
+
+    @Test
+    public void test_bwc_streaming_views() throws IOException {
+        Metadata metadata = Metadata.builder(Metadata.OID_UNASSIGNED)
+            .setView(
+                new RelationName("mySchema", "myView"),
+                "SELECT 10",
+                "John",
+                SearchPath.createSearchPathFrom("mySchema", "doc"),
+                true
+            )
+            .build();
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_2_0);
+        metadata.writeTo(out);
+        var in = new NamedWriteableAwareStreamInput(out.bytes().streamInput(), writableRegistry());
+        in.setVersion(Version.V_6_2_0);
+        Metadata receivedMetadata = Metadata.readFrom(in);
+        assertThat(receivedMetadata.relations(RelationMetadata.View.class)).containsExactly(
+            new RelationMetadata.View(
+                new RelationName("mySchema", "myView"),
+                "SELECT 10",
+                "John",
+                SearchPath.createSearchPathFrom("mySchema", "doc"),
+                true
+            )
+        );
+        assertThat((ViewsMetadata) receivedMetadata.custom(ViewsMetadata.TYPE)).isNull();
     }
 }

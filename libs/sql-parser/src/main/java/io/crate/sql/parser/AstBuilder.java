@@ -69,6 +69,7 @@ import io.crate.sql.parser.antlr.SqlBaseParser.MappedUserContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.QueryContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.QueryOptParensContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.SetTransactionContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.StatementContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.StatementsContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.TransactionModeContext;
 import io.crate.sql.parser.antlr.SqlBaseParserBaseVisitor;
@@ -83,6 +84,7 @@ import io.crate.sql.tree.AlterServer;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
+import io.crate.sql.tree.AlterTableAlterColumnDefault;
 import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRenameColumn;
@@ -162,6 +164,7 @@ import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUserMapping;
 import io.crate.sql.tree.DropView;
+import io.crate.sql.tree.EmptyStatement;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Except;
 import io.crate.sql.tree.ExistsPredicate;
@@ -292,7 +295,11 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitSingleStatement(SqlBaseParser.SingleStatementContext context) {
-        return visit(context.statement());
+        StatementContext statement = context.statement();
+        if (statement == null) {
+            return EmptyStatement.INSTANCE;
+        }
+        return visit(statement);
     }
 
     @Override
@@ -1491,6 +1498,22 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             (Table<?>) visit(ctx.alterTableDefinition()),
             (Expression) visit(ctx.source),
             (Expression) visit(ctx.target));
+    }
+
+    @Override
+    public Node visitAlterTableAlterColumnSetDefault(SqlBaseParser.AlterTableAlterColumnSetDefaultContext ctx) {
+        return new AlterTableAlterColumnDefault<>(
+            (Table<?>) visit(ctx.alterTableDefinition()),
+            (Expression) visit(ctx.subscriptSafe()),
+            (Expression) visit(ctx.expr()));
+    }
+
+    @Override
+    public Node visitAlterTableAlterColumnDropDefault(SqlBaseParser.AlterTableAlterColumnDropDefaultContext ctx) {
+        return new AlterTableAlterColumnDefault<>(
+            (Table<?>) visit(ctx.alterTableDefinition()),
+            (Expression) visit(ctx.subscriptSafe()),
+            null);
     }
 
     @Override

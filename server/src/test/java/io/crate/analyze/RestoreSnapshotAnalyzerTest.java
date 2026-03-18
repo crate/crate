@@ -373,13 +373,14 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_restore_custom_metadata() {
-        for (var meta : List.of("VIEWS", "UDFS")) {
+        for (var meta : List.of("USERMANAGEMENT", "UDFS")) {
             BoundRestoreSnapshot statement =
                 analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot " + meta);
             assertThat(statement.repository()).isEqualTo("my_repo");
             assertThat(statement.snapshot()).isEqualTo("my_snapshot");
             assertThat(statement.restoreTables().isEmpty()).isTrue();
             assertThat(statement.includeTables()).isFalse();
+            assertThat(statement.includeViews()).isFalse();
             assertThat(statement.includeCustomMetadata()).isTrue();
             assertThat(statement.customMetadataTypes())
                 .containsExactlyInAnyOrderElementsOf(METADATA_CUSTOM_TYPE_MAP.get(meta));
@@ -420,8 +421,9 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(statement.repository()).isEqualTo("my_repo");
         assertThat(statement.snapshot()).isEqualTo("my_snapshot");
         assertThat(statement.includeTables()).isTrue();
-        assertThat(statement.includeCustomMetadata()).isTrue();
-        assertThat(statement.customMetadataTypes()).containsExactlyElementsOf(METADATA_CUSTOM_TYPE_MAP.get("VIEWS"));
+        assertThat(statement.includeViews()).isTrue();
+        assertThat(statement.includeCustomMetadata()).isFalse();
+        assertThat(statement.customMetadataTypes()).isEmpty();
         assertThat(statement.includeGlobalSettings()).isFalse();
         assertThat(statement.globalSettings().isEmpty()).isTrue();
     }

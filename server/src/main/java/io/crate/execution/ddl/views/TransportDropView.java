@@ -22,6 +22,7 @@
 package io.crate.execution.ddl.views;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.elasticsearch.action.ActionListener;
@@ -32,6 +33,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
@@ -39,9 +41,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.metadata.view.ViewsMetadata;
 
 public final class TransportDropView extends TransportMasterNodeAction<DropViewRequest, DropViewResponse> {
 
@@ -89,29 +91,11 @@ public final class TransportDropView extends TransportMasterNodeAction<DropViewR
         clusterService.submitStateUpdateTask("views/drop",
             new AckedClusterStateUpdateTask<>(Priority.HIGH, request, listener) {
 
-                private List<RelationName> missing;
+                private final List<RelationName> missing = new ArrayList<>();
 
                 @Override
                 public ClusterState execute(ClusterState currentState) {
-                    ViewsMetadata views = currentState.metadata().custom(ViewsMetadata.TYPE);
-                    if (views == null) {
-                        missing = request.names();
-                        return currentState;
-                    }
-                    ViewsMetadata.RemoveResult removeResult = views.remove(request.names());
-                    missing = removeResult.missing();
-                    if (!removeResult.missing().isEmpty() && !request.ifExists()) {
-                        // We missed a view -> This is an error case so we must not update the cluster state
-                        return currentState;
-                    }
-                    currentState = ddlClusterStateService.onDropView(currentState, request.names());
-                    return ClusterState.builder(currentState)
-                        .metadata(
-                            Metadata.builder(currentState.metadata())
-                                .putCustom(ViewsMetadata.TYPE, removeResult.updatedViews())
-                                .build()
-                        )
-                        .build();
+                    return doDropView(request, currentState, missing);
                 }
 
                 @Override
@@ -124,5 +108,30 @@ public final class TransportDropView extends TransportMasterNodeAction<DropViewR
     @Override
     protected ClusterBlockException checkBlock(DropViewRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
+    }
+
+    @VisibleForTesting
+    ClusterState doDropView(DropViewRequest request, ClusterState currentState, List<RelationName> missing) {
+        for (RelationName name : request.names()) {
+            RelationMetadata view = currentState.metadata().getRelation(name);
+            if (view instanceof RelationMetadata.View == false) {
+                missing.add(name);
+            }
+        }
+        if (missing.isEmpty() == false && request.ifExists() == false) {
+            // We missed a view -> This is an error case so we must not update the cluster state
+            return currentState;
+        }
+
+        currentState = ddlClusterStateService.onDropView(currentState, request.names());
+        Metadata.Builder mdBuilder = new Metadata.Builder(currentState.metadata());
+        for (RelationName name : request.names()) {
+            if (missing.contains(name) == false) {
+                mdBuilder.dropRelation(name);
+            }
+        }
+        return ClusterState.builder(currentState)
+            .metadata(mdBuilder)
+            .build();
     }
 }

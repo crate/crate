@@ -40,7 +40,6 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.RenameTableRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.view.ViewsMetadata;
 
 public class RenameTableClusterStateExecutor {
 
@@ -61,12 +60,12 @@ public class RenameTableClusterStateExecutor {
 
         Metadata currentMetadata = currentState.metadata();
         Metadata.Builder newMetadata = Metadata.builder(currentMetadata);
-        ViewsMetadata views = currentMetadata.custom(ViewsMetadata.TYPE);
-        boolean isView = views != null && views.contains(source);
+        RelationMetadata relationMetadataSource = currentMetadata.getRelation(source);
+        RelationMetadata relationMetadataTarget = currentMetadata.getRelation(target);
+        boolean isView = relationMetadataSource instanceof RelationMetadata.View;
 
-        boolean viewExists = views != null && views.contains(target);
-        boolean tableExists = currentMetadata.getRelation(target) != null;
-        if (viewExists || tableExists) {
+        if (relationMetadataTarget != null) {
+            boolean viewExists = relationMetadataTarget instanceof RelationMetadata.View;
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
                 "Cannot rename %s %s to %s, %s %s already exists",
@@ -74,8 +73,9 @@ public class RenameTableClusterStateExecutor {
         }
 
         if (isView) {
-            ViewsMetadata updatedViewsMetadata = views.rename(source, target);
-            newMetadata.putCustom(ViewsMetadata.TYPE, updatedViewsMetadata);
+            newMetadata.dropRelation(source);
+            RelationMetadata.View view = (RelationMetadata.View) relationMetadataSource;
+            newMetadata.setView(target, view.stmt(), view.owner(), view.searchPath(), view.errorOnUnknownObjectKey());
             return ClusterState.builder(currentState)
                 .metadata(newMetadata)
                 .build();

@@ -50,6 +50,7 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
     private final Settings settings;
 
     private final boolean includeTables;
+    private final boolean includeViews;
     private final boolean includeCustomMetadata;
     private final String[] customMetadataTypes;
     private final boolean includeGlobalSettings;
@@ -70,6 +71,7 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
                                   IndicesOptions indicesOptions,
                                   Settings settings,
                                   boolean includeTables,
+                                  boolean includeViews,
                                   boolean includeCustomMetadata,
                                   Set<String> metadataTypes,
                                   boolean includeGlobalSettings,
@@ -80,6 +82,7 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         this.indicesOptions = indicesOptions;
         this.settings = settings;
         this.includeTables = includeTables;
+        this.includeViews = includeViews;
         this.includeCustomMetadata = includeCustomMetadata;
         this.customMetadataTypes = metadataTypes.toArray(String[]::new);
         this.includeGlobalSettings = includeGlobalSettings;
@@ -166,6 +169,10 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         return includeTables;
     }
 
+    public boolean includeViews() {
+        return includeViews;
+    }
+
     public boolean includeCustomMetadata() {
         return includeCustomMetadata;
     }
@@ -180,6 +187,13 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
 
     public String[] globalSettings() {
         return globalSettings;
+    }
+
+    public boolean hasNonDefaultRenamePatterns() {
+        return SnapshotSettings.TABLE_RENAME_PATTERN.exists(settings)
+            || SnapshotSettings.TABLE_RENAME_REPLACEMENT.exists(settings)
+            || SnapshotSettings.SCHEMA_RENAME_PATTERN.exists(settings)
+            || SnapshotSettings.SCHEMA_RENAME_REPLACEMENT.exists(settings);
     }
 
     public RestoreSnapshotRequest(StreamInput in) throws IOException {
@@ -224,6 +238,11 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
             // schemaRenameReplacement
             in.readString();
         }
+        if (version.onOrAfter(Version.V_6_3_0)) {
+            includeViews = in.readBoolean();
+        } else {
+            includeViews = Arrays.asList(customMetadataTypes).contains("VIEWS");
+        }
     }
 
     @Override
@@ -253,14 +272,27 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
             out.writeStringArray(Strings.EMPTY_ARRAY); // templates
         }
         out.writeBoolean(includeTables);
-        out.writeBoolean(includeCustomMetadata);
-        out.writeStringArray(customMetadataTypes);
+        String[] metadataTypes = customMetadataTypes;
+        if (includeViews && version.before(Version.V_6_3_0)) {
+            out.writeBoolean(true);
+            metadataTypes = new String[customMetadataTypes.length + 1];
+            System.arraycopy(customMetadataTypes, 0, metadataTypes, 0, customMetadataTypes.length);
+            metadataTypes[customMetadataTypes.length] = "VIEWS";
+        } else {
+            out.writeBoolean(includeCustomMetadata);
+        }
+        out.writeStringArray(metadataTypes);
         out.writeBoolean(includeGlobalSettings);
         out.writeStringArray(globalSettings);
         out.writeCollection(tablesToRestore);
         if (version.before(Version.V_6_0_0)) {
             out.writeString(schemaRenamePattern());
             out.writeString(schemaRenameReplacement());
+        }
+        if (version.onOrAfter(Version.V_6_3_0)) {
+            out.writeBoolean(includeViews);
+        } else {
+            out.writeBoolean(Arrays.asList(customMetadataTypes).contains("VIEWS"));
         }
     }
 
@@ -274,6 +306,7 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
             Objects.equals(indicesOptions, that.indicesOptions) &&
             Objects.equals(settings, that.settings) &&
             includeTables == that.includeTables &&
+            includeViews == that.includeViews &&
             includeCustomMetadata == that.includeCustomMetadata &&
             Arrays.equals(customMetadataTypes, that.customMetadataTypes) &&
             includeGlobalSettings == that.includeGlobalSettings &&
@@ -288,6 +321,7 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
             indicesOptions,
             settings,
             includeTables,
+            includeViews,
             includeCustomMetadata,
             includeGlobalSettings
         );

@@ -536,6 +536,10 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
+    public R visitAlterTableAlterColumnDefaultStatement(AlterTableAlterColumnDefault<?> node, C context) {
+        return visitStatement(node, context);
+    }
+
     public R visitRerouteMoveShard(RerouteMoveShard<?> node, C context) {
         return visitNode(node, context);
     }
@@ -762,5 +766,9 @@ public abstract class AstVisitor<R, C> {
 
     public R visitDropSchema(DropSchema dropSchema, C context) {
         return visitStatement(dropSchema, context);
+    }
+
+    public R visitEmpty(EmptyStatement emptyStatement, C context) {
+        return visitStatement(emptyStatement, context);
     }
 }

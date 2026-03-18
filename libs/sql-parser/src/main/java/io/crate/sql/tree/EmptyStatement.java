@@ -19,9 +19,33 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.view;
+package io.crate.sql.tree;
 
-import io.crate.metadata.RelationName;
+public final class EmptyStatement extends Statement {
 
-public record View(RelationName name, ViewMetadata metadata) {
+    public static final EmptyStatement INSTANCE = new EmptyStatement();
+
+    private EmptyStatement() {
+        super();
+    }
+
+    @Override
+    public int hashCode() {
+        return 0;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return this == obj;
+    }
+
+    @Override
+    public String toString() {
+        return "";
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitEmpty(this, context);
+    }
 }

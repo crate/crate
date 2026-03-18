@@ -28,8 +28,9 @@ import static org.elasticsearch.test.IntegTestCase.resolveIndex;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import org.apache.logging.log4j.util.Strings;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -38,7 +39,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.junit.Test;
 
-import io.crate.common.unit.TimeValue;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -69,17 +69,18 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             List.of(),
             SnapshotState.SUCCESS
         );
-        RestoreService.RestoreRequest restoreRequest = new RestoreService.RestoreRequest(
+        var restoreRequest = new RestoreSnapshotRequest(
             "repo1",
             snapshotInfo.snapshotId().getUUID(),
+            tablesToRestore,
             IndicesOptions.LENIENT_EXPAND_OPEN,
             Settings.EMPTY,
-            TimeValue.timeValueSeconds(30),
             true,
+            false,
             true,
-            Strings.EMPTY_ARRAY,
+            Set.of(),
             true,
-            Strings.EMPTY_ARRAY
+            List.of()
         );
 
         Map<RelationName, RestoreService.RestoreRelation> restoreRelations = resolveRelations(
@@ -108,20 +109,21 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             List.of(),
             SnapshotState.SUCCESS
         );
-        var restoreRequest = new RestoreService.RestoreRequest(
-            "repo1",
-            snapshotInfo.snapshotId().getName(),
-            IndicesOptions.LENIENT_EXPAND_OPEN,
-            Settings.builder().put(IGNORE_UNAVAILABLE.getKey(), true).build(),
-            TimeValue.timeValueSeconds(30),
-            true,
-            true,
-            Strings.EMPTY_ARRAY,
-            true,
-            Strings.EMPTY_ARRAY
-        );
         List<TableOrPartition> tablesToRestore = List.of(
             new TableOrPartition(relationName, "046jcchm6krj4e1g60o30c0")
+        );
+        var restoreRequest = new RestoreSnapshotRequest(
+            "repo1",
+            snapshotInfo.snapshotId().getName(),
+            tablesToRestore,
+            IndicesOptions.LENIENT_EXPAND_OPEN,
+            Settings.builder().put(IGNORE_UNAVAILABLE.getKey(), true).build(),
+            true,
+            false,
+            true,
+            Set.of(),
+            true,
+            List.of()
         );
 
         Metadata metadata = clusterService.state().metadata();
@@ -153,20 +155,21 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             SnapshotState.SUCCESS
         );
 
-        RestoreService.RestoreRequest restoreRequest = new RestoreService.RestoreRequest(
-            "repo1",
-            snapshotInfo.snapshotId().getName(),
-            IndicesOptions.LENIENT_EXPAND_OPEN,
-            Settings.EMPTY,
-            TimeValue.timeValueSeconds(30),
-            true,
-            true,
-            Strings.EMPTY_ARRAY,
-            true,
-            Strings.EMPTY_ARRAY
-        );
         List<TableOrPartition> tablesToRestore = List.of(
             new TableOrPartition(relationName, "046jcchm6krj4e1g60o30c0")
+        );
+        var restoreRequest = new RestoreSnapshotRequest(
+            "repo1",
+            snapshotInfo.snapshotId().getName(),
+            tablesToRestore,
+            IndicesOptions.LENIENT_EXPAND_OPEN,
+            Settings.EMPTY,
+            true,
+            false,
+            true,
+            Set.of(),
+            true,
+            List.of()
         );
 
         Map<RelationName, RestoreService.RestoreRelation> restoreRelations = resolveRelations(
@@ -195,20 +198,21 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             SnapshotState.SUCCESS
         );
 
-        RestoreService.RestoreRequest restoreRequest = new RestoreService.RestoreRequest(
-            "repo1",
-            snapshotInfo.snapshotId().getName(),
-            IndicesOptions.LENIENT_EXPAND_OPEN,
-            Settings.EMPTY,
-            TimeValue.timeValueSeconds(30),
-            true,
-            true,
-            Strings.EMPTY_ARRAY,
-            true,
-            Strings.EMPTY_ARRAY
-        );
         List<TableOrPartition> tablesToRestore = List.of(
             new TableOrPartition(relationName, null)
+        );
+        var restoreRequest = new RestoreSnapshotRequest(
+            "repo1",
+            snapshotInfo.snapshotId().getName(),
+            tablesToRestore,
+            IndicesOptions.LENIENT_EXPAND_OPEN,
+            Settings.EMPTY,
+            true,
+            false,
+            true,
+            Set.of(),
+            true,
+            List.of()
         );
 
         Map<RelationName, RestoreService.RestoreRelation> restoreRelations = resolveRelations(
@@ -248,17 +252,18 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             List.of(),
             SnapshotState.SUCCESS
         );
-        RestoreService.RestoreRequest restoreRequest = new RestoreService.RestoreRequest(
+        var restoreRequest = new RestoreSnapshotRequest(
             "repo1",
             snapshotInfo.snapshotId().getUUID(),
+            tablesToRestore,
             IndicesOptions.LENIENT_EXPAND_OPEN,
             Settings.EMPTY,
-            TimeValue.timeValueSeconds(30),
             true,
+            false,
             true,
-            Strings.EMPTY_ARRAY,
+            Set.of(),
             true,
-            Strings.EMPTY_ARRAY
+            List.of()
         );
 
         Map<RelationName, RestoreService.RestoreRelation> restoreRelations = resolveRelations(

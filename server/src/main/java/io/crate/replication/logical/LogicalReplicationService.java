@@ -23,7 +23,6 @@ package io.crate.replication.logical;
 
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.TYPE;
-import static org.elasticsearch.action.support.master.MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -43,6 +42,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreClusterStateListener;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -53,7 +53,6 @@ import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.RepositoriesService;
@@ -62,8 +61,8 @@ import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.FutureActionListener;
 import io.crate.exceptions.SubscriptionRestoreException;
 import io.crate.metadata.RelationName;
@@ -270,19 +269,19 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                                               Settings restoreSettings,
                                               List<TableOrPartition> tablesToRestore) {
         var publisherClusterRepoName = LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX + subscriptionName;
-        final RestoreService.RestoreRequest restoreRequest =
-            new RestoreService.RestoreRequest(
-                publisherClusterRepoName,
-                LogicalReplicationRepository.LATEST,
-                IndicesOptions.LENIENT_EXPAND_OPEN,
-                restoreSettings,
-                DEFAULT_MASTER_NODE_TIMEOUT,
-                true,
-                false,
-                Strings.EMPTY_ARRAY,
-                false,
-                Strings.EMPTY_ARRAY
-            );
+        final var restoreRequest = new RestoreSnapshotRequest(
+            publisherClusterRepoName,
+            LogicalReplicationRepository.LATEST,
+            tablesToRestore,
+            IndicesOptions.LENIENT_EXPAND_OPEN,
+            restoreSettings,
+            true,
+            false,
+            false,
+            Set.of(),
+            false,
+            List.of()
+        );
 
         FutureActionListener<RestoreService.RestoreCompletionResponse> restoreListener = new FutureActionListener<>();
         activeOperations.incrementAndGet();

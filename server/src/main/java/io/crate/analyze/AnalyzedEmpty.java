@@ -19,35 +19,46 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.ddl.views;
+package io.crate.analyze;
 
-import java.io.IOException;
 import java.util.List;
+import java.util.function.Consumer;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportResponse;
+import org.jspecify.annotations.Nullable;
 
-import io.crate.metadata.RelationName;
+import io.crate.expression.symbol.Symbol;
 
-public final class DropViewResponse extends TransportResponse {
+public final class AnalyzedEmpty implements AnalyzedStatement {
 
-    private final List<RelationName> missing;
+    public static final AnalyzedEmpty INSTANCE = new AnalyzedEmpty();
 
-    DropViewResponse(List<RelationName> missing) {
-        this.missing = missing;
-    }
-
-    public List<RelationName> missing() {
-        return missing;
-    }
-
-    public DropViewResponse(StreamInput in) throws IOException {
-        missing = in.readList(RelationName::new);
+    private AnalyzedEmpty() {
+        super();
     }
 
     @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeList(missing);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitEmpty(this, context);
+    }
+
+    @Override
+    public boolean isWriteOperation() {
+        return false;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+    }
+
+    @Override
+    @Nullable
+    public List<Symbol> outputs() {
+        return List.of();
+    }
+
+    @Override
+    @Nullable
+    public List<String> outputNames() {
+        return List.of();
     }
 }

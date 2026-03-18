@@ -31,14 +31,13 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import io.crate.metadata.view.ViewsMetadata;
 
 public final class TransportCreateView extends TransportMasterNodeAction<CreateViewRequest, CreateViewResponse> {
 
@@ -90,28 +89,22 @@ public final class TransportCreateView extends TransportMasterNodeAction<CreateV
 
                     @Override
                     public ClusterState execute(ClusterState currentState) {
-                        ViewsMetadata views = currentState.metadata().custom(ViewsMetadata.TYPE);
-                        if (currentState.metadata().contains(request.name())) {
-                            boolean replacesView = request.replaceExisting() && views != null && views.contains(request.name());
-                            if (!replacesView) {
+                        RelationMetadata view = currentState.metadata().getRelation(request.name());
+                        if (view != null) {
+                            if (request.replaceExisting() == false) {
                                 alreadyExitsFailure = true;
                                 return currentState;
                             }
                         }
-                        return ClusterState.builder(currentState)
-                            .metadata(
-                                Metadata.builder(currentState.metadata())
-                                    .putCustom(
-                                        ViewsMetadata.TYPE,
-                                        ViewsMetadata.addOrReplace(
-                                            views,
-                                            request.name(),
-                                            request.query(),
-                                            request.owner(),
-                                            request.searchPath(),
-                                            request.errorOnUnknownObjectKey()))
-                                    .build()
-                            ).build();
+                        Metadata newMetadata = Metadata.builder(currentState.metadata())
+                            .setView(
+                                request.name(),
+                                request.query(),
+                                request.owner(),
+                                request.searchPath(),
+                                request.errorOnUnknownObjectKey())
+                            .build();
+                        return ClusterState.builder(currentState).metadata(newMetadata).build();
                     }
 
                     @Override

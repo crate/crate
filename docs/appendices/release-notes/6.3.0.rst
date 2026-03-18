@@ -72,10 +72,15 @@ Changes
 SQL Statements
 --------------
 
-None
+- Added support for :ref:`ALTER TABLE ALTER COLUMN SET/DROP DEFAULT
+  <SQL-alter-table-alter-column-default>` to set or drop the default value of a
+  column.
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
+
+- Added support for statements containing only comments like ``/* ping */`` for
+  compatibility with clients like pgx - which is used by Grafana since 12.4.
 
 - Added support for ``DEFAULT`` expressions in :ref:`INSERT INTO <sql-insert>`
   statements to explicitly declare that the default expression of a column

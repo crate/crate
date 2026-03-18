@@ -21,8 +21,8 @@ package org.elasticsearch.cluster.metadata;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_UPGRADED;
-import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.List;
 import java.util.function.LongSupplier;
@@ -52,6 +52,8 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.metadata.upgrade.MetadataIndexUpgrader;
+import io.crate.metadata.view.ViewMetadata;
+import io.crate.metadata.view.ViewsMetadata;
 import io.crate.sql.tree.CheckConstraint;
 
 /**
@@ -89,12 +91,28 @@ public class MetadataUpgradeService {
             userDefinedFunctionService.updateImplementations(udfMetadata.functionsMetadata());
         }
 
+        ViewsMetadata viewsMetadata = metadata.custom(ViewsMetadata.TYPE);
+        if (viewsMetadata != null) {
+            for (var entry : viewsMetadata.views().entrySet()) {
+                String viewNameStr = entry.getKey();
+                RelationName viewName = RelationName.fromIndexName(viewNameStr);
+                ViewMetadata viewMetadata = entry.getValue();
+                newMetadata.setView(
+                    viewName,
+                    viewMetadata.stmt(),
+                    viewMetadata.owner(),
+                    viewMetadata.searchPath(),
+                    viewMetadata.errorOnUnknownObjectKey());
+            }
+            newMetadata.removeCustom(ViewsMetadata.TYPE);
+        }
+
         // Templates only exist in Metadata from < 6.1.0
         // If streaming Metadata to nodes < 6.1.0 templates are re-created on demand
         for (var entry : metadata.templates().entrySet()) {
             String templateName = entry.getKey();
             newMetadata.removeTemplate(templateName);
-            if (templateName == IndexTemplateUpgrader.CRATE_DEFAULTS) {
+            if (IndexTemplateUpgrader.CRATE_DEFAULTS.equals(templateName)) {
                 continue;
             }
             IndexTemplateMetadata template = entry.getValue();

@@ -40,7 +40,6 @@ import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.settings.AnalyzerSettings;
-import io.crate.metadata.view.ViewsMetadata;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
@@ -60,9 +59,8 @@ class RestoreSnapshotAnalyzer {
         UsersPrivilegesMetadata.TYPE);
 
     public static final Map<String, List<String>> METADATA_CUSTOM_TYPE_MAP = Map.of(
-        "VIEWS", List.of(ViewsMetadata.TYPE),
         "UDFS", List.of(UserDefinedFunctionsMetadata.TYPE),
-        "USERS", USER_MANAGEMENT_METADATA,        // Deprecated, keeping for BWC
+        "USERS", USER_MANAGEMENT_METADATA,    // Deprecated, keeping for BWC
         "PRIVILEGES", USER_MANAGEMENT_METADATA,   // Deprecated, keeping for BWC
         "USERMANAGEMENT", USER_MANAGEMENT_METADATA
     );
@@ -102,16 +100,19 @@ class RestoreSnapshotAnalyzer {
         HashSet<String> customMetadataTypes = new HashSet<>();
         ArrayList<String> globalSettings = new ArrayList<>();
         boolean includeTables = false;
+        boolean includeViews = false;
         boolean includeCustomMetadata = false;
         boolean includeGlobalSettings = false;
 
         switch (restoreSnapshot.mode()) {
             case ALL -> {
                 includeTables = true;
+                includeViews = true;
                 includeCustomMetadata = true;
                 includeGlobalSettings = true;
             }
             case METADATA -> {
+                includeViews = true;
                 includeCustomMetadata = true;
                 includeGlobalSettings = true;
                 globalSettings.add(AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
@@ -135,6 +136,8 @@ class RestoreSnapshotAnalyzer {
                     typeName = typeName.toUpperCase(Locale.ENGLISH);
                     if (typeName.equals("TABLES")) {
                         includeTables = true;
+                    } else if (typeName.equals("VIEWS")) {
+                        includeViews = true;
                     } else if (typeName.equals("ANALYZERS")) {
                         // custom analyzers are stored inside persistent cluster settings
                         globalSettings.add(AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
@@ -161,6 +164,7 @@ class RestoreSnapshotAnalyzer {
             snapshotName,
             tables,
             includeTables,
+            includeViews,
             includeCustomMetadata,
             customMetadataTypes,
             includeGlobalSettings,

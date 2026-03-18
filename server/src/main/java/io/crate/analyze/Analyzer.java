@@ -58,6 +58,7 @@ import io.crate.sql.tree.AlterServer;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
+import io.crate.sql.tree.AlterTableAlterColumnDefault;
 import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRenameColumn;
@@ -106,6 +107,7 @@ import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUserMapping;
 import io.crate.sql.tree.DropView;
+import io.crate.sql.tree.EmptyStatement;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Fetch;
@@ -155,6 +157,7 @@ public class Analyzer {
     private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
     private final AlterTableDropColumnAnalyzer alterTableDropColumnAnalyzer;
     private final AlterTableRenameColumnAnalyzer alterTableRenameColumnAnalyzer;
+    private final AlterTableAlterColumnDefaultAnalyzer alterTableAlterColumnDefaultAnalyzer;
     private final InsertAnalyzer insertAnalyzer;
     private final CopyAnalyzer copyAnalyzer;
     private final UpdateAnalyzer updateAnalyzer;
@@ -203,6 +206,7 @@ public class Analyzer {
         this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, nodeCtx);
         this.alterTableDropColumnAnalyzer = new AlterTableDropColumnAnalyzer(schemas, nodeCtx);
         this.alterTableRenameColumnAnalyzer = new AlterTableRenameColumnAnalyzer(schemas, nodeCtx);
+        this.alterTableAlterColumnDefaultAnalyzer = new AlterTableAlterColumnDefaultAnalyzer(schemas, nodeCtx);
         this.swapTableAnalyzer = new SwapTableAnalyzer(nodeCtx, schemas);
         this.viewAnalyzer = new ViewAnalyzer(relationAnalyzer, schemas);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this, clusterService);
@@ -321,6 +325,14 @@ public class Analyzer {
         }
 
         @Override
+        public AnalyzedStatement visitAlterTableAlterColumnDefaultStatement(AlterTableAlterColumnDefault<?> node, Analysis context) {
+            return alterTableAlterColumnDefaultAnalyzer.analyze(
+                (AlterTableAlterColumnDefault<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
         public AnalyzedStatement visitAlterTableOpenClose(AlterTableOpenClose<?> node, Analysis context) {
             return alterTableAnalyzer.analyze(
                 (AlterTableOpenClose<Expression>) node,
@@ -364,6 +376,11 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitBegin(BeginStatement node, Analysis context) {
             return new AnalyzedBegin();
+        }
+
+        @Override
+        public AnalyzedStatement visitEmpty(EmptyStatement emptyStatement, Analysis context) {
+            return AnalyzedEmpty.INSTANCE;
         }
 
         @Override
