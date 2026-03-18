@@ -42,6 +42,7 @@ import io.crate.expression.scalar.DateTruncFunction;
 import io.crate.expression.scalar.arithmetic.CeilFunction;
 import io.crate.expression.scalar.arithmetic.FloorFunction;
 import io.crate.expression.scalar.arithmetic.RoundFunction;
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.RefReplacer;
@@ -259,7 +260,7 @@ public final class GeneratedColumnExpander {
         @Override
         public Symbol apply(Reference ref) {
             if (ref.equals(toReplace)) {
-                return replaceWith;
+                return replaceWith.cast(ref.valueType(), CastMode.IMPLICIT);
             }
             return ref;
         }
