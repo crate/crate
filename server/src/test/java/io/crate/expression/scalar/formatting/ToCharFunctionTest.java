@@ -21,36 +21,36 @@
 
 package io.crate.expression.scalar.formatting;
 
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.ABBREVIATED_DAY_CAPITALIZED;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.ABBREVIATED_DAY_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.ABBREVIATED_DAY_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.ABBREVIATED_MONTH_CAPITALIZED;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.ABBREVIATED_MONTH_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.ABBREVIATED_MONTH_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.AD_ERA_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.AD_ERA_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.AM_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.AM_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.A_D_ERA_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.A_D_ERA_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.A_M_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.A_M_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.BC_ERA_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.BC_ERA_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.B_C_ERA_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.B_C_ERA_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.DAY_CAPITALIZED;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.DAY_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.DAY_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.MONTH_CAPITALIZED;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.MONTH_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.MONTH_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.PM_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.PM_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.P_M_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.P_M_UPPER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.ROMAN_MONTH_LOWER;
-import static io.crate.expression.scalar.formatting.DateTimeFormatter.Token.ROMAN_MONTH_UPPER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.ABBREVIATED_DAY_CAPITALIZED;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.ABBREVIATED_DAY_LOWER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.ABBREVIATED_DAY_UPPER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.ABBREVIATED_MONTH_CAPITALIZED;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.ABBREVIATED_MONTH_LOWER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.ABBREVIATED_MONTH_UPPER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.AD_ERA_LOWER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.AD_ERA_UPPER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.AM_LOWER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.AM_UPPER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.A_D_ERA_LOWER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.A_D_ERA_UPPER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.A_M_LOWER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.A_M_UPPER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.BC_ERA_LOWER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.BC_ERA_UPPER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.B_C_ERA_LOWER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.B_C_ERA_UPPER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.DAY_CAPITALIZED;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.DAY_LOWER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.DAY_UPPER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.MONTH_CAPITALIZED;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.MONTH_LOWER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.MONTH_UPPER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.PM_LOWER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.PM_UPPER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.P_M_LOWER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.P_M_UPPER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.ROMAN_MONTH_LOWER;
+import static io.crate.expression.scalar.formatting.PGDateTimeTemplates.Token.ROMAN_MONTH_UPPER;
 import static io.crate.testing.Asserts.isNotSameInstance;
 import static io.crate.testing.Asserts.isSameInstance;
 
@@ -66,7 +66,7 @@ import io.crate.expression.symbol.Literal;
 public class ToCharFunctionTest extends ScalarTestCase {
 
     // Patterns that must NOT behave in the same way for upper/lower case,
-    private static final Set<DateTimeFormatter.Token> FIXED_CASE_PATTERNS =
+    private static final Set<PGDateTimeTemplates.Token> FIXED_CASE_PATTERNS =
         Set.of(
             MONTH_UPPER,
             MONTH_CAPITALIZED,
@@ -123,7 +123,7 @@ public class ToCharFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_lower_case_same_result_as_upper_case_for_non_mixed_case_patterns() throws Exception {
-        for (DateTimeFormatter.Token token: DateTimeFormatter.Token.values()) {
+        for (PGDateTimeTemplates.Token token: PGDateTimeTemplates.Token.values()) {
             var tokenValue = token.toString();
             if (FIXED_CASE_PATTERNS.contains(token) == false && Character.isLowerCase(tokenValue.charAt(0))) {
                 assertEvaluate(

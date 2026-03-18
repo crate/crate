@@ -28,8 +28,8 @@ import java.util.TimeZone;
 import java.util.stream.Stream;
 
 import org.elasticsearch.common.TriFunction;
-import org.jspecify.annotations.Nullable;
 import org.joda.time.Period;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
@@ -85,20 +85,20 @@ public class ToCharFunction extends Scalar<String, Object> {
     }
 
     private final DataType<?> expressionType;
-    private final TriFunction<Object, String, DateTimeFormatter, String> evaluatorFunc;
+    private final TriFunction<Object, String, PGDateTimeTemplates, String> evaluatorFunc;
     @Nullable
-    private final DateTimeFormatter formatter;
+    private final PGDateTimeTemplates formatter;
 
     public ToCharFunction(Signature signature,
                           BoundSignature boundSignature,
-                          TriFunction<Object, String, DateTimeFormatter, String> evaluatorFunc) {
+                          TriFunction<Object, String, PGDateTimeTemplates, String> evaluatorFunc) {
         this(signature, boundSignature, evaluatorFunc, null);
     }
 
     public ToCharFunction(Signature signature,
                           BoundSignature boundSignature,
-                          TriFunction<Object, String, DateTimeFormatter, String> evaluatorFunc,
-                          @Nullable DateTimeFormatter formatter) {
+                          TriFunction<Object, String, PGDateTimeTemplates, String> evaluatorFunc,
+                          @Nullable PGDateTimeTemplates formatter) {
         super(signature, boundSignature);
 
         assert boundSignature.argTypes().size() == 2 : "Number of arguments to to_char must be 2";
@@ -108,18 +108,18 @@ public class ToCharFunction extends Scalar<String, Object> {
         this.formatter = formatter;
     }
 
-    private static String evaluateTimestamp(Object timestamp, String pattern, @Nullable DateTimeFormatter formatter) {
+    private static String evaluateTimestamp(Object timestamp, String pattern, @Nullable PGDateTimeTemplates formatter) {
         if (formatter == null) {
-            formatter = new DateTimeFormatter(pattern);
+            formatter = new PGDateTimeTemplates(pattern);
         }
         Long ts = DataTypes.TIMESTAMPZ.sanitizeValue(timestamp);
         LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(ts), TimeZone.getTimeZone("UTC").toZoneId());
         return formatter.format(dateTime);
     }
 
-    private static String evaluateInterval(Object interval, String pattern, @Nullable DateTimeFormatter formatter) {
+    private static String evaluateInterval(Object interval, String pattern, @Nullable PGDateTimeTemplates formatter) {
         if (formatter == null) {
-            formatter = new DateTimeFormatter(pattern);
+            formatter = new PGDateTimeTemplates(pattern);
         }
         Period period = DataTypes.INTERVAL.sanitizeValue(interval);
         LocalDateTime dateTime = LocalDateTime.of(0, 1, 1, 0, 0, 0, 0)
@@ -160,7 +160,7 @@ public class ToCharFunction extends Scalar<String, Object> {
         }
 
         String pattern = (String) ((Input<?>) arguments.get(1)).value();
-        DateTimeFormatter formatter = new DateTimeFormatter(pattern);
+        PGDateTimeTemplates formatter = new PGDateTimeTemplates(pattern);
         return new ToCharFunction(signature, boundSignature, evaluatorFunc, formatter);
     }
 }

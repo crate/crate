@@ -42,8 +42,9 @@ import java.util.Map;
 import io.crate.common.StringUtils;
 import io.crate.common.collections.Lists;
 
-public class DateTimeFormatter {
-
+/// For parsing and formatting of date time templates as documented in
+/// https://www.postgresql.org/docs/18/functions-formatting.html#FUNCTIONS-FORMATTING-DATETIME-TABLE
+public class PGDateTimeTemplates {
 
     public enum Token {
         HOUR_OF_DAY("HH"),
@@ -232,8 +233,8 @@ public class DateTimeFormatter {
 
     private static final TemporalField WEEK_OF_YEAR = WeekFields.of(Locale.ENGLISH).weekOfWeekBasedYear();
 
-    public DateTimeFormatter(String pattern) {
-        this.tokens = DateTimeFormatter.parse(pattern);
+    public PGDateTimeTemplates(String pattern) {
+        this.tokens = PGDateTimeTemplates.parse(pattern);
     }
 
     private static List<Object> parse(String pattern) {
