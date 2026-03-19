@@ -19,8 +19,8 @@
 
 package org.elasticsearch.common.blobstore.fs;
 
+import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
-import static java.util.Collections.unmodifiableSet;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -38,12 +38,11 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.blobstore.BlobContainer;
@@ -75,7 +74,7 @@ public class FsBlobContainer extends AbstractBlobContainer {
     }
 
     @Override
-    public Set<String> listBlobs() throws IOException {
+    public List<String> listBlobs() throws IOException {
         return listBlobsByPrefix(null);
     }
 
@@ -94,8 +93,8 @@ public class FsBlobContainer extends AbstractBlobContainer {
     }
 
     @Override
-    public Set<String> listBlobsByPrefix(String blobNamePrefix) throws IOException {
-        Set<String> blobs = new HashSet<>();
+    public List<String> listBlobsByPrefix(String blobNamePrefix) throws IOException {
+        List<String> blobs = new ArrayList<>();
 
         blobNamePrefix = blobNamePrefix == null ? "" : blobNamePrefix;
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, blobNamePrefix + "*")) {
@@ -112,7 +111,7 @@ public class FsBlobContainer extends AbstractBlobContainer {
                 }
             }
         }
-        return unmodifiableSet(blobs);
+        return unmodifiableList(blobs);
     }
 
     @Override

@@ -114,7 +114,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
     }
 
     void assertBlobsByPrefix(BlobPath path, String prefix, Set<String> blobs) throws Exception {
-        final FutureActionListener<Set<String>> future = new FutureActionListener<>();
+        final FutureActionListener<List<String>> future = new FutureActionListener<>();
         final BlobStoreRepository repository = getRepository();
         repository.threadPool().generic().execute(new ActionRunnable<>(future) {
             @Override
@@ -123,7 +123,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
                 future.onResponse(blobStore.blobContainer(path).listBlobsByPrefix(prefix));
             }
         });
-        Set<String> foundBlobs = future.get();
+        List<String> foundBlobs = future.get();
         if (blobs.isEmpty()) {
             assertThat(foundBlobs).isEmpty();
         } else {

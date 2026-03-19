@@ -24,11 +24,10 @@ package io.crate.opendal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.FileAlreadyExistsException;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -121,14 +120,14 @@ public class OpenDALBlobContainer implements BlobContainer {
     }
 
     @Override
-    public Set<String> listBlobs() throws IOException {
+    public List<String> listBlobs() throws IOException {
         return listBlobsByPrefix("");
     }
 
     @Override
-    public Set<String> listBlobsByPrefix(String blobNamePrefix) throws IOException {
+    public List<String> listBlobsByPrefix(String blobNamePrefix) throws IOException {
         String fullPath = this.path.buildAsString() + blobNamePrefix;
-        HashSet<String> result = new HashSet<>();
+        List<String> result = new ArrayList<>();
         for (var entry : operator.list(fullPath)) {
             result.add(entry.getPath());
         }

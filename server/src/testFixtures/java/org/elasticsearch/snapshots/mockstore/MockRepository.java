@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -404,7 +403,7 @@ public class MockRepository extends FsRepository {
                 for (BlobContainer child : children().values()) {
                     child.delete();
                 }
-                final Set<String> blobs = listBlobs();
+                final List<String> blobs = listBlobs();
                 for (String blob : blobs) {
                     maybeIOExceptionOrBlock(blob);
                     deleteBlobsIgnoringIfNotExists(Collections.singletonList(blob));
@@ -423,7 +422,7 @@ public class MockRepository extends FsRepository {
             }
 
             @Override
-            public Set<String> listBlobs() throws IOException {
+            public List<String> listBlobs() throws IOException {
                 maybeIOExceptionOrBlock("");
                 return super.listBlobs();
             }
@@ -438,7 +437,7 @@ public class MockRepository extends FsRepository {
             }
 
             @Override
-            public Set<String> listBlobsByPrefix(String blobNamePrefix) throws IOException {
+            public List<String> listBlobsByPrefix(String blobNamePrefix) throws IOException {
                 maybeIOExceptionOrBlock(blobNamePrefix);
                 return super.listBlobsByPrefix(blobNamePrefix);
             }

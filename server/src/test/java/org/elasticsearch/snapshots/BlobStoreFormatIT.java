@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.fail;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Set;
+import java.util.List;
 
 import org.elasticsearch.ElasticsearchCorruptionException;
 import org.elasticsearch.ElasticsearchParseException;
@@ -127,7 +127,7 @@ public class BlobStoreFormatIT extends AbstractSnapshotIntegTestCase {
         BlobObj blobObj = new BlobObj(veryRedundantText.toString());
         checksumFormat.write(blobObj, blobContainer, "blob-comp", true);
         checksumFormat.write(blobObj, blobContainer, "blob-not-comp", false);
-        Set<String> blobs = blobContainer.listBlobsByPrefix("blob-");
+        List<String> blobs = blobContainer.listBlobsByPrefix("blob-");
         assertThat(2).isEqualTo(blobs.size());
     }
 

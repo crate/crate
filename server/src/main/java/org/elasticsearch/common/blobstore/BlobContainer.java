@@ -25,7 +25,6 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NoSuchFileException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * An interface for managing a repository of blob entries, where each blob entry is just a named group of bytes.
@@ -148,20 +147,17 @@ public interface BlobContainer {
     /**
      * Lists all blobs in the container.
      *
-     * @return  A map of all the blobs in the container.  The keys in the map are the names of the blobs and
-     *          the values are {@link BlobMetadata}, containing basic information about each blob.
+     * @return  A List of all the blobs in the container.
      * @throws  IOException if there were any failures in reading from the blob container.
      */
-    Set<String> listBlobs() throws IOException;
+    List<String> listBlobs() throws IOException;
 
     /**
      * Lists all blobs in the container that match the specified prefix.
      *
      * @param   blobNamePrefix
      *          The prefix to match against blob names in the container.
-     * @return  A map of the matching blobs in the container.  The keys in the map are the names of the blobs
-     *          and the values are {@link BlobMetadata}, containing basic information about each blob.
-     * @throws  IOException if there were any failures in reading from the blob container.
+     * @return  A List of the matching blobs in the container.
      */
-    Set<String> listBlobsByPrefix(String blobNamePrefix) throws IOException;
+    List<String> listBlobsByPrefix(String blobNamePrefix) throws IOException;
 }

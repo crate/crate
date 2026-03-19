@@ -560,7 +560,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(new RejectableRunnable() {
                 @Override
                 public void doRun() throws Exception {
-                    final Set<String> rootBlobs = blobContainer().listBlobs();
+                    final List<String> rootBlobs = blobContainer().listBlobs();
                     final RepositoryData repositoryData = safeRepositoryData(repositoryStateId, rootBlobs);
                     // Cache the indices that were found before writing out the new index-N blob so that a stuck master will never
                     // delete an index that was created by another master node after writing this index-N blob.
@@ -590,7 +590,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      * @param rootBlobs         Blobs at the repository root
      * @return RepositoryData
      */
-    private RepositoryData safeRepositoryData(long repositoryStateId, Set<String> rootBlobs) {
+    private RepositoryData safeRepositoryData(long repositoryStateId, List<String> rootBlobs) {
         final long generation = latestGeneration(rootBlobs);
         final long genToLoad;
         if (bestEffortConsistency) {
@@ -626,7 +626,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      * @param listener          Listener to invoke once finished
      */
     private void doDeleteShardSnapshots(Collection<SnapshotId> snapshotIds, long repositoryStateId, Map<String, BlobContainer> foundIndices,
-                                        Set<String> rootBlobs, RepositoryData repositoryData, Version repoMetaVersion,
+                                        List<String> rootBlobs, RepositoryData repositoryData, Version repoMetaVersion,
                                         ActionListener<RepositoryData> listener) {
 
         if (SnapshotsService.useShardGenerations(repoMetaVersion)) {
@@ -676,7 +676,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     private void asyncCleanupUnlinkedRootAndIndicesBlobs(Collection<SnapshotId> deletedSnapshots, Map<String, BlobContainer> foundIndices,
-                                                         Set<String> rootBlobs, RepositoryData updatedRepoData,
+                                                         List<String> rootBlobs, RepositoryData updatedRepoData,
                                                          ActionListener<Void> listener) {
         threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.wrap(
             listener,
@@ -760,7 +760,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                         @Override
                         public void doRun() throws Exception {
                             final BlobContainer shardContainer = shardContainer(indexId, finalShardId);
-                            final Set<String> blobs = shardContainer.listBlobs();
+                            final List<String> blobs = shardContainer.listBlobs();
                             final BlobStoreIndexShardSnapshots blobStoreIndexShardSnapshots;
                             final long newGen;
                             if (useUUIDs) {
@@ -833,7 +833,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      */
     private void cleanupStaleBlobs(Collection<SnapshotId> deletedSnapshots,
                                    Map<String, BlobContainer> foundIndices,
-                                   Set<String> rootBlobs,
+                                   List<String> rootBlobs,
                                    RepositoryData newRepoData,
                                    ActionListener<Long> listener) {
         final ActionListener<Long> groupedListener = new MultiActionListener<>(2, Collectors.summingLong(Long::longValue), listener);
@@ -849,7 +849,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     // Finds all blobs directly under the repository root path that are not referenced by the current RepositoryData
-    private List<String> staleRootBlobs(RepositoryData repositoryData, Set<String> rootBlobNames) {
+    private List<String> staleRootBlobs(RepositoryData repositoryData, List<String> rootBlobNames) {
         final Set<String> allSnapshotIds =
             repositoryData.getSnapshotIds().stream().map(SnapshotId::getUUID).collect(Collectors.toSet());
         return rootBlobNames.stream().filter(
@@ -1743,7 +1743,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             final String generation = ShardGenerations.fixShardGeneration(snapshotStatus.generation());
             LOGGER.debug("[{}] [{}] snapshot to [{}] [{}] ...", shardId, snapshotId, metadata.name(), generation);
             final BlobContainer shardContainer = shardContainer(indexId, shardId);
-            final Set<String> blobs;
+            final List<String> blobs;
             if (generation == null) {
                 try {
                     blobs = shardContainer.listBlobsByPrefix(INDEX_FILE_PREFIX);
@@ -1751,7 +1751,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                     throw new IndexShardSnapshotFailedException(shardId, "failed to list blobs", e);
                 }
             } else {
-                blobs = Collections.singleton(INDEX_FILE_PREFIX + generation);
+                blobs = List.of(INDEX_FILE_PREFIX + generation);
             }
 
             Tuple<BlobStoreIndexShardSnapshots, String> tuple = buildBlobStoreIndexShardSnapshots(blobs, shardContainer, generation);
@@ -2193,7 +2193,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      */
     private ShardSnapshotMetaDeleteResult deleteFromShardSnapshotMeta(Set<SnapshotId> survivingSnapshots, IndexId indexId,
                                                                       int snapshotShardId, Collection<SnapshotId> snapshotIds,
-                                                                      BlobContainer shardContainer, Set<String> blobs,
+                                                                      BlobContainer shardContainer, List<String> blobs,
                                                                       BlobStoreIndexShardSnapshots snapshots,
                                                                       long indexGeneration) {
         // Build a list of snapshots that should be preserved
@@ -2242,7 +2242,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     // Unused blobs are all previous index-, data- and meta-blobs and that are not referenced by the new index- as well as all
     // temporary blobs
-    private static List<String> unusedBlobs(Set<String> blobs, Set<String> survivingSnapshotUUIDs,
+    private static List<String> unusedBlobs(List<String> blobs, Set<String> survivingSnapshotUUIDs,
                                             BlobStoreIndexShardSnapshots updatedSnapshots) {
         return blobs.stream().filter(blob ->
             blob.startsWith(SNAPSHOT_INDEX_PREFIX)
@@ -2277,7 +2277,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      *                   {@link SnapshotsService#SHARD_GEN_IN_REPO_DATA_VERSION}.
      * @return tuple of BlobStoreIndexShardSnapshots and the last snapshot index generation
      */
-    private Tuple<BlobStoreIndexShardSnapshots, String> buildBlobStoreIndexShardSnapshots(Set<String> blobs,
+    private Tuple<BlobStoreIndexShardSnapshots, String> buildBlobStoreIndexShardSnapshots(List<String> blobs,
                                                                                           BlobContainer shardContainer,
                                                                                           @Nullable String generation) throws IOException {
         if (generation != null) {
@@ -2296,7 +2296,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      * @param blobs list of blobs in repository
      * @return tuple of BlobStoreIndexShardSnapshots and the last snapshot index generation
      */
-    private Tuple<BlobStoreIndexShardSnapshots, Long> buildBlobStoreIndexShardSnapshots(Set<String> blobs, BlobContainer shardContainer)
+    private Tuple<BlobStoreIndexShardSnapshots, Long> buildBlobStoreIndexShardSnapshots(List<String> blobs, BlobContainer shardContainer)
             throws IOException {
         long latest = latestGeneration(blobs);
         if (latest >= 0) {

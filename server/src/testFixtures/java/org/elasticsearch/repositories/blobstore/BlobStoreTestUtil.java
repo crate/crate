@@ -246,7 +246,7 @@ public final class BlobStoreTestUtil {
                     }
                     if (shardId < shardCount && snapshotInfo.shardFailures().stream().noneMatch(
                         shardFailure -> shardFailure.index().equals(index) && shardFailure.shardId() == shardId)) {
-                        final Set<String> shardPathContents = shardContainer.listBlobs();
+                        final List<String> shardPathContents = shardContainer.listBlobs();
                         assertThat(shardPathContents).contains(
                             String.format(Locale.ROOT, BlobStoreRepository.SNAPSHOT_NAME_FORMAT, snapshotId.getUUID()));
                         assertThat(shardPathContents.stream()

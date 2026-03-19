@@ -28,7 +28,6 @@ import java.net.URL;
 import java.nio.file.NoSuchFileException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobPath;
@@ -78,7 +77,7 @@ public class URLBlobContainer extends AbstractBlobContainer {
      * This operation is not supported by URLBlobContainer
      */
     @Override
-    public Set<String> listBlobs() throws IOException {
+    public List<String> listBlobs() throws IOException {
         throw new UnsupportedOperationException("URL repository doesn't support this operation");
     }
 
@@ -91,7 +90,7 @@ public class URLBlobContainer extends AbstractBlobContainer {
      * This operation is not supported by URLBlobContainer
      */
     @Override
-    public Set<String> listBlobsByPrefix(String blobNamePrefix) throws IOException {
+    public List<String> listBlobsByPrefix(String blobNamePrefix) throws IOException {
         throw new UnsupportedOperationException("URL repository doesn't support this operation");
     }
 

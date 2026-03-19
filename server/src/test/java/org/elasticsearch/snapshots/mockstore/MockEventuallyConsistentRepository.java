@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
@@ -256,7 +255,7 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
             }
 
             @Override
-            public Set<String> listBlobs() {
+            public List<String> listBlobs() {
                 ensureNotClosed();
                 final String thisPath = path.buildAsString();
                 synchronized (context.actions) {
@@ -265,7 +264,7 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
                             action -> action.path.startsWith(thisPath) && action.path.substring(thisPath.length()).indexOf('/') == -1
                                 && action.operation == Operation.PUT)
                         .map(action -> action.path.substring(thisPath.length()))
-                        .collect(Collectors.toSet()));
+                        .collect(Collectors.toList()));
                 }
             }
 
@@ -285,18 +284,18 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
             }
 
             @Override
-            public Set<String> listBlobsByPrefix(String blobNamePrefix) {
+            public List<String> listBlobsByPrefix(String blobNamePrefix) {
                 return maybeMissLatestIndexN(listBlobs().stream().filter(entry -> entry.startsWith(
-                    blobNamePrefix)).collect(Collectors.toSet()));
+                    blobNamePrefix)).collect(Collectors.toList()));
             }
 
             // Randomly filter out the index-N blobs from a listing to test that tracking of it in latestKnownRepoGen and the cluster state
             // ensures consistent repository operations
-            private Set<String> maybeMissLatestIndexN(Set<String> listing) {
+            private List<String> maybeMissLatestIndexN(List<String> listing) {
                 // Randomly filter out index-N blobs at the repo root to proof that we don't need them to be consistently listed
                 if (path.parent() == null && context.consistent == false) {
                     listing.removeIf(b -> b.startsWith(BlobStoreRepository.INDEX_FILE_PREFIX) && random.nextBoolean());
-                    return Set.copyOf(listing);
+                    return List.copyOf(listing);
                 }
                 return listing;
             }
