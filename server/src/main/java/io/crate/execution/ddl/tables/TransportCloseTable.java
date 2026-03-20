@@ -247,13 +247,13 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         if (isEmptyPartitionedTable(request.table(), state)) {
             return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
         }
-        String[] indexUUIDs = state.metadata().getIndices(
+        String[] indexNames = state.metadata().getIndices(
             request.table(),
             request.partitionValues(),
             false,
-            idxMd -> idxMd.getIndex().getUUID()
+            idxMd -> idxMd.getIndex().getName()
         ).toArray(String[]::new);
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexUUIDs);
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNames);
     }
 
     public static boolean isEmptyPartitionedTable(RelationName relationName,

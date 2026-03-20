@@ -27,6 +27,7 @@ import static org.elasticsearch.test.IntegTestCase.resolveIndex;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.common.settings.IndexScopedSettings;
@@ -88,6 +89,10 @@ public class ClusterStateUpgraderTest extends CrateDummyClusterServiceUnitTest {
         Index index = resolveIndex("doc.t", "doc", clusterState.metadata());
         String indexUUID = index.getUUID();
         String indexName = index.getName();
+
+        clusterState = ClusterState.builder(clusterState)
+            .blocks(ClusterBlocks.builder().addIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_BLOCK))
+            .build();
 
         assertThat(clusterState.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_BLOCK)).isTrue();
         assertThat(clusterState.blocks().hasIndexBlock(indexName, IndexMetadata.INDEX_READ_ONLY_BLOCK)).isFalse();

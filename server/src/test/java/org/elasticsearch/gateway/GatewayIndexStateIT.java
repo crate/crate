@@ -401,7 +401,6 @@ public class GatewayIndexStateIT extends IntegTestCase {
 
         String indexUUID = resolveIndex("test").getUUID();
         final IndexMetadata metadata = state.metadata().index(indexUUID);
-        final Settings prevSettings = metadata.getSettings();
         final IndexMetadata.Builder brokenMeta = IndexMetadata.builder(metadata).settings(Settings.builder().put(metadata.getSettings())
             .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT.minimumIndexCompatibilityVersion().internalId)
             // this is invalid but should be archived
@@ -436,13 +435,6 @@ public class GatewayIndexStateIT extends IntegTestCase {
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
                 .hasMessageContaining("Failed to verify index " + metadata.getIndex().getUUID());
-
-        // Reset Settings for the indexMetadata such that 'test' table can be dropped during the clean up phase of the itest
-        final IndexMetadata indexMetadata = state.metadata().index(indexUUID);
-        final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexMetadata).settings(prevSettings);
-        restartNodesOnBrokenClusterState(ClusterState.builder(state).metadata(Metadata.builder(state.metadata()).put(indexMetadataBuilder)));
-        ensureStableCluster(cluster().size());
-        execute("alter table test open");
     }
 
     @Test
