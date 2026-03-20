@@ -196,11 +196,11 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                 final IndexMetadata indexMetadata = metadata.getSafe(index);
                 if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
                     LOGGER.debug("verification of shards before closing {} succeeded but index is already closed", index);
-                    assert currentState.blocks().hasIndexBlock(index.getUUID(), IndexMetadata.INDEX_CLOSED_BLOCK, updatedState.metadata());
+                    assert currentState.blocks().hasIndexBlock(index.getUUID(), IndexMetadata.INDEX_CLOSED_BLOCK);
                     continue;
                 }
                 final ClusterBlock closingBlock = blockedIndices.get(index);
-                if (currentState.blocks().hasIndexBlock(index.getUUID(), closingBlock, updatedState.metadata()) == false) {
+                if (currentState.blocks().hasIndexBlock(index.getUUID(), closingBlock) == false) {
                     LOGGER.debug("verification of shards before closing {} succeeded but block has been removed in the meantime", index);
                     continue;
                 }
@@ -253,7 +253,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             false,
             idxMd -> idxMd.getIndex().getUUID()
         ).toArray(String[]::new);
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, state.metadata(), indexUUIDs);
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexUUIDs);
     }
 
     public static boolean isEmptyPartitionedTable(RelationName relationName,
@@ -527,7 +527,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             }
             final IndexRoutingTable indexRoutingTable = state.routingTable().index(index);
             if (indexRoutingTable == null || indexMetadata.getState() == IndexMetadata.State.CLOSE) {
-                assert state.blocks().hasIndexBlock(index.getUUID(), IndexMetadata.INDEX_CLOSED_BLOCK, state.metadata());
+                assert state.blocks().hasIndexBlock(index.getUUID(), IndexMetadata.INDEX_CLOSED_BLOCK);
                 logger.debug("index {} has been blocked before closing and is already closed, ignoring", index);
                 onResponse.accept(new AcknowledgedResponse(true));
                 return;

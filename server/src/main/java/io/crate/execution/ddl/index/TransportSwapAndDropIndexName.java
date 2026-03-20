@@ -76,6 +76,6 @@ public class TransportSwapAndDropIndexName extends AbstractDDLTransportAction<Sw
     @Override
     protected ClusterBlockException checkBlock(SwapAndDropIndexRequest request, ClusterState state) {
         // No need to check blocks on the source index as it is a new index that will replace the target
-        return state.blocks().indexBlockedException(ClusterBlockLevel.METADATA_WRITE, state.metadata(), request.target());
+        return state.blocks().indexBlockedException(ClusterBlockLevel.METADATA_WRITE, request.target());
     }
 }

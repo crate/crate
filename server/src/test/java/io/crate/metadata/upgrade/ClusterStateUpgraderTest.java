@@ -89,13 +89,13 @@ public class ClusterStateUpgraderTest extends CrateDummyClusterServiceUnitTest {
         String indexUUID = index.getUUID();
         String indexName = index.getName();
 
-        assertThat(clusterState.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_BLOCK, clusterState.metadata())).isTrue();
-        assertThat(clusterState.blocks().hasIndexBlock(indexName, IndexMetadata.INDEX_READ_ONLY_BLOCK, clusterState.metadata())).isFalse();
+        assertThat(clusterState.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_BLOCK)).isTrue();
+        assertThat(clusterState.blocks().hasIndexBlock(indexName, IndexMetadata.INDEX_READ_ONLY_BLOCK)).isFalse();
 
         // Ensure downgrading to 5.10 format works as expected
         ClusterState clusterState_5_10 = ClusterStateUpgrader.downgrade(clusterState, Version.V_5_10_11);
-        assertThat(clusterState_5_10.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_BLOCK, clusterState_5_10.metadata())).isFalse();
-        assertThat(clusterState_5_10.blocks().hasIndexBlock(indexName, IndexMetadata.INDEX_READ_ONLY_BLOCK, clusterState_5_10.metadata())).isTrue();
+        assertThat(clusterState_5_10.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_BLOCK)).isFalse();
+        assertThat(clusterState_5_10.blocks().hasIndexBlock(indexName, IndexMetadata.INDEX_READ_ONLY_BLOCK)).isTrue();
 
         // Ensure upgrading back to the current format works as expected
         ClusterState upgradedClusterState = ClusterStateUpgrader.upgrade(
@@ -103,8 +103,8 @@ public class ClusterStateUpgraderTest extends CrateDummyClusterServiceUnitTest {
             Version.V_5_10_11,
             metadataUpgradeService
         );
-        assertThat(upgradedClusterState.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_BLOCK, upgradedClusterState.metadata())).isTrue();
-        assertThat(upgradedClusterState.blocks().hasIndexBlock(indexName, IndexMetadata.INDEX_READ_ONLY_BLOCK, upgradedClusterState.metadata())).isFalse();
+        assertThat(upgradedClusterState.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_BLOCK)).isTrue();
+        assertThat(upgradedClusterState.blocks().hasIndexBlock(indexName, IndexMetadata.INDEX_READ_ONLY_BLOCK)).isFalse();
         assertThat(upgradedClusterState.blocks()).isEqualTo(clusterState.blocks());
     }
 

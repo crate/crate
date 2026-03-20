@@ -100,7 +100,7 @@ public class ClusterBlockTests extends ESTestCase {
         };
         ClusterBlock globalBlock = randomClusterBlock();
         ClusterBlocks clusterBlocks = new ClusterBlocks(Collections.singleton(globalBlock), Map.of(), Map.of());
-        ClusterBlockException exception = clusterBlocks.indicesBlockedException(randomFrom(globalBlock.levels()), relationLookup, new String[0]);
+        ClusterBlockException exception = clusterBlocks.indicesBlockedException(randomFrom(globalBlock.levels()), new String[0]);
         assertThat(exception).isNotNull();
         assertThat(Collections.singleton(globalBlock)).isEqualTo(exception.blocks());
     }

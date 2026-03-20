@@ -89,7 +89,7 @@ public class TransportUpdateSettings extends TransportMasterNodeAction<UpdateSet
         String[] indices = state.metadata()
             .getIndices(request.partitions(), false, im -> im.getIndex().getUUID())
             .toArray(String[]::new);
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, state.metadata(), indices);
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indices);
     }
 
     @Override

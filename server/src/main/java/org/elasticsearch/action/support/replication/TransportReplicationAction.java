@@ -256,7 +256,7 @@ public abstract class TransportReplicationAction<
         }
         ClusterBlockLevel indexBlockLevel = indexBlockLevel();
         if (indexBlockLevel != null) {
-            return state.blocks().indexBlockedException(indexBlockLevel, state.metadata(), indexUUID);
+            return state.blocks().indexBlockedException(indexBlockLevel, indexUUID);
         }
         return null;
     }

@@ -43,7 +43,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
 
-import io.crate.metadata.RelationLookup;
 import io.crate.rest.action.HttpErrorStatus;
 
 /**
@@ -175,10 +174,8 @@ public class ClusterBlocks implements Diffable<ClusterBlocks> {
         return false;
     }
 
-    public boolean hasIndexBlock(String indexUUID, ClusterBlock block, RelationLookup relationLookup) {
-        RelationMetadata relationMetadata = relationLookup.getRelation(indexUUID);
-        return indicesBlocks.getOrDefault(indexUUID, emptySet()).contains(block) || (
-            relationMetadata != null && tablesBlocks.getOrDefault(relationMetadata.oid(), emptySet()).contains(block));
+    public boolean hasIndexBlock(String indexUUID, ClusterBlock block) {
+        return indicesBlocks.getOrDefault(indexUUID, emptySet()).contains(block);
     }
 
     public boolean hasIndexBlockWithId(String indexUUID, int blockId) {
@@ -229,46 +226,34 @@ public class ClusterBlocks implements Diffable<ClusterBlocks> {
         throw new ClusterBlockException(blocks);
     }
 
-    public ClusterBlockException indexBlockedException(ClusterBlockLevel level, RelationLookup relationLookup, String indexUUID) {
-        if (!indexBlocked(level, relationLookup, indexUUID)) {
+    public ClusterBlockException indexBlockedException(ClusterBlockLevel level, String indexUUID) {
+        if (!indexBlocked(level, indexUUID)) {
             return null;
         }
-        RelationMetadata relationMetadata = relationLookup.getRelation(indexUUID);
         Stream<ClusterBlock> blocks = concat(
-            concat(
-                global(level).stream(),
-                relationMetadata == null ? Stream.empty() : tableBlocks(level, relationMetadata.oid()).stream()
-            ),
-            blocksForIndex(level, indexUUID).stream()
-        );
+            global(level).stream(),
+            blocksForIndex(level, indexUUID).stream());
         return new ClusterBlockException(unmodifiableSet(blocks.collect(toSet())));
     }
 
-    public boolean indexBlocked(ClusterBlockLevel level, RelationLookup relationLookup, String indexUUID) {
-        RelationMetadata relationMetadata = relationLookup.getRelation(indexUUID);
-        return globalBlocked(level) || (relationMetadata != null && !tableBlocks(level, relationMetadata.oid()).isEmpty()) || blocksForIndex(level, indexUUID).isEmpty() == false;
+    public boolean indexBlocked(ClusterBlockLevel level, String indexUUID) {
+        return globalBlocked(level) || blocksForIndex(level, indexUUID).isEmpty() == false;
     }
 
-    public ClusterBlockException indicesBlockedException(ClusterBlockLevel level, RelationLookup relationLookup, String[] indexUUIDs) {
+    public ClusterBlockException indicesBlockedException(ClusterBlockLevel level, String[] indices) {
         boolean indexIsBlocked = false;
-        for (String indexUUID : indexUUIDs) {
-            if (indexBlocked(level, relationLookup, indexUUID)) {
+        for (String index : indices) {
+            if (indexBlocked(level, index)) {
                 indexIsBlocked = true;
             }
         }
         if (globalBlocked(level) == false && indexIsBlocked == false) {
             return null;
         }
-        Function<String, Stream<ClusterBlock>> blocksForIndexAtLevel = indexUUID -> blocksForIndex(level, indexUUID).stream();
+        Function<String, Stream<ClusterBlock>> blocksForIndexAtLevel = index -> blocksForIndex(level, index).stream();
         Stream<ClusterBlock> blocks = concat(
-            concat(
-                global(level).stream(),
-                Stream.of(indexUUIDs).flatMap(indexUUID -> {
-                    RelationMetadata relationMetadata = relationLookup.getRelation(indexUUID);
-                    return relationMetadata == null ? Stream.empty() : tableBlocks(level, relationMetadata.oid()).stream();
-                })
-            ),
-            Stream.of(indexUUIDs).flatMap(blocksForIndexAtLevel));
+            global(level).stream(),
+            Stream.of(indices).flatMap(blocksForIndexAtLevel));
         return new ClusterBlockException(unmodifiableSet(blocks.collect(toSet())));
     }
 

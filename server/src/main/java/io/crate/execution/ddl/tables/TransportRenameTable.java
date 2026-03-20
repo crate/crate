@@ -133,7 +133,6 @@ public class TransportRenameTable extends TransportMasterNodeAction<RenameTableR
         boolean strict = !request.isPartitioned();
         return state.blocks().indicesBlockedException(
             ClusterBlockLevel.METADATA_WRITE,
-            state.metadata(),
             state.metadata().getIndices(
                 request.sourceName(),
                 List.of(),

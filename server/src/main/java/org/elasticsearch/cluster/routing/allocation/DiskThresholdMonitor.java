@@ -300,7 +300,7 @@ public class DiskThresholdMonitor {
         }
         final Set<String> indicesToAutoRelease = state.routingTable().indicesRouting().keySet().stream()
             .filter(indexUUID -> indicesNotToAutoRelease.contains(indexUUID) == false)
-            .filter(indexUUID -> state.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK, state.metadata()))
+            .filter(indexUUID -> state.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK))
             .collect(Collectors.toSet());
 
         Metadata metadata = state.metadata();
@@ -312,7 +312,7 @@ public class DiskThresholdMonitor {
             listener.onResponse(null);
         }
 
-        indicesToMarkReadOnly.removeIf(indexUUID -> state.blocks().indexBlocked(ClusterBlockLevel.WRITE, metadata, indexUUID));
+        indicesToMarkReadOnly.removeIf(indexUUID -> state.blocks().indexBlocked(ClusterBlockLevel.WRITE, indexUUID));
         LOGGER.trace("marking indices as read-only: [{}]", indicesToMarkReadOnly);
         if (indicesToMarkReadOnly.isEmpty() == false) {
             updateIndicesReadOnly(indicesToMarkReadOnly, metadata::index, listener, true);
