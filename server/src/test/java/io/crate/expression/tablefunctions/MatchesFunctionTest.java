@@ -92,4 +92,11 @@ public class MatchesFunctionTest extends AbstractTableFunctionsTest {
                 [NULL, NULL]
                 """);
     }
+
+    @Test
+    public void test_flags_from_column() throws Exception {
+        assertCompile("regexp_matches('gcc -Wall', '\\w', name)", scalar -> {
+            assertThat(scalar).isExactlyInstanceOf(MatchesFunction.class);
+        });
+    }
 }

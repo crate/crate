@@ -33,14 +33,12 @@ import java.util.regex.Pattern;
 
 import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolType;
 import io.crate.legacy.LegacySettings;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
@@ -54,7 +52,7 @@ import io.crate.role.Roles;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
 
-public final class MatchesFunction extends TableFunctionImplementation<List<Object>> {
+public final class MatchesFunction extends TableFunctionImplementation<String> {
 
     public static final String NAME = "regexp_matches";
     private static final RowType ROW_TYPE = new RowType(List.of(DataTypes.STRING_ARRAY), List.of(NAME));
@@ -67,7 +65,8 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
 
         builder.add(
             Signature.builder(NAME, FunctionType.TABLE)
-                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                .argumentTypes(
+                    DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING_ARRAY.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Feature.NOTNULL)
@@ -80,7 +79,8 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
         );
         builder.add(
             Signature.builder(NAME, FunctionType.TABLE)
-                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                .argumentTypes(
+                    DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING_ARRAY.getTypeSignature())
@@ -124,41 +124,51 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
     }
 
     @Override
-    public Scalar<Iterable<Row>, List<Object>> compile(List<Symbol> arguments, String currentUser, Roles roles) {
+    public Scalar<Iterable<Row>, String> compile(List<Symbol> arguments, String currentUser, Roles roles) {
         assert arguments.size() > 1 : "number of arguments must be > 1";
-        String pattern = null;
-        if (arguments.get(1).symbolType() == SymbolType.LITERAL) {
-            Literal<String> literal = (Literal<String>) arguments.get(1);
-            pattern = literal.value();
+        String pattern;
+        Symbol arg1 = arguments.get(1);
+        if (arg1 instanceof Input<?> patternInput) {
+            pattern = (String) patternInput.value();
             if (pattern == null) {
                 return this;
             }
+        } else {
+            return this;
         }
         String flags = null;
         if (arguments.size() == 3) {
-            assert arguments.get(2).symbolType() == SymbolType.LITERAL :
-                "3rd argument must be a " + SymbolType.LITERAL;
-            flags = ((Literal<String>) arguments.get(2)).value();
+            Symbol arg2 = arguments.get(2);
+            if (arg2 instanceof Input<?> flagsInput) {
+                flags = (String) flagsInput.value();
+            } else {
+                return this;
+            }
         }
-        if (pattern != null) {
-            return new MatchesFunction(
-                signature, boundSignature, Pattern.compile(pattern, parseFlags(flags)), returnType);
-        }
-        return this;
+        return new MatchesFunction(
+            signature,
+            boundSignature,
+            Pattern.compile(pattern, parseFlags(flags)),
+            returnType
+        );
     }
 
     @Override
-    public Iterable<Row> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
+    @SafeVarargs
+    public final Iterable<Row> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<String> ... args) {
         assert args.length == 2 || args.length == 3 : "number of args must be 2 or 3";
 
-        String value = (String) args[0].value();
-        String pattern = (String) args[1].value();
-        if (value == null || pattern == null) {
+        String value = args[0].value();
+        if (value == null) {
+            return List.of();
+        }
+        String pattern = args[1].value();
+        if (pattern == null) {
             return List.of();
         }
         String flags = null;
         if (args.length == 3) {
-            flags = (String) args[2].value();
+            flags = args[2].value();
         }
 
         Pattern matchPattern;
