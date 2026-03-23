@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.Test;
 
+import io.crate.expression.tablefunctions.MatchesFunction.CompiledMatchesFunction;
 import io.crate.metadata.Scalar;
 
 
@@ -34,8 +35,7 @@ public class MatchesFunctionTest extends AbstractTableFunctionsTest {
     @Test
     public void test_compile_creates_regex_matcher_instance_on_table_function() throws Exception {
         ThrowingConsumer<Scalar<?, ?>> matcher = func -> {
-            assertThat(func).isExactlyInstanceOf(MatchesFunction.class);
-            assertThat(((MatchesFunction) func).pattern()).isNotNull();
+            assertThat(func).isExactlyInstanceOf(CompiledMatchesFunction.class);
         };
         assertCompile("regexp_matches(name, '.*(ba).*')", matcher);
     }

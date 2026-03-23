@@ -32,12 +32,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.elasticsearch.common.settings.Settings;
-import org.jspecify.annotations.Nullable;
 
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.expression.RegexpFlags;
 import io.crate.expression.symbol.Symbol;
 import io.crate.legacy.LegacySettings;
 import io.crate.metadata.FunctionType;
@@ -94,18 +93,50 @@ public final class MatchesFunction extends TableFunctionImplementation<String> {
         );
     }
 
-    @Nullable
-    private final Pattern pattern;
     private final RowType returnType;
 
     private MatchesFunction(Signature signature, BoundSignature boundSignature, RowType returnType) {
-        this(signature, boundSignature, null, returnType);
+        super(signature, boundSignature);
+        this.returnType = returnType;
     }
 
-    private MatchesFunction(Signature signature, BoundSignature boundSignature, @Nullable Pattern pattern, RowType returnType) {
-        super(signature, boundSignature);
-        this.pattern = pattern;
-        this.returnType = returnType;
+    static class CompiledMatchesFunction extends TableFunctionImplementation<String> {
+
+        private final Matcher matcher;
+        private final RowType returnType;
+        private final boolean isGlobal;
+
+        private CompiledMatchesFunction(Signature signature,
+                                        BoundSignature boundSignature,
+                                        RowType returnType,
+                                        String pattern,
+                                        String flags) {
+            super(signature, boundSignature);
+            this.returnType = returnType;
+            this.isGlobal = RegexpFlags.isGlobal(flags);
+            this.matcher = Pattern.compile(pattern, RegexpFlags.parseFlags(flags)).matcher("");
+        }
+
+        @Override
+        @SafeVarargs
+        public final Iterable<Row> evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<String>... args) {
+            String value = args[0].value();
+            if (value == null) {
+                return List.of();
+            }
+            matcher.reset(value);
+            return matchesToRows(matcher, isGlobal);
+        }
+
+        @Override
+        public RowType returnType() {
+            return returnType;
+        }
+
+        @Override
+        public boolean hasLazyResultSet() {
+            return false;
+        }
     }
 
     @Override
@@ -116,11 +147,6 @@ public final class MatchesFunction extends TableFunctionImplementation<String> {
     @Override
     public boolean hasLazyResultSet() {
         return false;
-    }
-
-    @VisibleForTesting
-    Pattern pattern() {
-        return pattern;
     }
 
     @Override
@@ -145,11 +171,12 @@ public final class MatchesFunction extends TableFunctionImplementation<String> {
                 return this;
             }
         }
-        return new MatchesFunction(
+        return new CompiledMatchesFunction(
             signature,
             boundSignature,
-            Pattern.compile(pattern, parseFlags(flags)),
-            returnType
+            returnType,
+            pattern,
+            flags
         );
     }
 
@@ -162,8 +189,8 @@ public final class MatchesFunction extends TableFunctionImplementation<String> {
         if (value == null) {
             return List.of();
         }
-        String pattern = args[1].value();
-        if (pattern == null) {
+        String patternStr = args[1].value();
+        if (patternStr == null) {
             return List.of();
         }
         String flags = null;
@@ -171,59 +198,43 @@ public final class MatchesFunction extends TableFunctionImplementation<String> {
             flags = args[2].value();
         }
 
-        Pattern matchPattern;
-        if (this.pattern == null) {
-            matchPattern = Pattern.compile(pattern, parseFlags(flags));
-        } else {
-            matchPattern = this.pattern;
-        }
-        Matcher matcher = matchPattern.matcher(value);
-        List<List<String>> rowGroups;
-        if (isGlobal(flags)) {
-            List<String> groups = groups(matcher);
-            if (groups != null) {
-                rowGroups = new ArrayList<>();
-                while (groups != null) {
-                    rowGroups.add(groups);
-                    groups = groups(matcher);
-                }
-            } else {
-                rowGroups = List.of();
-            }
-        } else {
-            List<String> groups = groups(matcher);
-            rowGroups = groups == null ? List.of() : List.of(groups);
+        Pattern pattern = Pattern.compile(patternStr, parseFlags(flags));
+        Matcher matcher = pattern.matcher(value);
+        return matchesToRows(matcher, isGlobal(flags));
+    }
+
+    private static Iterable<Row> matchesToRows(Matcher matcher, boolean global) {
+        if (!matcher.find()) {
+            return List.of();
         }
         return () -> new Iterator<>() {
-            final Object[] columns = new Object[]{null};
-            final RowN row = new RowN(columns);
-            int idx = 0;
+            private final Object[] columns = new Object[]{null};
+            private final RowN row = new RowN(columns);
+            private boolean hasNext = true;
 
             @Override
             public boolean hasNext() {
-                return idx < rowGroups.size();
+                return hasNext;
             }
 
             @Override
             public Row next() {
-                if (!hasNext()) {
+                if (!hasNext) {
                     throw new NoSuchElementException("no more rows");
                 }
-                columns[0] = rowGroups.get(idx++);
+                columns[0] = groups(matcher);
+                hasNext = global && matcher.find();
                 return row;
             }
         };
     }
 
     private static List<String> groups(Matcher matcher) {
-        if (!matcher.find()) {
-            return null;
-        }
         int groupCount = matcher.groupCount();
         if (groupCount == 0) {
             return List.of(matcher.group());
         }
-        List<String> groups = new ArrayList<>(groupCount);
+        ArrayList<String> groups = new ArrayList<>(groupCount);
         for (int i = 1; i <= groupCount; i++) {
             groups.add(matcher.group(i));
         }
