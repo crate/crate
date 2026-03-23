@@ -46,6 +46,7 @@ import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 public class MetadataModule extends AbstractModule {
 
+    @SuppressWarnings("deprecation")
     public static List<NamedWriteableRegistry.Entry> getNamedWriteables() {
         List<NamedWriteableRegistry.Entry> entries = new ArrayList<>();
         entries.add(new NamedWriteableRegistry.Entry(
@@ -146,6 +147,7 @@ public class MetadataModule extends AbstractModule {
         return entries;
     }
 
+    @SuppressWarnings("deprecation")
     public static List<NamedXContentRegistry.Entry> getNamedXContents(NodeContext nodeCtx) {
         List<NamedXContentRegistry.Entry> entries = new ArrayList<>();
         entries.add(new NamedXContentRegistry.Entry(

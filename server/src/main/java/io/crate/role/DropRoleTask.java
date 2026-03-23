@@ -65,6 +65,7 @@ public class DropRoleTask extends AckedClusterStateUpdateTask<WriteRoleResponse>
     }
 
     @VisibleForTesting
+    @SuppressWarnings("deprecation")
     static boolean dropRole(Metadata.Builder mdBuilder, String roleNameToDrop) {
         RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);

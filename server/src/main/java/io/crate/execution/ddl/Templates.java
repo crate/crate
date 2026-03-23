@@ -25,8 +25,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
@@ -37,9 +35,8 @@ import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
+@SuppressWarnings("deprecation")
 public final class Templates {
-
-    private static final Logger LOGGER = LogManager.getLogger(Templates.class);
 
     public static IndexTemplateMetadata of(RelationMetadata.Table table) {
         assert table.partitionedBy().isEmpty() == false : "table must be partitioned";

@@ -42,6 +42,7 @@ import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
+@SuppressWarnings("deprecation")
 public class RolesServiceTest extends CrateDummyClusterServiceUnitTest {
 
     private static final Map<String, Role> DEFAULT_USERS = Map.of(CRATE_USER.name(), CRATE_USER);

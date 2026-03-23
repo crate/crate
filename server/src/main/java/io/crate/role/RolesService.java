@@ -57,6 +57,7 @@ public class RolesService implements Roles, ClusterStateListener {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void clusterChanged(ClusterChangedEvent event) {
         Metadata prevMetadata = event.previousState().metadata();
         Metadata newMetadata = event.state().metadata();
@@ -74,7 +75,7 @@ public class RolesService implements Roles, ClusterStateListener {
         }
     }
 
-
+    @SuppressWarnings("deprecation")
     static Map<String, Role> getRoles(@Nullable UsersMetadata usersMetadata,
                                       @Nullable RolesMetadata rolesMetadata,
                                       @Nullable UsersPrivilegesMetadata privilegesMetadata) {

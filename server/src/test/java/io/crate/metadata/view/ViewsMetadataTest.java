@@ -34,6 +34,7 @@ import org.junit.Test;
 
 import io.crate.metadata.SearchPath;
 
+@SuppressWarnings("deprecation")
 public class ViewsMetadataTest extends ESTestCase {
 
     public static ViewsMetadata createMetadata() {

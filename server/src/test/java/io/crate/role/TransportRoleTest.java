@@ -30,7 +30,7 @@ import static io.crate.role.metadata.RolesHelper.SINGLE_USER_ONLY;
 import static io.crate.role.metadata.RolesHelper.getSecureHash;
 import static io.crate.role.metadata.RolesHelper.userOf;
 import static io.crate.role.metadata.RolesHelper.usersMetadataOf;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashMap;
@@ -57,6 +57,7 @@ import io.crate.role.metadata.UsersPrivilegesMetadata;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
+@SuppressWarnings("deprecation")
 public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
 
     @Test

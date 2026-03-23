@@ -40,6 +40,7 @@ import org.elasticsearch.monitor.jvm.JvmInfo;
 
 import io.crate.common.SuppressForbidden;
 
+@SuppressWarnings("deprecation") // old lucene versions
 public class Version implements Comparable<Version> {
     /*
      * The logic for ID is: XXYYZZAA, where XX is major version, YY is minor version, ZZ is revision, and AA is alpha/beta/rc indicator AA

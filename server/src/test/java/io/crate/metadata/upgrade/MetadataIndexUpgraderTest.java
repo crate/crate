@@ -45,6 +45,7 @@ import io.crate.Constants;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
+@SuppressWarnings("deprecation")
 public class MetadataIndexUpgraderTest extends ESTestCase {
 
     @Test

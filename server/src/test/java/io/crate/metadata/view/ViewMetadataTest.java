@@ -33,6 +33,7 @@ import io.crate.metadata.SearchPath;
 public class ViewMetadataTest {
 
     @Test
+    @SuppressWarnings("deprecation")
     public void test_bwc_streaming() throws Exception {
         var viewMetadata = new ViewMetadata(
             "select 1",

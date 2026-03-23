@@ -213,6 +213,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
             this.relationsInPublications = null;
         }
 
+        @SuppressWarnings("deprecation")
         public Response(StreamInput in) throws IOException {
             if (in.getVersion().before(Version.V_6_0_0)) {
                 Map<RelationName, RelationMetadata> relationsInPublications = in.readMap(RelationName::new, RelationMetadata::new);
@@ -237,6 +238,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
         }
 
         @Override
+        @SuppressWarnings("deprecation")
         public void writeTo(StreamOutput out) throws IOException {
             if (out.getVersion().before(Version.V_6_0_0)) {
                 Map<RelationName, RelationMetadata> relationsInPublications = this.relationsInPublications != null ?

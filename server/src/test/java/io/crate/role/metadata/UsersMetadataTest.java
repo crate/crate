@@ -36,6 +36,7 @@ import org.junit.Test;
 import io.crate.role.Role;
 import io.crate.role.SecureHash;
 
+@SuppressWarnings("deprecation")
 public class UsersMetadataTest extends ESTestCase {
 
     @Test

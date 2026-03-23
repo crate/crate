@@ -71,6 +71,7 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         return new RolesMetadata(new HashMap<>(instance.roles));
     }
 
+    @SuppressWarnings("deprecation")
     public static RolesMetadata ofOldUsersMetadata(@Nullable UsersMetadata usersMetadata,
                                                    @Nullable UsersPrivilegesMetadata usersPrivilegesMetadata) {
         if (usersMetadata == null) {

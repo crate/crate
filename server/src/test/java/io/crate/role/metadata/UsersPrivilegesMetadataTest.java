@@ -52,6 +52,7 @@ import org.junit.Test;
 
 import io.crate.role.Privilege;
 
+@SuppressWarnings("deprecation")
 public class UsersPrivilegesMetadataTest extends ESTestCase {
 
     private UsersPrivilegesMetadata usersPrivilegesMetadata;

@@ -120,6 +120,7 @@ public final class RolesHelper {
             new Privilege(Policy.GRANT, Permission.DML, Securable.SCHEMA, "doc", "crate")
         ));
 
+    @SuppressWarnings("deprecation")
     public static UsersMetadata usersMetadataOf(Map<String, Role> users) {
         Map<String, SecureHash> map = new HashMap<>(users.size());
         for (var user : users.entrySet()) {
@@ -130,6 +131,7 @@ public final class RolesHelper {
         return new UsersMetadata(Collections.unmodifiableMap(map));
     }
 
+    @SuppressWarnings("deprecation")
     public static UsersPrivilegesMetadata usersPrivilegesMetadataOf(Map<String, Role> users) {
         Map<String, Set<Privilege>> map = new HashMap<>(users.size());
         for (var user : users.entrySet()) {

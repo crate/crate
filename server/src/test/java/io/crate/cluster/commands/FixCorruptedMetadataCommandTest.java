@@ -46,6 +46,7 @@ import org.junit.Test;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.RelationName;
 
+@SuppressWarnings("deprecation")
 public class FixCorruptedMetadataCommandTest {
 
     @Test

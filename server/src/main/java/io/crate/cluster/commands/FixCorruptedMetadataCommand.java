@@ -116,6 +116,7 @@ import joptsimple.OptionSet;
  * See https://github.com/crate/crate/issues/13380
  * </p>
  **/
+@SuppressWarnings("deprecation")
 public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
 
     public static final String METADATA_FIXED_MSG = "Metadata has been fixed";
