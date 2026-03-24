@@ -81,7 +81,9 @@ public class TransportJobAction extends TransportAction<NodeRequest<JobRequest>,
         this.clusterService = clusterService;
         transportService.registerRequestHandler(
             JobAction.NAME,
-            ThreadPool.Names.SEARCH,
+            // nodeOperation is primarily doing the job setup, which should be cheap enough.
+            // Individual tasks are dispatched to threadPool when appropriate.
+            ThreadPool.Names.SAME,
             JobRequest::new,
             new NodeActionRequestHandler<>(this::nodeOperation));
     }
