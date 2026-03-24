@@ -36,6 +36,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -333,6 +334,81 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.sync(false).get(5, TimeUnit.SECONDS);
         assertThat(sqlExecutor.jobsLogs.metrics().iterator().next().totalCount()).isEqualTo(2L);
         assertThat(sqlExecutor.jobsLogs.activeJobs().iterator().hasNext()).isFalse();
+    }
+
+    @Test
+    public void test_bulk_operation_execution_completes_receivers_in_order_on_async_all_finished() throws Exception {
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .setPlanner(planner)
+            .build()
+            .addTable("create table t1 (x int)");
+        Session session = sqlExecutor.createSession();
+        when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
+            .thenReturn(
+                new Plan() {
+                    @Override
+                    public StatementType type() {
+                        return StatementType.INSERT;
+                    }
+
+                    @Override
+                    public void executeOrFail(DependencyCarrier dependencies,
+                                              PlannerContext plannerContext,
+                                              RowConsumer consumer,
+                                              Row params,
+                                              SubQueryResults subQueryResults) throws Exception {
+                        // Make sure `quickExec()` below completes, and its job is moved to jobs_log
+                        consumer.completionFuture().complete(null);
+                    }
+
+                    @Override
+                    public CompletableFuture<BulkResponse> executeBulk(DependencyCarrier executor,
+                                                                       PlannerContext plannerContext,
+                                                                       List<Row> bulkParams,
+                                                                       SubQueryResults subQueryResults) {
+                        var response = new BulkResponse(2);
+                        response.update(0, 1L, null);
+                        response.update(1, 1L, null);
+                        return completedFuture(response);
+                    }
+                }
+            );
+        session.parse("S_1", "INSERT INTO t1 (x) VALUES (1)", List.of());
+        session.bind("P_1", "S_1", List.of(), null);
+
+        ArrayList<Integer> completed = new ArrayList<>();
+        BaseResultReceiver receiver1 = new BaseResultReceiver() {
+            @Override
+            public void allFinished() {
+                Thread t = new Thread(() -> {
+                    try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException e) {
+                        Thread.interrupted();
+                    }
+                    completed.add(1);
+                    super.allFinished();
+                });
+                t.start();
+            }
+        };
+        BaseResultReceiver receiver2 = new BaseResultReceiver() {
+            @Override
+            public void allFinished() {
+                completed.add(2);
+                super.allFinished();
+            }
+        };
+        session.execute("P_1", 0, receiver1);
+
+        session.bind("P_1", "S_1", List.of(), null);
+        session.execute("P_1", 0, receiver2);
+
+        assertThat(session.sync(true)).succeedsWithin(5, TimeUnit.SECONDS);
+        assertThat(receiver1.completionFuture()).isCompleted();
+        assertThat(receiver2.completionFuture()).isCompleted();
+        assertThat(completed).containsExactly(1, 2);
     }
 
     @Test
