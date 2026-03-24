@@ -770,15 +770,9 @@ public class Session implements AutoCloseable {
         CompletableFuture<Void> allResultReceivers = CompletableFuture.allOf(resultReceiverFutures.toArray(new CompletableFuture[0]));
 
         result
-            .thenAccept(bulkResp -> emitRowCountsToResultReceivers(jobId, jobsLogs, toExec, bulkResp))
+            .thenAccept(bulkResp -> emitRowCountsToResultReceivers(jobId, jobsLogs, toExec, bulkResp, 0, 0))
             .exceptionally(t -> {
-                for (int i = 0; i < toExec.size(); i++) {
-                    toExec.get(i).resultReceiver().fail(t);
-                }
-                jobsLogs.logExecutionEnd(
-                    jobId,
-                    0, // rowCount unused when the error msg is not null
-                    SQLExceptions.messageOf(t));
+                failReceivers(jobId, toExec, t, 0);
                 return null;
             });
         addStatementTimeout(result, timeoutToken);
@@ -786,14 +780,38 @@ public class Session implements AutoCloseable {
 
     }
 
+    private void failReceivers(UUID jobId,
+                               List<DeferredExecution> toExec,
+                               Throwable t,
+                               int startIdx) {
+        for (int i = startIdx; i < toExec.size(); i++) {
+            ResultReceiver<?> resultReceiver = toExec.get(i).resultReceiver();
+            resultReceiver.fail(t);
+            // sendErrorResponse can go async; must wait for completion before
+            // sending next message to prevent out-of-order responses
+            if (!resultReceiver.completionFuture().isCompletedExceptionally() && i + 1 < toExec.size()) {
+                final int nextStartIdx = i + 1;
+                resultReceiver.completionFuture().whenComplete((r, f) -> {
+                    failReceivers(jobId, toExec, t, nextStartIdx);
+                });
+                return;
+            }
+        }
+        jobsLogs.logExecutionEnd(
+            jobId,
+            0, // rowCount unused when the error msg is not null
+            SQLExceptions.messageOf(t));
+    }
+
     private static void emitRowCountsToResultReceivers(UUID jobId,
                                                        JobsLogs jobsLogs,
                                                        List<DeferredExecution> executions,
-                                                       BulkResponse bulkResponse) {
+                                                       BulkResponse bulkResponse,
+                                                       int startIdx,
+                                                       long affectedRows) {
         Object[] cells = new Object[2];
         RowN row = new RowN(cells);
-        long affectedRows = 0;
-        for (int i = 0; i < bulkResponse.size(); i++) {
+        for (int i = startIdx; i < bulkResponse.size(); i++) {
             long rowCount = bulkResponse.rowCount(i);
             ResultReceiver<?> resultReceiver = executions.get(i).resultReceiver();
             if (rowCount >= 0) {
@@ -812,6 +830,23 @@ public class Session implements AutoCloseable {
                 // Ignore
             } finally {
                 resultReceiver.allFinished();
+            }
+            // sending commandComplete can be async, must wait until it is done before sending
+            // next message to avoid out-of-order responses
+            if (!resultReceiver.completionFuture().isDone() && i + 1 < bulkResponse.size()) {
+                final int nextStart = i + 1;
+                final long currentAffectedRows = affectedRows;
+                resultReceiver.completionFuture().whenComplete((r, f) -> {
+                    emitRowCountsToResultReceivers(
+                        jobId,
+                        jobsLogs,
+                        executions,
+                        bulkResponse,
+                        nextStart,
+                        currentAffectedRows
+                    );
+                });
+                return;
             }
         }
         jobsLogs.logExecutionEnd(jobId, affectedRows, null);

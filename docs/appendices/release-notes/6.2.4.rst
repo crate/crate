@@ -49,6 +49,10 @@ series.
 Fixes
 =====
 
+- Fixed an issue that could lead to responses sent to PostgreSQL clients to be
+  out of order if using the bulk mechanism to execute insert statements and if
+  the output channel couldn't keep up.
+
 - Fixed an issue that could lead to a ``ClassCastException`` if using a query
   involving a correlated sub-query with a ``WHERE`` clause containing an equal
   expression matching a primary key column on an outer column that is untyped
