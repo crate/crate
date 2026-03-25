@@ -129,7 +129,9 @@ public class OpenDALBlobContainer implements BlobContainer {
         String fullPath = this.path.buildAsString() + blobNamePrefix;
         List<String> result = new ArrayList<>();
         for (var entry : operator.list(fullPath)) {
-            result.add(entry.getPath());
+            if (entry.getMetadata().isDir() == false) {
+                result.add(entry.getPath());
+            }
         }
         return result;
     }
