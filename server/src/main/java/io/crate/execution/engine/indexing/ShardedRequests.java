@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.common.lease.Releasable;
@@ -44,7 +44,7 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
     final List<RowSourceInfo> rowSourceInfos = new ArrayList<>();
     final Map<ShardLocation, TReq> itemsByShard = new HashMap<>();
 
-    private final Function<ShardId, TReq> requestFactory;
+    private final BiFunction<ShardId, Boolean, TReq> requestFactory;
     private final RamAccounting ramAccounting;
 
     private int location = -1;
@@ -53,7 +53,7 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
     /**
      * @param requestFactory function to create a request
      */
-    public ShardedRequests(Function<ShardId, TReq> requestFactory, RamAccounting ramAccounting) {
+    public ShardedRequests(BiFunction<ShardId, Boolean, TReq> requestFactory, RamAccounting ramAccounting) {
         this.requestFactory = requestFactory;
         this.ramAccounting = ramAccounting;
     }
@@ -66,13 +66,13 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         items.add(new ItemAndRoutingAndSourceInfo<>(item, routing, rowSourceInfo));
     }
 
-    public void add(TItem item, ShardLocation shardLocation, RowSourceInfo rowSourceInfo) {
+    public void add(TItem item, ShardLocation shardLocation, RowSourceInfo rowSourceInfo, boolean unblockedRequest) {
         long itemSizeInBytes = item.ramBytesUsed();
         ramAccounting.addBytes(itemSizeInBytes);
         usedMemoryEstimate += itemSizeInBytes;
         TReq req = itemsByShard.get(shardLocation);
         if (req == null) {
-            req = requestFactory.apply(shardLocation.shardId);
+            req = requestFactory.apply(shardLocation.shardId, unblockedRequest);
             itemsByShard.put(shardLocation, req);
         }
         location++;

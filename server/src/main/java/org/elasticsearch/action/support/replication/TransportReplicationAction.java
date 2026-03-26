@@ -246,13 +246,16 @@ public abstract class TransportReplicationAction<
         return null;
     }
 
-    private ClusterBlockException blockExceptions(final ClusterState state, final String indexUUID) {
+    private ClusterBlockException blockExceptions(final ClusterState state, final String indexUUID, boolean skipCheckIndexBlocks) {
         ClusterBlockLevel globalBlockLevel = globalBlockLevel();
         if (globalBlockLevel != null) {
             ClusterBlockException blockException = state.blocks().globalBlockedException(globalBlockLevel);
             if (blockException != null) {
                 return blockException;
             }
+        }
+        if (skipCheckIndexBlocks) {
+            return null;
         }
         ClusterBlockLevel indexBlockLevel = indexBlockLevel();
         if (indexBlockLevel != null) {
@@ -334,7 +337,7 @@ public abstract class TransportReplicationAction<
                 final ClusterState clusterState = clusterService.state();
                 final IndexMetadata indexMetadata = clusterState.metadata().getIndexSafe(primaryShardReference.routingEntry().index());
 
-                final ClusterBlockException blockException = blockExceptions(clusterState, indexMetadata.getIndex().getUUID());
+                final ClusterBlockException blockException = blockExceptions(clusterState, indexMetadata.getIndex().getUUID(), primaryRequest.getRequest().unblockedRequest());
                 if (blockException != null) {
                     logger.trace("cluster is blocked, action failed on primary", blockException);
                     throw blockException;
@@ -615,7 +618,7 @@ public abstract class TransportReplicationAction<
         @Override
         public void doRun() {
             final ClusterState state = observer.setAndGetObservedState();
-            final ClusterBlockException blockException = blockExceptions(state, request.shardId().getIndexUUID());
+            final ClusterBlockException blockException = blockExceptions(state, request.shardId().getIndexUUID(), request.unblockedRequest());
             if (blockException != null) {
                 if (blockException.retryable()) {
                     logger.trace("cluster is blocked, scheduling a retry", blockException);

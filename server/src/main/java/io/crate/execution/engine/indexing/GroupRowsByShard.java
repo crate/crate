@@ -171,7 +171,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                 }
                 shardedRequests.add(item, partitionName, routing, rowSourceInfo);
             } else {
-                shardedRequests.add(item, shardLocation, rowSourceInfo);
+                shardedRequests.add(item, shardLocation, rowSourceInfo, false);
             }
             return item;
         } catch (CircuitBreakingException e) {
@@ -250,7 +250,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                 if (shardLocation == null) {
                     throw new IllegalStateException("shardLocation not resolvable after createIndices");
                 }
-                requests.add(itemAndRoutingAndSourceInfo.item(), shardLocation, itemAndRoutingAndSourceInfo.rowSourceInfo());
+                requests.add(itemAndRoutingAndSourceInfo.item(), shardLocation, itemAndRoutingAndSourceInfo.rowSourceInfo(), true);
                 it.remove();
             }
             if (items.isEmpty()) {

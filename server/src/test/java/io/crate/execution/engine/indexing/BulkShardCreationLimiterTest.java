@@ -44,7 +44,7 @@ public class BulkShardCreationLimiterTest extends ESTestCase {
         RelationName relationName = new RelationName("doc", "tbl");
         UUID jobId = UUID.randomUUID();
         shardedRequests = new ShardedRequests<>(
-            shardId -> new ShardDeleteRequest(shardId, jobId),
+            (shardId, unblockedRequest) -> new ShardDeleteRequest(shardId, jobId),
             RamAccounting.NO_ACCOUNTING
         );
         shardedRequests.add(

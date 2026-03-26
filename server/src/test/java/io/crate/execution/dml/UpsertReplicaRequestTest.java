@@ -133,12 +133,13 @@ public class UpsertReplicaRequestTest extends CrateDummyClusterServiceUnitTest {
             new UpsertReplicaRequest.Item("1", new Object[] { 1, "Arthur" }, List.of("1"), 1, 2, 3),
             new UpsertReplicaRequest.Item("2", new Object[] { 2, "Trillian" }, List.of("2"), 4, 5, 6)
         );
-        UpsertReplicaRequest replicaRequest = new UpsertReplicaRequest(
+        UpsertReplicaRequest replicaRequest = UpsertReplicaRequest.of(
             shardId,
             jobId,
             sessionSettings,
             List.of(idRef, nameRef),
-            items
+            items,
+            false
         );
         try (var out = new BytesStreamOutput()) {
             out.setVersion(Version.V_5_10_10);
@@ -169,12 +170,13 @@ public class UpsertReplicaRequestTest extends CrateDummyClusterServiceUnitTest {
             new UpsertReplicaRequest.Item("1", new Object[] { 1, "Arthur" }, List.of("1"), 1, 2, 3),
             new UpsertReplicaRequest.Item("2", new Object[] { 2, "Trillian" }, List.of("2"), 4, 5, 6)
         );
-        UpsertReplicaRequest replicaRequest = new UpsertReplicaRequest(
+        UpsertReplicaRequest replicaRequest = UpsertReplicaRequest.of(
             shardId,
             jobId,
             sessionSettings,
             List.of(idRef, nameRef),
-            items
+            items,
+            false
         );
         for (var version : List.of(Version.V_6_1_0, Version.CURRENT)) {
             try (var out = new BytesStreamOutput()) {

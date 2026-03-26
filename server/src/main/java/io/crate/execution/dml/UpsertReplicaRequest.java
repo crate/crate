@@ -51,11 +51,20 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
     private final List<Reference> columns;
     private final SessionSettings sessionSettings;
 
-    public UpsertReplicaRequest(ShardId shardId,
-                                UUID jobId,
-                                SessionSettings sessionSettings,
-                                List<Reference> columns,
-                                List<UpsertReplicaRequest.Item> items) {
+    public static UpsertReplicaRequest of(ShardId shardId,
+                                          UUID jobId,
+                                          SessionSettings sessionSettings,
+                                          List<Reference> columns,
+                                          List<UpsertReplicaRequest.Item> items,
+                                          boolean unblockedRequest) {
+        return new UpsertReplicaRequest(shardId, jobId, sessionSettings, columns, items).unblockedRequest(unblockedRequest);
+    }
+
+    private UpsertReplicaRequest(ShardId shardId,
+                                 UUID jobId,
+                                 SessionSettings sessionSettings,
+                                 List<Reference> columns,
+                                 List<UpsertReplicaRequest.Item> items) {
         super(shardId, jobId);
         this.sessionSettings = sessionSettings;
         this.columns = columns;
@@ -71,7 +80,7 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
                 request.sessionSettings(),
                 Arrays.asList(request.insertColumns()),
                 Lists.mapLazy(request.items(), UpsertReplicaRequest.Item::of)
-            );
+            ).unblockedRequest(request.unblockedRequest());
         } else {
             return new UpsertReplicaRequest(schemas, in);
         }
@@ -117,7 +126,7 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
                 null, // updateColumns are only used on primary via UpdateToInsert logic
                 insertColumns,
                 null // return values are only used on primary
-            );
+            ).unblockedRequest(this.unblockedRequest());
             for (int i = 0; i < items.size(); i++) {
                 var item = items.get(i);
                 var primaryItem = ShardUpsertRequest.Item.forInsert(

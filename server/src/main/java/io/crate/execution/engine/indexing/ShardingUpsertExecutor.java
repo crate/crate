@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -92,7 +93,7 @@ public class ShardingUpsertExecutor
     private final Executor executor;
     private final int bulkSize;
     private final UUID jobId;
-    private final Function<ShardId, ShardUpsertRequest> requestFactory;
+    private final BiFunction<ShardId, Boolean, ShardUpsertRequest> requestFactory;
     private final BulkRequestExecutor<ShardUpsertRequest> requestExecutor;
     private final Client elasticsearchClient;
     private final BulkShardCreationLimiter bulkShardCreationLimiter;
@@ -117,7 +118,7 @@ public class ShardingUpsertExecutor
                            UUID jobId,
                            RowShardResolver rowShardResolver,
                            ItemFactory<ShardUpsertRequest.Item> itemFactory,
-                           Function<ShardId, ShardUpsertRequest> requestFactory,
+                           BiFunction<ShardId, Boolean, ShardUpsertRequest> requestFactory,
                            List<? extends CollectExpression<Row, ?>> expressions,
                            Supplier<PartitionName> partitionResolver,
                            boolean autoCreateIndices,

@@ -623,7 +623,7 @@ public class InsertFromValues implements LogicalPlan {
                     requestItemsIterator.remove();
                     continue;
                 }
-                shardedRequests.add(itemAndRoutingAndSourceInfo.item(), shardLocation, null);
+                shardedRequests.add(itemAndRoutingAndSourceInfo.item(), shardLocation, null, true);
                 requestItemsIterator.remove();
             }
             if (requestItems.isEmpty()) {

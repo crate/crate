@@ -103,7 +103,9 @@ public abstract class TransportShardAction<
     protected void shardOperationOnPrimary(Request request,
                                            IndexShard primary,
                                            ActionListener<PrimaryResult<ReplicaReq, ShardResponse>> listener) {
-        if (tasksService.recentlyFailed(request.jobId())) {
+        if (tasksService.recentlyFailed(request.jobId()) &&
+            // unblocked requests must always proceed
+            !request.unblockedRequest()) {
             listener.onFailure(JobKilledException.of(JobKilledException.MESSAGE));
             return;
         }

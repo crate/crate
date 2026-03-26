@@ -87,7 +87,7 @@ public class ShardUpsertRequestTest extends CrateDummyClusterServiceUnitTest {
             assignmentColumns,
             missingAssignmentColumns,
             null,
-            jobId).newRequest(shardId);
+            jobId).newRequest(shardId, false);
 
         request.add(123, ShardUpsertRequest.Item.forInsert(
             "99",
@@ -146,7 +146,7 @@ public class ShardUpsertRequestTest extends CrateDummyClusterServiceUnitTest {
             missingAssignmentColumns,
             null,
             jobId
-        ).newRequest(shardId);
+        ).newRequest(shardId, false);
 
         request.add(123, ShardUpsertRequest.Item.forInsert(
             "99",
@@ -201,7 +201,7 @@ public class ShardUpsertRequestTest extends CrateDummyClusterServiceUnitTest {
             missingAssignmentColumns,
             null,
             jobId
-        ).newRequest(shardId);
+        ).newRequest(shardId, false);
 
         request.add(42, ShardUpsertRequest.Item.forInsert(
             "42",

@@ -56,6 +56,8 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
 
     private long routedBasedOnClusterVersion = 0;
 
+    private boolean unblockedRequest = false;
+
     /**
      * Creates a new request with resolved shard id
      */
@@ -70,6 +72,16 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
     public final Request timeout(TimeValue timeout) {
         this.timeout = timeout;
         return (Request) this;
+    }
+
+    @SuppressWarnings("unchecked")
+    public final Request unblockedRequest(boolean unblockedRequest) {
+        this.unblockedRequest = unblockedRequest;
+        return (Request) this;
+    }
+
+    public boolean unblockedRequest() {
+        return unblockedRequest;
     }
 
     public TimeValue timeout() {
@@ -128,6 +140,9 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
             in.readString();
         }
         routedBasedOnClusterVersion = in.readVLong();
+        if (in.getVersion().onOrAfter(Version.V_6_3_0)) {
+            unblockedRequest = in.readBoolean();
+        }
     }
 
     @Override
@@ -143,6 +158,9 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
             out.writeString(shardId.getIndexName());
         }
         out.writeVLong(routedBasedOnClusterVersion);
+        if (out.getVersion().onOrAfter(Version.V_6_3_0)) {
+            out.writeBoolean(unblockedRequest);
+        }
     }
 
     @Override

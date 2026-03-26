@@ -639,17 +639,16 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
 
         assertThat(error.get()).isNull();
 
-        execute("refresh table t");
-
         execute("select count(*) from information_schema.table_partitions where table_name = 't'");
         long partitionCount = (long) response.rows()[0][0];
 
-        execute("select count(*) from t");
-        long rowCount = (long) response.rows()[0][0];
+        assertBusy(() -> {
+            execute("select count(*) from t");
+            long rowCount = (long) response.rows()[0][0];
 
-        // TODO: this is commented out because it is not working yet and will be fixed separately
-        // assertThat(rowCount)
-        //     .as("The number of partitions created and rows inserted as not equal (Partitions: %d, Rows: %d)", partitionCount, rowCount)
-        //     .isEqualTo(partitionCount);
+            assertThat(rowCount)
+                .as("The number of partitions created and rows inserted as not equal (Partitions: %d, Rows: %d)", partitionCount, rowCount)
+                .isEqualTo(partitionCount);
+        });
     }
 }

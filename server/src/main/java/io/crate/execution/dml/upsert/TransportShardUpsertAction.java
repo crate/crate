@@ -250,13 +250,14 @@ public class TransportShardUpsertAction extends TransportShardAction<
         // Create the replica requests with already sanitized item values and updated(guessed) insert columns
         // It's important that the insert columns are in sync with the item values AND registered references (types),
         // since the replica request stream reader will resolve the references from the table.
-        UpsertReplicaRequest replicaRequest = new UpsertReplicaRequest(
+        UpsertReplicaRequest replicaRequest = UpsertReplicaRequest.of(
             request.shardId(),
             request.jobId(),
             request.sessionSettings(),
             indexer.onConflictIndexer() == null ?
                 indexer.insertColumns() : indexer.onConflictIndexer().insertColumns(),
-            replicaItems
+            replicaItems,
+            request.unblockedRequest()
         );
         return new WritePrimaryResult<>(replicaRequest, shardResponse, translogLocation, indexShard);
     }

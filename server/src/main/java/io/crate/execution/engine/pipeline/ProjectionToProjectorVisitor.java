@@ -568,7 +568,7 @@ public class ProjectionToProjectorVisitor
             context.ramAccounting,
             circuitBreakerService.getBreaker(CircuitBreaker.QUERY),
             nodeJobsCounter,
-            () -> builder.newRequest(shardId),
+            () -> builder.newRequest(shardId, false),
             id -> {
                 Long requiredVersion = projection.requiredVersion();
                 return ShardUpsertRequest.Item.forUpdate(

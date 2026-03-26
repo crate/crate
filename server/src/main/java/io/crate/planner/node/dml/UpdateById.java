@@ -153,7 +153,7 @@ public final class UpdateById implements Plan {
 
         @Override
         public ShardUpsertRequest newRequest(ShardId shardId) {
-            return requestBuilder.newRequest(shardId);
+            return requestBuilder.newRequest(shardId, false);
         }
 
         @Override

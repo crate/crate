@@ -243,7 +243,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             missingAssignmentsColumns,
             null,
             UUID.randomUUID()
-        ).newRequest(shardId);
+        ).newRequest(shardId, false);
         request.add(1, ShardUpsertRequest.Item.forInsert(
                 "1",
                 List.of(),
@@ -274,7 +274,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             missingAssignmentsColumns,
             null,
             UUID.randomUUID()
-        ).newRequest(shardId);
+        ).newRequest(shardId, false);
         request.add(1, ShardUpsertRequest.Item.forInsert(
             "1",
             List.of(),
@@ -307,7 +307,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             missingAssignmentsColumns,
             null,
             UUID.randomUUID()
-        ).newRequest(shardId);
+        ).newRequest(shardId, false);
         request.add(1, ShardUpsertRequest.Item.forInsert(
             "1",
             List.of(),
@@ -339,7 +339,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         );
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         String itemId = "1";
-        var request = new UpsertReplicaRequest(
+        var request = UpsertReplicaRequest.of(
             shardId,
             UUID.randomUUID(),
             DUMMY_SESSION_INFO,
@@ -353,7 +353,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                     1,
                     1
                 )
-            )
+            ),
+            false
         );
 
 
@@ -404,7 +405,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             missingAssignmentsColumns,
             null,
             UUID.randomUUID()
-        ).newRequest(shardId);
+        ).newRequest(shardId, false);
         request.add(2, ShardUpsertRequest.Item.forInsert(
             "2",
             List.of(),
@@ -457,7 +458,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             missingAssignmentsColumns,
             null,
             UUID.randomUUID()
-        ).newRequest(shardId);
+        ).newRequest(shardId, false);
         request.add(1,
             ShardUpsertRequest.Item.forInsert(
                 "1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP,

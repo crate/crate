@@ -567,7 +567,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             this.returnValues = returnValue;
         }
 
-        public ShardUpsertRequest newRequest(ShardId shardId) {
+        public ShardUpsertRequest newRequest(ShardId shardId, boolean unblockedRequest) {
             return new ShardUpsertRequest(
                 shardId,
                 jobId,
@@ -577,7 +577,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                 assignmentsColumns,
                 missingAssignmentsColumns,
                 returnValues
-            ).timeout(timeout);
+            ).timeout(timeout).unblockedRequest(unblockedRequest);
         }
     }
 
