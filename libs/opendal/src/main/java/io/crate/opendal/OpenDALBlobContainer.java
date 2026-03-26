@@ -42,11 +42,13 @@ public class OpenDALBlobContainer implements BlobContainer {
     private static final Logger LOGGER = LogManager.getLogger(OpenDALBlobContainer.class);
 
     private final BlobPath path;
+    private final String pathAsString;
     private final Operator operator;
     private final int bufferSize;
 
     public OpenDALBlobContainer(BlobPath path, Operator operator, int bufferSize) {
         this.path = path;
+        this.pathAsString = path.buildAsString();
         this.operator = operator;
         this.bufferSize = bufferSize;
     }
@@ -58,7 +60,7 @@ public class OpenDALBlobContainer implements BlobContainer {
 
     @Override
     public boolean blobExists(String blobName) throws IOException {
-        String path = this.path.buildAsString() + blobName;
+        String path = pathAsString + blobName;
         try {
             operator.stat(path);
             return true;
@@ -72,14 +74,14 @@ public class OpenDALBlobContainer implements BlobContainer {
 
     @Override
     public InputStream readBlob(String blobName) throws IOException {
-        String path = this.path.buildAsString() + blobName;
+        String path = pathAsString + blobName;
         return operator.createInputStream(path);
     }
 
 
     @Override
     public void writeBlob(String blobName, InputStream inputStream, long blobSize, boolean failIfAlreadyExists) throws IOException {
-        String path = this.path.buildAsString() + blobName;
+        String path = pathAsString + blobName;
         int size = blobSize < bufferSize ? Math.toIntExact(blobSize) : bufferSize;
         if (failIfAlreadyExists && blobExists(blobName)) {
             throw new FileAlreadyExistsException(path);
@@ -92,14 +94,13 @@ public class OpenDALBlobContainer implements BlobContainer {
 
     @Override
     public void delete() throws IOException {
-        operator.removeAll(path.buildAsString());
+        operator.removeAll(pathAsString);
     }
 
     @Override
     public void deleteBlobsIgnoringIfNotExists(List<String> blobNames) throws IOException {
-        String pathStr = this.path.buildAsString();
         for (String blobName : blobNames) {
-            String path = pathStr + blobName;
+            String path = pathAsString + blobName;
             operator.removeAll(path);
         }
     }
@@ -107,10 +108,9 @@ public class OpenDALBlobContainer implements BlobContainer {
     @Override
     public Map<String, BlobContainer> children() throws IOException {
         HashMap<String, BlobContainer> result = new HashMap<>();
-        String pathStr = path.buildAsString();
-        for (var entry : operator.list(pathStr)) {
+        for (var entry : operator.list(pathAsString)) {
             if (entry.getMetadata().isDir()) {
-                String suffix = entry.path.substring(pathStr.length(), entry.path.length() - 1);
+                String suffix = entry.path.substring(pathAsString.length(), entry.path.length() - 1);
                 if (!suffix.isEmpty()) {
                     result.put(suffix, new OpenDALBlobContainer(path.add(suffix), operator, bufferSize));
                 }
@@ -126,11 +126,11 @@ public class OpenDALBlobContainer implements BlobContainer {
 
     @Override
     public List<String> listBlobsByPrefix(String blobNamePrefix) throws IOException {
-        String fullPath = this.path.buildAsString() + blobNamePrefix;
+        String fullPath = pathAsString + blobNamePrefix;
         List<String> result = new ArrayList<>();
         for (var entry : operator.list(fullPath)) {
             if (entry.getMetadata().isDir() == false) {
-                result.add(entry.getPath().substring(path.buildAsString().length()));
+                result.add(entry.getPath().substring(pathAsString.length()));
             }
         }
         return result;
