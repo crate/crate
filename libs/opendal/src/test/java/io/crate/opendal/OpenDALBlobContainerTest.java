@@ -81,4 +81,39 @@ public class OpenDALBlobContainerTest extends ESTestCase {
         }
     }
 
+    /**
+     * Tracks a regression in 6.3
+     * base_path (if specified), must be trimmed out from the list API response.
+     */
+    @Test
+    public void test_listBlobsByPrefix_trims_out_base_path() throws Exception {
+        Path tempDir = createTempDir("test");
+        var config = new ServiceConfig() {
+            @Override
+            public String scheme() {
+                return "fs";
+            }
+
+            @Override
+            public Map<String, String> configMap() {
+                return Map.of("root", tempDir.toString());
+            }
+        };
+        try (Operator operator = AsyncOperator.of(config, executor).blocking()) {
+            String basePath = "base";
+            BlobPath blobPath = new BlobPath().add(basePath);
+            OpenDALBlobContainer container = new OpenDALBlobContainer(blobPath, operator, 1024);
+            String blobPrefix = "prefix";
+
+            // Note that basePase doesn't contain slash.
+            // We add it here because BlobPath adds the slash.
+            assertThat(blobPath.buildAsString()).isEqualTo("base/");
+            try (var out = operator.createOutputStream("base/" + blobPrefix + "file1.txt", 1024)) {
+                out.write("content".getBytes());
+            }
+            List<String> blobs = container.listBlobsByPrefix(blobPrefix);
+            assertThat(blobs).containsExactly("prefixfile1.txt");
+        }
+    }
+
 }
