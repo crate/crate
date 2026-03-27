@@ -215,6 +215,10 @@ public class AzureStorageService {
             final String blobPath = uri.getPath().substring(1 + container.length() + 1);
             if (blobItem instanceof CloudBlob cloudBlobItem) {
                 final BlobProperties properties = cloudBlobItem.getProperties();
+                // Azure also trims out base path
+                // blobPath is base/snap-zZtBYy4OR6-w_AuC6Vv5oQ.dat in AzureSnapshotIntegrationTest.create_azure_snapshot_and_restore_with_endpoint_suffix
+                // which uses non-empty base_path.
+                // Azure cuts the base path when building a name for the response.
                 final String name = blobPath.substring(keyPath.length());
                 LOGGER.trace(() -> new ParameterizedMessage("blob url [{}], name [{}], size [{}]", uri, name, properties.getLength()));
                 blobsBuilder.put(name, new PlainBlobMetadata(name, properties.getLength()));

@@ -416,6 +416,24 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
         assertNumberOfMultiparts(factor + 1, remaining, (size * factor) + remaining, size);
     }
 
+    @Test
+    public void test_s3_list_api_cuts_base_path() throws Exception {
+        BlobStore store = newBlobStore();
+        S3BlobContainer container = (S3BlobContainer) store.blobContainer(new BlobPath().add("base"));
+
+        String blobPrefix = "prefix";
+        // Not adding base here because container.writeBlob does that
+        // OpenDAL test in https://github.com/crate/crate/pull/19181/ added base/ because operator was used directly there (instead of container)
+        container.writeBlobAtomic(
+            blobPrefix + "file1.txt",
+            new ByteArrayInputStream("content".getBytes()),
+            "content".length(),
+            true
+        );
+        var blobs = container.listBlobsByPrefix(blobPrefix);
+        assertThat(blobs.keySet()).containsExactly("prefixfile1.txt");
+    }
+
     private static void assertNumberOfMultiparts(final int expectedParts, final long expectedRemaining, long totalSize, long partSize) {
         final Tuple<Long, Long> result = S3BlobContainer.numberOfMultiparts(totalSize, partSize);
 

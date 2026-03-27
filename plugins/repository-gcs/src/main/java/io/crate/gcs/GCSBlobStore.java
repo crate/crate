@@ -131,6 +131,9 @@ public class GCSBlobStore implements BlobStore {
         for (var blob : client().list(bucketName, BlobListOption.currentDirectory(), BlobListOption.prefix(pathPrefix)).iterateAll()) {
             assert blob.getName().startsWith(path);
             if (blob.isDirectory() == false) {
+                // blob.getName()  is path/snap-6MIJ9k8nRlKiZMWiBAyu-g.dat
+                // when running GCSSnapshotIntegrationTest.create_restore_drop_snapshot
+                // GCP cuts the base path when building a name for the response.
                 final String suffixName = blob.getName().substring(path.length());
                 result.put(suffixName, new PlainBlobMetadata(suffixName, blob.getSize()));
             }

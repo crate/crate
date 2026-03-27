@@ -300,6 +300,7 @@ class S3BlobContainer extends AbstractBlobContainer {
                     }
                 }
                 for (final S3ObjectSummary summary : list.getObjectSummaries()) {
+                    // S3 cuts path explicitly
                     final String name = summary.getKey().substring(keyPath.length());
                     blobsBuilder.put(name, new PlainBlobMetadata(name, summary.getSize()));
                 }

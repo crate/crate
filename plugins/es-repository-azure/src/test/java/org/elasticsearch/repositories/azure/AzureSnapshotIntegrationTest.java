@@ -88,6 +88,7 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
         execute("REFRESH TABLE t1");
 
         execute("CREATE REPOSITORY r1 TYPE AZURE WITH (" +
+                "base_path = 'base', " +
                 "container = '" + CONTAINER_NAME + "', " +
                 "account = 'devstoreaccount1', " +
                 "key = 'ZGV2c3RvcmVhY2NvdW50MQ==', " +
