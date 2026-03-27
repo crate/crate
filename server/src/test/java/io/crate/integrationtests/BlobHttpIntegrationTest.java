@@ -83,7 +83,9 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
 
     @After
     public void closeClient() throws Exception {
-        httpClient.close();
+        if (httpClient != null) {
+            httpClient.close();
+        }
     }
 
     @SuppressWarnings("unchecked")
