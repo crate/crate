@@ -76,7 +76,9 @@ public abstract class AdminUIHttpIntegrationTest extends IntegTestCase {
 
     @After
     public void closeClient() {
-        httpClient.close();
+        if (httpClient != null) {
+            httpClient.close();
+        }
     }
 
     private HttpResponse<String> executeAndDefaultAssertions(HttpRequest request) throws Exception {
