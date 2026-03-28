@@ -268,6 +268,15 @@ public final class PgCatalogTableDefinitions {
                 () -> completedFuture(emptyList()),
                 PgMatviews.INSTANCE.expressions(),
                 false
+            )),
+            Map.entry(PgUserTable.IDENT, new StaticTableDefinition<>(
+                () -> completedFuture(
+                    () -> roles.roles().stream()
+                        .filter(Role::isUser)
+                        .iterator()
+                ),
+                PgUserTable.create(roles).expressions(),
+                false
             ))
         );
     }

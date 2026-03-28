@@ -180,6 +180,7 @@ following tables:
 - `pg_tables`_
 - `pg_tablespace`_
 - `pg_type`_
+- `pg_user <pgsql_pg_user_>`__
 - `pg_views`_
 
 
@@ -538,6 +539,7 @@ CrateDB and we love to hear feedback.
 .. _pg_tables: https://www.postgresql.org/docs/14/view-pg-tables.html
 .. _pg_tablespace: https://www.postgresql.org/docs/14/catalog-pg-tablespace.html
 .. _pg_views: https://www.postgresql.org/docs/14/view-pg-views.html
+.. _pgsql_pg_user: https://www.postgresql.org/docs/14/view-pg-user.html
 .. _pg_shdescription: https://www.postgresql.org/docs/14/catalog-pg-shdescription.html
 .. _pg_stats: https://www.postgresql.org/docs/14/view-pg-stats.html
 .. _pg_event_trigger: https://www.postgresql.org/docs/current/catalog-pg-event-trigger.html
