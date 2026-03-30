@@ -60,6 +60,7 @@ import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -77,6 +78,7 @@ import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.ColumnValidationException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.BulkResponse;
 import io.crate.execution.dml.IndexItem;
@@ -610,7 +612,7 @@ public class InsertFromValues implements LogicalPlan {
                         operationRouting,
                         state
                     );
-                } catch (IndexNotFoundException e) {
+                } catch (IndexNotFoundException | RelationUnknown | ShardNotFoundException e) {
                     requestItemsIterator.remove();
                     continue;
                 }
@@ -666,7 +668,7 @@ public class InsertFromValues implements LogicalPlan {
                     .shardRoutingTable(request.shardId())
                     .primaryShard()
                     .currentNodeId();
-            } catch (IndexNotFoundException e) {
+            } catch (IndexNotFoundException | ShardNotFoundException e) {
                 lastFailure.set(e);
                 if (!isPartitioned) {
                     synchronized (compressedResult) {
