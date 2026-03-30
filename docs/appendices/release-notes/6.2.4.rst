@@ -58,3 +58,6 @@ Fixes
   expression matching a primary key column on an outer column that is untyped
   (part of an ``object(ignored)``), and if that primary key column had another
   primary key column derived from it as generated column.
+
+- Fixed an issue that could cause inserts into partitioned tables to fail with
+  a ``RelationUnknown`` error when concurrently deleting partitions.
