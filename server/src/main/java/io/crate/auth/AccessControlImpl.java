@@ -68,6 +68,7 @@ import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.AnalyzedDropTable;
 import io.crate.analyze.AnalyzedDropUserMapping;
 import io.crate.analyze.AnalyzedDropView;
+import io.crate.analyze.AnalyzedEmpty;
 import io.crate.analyze.AnalyzedFetch;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
 import io.crate.analyze.AnalyzedInsertStatement;
@@ -942,6 +943,11 @@ public final class AccessControlImpl implements AccessControl {
                     name.fqn()
                 );
             }
+            return null;
+        }
+
+        @Override
+        public Void visitEmpty(AnalyzedEmpty empty, Role context) {
             return null;
         }
 

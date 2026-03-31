@@ -900,4 +900,10 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         analyze("select abs(-10)", noPrivsUser);
         analyze("select pg_typeof('foo')", noPrivsUser);
     }
+
+    @Test
+    public void test_anyone_can_execute_empty_stmt() throws Exception {
+        e.setUser(normalUser);
+        e.analyze("");
+    }
 }
