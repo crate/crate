@@ -67,6 +67,7 @@ import io.crate.execution.dsl.projection.ProjectionType;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
+import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
@@ -1762,5 +1763,27 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         plan = executor.plan("select * from sys.summits order by null");
         assertThat(plan.orderBy()).isNull();
         assertThat(((RoutedCollectPhase) plan.collectPhase()).orderBy()).isNull();
+    }
+
+    @Test
+    public void test_can_use_param_placeholder_in_having_aggregation() throws Exception {
+        var e = SQLExecutor.of(clusterService);
+        Collect collect = e.plan(
+            "select 1 from sys.summits group by height having count(?) = ?",
+            UUID.randomUUID(), 1, new RowN("foo", 10)
+        );
+        assertThat(collect.collectPhase().projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> {
+                assertThat(x).isExactlyInstanceOf(FilterProjection.class);
+                Symbol query = ((FilterProjection) x).query();
+                assertThat(query).isFunction(
+                    EqOperator.NAME,
+                    arg1 -> assertThat(arg1).isInputColumn(1),
+                    arg1 -> assertThat(arg1).isLiteral(10L)
+                );
+            },
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class)
+        );
     }
 }
