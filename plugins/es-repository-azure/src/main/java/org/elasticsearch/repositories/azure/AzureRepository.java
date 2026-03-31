@@ -180,15 +180,9 @@ public class AzureRepository extends BlobStoreRepository {
         }
     }
 
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected OpenDALBlobStore createBlobStore() {
-        Settings repoSettings = metadata.settings();
+    static Azblob createConfig(Settings repoSettings) {
         String accountName = Repository.ACCOUNT_SETTING.get(repoSettings).toString();
-        String endpoint = Repository.ENDPOINT_SETTING.get(repoSettings);
+        String endpoint = Repository.ENDPOINT_SETTING.getOrNull(repoSettings);
         if (endpoint == null) {
             endpoint = "https://" + accountName + ".blob.core.windows.net";
         }
@@ -200,16 +194,25 @@ public class AzureRepository extends BlobStoreRepository {
         if (sasToken != null && accountKey != null) {
             throw new SettingsException("Both a secret as well as a shared access token were set.");
         }
-        Azblob config = ServiceConfig.Azblob.builder()
+        return ServiceConfig.Azblob.builder()
             .accountName(accountName)
             .accountKey(accountKey == null ? null : accountKey.toString())
             .sasToken(sasToken == null ? null : sasToken.toString())
             .container(Repository.CONTAINER_SETTING.get(repoSettings))
             .endpoint(endpoint)
             .build();
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected OpenDALBlobStore createBlobStore() {
+        Settings repoSettings = metadata.settings();
         return new OpenDALBlobStore(
             executor,
-            config,
+            createConfig(repoSettings),
             bufferSize,
             Repository.MAX_RETRIES_SETTING.get(repoSettings),
             true
