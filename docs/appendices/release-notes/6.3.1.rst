@@ -46,6 +46,9 @@ series.
 Fixes
 =====
 
+- Fixed a regression introduced in 6.3.0 that prevented azure repositories to
+  use the default ``endpoint`` if not set explicitly.
+
 - Fixed an issue that caused a ``Function [...] is not a scalar function.``
   error if using a parameter placeholder as argument to an aggregation function
   used in the ``HAVING`` clause.
