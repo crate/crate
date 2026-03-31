@@ -4,12 +4,6 @@
 Altering tables
 ===============
 
-
-.. NOTE::
-
-   ``ALTER COLUMN`` action is not currently supported.
-   See :ref:`appendix-compatibility`.
-
 .. hide:
 
     cr> CREATE TABLE my_table (id BIGINT);
