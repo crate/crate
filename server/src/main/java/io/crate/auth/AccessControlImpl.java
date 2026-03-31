@@ -29,6 +29,7 @@ import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.analyze.AnalyzedAlterServer;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
+import io.crate.analyze.AnalyzedAlterTableAlterColumnDefault;
 import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
 import io.crate.analyze.AnalyzedAlterTableDropColumn;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
@@ -591,6 +592,12 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         public Void visitAlterTableRenameColumn(AnalyzedAlterTableRenameColumn analysis, Role user) {
             ensureDDLOnTable(user, analysis.table().fqn());
+            return null;
+        }
+
+        @Override
+        public Void visitAlterTableAlterColumnDefault(AnalyzedAlterTableAlterColumnDefault alterTable, Role user) {
+            ensureDDLOnTable(user, alterTable.table().fqn());
             return null;
         }
 
