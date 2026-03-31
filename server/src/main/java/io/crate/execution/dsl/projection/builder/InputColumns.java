@@ -43,6 +43,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
+import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
@@ -341,6 +342,11 @@ public final class InputColumns extends SymbolVisitor<InputColumns.SourceSymbols
     @Override
     public Symbol visitParameterSymbol(ParameterSymbol parameterSymbol, SourceSymbols sourceSymbols) {
         return parameterSymbol;
+    }
+
+    @Override
+    public Symbol visitOuterColumn(OuterColumn outerColumn, SourceSymbols context) {
+        return outerColumn;
     }
 
     @Override
