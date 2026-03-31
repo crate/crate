@@ -162,7 +162,8 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                     List.of(FunctionArgumentDefinition.of("i", DataTypes.INTEGER)), DataTypes.INTEGER,
                     DUMMY_LANG.name(),
                     "function foo(i) { return i; }")
-            );
+            )
+            .addTable("CREATE TABLE custom_schema.t(a int)");
     }
 
     private void analyze(String stmt) {
@@ -905,5 +906,12 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_anyone_can_execute_empty_stmt() throws Exception {
         e.setUser(normalUser);
         e.analyze("");
+    }
+
+    @Test
+    public void assert_privileges_for_alter_column() throws Exception {
+        e.setUser(ddlOnlyUser);
+        e.analyze("ALTER TABLE custom_schema.t ALTER COLUMN a SET DEFAULT 10");
+        assertAskedForTable(Permission.DDL, "custom_schema.t", ddlOnlyUser);
     }
 }
