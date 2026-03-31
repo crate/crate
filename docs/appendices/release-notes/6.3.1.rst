@@ -46,4 +46,6 @@ series.
 Fixes
 =====
 
-None
+- Fixed an issue that caused a ``Function [...] is not a scalar function.``
+  error if using a parameter placeholder as argument to an aggregation function
+  used in the ``HAVING`` clause.

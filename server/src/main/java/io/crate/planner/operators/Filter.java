@@ -32,7 +32,9 @@ import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.FilterProjection;
+import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -84,8 +86,12 @@ public final class Filter extends ForwardingLogicalPlan {
                                SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
             executor, plannerContext, planHints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
-        Symbol boundQuery = SubQueryAndParamBinder.convert(query, params, subQueryResults);
-        FilterProjection filterProjection = ProjectionBuilder.filterProjection(source.outputs(), boundQuery);
+        Symbol icQuery = InputColumns.create(query, source.outputs());
+        Symbol boundQuery = SubQueryAndParamBinder.convert(icQuery, params, subQueryResults);
+        FilterProjection filterProjection = new FilterProjection(
+            boundQuery,
+            InputColumn.mapToInputColumns(source.outputs())
+        );
         if (executionPlan.resultDescription().executesOnShard()) {
             filterProjection.requiredGranularity(RowGranularity.SHARD);
         }
