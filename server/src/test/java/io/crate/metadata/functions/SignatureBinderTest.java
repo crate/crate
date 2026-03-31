@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.execution.engine.aggregation.impl.NumericMinAggregation;
 import org.elasticsearch.test.ESTestCase;
 import org.jspecify.annotations.Nullable;
 import org.junit.Test;
@@ -555,7 +556,7 @@ public class SignatureBinderTest extends ESTestCase {
         assertThatSignature(NumericSumAggregation.SIGNATURE)
             .boundTo(dt)
             .hasReturnType(dt);
-        assertThatSignature(MinimumAggregation.NUMERIC_SIG)
+        assertThatSignature(NumericMinAggregation.SIGNATURE)
             .boundTo(dt)
             .hasReturnType(dt);
         assertThatSignature(MaximumAggregation.NUMERIC_SIG)
