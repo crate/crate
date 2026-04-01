@@ -46,6 +46,10 @@ series.
 Fixes
 =====
 
+- Fixed an issue that caused :ref:`ALTER COLUMN
+  <SQL-alter-table-alter-column-default>` to require super user permissions,
+  instead of ``DDL`` privileges on the table.
+
 - Fixed an issue that caused empty statements to require super user permissions.
 
 - Fixed a regression introduced in 6.3.0 that prevented azure repositories to
