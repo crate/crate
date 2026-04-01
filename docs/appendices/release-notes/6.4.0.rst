@@ -63,7 +63,7 @@ None
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
-None
+- Added a :ref:`information_schema.collations <collations>` table.
 
 Data Types
 ----------

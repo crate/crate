@@ -63,6 +63,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| administrable_role_authorizations| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| applicable_roles| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| character_sets| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| collations| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| columns| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| enabled_roles| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| foreign_server_options| information_schema| BASE TABLE| NULL",
@@ -221,12 +222,12 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testSearchInformationSchemaTablesRefresh() {
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(75L);
+        assertThat(response.rowCount()).isEqualTo(76L);
 
         execute("create table t4 (col1 integer, col2 string) with(number_of_replicas=0)");
 
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(76L);
+        assertThat(response.rowCount()).isEqualTo(77L);
     }
 
     @Test
@@ -580,7 +581,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(1093);
+        assertThat(response.rowCount()).isEqualTo(1097);
     }
 
     @Test
@@ -920,7 +921,7 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
         execute("select count(*) from information_schema.tables");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.rows()[0][0]).isEqualTo(78L);
+        assertThat(response.rows()[0][0]).isEqualTo(79L);
     }
 
     @Test
