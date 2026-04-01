@@ -21,24 +21,8 @@
 
 package io.crate.metadata.functions;
 
-import static io.crate.metadata.FunctionType.SCALAR;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
-import static java.lang.String.format;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import io.crate.execution.engine.aggregation.impl.NumericMinAggregation;
-import org.elasticsearch.test.ESTestCase;
-import org.jspecify.annotations.Nullable;
-import org.junit.Test;
-
 import io.crate.execution.engine.aggregation.impl.MaximumAggregation;
-import io.crate.execution.engine.aggregation.impl.MinimumAggregation;
+import io.crate.execution.engine.aggregation.impl.NumericMinAggregation;
 import io.crate.execution.engine.aggregation.impl.NumericSumAggregation;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.BitStringType;
@@ -50,6 +34,20 @@ import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 import io.crate.types.StringType;
 import io.crate.types.TypeSignature;
+import org.elasticsearch.test.ESTestCase;
+import org.jspecify.annotations.Nullable;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import static io.crate.metadata.FunctionType.SCALAR;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
+import static java.lang.String.format;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class SignatureBinderTest extends ESTestCase {
 
