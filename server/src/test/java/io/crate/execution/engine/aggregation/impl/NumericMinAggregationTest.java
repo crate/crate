@@ -12,7 +12,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,7 +33,7 @@ public class NumericMinAggregationTest extends AggregationTestCase {
 
     @ParametersFactory(argumentFormatting = "%s")
     public static Iterable<Object[]> parameters() {
-        return Arrays.asList(
+        return List.of(
             new Object[]{
                 "compact precision, simple case",
                 new NumericType(6, 4),
@@ -60,8 +59,25 @@ public class NumericMinAggregationTest extends AggregationTestCase {
                 new NumericType(22, 2),
                 new Object[][]{{new BigDecimal("10.00")}, {new BigDecimal("9.00")}},
                 new BigDecimal("9.00")
+            },
+            new Object[]{
+                "empty input",
+                new NumericType(22, 2),
+                new Object[][]{},
+                null
+            },
+            new Object[]{
+                "equal values",
+                new NumericType(22, 2),
+                new Object[][]{{new BigDecimal("10.00")}, {new BigDecimal("10.00")}},
+                new BigDecimal("10.00")
             }
         );
+    }
+
+    @Test
+    public void testHasDocValueAggregator() {
+        assertHasDocValueAggregator(NumericMinAggregation.NAME, List.of(type));
     }
 
     @Test
