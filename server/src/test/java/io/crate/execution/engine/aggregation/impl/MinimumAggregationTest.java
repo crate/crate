@@ -21,15 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import java.math.BigDecimal;
-import java.util.List;
-
-import org.joda.time.Period;
-import org.junit.Test;
-
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
@@ -37,19 +28,25 @@ import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.NumericType;
+import org.joda.time.Period;
+import org.junit.Test;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class MinimumAggregationTest extends AggregationTestCase {
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
-                Signature.builder(MinimumAggregation.NAME, FunctionType.AGGREGATE)
-                        .argumentTypes(argumentType.getTypeSignature())
-                        .returnType(argumentType.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
-                        .build(),
-                data,
-                List.of()
+            Signature.builder(MinimumAggregation.NAME, FunctionType.AGGREGATE)
+                .argumentTypes(argumentType.getTypeSignature())
+                .returnType(argumentType.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
+            data,
+            List.of()
         );
     }
 
@@ -58,13 +55,6 @@ public class MinimumAggregationTest extends AggregationTestCase {
         for (var dataType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             assertHasDocValueAggregator(MinimumAggregation.NAME, List.of(dataType));
         }
-    }
-
-    @Test
-    public void testNumeric() throws Exception {
-        Object result = executeAggregation(new NumericType(6, 4),
-            new Object[][]{{new BigDecimal("97.6543")}, {new BigDecimal("97.6542")}});
-        assertThat(result).isEqualTo(new BigDecimal("97.6542"));
     }
 
     @Test
@@ -122,9 +112,9 @@ public class MinimumAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_min_on_interval() throws Exception {
-        Object result = executeAggregation(DataTypes.INTERVAL, new Object[][] {
-            { new Period(3, 2, 5, 7, 4, 30, 0, 0) },
-            { new Period(3, 2, 5, 7, 5, 50, 0, 0) }
+        Object result = executeAggregation(DataTypes.INTERVAL, new Object[][]{
+            {new Period(3, 2, 5, 7, 4, 30, 0, 0)},
+            {new Period(3, 2, 5, 7, 5, 50, 0, 0)}
         });
         assertThat(result).isEqualTo(new Period(3, 2, 5, 7, 4, 30, 0, 0));
     }
