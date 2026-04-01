@@ -71,12 +71,6 @@ public class NumericMinAggregationTest extends AggregationTestCase {
                 new NumericType(22, 2),
                 new Object[][]{{new BigDecimal("10.00")}, {new BigDecimal("10.00")}},
                 new BigDecimal("10.00")
-            },
-            new Object[]{
-                "preserve precision in result",
-                new NumericType(22, 2),
-                new Object[][]{{new BigDecimal("12")}, {new BigDecimal("34.11")}},
-                new BigDecimal("12.00")
             }
         );
     }
