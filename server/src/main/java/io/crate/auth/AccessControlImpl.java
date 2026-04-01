@@ -56,6 +56,7 @@ import io.crate.analyze.AnalyzedCreateTableLike;
 import io.crate.analyze.AnalyzedCreateUserMapping;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDeclare;
+import io.crate.analyze.AnalyzedDecommissionNode;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedDiscard;
 import io.crate.analyze.AnalyzedDropAnalyzer;
@@ -148,19 +149,12 @@ public final class AccessControlImpl implements AccessControl {
 
     @Override
     public void ensureMayExecute(AnalyzedStatement statement) {
-        if (!sessionUser.isSuperUser()) {
-            if (roles.findRole(sessionUser.name()) == null) {
-                // Check that user was not dropped in a meantime.
-                throw new IllegalStateException("User \"" + sessionUser.name() + "\" was dropped");
-            }
-            statement.accept(
-                new StatementVisitor(
-                    roles,
-                    authenticatedUser
-                ),
-                sessionUser
-            );
+        if (roles.findRole(sessionUser.name()) == null) {
+            // Check that user was not dropped in a meantime.
+            throw new IllegalStateException("User \"" + sessionUser.name() + "\" was dropped");
         }
+        StatementVisitor visitor = new StatementVisitor(roles, authenticatedUser);
+        statement.accept(visitor, sessionUser);
     }
 
     @Override
@@ -168,12 +162,6 @@ public final class AccessControlImpl implements AccessControl {
         if (!sessionUser.isSuperUser() && t instanceof CrateException ce) {
             ce.accept(maskSensitiveExceptions, sessionUser);
         }
-    }
-
-    private static void throwRequiresSuperUserPermission(String userName) {
-        throw new UnauthorizedException(
-            String.format(Locale.ENGLISH, "User \"%s\" is not authorized to execute the statement. " +
-                                          "Superuser permissions are required", userName));
     }
 
     private static class RelationContext {
@@ -293,9 +281,26 @@ public final class AccessControlImpl implements AccessControl {
             );
         }
 
+        private void ensureSuperUser(Role role) {
+            if (!role.isSuperUser()) {
+                throw new UnauthorizedException(String.format(
+                    Locale.ENGLISH,
+                    "User \"%s\" is not authorized to execute the statement. " +
+                    "Superuser permissions are required",
+                    role.name()
+                ));
+            }
+        }
+
         @Override
         protected Void visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Role user) {
-            throwRequiresSuperUserPermission(user.name());
+            throw new UnsupportedOperationException(
+                "Permission handling not implemented for: " + analyzedStatement);
+        }
+
+        @Override
+        public Void visitDecommissionNode(AnalyzedDecommissionNode decommissionNode, Role role) {
+            ensureSuperUser(role);
             return null;
         }
 
@@ -567,6 +572,9 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         public Void visitSetSessionAuthorizationStatement(AnalyzedSetSessionAuthorizationStatement analysis,
                                                           Role sessionUser) {
+            if (sessionUser.isSuperUser()) {
+                return null;
+            }
             if (analysis.user() != null && !authenticatedUser.name().equals(analysis.user())) {
                 throw new UnauthorizedException(String.format(
                     Locale.ENGLISH,

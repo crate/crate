@@ -210,7 +210,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testSuperUserByPassesValidation() throws Exception {
         analyzeAsSuperUser("select * from sys.cluster");
-        assertThat(validationCallArguments).isEmpty();
+        assertAskedForTable(Permission.DQL, "sys.cluster", Role.CRATE_USER);
     }
 
     @Test
