@@ -68,14 +68,6 @@ Create table
 sharding, replication and routing of data, and does not support inheritance.
 
 
-.. _appendix-compat-alter-table:
-
-Alter table
------------
-
-``ALTER COLUMN`` action is not currently supported (see :ref:`sql-alter-table`).
-
-
 .. _appendix-compat-sys-info:
 
 System information tables
