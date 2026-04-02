@@ -230,10 +230,6 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             var result = new ArrayList<IndexMetadata>();
             ClusterState remoteClusterState = response.getState();
             for (var i : remoteClusterState.metadata().indices()) {
-                if (remoteClusterState.routingTable().index(i.key).allPrimaryShardsActive() == false) {
-                    // skip indices where not all shards are active yet, restore will fail if primaries are not (yet) assigned
-                    continue;
-                }
                 var indexMetadata = i.value;
                 // Add replication specific settings, this setting will trigger a custom engine, see {@link SQLPlugin#getEngineFactory}
                 var builder = Settings.builder().put(indexMetadata.getSettings());
