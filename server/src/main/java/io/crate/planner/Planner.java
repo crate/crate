@@ -425,11 +425,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitAnalyzedAlterTableRenameColumn(AnalyzedAlterTableRenameColumn analysis, PlannerContext context) {
-        return new AlterTableRenameColumnPlan(analysis);
-    }
-
-    @Override
     public Plan visitAnalyzedAlterTableOpenClose(AnalyzedAlterTableOpenClose analysis,
                                                  PlannerContext context) {
         return new AlterTableOpenClosePlan(analysis);
