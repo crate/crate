@@ -58,3 +58,9 @@ Fixes
 - Fixed an issue that caused a ``Function [...] is not a scalar function.``
   error if using a parameter placeholder as argument to an aggregation function
   used in the ``HAVING`` clause.
+
+- Fixed an issue that caused tables created by
+  :ref:`logical replication <administration-logical-replication>` subscriptions
+  to not receive schema or data updates from a published table, if a publisher
+  cluster's primary shards were active on polling the state and became
+  inactive before restoring started (for example, due to shards relocation).
