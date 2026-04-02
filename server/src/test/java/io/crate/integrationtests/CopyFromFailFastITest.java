@@ -89,7 +89,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
     }
 
     @UseRandomizedOptimizerRules(0)
-    @TestLogging("io.crate.execution.dml.upsert:DEBUG")
+    @TestLogging("io.crate.execution.dml.upsert:DEBUG, io.crate.execution.engine.distribution:TRACE")
     @Test
     public void test_copy_from_with_fail_fast_with_write_error_on_non_handler_node() throws Exception {
         cluster().startNode();
@@ -168,7 +168,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
         assertThat((long) response.rows()[0][0]).isLessThanOrEqualTo(numDocs - failedNumDocs);
     }
 
-    @TestLogging("io.crate.execution.dml.upsert:DEBUG")
+    @TestLogging("io.crate.execution.dml.upsert:DEBUG, io.crate.execution.engine.distribution:TRACE")
     @Test
     public void test_copy_from_with_fail_fast_with_write_error_on_handler_node() throws Exception {
         cluster().startNode();
