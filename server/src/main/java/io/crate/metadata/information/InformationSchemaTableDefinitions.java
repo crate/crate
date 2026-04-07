@@ -238,7 +238,15 @@ public class InformationSchemaTableDefinitions {
                 ),
                 UserMappingOptionsTableInfo.INSTANCE.expressions(),
                 true
-            ))
+            )),
+            Map.entry(
+                InfoSchemaCollationsTable.IDENT,
+                new StaticTableDefinition<Void>(
+                    (_, _) -> completedFuture(Arrays.asList(new Void[]{null})),
+                    InfoSchemaCollationsTable.INSTANCE.expressions(),
+                    false
+                )
+            )
         );
     }
 

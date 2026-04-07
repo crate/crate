@@ -77,6 +77,7 @@ number of replicas.
     | information_schema | administrable_role_authorizations | BASE TABLE |             NULL | NULL               |
     | information_schema | applicable_roles                  | BASE TABLE |             NULL | NULL               |
     | information_schema | character_sets                    | BASE TABLE |             NULL | NULL               |
+    | information_schema | collations                        | BASE TABLE |             NULL | NULL               |
     | information_schema | columns                           | BASE TABLE |             NULL | NULL               |
     | information_schema | enabled_roles                     | BASE TABLE |             NULL | NULL               |
     | information_schema | foreign_server_options            | BASE TABLE |             NULL | NULL               |
@@ -150,7 +151,7 @@ number of replicas.
     | sys                | summits                           | BASE TABLE |             NULL | NULL               |
     | sys                | users                             | BASE TABLE |             NULL | NULL               |
     +--------------------+-----------------------------------+------------+------------------+--------------------+
-    SELECT 79 rows in set (... sec)
+    SELECT 80 rows in set (... sec)
 
 
 The table also contains additional information such as the specified
@@ -961,6 +962,44 @@ In CrateDB there is always a single entry listing `UTF8`::
     * - ``default_collate_name``
       - ``TEXT``
       - Name of the default collation (Always ``NULL``).
+
+
+.. _collations:
+
+``collations``
+--------------
+
+The ``collations`` table lists the available collations in the database.
+
+In CrateDB there is always a single entry::
+
+    cr> SELECT collation_catalog, collation_schema, collation_name FROM information_schema.collations;
+    +-------------------+------------------+----------------+
+    | collation_catalog | collation_schema | collation_name |
+    +-------------------+------------------+----------------+
+    | crate             | pg_catalog       | C.utf8         |
+    +-------------------+------------------+----------------+
+    SELECT 1 row in set (... sec)
+
+
+.. list-table::
+    :header-rows: 1
+
+    * - Column Name
+      - Return Type
+      - Description
+    * - ``collation_catalog``
+      - ``TEXT``
+      - Name of the database containing the collation.
+    * - ``collation_schema``
+      - ``TEXT``
+      - Name of the schema containing the collation.
+    * - ``collation_name``
+      - ``TEXT``
+      - Name of the collation.
+    * - ``pad_attribute``
+      - ``TEXT``
+      - Always "NO PAD"
 
 
 .. _foreign_servers:

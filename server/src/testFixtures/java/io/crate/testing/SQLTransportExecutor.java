@@ -298,7 +298,14 @@ public class SQLTransportExecutor {
                                 ActionListener<SQLResponse> listener,
                                 Session session) {
         try {
-            session.parse(UNNAMED, stmt, Collections.emptyList());
+            List<DataType<?>> typeHints = List.of();
+            if (args != null) {
+                typeHints = new ArrayList<>(args.length);
+                for (int i = 0; i < args.length; i++) {
+                    typeHints.add(DataTypes.guessType(args[i]));
+                }
+            }
+            session.parse(UNNAMED, stmt, typeHints);
             List<Object> argsList = args == null ? Collections.emptyList() : Arrays.asList(args);
             session.bind(UNNAMED, UNNAMED, argsList, null);
             DescribeResult describeResult = session.describe('P', UNNAMED);
