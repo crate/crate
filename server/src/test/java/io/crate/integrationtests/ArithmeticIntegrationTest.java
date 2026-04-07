@@ -380,6 +380,8 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
                     DistributedResultRequest distributedResultRequest = (DistributedResultRequest) request;
                     if (distributedResultRequest.throwable() == null) {
                         throw new CircuitBreakingException("dummy");
+                    } else {
+                        connection.sendRequest(requestId, action, request, options);
                     }
                 } else {
                     connection.sendRequest(requestId, action, request, options);
