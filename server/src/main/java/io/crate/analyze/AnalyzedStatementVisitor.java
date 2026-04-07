@@ -99,10 +99,6 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
-    public R visitAnalyzedAlterTableRenameColumn(AnalyzedAlterTableRenameColumn analysis, C context) {
-        return visitDDLStatement(analysis, context);
-    }
-
     public R visitAlterTableAlterColumnDefault(AnalyzedAlterTableAlterColumnDefault analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
