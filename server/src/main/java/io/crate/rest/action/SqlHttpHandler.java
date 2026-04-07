@@ -47,13 +47,14 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Credentials;
 import io.crate.auth.HttpAuthUpstreamHandler;
 import io.crate.auth.Protocol;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
@@ -70,6 +71,8 @@ import io.crate.session.Session;
 import io.crate.session.Sessions;
 import io.crate.session.parser.SQLRequestParseContext;
 import io.crate.session.parser.SQLRequestParser;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.channel.ChannelFutureListener;
@@ -267,8 +270,10 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                                                                     List<Object> args,
                                                                     boolean includeTypes) throws IOException {
         long startTimeInNs = System.nanoTime();
-        session.parse(UNNAMED, stmt, emptyList());
-        session.bind(UNNAMED, UNNAMED, args == null ? emptyList() : args, null);
+        List<Object> params = args == null ? emptyList() : args;
+        List<DataType<?>> typeHints = Lists.mapLazy(params, DataTypes::guessType);
+        session.parse(UNNAMED, stmt, typeHints);
+        session.bind(UNNAMED, UNNAMED, params, null);
         DescribeResult description = session.describe('P', UNNAMED);
         List<Symbol> resultFields = description.getFields();
         ResultReceiver<XContentBuilder> resultReceiver;

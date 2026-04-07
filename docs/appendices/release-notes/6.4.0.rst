@@ -89,4 +89,10 @@ None
 Client interfaces
 -----------------
 
-None
+- Changed the HTTP interface to set parameter type hints which are guessed based
+  on the ``args`` payload. This can help avoid having to add explicit casts
+  within a SQL statement for parameter placeholders.
+
+  For example, instead of ``SELECT percentile(height, ?::double precision) ...``
+  it is possible to use ``SELECT percentile(height, ?)`` if ``args`` contains a
+  numeric value.

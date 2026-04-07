@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.execution.engine.indexing.ShardingUpsertExecutor.BULK_RESPONSE_MAX_ERRORS_PER_SHARD;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.OutputStream;
 import java.net.Socket;
@@ -337,5 +338,24 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).contains(
             "\"results\":[{\"rowcount\":-2,\"error\":{\"code\":4091,\"message\":\"DuplicateKeyException[A document with the same primary key exists already]\"}}]}");
+    }
+
+    @Test
+    public void test_sets_type_hints_based_on_params() throws Exception {
+        // Percentile has overloads for (double, double) and (double, double[])
+        // If there is no type for the second argument it wouldn't be able to resolve the function
+        var body = """
+            {
+              "stmt": "select percentile(height, ?) from sys.summits",
+              "args": [0.50]
+            }
+            """;
+        var response = post(body);
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).contains(
+            """
+            {"cols":["percentile"],"rows":[[2783.91015625]],"rowcount":1,"duration":
+            """.stripIndent().stripTrailing()
+        );
     }
 }
