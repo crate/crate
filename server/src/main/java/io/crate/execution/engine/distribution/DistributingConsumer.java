@@ -25,6 +25,7 @@ import static io.crate.execution.engine.distribution.TransportDistributedResultA
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -367,8 +368,7 @@ public class DistributingConsumer implements RowConsumer {
             } else {
                 // If we get a JobKilled from downstream it was already broadcast
                 if (!(err instanceof JobKilledException)) {
-                    // There can be downstreams on the same node, hence sending KILL to itself as well.
-                    broadcastKill(killNodeAction, jobId, List.of(), err);
+                    broadcastKill(killNodeAction, jobId, Collections.singletonList(localNodeId), err);
                 }
                 it.close();
                 completionFuture.completeExceptionally(failure);
