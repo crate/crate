@@ -36,6 +36,8 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.common.collections.Lists;
 import io.crate.execution.engine.distribution.DistributedResultAction;
 import io.crate.execution.engine.distribution.DistributedResultRequest;
@@ -349,6 +351,34 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
                 if (action.equals(DistributedResultAction.NAME)) {
                     DistributedResultRequest distributedResultRequest = (DistributedResultRequest) request;
                     if (distributedResultRequest.throwable() != null) {
+                        throw new CircuitBreakingException("dummy");
+                    }
+                } else {
+                    connection.sendRequest(requestId, action, request, options);
+                }
+            });
+        }
+
+        Asserts.assertSQLError(() -> execute("select log(d, l) from t where log(d, -1) >= 0 group by log(d, l)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("log(x, b): given arguments would result in: 'NaN'");
+    }
+
+    @Test
+    @Repeat(iterations = 100)
+    public void test_tripped_by_cb_forward_result_on_distributed_execution_should_not_cause_timeout() throws Exception {
+        execute("create table t (i integer, l long, d double) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into t (i, l, d) values (1, 2, 90.5), (0, 4, 100)");
+        execute("refresh table t");
+
+        for (TransportService transportService : cluster().getDataOrMasterNodeInstances(TransportService.class)) {
+            MockTransportService mockTransportService = (MockTransportService) transportService;
+            mockTransportService.addSendBehavior((connection, requestId, action, request, options) -> {
+                if (action.equals(DistributedResultAction.NAME)) {
+                    DistributedResultRequest distributedResultRequest = (DistributedResultRequest) request;
+                    if (distributedResultRequest.throwable() == null) {
                         throw new CircuitBreakingException("dummy");
                     }
                 } else {
