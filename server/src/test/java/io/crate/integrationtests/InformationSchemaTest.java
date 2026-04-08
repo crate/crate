@@ -223,12 +223,12 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testSearchInformationSchemaTablesRefresh() {
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(76L);
+        assertThat(response.rowCount()).isEqualTo(77L);
 
         execute("create table t4 (col1 integer, col2 string) with(number_of_replicas=0)");
 
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(77L);
+        assertThat(response.rowCount()).isEqualTo(78L);
     }
 
     @Test
@@ -922,7 +922,7 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
         execute("select count(*) from information_schema.tables");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.rows()[0][0]).isEqualTo(79L);
+        assertThat(response.rows()[0][0]).isEqualTo(80L);
     }
 
     @Test
