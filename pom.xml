@@ -471,6 +471,7 @@
             <properties>
                 <os.classifier>linux-${os.arch.classifier}</os.classifier>
                 <jmods.os>linux</jmods.os>
+                <jmods.ext>tar.gz</jmods.ext>
             </properties>
         </profile>
         <profile>
@@ -484,6 +485,7 @@
             <properties>
                 <os.classifier>osx-${os.arch.classifier}</os.classifier>
                 <jmods.os>mac</jmods.os>
+                <jmods.ext>tar.gz</jmods.ext>
             </properties>
         </profile>
         <profile>
@@ -498,6 +500,7 @@
                 emulate it   -->
                 <os.classifier>windows-x86_64</os.classifier>
                 <jmods.os>windows</jmods.os>
+                <jmods.ext>zip</jmods.ext>
             </properties>
         </profile>
     </profiles>
