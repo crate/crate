@@ -86,7 +86,7 @@
                             <url>
                                 https://api.adoptium.net/v3/binary/version/jdk-${versions.jdkbuild}/${jmods.os}/${jmods.arch}/jmods/hotspot/normal/eclipse?project=jdk</url>
                             <unpack>true</unpack>
-                            <outputFileName>jmods.tar.gz</outputFileName>
+                            <outputFileName>jmods.${jmods.ext}</outputFileName>
                             <outputDirectory>${project.build.directory}</outputDirectory>
                         </configuration>
                     </plugin>
