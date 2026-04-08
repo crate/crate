@@ -39,8 +39,12 @@ public class Aggregations implements FunctionsProvider {
         AverageAggregation.register(builder);
         NumericAverageAggregation.register(builder);
         IntervalAverageAggregation.register(builder);
+
         MinimumAggregation.register(builder);
+        NumericMinAggregation.register(builder);
         MaximumAggregation.register(builder);
+        NumericMaxAggregation.register(builder);
+
         ArbitraryAggregation.register(builder);
         CmpByAggregation.register(builder);
 

@@ -26,7 +26,6 @@ import java.math.BigDecimal;
 public final class BigDecimalValueWrapper implements NumericValueHolder {
 
     private BigDecimal value;
-    private boolean hasValue;
 
     public BigDecimalValueWrapper(BigDecimal value) {
         this.value = value;
@@ -37,13 +36,44 @@ public final class BigDecimalValueWrapper implements NumericValueHolder {
         return value;
     }
 
-    public boolean hasValue() {
-        return hasValue;
-    }
-
     @Override
     public void setValue(BigDecimal value) {
-        hasValue = true;
         this.value = value;
+    }
+
+    /**
+     * Analogue to {@link java.math.BigDecimal#max(BigDecimal)}, with the addition
+     * that if one of the wrappers has no value or is null, the other is returned.
+     */
+    public BigDecimalValueWrapper max(BigDecimalValueWrapper other) {
+        if (value() == null) {
+            return other;
+        }
+        if (other == null || other.value() == null) {
+            return this;
+        }
+        if (value().compareTo(other.value()) >= 0) {
+            return this;
+        } else {
+            return other;
+        }
+    }
+
+    /**
+     * Analogue to {@link java.math.BigDecimal#min(BigDecimal)}, with the addition
+     * that if one of the wrappers has no value or is null, the other is returned.
+     */
+    public BigDecimalValueWrapper min(BigDecimalValueWrapper other) {
+        if (value() == null) {
+            return other;
+        }
+        if (other == null || other.value() == null) {
+            return this;
+        }
+        if (value().compareTo(other.value()) <= 0) {
+            return this;
+        } else {
+            return other;
+        }
     }
 }

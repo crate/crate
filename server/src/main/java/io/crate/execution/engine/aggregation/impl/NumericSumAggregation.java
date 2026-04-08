@@ -278,11 +278,8 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
 
         @Override
         public Object partialResult(RamAccounting ramAccounting, BigDecimalValueWrapper state) {
-            if (state.hasValue()) {
-                return returnType.implicitCast(state.value());
-            } else {
-                return null;
-            }
+            // NumericType.implicitCast() returns a null if state.value() is null.
+            return returnType.implicitCast(state.value());
         }
     }
 
@@ -325,11 +322,8 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
 
         @Override
         public Object partialResult(RamAccounting ramAccounting, BigDecimalValueWrapper state) {
-            if (state.hasValue()) {
-                return returnType.implicitCast(state.value());
-            } else {
-                return null;
-            }
+            // NumericType.implicitCast() returns a null if state.value() is null.
+            return returnType.implicitCast(state.value());
         }
     }
 }

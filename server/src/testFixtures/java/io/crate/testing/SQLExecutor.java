@@ -525,7 +525,7 @@ public class SQLExecutor {
     }
 
     /**
-     * Convert a expression to a symbol
+     * Convert an expression to a symbol.
      * If tables are used here they must also be registered in the SQLExecutor having used {@link Builder#addTable(String, String...)}
      */
     public Symbol asSymbol(String expression) {

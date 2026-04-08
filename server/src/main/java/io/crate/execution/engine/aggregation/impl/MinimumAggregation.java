@@ -21,17 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import java.io.IOException;
-import java.util.List;
-
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedNumericDocValues;
-import org.apache.lucene.util.NumericUtils;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.jspecify.annotations.Nullable;
-
 import io.crate.common.MutableDouble;
 import io.crate.common.MutableFloat;
 import io.crate.common.MutableLong;
@@ -59,15 +48,20 @@ import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.util.NumericUtils;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.jspecify.annotations.Nullable;
+
+import java.io.IOException;
+import java.util.List;
 
 public abstract class MinimumAggregation extends AggregationFunction<Object, Object> {
 
     public static final String NAME = "min";
-    public static final Signature NUMERIC_SIG = Signature.builder(NAME, FunctionType.AGGREGATE)
-        .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
-        .returnType(DataTypes.NUMERIC.getTypeSignature())
-        .features(Scalar.Feature.DETERMINISTIC)
-        .build();
 
     public static void register(Functions.Builder builder) {
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
@@ -84,7 +78,6 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
                                     : new VariableMinimumAggregation(signature, boundSignature)
             );
         }
-        builder.add(NUMERIC_SIG, VariableMinimumAggregation::new);
     }
 
     private static class LongMin implements DocValueAggregator<MutableLong> {

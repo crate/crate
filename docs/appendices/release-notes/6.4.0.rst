@@ -83,6 +83,9 @@ None
 Performance and Resilience Improvements
 ---------------------------------------
 
+- The :ref:`min() <aggregation-min>` and :ref:`max() <aggregation-max>` aggregations
+  for the :ref:`NUMERIC <data-types-numeric>` type now utilize the column store.
+
 None
 
 Administration and Operations

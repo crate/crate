@@ -146,6 +146,8 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
         return null;
     }
 
+    /// Returns the first reference from the input list **if** it has doc values
+    /// **and** the granularity is `DOC`. Otherwise, returns `null`.
     protected Reference getAggReference(List<Reference> aggregationReferences) {
         if (aggregationReferences.isEmpty()) {
             return null;
@@ -160,6 +162,12 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
         return reference;
     }
 
+    /**
+     * Returns a new {@link DocValueAggregator} that automatically handles
+     * different precisions of numeric doc values (values with precision
+     * <= {@link  NumericStorage#COMPACT_PRECISION} are stored as `long`; others
+     * are stored as binary doc values).
+     */
     protected DocValueAggregator<?> getNumericDocValueAggregator(
         List<Reference> aggregationReferences,
         TriConsumer<RamAccounting, TPartial, BigDecimal> applyToState) {
@@ -181,6 +189,7 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
             throw new UnsupportedOperationException(
                 "NUMERIC type requires precision and scale to support aggregation");
         }
+
         if (precision <= NumericStorage.COMPACT_PRECISION) {
             return new SortedNumericDocValueAggregator<>(
                 reference.storageIdent(),
