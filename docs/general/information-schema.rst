@@ -152,7 +152,7 @@ number of replicas.
     | sys                | summits                           | BASE TABLE |             NULL | NULL               |
     | sys                | users                             | BASE TABLE |             NULL | NULL               |
     +--------------------+-----------------------------------+------------+------------------+--------------------+
-    SELECT 80 rows in set (... sec)
+    SELECT 81 rows in set (... sec)
 
 
 The table also contains additional information such as the specified
