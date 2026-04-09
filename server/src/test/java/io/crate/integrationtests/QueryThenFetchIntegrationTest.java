@@ -29,9 +29,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.data.Paging;
 import io.crate.testing.Asserts;
 
+@Repeat(iterations = 100)
 public class QueryThenFetchIntegrationTest extends IntegTestCase {
 
     @Test

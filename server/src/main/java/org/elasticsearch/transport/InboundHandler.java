@@ -38,6 +38,8 @@ import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.engine.distribution.DistributedResultAction;
+import io.crate.execution.engine.fetch.FetchNodeAction;
 
 public class InboundHandler {
 
@@ -131,11 +133,11 @@ public class InboundHandler {
                         if (header.isError()) {
                             handlerResponseError(requestId, streamInput, handler);
                         } else {
-                            handleResponse(requestId, remoteAddress, streamInput, handler);
+                            handleResponse(requestId, remoteAddress, streamInput, handler, header.isHandshake());
                         }
                     } else {
                         assert header.isError() == false;
-                        handleResponse(requestId, remoteAddress, EMPTY_STREAM_INPUT, handler);
+                        handleResponse(requestId, remoteAddress, EMPTY_STREAM_INPUT, handler, header.isHandshake());
                     }
                 }
             }
@@ -326,9 +328,14 @@ public class InboundHandler {
     private <T extends TransportResponse> void handleResponse(final long requestId,
                                                               InetSocketAddress remoteAddress,
                                                               final StreamInput stream,
-                                                              final TransportResponseHandler<T> handler) {
+                                                              final TransportResponseHandler<T> handler, boolean isHandshake) {
         final T response;
         try {
+            if (isHandshake == false &&
+                (handler.toString().contains(DistributedResultAction.NAME) || handler.toString().contains(FetchNodeAction.NAME))
+            ) {
+                throw new RuntimeException("dummy");
+            }
             response = handler.read(stream);
             checkStreamIsFullyConsumed(requestId, handler, stream, false);
         } catch (Exception e) {
