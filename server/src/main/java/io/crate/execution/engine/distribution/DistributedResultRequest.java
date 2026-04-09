@@ -24,6 +24,7 @@ package io.crate.execution.engine.distribution;
 import java.io.IOException;
 import java.util.UUID;
 
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.jspecify.annotations.Nullable;
 
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -169,7 +170,15 @@ public class DistributedResultRequest extends TransportRequest {
             out.writeException(throwable);
             out.writeBoolean(isKilled);
         } else {
-            rows.writeTo(out);
+            try {
+                rows.writeTo(out);
+            } catch (OutOfMemoryError e) {
+                throwable = new CircuitBreakingException("Query execution halted due to memory usage");
+                // We have to reset and rewrite again
+                // because failure flag and (maybe part of rows) is already written to the stream
+                out.reset();
+                this.writeTo(out);
+            }
         }
     }
 }

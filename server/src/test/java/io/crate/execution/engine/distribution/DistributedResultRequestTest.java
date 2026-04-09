@@ -22,14 +22,19 @@
 package io.crate.execution.engine.distribution;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.StreamSupport;
 
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -93,5 +98,32 @@ public class DistributedResultRequestTest extends ESTestCase {
 
         assertThat(r2.throwable()).isExactlyInstanceOf(throwable.getClass());
         assertThat(r2.isKilled()).isEqualTo(r1.isKilled());
+    }
+
+    @Test
+    public void test_oom_on_write_is_rethrown_as_cbe() throws Exception {
+        Streamer<?>[] streamers = new Streamer[]{DataTypes.STRING.streamer()};
+        UUID uuid = UUID.randomUUID();
+        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, RamAccounting.NO_ACCOUNTING);
+        builder.add(new RowN("ab"));
+        StreamBucket bucket = mock(StreamBucket.class);
+        doThrow(new OutOfMemoryError("dummy"))
+            .when(bucket)
+            .writeTo(any(StreamOutput.class));
+
+        DistributedResultRequest r1 =
+            DistributedResultRequest.of(
+                "dummyNodeId", uuid, 1, (byte) 3, 1, bucket, false
+            ).innerRequest();
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        r1.writeTo(out);
+
+        StreamInput in = out.bytes().streamInput();
+        DistributedResultRequest r2 = new DistributedResultRequest(in);
+        assertThat(r1.isLast()).isEqualTo(r2.isLast());
+        assertThat(r1.executionPhaseInputId()).isEqualTo(r2.executionPhaseInputId());
+
+        assertThat(r2.throwable()).isExactlyInstanceOf(CircuitBreakingException.class);
     }
 }
