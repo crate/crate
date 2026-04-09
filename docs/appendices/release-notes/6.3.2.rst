@@ -58,3 +58,7 @@ Fixes
   dropping a partition, etc. The corruption will cause all columns to return
   ``NULL`` values, for all existing data in the table, whereas new data (via
   ``INSERT`` or ``UPDATE``), can be retrieved normally.
+
+- Fixed :ref:`INSERT FROM VALUES <sql-insert>` statements that create new
+  partitions are no longer interrupted by :ref:`SWAP <alter_cluster_swap_table>`
+  or :ref:`RENAME <sql-alter-table-rename-to>` table statements.
