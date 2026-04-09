@@ -24,6 +24,7 @@ package io.crate.execution.engine.distribution;
 import java.io.IOException;
 import java.util.UUID;
 
+import org.elasticsearch.Version;
 import org.jspecify.annotations.Nullable;
 
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -40,8 +41,8 @@ public class DistributedResultRequest extends TransportRequest {
 
         public final DistributedResultRequest innerRequest;
 
-        public Builder(UUID jobId, int executionPhaseId, byte inputId, int bucketIdx, Throwable throwable, boolean isKilled) {
-            this.innerRequest = new DistributedResultRequest(jobId, executionPhaseId, inputId, bucketIdx, throwable, isKilled);
+        public Builder(UUID jobId, int executionPhaseId, byte inputId, int bucketIdx, Throwable throwable) {
+            this.innerRequest = new DistributedResultRequest(jobId, executionPhaseId, inputId, bucketIdx, throwable);
         }
 
         public NodeRequest<DistributedResultRequest> build(String nodeId) {
@@ -71,7 +72,6 @@ public class DistributedResultRequest extends TransportRequest {
     private boolean isLast = true;
 
     private Throwable throwable = null;
-    private boolean isKilled = false;
 
     private DistributedResultRequest(UUID jobId, byte inputId, int executionPhaseId, int bucketIdx) {
         this.jobId = jobId;
@@ -95,11 +95,9 @@ public class DistributedResultRequest extends TransportRequest {
                                      int executionPhaseId,
                                      byte inputId,
                                      int bucketIdx,
-                                     Throwable throwable,
-                                     boolean isKilled) {
+                                     Throwable throwable) {
         this(jobId, inputId, executionPhaseId, bucketIdx);
         this.throwable = throwable;
-        this.isKilled = isKilled;
     }
 
     public UUID jobId() {
@@ -132,10 +130,6 @@ public class DistributedResultRequest extends TransportRequest {
         return throwable;
     }
 
-    public boolean isKilled() {
-        return isKilled;
-    }
-
     DistributedResultRequest(StreamInput in) throws IOException {
         super(in);
         jobId = new UUID(in.readLong(), in.readLong());
@@ -147,7 +141,9 @@ public class DistributedResultRequest extends TransportRequest {
         boolean failure = in.readBoolean();
         if (failure) {
             throwable = in.readException();
-            isKilled = in.readBoolean();
+            if (in.getVersion().before(Version.V_6_4_0)) {
+                in.readBoolean(); // Used to have unused field isKilled
+            }
         } else {
             rows = new StreamBucket(in);
         }
@@ -167,7 +163,10 @@ public class DistributedResultRequest extends TransportRequest {
         out.writeBoolean(failure);
         if (failure) {
             out.writeException(throwable);
-            out.writeBoolean(isKilled);
+            if (out.getVersion().before(Version.V_6_4_0)) {
+                // Old versions used unused flag isKilled that always had value 'false'.
+                out.writeBoolean(false);
+            }
         } else {
             rows.writeTo(out);
         }

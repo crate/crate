@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.StreamSupport;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -82,7 +83,7 @@ public class DistributedResultRequestTest extends ESTestCase {
         Throwable throwable = new IllegalStateException("dummy");
 
         DistributedResultRequest r1 =
-            new DistributedResultRequest.Builder(uuid, 1, (byte) 3, 1, throwable, true)
+            new DistributedResultRequest.Builder(uuid, 1, (byte) 3, 1, throwable)
                 .build("dummyNodeId")
                 .innerRequest();
 
@@ -92,6 +93,31 @@ public class DistributedResultRequestTest extends ESTestCase {
         DistributedResultRequest r2 = new DistributedResultRequest(in);
 
         assertThat(r2.throwable()).isExactlyInstanceOf(throwable.getClass());
-        assertThat(r2.isKilled()).isEqualTo(r1.isKilled());
+    }
+
+    @Test
+    public void test_streaming_failure_bwc() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        Throwable throwable = new IllegalStateException("dummy");
+
+        DistributedResultRequest r1 =
+            new DistributedResultRequest.Builder(uuid, 1, (byte) 3, 1, throwable)
+                .build("dummyNodeId")
+                .innerRequest();
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_3_0);
+        r1.writeTo(out);
+
+        StreamInput in = StreamInput.wrap(BytesReference.toBytes(out.bytes()));
+        in.setVersion(Version.V_6_3_0);
+        DistributedResultRequest r2 = new DistributedResultRequest(in);
+
+        assertThat(r2.throwable()).isExactlyInstanceOf(throwable.getClass());
+
+        // Removed boolean flag was last in the stream,
+        // so reading/not reading didn't have any effect other than leaving unconsumed boolean in the stream.
+        // Verifying that stream is fully consumed with BWC code.
+        assertThat(in.available()).isEqualTo(0);
     }
 }
