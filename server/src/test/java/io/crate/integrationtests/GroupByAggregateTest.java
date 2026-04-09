@@ -46,8 +46,6 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
-
 import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Paging;
@@ -59,7 +57,6 @@ import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
-@Repeat(iterations = 100)
 public class GroupByAggregateTest extends IntegTestCase {
 
     private final Setup setup = new Setup(sqlExecutor);
