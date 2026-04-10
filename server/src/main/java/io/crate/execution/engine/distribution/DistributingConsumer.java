@@ -192,7 +192,7 @@ public class DistributingConsumer implements RowConsumer {
         consuming.set(false);
         Throwable failure = SQLExceptions.unwrap(f); // make sure it's streamable
         AtomicInteger numActiveRequests = new AtomicInteger(downstreams.size());
-        var builder = new DistributedResultRequest.Builder(jobId, targetPhaseId, inputId, bucketIdx, failure, false);
+        var builder = new DistributedResultRequest.Builder(jobId, targetPhaseId, inputId, bucketIdx, failure);
         for (int i = 0; i < downstreams.size(); i++) {
             Downstream downstream = downstreams.get(i);
             if (downstream.needsMoreData == false) {
