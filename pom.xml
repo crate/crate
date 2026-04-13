@@ -346,6 +346,7 @@
         <versions.graalvm>25.0.2</versions.graalvm>
         <versions.jwt>4.5.1</versions.jwt>
         <versions.jwks-rsa>0.23.0</versions.jwks-rsa>
+        <versions.bouncycastle-bcpkix-jdk18on>1.83</versions.bouncycastle-bcpkix-jdk18on>
 
         <versions.hamcrest>2.2</versions.hamcrest>
         <versions.mockito>5.23.0</versions.mockito>
