@@ -267,7 +267,7 @@ public final class DocValuesAggregates {
                     Exceptions.rethrowUnchecked(killCause);
                 }
                 for (int i = 0; i < aggregators.size(); i++) {
-                    aggregators.get(i).applyBulk(ramAccounting, buffer, cells[i]);
+                    cells[i] = aggregators.get(i).applyBulk(ramAccounting, buffer, cells[i]);
                 }
             }
         }

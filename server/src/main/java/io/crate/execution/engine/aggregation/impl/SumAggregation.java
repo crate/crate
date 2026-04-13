@@ -269,10 +269,11 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableLong state) throws IOException {
+        public MutableLong apply(RamAccounting ramAccounting, int doc, MutableLong state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 state.setValue(Math.addExact(state.value(), values.nextValue()));
             }
+            return state;
         }
 
         @Override
@@ -303,7 +304,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableDouble state) throws IOException {
+        public MutableDouble apply(RamAccounting ramAccounting, int doc, MutableDouble state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 var value = kahanSummation.sum(
                     state.value(),
@@ -311,6 +312,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
                 );
                 state.setValue(value);
             }
+            return state;
         }
 
         @Override
@@ -341,7 +343,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableFloat state) throws IOException {
+        public MutableFloat apply(RamAccounting ramAccounting, int doc, MutableFloat state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 var value = kahanSummation.sum(
                     state.value(),
@@ -349,6 +351,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
                 );
                 state.setValue(value);
             }
+            return state;
         }
 
         @Override

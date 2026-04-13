@@ -202,7 +202,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
+        public MutableObject apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (!state.hasValue()) {
                     var value = dataType.sanitizeValue(values.nextValue());
@@ -210,6 +210,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                     state.setValue(value);
                 }
             }
+            return state;
         }
     }
 
@@ -220,7 +221,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
+        public MutableObject apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (!state.hasValue()) {
                     var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
@@ -228,6 +229,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                     state.setValue(value);
                 }
             }
+            return state;
         }
     }
 
@@ -238,7 +240,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
+        public MutableObject apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (!state.hasValue()) {
                     var value = NumericUtils.sortableLongToDouble(values.nextValue());
@@ -246,6 +248,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                     state.setValue(value);
                 }
             }
+            return state;
         }
     }
 
@@ -304,7 +307,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
+        public MutableObject apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (!state.hasValue()) {
                     var rawValue = values.lookupOrd(values.nextOrd());
@@ -313,6 +316,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                     state.setValue(value);
                 }
             }
+            return state;
         }
 
         @Nullable
@@ -347,7 +351,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
+        public MutableObject apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (!state.hasValue()) {
                     long ord = values.nextOrd();
@@ -357,6 +361,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                     state.setValue(value);
                 }
             }
+            return state;
         }
 
         @Nullable

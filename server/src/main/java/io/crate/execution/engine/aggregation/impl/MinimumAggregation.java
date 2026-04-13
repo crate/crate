@@ -110,13 +110,14 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableLong state) throws IOException {
+        public MutableLong apply(RamAccounting ramAccounting, int doc, MutableLong state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 long value = values.nextValue();
                 if (value < state.value()) {
                     state.setValue(value);
                 }
             }
+            return state;
         }
 
         @Override
@@ -151,13 +152,14 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableDouble state) throws IOException {
+        public MutableDouble apply(RamAccounting ramAccounting, int doc, MutableDouble state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 double value = NumericUtils.sortableLongToDouble(values.nextValue());
                 if (value < state.value()) {
                     state.setValue(value);
                 }
             }
+            return state;
         }
 
         @Override
@@ -191,13 +193,14 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableFloat state) throws IOException {
+        public MutableFloat apply(RamAccounting ramAccounting, int doc, MutableFloat state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 float value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                 if (value < state.value()) {
                     state.setValue(value);
                 }
             }
+            return state;
         }
 
         @Override

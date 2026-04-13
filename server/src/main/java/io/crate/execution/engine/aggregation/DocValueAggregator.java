@@ -37,12 +37,13 @@ public interface DocValueAggregator<T> {
 
     void loadDocValues(LeafReaderContext leafReaderContext) throws IOException;
 
-    void apply(RamAccounting ramAccounting, int doc, T state) throws IOException;
+    T apply(RamAccounting ramAccounting, int doc, T state) throws IOException;
 
-    default void applyBulk(RamAccounting ramAccounting, DocAndFloatFeatureBuffer buffer, T state) throws IOException {
+    default T applyBulk(RamAccounting ramAccounting, DocAndFloatFeatureBuffer buffer, T state) throws IOException {
         for (int i = 0; i < buffer.size; i++) {
-            apply(ramAccounting, buffer.docs[i], state);
+            state = apply(ramAccounting, buffer.docs[i], state);
         }
+        return state;
     }
 
     // Aggregations are executed on shard level,

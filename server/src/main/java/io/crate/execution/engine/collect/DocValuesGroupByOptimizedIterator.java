@@ -48,8 +48,8 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
@@ -384,16 +384,19 @@ final class DocValuesGroupByOptimizedIterator {
                         states = new Object[aggregators.size()];
                         for (int i = 0; i < aggregators.size(); i++) {
                             var aggregator = aggregators.get(i);
-                            states[i] = aggregator.initialState(ramAccounting, memoryManager, minNodeVersion);
+
+                            Object state = aggregator.initialState(ramAccounting, memoryManager, minNodeVersion);
+
                             //noinspection unchecked
-                            aggregator.apply(ramAccounting, doc, states[i]);
+                            state = aggregator.apply(ramAccounting, doc, state);
+                            states[i] = state;
                         }
                         accountForNewKeyEntry.accept(statesByKey, key);
                         statesByKey.put(key, states);
                     } else {
                         for (int i = 0; i < aggregators.size(); i++) {
                             //noinspection unchecked
-                            aggregators.get(i).apply(ramAccounting, doc, states[i]);
+                            states[i] = aggregators.get(i).apply(ramAccounting, doc, states[i]);
                         }
                     }
                 }

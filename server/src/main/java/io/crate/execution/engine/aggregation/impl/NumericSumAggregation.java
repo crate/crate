@@ -32,8 +32,8 @@ import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -218,14 +218,15 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting,
-                          int doc,
-                          OverflowAwareMutableLong state) throws IOException {
+        public OverflowAwareMutableLong apply(RamAccounting ramAccounting,
+                                              int doc,
+                                              OverflowAwareMutableLong state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 var prevState = state.value();
                 state.add(values.nextValue());
                 ramAccounting.addBytes(NumericType.sizeDiff(state.value(), prevState));
             }
+            return state;
         }
 
         @Override
@@ -262,9 +263,9 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting,
-                          int doc,
-                          BigDecimalValueWrapper state) throws IOException {
+        public BigDecimalValueWrapper apply(RamAccounting ramAccounting,
+                                            int doc,
+                                            BigDecimalValueWrapper state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 var prevState = state.value();
 
@@ -274,6 +275,7 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
 
                 ramAccounting.addBytes(NumericType.sizeDiff(state.value(), prevState));
             }
+            return state;
         }
 
         @Override
@@ -309,9 +311,9 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting,
-                          int doc,
-                          BigDecimalValueWrapper state) throws IOException {
+        public BigDecimalValueWrapper apply(RamAccounting ramAccounting,
+                                            int doc,
+                                            BigDecimalValueWrapper state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 var prevState = state.value();
 
@@ -321,6 +323,7 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
 
                 ramAccounting.addBytes(NumericType.sizeDiff(state.value(), prevState));
             }
+            return state;
         }
 
         @Override

@@ -348,7 +348,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         abstract boolean hasPrecedence(long currentValue, long stateValue);
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, CmpByLongState state) throws IOException {
+        public CmpByLongState apply(RamAccounting ramAccounting, int doc, CmpByLongState state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 long value = values.nextValue();
                 if (hasPrecedence(value, state.cmpValue)) {
@@ -359,6 +359,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
                     state.leafReaderContext = this.leafReaderContext;
                 }
             }
+            return state;
         }
 
         @SuppressWarnings({"rawtypes", "unchecked"})

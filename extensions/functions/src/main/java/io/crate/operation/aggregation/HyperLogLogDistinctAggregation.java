@@ -252,18 +252,19 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             case CharacterType.ID:
                 return new HllAggregator(reference.storageIdent(), valueType, precision) {
                     @Override
-                    public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
+                    public HllState apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
                             BytesRef ref = super.values.lookupOrd(super.values.nextOrd());
                             var hash = MurmurHash3.hash64(ref.bytes, ref.offset, ref.length);
                             state.addHash(hash);
                         }
+                        return state;
                     }
                 };
             case IpType.ID:
                 return new HllAggregator(reference.storageIdent(), valueType, precision) {
                     @Override
-                    public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
+                    public HllState apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
                             BytesRef ref = super.values.lookupOrd(super.values.nextOrd());
                             byte[] bytes = NetworkUtils.formatIPBytes(ref).getBytes(StandardCharsets.UTF_8);
@@ -271,6 +272,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                             var hash = MurmurHash3.hash64(bytes, 0, bytes.length);
                             state.addHash(hash);
                         }
+                        return state;
                     }
                 };
             default:

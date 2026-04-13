@@ -64,10 +64,11 @@ public class SortedNumericDocValueAggregator<T> implements DocValueAggregator<T>
     }
 
     @Override
-    public void apply(RamAccounting ramAccounting, int doc, T state) throws IOException {
+    public T apply(RamAccounting ramAccounting, int doc, T state) throws IOException {
         if (values.advanceExact(doc) && values.docValueCount() == 1) {
             docValuesConsumer.accept(ramAccounting, values, state);
         }
+        return state;
     }
 
     @Nullable
