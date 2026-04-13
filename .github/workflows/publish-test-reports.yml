@@ -1,0 +1,31 @@
+---
+name: CrateDB SQL - Publish Test Report
+on:
+  workflow_run:
+    workflows: ["CrateDB SQL"]
+    types:
+      - completed
+permissions:
+  contents: read
+  checks: write
+  statuses: write
+jobs:
+  publish-report:
+    name: Publish Test Report
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - name: Download Surefire Reports
+        uses: actions/download-artifact@v8
+        with:
+          pattern: surefire-reports-*
+          path: surefire-reports
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish Test Report
+        uses: scacap/action-surefire-report@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          report_paths: 'surefire-reports/**/*.xml'
+          check_name: 'Test Report'
+          commit: ${{ github.event.workflow_run.head_sha }}

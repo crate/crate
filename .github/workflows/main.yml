@@ -16,8 +16,6 @@ concurrency:
 
 permissions:
   contents: read
-  checks: write
-  statuses: write
 
 jobs:
   test:
@@ -51,9 +49,15 @@ jobs:
             -Dmaven.javadoc.skip=true \
             -Djacoco.skip=true
 
-      - name: Publish Test Report
+      - name: Upload Surefire Reports
+        # NB: intentionally not using always() because it covers canceled jobs as well.
         if: success() || failure()
-        uses: scacap/action-surefire-report@v1
+        uses: actions/upload-artifact@v7
+        with:
+          name: surefire-reports-${{ matrix.os }}
+          path: '**/target/surefire-reports/**/*.xml'
+          if-no-files-found: error
+          retention-days: 7
 
   forbiddenApis:
     name: forbiddenApis
