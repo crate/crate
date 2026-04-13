@@ -22,7 +22,12 @@
 package io.crate.execution.engine.distribution;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.junit.Test;
 
 import io.crate.Streamer;
@@ -40,4 +45,30 @@ public class StreamBucketTest {
         builder.add(new RowN("0123456789"));
         assertThat(builder.ramBytesUsed()).isEqualTo(1080L); //Used to be 12
     }
+
+    @Test
+    public void test_accounting_catches_CBE_per_written_column() throws Exception {
+        Streamer<?>[] streamers = new Streamer[]{
+            DataTypes.UNTYPED_OBJECT.streamer(),
+            DataTypes.UNTYPED_OBJECT.streamer()
+        };
+
+        Map<String, Object> object = new HashMap<>();
+        // Heavy object to surpass initial ram usage (INITIAL_PAGE_SIZE + shallow size).
+        for (int i = 0; i < 100; i++) {
+            var str = String.valueOf(i);
+            object.put(str, "value" + str);
+        }
+        // Object uses 1368L ram when written alone.
+        long objectSize = 1368;
+
+        // ramAccounting should throw CBE on the first column already
+        // instead of proceeding with other, potentially heavy objects.
+        var ramAccounting = new PlainRamAccounting(objectSize - 1);
+        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting);
+        assertThatThrownBy(() -> builder.add(new RowN(object, object)))
+            .isExactlyInstanceOf(CircuitBreakingException.class)
+            .hasMessageContaining(Long.toString(objectSize)); // Used to be 2456.
+    }
+
 }

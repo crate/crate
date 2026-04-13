@@ -73,12 +73,12 @@ public class StreamBucket implements Bucket, Writeable {
                 try {
                     //noinspection unchecked
                     ((Streamer) streamers[i]).writeValueTo(out, row.get(i));
+                    ramAccounting.addBytes(out.ramBytesUsed() - prevRamUsed);
+                    prevRamUsed = out.ramBytesUsed();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             }
-            ramAccounting.addBytes(out.ramBytesUsed() - prevRamUsed);
-            prevRamUsed = out.ramBytesUsed();
         }
 
         public StreamBucket build() {

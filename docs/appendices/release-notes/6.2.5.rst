@@ -58,3 +58,6 @@ Fixes
   to not receive schema or data updates from a published table, if a publisher
   cluster's primary shards were active on polling the state and became
   inactive before restoring started (for example, due to shards relocation).
+
+- Fixed an issue that could lead to an ``OutOfMemoryError`` when running a
+  query in a multi-node cluster under memory pressure.

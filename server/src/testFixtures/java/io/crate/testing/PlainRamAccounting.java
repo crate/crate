@@ -21,6 +21,8 @@
 
 package io.crate.testing;
 
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+
 import io.crate.data.breaker.RamAccounting;
 
 public class PlainRamAccounting implements RamAccounting {
@@ -42,7 +44,7 @@ public class PlainRamAccounting implements RamAccounting {
         total += bytes;
         if (breakingThreshold != -1 && total > breakingThreshold) {
             // break when more than two block sizes have been added to the Sketch
-            throw new RuntimeException("Circuit break! " + total);
+            throw new CircuitBreakingException("Circuit break! " + total);
         }
 
     }
