@@ -38,7 +38,6 @@ import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
-import io.crate.execution.engine.aggregation.impl.util.BigDecimalValueWrapper;
 import io.crate.execution.engine.aggregation.impl.util.OverflowAwareMutableLong;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
@@ -240,7 +239,7 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
         }
     }
 
-    static class SumDouble implements DocValueAggregator<BigDecimalValueWrapper> {
+    static class SumDouble implements DocValueAggregator<BigDecimal> {
 
         private final DataType<BigDecimal> returnType;
         private final String columnName;
@@ -252,9 +251,9 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
         }
 
         @Override
-        public BigDecimalValueWrapper initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
+        public BigDecimal initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
             ramAccounting.addBytes(INIT_BIG_DECIMAL_SIZE);
-            return new BigDecimalValueWrapper(BigDecimal.ZERO);
+            return BigDecimal.ZERO;
         }
 
         @Override
@@ -263,32 +262,29 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
         }
 
         @Override
-        public BigDecimalValueWrapper apply(RamAccounting ramAccounting,
-                                            int doc,
-                                            BigDecimalValueWrapper state) throws IOException {
+        public BigDecimal apply(RamAccounting ramAccounting,
+                                int doc,
+                                BigDecimal state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                var prevState = state.value();
+                var prevState = state;
 
                 var fieldValue = returnType.implicitCast(
                     NumericUtils.sortableLongToDouble(values.nextValue()));
-                state.setValue(state.value().add(fieldValue));
 
-                ramAccounting.addBytes(NumericType.sizeDiff(state.value(), prevState));
+                BigDecimal newValue = state.add(fieldValue);
+                ramAccounting.addBytes(NumericType.sizeDiff(newValue, prevState));
+                return newValue;
             }
             return state;
         }
 
         @Override
-        public Object partialResult(RamAccounting ramAccounting, BigDecimalValueWrapper state) {
-            if (state.hasValue()) {
-                return returnType.implicitCast(state.value());
-            } else {
-                return null;
-            }
+        public Object partialResult(RamAccounting ramAccounting, BigDecimal state) {
+            return returnType.implicitCast(state);
         }
     }
 
-    static class SumFloat implements DocValueAggregator<BigDecimalValueWrapper> {
+    static class SumFloat implements DocValueAggregator<BigDecimal> {
 
         private final DataType<BigDecimal> returnType;
         private final String columnName;
@@ -300,9 +296,9 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
         }
 
         @Override
-        public BigDecimalValueWrapper initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
+        public BigDecimal initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
             ramAccounting.addBytes(INIT_BIG_DECIMAL_SIZE);
-            return new BigDecimalValueWrapper(BigDecimal.ZERO);
+            return BigDecimal.ZERO;
         }
 
         @Override
@@ -311,28 +307,23 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
         }
 
         @Override
-        public BigDecimalValueWrapper apply(RamAccounting ramAccounting,
-                                            int doc,
-                                            BigDecimalValueWrapper state) throws IOException {
+        public BigDecimal apply(RamAccounting ramAccounting,
+                                int doc,
+                                BigDecimal state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                var prevState = state.value();
-
                 var fieldValue = returnType.implicitCast(
                     NumericUtils.sortableIntToFloat((int) values.nextValue()));
-                state.setValue(state.value().add(fieldValue));
 
-                ramAccounting.addBytes(NumericType.sizeDiff(state.value(), prevState));
+                BigDecimal newValue = state.add(fieldValue);
+                ramAccounting.addBytes(NumericType.sizeDiff(newValue, state));
+                return newValue;
             }
             return state;
         }
 
         @Override
-        public Object partialResult(RamAccounting ramAccounting, BigDecimalValueWrapper state) {
-            if (state.hasValue()) {
-                return returnType.implicitCast(state.value());
-            } else {
-                return null;
-            }
+        public Object partialResult(RamAccounting ramAccounting, BigDecimal state) {
+            return state;
         }
     }
 }

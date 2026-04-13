@@ -258,7 +258,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                     },
                     (_, values, state) -> {
                         var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
-                        state.increment(value);
+                        return state.increment(value);
                     }
                 );
             case DoubleType.ID:
@@ -270,7 +270,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                     },
                     (_, values, state) -> {
                         var value = NumericUtils.sortableLongToDouble((values.nextValue()));
-                        state.increment(value);
+                        return state.increment(value);
                     }
                 );
             default:

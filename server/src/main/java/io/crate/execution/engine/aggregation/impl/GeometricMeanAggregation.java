@@ -114,9 +114,10 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
             out.writeDouble(value);
         }
 
-        private void addValue(double val) {
+        private GeometricMeanState addValue(double val) {
             this.value += FastMath.log(val);
             n++;
+            return this;
         }
 
         private void subValue(double val) {
@@ -338,7 +339,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
                     },
                     (_, values, state) -> {
                         var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
-                        state.addValue(value);
+                        return state.addValue(value);
                     }
                 );
             case DoubleType.ID:
@@ -350,7 +351,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
                     },
                     (_, values, state) -> {
                         var value = NumericUtils.sortableLongToDouble((values.nextValue()));
-                        state.addValue(value);
+                        return state.addValue(value);
                     }
                 );
             default:

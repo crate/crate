@@ -25,15 +25,13 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Objects;
 
-import io.crate.execution.engine.aggregation.impl.util.NumericValueHolder;
+public class NumericAverageState implements Comparable<NumericAverageState> {
 
-public class NumericAverageState<T extends NumericValueHolder> implements Comparable<NumericAverageState<T>> {
-
-    T sum;
+    BigDecimal sum;
 
     long count;
 
-    NumericAverageState(T initialValue, long count) {
+    NumericAverageState(BigDecimal initialValue, long count) {
         this.sum = initialValue;
         // Constructor argument for count is added since NumericAverageStateType.readValueFrom() can get value different from 0.
         this.count = count;
@@ -45,20 +43,20 @@ public class NumericAverageState<T extends NumericValueHolder> implements Compar
             // We need to use divide with a MathContext to avoid ArithmeticException on infinite fractions.
             // Using best (finite) precision as we want to compute final result with the best precision.
             // If users want to reduce the precision of the final result, they can use explicit cast.
-            return sum.value().divide(BigDecimal.valueOf(count), MathContext.DECIMAL128);
+            return sum.divide(BigDecimal.valueOf(count), MathContext.DECIMAL128);
         } else {
             return null;
         }
     }
 
     @Override
-    public int compareTo(NumericAverageState<T> o) {
+    public int compareTo(NumericAverageState o) {
         if (o == null) {
             return 1;
         } else {
             int compare = Long.compare(count, o.count);
             if (compare == 0) {
-                return sum.value().compareTo(o.sum.value());
+                return sum.compareTo(o.sum);
             }
             return compare;
         }
@@ -69,7 +67,6 @@ public class NumericAverageState<T extends NumericValueHolder> implements Compar
         return "sum: " + sum + " count: " + count;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -78,8 +75,8 @@ public class NumericAverageState<T extends NumericValueHolder> implements Compar
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        NumericAverageState<T> that = (NumericAverageState<T>) o;
-        return count == that.count && sum.value().equals(that.value());
+        NumericAverageState that = (NumericAverageState) o;
+        return count == that.count && value().equals(that.value());
     }
 
     @Override

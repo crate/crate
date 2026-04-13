@@ -106,14 +106,16 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
             }
         }
 
-        public void addNumber(double number, boolean isIntegral) {
+        public AverageState addNumber(double number, boolean isIntegral) {
             this.sum = isIntegral ? this.sum + number : kahanSummationForDouble.sum(this.sum, number);
             this.count++;
+            return this;
         }
 
-        public void removeNumber(double number, boolean isIntegral) {
+        public AverageState removeNumber(double number, boolean isIntegral) {
             this.sum = isIntegral ? this.sum - number : kahanSummationForDouble.sum(this.sum, -number);
             this.count--;
+            return this;
         }
 
         public void reduce(AverageState other, boolean isIntegral) {
@@ -322,7 +324,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
                     return new AverageState();
                 },
                 (_, values, state) -> {
-                    state.addNumber(values.nextValue(), true); // Mutates state.
+                    return state.addNumber(values.nextValue(), true);
                 }
             );
             case FloatType.ID -> new SortedNumericDocValueAggregator<>(
@@ -333,7 +335,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
                 },
                 (_, values, state) -> {
                     var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
-                    state.addNumber(value, false); // Mutates state.
+                    return state.addNumber(value, false);
                 }
             );
             case DoubleType.ID -> new SortedNumericDocValueAggregator<>(
@@ -344,7 +346,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
                 },
                 (_, values, state) -> {
                     var value = NumericUtils.sortableLongToDouble((values.nextValue()));
-                    state.addNumber(value, false); // Mutates state.
+                    return state.addNumber(value, false); // Mutates state.
                 }
             );
             default -> null;

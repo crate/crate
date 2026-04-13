@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.aggregation;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
@@ -28,10 +29,10 @@ import java.util.List;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.CheckedTriFunction;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.jspecify.annotations.Nullable;
 
-import io.crate.common.TriConsumer;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.impl.templates.BinaryDocValueAggregator;
@@ -162,7 +163,7 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
 
     protected DocValueAggregator<?> getNumericDocValueAggregator(
         List<Reference> aggregationReferences,
-        TriConsumer<RamAccounting, TPartial, BigDecimal> applyToState) {
+        CheckedTriFunction<RamAccounting, TPartial, BigDecimal, TPartial, IOException> onDocValue) {
 
         Reference reference = getAggReference(aggregationReferences);
         if (reference == null) {
@@ -184,11 +185,11 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
         if (precision <= NumericStorage.COMPACT_PRECISION) {
             return new SortedNumericDocValueAggregator<>(
                 reference.storageIdent(),
-                (ramAccounting, memoryManager, version) ->
-                    newState(ramAccounting, version, memoryManager),
+                (ramAccounting, memoryManager, version) -> newState(ramAccounting, version, memoryManager),
                 (ramAccounting, values, state) -> {
                     long docValue = values.nextValue();
-                    applyToState.accept(ramAccounting, state, BigDecimal.valueOf(docValue, scale));
+                    BigDecimal value = BigDecimal.valueOf(docValue, scale);
+                    return onDocValue.apply(ramAccounting, state, value);
                 }
             );
         } else {
@@ -199,7 +200,8 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
                 (ramAccounting, values, state) -> {
                     BytesRef bytesRef = values.lookupOrd(values.nextOrd());
                     BigInteger bigInteger = NumericUtils.sortableBytesToBigInt(bytesRef.bytes, bytesRef.offset, bytesRef.length);
-                    applyToState.accept(ramAccounting, state, new BigDecimal(bigInteger, scale));
+                    BigDecimal value = new BigDecimal(bigInteger, scale);
+                    return onDocValue.apply(ramAccounting, state, value);
                 }
             );
         }

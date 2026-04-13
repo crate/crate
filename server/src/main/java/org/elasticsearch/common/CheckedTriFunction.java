@@ -19,31 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.aggregation.impl.util;
+package org.elasticsearch.common;
 
-import java.math.BigDecimal;
+public interface CheckedTriFunction<S, T, U, R, E extends Exception> {
 
-public final class BigDecimalValueWrapper implements NumericValueHolder {
-
-    private BigDecimal value;
-    private boolean hasValue;
-
-    public BigDecimalValueWrapper(BigDecimal value) {
-        this.value = value;
-    }
-
-    @Override
-    public BigDecimal value() {
-        return value;
-    }
-
-    public boolean hasValue() {
-        return hasValue;
-    }
-
-    @Override
-    public void setValue(BigDecimal value) {
-        hasValue = true;
-        this.value = value;
-    }
+    /**
+     * Applies this function to the given arguments.
+     *
+     * @param s the first function argument
+     * @param t the second function argument
+     * @param u the third function argument
+     * @return the result
+     */
+    R apply(S s, T t, U u) throws E;
 }

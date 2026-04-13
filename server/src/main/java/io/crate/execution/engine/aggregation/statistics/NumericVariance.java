@@ -61,16 +61,18 @@ public class NumericVariance implements Writeable, Comparable<NumericVariance> {
         return count;
     }
 
-    public void increment(BigDecimal value) {
+    public NumericVariance increment(BigDecimal value) {
         sumOfSqrs = sumOfSqrs.add(value.multiply(value));
         sum = sum.add(value);
         count++;
+        return this;
     }
 
-    public void decrement(BigDecimal value) {
+    public NumericVariance decrement(BigDecimal value) {
         sumOfSqrs = sumOfSqrs.subtract(value.multiply(value));
         sum = sum.subtract(value);
         count--;
+        return this;
     }
 
     public BigDecimal result() {

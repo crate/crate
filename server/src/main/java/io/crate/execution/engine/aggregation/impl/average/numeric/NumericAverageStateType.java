@@ -28,11 +28,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
-import io.crate.execution.engine.aggregation.impl.util.BigDecimalValueWrapper;
 import io.crate.types.DataType;
 import io.crate.types.NumericType;
 
-@SuppressWarnings("rawtypes")
 public class NumericAverageStateType extends DataType<NumericAverageState> implements Streamer<NumericAverageState> {
 
     public static final int ID = 1026;
@@ -75,8 +73,8 @@ public class NumericAverageStateType extends DataType<NumericAverageState> imple
         // Cannot use NumericType.INSTANCE as it has default precision and scale values
         // which might not be equal to written BigDecimal's precision and scale.
         var type = new NumericType(in);
-        return new NumericAverageState<>(
-            new BigDecimalValueWrapper(type.readValueFrom(in)),
+        return new NumericAverageState(
+            type.readValueFrom(in),
             in.readVLong()
         );
     }
@@ -85,9 +83,9 @@ public class NumericAverageStateType extends DataType<NumericAverageState> imple
     public void writeValueTo(StreamOutput out, NumericAverageState v) throws IOException {
         // We want to preserve the scale and precision
         // from the numeric argument type for the return type.
-        var type = new NumericType(v.sum.value().precision(), v.sum.value().scale());
+        var type = new NumericType(v.sum.precision(), v.sum.scale());
         type.writeTo(out);
-        type.writeValueTo(out, v.sum.value());
+        type.writeValueTo(out, v.sum);
         out.writeVLong(v.count);
     }
 

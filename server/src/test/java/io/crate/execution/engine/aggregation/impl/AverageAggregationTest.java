@@ -199,7 +199,7 @@ public class AverageAggregationTest extends AggregationTestCase {
             minNodeVersion
 
         );
-        assertThat(((NumericAverageState<?>) result).value()).isEqualTo(BigDecimal.valueOf(Long.MAX_VALUE));
+        assertThat(((NumericAverageState) result).value()).isEqualTo(BigDecimal.valueOf(Long.MAX_VALUE));
     }
 
     @Test
@@ -228,7 +228,7 @@ public class AverageAggregationTest extends AggregationTestCase {
             true,
             minNodeVersion
         );
-        assertThat(((NumericAverageState<?>) result).value()).isEqualTo(BigDecimal.valueOf(0.5d));
+        assertThat(((NumericAverageState) result).value()).isEqualTo(BigDecimal.valueOf(0.5d));
     }
 
     @Test
@@ -251,7 +251,7 @@ public class AverageAggregationTest extends AggregationTestCase {
             true,
             minNodeVersion
         );
-        assertThat(((NumericAverageState<?>) result).value().toString()).isEqualTo(expected.toString());
+        assertThat(((NumericAverageState) result).value().toString()).isEqualTo(expected.toString());
     }
 
     @Test

@@ -211,6 +211,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     (_, values, state) -> {
                         var hash = BitMixer.mix64(values.nextValue());
                         state.addHash(hash);
+                        return state;
                     }
                 );
             case DoubleType.ID:
@@ -229,6 +230,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                         // => mix64(sortableDoubleBits(values.nextValue()))
                         var hash = BitMixer.mix64(NumericUtils.sortableDoubleBits(values.nextValue()));
                         state.addHash(hash);
+                        return state;
                     }
                 );
             case FloatType.ID:
@@ -246,6 +248,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                         // => mix64(doubleToLongBits(NumericUtils.sortableIntToFloat((int)values.nextValue()))) - no need to double cast, auto widening
                         var hash = BitMixer.mix64(doubleToLongBits(NumericUtils.sortableIntToFloat((int) values.nextValue())));
                         state.addHash(hash);
+                        return state;
                     }
                 );
             case StringType.ID:

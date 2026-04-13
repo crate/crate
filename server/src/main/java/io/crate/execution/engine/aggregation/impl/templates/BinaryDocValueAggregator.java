@@ -27,10 +27,10 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.CheckedTriFunction;
 import org.elasticsearch.common.TriFunction;
 import org.jspecify.annotations.Nullable;
 
-import io.crate.common.CheckedTriConsumer;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.memory.MemoryManager;
@@ -38,24 +38,24 @@ import io.crate.memory.MemoryManager;
 public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
 
     private final String columnName;
-    private final TriFunction<RamAccounting, MemoryManager, Version, T> stateInitializer;
-    private final CheckedTriConsumer<RamAccounting, SortedSetDocValues, T, IOException> docValuesConsumer;
+    private final TriFunction<RamAccounting, MemoryManager, Version, T> newState;
+    private final CheckedTriFunction<RamAccounting, SortedSetDocValues, T, T, IOException> onValue;
 
     protected SortedSetDocValues values;
 
     public BinaryDocValueAggregator(
         String columnName,
-        TriFunction<RamAccounting, MemoryManager, Version, T> stateInitializer,
-        CheckedTriConsumer<RamAccounting, SortedSetDocValues, T, IOException> docValuesConsumer) {
+        TriFunction<RamAccounting, MemoryManager, Version, T> newState,
+        CheckedTriFunction<RamAccounting, SortedSetDocValues, T, T, IOException> onValue) {
 
         this.columnName = columnName;
-        this.stateInitializer = stateInitializer;
-        this.docValuesConsumer = docValuesConsumer;
+        this.newState = newState;
+        this.onValue = onValue;
     }
 
     @Override
     public T initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
-        return stateInitializer.apply(ramAccounting, memoryManager, minNodeVersion);
+        return newState.apply(ramAccounting, memoryManager, minNodeVersion);
     }
 
     @Override
@@ -66,7 +66,7 @@ public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
     @Override
     public T apply(RamAccounting ramAccounting, int doc, T state) throws IOException {
         if (values.advanceExact(doc) && values.docValueCount() == 1) {
-            docValuesConsumer.accept(ramAccounting, values, state);
+            return onValue.apply(ramAccounting, values, state);
         }
         return state;
     }

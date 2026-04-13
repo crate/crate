@@ -181,7 +181,10 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
                          ramAccounting.addBytes(V.fixedSize());
                          return newState(ramAccounting, version, memoryManager);
                      },
-                     (_, values, state) -> state.increment(values.nextValue())
+                     (_, values, state) -> {
+                         state.increment(values.nextValue());
+                         return state;
+                     }
             );
             case FloatType.ID -> new SortedNumericDocValueAggregator<>(
                 reference.storageIdent(),
@@ -192,6 +195,7 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
                 (_, values, state) -> {
                     var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                     state.increment(value);
+                    return state;
                 }
             );
             case DoubleType.ID -> new SortedNumericDocValueAggregator<>(
@@ -203,6 +207,7 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
                 (_, values, state) -> {
                     var value = NumericUtils.sortableLongToDouble((values.nextValue()));
                     state.increment(value);
+                    return state;
                 }
             );
             default -> null;

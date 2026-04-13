@@ -63,10 +63,11 @@ public class Variance implements Writeable, Comparable<Variance> {
         return count;
     }
 
-    public void increment(double value) {
+    public Variance increment(double value) {
         sumOfSqrs += (value * value);
         sum += value;
         count++;
+        return this;
     }
 
     public void decrement(double value) {

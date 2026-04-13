@@ -30,23 +30,19 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import io.crate.execution.engine.aggregation.impl.util.BigDecimalValueWrapper;
-
 public class NumericAverageStateTest {
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_can_stream_bigdecimal_with_precision_eq_scale() throws Exception {
         var type = new NumericAverageStateType();
         var out = new BytesStreamOutput();
         var bigDecimal = new BigDecimal("0.25", new MathContext(2));
-        var bigDecimalValueWrapper = new BigDecimalValueWrapper(bigDecimal);
-        var numericAverageState = new NumericAverageState<>(bigDecimalValueWrapper, 1);
+        var numericAverageState = new NumericAverageState(bigDecimal, 1);
         type.writeValueTo(out, numericAverageState);
 
         StreamInput in = out.bytes().streamInput();
-        NumericAverageState<BigDecimalValueWrapper> valueFrom = type.readValueFrom(in);
-        assertThat(valueFrom.sum.value()).isEqualTo(bigDecimal);
+        NumericAverageState valueFrom = type.readValueFrom(in);
+        assertThat(valueFrom.sum).isEqualTo(bigDecimal);
     }
 }
 
