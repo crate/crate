@@ -79,7 +79,8 @@ public final class PgCatalogSchemaInfo implements SchemaInfo {
             Map.entry(PgCursors.IDENT.name(), PgCursors.INSTANCE),
             Map.entry(PgEventTrigger.NAME.name(), PgEventTrigger.INSTANCE),
             Map.entry(PgDepend.NAME.name(), PgDepend.INSTANCE),
-            Map.entry(PgMatviews.NAME.name(), PgMatviews.INSTANCE)
+            Map.entry(PgMatviews.NAME.name(), PgMatviews.INSTANCE),
+            Map.entry(PgUserTable.IDENT.name(), PgUserTable.create(roles))
         );
     }
 

@@ -113,6 +113,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_tables| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_tablespace| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_type| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_user| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_views| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| allocations| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| checks| sys| BASE TABLE| NULL",
@@ -222,12 +223,12 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testSearchInformationSchemaTablesRefresh() {
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(76L);
+        assertThat(response.rowCount()).isEqualTo(77L);
 
         execute("create table t4 (col1 integer, col2 string) with(number_of_replicas=0)");
 
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(77L);
+        assertThat(response.rowCount()).isEqualTo(78L);
     }
 
     @Test
@@ -581,7 +582,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(1097);
+        assertThat(response.rowCount()).isEqualTo(1106);
     }
 
     @Test
@@ -921,7 +922,7 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
         execute("select count(*) from information_schema.tables");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.rows()[0][0]).isEqualTo(79L);
+        assertThat(response.rows()[0][0]).isEqualTo(80L);
     }
 
     @Test

@@ -65,6 +65,10 @@ SQL Standard and PostgreSQL Compatibility
 
 - Added a :ref:`information_schema.collations <collations>` table.
 
+- `Dhruv Patel <https://github.com/DHRUV6029>`_ added the ``pg_catalog.pg_user``
+  table for PostgreSQL compatibility, resolving issues with tools like
+  DbVisualizer that query this table during schema introspection.
+
 Data Types
 ----------
 

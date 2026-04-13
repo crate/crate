@@ -541,4 +541,62 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         execute("select count(*) from information_schema.table_partitions where table_name = 't2'");
         assertThat(response.rows()[0][0]).isEqualTo(50L);
     }
+
+    @Test
+    public void test_concurrent_table_swaps_with_insert_from_values() throws Exception {
+        execute("create table t1 (p int) partitioned by (p)");
+        execute("create table t2 (p2 int)");
+
+        final AtomicReference<Throwable> error = new AtomicReference<>();
+        final CyclicBarrier barrier = new CyclicBarrier(2);
+        boolean[] swapInterleaved = {false};
+
+        Thread t1 = new Thread(() -> {
+            try {
+                barrier.await();
+                execute("""
+                    INSERT INTO t1 VALUES
+                    (1), (2), (3), (4), (5), (6), (7), (8), (9), (10),
+                    (11), (12), (13), (14), (15), (16), (17), (18), (19), (20),
+                    (21), (22), (23), (24), (25), (26), (27), (28), (29), (30),
+                    (31), (32), (33), (34), (35), (36), (37), (38), (39), (40),
+                    (41), (42), (43), (44), (45), (46), (47), (48), (49), (50);
+                    """);
+            } catch (Throwable e) {
+                error.set(e);
+            }
+        });
+
+        Thread t2 = new Thread(() -> {
+            try {
+                barrier.await();
+                for (int i = 0; i < 3; i++) {
+                    Thread.sleep(300); // to prevent swap queries to go through at once
+                    execute("ALTER CLUSTER SWAP TABLE t1 TO t2");
+                    if (t1.isAlive()) {
+                        swapInterleaved[0] = true;
+                    }
+                }
+            } catch (Throwable e) {
+                error.set(e);
+            }
+        });
+
+        t1.start();
+        t2.start();
+
+        t1.join();
+        t2.join();
+
+        assertThat(error.get()).isNull();
+        assertThat(swapInterleaved[0])
+            .as("The test failed to interleave a swap with the insert")
+            .isTrue();
+
+        execute("refresh table t1, t2");
+        execute("select count(*) from t2");
+        assertThat(response.rows()[0][0]).isEqualTo(50L);
+        execute("select count(*) from information_schema.table_partitions where table_name = 't2'");
+        assertThat(response.rows()[0][0]).isEqualTo(50L);
+    }
 }

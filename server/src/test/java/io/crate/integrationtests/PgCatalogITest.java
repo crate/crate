@@ -34,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.auth.Protocol;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
@@ -573,5 +574,43 @@ public class PgCatalogITest extends IntegTestCase {
             "-1974470723| -128874565| 1562823286| -450373579| true| true| false",
             "-895873865| 1562823286| 1487968075| -450373579| true| true| false",
             "-328885978| 645618296| 1487968075| -450373579| false| true| false");
+    }
+
+    @Test
+    public void test_pg_user() {
+        execute("CREATE USER \"Arthur\" WITH (password='foo')");
+        execute("CREATE USER \"John\"");
+        execute("CREATE ROLE \"NonLoginRole\"");
+
+        execute("SELECT usename, usesuper, passwd " +
+            "FROM pg_catalog.pg_user ORDER BY usename");
+        // NonLoginRole must NOT appear — pg_user only shows login-capable users
+        assertThat(response).hasRows(
+            "Arthur| false| ********",
+            "John| false| NULL",
+            "crate| true| NULL");
+
+        // Verify usesysid matches OidHash for each user
+        execute("SELECT usename, usesysid FROM pg_catalog.pg_user ORDER BY usename");
+        assertThat(response).hasRowCount(3);
+        for (int i = 0; i < response.rowCount(); i++) {
+            String name = (String) response.rows()[i][0];
+            int oid = (int) response.rows()[i][1];
+            assertThat(oid).isEqualTo(OidHash.userOid(name));
+        }
+    }
+
+    @Test
+    public void test_pg_user_join_with_pg_namespace_issue_19165() {
+        // Exact query from issue #19165 (DbVisualizer)
+        execute("""
+            SELECT n.nspname AS "Name",
+                   r.usename AS "Owner",
+                   pg_catalog.obj_description(n.oid, 'pg_namespace') AS "Comment"
+            FROM pg_catalog.pg_namespace n
+            LEFT JOIN pg_catalog.pg_user r ON n.nspowner = r.usesysid
+            """);
+        // Verify query runs without error and returns rows for each schema
+        assertThat(response).hasColumns("Name", "Owner", "Comment");
     }
 }
