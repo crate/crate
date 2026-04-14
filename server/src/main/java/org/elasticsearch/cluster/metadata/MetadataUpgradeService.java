@@ -21,7 +21,9 @@ package org.elasticsearch.cluster.metadata;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_VERSION_CREATED;
 import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,13 +46,19 @@ import org.jetbrains.annotations.VisibleForTesting;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.blob.v2.BlobIndex;
+import io.crate.common.collections.Maps;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.metadata.GeoReference;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
@@ -130,9 +138,143 @@ public class MetadataUpgradeService {
             upgradedMetadata.put(newMetadata, false);
         }
 
-        return changed
+        Metadata result = changed
             ? addOrUpgradeRelationMetadata(upgradedMetadata.build())
             : addOrUpgradeRelationMetadata(metadata);
+        return repairCorruptedOids(result);
+    }
+
+    /**
+     * Repairs RelationMetadata corrupted by a bug in MetadataDeleteIndexService.deleteIndices()
+     * where the setTable(RelationName, ...) overload used OidSupplier(0), which reassigned
+     * COLUMN_OID_UNASSIGNED (0) to 1, 2, 3... on pre-5.5.0 tables.
+     * This broke storageIdent() lookups: Lucene data is keyed by column name, but after
+     * corruption storageIdent() returns the OID as a string, causing all columns to read as NULL.
+     *
+     * Detection uses the IndexMetadata mapping as source of truth rather than versionCreated,
+     * because the ALTER TABLE bug (https://github.com/crate/crate/pull/17178) could have
+     * corrupted versionCreated to a post-5.5.0 value on tables actually created before 5.5.0.
+     */
+    @VisibleForTesting
+    @SuppressWarnings("unchecked")
+    static Metadata repairCorruptedOids(Metadata metadata) {
+        Metadata.Builder builder = null;
+        for (RelationMetadata.Table table : metadata.relations(RelationMetadata.Table.class)) {
+            boolean relationHasOids = table.columns().stream()
+                .anyMatch(ref -> !ref.isDropped() && ref.oid() != COLUMN_OID_UNASSIGNED);
+            if (relationHasOids == false) {
+                continue;
+            }
+            // Check the actual IndexMetadata mapping to see if OIDs are stored on disk.
+            // If the mapping doesn't have "oid" fields, the data is keyed by column name
+            // and the OIDs in RelationMetadata are spurious (corruption).
+            if (mappingHasOids(metadata, table.indexUUIDs())) {
+                continue;
+            }
+            LOGGER.warn("Repairing corrupted column OIDs for table [{}] - " +
+                "RelationMetadata has OIDs but partition mappings do not", table.name());
+            if (builder == null) {
+                builder = Metadata.builder(metadata);
+            }
+            List<Reference> repairedColumns = new ArrayList<>(table.columns().size());
+            for (Reference ref : table.columns()) {
+                repairedColumns.add(resetOidToUnassigned(ref));
+            }
+            builder.setRelation(new RelationMetadata.Table(
+                table.name(),
+                repairedColumns,
+                table.settings(),
+                table.routingColumn(),
+                table.columnPolicy(),
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                table.state(),
+                table.indexUUIDs(),
+                table.tableVersion() + 1
+            ));
+        }
+        return builder != null ? builder.build() : metadata;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static boolean mappingHasOids(Metadata metadata, List<String> indexUUIDs) {
+        for (String uuid : indexUUIDs) {
+            IndexMetadata imd = metadata.indexByUUID(uuid);
+            if (imd == null || imd.mapping() == null) {
+                continue;
+            }
+            Map<String, Object> mappingSource = imd.mapping().sourceAsMap();
+            Map<String, Object> properties = Maps.get(mappingSource, "properties");
+            if (properties == null) {
+                continue;
+            }
+            for (Object value : properties.values()) {
+                if (value instanceof Map<?, ?> columnProps && columnProps.containsKey("oid")) {
+                    return true;
+                }
+            }
+            return false; // checked a valid mapping, no OIDs found
+        }
+        return false;
+    }
+
+    private static Reference resetOidToUnassigned(Reference ref) {
+        if (ref.oid() == COLUMN_OID_UNASSIGNED) {
+            return ref;
+        }
+        if (ref instanceof GeneratedReference genRef) {
+            return new GeneratedReference(
+                resetOidToUnassigned(genRef.reference()),
+                genRef.generatedExpression()
+            );
+        }
+        if (ref instanceof IndexReference indexRef) {
+            return new IndexReference(
+                indexRef.ident(),
+                indexRef.granularity(),
+                indexRef.valueType(),
+                indexRef.indexType(),
+                indexRef.isNullable(),
+                indexRef.hasDocValues(),
+                indexRef.position(),
+                COLUMN_OID_UNASSIGNED,
+                indexRef.isDropped(),
+                indexRef.defaultExpression(),
+                indexRef.columns(),
+                indexRef.analyzer()
+            );
+        }
+        if (ref instanceof GeoReference geoRef) {
+            return new GeoReference(
+                geoRef.ident(),
+                geoRef.valueType(),
+                geoRef.indexType(),
+                geoRef.isNullable(),
+                geoRef.position(),
+                COLUMN_OID_UNASSIGNED,
+                geoRef.isDropped(),
+                geoRef.defaultExpression(),
+                geoRef.geoTree(),
+                geoRef.precision(),
+                geoRef.treeLevels(),
+                geoRef.distanceErrorPct()
+            );
+        }
+        // SimpleReference or any other subtype
+        return new SimpleReference(
+            ref.ident(),
+            ref.granularity(),
+            ref.valueType(),
+            ref.indexType(),
+            ref.isNullable(),
+            ref.hasDocValues(),
+            ref.position(),
+            COLUMN_OID_UNASSIGNED,
+            ref.isDropped(),
+            ref.defaultExpression()
+        );
     }
 
     private static <Data> boolean applyUpgrader(ImmutableOpenMap<String, Data> existingData,

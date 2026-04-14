@@ -126,7 +126,10 @@ public class MetadataDeleteIndexService {
                 List<String> newIndexUUIDs = table.indexUUIDs().stream()
                     .filter(x -> !indexUUIDs.contains(x))
                     .toList();
-                metadataBuilder.setTable(
+                // Use setRelation directly to avoid column reprocessing in setTable(RelationName, ...)
+                // which uses OidSupplier(0) and would corrupt OIDs on pre-5.5.0 tables
+                // (changing COLUMN_OID_UNASSIGNED to 1,2,3... breaking storageIdent lookup)
+                metadataBuilder.setRelation(new RelationMetadata.Table(
                     table.name(),
                     table.columns(),
                     table.settings(),
@@ -139,7 +142,7 @@ public class MetadataDeleteIndexService {
                     table.state(),
                     newIndexUUIDs,
                     table.tableVersion() + 1
-                );
+                ));
             }
         }
 
