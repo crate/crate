@@ -226,8 +226,9 @@ public class Version implements Comparable<Version> {
 
     public static final Version V_6_3_0 = new Version(9_03_00_99, false, org.apache.lucene.util.Version.LUCENE_10_4_0);
     public static final Version V_6_3_1 = new Version(9_03_01_99, false, org.apache.lucene.util.Version.LUCENE_10_4_0);
+    public static final Version V_6_3_2 = new Version(9_03_02_99, true, org.apache.lucene.util.Version.LUCENE_10_4_0);
 
-    public static final Version CURRENT = V_6_3_1;
+    public static final Version CURRENT = V_6_3_2;
 
     private static final ImmutableOpenIntMap<Version> ID_TO_VERSION;
     private static final Map<String, Version> STRING_TO_VERSION;
