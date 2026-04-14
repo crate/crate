@@ -602,4 +602,12 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                     isLiteral(null, DataTypes.INTEGER),
                     isLiteral(null, DataTypes.INTEGER)));
     }
+
+    @Test
+    public void test_mixed_values_in_values_causes_failures() throws Exception {
+        assertThatThrownBy(() -> e.analyze("insert into doc.users (id, name) values (1, 'Arthur'), (1, ['Invalid'])"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage(
+                "Cannot convert VALUES element in row 2 of type `text_array` to `text` for `name`");
+    }
 }
