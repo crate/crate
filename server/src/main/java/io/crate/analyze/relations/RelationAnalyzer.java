@@ -65,6 +65,7 @@ import io.crate.expression.symbol.GroupAndAggregateSemantics;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.Style;
 import io.crate.expression.tablefunctions.TableFunctionFactory;
 import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.fdw.ForeignTableRelation;
@@ -803,8 +804,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             ArrayList<Symbol> columnValues = new ArrayList<>(rows.size());
             DataType<?> targetType;
             boolean usePrecedence = true;
+            Symbol parentColumn = null;
             if (parentOutputColumns.size() > c) {
-                targetType = parentOutputColumns.get(c).valueType();
+                parentColumn = parentOutputColumns.get(c);
+                targetType = parentColumn.valueType();
                 usePrecedence = false;
             } else {
                 targetType = DataTypes.UNDEFINED;
@@ -836,11 +839,18 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
                 var cellType = cell.valueType();
                 if (r > 0 // skip first cell, we don't have to check for self-conversion
-                    && !cellType.isConvertableTo(targetType, false)
-                    && ArrayType.unnest(targetType).id() != DataTypes.UNDEFINED.id()) {
-                    throw new IllegalArgumentException(
-                        "The types of the columns within VALUES lists must match. " +
-                            "Found `" + targetType + "` and `" + cellType + "` at position: " + c);
+                        && !cellType.isConvertableTo(targetType, false)
+                        && ArrayType.unnest(targetType).id() != DataTypes.UNDEFINED.id()) {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH,
+                        "Cannot convert VALUES element in row %d of type `%s` to `%s` for %s",
+                        r + 1,
+                        cellType,
+                        targetType,
+                        parentColumn == null
+                            ? "position: " + c
+                            : "`" + parentColumn.toString(Style.UNQUALIFIED) + "`"
+                    ));
                 }
                 if ((usePrecedence && cellType.precedes(targetType)) || (targetType == DataTypes.UNDEFINED)) {
                     targetType = cellType;
