@@ -100,3 +100,15 @@ Client interfaces
   For example, instead of ``SELECT percentile(height, ?::double precision) ...``
   it is possible to use ``SELECT percentile(height, ?)`` if ``args`` contains a
   numeric value.
+
+  A side effect of this change is that cast semantics can become stricter. This
+  could surface latent issues if the context where the parameter is used
+  requires a cast to a different type. Consider for example an ``INSERT INTO tbl
+  (xs) VALUES (?), (?)`` where ``xs`` is of type ``text[]`` but the payload for
+  ``xs`` is an object array.
+
+  Previously this used a cast from ``undefined`` to ``text[]`` and succeeded,
+  now it can lead to errors like::
+
+      The types of the columns within VALUES lists must match.
+      Found `text_array` and `object_array` at position: 1
