@@ -283,9 +283,7 @@ public class InsertFromValues implements LogicalPlan {
         ).thenCompose(_ -> {
             var shardUpsertRequests = resolveAndGroupShardRequests(
                 shardedRequests,
-                dependencies.clusterService(),
-                tableInfo.oid()
-            ).values();
+                dependencies.clusterService()).values();
             return execute(
                 dependencies.nodeLimits(),
                 dependencies.clusterService().state(),
@@ -432,9 +430,7 @@ public class InsertFromValues implements LogicalPlan {
         ).thenCompose(_ -> {
             var shardUpsertRequests = resolveAndGroupShardRequests(
                 shardedRequests,
-                dependencies.clusterService(),
-                tableInfo.oid()
-            ).values();
+                dependencies.clusterService()).values();
             return execute(
                 dependencies.nodeLimits(),
                 dependencies.clusterService().state(),
@@ -565,16 +561,15 @@ public class InsertFromValues implements LogicalPlan {
         return new RowN(cells);
     }
 
-    private static ShardLocation getShardLocation(RelationName relationName,
-                                                  List<String> partitionValues,
+    private static ShardLocation getShardLocation(PartitionName partitionName,
                                                   String id,
                                                   @Nullable String routing,
                                                   OperationRouting operationRouting,
                                                   ClusterState state) {
         Metadata metadata = state.metadata();
-        String indexUUID = metadata.getIndex(relationName, partitionValues, true, IndexMetadata::getIndexUUID);
+        String indexUUID = metadata.getIndex(partitionName.relationName(), partitionName.values(), true, IndexMetadata::getIndexUUID);
         if (indexUUID == null) {
-            throw new IndexNotFoundException(new PartitionName(relationName, partitionValues).asIndexName());
+            throw new IndexNotFoundException(partitionName.asIndexName());
         }
         ShardIterator shardIterator = operationRouting.indexShards(
             state,
@@ -596,8 +591,7 @@ public class InsertFromValues implements LogicalPlan {
 
     private static <TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
         Map<ShardLocation, TReq> resolveAndGroupShardRequests(ShardedRequests<TReq, TItem> shardedRequests,
-                                                              ClusterService clusterService,
-                                                              int tableOID) {
+                                                          ClusterService clusterService) {
         var itemsByMissingPartition = shardedRequests.itemsByMissingPartition().entrySet().iterator();
         ClusterState state = clusterService.state();
         OperationRouting operationRouting = clusterService.operationRouting();
@@ -607,18 +601,17 @@ public class InsertFromValues implements LogicalPlan {
             List<ItemAndRoutingAndSourceInfo<TItem>> requestItems = entry.getValue();
 
             var requestItemsIterator = requestItems.iterator();
-            Metadata metadata = clusterService.state().metadata();
             while (requestItemsIterator.hasNext()) {
                 var itemAndRoutingAndSourceInfo = requestItemsIterator.next();
                 ShardLocation shardLocation;
                 try {
                     shardLocation = getShardLocation(
-                        metadata.getRelationName(tableOID),
-                        partition.values(),
+                        partition,
                         itemAndRoutingAndSourceInfo.item().id(),
                         itemAndRoutingAndSourceInfo.routing(),
                         operationRouting,
-                        state);
+                        state
+                    );
                 } catch (IndexNotFoundException | RelationUnknown | ShardNotFoundException e) {
                     requestItemsIterator.remove();
                     continue;

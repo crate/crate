@@ -64,7 +64,3 @@ Fixes
   to not receive schema or data updates from a published table, if a publisher
   cluster's primary shards were active on polling the state and became
   inactive before restoring started (for example, due to shards relocation).
-
-- Fixed :ref:`INSERT FROM VALUES <sql-insert>` statements that create new
-  partitions are no longer interrupted by :ref:`SWAP <alter_cluster_swap_table>`
-  or :ref:`RENAME <sql-alter-table-rename-to>` table statements.
