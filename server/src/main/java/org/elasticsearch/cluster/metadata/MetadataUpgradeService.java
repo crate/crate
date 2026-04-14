@@ -229,10 +229,33 @@ public class MetadataUpgradeService {
                     throw new AssertionError("If the relation is missing we need a DocTableInfo instance or it must be a blob index");
                 }
             } else if (relation instanceof RelationMetadata.Table table) {
+                if (table.oid() == OID_UNASSIGNED) {
+                    // assign a new table oid
+                    table = new RelationMetadata.Table(
+                        newMetadata.tableOidSupplier().nextOid(),
+                        table.name(),
+                        table.columns(),
+                        table.settings(),
+                        table.routingColumn(),
+                        table.columnPolicy(),
+                        table.pkConstraintName(),
+                        table.checkConstraints(),
+                        table.primaryKeys(),
+                        table.partitionedBy(),
+                        table.state(),
+                        table.indexUUIDs(),
+                        table.tableVersion()
+                    );
+                    newMetadata.setRelation(table);
+                }
                 if (!table.indexUUIDs().contains(indexUUID)) {
                     newMetadata.addIndexUUIDs(table, List.of(indexUUID));
                 }
             } else if (relation instanceof RelationMetadata.BlobTable blobTable) {
+                if (blobTable.oid() == OID_UNASSIGNED) {
+                    // assign a new table oid
+                    newMetadata.setBlobTable(blobTable.name(), blobTable.indexUUID(), blobTable.settings(), blobTable.state());
+                }
                 assert blobTable.indexUUID().equals(indexUUID)
                     : "If there exists a RelationMetadata.BlobTable entry the incoming IndexMetadata indexUUID must match";
             }
