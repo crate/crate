@@ -1226,8 +1226,17 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                                 State state,
                                 List<String> indexUUIDs,
                                 long tableVersion) {
+            LongSupplier oidSupplier = NO_OID_COLUMN_OID_SUPPLIER;
+            Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings);
+            if (versionCreated.onOrAfter(DocTableInfo.COLUMN_OID_VERSION)) {
+                long maxOid = columns.stream()
+                    .mapToLong(Reference::oid)
+                    .max()
+                    .orElse(COLUMN_OID_UNASSIGNED);
+                oidSupplier = new DocTableInfo.OidSupplier(maxOid);
+            }
             return setTable(
-                new DocTableInfo.OidSupplier(0),
+                oidSupplier,
                 relationName,
                 columns,
                 settings,
