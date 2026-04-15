@@ -1076,6 +1076,14 @@ public class Session implements AutoCloseable {
      */
     public static class TimeoutToken {
 
+        private static final TimeoutToken NOOP = new TimeoutToken() {
+
+            @Override
+            public void enable() {
+                // NOOP token remains disabled
+            }
+        };
+
         protected TimeValue statementTimeout;
         private long startNanos;
         private boolean enabled = true;
@@ -1087,11 +1095,12 @@ public class Session implements AutoCloseable {
 
 
         public static TimeoutToken noopToken() {
-            return new TimeoutToken();
+            return NOOP;
         }
 
         private TimeoutToken() {
             this.enabled = false;
+            this.statementTimeout = TimeValue.ZERO;
         }
 
         public void check(String context) {
