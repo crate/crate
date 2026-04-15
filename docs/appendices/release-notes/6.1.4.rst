@@ -56,3 +56,11 @@ Fixes
   partitioned tables to be rejected with ``IllegalStateException`` due to wrong
   version upgrade migration logic. Only tables created on or before 5.10.x are
   affected.
+
+- Fixed an issue that could lead to data loss for due to corruption of the
+  metadata for tables created before :ref:`version_5.5.0`, when the cluster is
+  upgraded to versions :ref:`version_6.0.0` or newer, and certain actions take
+  place on these tables, e.g.: ``ALTER TABLE SET <config_param>=value``,
+  dropping a partition, etc. The corruption will cause all columns to return
+  ``NULL`` values, for all existing data in the table, whereas new data (via
+  ``INSERT`` or ``UPDATE``), can be retrieved normally.
