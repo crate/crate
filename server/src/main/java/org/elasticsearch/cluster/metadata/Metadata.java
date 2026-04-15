@@ -67,12 +67,12 @@ import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.DependentObjectsExists;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
@@ -1207,8 +1207,17 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                                 State state,
                                 List<String> indexUUIDs,
                                 long tableVersion) {
+            LongSupplier oidSupplier = NO_OID_COLUMN_OID_SUPPLIER;
+            Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings);
+            if (versionCreated.onOrAfter(DocTableInfo.COLUMN_OID_VERSION)) {
+                long maxOid = columns.stream()
+                    .mapToLong(Reference::oid)
+                    .max()
+                    .orElse(COLUMN_OID_UNASSIGNED);
+                oidSupplier = new DocTableInfo.OidSupplier(maxOid);
+            }
             return setTable(
-                new DocTableInfo.OidSupplier(0),
+                oidSupplier,
                 relationName,
                 columns,
                 settings,

@@ -25,7 +25,6 @@ import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_REPLACEMENT;
 import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_PATTERN;
 import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_REPLACEMENT;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_UUID_NA_VALUE;
-import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,7 +37,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -91,12 +89,12 @@ import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
-import io.crate.common.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.analyze.SnapshotSettings;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
@@ -107,7 +105,6 @@ import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
 
 /**
  * Service responsible for restoring snapshots
@@ -594,12 +591,7 @@ public class RestoreService implements ClusterStateApplier {
                 RelationMetadata.Table table = snapshotRelation instanceof RelationMetadata.Table snapshotTable
                     ? snapshotTable
                     : existingTable;
-                LongSupplier columnOidSupplier = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(table.settings())
-                    .before(DocTableInfo.COLUMN_OID_VERSION)
-                    ? NO_OID_COLUMN_OID_SUPPLIER
-                    : new DocTableInfo.OidSupplier(0);
                 mdBuilder.setTable(
-                    columnOidSupplier,
                     targetName,
                     Lists.map(
                         table.columns(),
@@ -618,12 +610,7 @@ public class RestoreService implements ClusterStateApplier {
                 );
             } else if (existingRelation == null) {
                 if (snapshotRelation instanceof RelationMetadata.Table table) {
-                    LongSupplier columnOidSupplier = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(table.settings())
-                        .before(DocTableInfo.COLUMN_OID_VERSION)
-                        ? NO_OID_COLUMN_OID_SUPPLIER
-                        : new DocTableInfo.OidSupplier(0);
                     mdBuilder.setTable(
-                        columnOidSupplier,
                         targetName,
                         Lists.map(
                             table.columns(),
