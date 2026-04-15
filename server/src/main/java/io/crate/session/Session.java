@@ -647,14 +647,13 @@ public class Session implements AutoCloseable {
 
     private void addStatementTimeout(CompletableFuture<?> result, TimeoutToken timeoutToken) {
         long durationNs = timeoutToken.disable();
-        TimeValue timeout = sessionSettings.statementTimeout();
+        TimeValue timeout = timeoutToken.timeout();
         final UUID jobId = mostRecentJobID;
         long timeoutNanos = timeout.nanos();
         if (jobId == null || timeoutNanos <= 0) {
             return;
         }
-        long remainingTimeoutMs = (long) ((timeoutNanos - durationNs) * 0.000001);
-        assert remainingTimeoutMs > 0 : "Execute must have positive timeout if timeout was not exceeded on previous phases.";
+        long remainingTimeoutNs = timeoutNanos - durationNs;
         Runnable kill = () -> {
             if (result.isDone()) {
                 return;
@@ -667,9 +666,13 @@ public class Session implements AutoCloseable {
             );
             executor.client().execute(KillJobsNodeAction.INSTANCE, request);
         };
-        ScheduledExecutorService scheduler = executor.scheduler();
-        ScheduledFuture<?> schedule = scheduler.schedule(kill, remainingTimeoutMs, TimeUnit.MILLISECONDS);
-        result.whenComplete((_, _) -> schedule.cancel(false));
+        if (remainingTimeoutNs <= 0) {
+            kill.run();
+        } else {
+            ScheduledExecutorService scheduler = executor.scheduler();
+            ScheduledFuture<?> schedule = scheduler.schedule(kill, remainingTimeoutNs, TimeUnit.NANOSECONDS);
+            result.whenComplete((_, _) -> schedule.cancel(false));
+        }
     }
 
     private CompletableFuture<?> triggerDeferredExecutions(boolean forceBulk) {
@@ -1101,6 +1104,10 @@ public class Session implements AutoCloseable {
         private TimeoutToken() {
             this.enabled = false;
             this.statementTimeout = TimeValue.ZERO;
+        }
+
+        public TimeValue timeout() {
+            return statementTimeout;
         }
 
         public void check(String context) {
