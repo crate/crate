@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.settings.Settings;
@@ -47,6 +48,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.role.Role;
 import io.crate.sql.tree.ColumnPolicy;
@@ -393,5 +395,48 @@ public class MetadataTest extends ESTestCase {
                 assertThat(schemaMetadata.udfs()).containsExactly(udf1);
             }
         }
+    }
+
+    @Test
+    public void test_tables_without_col_oids_do_not_get_assigned_oids() {
+        RelationName tableName = new RelationName(DocSchemaInfo.NAME, "test");
+        Reference col1 = new SimpleReference(tableName, ColumnIdent.of("col1"), RowGranularity.DOC, DataTypes.INTEGER, 1, null);
+        Reference col2 = new SimpleReference(tableName, ColumnIdent.of("col2"), RowGranularity.DOC, DataTypes.STRING, 2, null);
+        List<Reference> columns = List.of(col1, col2);
+        RelationMetadata.Table table = new RelationMetadata.Table(
+            123,
+            tableName,
+            columns,
+            Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_5_4_8).build(),
+            null,
+            ColumnPolicy.DYNAMIC,
+            null,
+            Map.of(),
+            List.of(),
+            List.of(),
+            IndexMetadata.State.OPEN,
+            List.of(UUIDs.randomBase64UUID()),
+            0
+        );
+        Metadata.Builder builder = Metadata.builder(Metadata.OID_UNASSIGNED);
+        builder.setRelation(table);
+
+        builder.setTable(
+            tableName,
+            columns,
+            Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_5_4_8).build(),
+            null,
+            ColumnPolicy.DYNAMIC,
+            null,
+            Map.of(),
+            List.of(),
+            List.of(),
+            IndexMetadata.State.OPEN,
+            List.of(UUIDs.randomBase64UUID()),
+            table.tableVersion() + 1,
+            table.oid()
+        );
+        List<Reference> newCols = ((RelationMetadata.Table) builder.getRelation(tableName)).columns();
+        assertThat(newCols).containsExactlyInAnyOrder(col1, col2);
     }
 }
