@@ -36,8 +36,14 @@ import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.DataTypes;
 
 public class MetadataTest {
 
@@ -133,5 +139,46 @@ public class MetadataTest {
         assertThat(deletesApplied.indices().size()).isEqualTo(0);
         assertThat(deletesApplied.templates().size()).isEqualTo(0);
         assertThat(deletesApplied.schemas().size()).isEqualTo(0); // make sure deleted from schemas as well
+    }
+
+    @Test
+    public void test_tables_without_col_oids_do_not_get_assigned_oids() {
+        RelationName tableName = new RelationName(DocSchemaInfo.NAME, "test");
+        Reference col1 = new SimpleReference(new ReferenceIdent(tableName, ColumnIdent.of("col1")), RowGranularity.DOC, DataTypes.INTEGER, 1, null);
+        Reference col2 = new SimpleReference(new ReferenceIdent(tableName, ColumnIdent.of("col2")), RowGranularity.DOC, DataTypes.STRING, 2, null);
+        List<Reference> columns = List.of(col1, col2);
+        RelationMetadata.Table table = new RelationMetadata.Table(
+            tableName,
+            columns,
+            Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_5_4_8).build(),
+            null,
+            ColumnPolicy.DYNAMIC,
+            null,
+            Map.of(),
+            List.of(),
+            List.of(),
+            IndexMetadata.State.OPEN,
+            List.of(UUIDs.randomBase64UUID()),
+            0
+        );
+        Metadata.Builder builder = Metadata.builder();
+        builder.setRelation(table);
+
+        builder.setTable(
+            tableName,
+            columns,
+            Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_5_4_8).build(),
+            null,
+            ColumnPolicy.DYNAMIC,
+            null,
+            Map.of(),
+            List.of(),
+            List.of(),
+            IndexMetadata.State.OPEN,
+            List.of(UUIDs.randomBase64UUID()),
+            table.tableVersion() + 1
+        );
+        List<Reference> newCols = ((RelationMetadata.Table) builder.getRelation(tableName)).columns();
+        assertThat(newCols).containsExactlyInAnyOrder(col1, col2);
     }
 }

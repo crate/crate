@@ -20,14 +20,12 @@
 package org.elasticsearch.cluster.metadata;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_VERSION_CREATED;
-import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.LongSupplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
@@ -204,9 +202,6 @@ public class MetadataUpgradeService {
                 .put(SETTING_INDEX_VERSION_CREATED.getKey(), docTable.versionCreated())
                 .build();
             newMetadata.setTable(
-                docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
-                    ? NO_OID_COLUMN_OID_SUPPLIER
-                    : new DocTableInfo.OidSupplier(docTable.maxOid()),
                 relationName,
                 docTable.allReferences(),
                 settings,
@@ -232,9 +227,6 @@ public class MetadataUpgradeService {
             IndexParts indexParts = IndexName.decode(indexName);
             RelationName relationName = indexParts.toRelationName();
             RelationMetadata relation = newMetadata.getRelation(relationName);
-            LongSupplier columnOidSupplier = docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
-                ? NO_OID_COLUMN_OID_SUPPLIER
-                : new DocTableInfo.OidSupplier(docTable.maxOid());
             if (relation == null) {
                 if (BlobIndex.isBlobIndex(indexName)) {
                     newMetadata.setBlobTable(
@@ -245,7 +237,6 @@ public class MetadataUpgradeService {
                     );
                 } else {
                     newMetadata.setTable(
-                        columnOidSupplier,
                         relationName,
                         docTable.allReferences(),
                         // If RelationMetadata exist in the cluster state, make sure to override them with
