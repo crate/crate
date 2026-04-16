@@ -24,6 +24,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_U
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -72,14 +73,17 @@ public class MetadataUpgradeService {
     private final MetadataIndexUpgrader indexUpgrader;
     private final DocTableInfoFactory tableFactory;
     private final UserDefinedFunctionService userDefinedFunctionService;
+    private final Supplier<Version> minNodeVersion;
 
     public MetadataUpgradeService(NodeContext nodeContext,
                                   IndexScopedSettings indexScopedSettings,
-                                  UserDefinedFunctionService userDefinedFunctionService) {
+                                  UserDefinedFunctionService userDefinedFunctionService,
+                                  Supplier<Version> minNodeVersion) {
         this.tableFactory = new DocTableInfoFactory(nodeContext);
         this.indexScopedSettings = indexScopedSettings;
         this.indexUpgrader = new MetadataIndexUpgrader();
         this.userDefinedFunctionService = userDefinedFunctionService;
+        this.minNodeVersion = minNodeVersion;
     }
 
     public Metadata upgradeMetadata(Metadata metadata) {
@@ -134,7 +138,10 @@ public class MetadataUpgradeService {
             assert relation == null
                 : "If there is still a template present there shouldn't be any RelationMetadata";
 
-            DocTableInfo docTable = tableFactory.create(template, newMetadata.tableOidSupplier().nextOid());
+            DocTableInfo docTable = tableFactory.create(
+                template,
+                minNodeVersion.get().onOrAfter(Version.V_6_3_0) ? newMetadata.tableOidSupplier().nextOid() : OID_UNASSIGNED
+            );
             Version versionCreated = getFixedVersionCreated(metadata, docTable);
 
             // versionCreated could be missing from the template settings and "calculated" afterwards
@@ -186,7 +193,10 @@ public class MetadataUpgradeService {
                 RelationName relationName = indexParts.toRelationName();
                 relation = newMetadata.getRelation(relationName);
                 if (!BlobIndex.isBlobIndex(indexName)) {
-                    tableInfo = tableFactory.create(newIndexMetadata, newMetadata.tableOidSupplier().nextOid());
+                    tableInfo = tableFactory.create(
+                        newIndexMetadata,
+                        minNodeVersion.get().onOrAfter(Version.V_6_3_0) ? newMetadata.tableOidSupplier().nextOid() : OID_UNASSIGNED
+                    );
                 }
             }
             if (relation == null) {
@@ -212,6 +222,7 @@ public class MetadataUpgradeService {
                 } else if (BlobIndex.isBlobIndex(indexName)) {
                     newMetadata.setBlobTable(
                         RelationName.fromIndexName(indexName),
+                        minNodeVersion.get().onOrAfter(Version.V_6_3_0) ? newMetadata.tableOidSupplier().nextOid() : OID_UNASSIGNED,
                         indexUUID,
                         newIndexMetadata.getSettings(),
                         newIndexMetadata.getState()

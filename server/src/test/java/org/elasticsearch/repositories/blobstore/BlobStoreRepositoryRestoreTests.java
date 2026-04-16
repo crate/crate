@@ -181,8 +181,8 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
             MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(
                 nodeContext,
                 IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
-                new UserDefinedFunctionService(Mockito.mock(ClusterService.class), nodeContext)
-            );
+                new UserDefinedFunctionService(Mockito.mock(ClusterService.class), nodeContext),
+                () -> Version.CURRENT);
             Metadata metadata = metadataUpgradeService.upgradeMetadata(
                 new Metadata.Builder(Metadata.OID_UNASSIGNED).put(shard.indexSettings().getIndexMetadata(), false).build()
             );

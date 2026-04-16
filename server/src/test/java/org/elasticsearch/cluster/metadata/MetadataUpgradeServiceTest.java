@@ -89,7 +89,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
         metadataUpgradeService = new MetadataUpgradeService(
             e.nodeCtx,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
-            e.udfService());
+            e.udfService(), () -> Version.CURRENT);
     }
 
     @Test

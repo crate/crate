@@ -71,8 +71,8 @@ public class DocTableInfoFactoryTest extends CrateDummyClusterServiceUnitTest {
         metadataUpgradeService = new MetadataUpgradeService(
             nodeCtx,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
-            new UserDefinedFunctionService(clusterService, nodeCtx)
-        );
+            new UserDefinedFunctionService(clusterService, nodeCtx),
+            () -> Version.CURRENT);
     }
 
     @Test

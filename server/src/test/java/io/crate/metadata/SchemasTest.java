@@ -72,8 +72,8 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         metadataUpgradeService = new MetadataUpgradeService(
             nodeCtx,
             new IndexScopedSettings(Settings.EMPTY, Set.of()),
-            new UserDefinedFunctionService(clusterService, nodeCtx)
-        );
+            new UserDefinedFunctionService(clusterService, nodeCtx),
+            () -> Version.CURRENT);
     }
 
     @Test

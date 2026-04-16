@@ -151,8 +151,8 @@ public class PublicationTransportHandlerTests extends ESTestCase {
         MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(
             nodeContext,
             new IndexScopedSettings(Settings.EMPTY, Set.of()),
-            new UserDefinedFunctionService(Mockito.mock(ClusterService.class), nodeContext)
-        );
+            new UserDefinedFunctionService(Mockito.mock(ClusterService.class), nodeContext),
+            () -> Version.CURRENT);
         new PublicationTransportHandler(
             localTransportService,
             writableRegistry(),
@@ -272,8 +272,8 @@ public class PublicationTransportHandlerTests extends ESTestCase {
         MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(
             nodeContext,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
-            new UserDefinedFunctionService(Mockito.mock(ClusterService.class), nodeContext)
-        );
+            new UserDefinedFunctionService(Mockito.mock(ClusterService.class), nodeContext),
+            () -> Version.CURRENT);
         new PublicationTransportHandler(
             localTransportService,
             writableRegistry(),

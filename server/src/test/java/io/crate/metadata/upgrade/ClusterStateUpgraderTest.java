@@ -47,8 +47,8 @@ public class ClusterStateUpgraderTest extends CrateDummyClusterServiceUnitTest {
     private final MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(
         nodeContext,
         IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
-        new UserDefinedFunctionService(clusterService, nodeContext)
-    );
+        new UserDefinedFunctionService(clusterService, nodeContext),
+        () -> Version.CURRENT);
 
     @Test
     public void test_routing_table_index_name_compatibility() throws Exception {

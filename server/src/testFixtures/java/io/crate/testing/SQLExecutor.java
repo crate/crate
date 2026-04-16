@@ -358,7 +358,7 @@ public class SQLExecutor {
             var threadPool = mock(ThreadPool.class);
             var logicalReplicationSettings = new LogicalReplicationSettings(settings, clusterService);
             NodeClient client = new NodeClient();
-            MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(nodeCtx, IndexScopedSettings.DEFAULT_SCOPED_SETTINGS, udfService);
+            MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(nodeCtx, IndexScopedSettings.DEFAULT_SCOPED_SETTINGS, udfService, () -> Version.CURRENT);
             var logicalReplicationService = new LogicalReplicationService(
                 settings,
                 IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
@@ -965,7 +965,7 @@ public class SQLExecutor {
 
         Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
         mdBuilder
-            .setBlobTable(relationName, indexMetadata.getIndexUUID(), settings, State.OPEN)
+            .setBlobTable(relationName, Metadata.OID_UNASSIGNED, indexMetadata.getIndexUUID(), settings, State.OPEN)
             .put(indexMetadata, true);
         ClusterState state = ClusterState.builder(prevState)
             .metadata(mdBuilder)

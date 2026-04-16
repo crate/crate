@@ -25,6 +25,7 @@ package io.crate.execution.ddl.tables;
 import java.io.IOException;
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -185,7 +186,8 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
                         State.OPEN,
                         newIndexUUIDs,
                         0,
-                        mdBuilder.tableOidSupplier().nextOid()
+                        newState.nodes().getMinNodeVersion().onOrAfter(Version.V_6_3_0) ?
+                            mdBuilder.tableOidSupplier().nextOid() : Metadata.OID_UNASSIGNED
                     ).build();
                 table = newMetadata.getRelation(relationName);
                 assert table != null : "table must not be null";
