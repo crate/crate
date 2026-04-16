@@ -1209,7 +1209,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         public void assignTableOids() {
             for (var schemaMetadata : schemas.values()) {
                 for (var relationMetadata : schemaMetadata.relations().values()) {
-                    assert relationMetadata.oid() == OID_UNASSIGNED : "The assumption is that all relationMetadata and currentMaxTableOid are all zeroes";
+                    assert !(relationMetadata instanceof RelationMetadata.Table || relationMetadata instanceof RelationMetadata.BlobTable) ||
+                        relationMetadata.oid() == OID_UNASSIGNED :
+                        "The assumption is that all relationMetadata(currently only Table and BlobTable others return OidHash) and currentMaxTableOid are all zeroes";
                     this.setRelation(relationMetadata.oid(this.tableOidSupplier().nextOid()));
                 }
             }

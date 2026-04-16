@@ -88,6 +88,7 @@ public class ShardLimitValidatorTests extends CrateDummyClusterServiceUnitTest {
         }
         DiscoveryNodes nodes = mock(DiscoveryNodes.class);
         when(nodes.getDataNodes()).thenReturn(dataNodes);
+        when(nodes.getMinNodeVersion()).thenReturn(Version.CURRENT);
 
         IndexMetadata.Builder indexMetadata = IndexMetadata.builder(randomAlphaOfLengthBetween(5, 15))
             .settings(Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT))
