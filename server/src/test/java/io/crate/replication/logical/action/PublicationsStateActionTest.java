@@ -427,8 +427,8 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(
             nodeContext,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
-            new UserDefinedFunctionService(clusterService, nodeContext),
-            () -> Version.CURRENT);
+            new UserDefinedFunctionService(clusterService, nodeContext)
+        );
 
         // Ensure a node < 6.0.0 can read the response
         {

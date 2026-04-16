@@ -982,8 +982,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return Metadata.getRelation(relation, schemas::get);
         }
 
-        public Builder setBlobTable(RelationName name, int tableOid, String indexUUID, Settings settings, State state) {
-            setRelation(new RelationMetadata.BlobTable(tableOid, name, indexUUID, settings, state));
+        public Builder setBlobTable(RelationName name, String indexUUID, Settings settings, State state) {
+            setRelation(new RelationMetadata.BlobTable(this.tableOidSupplier().nextOid(), name, indexUUID, settings, state));
             return this;
         }
 

@@ -89,8 +89,8 @@ public class LogicalReplicationRepositoryTest extends CrateDummyClusterServiceUn
             new MetadataUpgradeService(
                 nodeContext,
                 IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
-                new UserDefinedFunctionService(clusterService, nodeContext),
-                () -> Version.CURRENT),
+                new UserDefinedFunctionService(clusterService, nodeContext)
+            ),
             remoteClusters,
             repositoryMetadata,
             mock(ThreadPool.class),

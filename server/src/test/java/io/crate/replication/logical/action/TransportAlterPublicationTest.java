@@ -55,8 +55,8 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
         metadataUpgradeService = new MetadataUpgradeService(
             nodeCtx,
             new IndexScopedSettings(Settings.EMPTY, Set.of()),
-            new UserDefinedFunctionService(clusterService, nodeCtx),
-            () -> Version.CURRENT);
+            new UserDefinedFunctionService(clusterService, nodeCtx)
+        );
     }
 
     @Test
