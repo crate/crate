@@ -983,7 +983,13 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
 
         public Builder setBlobTable(RelationName name, String indexUUID, Settings settings, State state) {
-            setRelation(new RelationMetadata.BlobTable(this.tableOidSupplier().nextOid(), name, indexUUID, settings, state));
+            setRelation(new RelationMetadata.BlobTable(
+                this.tableOidSupplier().peek() == OID_UNASSIGNED ? OID_UNASSIGNED : this.tableOidSupplier().nextOid(),
+                name,
+                indexUUID,
+                settings,
+                state)
+            );
             return this;
         }
 
@@ -1200,6 +1206,15 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             );
         }
 
+        public void assignTableOids() {
+            for (var schemaMetadata : schemas.values()) {
+                for (var relationMetadata : schemaMetadata.relations().values()) {
+                    assert relationMetadata.oid() == OID_UNASSIGNED : "The assumption is that all relationMetadata and currentMaxTableOid are all zeroes";
+                    this.setRelation(relationMetadata.oid(this.tableOidSupplier().nextOid()));
+                }
+            }
+        }
+
         private boolean validateTableOIDs(int tableOidSupplierValue) {
             BitSet relationOIDs = new BitSet(tableOidSupplierValue + 1);
             for (var schemaMetadata : schemas.values()) {
@@ -1215,11 +1230,14 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                         continue;
                     }
 
-                    // below assert also implicitly validates that the current table OID supplier's value is greater than
-                    // zero when there is at least one relationMetadata
-                    assert relationOID > 0 && relationOID <= tableOidSupplierValue :
-                        "All OIDs assigned to tables are > 0 and they all are less than or equal to the current table OID supplier's value";
-                    assert !relationOIDs.get(relationOID) : "All Table OIDs are unique";
+                    if (tableOidSupplierValue != OID_UNASSIGNED) {
+                        // below assert also implicitly validates that the current table OID supplier's value is greater than
+                        // zero when there is at least one relationMetadata
+                        assert relationOID > 0 && relationOID <= tableOidSupplierValue :
+                            "All OIDs assigned to tables are > 0 and they all are less than or equal to the current table OID supplier's value";
+                        assert !relationOIDs.get(relationOID) : "All Table OIDs are unique";
+                    }
+
                     relationOIDs.set(relationOID);
                 }
             }

@@ -642,7 +642,8 @@ public class RestoreService implements ClusterStateApplier {
                     table.state(),
                     Lists.concatUnique(existingTable.indexUUIDs(), indexUUIDs),
                     table.tableVersion(),
-                    mdBuilder.tableOidSupplier().nextOid()
+                    mdBuilder.tableOidSupplier().nextOid() == Metadata.OID_UNASSIGNED ?
+                        Metadata.OID_UNASSIGNED : mdBuilder.tableOidSupplier().nextOid()
                 );
             } else if (existingRelation == null) {
                 if (snapshotRelation instanceof RelationMetadata.Table table) {
@@ -662,7 +663,8 @@ public class RestoreService implements ClusterStateApplier {
                         table.state(),
                         indexUUIDs,
                         table.tableVersion(),
-                        mdBuilder.tableOidSupplier().nextOid()
+                        mdBuilder.tableOidSupplier().peek() == Metadata.OID_UNASSIGNED ?
+                            Metadata.OID_UNASSIGNED : mdBuilder.tableOidSupplier().nextOid()
                     );
                 } else if (snapshotRelation instanceof RelationMetadata.View view) {
                     mdBuilder.setView(

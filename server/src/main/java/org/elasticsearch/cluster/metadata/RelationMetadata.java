@@ -78,6 +78,8 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata>
 
     RelationMetadata withIndexUUIDs(List<String> indexUUIDs);
 
+    RelationMetadata oid(int oid);
+
     static RelationMetadata of(StreamInput in) throws IOException {
         short ord = in.readShort();
         return switch (ord) {
@@ -237,6 +239,17 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata>
                 settings,
                 state);
         }
+
+        @Override
+        public RelationMetadata oid(int oid) {
+            return new BlobTable(
+                oid,
+                name,
+                indexUUID,
+                settings,
+                state
+            );
+        }
     }
 
     record Table(int oid,
@@ -351,6 +364,24 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata>
                 indexUUIDs,
                 tableVersion);
         }
+
+        @Override
+        public RelationMetadata oid(int oid) {
+            return new Table(
+                oid,
+                name,
+                columns,
+                settings,
+                routingColumn,
+                columnPolicy,
+                pkConstraintName,
+                checkConstraints,
+                primaryKeys,
+                partitionedBy,
+                state,
+                indexUUIDs,
+                tableVersion);
+        }
     }
 
     record View(RelationName name,
@@ -404,6 +435,11 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata>
             assert indexUUIDs.isEmpty() : "Cannot set indices to a view";
             return this;
         }
+
+        @Override
+        public RelationMetadata oid(int oid) {
+            return this;
+        }
     }
 
     record ForeignTable(RelationName name,
@@ -453,6 +489,11 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata>
         @Override
         public RelationMetadata withIndexUUIDs(List<String> indexUUIDs) {
             assert indexUUIDs.isEmpty() : "Cannot set indices to a view";
+            return this;
+        }
+
+        @Override
+        public RelationMetadata oid(int oid) {
             return this;
         }
 

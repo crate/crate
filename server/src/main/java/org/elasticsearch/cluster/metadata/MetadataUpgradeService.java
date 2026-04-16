@@ -134,7 +134,9 @@ public class MetadataUpgradeService {
             assert relation == null
                 : "If there is still a template present there shouldn't be any RelationMetadata";
 
-            DocTableInfo docTable = tableFactory.create(template, newMetadata.tableOidSupplier().nextOid());
+            DocTableInfo docTable = tableFactory.create(
+                template,
+                newMetadata.tableOidSupplier().peek() == OID_UNASSIGNED ? OID_UNASSIGNED : newMetadata.tableOidSupplier().nextOid());
             Version versionCreated = getFixedVersionCreated(metadata, docTable);
 
             // versionCreated could be missing from the template settings and "calculated" afterwards
@@ -186,7 +188,11 @@ public class MetadataUpgradeService {
                 RelationName relationName = indexParts.toRelationName();
                 relation = newMetadata.getRelation(relationName);
                 if (!BlobIndex.isBlobIndex(indexName)) {
-                    tableInfo = tableFactory.create(newIndexMetadata, newMetadata.tableOidSupplier().nextOid());
+                    tableInfo = tableFactory.create(
+                        newIndexMetadata,
+                        newMetadata.tableOidSupplier().peek() == OID_UNASSIGNED ?
+                            OID_UNASSIGNED : newMetadata.tableOidSupplier().nextOid()
+                    );
                 }
             }
             if (relation == null) {

@@ -466,6 +466,14 @@ public class ClusterState implements Diffable<ClusterState> {
             if (UNKNOWN_UUID.equals(uuid)) {
                 uuid = UUIDs.randomBase64UUID();
             }
+            // when all nodes are upgraded to 6.3 trigger table oid assignments
+            if (nodes.getMinNodeVersion().onOrAfter(Version.V_6_3_0)) {
+                if (metadata.currentMaxTableOid() == Metadata.OID_UNASSIGNED) {
+                    var mdBuilder = new Metadata.Builder(metadata);
+                    mdBuilder.assignTableOids();
+                    metadata = mdBuilder.build();
+                }
+            }
             return new ClusterState(clusterName, version, uuid, metadata, routingTable, nodes, blocks, customs.immutableMap(), fromDiff);
         }
     }
