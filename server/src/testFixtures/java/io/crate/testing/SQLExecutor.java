@@ -796,8 +796,7 @@ public class SQLExecutor {
             State.OPEN,
             indexUUIDs,
             0,
-            clusterService.state().nodes().getMinNodeVersion().onOrAfter(Version.V_6_3_0) ?
-                mdBuilder.tableOidSupplier().nextOid() : Metadata.OID_UNASSIGNED
+            mdBuilder.tableOidSupplier().nextOid()
         );
         ClusterState newState = ClusterState.builder(prevState)
             .metadata(mdBuilder.build())
@@ -966,13 +965,7 @@ public class SQLExecutor {
 
         Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
         mdBuilder
-            .setBlobTable(
-                relationName,
-                clusterService.state().nodes().getMinNodeVersion().onOrAfter(Version.V_6_3_0) ?
-                    mdBuilder.tableOidSupplier().nextOid() : Metadata.OID_UNASSIGNED,
-                indexMetadata.getIndexUUID(),
-                settings,
-                State.OPEN)
+            .setBlobTable(relationName, Metadata.OID_UNASSIGNED, indexMetadata.getIndexUUID(), settings, State.OPEN)
             .put(indexMetadata, true);
         ClusterState state = ClusterState.builder(prevState)
             .metadata(mdBuilder)
