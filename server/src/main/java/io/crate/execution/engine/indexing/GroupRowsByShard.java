@@ -236,7 +236,8 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
             while (it.hasNext()) {
                 ShardedRequests.ItemAndRoutingAndSourceInfo<TItem> itemAndRoutingAndSourceInfo = it.next();
                 IndexMetadata indexMetadata = metadata.getIndex(
-                    metadata.getRelationName(tableOID),
+                    // on a mixed cluster of 6.2 and 6.3 tableOIDs could still be unassigned, must fall back to relationName based lookup
+                    tableOID == Metadata.OID_UNASSIGNED ? partitionName.relationName() : metadata.getRelationName(tableOID),
                     partitionName.values(),
                     true,
                     x -> x

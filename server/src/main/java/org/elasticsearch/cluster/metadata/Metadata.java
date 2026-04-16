@@ -1630,6 +1630,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     }
 
     public RelationName getRelationName(int tableOID) {
+        if (tableOID == OID_UNASSIGNED) {
+            throw new RelationUnknown("Relation oid cannot be UNASSIGNED");
+        }
         RelationMetadata relationMetadata = getRelation(tableOID);
         if (relationMetadata == null) {
             throw new RelationUnknown(
