@@ -27,8 +27,10 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -54,6 +56,7 @@ public class DistributingConsumerFactory {
     private static final String RESPONSE_EXECUTOR_NAME = ThreadPool.Names.SEARCH;
 
     private final ClusterService clusterService;
+    private final CircuitBreaker queryCircuitBreaker;
     private final Executor responseExecutor;
     private final ActionExecutor<NodeRequest<DistributedResultRequest>, DistributedResultResponse> distributedResultAction;
     private final ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction;
@@ -62,10 +65,12 @@ public class DistributingConsumerFactory {
 
     @Inject
     public DistributingConsumerFactory(ClusterService clusterService,
+                                       CircuitBreakerService circuitBreakerService,
                                        NodeContext nodeContext,
                                        ThreadPool threadPool,
                                        Node node) {
         this.clusterService = clusterService;
+        this.queryCircuitBreaker = circuitBreakerService.getBreaker(CircuitBreaker.QUERY);
         this.responseExecutor = threadPool.executor(RESPONSE_EXECUTOR_NAME);
         this.distributedResultAction = req -> node.client().execute(DistributedResultAction.INSTANCE, req);
         this.killNodeAction = req -> node.client().execute(KillJobsNodeAction.INSTANCE, req);
@@ -122,6 +127,7 @@ public class DistributingConsumerFactory {
 
         return new DistributingConsumer(
             responseExecutor,
+            queryCircuitBreaker,
             jobId,
             multiBucketBuilder,
             nodeOperation.downstreamExecutionPhaseId(),

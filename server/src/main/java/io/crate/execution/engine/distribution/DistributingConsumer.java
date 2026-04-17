@@ -39,6 +39,7 @@ import java.util.function.BiConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -83,6 +84,7 @@ public class DistributingConsumer implements RowConsumer {
     private final ThreadPool threadPool;
 
     private final AtomicBoolean consuming = new AtomicBoolean(false);
+    private final CircuitBreaker queryCircuitBreaker;
 
     @VisibleForTesting
     final long maxBytes;
@@ -96,6 +98,7 @@ public class DistributingConsumer implements RowConsumer {
     private final String localNodeId;
 
     public DistributingConsumer(Executor responseExecutor,
+                                CircuitBreaker queryCircuitBreaker,
                                 UUID jobId,
                                 MultiBucketBuilder multiBucketBuilder,
                                 int targetPhaseId,
@@ -125,6 +128,7 @@ public class DistributingConsumer implements RowConsumer {
         for (String downstreamNodeId : downstreamNodeIds) {
             downstreams.add(new Downstream(downstreamNodeId));
         }
+        this.queryCircuitBreaker = queryCircuitBreaker;
         assert downstreams.size() > 0 : "Must always have at least one downstream";
         this.maxBytes = Math.max(Paging.MAX_PAGE_BYTES / downstreams.size(), 2 * 1024 * 1024);
     }
@@ -163,7 +167,9 @@ public class DistributingConsumer implements RowConsumer {
             try {
                 while (it.moveNext()) {
                     multiBucketBuilder.add(it.currentElement());
-                    if (multiBucketBuilder.size() >= pageSize || multiBucketBuilder.ramBytesUsed() >= maxBytes) {
+                    if (multiBucketBuilder.size() >= pageSize
+                        || multiBucketBuilder.ramBytesUsed() >= maxBytes
+                        || multiBucketBuilder.ramBytesUsed() > queryCircuitBreaker.getFree() * 0.5) {
                         forwardResults(it, false);
                         return;
                     }
