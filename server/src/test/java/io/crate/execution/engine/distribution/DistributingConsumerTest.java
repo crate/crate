@@ -38,7 +38,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -85,7 +87,7 @@ public class DistributingConsumerTest extends ESTestCase {
             TestingRowConsumer collectingConsumer = new TestingRowConsumer();
             DistResultRXTask distResultRXTask = createPageDownstreamContext(streamers, collectingConsumer);
             TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, distResultRXTask);
-            DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction);
+            DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction, new NoopCircuitBreaker(""));
 
             BatchSimulatingIterator<Row> batchSimulatingIterator =
                 new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5),
@@ -111,12 +113,76 @@ public class DistributingConsumerTest extends ESTestCase {
     }
 
     @Test
+    public void test_querycb_usage_taken_into_account_for_sizing_requests() throws Exception {
+        try {
+            Streamer<?>[] streamers = {DataTypes.INTEGER.streamer()};
+            TestingRowConsumer collectingConsumer = new TestingRowConsumer();
+            DistResultRXTask distResultRXTask = createPageDownstreamContext(streamers, collectingConsumer);
+            TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, distResultRXTask);
+            CircuitBreaker breaker = new CircuitBreaker() {
+                @Override
+                public double addEstimateBytesAndMaybeBreak(long bytes, String label) throws CircuitBreakingException {
+                    return 0;
+                }
+
+                @Override
+                public long addWithoutBreaking(long bytes) {
+                    return 0;
+                }
+
+                @Override
+                public long getUsed() {
+                    return Integer.MAX_VALUE;
+                }
+
+                @Override
+                public long getLimit() {
+                    return 0;
+                }
+
+                @Override
+                public long getTrippedCount() {
+                    return 0;
+                }
+
+                @Override
+                public String getName() {
+                    return "";
+                }
+            };
+            DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction, breaker);
+
+            BatchSimulatingIterator<Row> batchSimulatingIterator =
+                new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5),
+                    2,
+                    3,
+                    executorService);
+            distributingConsumer.accept(batchSimulatingIterator, null);
+
+            List<Object[]> result = collectingConsumer.getResult();
+            assertThat(TestingHelpers.printedTable(new CollectionBucket(result))).isEqualTo(
+                "0\n" +
+                    "1\n" +
+                    "2\n" +
+                    "3\n" +
+                    "4\n");
+
+            // CB returns MAX_INT on getUsed, every iteration leads to a push.
+            // 3 batches with pageSize 2 gives 6 pushes in total.
+            verify(distributedResultAction, times(6)).execute(any());
+        } finally {
+            executorService.shutdown();
+            executorService.awaitTermination(10, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
     public void testDistributingConsumerForwardsFailure() throws Exception {
         Streamer<?>[] streamers = { DataTypes.INTEGER.streamer() };
         TestingRowConsumer collectingConsumer = new TestingRowConsumer();
         DistResultRXTask distResultRXTask = createPageDownstreamContext(streamers, collectingConsumer);
         TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, distResultRXTask);
-        DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction);
+        DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction, new NoopCircuitBreaker(""));
 
         distributingConsumer.accept(null, new CompletionException(new IllegalArgumentException("foobar")));
 
@@ -131,7 +197,7 @@ public class DistributingConsumerTest extends ESTestCase {
         TestingRowConsumer collectingConsumer = new TestingRowConsumer();
         DistResultRXTask distResultRXTask = createPageDownstreamContext(streamers, collectingConsumer);
         TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, distResultRXTask);
-        DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction);
+        DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction, new NoopCircuitBreaker(""));
 
         distributingConsumer.accept(FailingBatchIterator.failOnAllLoaded(), null);
 
@@ -145,7 +211,7 @@ public class DistributingConsumerTest extends ESTestCase {
         TestingRowConsumer collectingConsumer = new TestingRowConsumer();
         DistResultRXTask distResultRXTask = createPageDownstreamContext(streamers, collectingConsumer);
         TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, distResultRXTask);
-        DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction);
+        DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction, new NoopCircuitBreaker(""));
 
         BatchSimulatingIterator<Row> batchSimulatingIterator =
             new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5),
@@ -164,11 +230,14 @@ public class DistributingConsumerTest extends ESTestCase {
             .isExactlyInstanceOf(CircuitBreakingException.class);
     }
 
-    private DistributingConsumer createDistributingConsumer(Streamer<?>[] streamers, TransportDistributedResultAction distributedResultAction) {
+    private DistributingConsumer createDistributingConsumer(Streamer<?>[] streamers,
+                                                            TransportDistributedResultAction distributedResultAction,
+                                                            CircuitBreaker breaker) {
         int pageSize = 2;
         RowCollectExpression rowCollectExpression = new RowCollectExpression(0);
         return new DistributingConsumer(
             executorService,
+            breaker,
             UUID.randomUUID(),
             new ModuloBucketBuilder(streamers, 1, rowCollectExpression, List.of(rowCollectExpression), RamAccounting.NO_ACCOUNTING),
             1,
