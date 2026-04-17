@@ -212,17 +212,21 @@ public class Version implements Comparable<Version> {
     public static final Version V_6_0_3 = new Version(9_00_03_99, false, org.apache.lucene.util.Version.LUCENE_10_2_2);
     public static final Version V_6_0_4 = new Version(9_00_04_99, false, org.apache.lucene.util.Version.LUCENE_10_2_2);
     public static final Version V_6_0_5 = new Version(9_00_05_99, false, org.apache.lucene.util.Version.LUCENE_10_2_2);
+    public static final Version V_6_0_6 = new Version(9_00_06_99, false, org.apache.lucene.util.Version.LUCENE_10_2_2);
 
     public static final Version V_6_1_0 = new Version(9_01_00_99, false, org.apache.lucene.util.Version.LUCENE_10_2_2);
     public static final Version V_6_1_1 = new Version(9_01_01_99, false, org.apache.lucene.util.Version.LUCENE_10_2_2);
     public static final Version V_6_1_2 = new Version(9_01_02_99, false, org.apache.lucene.util.Version.LUCENE_10_2_2);
     public static final Version V_6_1_3 = new Version(9_01_03_99, false, org.apache.lucene.util.Version.LUCENE_10_2_2);
+    public static final Version V_6_1_4 = new Version(9_01_04_99, false, org.apache.lucene.util.Version.LUCENE_10_2_2);
 
     public static final Version V_6_2_0 = new Version(9_02_00_99, false, org.apache.lucene.util.Version.LUCENE_10_3_2);
     public static final Version V_6_2_1 = new Version(9_02_01_99, false, org.apache.lucene.util.Version.LUCENE_10_3_2);
     public static final Version V_6_2_2 = new Version(9_02_02_99, false, org.apache.lucene.util.Version.LUCENE_10_3_2);
     public static final Version V_6_2_3 = new Version(9_02_03_99, false, org.apache.lucene.util.Version.LUCENE_10_3_2);
     public static final Version V_6_2_4 = new Version(9_02_04_99, false, org.apache.lucene.util.Version.LUCENE_10_3_2);
+    public static final Version V_6_2_5 = new Version(9_02_05_99, false, org.apache.lucene.util.Version.LUCENE_10_3_2);
+    public static final Version V_6_2_6 = new Version(9_02_06_99, false, org.apache.lucene.util.Version.LUCENE_10_3_2);
 
     public static final Version V_6_3_0 = new Version(9_03_00_99, false, org.apache.lucene.util.Version.LUCENE_10_4_0);
     public static final Version V_6_3_1 = new Version(9_03_01_99, false, org.apache.lucene.util.Version.LUCENE_10_4_0);
