@@ -33,6 +33,7 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
+import io.crate.execution.engine.distribution.DistributedResultAction;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 
@@ -153,8 +154,17 @@ public final class OutboundHandler {
 
     private ChannelFuture sendMessage(CloseableChannel channel, OutboundMessage networkMessage) throws IOException {
         channel.markAccessed(threadPool.relativeTimeInMillis());
+        ReleasableBytesStreamOutput bytesStreamOutput;
+        if (DistributedResultAction.NAME.equals(networkMessage.action())) {
+            // Imitating heavy distributed merge under memory pressure
+            // with low XMX and large page size.
+            long halfRam = Runtime.getRuntime().maxMemory() / 2;
+            bytesStreamOutput = new ReleasableBytesStreamOutput((int) halfRam, bigArrays);
+        } else {
+            // Use default PAGE_SIZE_IN_BYTES = 1 << 14 = 16KB.
+            bytesStreamOutput = new ReleasableBytesStreamOutput(bigArrays);
+        }
 
-        var bytesStreamOutput = new ReleasableBytesStreamOutput(bigArrays);
         try {
             BytesReference msg = networkMessage.serialize(bytesStreamOutput);
             ChannelFuture future = channel.writeAndFlush(Netty4Utils.toByteBuf(msg));

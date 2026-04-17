@@ -92,6 +92,7 @@
                     <skip>${skipRunTests}</skip>
                     <argLine>
                         @{argLine}
+                        -Xmx500m
                         -XX:+UseSerialGC
                         -XX:TieredStopAtLevel=1
                         -XX:ReservedCodeCacheSize=512M

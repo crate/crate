@@ -29,6 +29,7 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.jspecify.annotations.Nullable;
 
 abstract class OutboundMessage {
 
@@ -43,6 +44,9 @@ abstract class OutboundMessage {
         this.requestId = requestId;
         this.message = message;
     }
+
+    @Nullable
+    public abstract String action();
 
     BytesReference serialize(BytesStreamOutput bytesStream) throws IOException {
         bytesStream.setVersion(version);
@@ -106,6 +110,10 @@ abstract class OutboundMessage {
 
         private final String action;
 
+        public String action() {
+            return action;
+        }
+
         Request(Writeable message,
                 Version version,
                 String action,
@@ -144,6 +152,10 @@ abstract class OutboundMessage {
                  boolean isHandshake,
                  boolean compress) {
             super(version, setStatus(compress, isHandshake, message), requestId, message);
+        }
+
+        public String action() {
+            return null;
         }
 
         private static byte setStatus(boolean compress, boolean isHandshake, Writeable message) {
