@@ -1206,13 +1206,17 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             );
         }
 
+        // Table oids are persisted in Metadata starting CrateDB 6.3. This assignment must be called only once when all
+        // nodes are upgraded to 6.3.
+        // During rolling upgrades, 6.3 nodes return OID_UNASSIGNED for all user created tables.
         public void assignTableOids() {
             for (var schemaMetadata : schemas.values()) {
                 for (var relationMetadata : schemaMetadata.relations().values()) {
-                    assert !(relationMetadata instanceof RelationMetadata.Table || relationMetadata instanceof RelationMetadata.BlobTable) ||
-                        relationMetadata.oid() == OID_UNASSIGNED :
-                        "The assumption is that all relationMetadata(currently only Table and BlobTable others return OidHash) and currentMaxTableOid are all zeroes";
-                    this.setRelation(relationMetadata.oid(this.tableOidSupplier().nextOid()));
+                    // Currently other RelationMetadata like Views and ForeignTables still use OidHash as its oids
+                    if (relationMetadata instanceof RelationMetadata.Table || relationMetadata instanceof RelationMetadata.BlobTable) {
+                        assert relationMetadata.oid() == OID_UNASSIGNED && this.tableOidSupplier().peek() == OID_UNASSIGNED;
+                        this.setRelation(relationMetadata.oid(this.tableOidSupplier().nextOid()));
+                    }
                 }
             }
         }
