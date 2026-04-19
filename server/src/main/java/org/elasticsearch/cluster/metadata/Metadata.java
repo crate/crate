@@ -1214,7 +1214,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 for (var relationMetadata : schemaMetadata.relations().values()) {
                     // Currently other RelationMetadata like Views and ForeignTables still use OidHash as its oids
                     if (relationMetadata instanceof RelationMetadata.Table || relationMetadata instanceof RelationMetadata.BlobTable) {
-                        assert relationMetadata.oid() == OID_UNASSIGNED && this.tableOidSupplier().peek() == OID_UNASSIGNED;
+                        assert relationMetadata.oid() == OID_UNASSIGNED : "Assigning table oids to UNASSIGNED tables";
                         this.setRelation(relationMetadata.oid(this.tableOidSupplier().nextOid()));
                     }
                 }
