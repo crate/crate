@@ -89,7 +89,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.sys.TableColumn;
@@ -1435,6 +1434,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     @Override
     public int oid() {
-        return tableOID == OID_UNASSIGNED ? OidHash.relationOid(this) : tableOID;
+        return tableOID;
     }
 }
