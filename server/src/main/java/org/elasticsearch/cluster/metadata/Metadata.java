@@ -1209,16 +1209,15 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         public void assignTableOids() {
             for (var schemaMetadata : schemas.values()) {
                 for (var relationMetadata : schemaMetadata.relations().values()) {
+                    assert !(relationMetadata instanceof RelationMetadata.Table || relationMetadata instanceof RelationMetadata.BlobTable) ||
+                        relationMetadata.oid() == OID_UNASSIGNED :
+                        "The assumption is that all relationMetadata(currently only Table and BlobTable others return OidHash) and currentMaxTableOid are all zeroes";
                     this.setRelation(relationMetadata.oid(this.tableOidSupplier().nextOid()));
                 }
             }
         }
 
         private boolean validateTableOIDs(int tableOidSupplierValue) {
-            if (tableOidSupplierValue == OID_UNASSIGNED) {
-                // do not validate when table oids are not triggered yet; table oids are assigned to table only when all nodes are on or after 6.3
-                return true;
-            }
             BitSet relationOIDs = new BitSet(tableOidSupplierValue + 1);
             for (var schemaMetadata : schemas.values()) {
                 for (var relationMetadata : schemaMetadata.relations().values()) {
