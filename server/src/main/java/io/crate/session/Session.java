@@ -39,7 +39,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
 import org.jspecify.annotations.Nullable;
@@ -251,7 +250,6 @@ public class Session implements AutoCloseable {
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         mostRecentJobID = UUIDs.dirtyUUID();
         final UUID jobId = mostRecentJobID;
-        ClusterState clusterState = planner.currentClusterState();
         PlannerContext plannerContext = planner.createContext(
             routingProvider,
             jobId,
@@ -390,6 +388,7 @@ public class Session implements AutoCloseable {
             throw t;
         }
 
+        timeoutToken.disable();
         preparedStatements.put(
             statementName,
             new PreparedStmt(statement, analyzedStatement, query, parameterTypes, timeoutToken));
@@ -862,6 +861,7 @@ public class Session implements AutoCloseable {
             activeConsumer.closeAndFinishIfSuspended();
             return activeConsumer.completionFuture();
         }
+        portal.preparedStmt().timeoutToken().enable();
 
         mostRecentJobID = UUIDs.dirtyUUID();
         final UUID jobId = mostRecentJobID;
@@ -1087,7 +1087,7 @@ public class Session implements AutoCloseable {
             }
         };
 
-        protected TimeValue statementTimeout;
+        private final TimeValue statementTimeout;
         private long startNanos;
         private boolean enabled = true;
 
