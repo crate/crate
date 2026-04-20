@@ -22,10 +22,8 @@ package org.elasticsearch.cluster.metadata;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_UPGRADED;
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
-import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 
 import java.util.List;
-import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -150,9 +148,6 @@ public class MetadataUpgradeService {
                 .build();
 
             newMetadata.setTable(
-                versionCreated.before(DocTableInfo.COLUMN_OID_VERSION)
-                    ? NO_OID_COLUMN_OID_SUPPLIER
-                    : new DocTableInfo.OidSupplier(docTable.maxOid()),
                 relationName,
                 docTable.allReferences(),
                 settings,
@@ -196,11 +191,7 @@ public class MetadataUpgradeService {
             }
             if (relation == null) {
                 if (tableInfo instanceof DocTableInfo docTable) {
-                    LongSupplier columnOidSupplier = docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
-                        ? NO_OID_COLUMN_OID_SUPPLIER
-                        : new DocTableInfo.OidSupplier(docTable.maxOid());
                     newMetadata.setTable(
-                        columnOidSupplier,
                         docTable.ident(),
                         docTable.allReferences(),
                         // If RelationMetadata exist in the cluster state, make sure to override them with
