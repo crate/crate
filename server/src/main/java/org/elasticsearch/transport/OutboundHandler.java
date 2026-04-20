@@ -20,6 +20,7 @@
 package org.elasticsearch.transport;
 
 import java.io.IOException;
+import java.util.function.Function;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,7 +47,7 @@ public final class OutboundHandler {
     private final Version version;
     private final StatsTracker statsTracker;
     private final ThreadPool threadPool;
-    private final BigArrays bigArrays;
+    private final Function<String, BigArrays> bigArraysProvider;
 
     private volatile TransportMessageListener messageListener = TransportMessageListener.NOOP_LISTENER;
 
@@ -54,12 +55,12 @@ public final class OutboundHandler {
                     Version version,
                     StatsTracker statsTracker,
                     ThreadPool threadPool,
-                    BigArrays bigArrays) {
+                    Function<String, BigArrays> bigArraysProvider) {
         this.nodeName = nodeName;
         this.version = version;
         this.statsTracker = statsTracker;
         this.threadPool = threadPool;
-        this.bigArrays = bigArrays;
+        this.bigArraysProvider = bigArraysProvider;
     }
 
     ChannelFuture sendBytes(CloseableChannel channel, byte[] bytes) {
@@ -155,6 +156,7 @@ public final class OutboundHandler {
     private ChannelFuture sendMessage(CloseableChannel channel, OutboundMessage networkMessage) throws IOException {
         channel.markAccessed(threadPool.relativeTimeInMillis());
         ReleasableBytesStreamOutput bytesStreamOutput;
+        var bigArrays = bigArraysProvider.apply(networkMessage.action());
         if (DistributedResultAction.NAME.equals(networkMessage.action())) {
             // Imitating heavy distributed merge under memory pressure
             // with low XMX and large page size.

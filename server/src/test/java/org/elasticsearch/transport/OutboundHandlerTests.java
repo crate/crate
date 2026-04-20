@@ -87,7 +87,7 @@ public class OutboundHandlerTests extends ESTestCase {
         };
         node = new DiscoveryNode("", transportAddress, Version.CURRENT);
         StatsTracker statsTracker = new StatsTracker();
-        handler = new OutboundHandler("node", Version.CURRENT, statsTracker, threadPool, BigArrays.NON_RECYCLING_INSTANCE);
+        handler = new OutboundHandler("node", Version.CURRENT, statsTracker, threadPool, _ -> BigArrays.NON_RECYCLING_INSTANCE);
 
         final LongSupplier millisSupplier = () -> TimeValue.nsecToMSec(System.nanoTime());
         final InboundDecoder decoder = new InboundDecoder(PageCacheRecycler.NON_RECYCLING_INSTANCE);

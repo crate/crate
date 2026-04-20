@@ -779,7 +779,7 @@ public class InboundHandlerTests extends ESTestCase {
             localVersion,
             new StatsTracker(),
             threadPool,
-            BigArrays.NON_RECYCLING_INSTANCE
+            _ -> BigArrays.NON_RECYCLING_INSTANCE
         );
         if (listener != null) {
             outboundHandler.setMessageListener(listener);

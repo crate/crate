@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -84,6 +85,7 @@ import io.crate.common.collections.Sets;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.CountDown;
+import io.crate.execution.engine.distribution.DistributedResultAction;
 import io.crate.protocols.ConnectionStats;
 import io.crate.rest.action.HttpErrorStatus;
 import io.netty.channel.ChannelFuture;
@@ -138,10 +140,27 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         this.circuitBreakerService = circuitBreakerService;
         this.networkService = networkService;
 
+        BigArrays query = new BigArrays(pageCacheRecycler, circuitBreakerService, CircuitBreaker.QUERY, true);
+        BigArrays inFlight = new BigArrays(pageCacheRecycler, circuitBreakerService, CircuitBreaker.IN_FLIGHT_REQUESTS);
         String nodeName = Node.NODE_NAME_SETTING.get(settings);
-        BigArrays bigArrays = new BigArrays(pageCacheRecycler, circuitBreakerService, CircuitBreaker.IN_FLIGHT_REQUESTS);
+        Function<String, BigArrays> bigArraysProvider = (action -> {
+            if (action == null) {
+                // error response must not be tripped
+                // TODO: find out why non-error response have null action sometimes
+                return inFlight;
+            }
+            if (action.equals(DistributedResultAction.NAME)) {
+                // To discuss:
+                // more generic would be startsWith("internal:crate:sql/")
+                // but realistically only fetch and merge are heavy and can lead to big resizes
+                // also, KILL must not be tripped for outbound (similar to how it's not tripped for inbound)
+                // I have seen CBE-s which failed to allocate few bytes, so it's better to exclude KILL in any case
+                return query;
+            }
+            return inFlight;
+        });
 
-        this.outboundHandler = new OutboundHandler(nodeName, version, statsTracker, threadPool, bigArrays);
+        this.outboundHandler = new OutboundHandler(nodeName, version, statsTracker, threadPool, bigArraysProvider);
         this.handshaker = new TransportHandshaker(version, threadPool,
             (node, channel, requestId, v) -> outboundHandler.sendRequest(node, channel, requestId,
                 TransportHandshaker.HANDSHAKE_ACTION_NAME, new TransportHandshaker.HandshakeRequest(version),

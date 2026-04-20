@@ -399,7 +399,7 @@ public class TcpTransportTests extends ESTestCase {
                 Version.CURRENT,
                 new StatsTracker(),
                 testThreadPool,
-                BigArrays.NON_RECYCLING_INSTANCE
+                _ -> BigArrays.NON_RECYCLING_INSTANCE
             );
             TcpTransport.handleException(logger, channel, exception, lifecycle, outputHandler);
 
