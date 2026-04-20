@@ -185,8 +185,7 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
                         State.OPEN,
                         newIndexUUIDs,
                         0,
-                        mdBuilder.tableOidSupplier().peek() == Metadata.OID_UNASSIGNED ?
-                            Metadata.OID_UNASSIGNED : mdBuilder.tableOidSupplier().nextOid()
+                        mdBuilder.tableOidSupplier().nextOid()
                     ).build();
                 table = newMetadata.getRelation(relationName);
                 assert table != null : "table must not be null";

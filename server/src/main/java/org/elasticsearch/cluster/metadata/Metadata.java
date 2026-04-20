@@ -984,7 +984,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
         public Builder setBlobTable(RelationName name, String indexUUID, Settings settings, State state) {
             setRelation(new RelationMetadata.BlobTable(
-                this.tableOidSupplier().peek() == OID_UNASSIGNED ? OID_UNASSIGNED : this.tableOidSupplier().nextOid(),
+                this.tableOidSupplier().nextOid(),
                 name,
                 indexUUID,
                 settings,
@@ -1206,10 +1206,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             );
         }
 
-        // Table oids are persisted in Metadata starting CrateDB 6.3. This assignment must be called only once when all
-        // nodes are upgraded to 6.3.
-        // During rolling upgrades, 6.3 nodes return OID_UNASSIGNED for all user created tables.
+        // Must be called only once when upgrading the cluster to 6.3.
         public void assignTableOids() {
+            this.tableOidSupplier().start();
             for (var schemaMetadata : schemas.values()) {
                 for (var relationMetadata : schemaMetadata.relations().values()) {
                     // Currently other RelationMetadata like Views and ForeignTables still use OidHash as its oids
@@ -1873,20 +1872,33 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
     }
 
+    /**
+     * Supplier for assigning and tracking unique Table OIDs starting from CrateDB 6.3.
+     *
+     * <p>Returns {@link Metadata#OID_UNASSIGNED} during rolling upgrades to 6.3 to ensure
+     * compatibility in mixed clusters (any lookups done by OIDs must fallback).
+     * Once the upgrade is complete, {@link #start()} must be invoked EXACTLY ONCE to enable
+     * OID assignment.</p>
+     */
     public static class TableOidSupplier {
 
         private int nextOid;
 
-        public TableOidSupplier(int start) {
-            nextOid = start;
+        private TableOidSupplier(int startOid) {
+            nextOid = startOid;
         }
 
         public int nextOid() {
-            return ++nextOid;
+            return nextOid != OID_UNASSIGNED ? ++nextOid : OID_UNASSIGNED;
         }
 
         public int peek() {
             return nextOid;
+        }
+
+        public void start() {
+            assert nextOid == OID_UNASSIGNED : "TableOidSupplier already started or OIDs are already started to be assigned";
+            nextOid = OID_UNASSIGNED + 1;
         }
     }
 
