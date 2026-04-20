@@ -21,15 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import java.math.BigDecimal;
-import java.util.List;
-
-import org.joda.time.Period;
-import org.junit.Test;
-
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
@@ -38,8 +29,88 @@ import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.NumericType;
+import org.joda.time.Period;
+import org.junit.Test;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class MaximumAggregationTest extends AggregationTestCase {
+
+    private record NumericTestCase(String name, NumericType type, Object[][] data, BigDecimal expected) {}
+
+    // Numeric values with the precision <= 18 are stored as long values
+    // in the column store, so we're testing both cases.
+    // See NumericStorage for more info.
+    private static List<NumericTestCase> testNumericParameters() {
+        return List.of(
+            new NumericTestCase(
+                "compact precision, simple case",
+                new NumericType(6, 4),
+                new Object[][]{{new BigDecimal("97.6543")}, {new BigDecimal("97.6542")}},
+                new BigDecimal("97.6543")
+            ),
+            new NumericTestCase(
+                "large precision, simple case",
+                new NumericType(22, 4),
+                new Object[][]{{new BigDecimal("97.6543")}, {new BigDecimal("97.6542")}},
+                new BigDecimal("97.6543")
+            ),
+            // See: https://github.com/crate/crate/pull/17371
+            new NumericTestCase(
+                "compact precision, string sorting different",
+                new NumericType(6, 2),
+                new Object[][]{{new BigDecimal("10.00")}, {new BigDecimal("9.00")}},
+                new BigDecimal("10.00")
+            ),
+            // See: https://github.com/crate/crate/pull/17371
+            new NumericTestCase(
+                "large precision, string sorting different",
+                new NumericType(22, 2),
+                new Object[][]{{new BigDecimal("10.00")}, {new BigDecimal("9.00")}},
+                new BigDecimal("10.00")
+            ),
+            new NumericTestCase(
+                "compact precision, single input",
+                new NumericType(6, 4),
+                new Object[][]{{new BigDecimal("97.6542")}},
+                new BigDecimal("97.6542")
+            ),
+            new NumericTestCase(
+                "large precision, single input",
+                new NumericType(22, 4),
+                new Object[][]{{new BigDecimal("97.6542")}},
+                new BigDecimal("97.6542")
+            ),
+            new NumericTestCase(
+                "empty input",
+                new NumericType(22, 2),
+                new Object[][]{},
+                null
+            ),
+            new NumericTestCase(
+                "null input",
+                new NumericType(22, 2),
+                new Object[][]{{null}},
+                null
+            ),
+            new NumericTestCase(
+                "equal values",
+                new NumericType(22, 2),
+                new Object[][]{{new BigDecimal("10.00")}, {new BigDecimal("10.00")}},
+                new BigDecimal("10.00")
+            ),
+            new NumericTestCase(
+                "max value comes after",
+                new NumericType(22, 4),
+                new Object[][]{{new BigDecimal("97.6542")}, {new BigDecimal("97.6543")}},
+                new BigDecimal("97.6543")
+            )
+        );
+    }
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
@@ -58,13 +129,25 @@ public class MaximumAggregationTest extends AggregationTestCase {
         for (var dataType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             assertHasDocValueAggregator(MaximumAggregation.NAME, List.of(dataType));
         }
+        assertHasDocValueAggregator(MaximumAggregation.NAME, List.of(new NumericType(6, 2)));
+    }
+
+    @Test
+    public void test_numeric_aggregation_not_supported_without_scale_or_precision() {
+        assertThat(getDocValueAggregator(MaximumAggregation.NAME, List.of(new NumericType(6, null))))
+            .isNull();
+        assertThat(getDocValueAggregator(MaximumAggregation.NAME, List.of(new NumericType(null, null))))
+            .isNull();
     }
 
     @Test
     public void testNumeric() throws Exception {
-        Object result = executeAggregation(new NumericType(6, 4),
-            new Object[][]{{new BigDecimal("97.6543")}, {new BigDecimal("97.6542")}});
-        assertThat(result).isEqualTo(new BigDecimal("97.6543"));
+        for (var tc : testNumericParameters()) {
+            Object result = executeAggregation(tc.type(), tc.data());
+            assertThat(result)
+                .as(tc.name())
+                .isEqualTo(tc.expected());
+        }
     }
 
     @Test

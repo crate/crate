@@ -57,6 +57,7 @@ import io.crate.types.FixedWidthType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
+import io.crate.types.NumericType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 
@@ -312,6 +313,24 @@ public abstract class MaximumAggregation extends AggregationFunction<Object, Obj
                 return state2;
             }
             return state1;
+        }
+
+        @Nullable
+        @Override
+        public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
+                                                           List<Reference> aggregationReferences,
+                                                           DocTableInfo table,
+                                                           Version shardCreatedVersion,
+                                                           List<Literal<?>> optionalParams) {
+            Reference reference = getAggReference(aggregationReferences);
+            if (reference == null) {
+                return null;
+            }
+            DataType<?> valueType = reference.valueType();
+            if (valueType instanceof NumericType) {
+                return getNumericDocValueAggregator(aggregationReferences, this::reduce);
+            }
+            return null;
         }
     }
 

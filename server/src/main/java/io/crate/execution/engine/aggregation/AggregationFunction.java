@@ -147,6 +147,9 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
         return null;
     }
 
+
+    /// Returns the first reference from the input list **if** it has doc values
+    /// **and** the granularity is `DOC`. Otherwise, returns `null`.
     protected Reference getAggReference(List<Reference> aggregationReferences) {
         if (aggregationReferences.isEmpty()) {
             return null;
@@ -161,6 +164,12 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
         return reference;
     }
 
+    /**
+     * Returns a new {@link DocValueAggregator} that automatically handles
+     * different precisions of numeric doc values (values with precision
+     * <= {@link  NumericStorage#COMPACT_PRECISION} are stored as `long`; others
+     * are stored as binary doc values).
+     */
     protected DocValueAggregator<?> getNumericDocValueAggregator(
         List<Reference> aggregationReferences,
         CheckedTriFunction<RamAccounting, TPartial, BigDecimal, TPartial, IOException> onDocValue) {
@@ -178,9 +187,11 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
         NumericType numericType = (NumericType) valueType;
         Integer precision = numericType.numericPrecision();
         Integer scale = numericType.scale();
+        // NB: At the time of writing this (v6.4), it's possible to have numeric columns
+        // without precision or scale.
+        // However, this may be subject to change, so we're leaving this as a guardrail.
         if (precision == null || scale == null) {
-            throw new UnsupportedOperationException(
-                "NUMERIC type requires precision and scale to support aggregation");
+            return null;
         }
         if (precision <= NumericStorage.COMPACT_PRECISION) {
             return new SortedNumericDocValueAggregator<>(
