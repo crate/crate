@@ -611,8 +611,8 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
 
         public void check() {
             checks++;
-            if (statementTimeout.nanos() > 0 && checks > maxChecks) {
-                throw JobKilledException.of("statement_timeout (" + statementTimeout + ")");
+            if (timeout().nanos() > 0 && checks > maxChecks) {
+                throw JobKilledException.of("statement_timeout (" + timeout() + ")");
             }
         }
     }

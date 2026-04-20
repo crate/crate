@@ -592,6 +592,20 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_timeout_doesnt_expire_between_parse_and_bind_execute() throws Exception {
+        SQLExecutor sqlExecutor = SQLExecutor.of(clusterService);
+        try (Session session = sqlExecutor.createSession()) {
+            session.sessionSettings().statementTimeout(TimeValue.timeValueMillis(100));
+            session.parse("S1", "SELECT 1", List.of());
+            Thread.sleep(100);
+            session.bind("", "S1", List.of(), new FormatCode[0]);
+
+            // .execute must not fail
+            session.execute("", 0, new BaseResultReceiver());
+        }
+    }
+
+    @Test
     public void test_binding_portal_again_closes_suspended_consumers_eventually() throws Exception {
         Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
         AtomicReference<RowConsumer> consumerRef = new AtomicReference<>();
