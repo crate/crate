@@ -24,6 +24,7 @@ package io.crate.execution.engine.aggregation.impl;
 import java.io.IOException;
 import java.util.List;
 
+import io.crate.types.NumericType;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
@@ -245,6 +246,24 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
                 return state2;
             }
             return state1;
+        }
+
+        @Nullable
+        @Override
+        public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
+                                                           List<Reference> aggregationReferences,
+                                                           DocTableInfo table,
+                                                           Version shardCreatedVersion,
+                                                           List<Literal<?>> optionalParams) {
+            Reference reference = getAggReference(aggregationReferences);
+            if (reference == null) {
+                return null;
+            }
+            DataType<?> valueType = reference.valueType();
+            if (valueType instanceof NumericType) {
+                return getNumericDocValueAggregator(aggregationReferences, this::reduce);
+            }
+            return null;
         }
     }
 

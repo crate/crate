@@ -85,7 +85,10 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
-None
+
+- Improved the performance of the :ref:`min() <aggregation-min>` and
+  :ref:`max() <aggregation-max>` aggregations for columns of type :ref:`NUMERIC
+  <data-types-numeric>`.
 
 Administration and Operations
 -----------------------------

@@ -21,25 +21,58 @@
 
 package io.crate.operation.aggregation;
 
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
-import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
-import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
+import io.crate.analyze.WhereClause;
+import io.crate.common.collections.Lists;
+import io.crate.common.io.IOUtils;
+import io.crate.concurrent.FutureActionListener;
+import io.crate.data.ArrayBucket;
+import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.data.testing.TestingRowConsumer;
+import io.crate.execution.ddl.tables.MappingUtil;
+import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
+import io.crate.execution.dml.IndexItem;
+import io.crate.execution.dml.Indexer;
+import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.projection.AggregationProjection;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.execution.engine.collect.CollectTask;
+import io.crate.execution.engine.collect.DocValuesAggregates;
+import io.crate.execution.engine.collect.MapSideDataCollectOperation;
+import io.crate.execution.engine.collect.RowCollectExpression;
+import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.memory.MemoryManager;
+import io.crate.memory.OnHeapMemoryManager;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.IndexType;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SearchPath;
+import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.DataType;
+import io.crate.types.StorageSupport;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -85,57 +118,24 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jspecify.annotations.Nullable;
 
-import io.crate.analyze.WhereClause;
-import io.crate.common.collections.Lists;
-import io.crate.common.io.IOUtils;
-import io.crate.concurrent.FutureActionListener;
-import io.crate.data.ArrayBucket;
-import io.crate.data.Row;
-import io.crate.data.breaker.RamAccounting;
-import io.crate.data.testing.TestingRowConsumer;
-import io.crate.execution.ddl.tables.MappingUtil;
-import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
-import io.crate.execution.dml.IndexItem;
-import io.crate.execution.dml.Indexer;
-import io.crate.execution.dsl.phases.CollectPhase;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.dsl.projection.AggregationProjection;
-import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.execution.engine.collect.CollectTask;
-import io.crate.execution.engine.collect.DocValuesAggregates;
-import io.crate.execution.engine.collect.MapSideDataCollectOperation;
-import io.crate.execution.engine.collect.RowCollectExpression;
-import io.crate.execution.jobs.SharedShardContexts;
-import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
-import io.crate.expression.symbol.AggregateMode;
-import io.crate.expression.symbol.Aggregation;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.memory.MemoryManager;
-import io.crate.memory.OnHeapMemoryManager;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.IndexType;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.SearchPath;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.planner.distribution.DistributionInfo;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.DataType;
-import io.crate.types.StorageSupport;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public abstract class AggregationTestCase extends ESTestCase {
 
@@ -267,7 +267,7 @@ public abstract class AggregationTestCase extends ESTestCase {
     }
 
     private static <T> Object assertAndGetMergedIterAndPartial(AggregationFunction<T, ?> aggregationFunction,
-                                                               AggregationFunction<T ,?> terminatePartialAggFunction,
+                                                               AggregationFunction<T, ?> terminatePartialAggFunction,
                                                                T partialResultWithoutDocValues) {
         Object result1 = terminatePartialAggFunction.terminatePartial(
             RAM_ACCOUNTING,
@@ -380,7 +380,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                                      Object[][] data,
                                      List<Reference> targetColumns) throws IOException {
         DocTableInfo table = new DocTableInfo(
-                Metadata.OID_UNASSIGNED, PARTITION_NAME.relationName(),
+            Metadata.OID_UNASSIGNED, PARTITION_NAME.relationName(),
             targetColumns.stream().collect(Collectors.toMap(Reference::column, r -> r)),
             Map.of(),
             Set.of(),
@@ -601,25 +601,30 @@ public abstract class AggregationTestCase extends ESTestCase {
     }
 
     public void assertHasDocValueAggregator(String functionName, List<DataType<?>> argumentTypes) {
+        var docValueAggregator = getDocValueAggregator(functionName, argumentTypes);
+        assertThat(docValueAggregator)
+            .as("DocValueAggregator is not implemented for "
+                + functionName + "(" + argumentTypes.stream()
+                .map(DataType::toString)
+                .collect(Collectors.joining(", ")) + ")")
+            .isNotNull();
+    }
+
+    @Nullable
+    protected DocValueAggregator<?> getDocValueAggregator(String functionName, List<DataType<?>> argumentTypes) {
         var aggregationFunction = (AggregationFunction<?, ?>) nodeCtx.functions().get(
             null,
             functionName,
             InputColumn.mapToInputColumns(argumentTypes),
             SearchPath.pathWithPGCatalogAndDoc()
         );
-        var docValueAggregator = aggregationFunction.getDocValueAggregator(
+        return aggregationFunction.getDocValueAggregator(
             mock(LuceneReferenceResolver.class),
             toReference(argumentTypes),
             mock(DocTableInfo.class),
             Version.CURRENT,
             List.of()
         );
-        assertThat(docValueAggregator)
-                .as("DocValueAggregator is not implemented for "
-                    + functionName + "(" + argumentTypes.stream()
-                        .map(DataType::toString)
-                        .collect(Collectors.joining(", ")) + ")")
-            .isNotNull();
     }
 
     public static List<Reference> toReference(List<DataType<?>> dataTypes) {
