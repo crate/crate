@@ -40,10 +40,10 @@ import java.util.function.UnaryOperator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.FixedBitSet;
-import org.elasticsearch.common.Strings;
 
 import com.carrotsearch.hppc.LongObjectHashMap;
 
+import io.crate.common.StringUtils;
 import io.crate.common.collections.Tuple;
 
 /**
@@ -353,8 +353,8 @@ public class LinearizabilityChecker {
         int beginIndex = eventToPosition.get(new Tuple<>(EventType.INVOCATION, id));
         int endIndex = eventToPosition.get(new Tuple<>(EventType.RESPONSE, id));
         input = input.substring(0, Math.min(beginIndex + 25, input.length()));
-        return Strings.padStart(input, beginIndex + 25, ' ') +
-               "   "  + Strings.padStart("", endIndex-beginIndex, 'X') + "   "
+        return StringUtils.padStart(input, beginIndex + 25, ' ') +
+               "   "  + StringUtils.padStart("", endIndex-beginIndex, 'X') + "   "
                + output + "  (" + entry.event.id + ")";
     }
 

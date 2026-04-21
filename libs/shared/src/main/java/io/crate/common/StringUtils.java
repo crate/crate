@@ -84,6 +84,24 @@ public final class StringUtils {
         return string.substring(0,1).toUpperCase(Locale.ENGLISH) + string.substring(1).toLowerCase(Locale.ENGLISH);
     }
 
+    public static String padStart(String s, int minimumLength, char c) {
+        if (s == null) {
+            throw new NullPointerException("s");
+        }
+        if (s.length() >= minimumLength) {
+            return s;
+        } else {
+            return String.valueOf(c).repeat(minimumLength - s.length()) + s;
+        }
+    }
+
+    public static void padStart(StringBuilder sb, String s, int minLength, char padding) {
+        if (s.length() < minLength) {
+            sb.append(String.valueOf(padding).repeat(minLength - s.length()));
+        }
+        sb.append(s);
+    }
+
     public static String padEnd(String s, int minimumLength, char c) {
         if (s == null) {
             throw new NullPointerException("s");
@@ -92,6 +110,13 @@ public final class StringUtils {
             return s;
         } else {
             return s + String.valueOf(c).repeat(minimumLength - s.length());
+        }
+    }
+
+    public static void padEnd(StringBuilder sb, String s, int minimumLength, char padding) {
+        sb.append(s);
+        for (int i = s.length(); i < minimumLength; i++) {
+            sb.append(padding);
         }
     }
 

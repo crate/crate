@@ -70,4 +70,21 @@ final class StringUtilsTest {
         wasLong = StringUtils.tryParseLong("++", outputLong);
         assertThat(wasLong).isFalse();
     }
+
+    @Test
+    public void test_pad_start() throws Exception {
+        assertThat(StringUtils.padStart("300", 4, '0')).isEqualTo("0300");
+        assertThat(StringUtils.padStart("300", 2, '0')).isEqualTo("300");
+
+        {
+            var sb = new StringBuilder();
+            StringUtils.padStart(sb, "300", 4, '0');
+            assertThat(sb.toString()).isEqualTo("0300");
+        }
+        {
+            var sb = new StringBuilder();
+            StringUtils.padStart(sb, "300", 2, '0');
+            assertThat(sb.toString()).isEqualTo("300");
+        }
+    }
 }

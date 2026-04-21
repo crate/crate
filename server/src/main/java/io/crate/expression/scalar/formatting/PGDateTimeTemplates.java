@@ -22,7 +22,6 @@
 package io.crate.expression.scalar.formatting;
 
 import static io.crate.common.StringUtils.padEnd;
-import static org.elasticsearch.common.Strings.padStart;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -40,7 +39,6 @@ import java.util.Locale;
 import java.util.Map;
 
 import io.crate.common.StringUtils;
-import io.crate.common.collections.Lists;
 
 /// For parsing and formatting of date time templates as documented in
 /// https://www.postgresql.org/docs/18/functions-formatting.html#FUNCTIONS-FORMATTING-DATETIME-TABLE
@@ -302,157 +300,149 @@ public class PGDateTimeTemplates {
     }
 
     public String format(LocalDateTime datetime) {
-        return Lists.joinOn("", this.tokens, x -> switch (x) {
-            case TemplatePattern pattern -> getElement(pattern, datetime);
-            case TemplateLiteral literal -> literal.value();
-        });
+        StringBuilder sb = new StringBuilder();
+        for (Token token : tokens) {
+            switch (token) {
+                case TemplatePattern pattern -> addElement(sb, pattern, datetime);
+                case TemplateLiteral literal -> sb.append(literal.value());
+            }
+        }
+        return sb.toString();
     }
 
-    private static String getElement(TemplatePattern pattern, LocalDateTime datetime) {
-        return switch (pattern) {
+    private static void addElement(StringBuilder sb, TemplatePattern pattern, LocalDateTime datetime) {
+        switch (pattern) {
             case HOUR_OF_DAY, HOUR_OF_DAY12, HOUR_OF_DAY_LOWER, HOUR_OF_DAY12_LOWER -> {
                 if (datetime.getHour() >= 12) {
-                    yield padStart(
-                        String.valueOf(datetime.getHour() - 12),
-                        2,
-                        '0');
+                    StringUtils.padStart(sb, String.valueOf(datetime.getHour() - 12), 2, '0');
                 } else {
-                    yield padStart(String.valueOf(datetime.getHour()), 2, '0');
+                    StringUtils.padStart(sb, String.valueOf(datetime.getHour()), 2, '0');
                 }
             }
-            case HOUR_OF_DAY24, HOUR_OF_DAY24_LOWER -> padStart(String.valueOf(datetime.getHour()), 2, '0');
-            case MINUTE, MINUTE_LOWER -> padStart(String.valueOf(datetime.getMinute()), 2, '0');
-            case SECOND, SECOND_LOWER -> padStart(String.valueOf(datetime.getSecond()), 2, '0');
-            case MILLISECOND, MILLISECOND_LOWER -> padStart(String.valueOf(datetime.getNano() / 1000000), 3, '0');
-            case MICROSECOND, MICROSECOND_LOWER -> padStart(String.valueOf(datetime.getNano() / 1000), 6, '0');
-            case TENTH_OF_SECOND, TENTH_OF_SECOND_LOWER -> String.valueOf(datetime.getNano() / 100000000);
-            case HUNDREDTH_OF_SECOND, HUNDREDTH_OF_SECOND_LOWER -> String.valueOf(datetime.getNano() / 10000000);
-            case MILLISECOND_FF, MILLISECOND_FF_LOWER -> String.valueOf(datetime.getNano() / 1000000);
-            case TENTH_OF_MILLISECOND, TENTH_OF_MILLISECOND_LOWER -> String.valueOf(datetime.getNano() / 100000);
-            case HUNDREDTH_OF_MILLISECOND, HUNDREDTH_OF_MILLISECOND_LOWER -> String.valueOf(datetime.getNano() / 10000);
-            case MICROSECOND_FF, MICROSECOND_FF_LOWER -> String.valueOf(datetime.getNano() / 1000);
+            case HOUR_OF_DAY24, HOUR_OF_DAY24_LOWER -> StringUtils.padStart(sb, String.valueOf(datetime.getHour()), 2, '0');
+            case MINUTE, MINUTE_LOWER -> StringUtils.padStart(sb, String.valueOf(datetime.getMinute()), 2, '0');
+            case SECOND, SECOND_LOWER -> StringUtils.padStart(sb, String.valueOf(datetime.getSecond()), 2, '0');
+            case MILLISECOND, MILLISECOND_LOWER -> StringUtils.padStart(sb, String.valueOf(datetime.getNano() / 1000000), 3, '0');
+            case MICROSECOND, MICROSECOND_LOWER -> StringUtils.padStart(sb, String.valueOf(datetime.getNano() / 1000), 6, '0');
+            case TENTH_OF_SECOND, TENTH_OF_SECOND_LOWER -> sb.append(datetime.getNano() / 100000000);
+            case HUNDREDTH_OF_SECOND, HUNDREDTH_OF_SECOND_LOWER -> sb.append(datetime.getNano() / 10000000);
+            case MILLISECOND_FF, MILLISECOND_FF_LOWER -> sb.append(datetime.getNano() / 1000000);
+            case TENTH_OF_MILLISECOND, TENTH_OF_MILLISECOND_LOWER -> sb.append(datetime.getNano() / 100000);
+            case HUNDREDTH_OF_MILLISECOND, HUNDREDTH_OF_MILLISECOND_LOWER -> sb.append(datetime.getNano() / 10000);
+            case MICROSECOND_FF, MICROSECOND_FF_LOWER -> sb.append(datetime.getNano() / 1000);
             case SECONDS_PAST_MIDNIGHT, SECONDS_PAST_MIDNIGHT_S, SECONDS_PAST_MIDNIGHT_LOWER, SECONDS_PAST_MIDNIGHT_S_LOWER -> {
                 Instant midnight = datetime.toLocalDate().atStartOfDay().toInstant(ZoneOffset.UTC);
-                yield String.valueOf(Duration.between(midnight, datetime.toInstant(ZoneOffset.UTC)).getSeconds());
+                sb.append(Duration.between(midnight, datetime.toInstant(ZoneOffset.UTC)).getSeconds());
             }
-            case AM_UPPER, PM_UPPER -> datetime.getHour() >= 12 ? "PM" : "AM";
-            case AM_LOWER, PM_LOWER -> datetime.getHour() >= 12 ? "pm" : "am";
-            case A_M_UPPER, P_M_UPPER -> datetime.getHour() >= 12 ? "P.M." : "A.M.";
-            case A_M_LOWER, P_M_LOWER -> datetime.getHour() >= 12 ? "p.m." : "a.m.";
+            case AM_UPPER, PM_UPPER -> sb.append(datetime.getHour() >= 12 ? "PM" : "AM");
+            case AM_LOWER, PM_LOWER -> sb.append(datetime.getHour() >= 12 ? "pm" : "am");
+            case A_M_UPPER, P_M_UPPER -> sb.append(datetime.getHour() >= 12 ? "P.M." : "A.M.");
+            case A_M_LOWER, P_M_LOWER -> sb.append(datetime.getHour() >= 12 ? "p.m." : "a.m.");
             case YEAR_WITH_COMMA, YEAR_WITH_COMMA_LOWER -> {
                 String s = String.valueOf(datetime.getYear());
-                yield s.substring(0, 1) + "," + s.substring(1);
+                sb.append(s.substring(0, 1));
+                sb.append(",");
+                sb.append(s.substring(1));
             }
-            case YEAR_YYYY, YEAR_LOWER_YYYY -> padStart(String.valueOf(datetime.getYear()), 4, '0');
+            case YEAR_YYYY, YEAR_LOWER_YYYY -> StringUtils.padStart(sb, String.valueOf(datetime.getYear()), 4, '0');
             case YEAR_YYY, YEAR_YYY_LOWER -> {
-                String s = padStart(String.valueOf(datetime.getYear()), 4, '0');
-                yield s.substring(s.length() - 3);
+                String s = StringUtils.padStart(String.valueOf(datetime.getYear()), 4, '0');
+                sb.append(s.substring(s.length() - 3));
             }
             case YEAR_YY, YEAR_YY_LOWER -> {
-                String s = padStart(String.valueOf(datetime.getYear()), 4, '0');
-                yield s.substring(s.length() - 2);
+                String s = StringUtils.padStart(String.valueOf(datetime.getYear()), 4, '0');
+                sb.append(s.substring(s.length() - 2));
             }
             case YEAR_Y, YEAR_Y_LOWER -> {
-                String s = padStart(String.valueOf(datetime.getYear()), 4, '0');
-                yield s.substring(s.length() - 1);
+                String s = StringUtils.padStart(String.valueOf(datetime.getYear()), 4, '0');
+                sb.append(s.substring(s.length() - 1));
             }
-            case ISO_YEAR_YYY, ISO_YEAR_YYY_LOWER -> String.valueOf(datetime.get(IsoFields.WEEK_BASED_YEAR));
+            case ISO_YEAR_YYY, ISO_YEAR_YYY_LOWER -> sb.append(datetime.get(IsoFields.WEEK_BASED_YEAR));
             case ISO_YEAR_YY, ISO_YEAR_YY_LOWER -> {
                 String s = String.valueOf(datetime.get(IsoFields.WEEK_BASED_YEAR));
-                yield s.substring(s.length() - 3);
+                sb.append(s.substring(s.length() - 3));
             }
             case ISO_YEAR_Y, ISO_YEAR_Y_LOWER -> {
                 String s = String.valueOf(datetime.get(IsoFields.WEEK_BASED_YEAR));
-                yield s.substring(s.length() - 2);
+                sb.append(s.substring(s.length() - 2));
             }
             case ISO_YEAR, ISO_YEAR_LOWER -> {
                 String s = String.valueOf(datetime.get(IsoFields.WEEK_BASED_YEAR));
-                yield s.substring(s.length() - 1);
+                sb.append(s.substring(s.length() - 1));
             }
-            case BC_ERA_UPPER, AD_ERA_UPPER -> datetime.getYear() >= 1 ? "AD" : "BC";
-            case BC_ERA_LOWER, AD_ERA_LOWER -> datetime.getYear() >= 1 ? "ad" : "bc";
-            case B_C_ERA_UPPER, A_D_ERA_UPPER -> datetime.getYear() >= 1 ? "A.D" : "B.C";
-            case B_C_ERA_LOWER, A_D_ERA_LOWER -> datetime.getYear() >= 1 ? "a.d" : "b.c";
+            case BC_ERA_UPPER, AD_ERA_UPPER -> sb.append(datetime.getYear() >= 1 ? "AD" : "BC");
+            case BC_ERA_LOWER, AD_ERA_LOWER -> sb.append(datetime.getYear() >= 1 ? "ad" : "bc");
+            case B_C_ERA_UPPER, A_D_ERA_UPPER -> sb.append(datetime.getYear() >= 1 ? "A.D" : "B.C");
+            case B_C_ERA_LOWER, A_D_ERA_LOWER -> sb.append(datetime.getYear() >= 1 ? "a.d" : "b.c");
             case MONTH_UPPER -> padEnd(
-                    datetime.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH),
-                    7,' '
-                ).toUpperCase(Locale.ENGLISH);
-            case MONTH_CAPITALIZED -> StringUtils.capitalize(
-                    padEnd(
-                        datetime.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH),
-                        7, ' '
-                    )
+                    sb,
+                    datetime.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH).toUpperCase(Locale.ENGLISH),
+                    7,
+                    ' '
+                );
+            case MONTH_CAPITALIZED ->
+                padEnd(
+                    sb,
+                    StringUtils.capitalize(datetime.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH)),
+                    7,
+                    ' '
                 );
             case MONTH_LOWER -> padEnd(
-                    datetime.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH),
-                    7, ' '
-                ).toLowerCase(Locale.ENGLISH);
-            case ABBREVIATED_MONTH_UPPER -> datetime.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH).toUpperCase(Locale.ENGLISH);
-            case ABBREVIATED_MONTH_CAPITALIZED -> StringUtils.capitalize(
+                    sb,
+                    datetime.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH).toLowerCase(Locale.ENGLISH),
+                    7,
+                    ' '
+                );
+            case ABBREVIATED_MONTH_UPPER -> sb.append(datetime.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH).toUpperCase(Locale.ENGLISH));
+            case ABBREVIATED_MONTH_CAPITALIZED -> sb.append(StringUtils.capitalize(
                     datetime.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
-                );
-            case ABBREVIATED_MONTH_LOWER -> datetime.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH).toLowerCase(Locale.ENGLISH);
-            case MONTH_NUMBER, MONTH_NUMBER_LOWER -> padStart(
-                    String.valueOf(datetime.getMonth().getValue()),
-                    2,
-                    '0'
-                );
+                ));
+            case ABBREVIATED_MONTH_LOWER -> sb.append(datetime.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH).toLowerCase(Locale.ENGLISH));
+            case MONTH_NUMBER, MONTH_NUMBER_LOWER -> StringUtils.padStart(sb, String.valueOf(datetime.getMonth().getValue()), 2, '0');
             case DAY_UPPER -> padEnd(
-                    datetime.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH),
-                    8, ' '
-                ).toUpperCase(Locale.ENGLISH);
-            case DAY_CAPITALIZED -> padEnd(
-                    StringUtils.capitalize(
-                        datetime.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH)
-                    ), 8, ' ');
-            case DAY_LOWER -> padEnd(
-                    datetime.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH),
+                    sb,
+                    datetime.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH).toUpperCase(Locale.ENGLISH),
                     8,
                     ' '
-                ).toLowerCase(Locale.ENGLISH);
-            case ABBREVIATED_DAY_UPPER -> datetime.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH).toUpperCase(Locale.ENGLISH);
-            case ABBREVIATED_DAY_CAPITALIZED -> StringUtils.capitalize(
+                );
+            case DAY_CAPITALIZED -> padEnd(
+                    sb,
+                    StringUtils.capitalize(
+                        datetime.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH)
+                    ),
+                    8,
+                    ' ');
+            case DAY_LOWER -> padEnd(
+                    sb,
+                    datetime.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH).toLowerCase(Locale.ENGLISH),
+                    8,
+                    ' '
+                );
+            case ABBREVIATED_DAY_UPPER -> sb.append(datetime.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH).toUpperCase(Locale.ENGLISH));
+            case ABBREVIATED_DAY_CAPITALIZED -> sb.append(StringUtils.capitalize(
                     datetime.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
-                );
-            case ABBREVIATED_DAY_LOWER -> datetime.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH).toLowerCase(Locale.ENGLISH);
-            case DAY_OF_YEAR, DAY_OF_YEAR_LOWER -> padStart(
-                    String.valueOf(datetime.getDayOfYear()),
-                    3,
-                    '0'
-                );
-            case DAY_OF_ISO_WEEK_NUMBERING_YEAR, DAY_OF_ISO_WEEK_NUMBERING_YEAR_LOWER -> padStart(
-                    String.valueOf(
-                        ((datetime.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR) - 1) * 7) + datetime.getDayOfWeek().getValue()),
-                    3,
-                    '0'
-                );
-            case DAY_OF_MONTH, DAY_OF_MONTH_LOWER -> padStart(
-                    String.valueOf(datetime.getDayOfMonth()),
-                    2,
-                    '0'
-                );
-            case DAY_OF_WEEK, DAY_OF_WEEK_LOWER -> String.valueOf((datetime.getDayOfWeek().getValue() % 7) + 1);
-            case ISO_DAY_OF_WEEK, ISO_DAY_OF_WEEK_LOWER -> String.valueOf(datetime.getDayOfWeek().getValue());
-            case WEEK_OF_MONTH, WEEK_OF_MONTH_LOWER -> String.valueOf((datetime.getDayOfMonth() / 7) + 1);
-            case WEEK_NUMBER_OF_YEAR, WEEK_NUMBER_OF_YEAR_LOWER -> padStart(
-                    String.valueOf(datetime.get(WEEK_OF_YEAR)),
-                    2,
-                    '0'
-                );
-            case WEEK_NUMBER_OF_ISO_YEAR, WEEK_NUMBER_OF_ISO_YEAR_LOWER -> padStart(
-                    String.valueOf(datetime.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR)),
-                    2,
-                    '0'
-                );
-            case CENTURY, CENTURY_LOW -> String.valueOf(((datetime.getYear() - 1) / 100) + 1);
-            case JULIAN_DAY, JULIAN_DAY_LOWER -> String.valueOf(datetime.getLong(JulianFields.JULIAN_DAY));
-            case QUARTER, QUARTER_LOWER -> String.valueOf((datetime.getMonthValue() + 2) / 3);
+                ));
+            case ABBREVIATED_DAY_LOWER -> sb.append(datetime.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH).toLowerCase(Locale.ENGLISH));
+            case DAY_OF_YEAR, DAY_OF_YEAR_LOWER -> StringUtils.padStart(sb, String.valueOf(datetime.getDayOfYear()), 3, '0');
+            case DAY_OF_ISO_WEEK_NUMBERING_YEAR, DAY_OF_ISO_WEEK_NUMBERING_YEAR_LOWER -> StringUtils.padStart(sb, String.valueOf(
+((datetime.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR) - 1) * 7) + datetime.getDayOfWeek().getValue()), 3, '0');
+            case DAY_OF_MONTH, DAY_OF_MONTH_LOWER -> StringUtils.padStart(sb, String.valueOf(datetime.getDayOfMonth()), 2, '0');
+            case DAY_OF_WEEK, DAY_OF_WEEK_LOWER -> sb.append((datetime.getDayOfWeek().getValue() % 7) + 1);
+            case ISO_DAY_OF_WEEK, ISO_DAY_OF_WEEK_LOWER -> sb.append(datetime.getDayOfWeek().getValue());
+            case WEEK_OF_MONTH, WEEK_OF_MONTH_LOWER -> sb.append((datetime.getDayOfMonth() / 7) + 1);
+            case WEEK_NUMBER_OF_YEAR, WEEK_NUMBER_OF_YEAR_LOWER -> StringUtils.padStart(sb, String.valueOf(datetime.get(WEEK_OF_YEAR)), 2, '0');
+            case WEEK_NUMBER_OF_ISO_YEAR, WEEK_NUMBER_OF_ISO_YEAR_LOWER -> StringUtils.padStart(sb, String.valueOf(datetime.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR)), 2, '0');
+            case CENTURY, CENTURY_LOW -> sb.append(((datetime.getYear() - 1) / 100) + 1);
+            case JULIAN_DAY, JULIAN_DAY_LOWER -> sb.append(datetime.getLong(JulianFields.JULIAN_DAY));
+            case QUARTER, QUARTER_LOWER -> sb.append((datetime.getMonthValue() + 2) / 3);
             case ROMAN_MONTH_UPPER -> padEnd(
+                    sb,
                     toRoman(datetime.getMonthValue()).toUpperCase(Locale.ENGLISH),
                     4,
                     ' '
                 );
             case ROMAN_MONTH_LOWER -> padEnd(
+                    sb,
                     toRoman(datetime.getMonthValue()).toLowerCase(Locale.ENGLISH),
                     4,
                     ' '
@@ -464,7 +454,9 @@ public class PGDateTimeTemplates {
                  TIMEZONE_MINUTES,
                  TIMEZONE_MINUTES_LOWER,
                  TIMEZONE_OFFSET_FROM_UTC,
-                 TIMEZONE_OFFSET_FROM_UTC_LOWER -> "";
+                 TIMEZONE_OFFSET_FROM_UTC_LOWER -> {
+            }
+            default -> throw new IllegalArgumentException("Unexpected pattern: " + pattern);
         };
     }
 
