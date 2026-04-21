@@ -78,6 +78,10 @@ None
 Scalar and Aggregation Functions
 --------------------------------
 
+- Added support for ``TH`` and ``th`` template patterns to the :ref:`to_char
+  <scalar-to_char>` scalar function which can be used to add a ordinal suffix
+  for numbers.
+
 - `Robert Palmer <https://github.com/robd003>`_ added the
   :ref:`blake3 <scalar-blake3>` scalar function for computing BLAKE3 checksums of
   strings.
