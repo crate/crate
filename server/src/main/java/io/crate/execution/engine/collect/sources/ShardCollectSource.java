@@ -478,7 +478,8 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                 ShardId shardId = new ShardId(index, shard.value);
                 try {
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
-                    shardRowContexts.add(shardCollectorProvider.shardRowContext());
+                    ShardRowContext shardRowContext = shardCollectorProvider.shardRowContext();
+                    shardRowContexts.add(shardRowContext);
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     unassignedShards.add(toUnassignedShard(index, shard.value));
                 }
