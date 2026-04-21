@@ -405,13 +405,6 @@ public class Translog extends AbstractIndexShardComponent implements Closeable {
     }
 
     /**
-     * Returns the size in bytes of the v files
-     */
-    public long sizeInBytes() {
-        return sizeInBytesByMinGen(-1);
-    }
-
-    /**
      * Returns the number of operations in the translog files at least the given generation
      */
     public int totalOperationsByMinGen(long minGeneration) {
@@ -826,12 +819,30 @@ public class Translog extends AbstractIndexShardComponent implements Closeable {
     public TranslogStats stats() {
         // acquire lock to make the two numbers roughly consistent (no file change half way)
         try (ReleasableLock _ = readLock.acquire()) {
+            ensureOpen();
             long uncommittedGen = getMinGenerationForSeqNo(deletionPolicy.getLocalCheckpointOfSafeCommit() + 1).translogFileGeneration;
+            int totalOperations = current.totalOperations();
+            long sizeInBytes = current.sizeInBytes();
+            int totalOperationsByMinGen = 0;
+            long sizeInBytesByMinGen = 0;
+            if (current.getGeneration() >= uncommittedGen) {
+                totalOperationsByMinGen += current.totalOperations();
+                sizeInBytesByMinGen += current.sizeInBytes();
+            }
+            for (var reader : readers) {
+                totalOperations += reader.totalOperations();
+                sizeInBytes += reader.sizeInBytes();
+                if (reader.getGeneration() >= uncommittedGen) {
+                    totalOperationsByMinGen += reader.totalOperations();
+                    sizeInBytesByMinGen += reader.sizeInBytes();
+                }
+            }
             return new TranslogStats(
-                totalOperations(),
-                sizeInBytes(),
-                totalOperationsByMinGen(uncommittedGen),
-                sizeInBytesByMinGen(uncommittedGen));
+                totalOperations,
+                sizeInBytes,
+                totalOperationsByMinGen,
+                sizeInBytesByMinGen
+            );
         }
     }
 
