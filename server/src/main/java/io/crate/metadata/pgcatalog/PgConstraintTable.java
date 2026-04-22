@@ -22,12 +22,15 @@
 package io.crate.metadata.pgcatalog;
 
 import static io.crate.metadata.pgcatalog.OidHash.constraintOid;
+import static io.crate.metadata.pgcatalog.OidHash.relationOid;
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.INTEGER_ARRAY;
 import static io.crate.types.DataTypes.SHORT_ARRAY;
 import static io.crate.types.DataTypes.STRING;
+
+import org.elasticsearch.cluster.metadata.Metadata;
 
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
@@ -50,7 +53,7 @@ public final class PgConstraintTable {
         .add("condeferrable", BOOLEAN, c -> false)
         .add("condeferred", BOOLEAN, c -> false)
         .add("convalidated", BOOLEAN, c -> true)
-        .add("conrelid", INTEGER, c -> c.relationInfo().oid())
+        .add("conrelid", INTEGER, c -> c.relationInfo().oid() == Metadata.OID_UNASSIGNED ? relationOid(c.relationInfo()) : c.relationInfo().oid())
         .add("contypid", INTEGER, c -> 0)
         .add("conindid", INTEGER, c -> 0)
         .add("conparentid", INTEGER, c -> 0)

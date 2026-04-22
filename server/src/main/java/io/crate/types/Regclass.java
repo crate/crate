@@ -23,6 +23,7 @@ package io.crate.types;
 
 import java.io.IOException;
 
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -40,7 +41,9 @@ public final class Regclass implements Comparable<Regclass>, Writeable {
 
 
     public static Regclass relationOid(RelationInfo relation) {
-        return new Regclass(relation.oid(), relation.ident().fqn());
+        int oid = relation.oid();
+        oid = oid == Metadata.OID_UNASSIGNED ? OidHash.relationOid(relation) : oid;
+        return new Regclass(oid, relation.ident().fqn());
     }
 
     public static Regclass primaryOid(RelationInfo relation) {
