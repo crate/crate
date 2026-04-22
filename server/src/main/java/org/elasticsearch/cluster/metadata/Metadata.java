@@ -982,8 +982,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return Metadata.getRelation(relation, schemas::get);
         }
 
-        public Builder setBlobTable(RelationName name, String indexUUID, Settings settings, State state) {
-            setRelation(new RelationMetadata.BlobTable(this.tableOidSupplier().nextOid(), name, indexUUID, settings, state));
+        public Builder setBlobTable(RelationName name, String indexUUID, Settings settings, State state, int tableOID) {
+            setRelation(new RelationMetadata.BlobTable(tableOID, name, indexUUID, settings, state));
             return this;
         }
 
@@ -1181,7 +1181,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
             SortedMap<String, AliasOrIndex> aliasAndIndexLookup = Collections.unmodifiableSortedMap(buildAliasAndIndexLookup());
 
-            assert validateTableOIDs(tableOidSupplier.peek());
+            validateTableOIDs(tableOidSupplier.peek());
 
             return new Metadata(
                 clusterUUID,
@@ -1200,30 +1200,28 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             );
         }
 
-        private boolean validateTableOIDs(int tableOidSupplierValue) {
+        private void validateTableOIDs(int tableOidSupplierValue) {
+            // do not validate if table oids are not assigned yet i.e. during upgrades or upgraded tables are assigned OID_UNASSIGNED
+            if (tableOidSupplierValue == OID_UNASSIGNED) {
+                return;
+            }
             BitSet relationOIDs = new BitSet(tableOidSupplierValue + 1);
             for (var schemaMetadata : schemas.values()) {
                 for (var relationMetadata : schemaMetadata.relations().values()) {
-                    Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(relationMetadata.settings());
                     int relationOID = relationMetadata.oid();
 
-                    // Skip below assert for tables created >= 6.0 and < 6.3.0 - for a single test case to pass -
-                    // test_6_1_object_reference_with_undefined_inner_type_and_no_child_reference
-                    if (relationMetadata instanceof RelationMetadata.View ||
-                        relationMetadata instanceof RelationMetadata.ForeignTable ||
-                        (versionCreated.onOrAfter(Version.V_6_0_0) && versionCreated.before(Version.V_6_3_0) && relationOID == 0)) {
+                    if (relationMetadata instanceof RelationMetadata.View || relationMetadata instanceof RelationMetadata.ForeignTable) {
                         continue;
                     }
 
-                    // below assert also implicitly validates that the current table OID supplier's value is greater than
-                    // zero when there is at least one relationMetadata
-                    assert relationOID > 0 && relationOID <= tableOidSupplierValue :
-                        "All OIDs assigned to tables are > 0 and they all are less than or equal to the current table OID supplier's value";
-                    assert !relationOIDs.get(relationOID) : "All Table OIDs are unique";
+                    // table oid can be unassigned - i.e. upgraded tables, recovered dangling indices
+                    assert relationOID >= 0 && relationOID <= tableOidSupplierValue :
+                        "Table OIDs are less than equal to tableOidSupplierValue and >= OID_UNASSIGNED";
+                    assert relationOID == 0 || !relationOIDs.get(relationOID) : "All Table OIDs are unique";
+
                     relationOIDs.set(relationOID);
                 }
             }
-            return true;
         }
 
         private SortedMap<String, AliasOrIndex> buildAliasAndIndexLookup() {
@@ -1857,6 +1855,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             nextOid = start;
         }
 
+        /**
+         * Returns the next available table oid.
+         * <p>
+         * WARNING: this method must only be called from the master node and assigned to tables.
+         * Non-master nodes must only receive the oids, never generate one.
+         */
         public int nextOid() {
             return ++nextOid;
         }

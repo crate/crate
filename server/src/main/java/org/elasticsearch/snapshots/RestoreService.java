@@ -642,7 +642,7 @@ public class RestoreService implements ClusterStateApplier {
                     table.state(),
                     Lists.concatUnique(existingTable.indexUUIDs(), indexUUIDs),
                     table.tableVersion(),
-                    mdBuilder.tableOidSupplier().nextOid()
+                    existingTable.oid() // use the existing table's oid when restoring a partition of the table
                 );
             } else if (existingRelation == null) {
                 if (snapshotRelation instanceof RelationMetadata.Table table) {

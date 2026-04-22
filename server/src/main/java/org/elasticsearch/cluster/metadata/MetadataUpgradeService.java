@@ -134,7 +134,7 @@ public class MetadataUpgradeService {
             assert relation == null
                 : "If there is still a template present there shouldn't be any RelationMetadata";
 
-            DocTableInfo docTable = tableFactory.create(template, newMetadata.tableOidSupplier().nextOid());
+            DocTableInfo docTable = tableFactory.create(template, OID_UNASSIGNED);
             Version versionCreated = getFixedVersionCreated(metadata, docTable);
 
             // versionCreated could be missing from the template settings and "calculated" afterwards
@@ -161,7 +161,7 @@ public class MetadataUpgradeService {
                 docTable.isClosed() ? IndexMetadata.State.CLOSE : IndexMetadata.State.OPEN,
                 List.of(),
                 docTable.tableVersion(),
-                docTable.oid()
+                OID_UNASSIGNED
             );
         }
 
@@ -186,7 +186,7 @@ public class MetadataUpgradeService {
                 RelationName relationName = indexParts.toRelationName();
                 relation = newMetadata.getRelation(relationName);
                 if (!BlobIndex.isBlobIndex(indexName)) {
-                    tableInfo = tableFactory.create(newIndexMetadata, newMetadata.tableOidSupplier().nextOid());
+                    tableInfo = tableFactory.create(newIndexMetadata, OID_UNASSIGNED);
                 }
             }
             if (relation == null) {
@@ -207,14 +207,15 @@ public class MetadataUpgradeService {
                         newIndexMetadata.getState(),
                         List.of(newIndexMetadata.getIndexUUID()),
                         docTable.tableVersion(),
-                        docTable.oid()
+                        OID_UNASSIGNED
                     );
                 } else if (BlobIndex.isBlobIndex(indexName)) {
                     newMetadata.setBlobTable(
                         RelationName.fromIndexName(indexName),
                         indexUUID,
                         newIndexMetadata.getSettings(),
-                        newIndexMetadata.getState()
+                        newIndexMetadata.getState(),
+                        OID_UNASSIGNED
                     );
                 } else {
                     throw new AssertionError("If the relation is missing we need a DocTableInfo instance or it must be a blob index");

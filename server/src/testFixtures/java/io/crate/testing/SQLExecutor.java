@@ -954,6 +954,7 @@ public class SQLExecutor {
             Row.EMPTY,
             SubQueryResults.EMPTY,
             new NumberOfShards(clusterService));
+        settings = Settings.builder().put(settings).put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT).build();
 
         ClusterState prevState = clusterService.state();
         RelationName relationName = analyzedStmt.relationName();
@@ -965,7 +966,7 @@ public class SQLExecutor {
 
         Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
         mdBuilder
-            .setBlobTable(relationName, indexMetadata.getIndexUUID(), settings, State.OPEN)
+            .setBlobTable(relationName, indexMetadata.getIndexUUID(), settings, State.OPEN, mdBuilder.tableOidSupplier().nextOid())
             .put(indexMetadata, true);
         ClusterState state = ClusterState.builder(prevState)
             .metadata(mdBuilder)
