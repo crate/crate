@@ -33,12 +33,15 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.seqno.RetentionLease;
+import org.elasticsearch.index.seqno.RetentionLeaseStats;
+import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.MergeStats;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.StoreStats;
+import org.elasticsearch.index.translog.TranslogStats;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.blob.v2.BlobShard;
@@ -62,6 +65,15 @@ public class ShardRowContext {
     private final String blobPath;
     private final Supplier<Boolean> orphanedPartitionSupplier;
     private final MergeStats mergeStats;
+
+    @Nullable
+    private TranslogStats translogStats = null;
+
+    @Nullable
+    private SeqNoStats seqNoStats = null;
+
+    @Nullable
+    private RetentionLeaseStats retentionLeaseStats = null;
 
     public ShardRowContext(IndexShard indexShard, ClusterService clusterService) {
         this(indexShard, null, clusterService, () -> {
@@ -194,9 +206,18 @@ public class ShardRowContext {
         }
     }
 
+    private SeqNoStats seqNoStats() {
+        if (seqNoStats == null) {
+            SeqNoStats stats = indexShard.seqNoStats();
+            seqNoStats = stats;
+            return stats;
+        }
+        return seqNoStats;
+    }
+
     public long maxSeqNo() {
         try {
-            var stats = indexShard.seqNoStats();
+            var stats = seqNoStats();
             return stats.getMaxSeqNo();
         } catch (AlreadyClosedException e) {
             return 0L;
@@ -205,7 +226,7 @@ public class ShardRowContext {
 
     public long localSeqNoCheckpoint() {
         try {
-            var stats = indexShard.seqNoStats();
+            var stats = seqNoStats();
             return stats.getLocalCheckpoint();
         } catch (AlreadyClosedException e) {
             return 0L;
@@ -214,17 +235,26 @@ public class ShardRowContext {
 
     public long globalSeqNoCheckpoint() {
         try {
-            var stats = indexShard.seqNoStats();
+            var stats = seqNoStats();
             return stats.getGlobalCheckpoint();
         } catch (AlreadyClosedException e) {
             return 0L;
         }
     }
 
+    private TranslogStats translogStats() {
+        if (translogStats == null) {
+            TranslogStats stats = indexShard.translogStats();
+            translogStats = stats;
+            return stats;
+        }
+        return translogStats;
+    }
+
     @Nullable
     public Long translogSizeInBytes() {
         try {
-            var stats = indexShard.translogStats();
+            var stats = translogStats();
             return stats == null ? null : stats.getTranslogSizeInBytes();
         } catch (AlreadyClosedException e) {
             return 0L;
@@ -234,7 +264,7 @@ public class ShardRowContext {
     @Nullable
     public Long translogUncommittedSizeInBytes() {
         try {
-            var stats = indexShard.translogStats();
+            var stats = translogStats();
             return stats == null ? null : stats.getUncommittedSizeInBytes();
         } catch (AlreadyClosedException e) {
             return 0L;
@@ -244,7 +274,7 @@ public class ShardRowContext {
     @Nullable
     public Integer translogEstimatedNumberOfOperations() {
         try {
-            var stats = indexShard.translogStats();
+            var stats = translogStats();
             return stats == null ? null : stats.estimatedNumberOfOperations();
         } catch (AlreadyClosedException e) {
             return 0;
@@ -254,7 +284,7 @@ public class ShardRowContext {
     @Nullable
     public Integer translogUncommittedOperations() {
         try {
-            var stats = indexShard.translogStats();
+            var stats = translogStats();
             return stats == null ? null : stats.getUncommittedOperations();
         } catch (AlreadyClosedException e) {
             return 0;
@@ -349,9 +379,18 @@ public class ShardRowContext {
             : recoveryState.getIndex().recoveredFilesPercent();
     }
 
+    private RetentionLeaseStats retentionLeaseStats() {
+        if (retentionLeaseStats == null) {
+            RetentionLeaseStats stats = indexShard.getRetentionLeaseStats();
+            retentionLeaseStats = stats;
+            return stats;
+        }
+        return retentionLeaseStats;
+    }
+
     public Long retentionLeasesPrimaryTerm() {
         try {
-            return indexShard.getRetentionLeaseStats().leases().primaryTerm();
+            return retentionLeaseStats().leases().primaryTerm();
         } catch (AlreadyClosedException | IndexShardClosedException e) {
             return null;
         }
@@ -359,7 +398,7 @@ public class ShardRowContext {
 
     public Long retentionLeasesVersion() {
         try {
-            return indexShard.getRetentionLeaseStats().leases().version();
+            return retentionLeaseStats().leases().version();
         } catch (AlreadyClosedException | IndexShardClosedException e) {
             return null;
         }
@@ -367,7 +406,7 @@ public class ShardRowContext {
 
     public Collection<RetentionLease> retentionLeases() {
         try {
-            return indexShard.getRetentionLeaseStats().leases().leases();
+            return retentionLeaseStats().leases().leases();
         } catch (AlreadyClosedException | IndexShardClosedException e) {
             return List.of();
         }
@@ -399,5 +438,11 @@ public class ShardRowContext {
 
     public long refreshPendingCount() {
         return indexShard.refreshListenerCount();
+    }
+
+    public void reset() {
+        translogStats = null;
+        seqNoStats = null;
+        retentionLeaseStats = null;
     }
 }

@@ -144,6 +144,7 @@ public abstract class ShardCollectorProvider {
     }
 
     public ShardRowContext shardRowContext() {
+        shardRowContext.reset();
         return shardRowContext;
     }
 
