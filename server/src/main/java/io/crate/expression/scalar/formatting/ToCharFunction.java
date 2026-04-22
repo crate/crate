@@ -25,7 +25,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.TimeZone;
-import java.util.stream.Stream;
 
 import org.elasticsearch.common.TriFunction;
 import org.joda.time.Period;
@@ -43,6 +42,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.role.Roles;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.TimestampType;
 
 
 public class ToCharFunction extends Scalar<String, Object> {
@@ -50,30 +50,30 @@ public class ToCharFunction extends Scalar<String, Object> {
     public static final String NAME = "to_char";
 
     public static void register(Functions.Builder module) {
-        Stream.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ)
-            .forEach(type -> {
-                module.add(
-                    Signature.builder(NAME, FunctionType.SCALAR)
-                        .argumentTypes(type.getTypeSignature(),
-                            DataTypes.STRING.getTypeSignature())
-                        .returnType(DataTypes.STRING.getTypeSignature())
-                        .features(Feature.DETERMINISTIC)
-                        .build(),
-                    (signature, boundSignature) ->
-                        new ToCharFunction(
-                            signature,
-                            boundSignature,
-                            ToCharFunction::evaluateTimestamp
-                        )
-                );
-            });
-
+        for (var type : new TimestampType[] { DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ }) {
+            module.add(
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(
+                        type.getTypeSignature(),
+                        DataTypes.STRING.getTypeSignature())
+                    .returnType(DataTypes.STRING.getTypeSignature())
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
+                    .build(),
+                (signature, boundSignature) ->
+                    new ToCharFunction(
+                        signature,
+                        boundSignature,
+                        ToCharFunction::evaluateTimestamp
+                    )
+            );
+        }
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
+                .argumentTypes(
+                    DataTypes.INTERVAL.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new ToCharFunction(
