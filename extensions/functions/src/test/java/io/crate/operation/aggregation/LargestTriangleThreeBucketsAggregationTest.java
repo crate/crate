@@ -44,6 +44,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.LargestTriangleThreeBucketsAggregation.LttbState;
+import io.crate.testing.PlainRamAccounting;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -192,4 +193,71 @@ public class LargestTriangleThreeBucketsAggregationTest extends AggregationTestC
                 .isExactlyInstanceOf(ClassCastException.class);
     }
 
+    @Test
+    public void test_reduce_should_handle_uninitialized_state1() throws Exception {
+        AggregationFunction<LttbState, Map<String, List<? extends Number>>> func = getFunc();
+        LttbState state1 = new LttbState();
+        LttbState state2 = func.newState(
+                RamAccounting.NO_ACCOUNTING, Version.CURRENT, memoryManager);
+        func.iterate(RamAccounting.NO_ACCOUNTING, memoryManager, state2, Literal.of(1L),
+                Literal.of(1.0), Literal.of(3));
+        assertThat(state1.isInitialized()).isFalse();
+
+        LttbState newState = func.reduce(RamAccounting.NO_ACCOUNTING, state1, state2);
+
+        assertThat(newState.getPoints()).extracting(i -> i.timestamp).containsExactly(1L);
+        assertThat(newState.getPoints()).extracting(i -> i.value).containsExactly(1.0);
+        assertThat(newState.getThreshold()).isEqualTo(3);
+    }
+
+    @Test
+    public void test_reduce_should_merge_states() throws Exception {
+        AggregationFunction<LttbState, Map<String, List<? extends Number>>> func = getFunc();
+        LttbState state1 = func.newState(
+                RamAccounting.NO_ACCOUNTING, Version.CURRENT, memoryManager);
+        LttbState state2 = func.newState(
+                RamAccounting.NO_ACCOUNTING, Version.CURRENT, memoryManager);
+
+        func.iterate(RamAccounting.NO_ACCOUNTING, memoryManager, state1, Literal.of(1L),
+                Literal.of(1.0), Literal.of(3));
+        func.iterate(RamAccounting.NO_ACCOUNTING, memoryManager, state2, Literal.of(2L),
+                Literal.of(2.0), Literal.of(3));
+
+        LttbState newState = func.reduce(RamAccounting.NO_ACCOUNTING, state1, state2);
+
+        assertThat(newState.getPoints()).extracting(i -> i.timestamp).containsExactly(1L, 2L);
+        assertThat(newState.getPoints()).extracting(i -> i.value).containsExactly(1.0, 2.0);
+        assertThat(newState.getThreshold()).isEqualTo(3);
+    }
+
+    @Test
+    public void test_should_account_for_memory_when_creating_new_state() throws Exception {
+        AggregationFunction<LttbState, Map<String, List<? extends Number>>> func = getFunc();
+        RamAccounting ramAccounting = new PlainRamAccounting();
+        func.newState(ramAccounting, Version.CURRENT, memoryManager);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(LttbState.SHALLOW_SIZE);
+    }
+
+    @Test
+    public void test_raises_when_memory_exceeds_threshold() throws Exception {
+        AggregationFunction<LttbState, Map<String, List<? extends Number>>> func = getFunc();
+        LttbState state = func.newState(
+                RamAccounting.NO_ACCOUNTING, Version.CURRENT, memoryManager);
+
+        // store the amount of memory used for one iteration
+        RamAccounting startRamAccounting = new PlainRamAccounting();
+        func.iterate(startRamAccounting, memoryManager, state, Literal.of(1L),
+                Literal.of(1.0), Literal.of(3));
+
+        // allow enough memory to be used for one more iteration, after which all
+        // allotted memory for this aggregation is used
+        RamAccounting limitRamAccounting = new PlainRamAccounting(startRamAccounting.totalBytes());
+        func.iterate(limitRamAccounting, memoryManager, state, Literal.of(1L),
+                Literal.of(1.0), Literal.of(3));
+
+        assertThatThrownBy(
+                () -> func.iterate(limitRamAccounting, memoryManager, state, Literal.of(1L), Literal.of(1.0),
+                        Literal.of(3)))
+                .isExactlyInstanceOf(RuntimeException.class);
+    }
 }
