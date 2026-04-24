@@ -23,6 +23,7 @@ package io.crate.types;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Locale;
@@ -31,6 +32,10 @@ import java.util.function.Function;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.exception.InvalidShapeException;
 import org.locationtech.spatial4j.io.WKTReader;
@@ -112,35 +117,15 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
             return point;
         } else if (value instanceof Double[] doubles) {
             checkLengthIs2(doubles.length);
-            if (doubles[0] == null || doubles[1] == null) {
-                return null;
-            }
-            ensurePointsInRange(doubles[0], doubles[1]);
-            return new PointImpl(doubles[0], doubles[1], JtsSpatialContext.GEO);
+            return pointFromCoordinates(doubles[0], doubles[1]);
         } else if (value instanceof Object[] values) {
             checkLengthIs2(values.length);
-            if (values[0] == null || values[1] == null) {
-                return null;
-            }
-            PointImpl point = new PointImpl(
-                ((Number) values[0]).doubleValue(),
-                ((Number) values[1]).doubleValue(),
-                JtsSpatialContext.GEO);
-            ensurePointsInRange(point.getX(), point.getY());
-            return point;
+            return pointFromCoordinates(values[0], values[1]);
         } else if (value instanceof String str) {
             return pointFromString(str);
         } else if (value instanceof List<?> values) {
             checkLengthIs2(values.size());
-            if (values.getFirst() == null || values.getLast() == null) {
-                return null;
-            }
-            PointImpl point = new PointImpl(
-                ((Number) values.get(0)).doubleValue(),
-                ((Number) values.get(1)).doubleValue(),
-                JtsSpatialContext.GEO);
-            ensurePointsInRange(point.getX(), point.getY());
-            return point;
+            return pointFromCoordinates(values.getFirst(), values.getLast());
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
@@ -152,21 +137,13 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
             return null;
         } else if (value instanceof List<?> values) {
             checkLengthIs2(values.size());
-            if (values.getFirst() == null || values.getLast() == null) {
-                return null;
-            }
-            PointImpl point = new PointImpl(
-                ((Number) values.get(0)).doubleValue(),
-                ((Number) values.get(1)).doubleValue(),
-                JtsSpatialContext.GEO);
-            ensurePointsInRange(point.getX(), point.getY());
-            return point;
+            return pointFromCoordinates(values.getFirst(), values.getLast());
         } else {
             return (Point) value;
         }
     }
 
-    private void ensurePointsInRange(double x, double y) {
+    private static void ensurePointsInRange(double x, double y) {
         if (!arePointsInRange(x, y)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Failed to validate geo point [lon=%f, lat=%f], not a valid location.",
@@ -186,12 +163,44 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     }
 
     private static Point pointFromString(String value) {
+        String trimmed = value.trim();
+
+        if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+            return pointFromJsonArray(trimmed);
+        }
+
         try {
             return (Point) WKT_READER.parse(value);
         } catch (ParseException | InvalidShapeException e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Cannot convert \"%s\" to geo_point. %s", value, e.getLocalizedMessage()), e);
         }
+    }
+
+    private static Point pointFromJsonArray(String value) {
+        try (XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            value.getBytes(StandardCharsets.UTF_8)
+        )) {
+            List<Object> values = parser.list();
+            checkLengthIs2(values.size());
+            return pointFromCoordinates(values.getFirst(), values.getLast());
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Cannot parse `" + value + "` as geo_point", e);
+        }
+    }
+
+    private static Point pointFromCoordinates(Object lon, Object lat) {
+        if (lon == null || lat == null) {
+            return null;
+        }
+        PointImpl point = new PointImpl(
+            ((Number) lon).doubleValue(),
+            ((Number) lat).doubleValue(),
+            JtsSpatialContext.GEO);
+        ensurePointsInRange(point.getX(), point.getY());
+        return point;
     }
 
     @Override

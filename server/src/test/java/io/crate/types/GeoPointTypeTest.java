@@ -131,6 +131,48 @@ public class GeoPointTypeTest extends DataTypeTestCase<Point> {
             .hasMessage("Failed to validate geo point [lon=-187.654000, lat=123.456000], not a valid location.");
     }
 
+    @Test
+    public void test_cast_array_format_string_to_geo_point() throws Exception {
+        Point value = DataTypes.GEO_POINT.implicitCast("[14.988999953493476, 51.10299998894334]");
+        assertThat(value.getX()).isCloseTo(14.988999953493476d, Offset.offset(0.0001));
+        assertThat(value.getY()).isCloseTo(51.10299998894334d, Offset.offset(0.0001));
+    }
+
+    @Test
+    public void test_cast_exported_array_format_string_to_geo_point() throws Exception {
+        Point value = DataTypes.GEO_POINT.implicitCast("[11.888655507937074, 51.0029999865219]");
+        assertThat(value.getX()).isCloseTo(11.888655507937074d, Offset.offset(0.0001));
+        assertThat(value.getY()).isCloseTo(51.0029999865219d, Offset.offset(0.0001));
+    }
+
+    @Test
+    public void test_cast_array_format_string_without_spaces() throws Exception {
+        Point value = DataTypes.GEO_POINT.implicitCast("[11.58862218260765,50.90299998410046]");
+        assertThat(value.getX()).isCloseTo(11.58862218260765d, Offset.offset(0.0001));
+        assertThat(value.getY()).isCloseTo(50.90299998410046d, Offset.offset(0.0001));
+    }
+
+    @Test
+    public void test_cast_array_format_string_with_extra_spaces() throws Exception {
+        Point value = DataTypes.GEO_POINT.implicitCast("[  11.58862218260765  ,  50.90299998410046  ]");
+        assertThat(value.getX()).isCloseTo(11.58862218260765d, Offset.offset(0.0001));
+        assertThat(value.getY()).isCloseTo(50.90299998410046d, Offset.offset(0.0001));
+    }
+
+    @Test
+    public void test_cast_array_format_string_invalid_longitude_throws_exception() {
+        assertThatThrownBy(() -> DataTypes.GEO_POINT.implicitCast("[187.654, 51.1]"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Failed to validate geo point [lon=187.654000, lat=51.100000], not a valid location.");
+    }
+
+    @Test
+    public void test_cast_array_format_string_invalid_latitude_throws_exception() {
+        assertThatThrownBy(() -> DataTypes.GEO_POINT.implicitCast("[14.98, 91.1]"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Failed to validate geo point [lon=14.980000, lat=91.100000], not a valid location.");
+    }
+
     @Override
     public void test_reference_resolver_docvalues_off() throws Exception {
         assumeFalse("GeoPointType cannot disable column store", true);
