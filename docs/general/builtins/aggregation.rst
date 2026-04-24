@@ -1029,9 +1029,13 @@ preserve the visual representation (shape) of the data by using the
 Steinarsson at the University of Iceland.
 
 The first argument is expected to be a reference to a timestamp column. The
-second argument can be :ref:`NUMERIC <type-numeric>`.
+second argument can be :ref:`NUMERIC <type-numeric>`. During the aggregation,
+the values in this column will be implictly cast to :ref:`DOUBLE PRECISION <type-double-precision>`.
 The third argument is expected to be an ``integer`` representing
 the number of datapoints returned after downsampling.
+
+Note: ``lttb`` is a memory intensive operation because it will gather all 
+datapoints specified by the query into memory before downsampling
 
 ``lttb`` returns an ``OBJECT`` of points selected by the algorithm
 in the following format::
