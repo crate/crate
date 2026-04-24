@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -63,11 +64,13 @@ public final class LargestTriangleThreeBucketsAggregation
     private final BoundSignature boundSignature;
 
     public static class Point {
-        // timestamp extends the Long type
-        public final Long timestamp;
-        public final Double value;
+        public static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(Point.class);
 
-        public Point(Long timestamp, Double value) {
+        // timestamp extends the Long type
+        public final long timestamp;
+        public final double value;
+
+        public Point(long timestamp, double value) {
             this.timestamp = timestamp;
             this.value = value;
         }
@@ -100,8 +103,9 @@ public final class LargestTriangleThreeBucketsAggregation
         if (state1.isInitialized() == false) {
             return state2;
         }
+
         if (state2.isInitialized()) {
-            state1.merge(state2);
+            state1.merge(ramAccounting, state2);
         }
         return state1;
     }
@@ -125,6 +129,7 @@ public final class LargestTriangleThreeBucketsAggregation
     public LttbState newState(RamAccounting ramAccounting,
             Version minNodeInCluster,
             MemoryManager memoryManager) {
+        ramAccounting.addBytes(LttbState.SHALLOW_SIZE);
         return new LttbState();
     }
 
@@ -144,11 +149,11 @@ public final class LargestTriangleThreeBucketsAggregation
         }
 
         if (state.isInitialized() == false) {
-            state.init(memoryManager, threshold);
+            state.init(ramAccounting, threshold);
         }
 
         if (timestamp != null && value != null) {
-            state.addPoint(timestamp, value);
+            state.addPoint(ramAccounting, timestamp, value);
         }
         return state;
     }
@@ -171,6 +176,8 @@ public final class LargestTriangleThreeBucketsAggregation
     }
 
     public static class LttbState implements Comparable<LttbState>, Writeable {
+        public static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(LttbState.class);
+
         private List<Point> points;
         private boolean initialized;
         // The number of data points to be returned
@@ -189,8 +196,8 @@ public final class LargestTriangleThreeBucketsAggregation
                 int size = in.readVInt();
                 this.points = new ArrayList<>(size);
                 for (int i = 0; i < size; i++) {
-                    Long timestamp = in.readLong();
-                    Double value = in.readDouble();
+                    long timestamp = in.readLong();
+                    double value = in.readDouble();
                     this.points.add(new Point(timestamp, value));
                 }
             } else {
@@ -222,9 +229,10 @@ public final class LargestTriangleThreeBucketsAggregation
             }
         }
 
-        void init(MemoryManager memoryManager, Integer threshold) {
+        void init(RamAccounting ramAccounting, Integer threshold) {
             assert initialized == false : "LttbState was already initialized";
             points = new ArrayList<>();
+            ramAccounting.addBytes(RamUsageEstimator.shallowSizeOfInstance(ArrayList.class));
             this.threshold = threshold;
             initialized = true;
         }
@@ -233,15 +241,20 @@ public final class LargestTriangleThreeBucketsAggregation
             return initialized;
         }
 
-        public void addPoint(Long timestamp, Double value) {
+        public void addPoint(RamAccounting ramAccounting, Long timestamp, Double value) {
+            assert initialized == true
+                    : "LttbState has not yet been initialized. It needs to be initialized before adding a point";
             points.add(new Point(timestamp, value));
+            ramAccounting.addBytes(Point.SHALLOW_SIZE);
         }
 
-        public LttbState merge(LttbState other) {
+        public LttbState merge(RamAccounting ramAccounting, LttbState other) {
             if (other.threshold != this.threshold) {
                 throw new IllegalStateException("The thresholds between the two LttbStates do not match");
             }
-            this.points.addAll(other.points);
+            for (Point p : other.points) {
+                addPoint(ramAccounting, p.timestamp, p.value);
+            }
             return this;
         }
 
