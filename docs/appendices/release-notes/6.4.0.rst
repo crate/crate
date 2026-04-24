@@ -72,7 +72,10 @@ SQL Standard and PostgreSQL Compatibility
 Data Types
 ----------
 
-None
+- Added support for ``geo_point`` values in JSON array string format, for
+  example ``"[14.988999953493476, 51.10299998894334]"``. This allows CSV files
+  containing ``geo_point`` values in this format to be imported without
+  transforming the source data first.
 
 
 Scalar and Aggregation Functions
