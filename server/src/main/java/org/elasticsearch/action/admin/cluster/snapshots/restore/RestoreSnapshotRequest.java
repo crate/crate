@@ -291,8 +291,6 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         }
         if (version.onOrAfter(Version.V_6_3_0)) {
             out.writeBoolean(includeViews);
-        } else {
-            out.writeBoolean(Arrays.asList(customMetadataTypes).contains("VIEWS"));
         }
     }
 
