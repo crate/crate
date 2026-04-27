@@ -39,14 +39,15 @@ class SQLBulkArgsParseElement extends SQLArgsParseElement {
         context.bulkArgs(parseSubArrays(parser));
     }
 
-    private List<List<Object>> parseSubArrays(XContentParser parser) throws IOException {
+    private static List<List<Object>> parseSubArrays(XContentParser parser) throws IOException {
         XContentParser.Token token;
         ArrayList<List<Object>> bulkArgs = new ArrayList<>();
         while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
             if (token == XContentParser.Token.START_ARRAY) {
                 bulkArgs.add(parseSubArray(parser));
             } else {
-                throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
+                throw new SQLParseSourceException(
+                    "`bulk_args` must contain a list of `args` (values list). Got unexpected: " + token);
             }
         }
         return bulkArgs;

@@ -32,12 +32,12 @@ class SQLArgsParseElement implements SQLParseElement {
     public void parse(XContentParser parser, SQLRequestParseContext context) throws Exception {
         XContentParser.Token token = parser.currentToken();
         if (token != XContentParser.Token.START_ARRAY) {
-            throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
+            throw new SQLParseSourceException("`args` must start with an array, not `" + token + "`");
         }
         context.args(parseSubArray(parser));
     }
 
-    ArrayList<Object> parseSubArray(XContentParser parser) throws IOException {
+    static ArrayList<Object> parseSubArray(XContentParser parser) throws IOException {
         XContentParser.Token token;
         ArrayList<Object> args = new ArrayList<>();
         while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {

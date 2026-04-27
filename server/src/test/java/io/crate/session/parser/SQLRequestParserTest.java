@@ -21,14 +21,24 @@
 
 package io.crate.session.parser;
 
-import org.elasticsearch.ElasticsearchException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * An exception thrown if the XContent source of a request cannot be parsed.
- */
-class SQLParseSourceException extends ElasticsearchException {
+import org.elasticsearch.common.bytes.BytesArray;
+import org.junit.jupiter.api.Test;
 
-    SQLParseSourceException(String msg) {
-        super(msg);
+public class SQLRequestParserTest {
+
+    @Test
+    public void test_fails_on_args_that_are_no_array() throws Exception {
+        assertThatThrownBy(() ->
+            SQLRequestParser.parseSource(new BytesArray(
+                """
+                {
+                    "stmt": "select ?",
+                    "args": {"invalid"}
+                }
+                """
+            ))
+        ).hasMessage("`args` must start with an array, not `START_OBJECT`");
     }
 }

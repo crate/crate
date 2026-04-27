@@ -69,9 +69,11 @@ public final class SQLRequestParser {
                 NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, source.streamInput());
             parse(parseContext, parser);
             if (parseContext.stmt() == null) {
-                throw new SQLParseSourceException("Field [stmt] was not defined");
+                throw new SQLParseSourceException("Field [stmt] is missing");
             }
             return parseContext;
+        } catch (SQLParseSourceException e) {
+            throw e;
         } catch (Exception e) {
             String sSource = "_na_";
             try {
@@ -79,7 +81,7 @@ public final class SQLRequestParser {
             } catch (Throwable e1) {
                 // ignore
             }
-            throw new SQLParseException("Failed to parse source [" + sSource + "]", e);
+            throw new SQLParseException("Can't parse [" + sSource + "]. Expecting payload with `stmt` string and `args` or `bulk_args` arrays", e);
         } finally {
             if (parser != null) {
                 parser.close();

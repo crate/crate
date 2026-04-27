@@ -174,8 +174,10 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         var response = post("{\"foo\": \"bar\"}");
         assertThat(response.statusCode()).isEqualTo(400);
         assertThat(response.body()).startsWith(
-            "{\"error\":{\"message\":\"SQLParseException[Failed to parse source" +
-            " [{\\\"foo\\\": \\\"bar\\\"}]]\",\"code\":4000},");
+            """
+            {"error":{"message":"SQLParseException[Can't parse [{\\"foo\\": \\"bar\\"}]. Expecting payload with `stmt` string and `args` or `bulk_args` arrays]","code":4000}
+            """.strip()
+        );
     }
 
     @Test

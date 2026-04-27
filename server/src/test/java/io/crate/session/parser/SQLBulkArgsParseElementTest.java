@@ -65,6 +65,6 @@ public class SQLBulkArgsParseElementTest extends ESTestCase {
     public void testInvalidBulkArgsArray() throws Exception {
         assertThatThrownBy(() -> parse("[[\"hello\"], null]"))
             .isExactlyInstanceOf(SQLParseSourceException.class)
-            .hasMessage("Parse Failure [Field [null] has an invalid value]");
+            .hasMessage("`bulk_args` must contain a list of `args` (values list). Got unexpected: VALUE_NULL");
     }
 }
