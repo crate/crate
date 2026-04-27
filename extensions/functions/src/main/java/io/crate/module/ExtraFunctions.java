@@ -27,7 +27,7 @@ import io.crate.metadata.Functions.Builder;
 import io.crate.metadata.FunctionsProvider;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.operation.aggregation.HyperLogLogDistinctAggregation;
-import io.crate.operation.aggregation.LargestTriangleThreeBucketsAggregation;
+import io.crate.operation.aggregation.LTTBAggregation;
 import io.crate.window.NthValueFunctions;
 import io.crate.window.OffsetValueFunctions;
 import io.crate.window.RankFunctions;
@@ -36,10 +36,10 @@ public class ExtraFunctions implements FunctionsProvider {
 
     @Override
     public void addFunctions(Settings settings,
-            SessionSettingRegistry sessionSettingRegistry,
-            Builder builder) {
+                             SessionSettingRegistry sessionSettingRegistry,
+                             Builder builder) {
         HyperLogLogDistinctAggregation.register(builder);
-        LargestTriangleThreeBucketsAggregation.register(builder);
+        LTTBAggregation.register(builder);
         NthValueFunctions.register(builder);
         OffsetValueFunctions.register(builder);
         RankFunctions.register(builder);
