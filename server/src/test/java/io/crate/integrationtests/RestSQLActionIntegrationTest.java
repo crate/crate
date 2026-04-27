@@ -360,4 +360,23 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
             """.stripIndent().stripTrailing()
         );
     }
+
+    @Test
+    public void test_can_use_array_with_mixed_types_in_payload() throws Exception {
+        execute("create table doc.tbl (o object(ignored))");
+        String body =
+            """
+            {
+                "stmt": "insert into doc.tbl (o) values (?)",
+                "args": [{"o": {"xs": [{"y": 1}, "foo", true]}}]
+            }
+            """;
+        var response = post(body);
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).contains(
+            """
+            {"cols":[],"rows":[[]],"rowcount":1,"duration":
+            """.stripIndent().stripTrailing()
+        );
+    }
 }

@@ -49,6 +49,7 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
 import io.crate.Streamer;
+import io.crate.exceptions.ConversionException;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnPolicy;
 
@@ -309,7 +310,11 @@ public final class DataTypes {
                 for (var entry : map.entrySet()) {
                     Object key = entry.getKey();
                     Object val = entry.getValue();
-                    builder.setInnerType(key.toString(), guessType(val));
+                    try {
+                        builder.setInnerType(key.toString(), guessType(val));
+                    } catch (ConversionException ex) {
+                        yield ObjectType.of(ColumnPolicy.IGNORED).build();
+                    }
                 }
                 yield builder.build();
             }
