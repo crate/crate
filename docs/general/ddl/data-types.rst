@@ -3185,6 +3185,10 @@ using an array of doubles in the following format::
 
     [<lon_value>, <lat_value>]
 
+String values can also use the same JSON array representation, for example
+``"[<lon_value>, <lat_value>]"``. This is useful when importing
+``GEO_POINT`` values from string-based formats like CSV.
+
 Alternatively, a `WKT`_ string can also be used to declare geo points::
 
     'POINT ( <lon_value> <lat_value> )'

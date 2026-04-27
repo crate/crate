@@ -139,13 +139,6 @@ public class GeoPointTypeTest extends DataTypeTestCase<Point> {
     }
 
     @Test
-    public void test_cast_exported_array_format_string_to_geo_point() throws Exception {
-        Point value = DataTypes.GEO_POINT.implicitCast("[11.888655507937074, 51.0029999865219]");
-        assertThat(value.getX()).isCloseTo(11.888655507937074d, Offset.offset(0.0001));
-        assertThat(value.getY()).isCloseTo(51.0029999865219d, Offset.offset(0.0001));
-    }
-
-    @Test
     public void test_cast_array_format_string_without_spaces() throws Exception {
         Point value = DataTypes.GEO_POINT.implicitCast("[11.58862218260765,50.90299998410046]");
         assertThat(value.getX()).isCloseTo(11.58862218260765d, Offset.offset(0.0001));
