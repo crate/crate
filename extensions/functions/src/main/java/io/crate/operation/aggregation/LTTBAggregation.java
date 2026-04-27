@@ -24,7 +24,6 @@ package io.crate.operation.aggregation;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -48,9 +47,9 @@ import io.crate.types.DataTypes;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 
-public final class LargestTriangleThreeBucketsAggregation
+public final class LTTBAggregation
         extends
-        AggregationFunction<LargestTriangleThreeBucketsAggregation.LttbState, Map<String, List<? extends Number>>> {
+        AggregationFunction<LTTBAggregation.LttbState, Map<String, List<? extends Number>>> {
     static final String NAME = "lttb";
 
     static {
@@ -63,20 +62,11 @@ public final class LargestTriangleThreeBucketsAggregation
     private final Signature signature;
     private final BoundSignature boundSignature;
 
-    public static class Point {
+    record Point(long timestamp, double value) {
         public static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(Point.class);
-
-        // timestamp extends the Long type
-        public final long timestamp;
-        public final double value;
-
-        public Point(long timestamp, double value) {
-            this.timestamp = timestamp;
-            this.value = value;
-        }
     }
 
-    private LargestTriangleThreeBucketsAggregation(Signature signature, BoundSignature boundSignature) {
+    private LTTBAggregation(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -93,8 +83,7 @@ public final class LargestTriangleThreeBucketsAggregation
                             .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
                             .features(Scalar.Feature.DETERMINISTIC)
                             .build(),
-                    (signature, boundSignature) -> new LargestTriangleThreeBucketsAggregation(signature,
-                            boundSignature));
+                    LTTBAggregation::new);
         }
     }
 
@@ -160,19 +149,15 @@ public final class LargestTriangleThreeBucketsAggregation
 
     @Override
     public Map<String, List<? extends Number>> terminatePartial(RamAccounting ramAccounting, LttbState state) {
-        List<Long> sampledX = new ArrayList<>();
-        List<Double> sampledY = new ArrayList<>();
-        Map<String, List<? extends Number>> result = new HashMap<>();
-
         List<Point> sampled = state.downsample();
+        List<Long> sampledX = new ArrayList<>(sampled.size());
+        List<Double> sampledY = new ArrayList<>(sampled.size());
 
         for (Point p : sampled) {
             sampledX.add(p.timestamp);
             sampledY.add(p.value);
         }
-        result.put("x", sampledX);
-        result.put("y", sampledY);
-        return result;
+        return Map.of("x", sampledX, "y", sampledY);
     }
 
     public static class LttbState implements Comparable<LttbState>, Writeable {
@@ -186,9 +171,6 @@ public final class LargestTriangleThreeBucketsAggregation
         LttbState() {
         }
 
-        // Deserialize the binary state coming in from other nodes to reconstruct the
-        // state.
-        // This mirrors the writeTo method
         LttbState(StreamInput in) throws IOException {
             boolean isInitialized = in.readBoolean();
             if (isInitialized) {
@@ -207,26 +189,25 @@ public final class LargestTriangleThreeBucketsAggregation
 
         }
 
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeBoolean(initialized);
+            if (initialized) {
+                out.writeVInt(threshold);
+                out.writeVInt(points.size());
+                for (Point point : points) {
+                    out.writeLong(point.timestamp);
+                    out.writeDouble(point.value);
+                }
+            }
+        }
+
         public List<Point> getPoints() {
             return points;
         }
 
         public int getThreshold() {
             return threshold;
-        }
-
-        // Serialize the state to send over the wire to other nodes.
-        // This mirrors the LttbState(StreamInput in) constructor which
-        // deserializes the incoming binary
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeBoolean(initialized);
-            out.writeVInt(threshold);
-            out.writeVInt(points.size());
-            for (Point point : points) {
-                out.writeLong(point.timestamp);
-                out.writeDouble(point.value);
-            }
         }
 
         void init(RamAccounting ramAccounting, Integer threshold) {
@@ -292,8 +273,8 @@ public final class LargestTriangleThreeBucketsAggregation
 
             for (int cur = 0; cur < threshold - 2; cur++) {
                 // find the average point in the next bucket
-                Long avgX = 0L; // NOTE: the current implementation expects a timestamp in the x axis
-                Double avgY = 0.0D;
+                long avgX = 0L; // NOTE: the current implementation expects a timestamp in the x axis
+                double avgY = 0.0D;
 
                 int cStart = (int) Math.floor((cur + 1) * bucketSize) + 1;
                 int cEnd = (int) Math.floor((cur + 2) * bucketSize) + 1;
@@ -302,8 +283,9 @@ public final class LargestTriangleThreeBucketsAggregation
                 int cSize = cEnd - cStart;
 
                 for (int c = cStart; c < cEnd; c++) {
-                    avgX += points.get(c).timestamp;
-                    avgY += points.get(c).value;
+                    Point point = points.get(c);
+                    avgX += point.timestamp;
+                    avgY += point.value;
                 }
                 avgX /= cSize;
                 avgY /= cSize;
@@ -314,17 +296,15 @@ public final class LargestTriangleThreeBucketsAggregation
                 int bStart = (int) Math.floor((cur + 0) * bucketSize) + 1;
                 int bEnd = (int) Math.floor((cur + 1) * bucketSize) + 1;
 
-                Long aX = points.get(a).timestamp;
-                Double aY = points.get(a).value;
-
-                Double maxArea = 0.0D;
+                long aX = points.get(a).timestamp;
+                double aY = points.get(a).value;
+                double maxArea = 0.0D;
                 int maxAreaPoint = a;
 
                 for (int b = bStart; b < bEnd; b++) {
-                    Double area = Math.abs(
-                            (aX - avgX) * (points.get(b).value - aY) -
-                                    (aX - points.get(b).timestamp) * (avgY - aY))
-                            * 0.5;
+                    Point point = points.get(b);
+                    double area = Math.abs(
+                            (aX - avgX) * (point.value - aY) - (aX - point.timestamp) * (avgY - aY)) * 0.5;
                     if (area > maxArea) {
                         maxArea = area;
                         maxAreaPoint = b;
@@ -343,8 +323,8 @@ public final class LargestTriangleThreeBucketsAggregation
 
     }
 
-    public static class LttbStateType extends DataType<LargestTriangleThreeBucketsAggregation.LttbState>
-            implements Streamer<LargestTriangleThreeBucketsAggregation.LttbState> {
+    public static class LttbStateType extends DataType<LTTBAggregation.LttbState>
+            implements Streamer<LTTBAggregation.LttbState> {
         static final int ID = 18000;
         static final LttbStateType INSTANCE = new LttbStateType();
 
@@ -370,7 +350,7 @@ public final class LargestTriangleThreeBucketsAggregation
 
         @Override
         public LttbState sanitizeValue(Object value) {
-            return (LargestTriangleThreeBucketsAggregation.LttbState) value;
+            return (LTTBAggregation.LttbState) value;
         }
 
         @Override
