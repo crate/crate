@@ -37,6 +37,7 @@ import org.junit.Test;
 import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.data.RowN;
+import io.crate.exceptions.ConversionException;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -121,7 +122,7 @@ public class DataTypeTest extends ESTestCase {
     public void testForValueMixedDataTypeInList() {
         List<Object> objects = Arrays.<Object>asList("foo", List.of(1));
         assertThatThrownBy(() -> DataTypes.guessType(objects))
-            .isExactlyInstanceOf(IllegalArgumentException.class);
+            .isExactlyInstanceOf(ConversionException.class);
     }
 
     @Test

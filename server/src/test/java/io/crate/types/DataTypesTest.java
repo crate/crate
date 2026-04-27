@@ -21,7 +21,7 @@
 
 package io.crate.types;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Comparator;
@@ -32,6 +32,7 @@ import java.util.Objects;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.exceptions.ConversionException;
 import io.crate.sql.tree.ColumnPolicy;
 
 public class DataTypesTest extends ESTestCase {
@@ -249,18 +250,18 @@ public class DataTypesTest extends ESTestCase {
     public void test_merge_method_with_primitive_types() {
         assertThat(DataTypes.merge(DataTypes.INTEGER, DataTypes.STRING)).isEqualTo(DataTypes.INTEGER);
         assertThatThrownBy(() -> DataTypes.merge(DataTypes.IP, DataTypes.DATE))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("'date' is not convertible to 'ip'");
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast expressions from type `date` to type `ip`");
     }
 
     @Test
     public void test_merge_method_with_primitive_type_and_container_type() {
         assertThatThrownBy(() -> DataTypes.merge(DataTypes.INTEGER_ARRAY, DataTypes.INTEGER))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("'integer' is not convertible to 'integer_array'");
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast expressions from type `integer` to type `integer_array`");
         assertThatThrownBy(() -> DataTypes.merge(DataTypes.UNTYPED_OBJECT, DataTypes.INTEGER))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("'integer' is not convertible to 'object'");
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast expressions from type `integer` to type `object`");
     }
 
     @Test
@@ -290,8 +291,8 @@ public class DataTypesTest extends ESTestCase {
             () -> DataTypes.merge(
                 ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.INTEGER_ARRAY).build(),
                 ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.DATE).build()))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("'date' is not convertible to 'integer_array'");
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast expressions from type `date` to type `integer_array`");
     }
 
     @Test

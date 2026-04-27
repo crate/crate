@@ -37,11 +37,12 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.Streamer;
+import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RelationLookup;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
@@ -263,7 +264,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         if (other.isConvertableTo(this, false)) {
             return this;
         }
-        throw new IllegalArgumentException("'" + other + "' is not convertible to '" + this + "'");
+        throw new ConversionException(other, this);
     }
 
     @Override
