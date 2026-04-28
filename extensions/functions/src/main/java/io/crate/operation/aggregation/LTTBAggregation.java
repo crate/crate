@@ -182,10 +182,8 @@ public final class LTTBAggregation
                     double value = in.readDouble();
                     this.points.add(new Point(timestamp, value));
                 }
-            } else {
-                this.points = new ArrayList<>();
             }
-            this.initialized = true;
+            this.initialized = isInitialized;
 
         }
 
