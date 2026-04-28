@@ -227,6 +227,7 @@ public class Version implements Comparable<Version> {
     public static final Version V_6_2_4 = new Version(9_02_04_99, false, org.apache.lucene.util.Version.LUCENE_10_3_2);
     public static final Version V_6_2_5 = new Version(9_02_05_99, false, org.apache.lucene.util.Version.LUCENE_10_3_2);
     public static final Version V_6_2_6 = new Version(9_02_06_99, false, org.apache.lucene.util.Version.LUCENE_10_3_2);
+    public static final Version V_6_2_7 = new Version(9_02_07_99, false, org.apache.lucene.util.Version.LUCENE_10_3_2);
 
     public static final Version V_6_3_0 = new Version(9_03_00_99, false, org.apache.lucene.util.Version.LUCENE_10_4_0);
     public static final Version V_6_3_1 = new Version(9_03_01_99, false, org.apache.lucene.util.Version.LUCENE_10_4_0);
