@@ -222,7 +222,7 @@ public final class LTTBAggregation
             return initialized;
         }
 
-        public void addPoint(RamAccounting ramAccounting, Long timestamp, Double value) {
+        public void addPoint(RamAccounting ramAccounting, long timestamp, double value) {
             assert initialized == true
                     : "LttbState has not yet been initialized. It needs to be initialized before adding a point";
             points.add(new Point(timestamp, value));
