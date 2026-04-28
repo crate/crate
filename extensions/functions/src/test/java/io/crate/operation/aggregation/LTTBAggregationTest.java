@@ -128,29 +128,29 @@ public class LTTBAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_should_succeed_even_with_null_records() throws Exception {
-        Object[][] data = createTestData(1000, i -> i == 1 ? null : System.currentTimeMillis() + (i * 1000),
-                i -> i == 5 ? null : Math.sin(i * 0.1) * 100 + 50, 100);
+        Object[][] data = createTestData(10, i -> i == 1 ? null : System.currentTimeMillis() + (i * 1000),
+                i -> i == 5 ? null : Math.sin(i * 0.1) * 100 + 50, 5);
         Object result = executeAggregation(DataTypes.TIMESTAMPZ, data);
-        assertThat(result).extracting("x").asInstanceOf(LIST).hasSize(100);
-        assertThat(result).extracting("y").asInstanceOf(LIST).hasSize(100);
+        assertThat(result).extracting("x").asInstanceOf(LIST).hasSize(5);
+        assertThat(result).extracting("y").asInstanceOf(LIST).hasSize(5);
     }
 
     @Test
     public void test_should_not_downsample_if_threshold_zero() throws Exception {
-        Object[][] data = createTestData(1000, i -> System.currentTimeMillis() + (i * 1000),
+        Object[][] data = createTestData(10, i -> System.currentTimeMillis() + (i * 1000),
                 i -> Math.sin(i * 0.1) * 100 + 50, 0);
         Object result = executeAggregation(DataTypes.TIMESTAMPZ, data);
-        assertThat(result).extracting("x").asInstanceOf(LIST).hasSize(1000);
-        assertThat(result).extracting("y").asInstanceOf(LIST).hasSize(1000);
+        assertThat(result).extracting("x").asInstanceOf(LIST).hasSize(10);
+        assertThat(result).extracting("y").asInstanceOf(LIST).hasSize(10);
     }
 
     @Test
     public void test_should_not_downsample_if_threshold_larger_than_amount_of_data() throws Exception {
-        Object[][] data = createTestData(1000, i -> System.currentTimeMillis() + (i * 1000),
+        Object[][] data = createTestData(10, i -> System.currentTimeMillis() + (i * 1000),
                 i -> Math.sin(i * 0.1) * 100 + 50, 5000);
         Object result = executeAggregation(DataTypes.TIMESTAMPZ, data);
-        assertThat(result).extracting("x").asInstanceOf(LIST).hasSize(1000);
-        assertThat(result).extracting("y").asInstanceOf(LIST).hasSize(1000);
+        assertThat(result).extracting("x").asInstanceOf(LIST).hasSize(10);
+        assertThat(result).extracting("y").asInstanceOf(LIST).hasSize(10);
     }
 
     @Test
