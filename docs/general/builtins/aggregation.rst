@@ -1018,6 +1018,91 @@ on the number of items and capacity. E.g. Processing 10,000 items with the
 with frequencies greater 4 will be included. Some items with frequencies below
 the threshold 4 may also appear in the result.
 
+.. _aggregation-largest-triangle-three-buckets:
+
+``lttb(column, column, threshhold)``
+------------------------------------
+
+The ``lttb`` aggregate function downsamples time series data while attempting to
+preserve the visual representation (shape) of the data by using the
+`Largest Triangle Three Buckets`_ algorithm. This algorithm was developed by Sveinn
+Steinarsson at the University of Iceland.
+
+The first argument is expected to be a reference to a timestamp column. The
+second argument can be :ref:`NUMERIC <type-numeric>`. During the aggregation,
+the values in this column will be implictly cast to :ref:`DOUBLE PRECISION <type-double-precision>`.
+The third argument is expected to be an ``integer`` representing
+the number of datapoints returned after downsampling.
+
+Note: ``lttb`` is a memory intensive operation because it will gather all 
+datapoints specified by the query into memory before downsampling
+
+``lttb`` returns an ``OBJECT`` of points selected by the algorithm
+in the following format::
+
+    {
+        "x": [<array of timestamps>],
+        "y": [<array of values>]
+    }
+
+``x`` contains an array of the timestamp portion of the selected points.
+``y`` contains an array of the values of the selected points as
+:ref:`DOUBLE PRECISION <type-double-precision>`.
+
+
+.. Hidden: create readings table
+
+    cr> CREATE TABLE readings (entered_at timestamp, reading double)
+    ... CLUSTERED INTO 1 SHARDS
+    ... WITH (number_of_replicas = 0);
+    CREATE OK, 1 row affected (... sec)
+
+.. Hidden: insert into readings table
+
+    cr> INSERT INTO readings (entered_at, reading)
+    ... VALUES ('2026-01-01 10:00:00'::timestamp, 21.0),
+    ... ('2026-01-01 10:01:00'::timestamp, 20.0),
+    ... ('2026-01-01 10:02:00'::timestamp, 25.0),
+    ... ('2026-01-01 10:03:00'::timestamp, 25.0),
+    ... ('2026-01-01 10:04:00'::timestamp, 90.0),
+    ... ('2026-01-01 10:05:00'::timestamp, 30.0),
+    ... ('2026-01-01 10:06:00'::timestamp, 27.0),
+    ... ('2026-01-01 10:07:00'::timestamp, 25.0),
+    ... ('2026-01-01 10:08:00'::timestamp, 23.0),
+    ... ('2026-01-01 10:09:00'::timestamp, 19.0),
+    ... ('2026-01-01 10:10:00'::timestamp, 20.0);
+    INSERT OK, 11 rows affected  (... sec)
+
+.. Hidden: refresh readings table
+
+    cr> REFRESH TABLE readings;
+    REFRESH OK, 1 row affected  (... sec)
+
+Example::
+
+    cr> WITH downsampled AS (
+    ... SELECT lttb(entered_at, reading, 5) AS lttb_data
+    ... FROM readings)
+    ... SELECT unnest((lttb_data).x) AS ts, unnest((lttb_data).y) as value
+    ... FROM downsampled;
+    +---------------+-------+
+    |            ts | value |
+    +---------------+-------+
+    | 1767261600000 |  21.0 |
+    | 1767261780000 |  25.0 |
+    | 1767261840000 |  90.0 |
+    | 1767262020000 |  25.0 |
+    | 1767262200000 |  20.0 |
+    +---------------+-------+
+    WITH 5 rows in set (... sec)
+
+
+.. Hidden: refresh readings table
+
+    cr> DROP TABLE readings;
+    DROP OK, 1 row affected (... sec)
+
+
 .. _aggregation-limitations:
 
 Limitations
@@ -1040,3 +1125,4 @@ Limitations
 .. _Variance: https://en.wikipedia.org/wiki/Variance
 .. _Frequency Sketch: https://datasketches.apache.org/docs/Frequency/FrequencySketches.html
 .. _Error Threshold Table: https://datasketches.apache.org/docs/Frequency/FrequentItemsErrorTable.html
+.. _Largest Triangle Three Buckets: https://skemman.is/bitstream/1946/15343/3/SS_MSthesis.pdf

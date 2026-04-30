@@ -89,6 +89,11 @@ Scalar and Aggregation Functions
   :ref:`blake3 <scalar-blake3>` scalar function for computing BLAKE3 checksums of
   strings.
 
+- `Bing O'Dowd <https://github.com/bodowd>`_ added the :ref:`largest triangle
+  three buckets <aggregation-largest-triangle-three-buckets>` aggregation
+  function for downsampling data using the Largest Triangle Three Buckets 
+  algorithm
+
 Performance and Resilience Improvements
 ---------------------------------------
 
