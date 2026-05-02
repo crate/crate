@@ -83,8 +83,10 @@ import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataTypes;
+import io.crate.types.Regclass;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class SnapshotRestoreIntegrationTest extends IntegTestCase {
@@ -1373,5 +1375,76 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         });
         latch.await();
         return repositoryData.get();
+    }
+
+    @UseJdbc(0)
+    @Test
+    public void test_restore_partition_into_closed_table_uses_closed_tables_oid() throws Exception {
+        createTable("parted_table", true);
+        execute("CREATE SNAPSHOT " + snapshotName() + " TABLE parted_table PARTITION (date='1970-01-01') WITH (wait_for_completion=true)");
+
+        // capture table oid in the snapshot
+        execute("select oid from pg_catalog.pg_class where relname = 'parted_table'");
+        int snapshotTableOid = ((Regclass) response.rows()[0][0]).oid();
+
+        // drop and recreate the original table such that the recreated table holds incremented oid
+        execute("DROP TABLE parted_table");
+        createTable("parted_table", true);
+
+        // capture table oid after re-creating the original table
+        execute("select oid from pg_catalog.pg_class where relname = 'parted_table'");
+        int recreatedTableOid = ((Regclass) response.rows()[0][0]).oid();
+
+        // confirm recreated table oid is 1 greater than the table oid that the snapshot holds
+        assertThat(recreatedTableOid).isEqualTo(snapshotTableOid + 1);
+
+        // prepare for restore - remove the partition to be restored and close the table
+        execute("DELETE FROM parted_table WHERE date = '1970-01-01'");
+        execute("ALTER TABLE parted_table CLOSE");
+
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE parted_table PARTITION (date = '1970-01-01') WITH (wait_for_completion=true)");
+
+        execute("ALTER TABLE parted_table OPEN");
+        execute("SELECT * FROM parted_table WHERE date = '1970-01-01'");
+        assertThat(response).hasRows("1| foo| 0| The quick brown fox jumps over the lazy dog.");
+
+        // confirm table oid is not impacted by the outdated snapshot's table oid
+        execute("select oid from pg_catalog.pg_class where relname = 'parted_table'");
+        int restoredTableOid = ((Regclass) response.rows()[0][0]).oid();
+        assertThat(restoredTableOid).isEqualTo(recreatedTableOid);
+    }
+
+    @UseJdbc(0)
+    @Test
+    public void test_restore_partition_into_non_existing_target_table_uses_next_oid() throws Exception {
+        createTable("parted_table", true);
+        execute("CREATE SNAPSHOT " + snapshotName() + " TABLE parted_table PARTITION (date='1970-01-01') WITH (wait_for_completion=true)");
+
+        // capture table oid in the snapshot
+        execute("select oid from pg_catalog.pg_class where relname = 'parted_table'");
+        int snapshotTableOid = ((Regclass) response.rows()[0][0]).oid();
+
+        // drop and recreate the original table such that the recreated table holds incremented oid
+        execute("DROP TABLE parted_table");
+        createTable("parted_table", true);
+
+        // capture table oid after re-creating the original table
+        execute("select oid from pg_catalog.pg_class where relname = 'parted_table'");
+        int recreatedTableOid = ((Regclass) response.rows()[0][0]).oid();
+
+        // confirm recreated table oid is 1 greater than the table oid that the snapshot holds
+        assertThat(recreatedTableOid).isEqualTo(snapshotTableOid + 1);
+
+        execute("DROP TABLE parted_table");
+
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE parted_table WITH (wait_for_completion=true)");
+
+        execute("SELECT * FROM parted_table WHERE date = '1970-01-01'");
+        assertThat(response).hasRows("1| foo| 0| The quick brown fox jumps over the lazy dog.");
+
+        // confirm the table created by restoring the partition holds table oid higher than both snapshotTableOid and recreatedTableOid
+        execute("select oid from pg_catalog.pg_class where relname = 'parted_table'");
+        int restoredTableOid = ((Regclass) response.rows()[0][0]).oid();
+        assertThat(restoredTableOid).isEqualTo(recreatedTableOid + 1);
     }
 }
