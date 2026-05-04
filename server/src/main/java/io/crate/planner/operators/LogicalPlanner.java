@@ -320,7 +320,7 @@ public class LogicalPlanner {
             plannerContext.optimizerTracer(),
             timeoutToken
         );
-        return optimizedPlan;
+        return optimizedPlan.pruneOutputsExcept(plan.outputs());
     }
 
     // In case the subselect is inside an IN() or = ANY() apply a "natural" OrderBy to optimize
