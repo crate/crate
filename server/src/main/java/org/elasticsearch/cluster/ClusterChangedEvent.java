@@ -21,16 +21,12 @@ package org.elasticsearch.cluster;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.metadata.IndexGraveyard;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.index.Index;
@@ -104,25 +100,6 @@ public class ClusterChangedEvent {
     }
 
     /**
-     * Returns the indices created in this event
-     */
-    public List<String> indicesCreated() {
-        if (!metadataChanged()) {
-            return Collections.emptyList();
-        }
-        List<String> created = null;
-        for (String index : state.metadata().indices().keySet()) {
-            if (!previousState.metadata().hasIndex(index)) {
-                if (created == null) {
-                    created = new ArrayList<>();
-                }
-                created.add(index);
-            }
-        }
-        return created == null ? Collections.<String>emptyList() : created;
-    }
-
-    /**
      * Returns the indices deleted in this event
      */
     public List<Index> indicesDeleted() {
@@ -145,33 +122,6 @@ public class ClusterChangedEvent {
     }
 
     /**
-     * Returns a set of custom meta data types when any custom metadata for the cluster has changed
-     * between the previous cluster state and the new cluster state. custom meta data types are
-     * returned iff they have been added, updated or removed between the previous and the current state
-     */
-    public Set<String> changedCustomMetadataSet() {
-        Set<String> result = new HashSet<>();
-        Map<String, Metadata.Custom> currentCustoms = state.metadata().customs();
-        Map<String, Metadata.Custom> previousCustoms = previousState.metadata().customs();
-        if (currentCustoms.equals(previousCustoms) == false) {
-            for (Map.Entry<String, Metadata.Custom> currentCustomMetadata : currentCustoms.entrySet()) {
-                // new custom md added or existing custom md changed
-                if (previousCustoms.containsKey(currentCustomMetadata.getKey()) == false
-                        || currentCustomMetadata.getValue().equals(previousCustoms.get(currentCustomMetadata.getKey())) == false) {
-                    result.add(currentCustomMetadata.getKey());
-                }
-            }
-            // existing custom md deleted
-            for (Map.Entry<String, Metadata.Custom> previousCustomMetadata : previousCustoms.entrySet()) {
-                if (currentCustoms.containsKey(previousCustomMetadata.getKey()) == false) {
-                    result.add(previousCustomMetadata.getKey());
-                }
-            }
-        }
-        return result;
-    }
-
-    /**
      * Returns <code>true</code> iff the {@link IndexMetadata} for a given index
      * has changed between the previous cluster state and the new cluster state.
      * Note that this is an object reference equality test, not an equals test.
@@ -181,14 +131,6 @@ public class ClusterChangedEvent {
         // no need to check on version, since disco modules will make sure to use the
         // same instance if its a version match
         return metadata1 != metadata2;
-    }
-
-    /**
-     * Returns <code>true</code> iff the cluster level blocks have changed between cluster states.
-     * Note that this is an object reference equality test, not an equals test.
-     */
-    public boolean blocksChanged() {
-        return state.blocks() != previousState.blocks();
     }
 
     /**
@@ -211,20 +153,6 @@ public class ClusterChangedEvent {
      */
     public boolean nodesRemoved() {
         return nodesDelta.removed();
-    }
-
-    /**
-     * Returns <code>true</code> iff nodes have been added from the cluster since the last cluster state.
-     */
-    public boolean nodesAdded() {
-        return nodesDelta.added();
-    }
-
-    /**
-     * Returns <code>true</code> iff nodes have been changed (added or removed) from the cluster since the last cluster state.
-     */
-    public boolean nodesChanged() {
-        return nodesRemoved() || nodesAdded();
     }
 
     /**
