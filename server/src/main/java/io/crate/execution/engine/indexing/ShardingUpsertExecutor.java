@@ -168,13 +168,15 @@ public class ShardingUpsertExecutor
         if (requests.itemsByMissingPartition.isEmpty()) {
             return execRequests(requests, upsertResults);
         }
+        CreatePartitionsRequest request = CreatePartitionsRequest.of(
+            tableOID,
+            requests.itemsByMissingPartition.keySet()
+        );
         createPartitionsRequestOngoing = true;
-        return elasticsearchClient.execute(
-            TransportCreatePartitions.ACTION,
-                CreatePartitionsRequest.of(tableOID, requests.itemsByMissingPartition.keySet()))
+        return elasticsearchClient.execute(TransportCreatePartitions.ACTION, request)
+            .whenComplete((_, _) -> createPartitionsRequestOngoing = false)
             .thenCompose(_ -> {
                 grouper.reResolveShardLocations(requests, tableOID);
-                createPartitionsRequestOngoing = false;
                 return execRequests(requests, upsertResults);
             });
     }
