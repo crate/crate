@@ -450,7 +450,6 @@ public class RestoreService implements ClusterStateApplier {
                             targetIndexName
                         );
                     }
-                    // Check that the index is closed or doesn't exist
                     IndexMetadata currentIndexMetadata = currentMetadata.getIndex(targetName, restoreIndex.partitionValues(), false, im -> im);
                     final Index renamedIndex;
                     final String newIndexUUID;
@@ -483,28 +482,11 @@ public class RestoreService implements ClusterStateApplier {
                         mdBuilder.put(updatedIndexMetadata, true);
                         renamedIndex = updatedIndexMetadata.getIndex();
                     } else {
-                        validateExistingIndex(targetName, currentIndexMetadata, snapshotIndexMetadata, targetIndexName);
-                        // Index exists and it's closed - open it in metadata and start recovery
-                        IndexMetadata.Builder indexMdBuilder = IndexMetadata.builder(snapshotIndexMetadata).state(IndexMetadata.State.OPEN);
-                        indexMdBuilder.version(Math.max(snapshotIndexMetadata.getVersion(), 1 + currentIndexMetadata.getVersion()));
-                        indexMdBuilder.mappingVersion(Math.max(snapshotIndexMetadata.getMappingVersion(), 1 + currentIndexMetadata.getMappingVersion()));
-                        indexMdBuilder.settingsVersion(Math.max(snapshotIndexMetadata.getSettingsVersion(), 1 + currentIndexMetadata.getSettingsVersion()));
-
-                        for (int shard = 0; shard < snapshotIndexMetadata.getNumberOfShards(); shard++) {
-                            indexMdBuilder.primaryTerm(shard, Math.max(snapshotIndexMetadata.primaryTerm(shard), currentIndexMetadata.primaryTerm(shard)));
+                        if (currentIndexMetadata.partitionValues().isEmpty()) {
+                            throw new RelationAlreadyExists(targetName);
+                        } else {
+                            throw new PartitionAlreadyExistsException(new PartitionName(targetName, PartitionName.encodeIdent(currentIndexMetadata.partitionValues())));
                         }
-
-                        newIndexUUID = currentIndexMetadata.getIndexUUID();
-                        newIndexUUIDs.add(newIndexUUID);
-                        indexMdBuilder.settings(
-                            Settings.builder()
-                                .put(snapshotIndexMetadata.getSettings())
-                                .put(IndexMetadata.SETTING_INDEX_UUID, newIndexUUID));
-                        IndexMetadata updatedIndexMetadata = indexMdBuilder.indexName(targetIndexName).build();
-                        rtBuilder.addAsRestore(updatedIndexMetadata, recoverySource);
-                        blocks.updateBlocks(updatedIndexMetadata);
-                        mdBuilder.put(updatedIndexMetadata, true);
-                        renamedIndex = updatedIndexMetadata.getIndex();
                     }
                     restoreIndexNames.add(renamedIndex.getName());
 
@@ -622,7 +604,7 @@ public class RestoreService implements ClusterStateApplier {
             }
 
             if (existingRelation instanceof RelationMetadata.Table existingTable) {
-                // restoring into existing closed tables is allowed
+                assert existingTable.state().equals(IndexMetadata.State.OPEN) : "Can only restore into open tables";
                 RelationMetadata.Table table = snapshotRelation instanceof RelationMetadata.Table snapshotTable
                     ? snapshotTable
                     : existingTable;
@@ -690,24 +672,6 @@ public class RestoreService implements ClusterStateApplier {
             // Make sure that index was fully snapshotted
             if (failed(snapshotInfo, index)) {
                 throw new SnapshotRestoreException(snapshot, "index [" + index + "] wasn't fully snapshotted - cannot " + "restore");
-            }
-        }
-
-        private void validateExistingIndex(RelationName targetName, IndexMetadata currentIndexMetadata, IndexMetadata snapshotIndexMetadata, String renamedIndex) {
-            // Index exist - checking that it's closed
-            if (currentIndexMetadata.getState() != IndexMetadata.State.CLOSE) {
-                // TODO: Enable restore for open indices
-                if (currentIndexMetadata.partitionValues().isEmpty()) {
-                    throw new RelationAlreadyExists(targetName);
-                } else {
-                    throw new PartitionAlreadyExistsException(new PartitionName(targetName, PartitionName.encodeIdent(currentIndexMetadata.partitionValues())));
-                }
-            }
-            // Make sure that the number of shards is the same. That's the only thing that we cannot change
-            if (currentIndexMetadata.getNumberOfShards() != snapshotIndexMetadata.getNumberOfShards()) {
-                throw new SnapshotRestoreException(snapshot, "cannot restore index [" + renamedIndex + "] with [" + currentIndexMetadata.getNumberOfShards() +
-                                                                "] shards from a snapshot of index [" + snapshotIndexMetadata.getIndex().getName() + "] with [" +
-                                                                snapshotIndexMetadata.getNumberOfShards() + "] shards");
             }
         }
 

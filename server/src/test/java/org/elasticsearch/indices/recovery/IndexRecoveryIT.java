@@ -578,7 +578,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("SELECT state FROM sys.snapshots WHERE name = '" + SNAP_NAME + "'");
         assertThat(response).hasRows("SUCCESS");
 
-        execute("ALTER TABLE " + INDEX_NAME + " CLOSE");
+        execute("DROP TABLE " + INDEX_NAME);
 
         logger.info("--> restore");
         execute("RESTORE SNAPSHOT " + snapshotName + " ALL WITH (wait_for_completion=true)");

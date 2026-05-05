@@ -78,3 +78,8 @@ Fixes
   distributed query with aggregations or joins under memory pressure.
 
 - Fixed an authorization issue for ``_blobs`` HTTP endpoint.
+
+- Fixed an issue where :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>` allowed
+  restoring into existing closed tables, which is not a supported operation and
+  could leave the restored table empty or unavailable. CrateDB now rejects such
+  restores.
