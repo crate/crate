@@ -410,7 +410,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
                 new JobContext(UUID.randomUUID(), sessionId, "insert into", 10L, Role.CRATE_USER, null), 0, null, 20L));
 
             assertThat(jobsLogSink).hasSize(1);
-            assertThat(breaker.getUsed()).isEqualTo(96);
+            assertThat(breaker.getUsed()).isEqualTo(104);
 
             clusterSettings.applySettings(Settings.builder()
                 .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 200)
@@ -423,7 +423,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
             // Old entries are added to new sink, so entries get re-accounted and breaker usage remains the same
             assertThat(updatedSink).hasSize(1);
-            assertThat(breaker.getUsed()).isEqualTo(96);
+            assertThat(breaker.getUsed()).isEqualTo(104);
         }
     }
 }
