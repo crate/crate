@@ -18,7 +18,7 @@ package io.crate.common.concurrent;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.IntFunction;
+import java.util.function.IntUnaryOperator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -94,7 +94,7 @@ public final class ConcurrencyLimit {
 
     private final int minLimit;
 
-    private final IntFunction<Integer> queueSize;
+    private final IntUnaryOperator queueSize;
 
     private final double smoothing;
 
@@ -107,7 +107,7 @@ public final class ConcurrencyLimit {
     public ConcurrencyLimit(int initialLimit,
                             int minConcurrency,
                             int maxConcurrency,
-                            IntFunction<Integer> queueSize,
+                            IntUnaryOperator queueSize,
                             double smoothing,
                             int longWindow,
                             double rttTolerance) {
@@ -147,7 +147,8 @@ public final class ConcurrencyLimit {
     }
 
     private int update(final long rtt, final int inflight) {
-        final double queueSize = this.queueSize.apply((int)this.estimatedLimit);
+        double estimatedLimit = this.estimatedLimit; // single volatile read
+        final double queueSize = this.queueSize.applyAsInt((int) estimatedLimit);
 
         this.lastRtt = rtt;
         final double shortRtt = (double)rtt;
@@ -175,7 +176,7 @@ public final class ConcurrencyLimit {
         newLimit = estimatedLimit * (1 - smoothing) + newLimit * smoothing;
         newLimit = Math.max(minLimit, Math.min(maxLimit, newLimit));
 
-        if ((int)estimatedLimit != newLimit) {
+        if ((int)estimatedLimit != newLimit && LOG.isDebugEnabled()) {
             LOG.debug("New limit={} lastRtt={} ms longRtt={} ms queueSize={} gradient={} inflight={}",
                     (int)newLimit,
                     getLastRtt(TimeUnit.MICROSECONDS) / 1000.0,
@@ -185,9 +186,8 @@ public final class ConcurrencyLimit {
                     inflight);
         }
 
-        estimatedLimit = newLimit;
-
-        return (int)estimatedLimit;
+        this.estimatedLimit = newLimit;
+        return (int) newLimit;
     }
 
     public long getLastRtt(TimeUnit units) {
