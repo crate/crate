@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
 import java.io.IOException;
@@ -68,6 +69,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.ColumnIdent;
@@ -83,6 +85,7 @@ import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataTypes;
 
@@ -1373,5 +1376,20 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         });
         latch.await();
         return repositoryData.get();
+    }
+
+    @UseJdbc(0)
+    @Test
+    public void test_restore_partition_into_partitioned_table_with_closed_partition() throws Exception {
+        createTableAndSnapshot("parted_table", SNAPSHOT_NAME, true);
+
+        execute("ALTER TABLE parted_table PARTITION (date='1970-01-01') CLOSE");
+
+        assertThatThrownBy(() -> execute("RESTORE SNAPSHOT " + snapshotName() +
+            " TABLE parted_table PARTITION (date='1970-01-01') WITH (" +
+            "ignore_unavailable=false, " +
+            "wait_for_completion=true)"))
+            .isExactlyInstanceOf(PartitionAlreadyExistsException.class)
+            .hasMessage("Partition '" + sqlExecutor.getCurrentSchema() + "..partitioned.parted_table.04130' already exists");
     }
 }
