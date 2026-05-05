@@ -264,12 +264,12 @@ public class Session implements AutoCloseable {
         try {
             plan = planner.plan(analyzedStatement, plannerContext);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(jobId, statement, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
+            jobsLogs.logPreExecutionFailure(jobId, id, statement, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
             throw t;
         }
 
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
-        jobsLogs.logExecutionStart(jobId, statement, sessionSettings.sessionUser(), classification);
+        jobsLogs.logExecutionStart(jobId, id, statement, sessionSettings.sessionUser(), classification);
         JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
         if (!analyzedStatement.isWriteOperation()) {
             resultReceiver = new RetryOnFailureResultReceiver<>(
@@ -341,7 +341,7 @@ public class Session implements AutoCloseable {
         try {
             statement = SqlParser.createStatement(query);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), query, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
+            jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), id, query, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
             throw t;
         }
         timeoutToken.check("parse");
@@ -357,7 +357,7 @@ public class Session implements AutoCloseable {
                 statementMaxLength,
                 query.length()
             );
-            jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), query, msg, sessionSettings.sessionUser());
+            jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), id, query, msg, sessionSettings.sessionUser());
             throw new IllegalArgumentException(msg);
         }
     }
@@ -382,6 +382,7 @@ public class Session implements AutoCloseable {
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(
                 UUIDs.dirtyUUID(),
+                id,
                 query == null ? statementName : query,
                 SQLExceptions.messageOf(t),
                 sessionSettings.sessionUser());
@@ -405,7 +406,7 @@ public class Session implements AutoCloseable {
         try {
             preparedStmt = getSafeStmt(statementName);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), "", SQLExceptions.messageOf(t), sessionSettings.sessionUser());
+            jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), id, "", SQLExceptions.messageOf(t), sessionSettings.sessionUser());
             throw t;
         }
 
@@ -639,7 +640,7 @@ public class Session implements AutoCloseable {
                 )
             );
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), queryString, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
+            jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), id, queryString, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
             throw t;
         }
     }
@@ -749,6 +750,7 @@ public class Session implements AutoCloseable {
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(
                 jobId,
+                id,
                 firstPreparedStatement.rawStatement(),
                 SQLExceptions.messageOf(t),
                 sessionSettings.sessionUser());
@@ -756,6 +758,7 @@ public class Session implements AutoCloseable {
         }
         jobsLogs.logExecutionStart(
             jobId,
+            id,
             firstPreparedStatement.rawStatement(),
             sessionSettings.sessionUser(),
             StatementClassifier.classify(plan)
@@ -886,7 +889,7 @@ public class Session implements AutoCloseable {
         lastStmt = rawStatement;
         if (analyzedStmt == null) {
             String errorMsg = "Statement must have been analyzed: " + rawStatement;
-            jobsLogs.logPreExecutionFailure(jobId, rawStatement, errorMsg, sessionSettings.sessionUser());
+            jobsLogs.logPreExecutionFailure(jobId, id, rawStatement, errorMsg, sessionSettings.sessionUser());
             throw new IllegalStateException(errorMsg);
         }
         Plan plan;
@@ -894,7 +897,7 @@ public class Session implements AutoCloseable {
             plan = planner.plan(analyzedStmt, plannerContext);
             timeoutToken.check("singleExec:plan");
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(jobId, rawStatement, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
+            jobsLogs.logPreExecutionFailure(jobId, id, rawStatement, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
             throw t;
         }
         if (!analyzedStmt.isWriteOperation()) {
@@ -918,7 +921,7 @@ public class Session implements AutoCloseable {
             );
         }
         jobsLogs.logExecutionStart(
-            jobId, rawStatement, sessionSettings.sessionUser(), StatementClassifier.classify(plan));
+            jobId, id, rawStatement, sessionSettings.sessionUser(), StatementClassifier.classify(plan));
         RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(
             resultReceiver, maxRows, new JobsLogsUpdateListener(jobId, jobsLogs));
         portal.setActiveConsumer(consumer);

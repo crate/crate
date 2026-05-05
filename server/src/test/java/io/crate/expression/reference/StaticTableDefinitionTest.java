@@ -49,10 +49,11 @@ public class StaticTableDefinitionTest {
 
     @Test
     public void testTableDefinitionWithPredicate() throws ExecutionException, InterruptedException {
+        int sessionId = 123;
         List<JobContext> actual = List.of(
-            new JobContext(UUID.randomUUID(), "select 1", 1L, CRATE_USER, null),
-            new JobContext(UUID.randomUUID(), "select 2", 1L, CRATE_USER, null),
-            new JobContext(UUID.randomUUID(), "select 3", 1L, dummyUser, null));
+            new JobContext(UUID.randomUUID(), sessionId, "select 1", 1L, CRATE_USER, null),
+            new JobContext(UUID.randomUUID(), sessionId, "select 2", 1L, CRATE_USER, null),
+            new JobContext(UUID.randomUUID(), sessionId, "select 3", 1L, dummyUser, null));
 
         StaticTableDefinition<JobContext> tableDef = new StaticTableDefinition<>(
             () -> completedFuture(actual),

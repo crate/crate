@@ -105,7 +105,7 @@ Performance and Resilience Improvements
 Administration and Operations
 -----------------------------
 
-None
+- Added ``session_id`` column to the :ref:`sys.jobs <sys-jobs>` table.
 
 Client interfaces
 -----------------

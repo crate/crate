@@ -32,6 +32,7 @@ import io.crate.role.Role;
 public class JobContext {
 
     private final UUID id;
+    private final int sessionId;
     private final String username;
     private final String stmt;
     private final long started;
@@ -39,8 +40,9 @@ public class JobContext {
     private final Classification classification;
     private final StmtEvent event;
 
-    public JobContext(UUID id, String stmt, long started, Role user, @Nullable Classification classification) {
+    public JobContext(UUID id, int sessionId, String stmt, long started, Role user, @Nullable Classification classification) {
         this.id = id;
+        this.sessionId = sessionId;
         this.stmt = stmt;
         this.started = started;
         this.username = user.name();
@@ -63,6 +65,10 @@ public class JobContext {
 
     public UUID id() {
         return id;
+    }
+
+    public int sessionId() {
+        return sessionId;
     }
 
     public String stmt() {

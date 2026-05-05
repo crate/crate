@@ -104,10 +104,11 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         try (JobsLogService stats = new JobsLogService(settings, jobsLogs, clusterService, nodeCtx, breakerService)) {
             LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
 
+            int sessionId = 123;
             jobsLogSink.add(new JobContextLog(
-                new JobContext(UUID.randomUUID(), "insert into", 10L, Role.CRATE_USER, null), 0, null, 20L));
+                new JobContext(UUID.randomUUID(), sessionId, "insert into", 10L, Role.CRATE_USER, null), 0, null, 20L));
             jobsLogSink.add(new JobContextLog(
-                new JobContext(UUID.randomUUID(), "select * from t1", 10L, Role.CRATE_USER, null), 0, null, 20L));
+                new JobContext(UUID.randomUUID(), sessionId, "select * from t1", 10L, Role.CRATE_USER, null), 0, null, 20L));
             assertThat(StreamSupport.stream(jobsLogSink.spliterator(), false).count()).isEqualTo(1L);
         }
     }
@@ -250,8 +251,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             Classification classification =
                 new Classification(SELECT, Collections.singleton("Collect"));
 
+            int sessionId = 123;
             jobsLogSink.add(new JobContextLog(
-                new JobContext(UUID.randomUUID(), "select 1", 1L, Role.CRATE_USER, classification), 0, null));
+                new JobContext(UUID.randomUUID(), sessionId, "select 1", 1L, Role.CRATE_USER, classification), 0, null));
 
             clusterSettings.applySettings(Settings.builder()
                 .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
@@ -303,15 +305,16 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             AtomicInteger numJobs = new AtomicInteger();
             int maxQueueSize = JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY);
 
+            int sessionId = 123;
             executor.submit(() -> {
                 while (doInsertJobs.get() && numJobs.get() < maxQueueSize) {
                     UUID uuid = UUID.randomUUID();
                     int i = numJobs.getAndIncrement();
-                    jobsLogs.logExecutionStart(uuid, "select 1", Role.CRATE_USER, classification);
+                    jobsLogs.logExecutionStart(uuid, sessionId, "select 1", Role.CRATE_USER, classification);
                     if (i % 2 == 0) {
                         jobsLogs.logExecutionEnd(uuid, 0, null);
                     } else {
-                        jobsLogs.logPreExecutionFailure(uuid, "select 1", "failure", Role.CRATE_USER);
+                        jobsLogs.logPreExecutionFailure(uuid, sessionId, "select 1", "failure", Role.CRATE_USER);
                     }
                 }
                 latch.countDown();
@@ -338,8 +341,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         Classification classification =
             new Classification(SELECT, Collections.singleton("Collect"));
 
-        JobContext jobContext = new JobContext(UUID.randomUUID(), "select 1", 1L, user, classification);
-        jobsLogs.logExecutionStart(jobContext.id(), jobContext.stmt(), user, classification);
+        int sessionId = 123;
+        JobContext jobContext = new JobContext(UUID.randomUUID(), sessionId, "select 1", 1L, user, classification);
+        jobsLogs.logExecutionStart(jobContext.id(), sessionId, jobContext.stmt(), user, classification);
         List<JobContext> jobsEntries = StreamSupport.stream(jobsLogs.activeJobs().spliterator(), false).toList();
 
         assertThat(jobsEntries).hasSize(1);
@@ -353,9 +357,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     public void testExecutionFailure() {
         Role user = RolesHelper.userOf("arthur");
         Queue<JobContextLog> q = new BlockingEvictingQueue<>(1);
-
+        int sessionId = 123;
         jobsLogs.updateJobsLog(new QueueSink<>(q, () -> {}));
-        jobsLogs.logPreExecutionFailure(UUID.randomUUID(), "select foo", "stmt error", user);
+        jobsLogs.logPreExecutionFailure(UUID.randomUUID(), sessionId, "select foo", "stmt error", user);
 
         List<JobContextLog> jobsLogEntries = StreamSupport.stream(jobsLogs.jobsLog().spliterator(), false).toList();
         assertThat(jobsLogEntries).hasSize(1);
@@ -370,9 +374,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     public void testExecutionFailureIsRecordedInMetrics() {
         Role user = RolesHelper.userOf("arthur");
         Queue<JobContextLog> q = new BlockingEvictingQueue<>(1);
-
+        int sessionId = 123;
         jobsLogs.updateJobsLog(new QueueSink<>(q, () -> {}));
-        jobsLogs.logPreExecutionFailure(UUID.randomUUID(), "select foo", "stmt error", user);
+        jobsLogs.logPreExecutionFailure(UUID.randomUUID(), sessionId, "select foo", "stmt error", user);
 
         List<MetricsView> metrics = StreamSupport.stream(jobsLogs.metrics().spliterator(), false).toList();
         assertThat(metrics).hasSize(1);
@@ -401,9 +405,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .build();
         try (JobsLogService stats = new JobsLogService(settings, jobsLogs, clusterService, nodeCtx, breakerService)) {
             LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
-
+            int sessionId = 123;
             jobsLogSink.add(new JobContextLog(
-                new JobContext(UUID.randomUUID(), "insert into", 10L, Role.CRATE_USER, null), 0, null, 20L));
+                new JobContext(UUID.randomUUID(), sessionId, "insert into", 10L, Role.CRATE_USER, null), 0, null, 20L));
 
             assertThat(jobsLogSink).hasSize(1);
             assertThat(breaker.getUsed()).isEqualTo(96);

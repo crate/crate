@@ -1372,6 +1372,10 @@ Table schema
 +------------------+--------------------------------------------------+------------------------------+
 | ``node['name']`` | The name of the node.                            | ``TEXT``                     |
 +------------------+--------------------------------------------------+------------------------------+
+| ``session_id``   | Id of a session that run this job. References    | ``INTEGER``                  |
+|                  | ``id`` column of the                             |                              |
+|                  | :ref:`sys.sessions <sys-sessions>` table.        |                              |
++------------------+--------------------------------------------------+------------------------------+
 | ``started``      | The point in time when the job started.          | ``TIMESTAMP WITH TIME ZONE`` |
 +------------------+--------------------------------------------------+------------------------------+
 | ``stmt``         | Shows the data query or manipulation statement   | ``TEXT``                     |
@@ -1395,6 +1399,22 @@ that is performing the query::
 
     If the user management module is not available, the ``username`` is
     given as ``crate``.
+
+The same session can be used to run different statements. They are scheduled
+and run one after another.
+``last_statement`` in the :ref:`sys.sessions <sys-sessions>` table shows only
+last scheduled statement.
+To get all statements currently running under specific session use query below.
+The first statement will be a statement that is currently running and other
+statements will be shown in scheduled order::
+
+    SELECT session_id, array_agg(stmt) AS job_ids
+        FROM (
+          SELECT session_id, stmt
+          FROM sys.jobs
+          ORDER BY started
+        ) ordered
+    GROUP BY session_id
 
 Every request that queries data or manipulates data is considered a "job" if it
 is a valid query. Requests that are not valid queries (for example, a request
