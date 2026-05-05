@@ -69,7 +69,7 @@ public class GlobalCheckpointSyncAction extends TransportReplicationAction<
                 shardStateAction,
                 Request::new,
                 Request::new,
-                ThreadPool.Names.MANAGEMENT);
+                ThreadPool.Names.WRITE);
     }
 
     @Override
