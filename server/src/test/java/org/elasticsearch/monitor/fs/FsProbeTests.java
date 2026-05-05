@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.env.NodeEnvironment;
@@ -47,7 +48,6 @@ public class FsProbeTests extends ESTestCase {
 
     @Test
     public void testFsInfo() throws IOException {
-
         try (NodeEnvironment env = newNodeEnvironment()) {
             FsProbe probe = new FsProbe(env);
 
@@ -168,8 +168,8 @@ public class FsProbeTests extends ESTestCase {
 
         final FsProbe probe = new FsProbe(null) {
             @Override
-            List<String> readProcDiskStats() throws IOException {
-                return diskStats.get();
+            Stream<String> readProcDiskStats() throws IOException {
+                return diskStats.get().stream();
             }
         };
 

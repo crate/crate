@@ -24,9 +24,11 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -83,9 +85,11 @@ public class FsProbe {
 
             List<FsInfo.DeviceStats> devicesStats = new ArrayList<>();
 
-            List<String> lines = readProcDiskStats();
-            if (!lines.isEmpty()) {
-                for (String line : lines) {
+            Stream<String> procDiskStats = readProcDiskStats();
+            try {
+                Iterator<String> lines = procDiskStats.iterator();
+                while (lines.hasNext()) {
+                    String line = lines.next();
                     String[] fields = line.trim().split("\\s+");
                     final int majorDeviceNumber = Integer.parseInt(fields[0]);
                     final int minorDeviceNumber = Integer.parseInt(fields[1]);
@@ -109,6 +113,8 @@ public class FsProbe {
                                     deviceMap.get(new Tuple<>(majorDeviceNumber, minorDeviceNumber)));
                     devicesStats.add(deviceStats);
                 }
+            } finally {
+                procDiskStats.close();
             }
 
             return new FsInfo.IoStats(devicesStats.toArray(new FsInfo.DeviceStats[devicesStats.size()]));
@@ -122,8 +128,8 @@ public class FsProbe {
     }
 
     @SuppressForbidden(reason = "read /proc/diskstats")
-    List<String> readProcDiskStats() throws IOException {
-        return Files.readAllLines(PathUtils.get("/proc/diskstats"));
+    Stream<String> readProcDiskStats() throws IOException {
+        return Files.lines(PathUtils.get("/proc/diskstats"));
     }
 
     /* See: https://bugs.openjdk.java.net/browse/JDK-8162520 */
