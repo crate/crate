@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -686,19 +687,18 @@ public class InsertFromValues implements LogicalPlan {
                 continue;
             }
             final ConcurrencyLimit nodeLimit = nodeLimits.get(nodeId);
-            final long startTime = nodeLimit.startSample();
+            final AtomicLong lastStartTime = new AtomicLong(nodeLimit.startSample());
 
             ActionListener<ShardResponse> listener = new ActionListener<>() {
                 @Override
                 public void onResponse(ShardResponse shardResponse) {
+                    nodeLimit.onSample(lastStartTime.get());
                     Throwable throwable = shardResponse.failure();
                     if (throwable == null) {
-                        nodeLimit.onSample(startTime);
                         synchronized (compressedResult) {
                             compressedResult.update(shardResponse);
                         }
                     } else {
-                        nodeLimit.onSample(startTime);
                         lastFailure.set(throwable);
                     }
                     countdown.accept(request);
@@ -706,7 +706,7 @@ public class InsertFromValues implements LogicalPlan {
 
                 @Override
                 public void onFailure(Exception e) {
-                    nodeLimit.onSample(startTime);
+                    nodeLimit.onSample(lastStartTime.get());
                     Throwable t = SQLExceptions.unwrap(e);
                     if (!partitionWasDeleted(t, isPartitioned)) {
                         synchronized (compressedResult) {
@@ -720,7 +720,11 @@ public class InsertFromValues implements LogicalPlan {
 
             RetryableAction<ShardResponse> retryableAction = RetryableAction.of(
                 scheduler,
-                l -> client.execute(ShardUpsertAction.INSTANCE, request).whenComplete(l),
+                l -> {
+                    nodeLimit.onSample(lastStartTime.get());
+                    lastStartTime.set(nodeLimit.startSample());
+                    client.execute(ShardUpsertAction.INSTANCE, request).whenComplete(l);
+                },
                 BackoffPolicy.limitedDynamic(nodeLimit),
                 listener
             );
