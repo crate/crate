@@ -134,7 +134,7 @@ public class ThreadPool implements Scheduler {
 
         builders = List.of(
             new ScalingExecutorBuilder(Names.GENERIC, 4, genericThreadPoolMax, TimeValue.timeValueSeconds(30)),
-            new FixedExecutorBuilder(settings, Names.WRITE, availableProcessors, 200),
+            new FixedExecutorBuilder(settings, Names.WRITE, availableProcessors, 2000),
             new PrioFixedExecutorBuilder(settings, Names.SEARCH, searchThreadPoolSize(availableProcessors), 1000),
             new ScalingExecutorBuilder(Names.MANAGEMENT, 1, 5, TimeValue.timeValueMinutes(5)),
             // no queue athis means clients will need to handle rejections on listener queue even if the operation succeeded

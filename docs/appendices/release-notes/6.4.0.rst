@@ -97,6 +97,12 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Increased the default queue size of the ``write`` search pool but lowered the
+  amount of internal retries for ``INSERT INTO <table> VALUES`` statements in
+  exchange. This should lower the load for bulk inserts into tables with many
+  shards at the expensive of potentially higher memory load before requests get
+  rejected if clients make single inserts with high concurrency/many
+  connections.
 
 - Improved the performance of the :ref:`min() <aggregation-min>` and
   :ref:`max() <aggregation-max>` aggregations for columns of type :ref:`NUMERIC

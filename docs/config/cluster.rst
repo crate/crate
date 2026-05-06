@@ -1294,7 +1294,7 @@ settings.
 .. _thread_pool.<name>.queue_size:
 
 **thread_pool.<name>.queue_size**
-  | *Default write:*  ``200``
+  | *Default write:*  ``2000``
   | *Default search:* ``1000``
   | *Runtime:*  ``no``
 
