@@ -46,6 +46,13 @@ series.
 Fixes
 =====
 
+- Fixed a performance regression introduced in 6.0.0 that could cause ``INSERT
+  INTO <table> VALUES (...)`` bulk statements that hit many shards to be less
+  aggressive than possible, taking longer than necessary.
+
+  To mitigate the issue in earlier versions it is also possible to increase the
+  size of the :ref:`write thread pool <thread_pool.<name>.queue_size>`.
+
 - Fixed an issue that caused the ``statement_timeout`` setting to expire a query
   if a PostgreSQL client was idling between creating a prepared statement
   (sending a ``parse`` message) and using the prepared statement (sending
