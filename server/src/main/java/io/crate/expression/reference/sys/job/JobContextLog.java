@@ -87,6 +87,10 @@ public class JobContextLog implements ContextLog, Accountable {
         return errorMessage;
     }
 
+    public int sessionId() {
+        return jobContext.sessionId();
+    }
+
     public long affectedRowCount() {
         return affectedRowCount;
     }

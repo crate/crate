@@ -1610,6 +1610,11 @@ have corresponding log tables: ``sys.jobs_log`` and ``sys.operations_log``.
 +------------------------------+---------------------------------------+------------------------------+
 | ``node['name']``             | The name of the node.                 | ``TEXT``                     |
 +------------------------------+---------------------------------------+------------------------------+
+| ``session_id``               | Id of a session that run this job.    | ``INTEGER``                  |
+|                              | References ``id`` column of the       |                              |
+|                              | :ref:`sys.sessions <sys-sessions>`    |                              |
+|                              | table.                                |                              |
++------------------------------+---------------------------------------+------------------------------+
 
 
 .. note::
@@ -1620,6 +1625,16 @@ have corresponding log tables: ``sys.jobs_log`` and ``sys.operations_log``.
 .. NOTE::
 
    The ``sys.jobs_log`` table is subject to :ref:`jobs_table_permissions`.
+
+To get all statements that were run under specific session use a query below::
+
+    SELECT session_id, array_agg(stmt) AS job_ids
+        FROM (
+          SELECT session_id, stmt
+          FROM sys.jobs_log
+          ORDER BY started
+        ) ordered
+    GROUP BY session_id
 
 
 ``sys.operations_log`` Table schema
