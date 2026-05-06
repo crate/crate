@@ -47,7 +47,7 @@ public final class BackoffPolicy {
     }
 
     public static Iterable<TimeValue> limitedDynamic(ConcurrencyLimit concurrencyLimit) {
-        return () -> Stream.generate(() -> TimeValue.timeValueNanos(concurrencyLimit.getLastRtt(TimeUnit.NANOSECONDS)))
+        return () -> Stream.generate(() -> TimeValue.timeValueNanos(concurrencyLimit.getLongRtt(TimeUnit.NANOSECONDS)))
             .limit(DEFAULT_RETRY_LIMIT)
             .iterator();
     }
