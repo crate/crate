@@ -100,10 +100,7 @@ public class JobContextLog implements ContextLog, Accountable {
         size += errorMessage == null ? 0 : errorMessage.length();
 
         // JobContext
-        size += 52L; // 24 bytes (ref+headers) + 4 bytes (id) + 8 bytes (started) + 16 bytes (uuid)
-        size += jobContext.stmt().length();
-
-        size += 4; // session_id
+        size += jobContext.ramBytesUsed();
 
         return RamUsageEstimator.alignObjectSize(size);
     }

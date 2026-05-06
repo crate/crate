@@ -23,13 +23,17 @@ package io.crate.expression.reference.sys.job;
 
 import java.util.UUID;
 
+import org.apache.lucene.util.Accountable;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.jfr.StmtEvent;
 import io.crate.planner.operators.StatementClassifier.Classification;
 import io.crate.role.Role;
 
-public class JobContext {
+public class JobContext implements Accountable {
+
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(JobContext.class);
 
     private final UUID id;
     private final int sessionId;
@@ -97,5 +101,10 @@ public class JobContext {
                ", started=" + started +
                ", classification=" + classification +
                '}';
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return SHALLOW_SIZE + (stmt.length() * Character.BYTES) + (username.length() * Character.BYTES);
     }
 }
