@@ -50,11 +50,8 @@ The SQL Handler part of a node is responsible for three aspects:
     (`abstract syntax tree`_)
 
 The SQL Handler is the only of the four components that interfaces with the
-"outside world". CrateDB supports three protocols to handle client requests:
-
-(a) HTTP
-(b) a Binary Transport Protocol
-(c) the PostgreSQL Wire Protocol
+"outside world". This is done through :ref:`HTTP <interface-http>` or the
+:ref:`PostgreSQL wire protocol <interface-postgresql>`.
 
 A typical request contains a SQL statement and its corresponding arguments.
 
