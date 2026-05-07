@@ -21,6 +21,7 @@
 
 package io.crate.protocols.http;
 
+import static io.crate.protocols.SSL.getSession;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONTINUE;
 import static io.netty.handler.codec.http.HttpResponseStatus.PARTIAL_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.TEMPORARY_REDIRECT;
@@ -34,9 +35,12 @@ import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.auth.Protocol;
 import io.crate.blob.BlobService;
 import io.crate.blob.RemoteDigestBlob;
 import io.crate.blob.exceptions.DigestMismatchException;
@@ -46,6 +50,13 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobShard;
 import io.crate.blob.v2.BlobsDisabledException;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.protocols.postgres.ConnectionProperties;
+import io.crate.role.Permission;
+import io.crate.role.Privileges;
+import io.crate.role.Role;
+import io.crate.role.Roles;
+import io.crate.role.Securable;
+import io.crate.session.Sessions;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.Channel;
@@ -55,7 +66,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelProgressiveFuture;
 import io.netty.channel.ChannelProgressiveFutureListener;
 import io.netty.channel.DefaultFileRegion;
-import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.HttpChunkedInput;
@@ -71,7 +81,7 @@ import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.stream.ChunkedFile;
 import io.netty.util.ReferenceCountUtil;
 
-public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
+public class HttpBlobHandler extends HttpHandler<Object> {
 
     private static final String SCHEME_HTTP = "http://";
     private static final String SCHEME_HTTPS = "https://";
@@ -87,7 +97,6 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     private final Matcher blobsMatcher = BLOBS_PATTERN.matcher("");
     private final BlobService blobService;
 
-
     private HttpMethod method;
     private boolean is100ContinueExpected;
     private boolean isKeepAlive;
@@ -98,8 +107,8 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     private String index;
     private String digest;
 
-    public HttpBlobHandler(BlobService blobService) {
-        super(false);
+    public HttpBlobHandler(BlobService blobService, Settings settings, Sessions sessions, Roles roles) {
+        super(settings, sessions, roles);
         this.blobService = blobService;
     }
 
@@ -136,6 +145,16 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
                 return;
             }
 
+            session = ensureSession(
+                new ConnectionProperties(
+                    null, // not used
+                    Netty4HttpServerTransport.getRemoteAddress(ctx.channel()),
+                    Protocol.HTTP,
+                    getSession(ctx.channel())
+                ),
+                request
+            );
+
             method = request.method();
             isKeepAlive = HttpUtil.isKeepAlive(request);
             is100ContinueExpected = HttpUtil.is100ContinueExpected(request);
@@ -157,15 +176,15 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
                 LOGGER.trace("HTTPMessage:%n{}", request);
             }
             handleBlobRequest(null);
-        } else if (msg instanceof HttpContent) {
+        } else if (msg instanceof HttpContent httpContent) {
             if (method == null) {
                 // the chunk is probably from a regular non-blob request.
                 reset();
-                ctx.fireChannelRead(msg);
+                ctx.fireChannelRead(httpContent);
                 return;
             }
 
-            handleBlobRequest((HttpContent) msg);
+            handleBlobRequest(httpContent);
         } else {
             // Neither HttpMessage or HttpChunk
             reset();
@@ -173,19 +192,24 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         }
     }
 
-    private void handleBlobRequest(@Nullable HttpContent content) throws IOException {
+    private void handleBlobRequest(@Nullable HttpContent content) throws Exception {
         if (possibleRedirect(index, digest)) {
             return;
         }
 
+        Role user = session.sessionSettings().sessionUser();
         if (method.equals(HttpMethod.GET)) {
+            Privileges.ensureUserHasPrivilege(roles(), user, Permission.DQL, Securable.TABLE, index);
             get(index, digest);
             reset();
         } else if (method.equals(HttpMethod.HEAD)) {
+            Privileges.ensureUserHasPrivilege(roles(), user, Permission.DQL, Securable.TABLE, index);
             head(index, digest);
         } else if (method.equals(HttpMethod.PUT)) {
+            Privileges.ensureUserHasPrivilege(roles(), user, Permission.DML, Securable.TABLE, index);
             put(content, index, digest);
         } else if (method.equals(HttpMethod.DELETE)) {
+            Privileges.ensureUserHasPrivilege(roles(), user, Permission.DML, Securable.TABLE, index);
             delete(index, digest);
         } else {
             simpleResponse(HttpResponseStatus.METHOD_NOT_ALLOWED);
@@ -457,7 +481,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         }
 
         RemoteDigestBlob.Status status = digestBlob.addContent(input, last);
-        HttpResponseStatus exitStatus = null;
+        HttpResponseStatus exitStatus;
         switch (status) {
             case FULL:
                 exitStatus = HttpResponseStatus.CREATED;
@@ -481,7 +505,6 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
                 throw new IllegalArgumentException("Unknown status: " + status);
         }
 
-        assert exitStatus != null : "exitStatus should not be null";
         LOGGER.trace("writeToFile exit status http:{} blob: {}", exitStatus, status);
         simpleResponse(exitStatus);
     }

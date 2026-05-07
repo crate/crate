@@ -53,6 +53,7 @@ import org.junit.Test;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.metadata.RelationName;
+import io.crate.role.Role;
 import io.netty.handler.codec.http.HttpHeaderNames;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.SUITE, numDataNodes = 2)
@@ -149,7 +150,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     @Test
     public void testHeadRequest() throws Exception {
         String digest = uploadSmallBlob();
-        var res = head(blobUri(digest));
+        var res = head(blobUri(digest), Role.CRATE_USER);
         assertThat(res.headers().firstValue("Content-Length")).hasValue("1500");
         assertThat(res.headers().firstValue("Accept-Ranges")).hasValue("bytes");
         assertThat(res.headers().firstValue("Expires")).hasValue("Thu, 31 Dec 2037 23:59:59 GMT");
