@@ -22,6 +22,9 @@
 package io.crate.expression.reference.sys.snapshot;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -42,11 +45,14 @@ import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.SnapshotsInProgress;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.IndexMetaDataGenerations;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
@@ -62,6 +68,8 @@ import org.mockito.Answers;
 import org.mockito.Mockito;
 
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.sql.tree.ColumnPolicy;
 
 public class SysSnapshotsTest extends ESTestCase {
 
@@ -260,20 +268,54 @@ public class SysSnapshotsTest extends ESTestCase {
 
         SnapshotId snapshotId = new SnapshotId(snapshot, UUIDs.randomBase64UUID());
         RelationName relationName = new RelationName("my_schema", "empty_parted_table");
+        IndexId indexId = new IndexId(relationName.indexNameOrAlias(), UUIDs.randomBase64UUID());
+        Map<ShardId, SnapshotsInProgress.ShardSnapshotStatus> shards = new HashMap<>();
+        shards.put(
+            new ShardId(indexId.getName(), indexId.getId(), indexId.hashCode()),
+            SnapshotsInProgress.ShardSnapshotStatus.UNASSIGNED_QUEUED
+        );
+
         SnapshotsInProgress.Entry entry = SnapshotsInProgress.startedEntry(
             new Snapshot(repositoryName, snapshotId),
             true,
             true,
-            List.of(),
+            List.of(indexId),
             List.of(relationName),
             123L,
             1L,
-            Map.of(),
+            shards,
             Version.CURRENT
         );
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
+
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
+            .put(IndexMetadata.builder(indexId.getId())
+                .state(IndexMetadata.State.OPEN)
+                .settings(Settings.builder()
+                    .put(SETTING_NUMBER_OF_SHARDS, 1)
+                    .put(SETTING_NUMBER_OF_REPLICAS, 0)
+                    .put(SETTING_VERSION_CREATED, Version.CURRENT))
+                .indexName(indexId.getName())
+                .build(), true)
+            .setTable(
+                relationName,
+                List.of(),
+                Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT).build(),
+                null,
+                ColumnPolicy.DYNAMIC,
+                null,
+                Map.of(),
+                List.of(),
+                List.of(),
+                IndexMetadata.State.OPEN,
+                List.of(indexId.getId()),
+                1,
+                1
+            )
+            .build();
         ClusterState state = ClusterState.builder(ClusterState.EMPTY_STATE)
             .putCustom(SnapshotsInProgress.TYPE, SnapshotsInProgress.of(List.of(entry)))
+            .metadata(metadata)
             .build();
         when(clusterService.state()).thenReturn(state);
         List<String> names = new ArrayList<>();
@@ -285,5 +327,100 @@ public class SysSnapshotsTest extends ESTestCase {
         });
         assertThat(names).containsExactlyInAnyOrder("snapshot");
         assertThat(tables).containsExactly(relationName);
+    }
+
+    @Test
+    public void test_snapshot_in_progress_with_deleted_index_does_not_throw_npe() throws Exception {
+        RepositoryData repositoryData = new RepositoryData(
+            1,
+            Collections.emptyMap(),
+            Collections.emptyMap(),
+            Collections.emptyMap(),
+            Collections.emptyMap(),
+            ShardGenerations.EMPTY,
+            IndexMetaDataGenerations.EMPTY
+        );
+
+        Repository r1 = mock(Repository.class);
+        doReturn(CompletableFuture.completedFuture(repositoryData))
+            .when(r1)
+            .getRepositoryData();
+
+        String repositoryName = "repo";
+        String snapshot = "snapshot";
+        when(r1.getMetadata()).thenReturn(new RepositoryMetadata(repositoryName, "fs", Settings.EMPTY));
+
+        SnapshotId snapshotId = new SnapshotId(snapshot, UUIDs.randomBase64UUID());
+        RelationName existingRelation = new RelationName(DocSchemaInfo.NAME, "existing_table");
+        RelationName deletedRelation = new RelationName(DocSchemaInfo.NAME, "deleted_before_snapshot");
+
+        IndexId existingIndexId = new IndexId(existingRelation.indexNameOrAlias(), UUIDs.randomBase64UUID());
+        IndexId deletedIndexId = new IndexId(deletedRelation.indexNameOrAlias(), UUIDs.randomBase64UUID());
+
+        List<IndexId> indexIds = List.of(
+            existingIndexId,
+            deletedIndexId
+        );
+        Map<ShardId, SnapshotsInProgress.ShardSnapshotStatus> shards = new HashMap<>();
+        indexIds.forEach(indexId -> {
+            shards.put(
+                new ShardId(indexId.getName(), indexId.getId(), indexId.hashCode()),
+                SnapshotsInProgress.ShardSnapshotStatus.UNASSIGNED_QUEUED
+            );
+        });
+        SnapshotsInProgress.Entry entry = SnapshotsInProgress.startedEntry(
+            new Snapshot(repositoryName, snapshotId),
+            true,
+            true,
+            indexIds,
+            List.of(existingRelation, deletedRelation),
+            123L,
+            1L,
+            shards,
+            Version.CURRENT
+        );
+
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
+            .put(IndexMetadata.builder(existingIndexId.getId())
+                    .state(IndexMetadata.State.OPEN)
+                    .settings(Settings.builder()
+                        .put(SETTING_NUMBER_OF_SHARDS, 1)
+                        .put(SETTING_NUMBER_OF_REPLICAS, 0)
+                        .put(SETTING_VERSION_CREATED, Version.CURRENT))
+                    .indexName(existingIndexId.getName())
+                    .build(), true)
+            .setTable(
+                existingRelation,
+                List.of(),
+                Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT).build(),
+                null,
+                ColumnPolicy.DYNAMIC,
+                null,
+                Map.of(),
+                List.of(),
+                List.of(),
+                IndexMetadata.State.OPEN,
+                List.of(existingIndexId.getId()),
+                1,
+                1
+            )
+            .build();
+
+        ClusterState state = ClusterState.builder(ClusterState.EMPTY_STATE)
+            .putCustom(SnapshotsInProgress.TYPE, SnapshotsInProgress.of(List.of(entry)))
+            .metadata(metadata)
+            .build();
+        ClusterService clusterService = mock(ClusterService.class);
+        when(clusterService.state()).thenReturn(state);
+
+        SysSnapshots sysSnapshots = new SysSnapshots(() -> Collections.singletonList(r1), clusterService);
+
+        List<RelationName> tables = new ArrayList<>();
+        assertThat(sysSnapshots.currentSnapshots().get(5, TimeUnit.SECONDS))
+            .satisfies(snapshots -> snapshots.forEach(sysSnapshot -> {
+                tables.addAll(sysSnapshot.tables());
+            }));
+
+        assertThat(tables).containsExactly(existingRelation, deletedRelation);
     }
 }
