@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.concurrent.CompletableFuture;
@@ -41,12 +42,15 @@ import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.SnapshotsInProgress;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.IndexMetaDataGenerations;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
@@ -62,6 +66,7 @@ import org.mockito.Answers;
 import org.mockito.Mockito;
 
 import io.crate.metadata.RelationName;
+import io.crate.sql.tree.ColumnPolicy;
 
 public class SysSnapshotsTest extends ESTestCase {
 
@@ -285,5 +290,85 @@ public class SysSnapshotsTest extends ESTestCase {
         });
         assertThat(names).containsExactlyInAnyOrder("snapshot");
         assertThat(tables).containsExactly(relationName);
+    }
+
+    @Test
+    public void test_snapshot_in_progress_with_deleted_index_does_not_throw_npe() throws Exception {
+        RepositoryData repositoryData = new RepositoryData(
+            1,
+            Collections.emptyMap(),
+            Collections.emptyMap(),
+            Collections.emptyMap(),
+            Collections.emptyMap(),
+            ShardGenerations.EMPTY,
+            IndexMetaDataGenerations.EMPTY
+        );
+
+        Repository r1 = mock(Repository.class);
+        doReturn(CompletableFuture.completedFuture(repositoryData))
+            .when(r1)
+            .getRepositoryData();
+
+        String repositoryName = "repo";
+        String snapshot = "snapshot";
+        when(r1.getMetadata()).thenReturn(new RepositoryMetadata(repositoryName, "fs", Settings.EMPTY));
+
+        SnapshotId snapshotId = new SnapshotId(snapshot, UUIDs.randomBase64UUID());
+        RelationName existingRelation = new RelationName("my_schema", "existing_table");
+        RelationName deletedRelation = new RelationName("my_schema", "deleted_before_snapshot");
+
+        List<IndexId> indexIds = List.of(
+            new IndexId(existingRelation.indexNameOrAlias(), UUIDs.randomBase64UUID()),
+            new IndexId(deletedRelation.indexNameOrAlias(), UUIDs.randomBase64UUID())
+        );
+        ImmutableOpenMap.Builder<ShardId, SnapshotsInProgress.ShardSnapshotStatus> builder = ImmutableOpenMap.builder();
+        indexIds.forEach(indexId -> {
+            builder.put(
+                new ShardId(indexId.getName(), indexId.getId(), indexId.hashCode()),
+                SnapshotsInProgress.ShardSnapshotStatus.UNASSIGNED_QUEUED
+            );
+        });
+        SnapshotsInProgress.Entry entry = SnapshotsInProgress.startedEntry(
+            new Snapshot(repositoryName, snapshotId),
+            true,
+            true,
+            indexIds,
+            List.of(existingRelation, deletedRelation),
+            123L,
+            1L,
+            builder.build(),
+            Version.CURRENT
+        );
+
+        ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
+
+        ClusterState state = ClusterState.builder(ClusterState.EMPTY_STATE)
+            .putCustom(SnapshotsInProgress.TYPE, SnapshotsInProgress.of(List.of(entry)))
+            .metadata(Metadata.builder().setTable(
+                    existingRelation,
+                    List.of(),
+                    Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT).build(),
+                    null,
+                    ColumnPolicy.DYNAMIC,
+                    null,
+                    Map.of(),
+                    List.of(),
+                    List.of(),
+                    IndexMetadata.State.OPEN,
+                    List.of(UUIDs.randomBase64UUID()),
+                1
+            ).build())
+            .build();
+        when(clusterService.state()).thenReturn(state);
+
+        SysSnapshots sysSnapshots = new SysSnapshots(() -> Collections.singletonList(r1), clusterService);
+
+        List<RelationName> tables = new ArrayList<>();
+        assertThat(sysSnapshots.currentSnapshots().get(5, TimeUnit.SECONDS))
+            .satisfies(snapshots -> snapshots.forEach(sysSnapshot -> {
+                tables.addAll(sysSnapshot.tables());
+            }));
+
+        assertThat(tables).containsExactly(existingRelation);
     }
 }

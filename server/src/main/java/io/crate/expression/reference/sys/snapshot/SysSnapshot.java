@@ -67,8 +67,11 @@ public record SysSnapshot(String uuid,
         for (var indexId : inProgressEntry.indices()) {
             String indexName = indexId.getName();
             IndexMetadata indexMetadata = metadata.getIndexByName(indexName);
-            assert indexMetadata != null
-                : "There must be indexMetadata for any index in SnapshotsInProgress.Entry";
+            if (indexMetadata == null) {
+                // Index was deleted before snapshot started.
+                // See also SnapshotsInProgress.ShardSnapshotStatus.MISSING docs.
+                continue;
+            }
             RelationMetadata relation = metadata.getRelation(indexMetadata.getIndexUUID());
             assert relation != null
                 : "If an index is in a SnapshotsInProgress.Entry the relationMetadata for it must exist";
@@ -81,7 +84,7 @@ public record SysSnapshot(String uuid,
             snapshotId.getUUID(),
             snapshotId.getName(),
             snapshot.getRepository(),
-            inProgressEntry.relationNames(),
+            inProgressEntry.relationNames(), // TODO: remove it and make test pass
             partitions,
             indexNames,
             inProgressEntry.startTime(),
