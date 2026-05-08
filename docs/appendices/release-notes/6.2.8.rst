@@ -55,3 +55,7 @@ Fixes
 
   To mitigate the issue in earlier versions it is also possible to increase the
   size of the :ref:`write thread pool <thread_pool.<name>.queue_size>`.
+
+- Fixed an issue that lead to a ``NullPointerException`` error on selects from
+  the :ref:`sys.snapshots <sys-snapshots>` table and simultaneously deleting
+  tables or partitions and running ``CREATE SNAPSHOT``

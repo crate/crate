@@ -69,3 +69,7 @@ Fixes
 - Fixed :ref:`INSERT FROM VALUES <sql-insert>` statements that create new
   partitions are no longer interrupted by :ref:`SWAP <alter_cluster_swap_table>`
   or :ref:`RENAME <sql-alter-table-rename-to>` table statements.
+
+- Fixed an issue that lead to a ``NullPointerException`` error on selects from
+  the :ref:`sys.snapshots <sys-snapshots>` table and simultaneously deleting
+  tables or partitions and running ``CREATE SNAPSHOT``
