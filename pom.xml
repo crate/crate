@@ -336,21 +336,21 @@
         <versions.datasketches>9.0.0</versions.datasketches>
         <versions.hdrhistogram>2.2.2</versions.hdrhistogram>
         <versions.caffeine>3.2.3</versions.caffeine>
-        <versions.jodatime>2.14.1</versions.jodatime>
+        <versions.jodatime>2.14.2</versions.jodatime>
         <versions.aws>1.12.797</versions.aws>
         <versions.opendal>0.48.2</versions.opendal>
         <versions.commonsmath>3.6.1</versions.commonsmath>
-        <versions.commonscodec>1.21.0</versions.commonscodec>
+        <versions.commonscodec>1.22.0</versions.commonscodec>
         <versions.bigmath>2.3.2</versions.bigmath>
         <versions.jaxb_api>2.3.1</versions.jaxb_api>
         <versions.graalvm>25.0.2</versions.graalvm>
-        <versions.jwt>4.5.1</versions.jwt>
-        <versions.jwks-rsa>0.23.0</versions.jwks-rsa>
+        <versions.jwt>4.5.2</versions.jwt>
+        <versions.jwks-rsa>0.24.0</versions.jwks-rsa>
         <versions.bouncycastle-bcpkix-jdk18on>1.83</versions.bouncycastle-bcpkix-jdk18on>
 
         <versions.hamcrest>2.2</versions.hamcrest>
         <versions.mockito>5.23.0</versions.mockito>
-        <versions.jdbc>42.7.10</versions.jdbc>
+        <versions.jdbc>42.7.11</versions.jdbc>
 
         <versions.jmh>1.37</versions.jmh>
 
