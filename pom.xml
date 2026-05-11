@@ -350,6 +350,7 @@
 
         <versions.hamcrest>2.2</versions.hamcrest>
         <versions.mockito>5.23.0</versions.mockito>
+        <versions.jqwik>1.9.3</versions.jqwik>
         <versions.jdbc>42.7.11</versions.jdbc>
 
         <versions.jmh>1.37</versions.jmh>
