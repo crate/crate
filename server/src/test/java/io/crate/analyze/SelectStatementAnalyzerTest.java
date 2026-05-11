@@ -1953,6 +1953,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.outputs()).satisfiesExactly(
             isReference("id"),
             isReference("node"),
+            isReference("session_id"),
             isReference("started"),
             isReference("stmt"),
             isReference("username"));
@@ -1973,6 +1974,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.outputs()).satisfiesExactly(
             isField("id"),
             isField("node"),
+            isField("session_id"),
             isField("started"),
             isField("stmt"),
             isField("username"));

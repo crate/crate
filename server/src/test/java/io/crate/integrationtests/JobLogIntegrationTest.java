@@ -103,6 +103,17 @@ public class JobLogIntegrationTest extends IntegTestCase {
         }
         execute("select * from sys.jobs_log");
         assertThat(response.rowCount()).isEqualTo(0L);
+        assertThat(response.cols()).containsExactly(
+            "classification",
+            "ended",
+            "error",
+            "id",
+            "node",
+            "session_id",
+            "started",
+            "stmt",
+            "username"
+        );
     }
 
     private void assertJobLogOnNodesHaveOnlyStatement(String statement) throws Exception {

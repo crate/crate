@@ -39,15 +39,15 @@ public final class BackoffPolicy {
     private BackoffPolicy() {
     }
 
-    private static final int DEFAULT_RETRY_LIMIT = 10;
+    private static final int DEFAULT_RETRY_LIMIT = 3;
 
     public static Iterable<TimeValue> unlimitedDynamic(ConcurrencyLimit concurrencyLimit) {
-        return () -> Stream.generate(() -> TimeValue.timeValueNanos(concurrencyLimit.getLastRtt(TimeUnit.NANOSECONDS)))
+        return () -> Stream.generate(() -> TimeValue.timeValueNanos(concurrencyLimit.getLongRtt(TimeUnit.NANOSECONDS)))
             .iterator();
     }
 
     public static Iterable<TimeValue> limitedDynamic(ConcurrencyLimit concurrencyLimit) {
-        return () -> Stream.generate(() -> TimeValue.timeValueNanos(concurrencyLimit.getLastRtt(TimeUnit.NANOSECONDS)))
+        return () -> Stream.generate(() -> TimeValue.timeValueNanos(concurrencyLimit.getLongRtt(TimeUnit.NANOSECONDS)))
             .limit(DEFAULT_RETRY_LIMIT)
             .iterator();
     }

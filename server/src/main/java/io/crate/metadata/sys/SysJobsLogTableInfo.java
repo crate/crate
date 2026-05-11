@@ -21,6 +21,7 @@
 
 package io.crate.metadata.sys;
 
+import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
 
@@ -56,6 +57,7 @@ public class SysJobsLogTableInfo {
                 .add("id", STRING, ignored -> localNode.get().getId())
                 .add("name", STRING, ignored -> localNode.get().getName())
             .endObject()
+            .add("session_id", INTEGER, JobContextLog::sessionId)
             .withRouting((state, routingProvider, sessionSettings) -> Routing.forTableOnAllNodes(IDENT, state.nodes()))
             .setPrimaryKeys(ColumnIdent.of("id"))
             .build();

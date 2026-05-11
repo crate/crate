@@ -23,30 +23,39 @@ package io.crate.expression.reference.sys.job;
 
 import java.util.UUID;
 
+import org.apache.lucene.util.Accountable;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.jfr.StmtEvent;
 import io.crate.planner.operators.StatementClassifier.Classification;
 import io.crate.role.Role;
 
-public class JobContext {
+public class JobContext implements Accountable {
+
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(JobContext.class);
 
     private final UUID id;
+    private final int sessionId;
     private final String username;
     private final String stmt;
     private final long started;
     @Nullable
     private final Classification classification;
-    private final StmtEvent event;
 
-    public JobContext(UUID id, String stmt, long started, Role user, @Nullable Classification classification) {
+    @Nullable
+    private StmtEvent event;
+
+    public JobContext(UUID id, int sessionId, String stmt, long started, Role user, @Nullable Classification classification) {
         this.id = id;
+        this.sessionId = sessionId;
         this.stmt = stmt;
         this.started = started;
         this.username = user.name();
         this.classification = classification;
-        this.event = new StmtEvent();
+        StmtEvent event = new StmtEvent();
         if (event.shouldCommit()) {
+            this.event = event;
             event.id = id.toString();
             event.stmt = stmt;
             event.classification = classification == null ? null : classification.type().toString();
@@ -55,14 +64,19 @@ public class JobContext {
     }
 
     public void finish(long affectedRowCount) {
-        if (event.shouldCommit()) {
+        if (event != null && event.shouldCommit()) {
             event.affectedRowCount = affectedRowCount;
             event.commit();
+            event = null;
         }
     }
 
     public UUID id() {
         return id;
+    }
+
+    public int sessionId() {
+        return sessionId;
     }
 
     public String stmt() {
@@ -91,5 +105,10 @@ public class JobContext {
                ", started=" + started +
                ", classification=" + classification +
                '}';
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return SHALLOW_SIZE + (stmt.length() * Character.BYTES) + (username.length() * Character.BYTES);
     }
 }

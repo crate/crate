@@ -48,9 +48,10 @@ public class SysJobsTest extends IntegTestCase {
         SQLResponse response = execute(stmt);
         List<String> statements = new ArrayList<>();
 
+        // SystemTable.build orders by fqn, hence mismatch with the declaration order in SysJobsTableInfo.
         for (Object[] objects : response.rows()) {
             assertThat(objects[0]).isNotNull();
-            statements.add((String) objects[3]);
+            statements.add((String) objects[4]);
         }
         assertThat(statements.contains(stmt)).isTrue();
     }

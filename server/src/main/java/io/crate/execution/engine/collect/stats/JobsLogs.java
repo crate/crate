@@ -97,12 +97,12 @@ public class JobsLogs {
      * <p>
      * If {@link #isEnabled()} is false this method won't do anything.
      */
-    public void logExecutionStart(UUID jobId, String statement, Role user, StatementClassifier.Classification classification) {
+    public void logExecutionStart(UUID jobId, int sessionId, String statement, Role user, StatementClassifier.Classification classification) {
         activeRequests.increment();
         if (!isEnabled()) {
             return;
         }
-        jobsTable.put(jobId, new JobContext(jobId, statement, System.currentTimeMillis(), user, classification));
+        jobsTable.put(jobId, new JobContext(jobId, sessionId, statement, System.currentTimeMillis(), user, classification));
     }
 
     /**
@@ -139,14 +139,14 @@ public class JobsLogs {
 
     /**
      * Create a entry into `sys.jobs_log`
-     * This method can be used instead of {@link #logExecutionEnd(UUID, long, String)} if there was no {@link #logExecutionStart(UUID, String, User, StatementClassifier.Classification)}
+     * This method can be used instead of {@link #logExecutionEnd(UUID, long, String)} if there was no {@link #logExecutionStart(UUID, int, String, Role, StatementClassifier.Classification)}
      * Call because an error happened during parse, analysis or plan.
      * <p>
-     * {@link #logExecutionStart(UUID, String, Role, StatementClassifier.Classification)} is only called after a Plan has been created and execution starts.
+     * {@link #logExecutionStart(UUID, int, String, Role, StatementClassifier.Classification)} is only called after a Plan has been created and execution starts.
      */
-    public void logPreExecutionFailure(UUID jobId, String stmt, String errorMessage, Role user) {
+    public void logPreExecutionFailure(UUID jobId, int sessionId, String stmt, String errorMessage, Role user) {
         JobContextLog jobContextLog = new JobContextLog(
-            new JobContext(jobId, stmt, System.currentTimeMillis(), user, new StatementClassifier.Classification(UNDEFINED)), 0, errorMessage);
+            new JobContext(jobId, sessionId, stmt, System.currentTimeMillis(), user, new StatementClassifier.Classification(UNDEFINED)), 0, errorMessage);
         long stamp = jobsLogLock.readLock();
         try {
             jobsLog.add(jobContextLog);
