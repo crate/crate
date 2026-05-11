@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.node.Node;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,7 +57,6 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
     public void prepare() {
         rowDownstreamFactory = new DistributingConsumerFactory(
             clusterService,
-            new NoneCircuitBreakerService(),
             TestingHelpers.createNodeContext(),
             THREAD_POOL,
             mock(Node.class)
