@@ -4,7 +4,7 @@
 Version 5.3.6
 =============
 
-Released on 2023-08-011.
+Released on 2023-08-01.
 
 .. NOTE::
 
