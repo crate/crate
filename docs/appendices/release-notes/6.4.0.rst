@@ -117,6 +117,8 @@ Administration and Operations
 - Added ``session_id`` column to the :ref:`sys.jobs <sys-jobs>` and
   :ref:`sys.jobs_log <sys-logs>` tables.
 
+- Added a ``state`` column to the :ref:`sys.cluster <sys-cluster>` table.
+
 Client interfaces
 -----------------
 

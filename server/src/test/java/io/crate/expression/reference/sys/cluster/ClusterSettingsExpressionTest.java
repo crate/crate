@@ -40,7 +40,7 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
     public void testSettingsAreAppliedImmediately() throws Exception {
         Settings settings = Settings.builder().put("bulk.request_timeout", "20s").build();
         clusterService.getClusterSettings().applySettings(settings);
-        var sysCluster = SysClusterTableInfo.of(clusterService);
+        var sysCluster = SysClusterTableInfo.of(clusterService, () -> List.of());
 
         var expressionFactory = sysCluster.expressions().get(ColumnIdent.of("settings", List.of("bulk", "request_timeout")));
         var expression = expressionFactory.create();
@@ -50,7 +50,7 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void testSettingsAreUpdated() throws Exception {
-        var sysCluster = SysClusterTableInfo.of(clusterService);
+        var sysCluster = SysClusterTableInfo.of(clusterService, () -> List.of());
 
         Settings settings = Settings.builder()
             .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 1)

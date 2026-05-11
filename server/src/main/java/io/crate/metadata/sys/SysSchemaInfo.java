@@ -50,7 +50,7 @@ public class SysSchemaInfo implements SchemaInfo {
     public SysSchemaInfo(ClusterService clusterService, Roles roles) {
         Supplier<DiscoveryNode> localNode = clusterService::localNode;
         tableInfos = Map.ofEntries(
-            Map.entry(SysClusterTableInfo.IDENT.name(), SysClusterTableInfo.of(clusterService)),
+            Map.entry(SysClusterTableInfo.IDENT.name(), SysClusterTableInfo.of(clusterService, roles)),
             Map.entry(SysNodesTableInfo.IDENT.name(), SysNodesTableInfo.INSTANCE),
             Map.entry(SysShardsTableInfo.IDENT.name(), SysShardsTableInfo.create(roles)),
             Map.entry(SysJobsTableInfo.IDENT.name(), SysJobsTableInfo.create(localNode)),
