@@ -4,7 +4,7 @@
 Version 6.2.0
 =============
 
-Released on 2025-01-13.
+Released on 2026-01-13.
 
 .. WARNING::
 
