@@ -170,7 +170,7 @@ class S3RepositorySettings {
      */
     static final Setting<Integer> MAX_RETRIES_SETTING = Setting.intSetting(
         "max_retries",
-        25,
+        3,
         0,
         Setting.Property.NodeScope);
 
