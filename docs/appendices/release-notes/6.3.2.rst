@@ -73,3 +73,6 @@ Fixes
 - Fixed an issue that lead to a ``NullPointerException`` error on selects from
   the :ref:`sys.snapshots <sys-snapshots>` table and simultaneously deleting
   tables or partitions and running ``CREATE SNAPSHOT``
+
+- Fixed an issue that could lead to an ``OutOfMemoryError`` when running a
+  distributed query with aggregations or joins under memory pressure.
