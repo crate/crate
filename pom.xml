@@ -343,7 +343,7 @@
         <versions.commonscodec>1.22.0</versions.commonscodec>
         <versions.bigmath>2.3.2</versions.bigmath>
         <versions.jaxb_api>2.3.1</versions.jaxb_api>
-        <versions.graalvm>25.0.2</versions.graalvm>
+        <versions.graalvm>25.0.3</versions.graalvm>
         <versions.jwt>4.5.2</versions.jwt>
         <versions.jwks-rsa>0.24.0</versions.jwks-rsa>
         <versions.bouncycastle-bcpkix-jdk18on>1.83</versions.bouncycastle-bcpkix-jdk18on>
