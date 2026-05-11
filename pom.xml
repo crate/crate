@@ -317,7 +317,7 @@
         <versions.jdkbuild>26+35</versions.jdkbuild>
 
         <versions.jspecify>1.0.0</versions.jspecify>
-        <versions.log4j>2.25.3</versions.log4j>
+        <versions.log4j>2.26.0</versions.log4j>
         <versions.assertj>3.27.7</versions.assertj>
         <versions.junit5>6.0.3</versions.junit5>
         <versions.junit>4.13.2</versions.junit>
@@ -335,7 +335,7 @@
         <versions.tdigest>3.3</versions.tdigest>
         <versions.datasketches>9.0.0</versions.datasketches>
         <versions.hdrhistogram>2.2.2</versions.hdrhistogram>
-        <versions.caffeine>3.2.3</versions.caffeine>
+        <versions.caffeine>3.2.4</versions.caffeine>
         <versions.jodatime>2.14.2</versions.jodatime>
         <versions.aws>1.12.797</versions.aws>
         <versions.opendal>0.48.2</versions.opendal>
