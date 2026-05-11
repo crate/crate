@@ -62,3 +62,5 @@ Fixes
 
 - Fixed an issue that could lead to an ``OutOfMemoryError`` when running a
   distributed query with aggregations or joins under memory pressure.
+
+- Fixed an authorization issue for ``_blobs`` HTTP endpoint.

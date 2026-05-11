@@ -31,8 +31,10 @@ import static org.mockito.Mockito.when;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
-import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.common.settings.Settings;
+import org.jspecify.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -42,6 +44,12 @@ import io.crate.blob.BlobService;
 import io.crate.blob.RemoteDigestBlob;
 import io.crate.blob.exceptions.MissingHTTPEndpointException;
 import io.crate.blob.v2.BlobShard;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.protocols.postgres.ConnectionProperties;
+import io.crate.role.Role;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
@@ -53,13 +61,13 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpVersion;
 
-public class HttpBlobHandlerTest extends ESTestCase {
+public class HttpBlobHandlerTest extends CrateDummyClusterServiceUnitTest {
 
     private static final String VALID_DIGEST = "a".repeat(40);
     private static final String BLOB_URI = "/_blobs/mytable/" + VALID_DIGEST;
 
     // An instance for cases where it returns some data and doesn't throw.
-    private BlobService blobService = mock(BlobService.class);
+    private final BlobService blobService = mock(BlobService.class);
     private EmbeddedChannel embeddedChannel;
 
     @Before
@@ -71,8 +79,7 @@ public class HttpBlobHandlerTest extends ESTestCase {
         BlobContainer container = new BlobContainer(tmpDirPath);
         when(blobService.localBlobShard(anyString(), anyString())).thenReturn(blobShard);
         when(blobShard.blobContainer()).thenReturn(container);
-
-        embeddedChannel = new EmbeddedChannel(new HttpBlobHandler(blobService));
+        embeddedChannel = createEmbeddedChannel(blobService);
     }
 
     @Test
@@ -90,7 +97,7 @@ public class HttpBlobHandlerTest extends ESTestCase {
         when(blobService.getRedirectAddress(anyString(), anyString()))
             .thenThrow(new MissingHTTPEndpointException("dummy"));
 
-        EmbeddedChannel channel = new EmbeddedChannel(new HttpBlobHandler(blobService));
+        EmbeddedChannel channel = createEmbeddedChannel(blobService);
         FullHttpRequest req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, BLOB_URI);
         channel.writeInbound(req);
         assertThat(req.refCnt()).isEqualTo(0);
@@ -102,7 +109,7 @@ public class HttpBlobHandlerTest extends ESTestCase {
         when(blobService.getRedirectAddress(anyString(), anyString()))
             .thenReturn("dummy");
 
-        EmbeddedChannel channel = new EmbeddedChannel(new HttpBlobHandler(blobService));
+        EmbeddedChannel channel = createEmbeddedChannel(blobService);
         FullHttpRequest req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, BLOB_URI);
         channel.writeInbound(req);
         assertThat(req.refCnt()).isEqualTo(0);
@@ -140,7 +147,7 @@ public class HttpBlobHandlerTest extends ESTestCase {
 
         FullHttpRequest req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, BLOB_URI);
         req.headers().set(io.netty.handler.codec.http.HttpHeaderNames.RANGE, "bytes=1-3");
-        EmbeddedChannel channel = new EmbeddedChannel(new HttpBlobHandler(blobService));
+        EmbeddedChannel channel = createEmbeddedChannel(blobService);
         try {
             channel.writeInbound(req);
         } catch (Exception ignored) {
@@ -164,7 +171,7 @@ public class HttpBlobHandlerTest extends ESTestCase {
         when(blobService.localBlobShard(anyString(), anyString())).thenThrow(new RuntimeException("dummy"));
 
         FullHttpRequest req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, BLOB_URI);
-        EmbeddedChannel channel = new EmbeddedChannel(new HttpBlobHandler(blobService));
+        EmbeddedChannel channel = createEmbeddedChannel(blobService);
         try {
             channel.writeInbound(req);
         } catch (Exception ignored) {
@@ -183,7 +190,7 @@ public class HttpBlobHandlerTest extends ESTestCase {
         when(blobShard.blobContainer().getFile(anyString()).length()).thenReturn(0L);
 
         FullHttpRequest req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.HEAD, BLOB_URI);
-        EmbeddedChannel channel = new EmbeddedChannel(new HttpBlobHandler(blobService));
+        EmbeddedChannel channel = createEmbeddedChannel(blobService);
         channel.writeInbound(req);
         assertThat(req.refCnt()).isEqualTo(0);
     }
@@ -197,7 +204,7 @@ public class HttpBlobHandlerTest extends ESTestCase {
         when(blobShard.blobContainer().getFile(anyString()).length()).thenReturn(1L);
 
         FullHttpRequest req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.HEAD, BLOB_URI);
-        EmbeddedChannel channel = new EmbeddedChannel(new HttpBlobHandler(blobService));
+        EmbeddedChannel channel = createEmbeddedChannel(blobService);
         channel.writeInbound(req);
         assertThat(req.refCnt()).isEqualTo(0);
     }
@@ -279,11 +286,39 @@ public class HttpBlobHandlerTest extends ESTestCase {
         assertThat(req.refCnt()).isEqualTo(0);
     }
 
-
     @Test
     public void test_unsupported_method_does_not_leak_request() throws Throwable {
         FullHttpRequest req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.PATCH, BLOB_URI);
         embeddedChannel.writeInbound(req);
         assertThat(req.refCnt()).isEqualTo(0);
+    }
+
+    private EmbeddedChannel createEmbeddedChannel(BlobService blobService) {
+        Role crate = Role.CRATE_USER;
+        var sessionSettings = new CoordinatorSessionSettings(crate);
+        var mockedSessions = new Sessions(null, null, null, () -> null, null, Settings.EMPTY, clusterService, null) {
+            @Override
+            public Session newSession(ConnectionProperties connectionProperties, @Nullable String defaultSchema, Role authenticatedUser) {
+                return new Session(
+                    111,
+                    connectionProperties,
+                    null,
+                    null,
+                    null,
+                    false,
+                    null,
+                    sessionSettings,
+                    () -> {},
+                    1,
+                    100);
+            }
+        };
+
+        return new EmbeddedChannel(new HttpBlobHandler(
+            blobService,
+            Settings.EMPTY,
+            mockedSessions,
+            () -> List.of(Role.CRATE_USER)
+        ));
     }
 }

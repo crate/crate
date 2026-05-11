@@ -33,6 +33,7 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -49,6 +50,8 @@ import org.junit.Before;
 import io.crate.blob.BlobTransferStatus;
 import io.crate.blob.BlobTransferTarget;
 import io.crate.common.concurrent.CompletableFutures;
+import io.crate.role.Role;
+import io.netty.handler.codec.http.HttpHeaderNames;
 
 public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
 
@@ -74,15 +77,21 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
         Iterable<HttpServerTransport> transports = cluster().getDataNodeInstances(HttpServerTransport.class);
         Iterator<HttpServerTransport> httpTransports = transports.iterator();
         dataNode1 = httpTransports.next().boundAddress().publishAddress().address();
-        dataNode2 = httpTransports.next().boundAddress().publishAddress().address();
+        if (httpTransports.hasNext()) {
+            dataNode2 = httpTransports.next().boundAddress().publishAddress().address();
+        } else {
+            dataNode2 = dataNode1;
+        }
         execute("create blob table test clustered into 2 shards with (number_of_replicas = 0)");
         execute("create blob table test_blobs2 clustered into 2 shards with (number_of_replicas = 0)");
         execute("create table test_no_blobs (x int) clustered into 2 shards with (number_of_replicas = 0)");
+        execute("CREATE USER john with password 'passwd'");
         ensureGreen();
     }
 
     @After
     public void closeClient() throws Exception {
+        execute("DROP USER john");
         if (httpClient != null) {
             httpClient.close();
         }
@@ -120,7 +129,12 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
     }
 
     protected HttpResponse<String> put(URI uri, String body) throws Exception {
+        return put(uri, body, Role.CRATE_USER);
+    }
+
+    protected HttpResponse<String> put(URI uri, String body, Role user) throws Exception {
         HttpRequest request = HttpRequest.newBuilder(uri)
+            .header(HttpHeaderNames.AUTHORIZATION.toString(), getAuth(user))
             .PUT(BodyPublishers.ofString(body))
             .build();
         HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
@@ -129,11 +143,17 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
     }
 
     protected HttpResponse<String> get(String index, String digest) throws Exception {
-        return get(blobUri(index, digest));
+        return get(blobUri(index, digest), Role.CRATE_USER);
     }
 
     protected HttpResponse<String> get(URI uri) throws Exception {
+        return get(uri, Role.CRATE_USER);
+    }
+
+    protected HttpResponse<String> get(URI uri, Role user) throws Exception {
         HttpRequest request = HttpRequest.newBuilder(uri)
+            .header(HttpHeaderNames.AUTHORIZATION.toString(), getAuth(user))
+            .GET()
             .build();
         return httpClient.send(request, BodyHandlers.ofString());
     }
@@ -157,14 +177,23 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
         }
     }
 
-
-    protected HttpResponse<Void> head(URI uri) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder(uri).HEAD().build();
+    protected HttpResponse<Void> head(URI uri, Role user) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(uri)
+            .header(HttpHeaderNames.AUTHORIZATION.toString(), getAuth(user))
+            .HEAD()
+            .build();
         return httpClient.send(request, BodyHandlers.discarding());
     }
 
     protected HttpResponse<Void> delete(URI uri) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder(uri).DELETE().build();
+        return delete(uri, Role.CRATE_USER);
+    }
+
+    protected HttpResponse<Void> delete(URI uri, Role user) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(uri)
+            .header(HttpHeaderNames.AUTHORIZATION.toString(), getAuth(user))
+            .DELETE()
+            .build();
         return httpClient.send(request, BodyHandlers.discarding());
     }
 
@@ -186,4 +215,10 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
         return getRedirectLocations(httpClient, URI.create(url)).size();
     }
 
+    private static String getAuth(Role user) {
+        String secretKey = user.name() + ":passwd";
+        byte[] tokenBytes = secretKey.getBytes();
+        String token64 = Base64.getEncoder().encodeToString(tokenBytes);
+        return "Basic " + token64;
+    }
 }

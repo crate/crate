@@ -21,7 +21,6 @@
 
 package io.crate.rest.action;
 
-import static io.crate.auth.AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING;
 import static io.crate.data.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 import static io.crate.protocols.SSL.getSession;
 import static io.crate.protocols.http.Headers.isCloseConnection;
@@ -35,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -49,9 +47,6 @@ import org.elasticsearch.transport.netty4.Netty4Utils;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
-import io.crate.auth.AuthSettings;
-import io.crate.auth.Credentials;
-import io.crate.auth.HttpAuthUpstreamHandler;
 import io.crate.auth.Protocol;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
@@ -62,8 +57,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.netty.AccountedByteBuf;
 import io.crate.protocols.http.Headers;
+import io.crate.protocols.http.HttpHandler;
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.session.DescribeResult;
 import io.crate.session.ResultReceiver;
@@ -78,7 +73,6 @@ import io.netty.buffer.ByteBufOutputStream;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
-import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaderNames;
@@ -86,16 +80,11 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
 
-public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+public class SqlHttpHandler extends HttpHandler<FullHttpRequest> {
 
     private static final Logger LOGGER = LogManager.getLogger(SqlHttpHandler.class);
-    private static final String REQUEST_HEADER_SCHEMA = "Default-Schema";
 
-    private final Settings settings;
-    private final Sessions sessions;
     private final Function<String, CircuitBreaker> circuitBreakerProvider;
-    private final Roles roles;
-    private final boolean checkJwtProperties;
 
     @VisibleForTesting
     Session session;
@@ -104,12 +93,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                           Sessions sessions,
                           Function<String, CircuitBreaker> circuitBreakerProvider,
                           Roles roles) {
-        super(false);
-        this.settings = settings;
-        this.sessions = sessions;
+        super(settings, sessions, roles);
         this.circuitBreakerProvider = circuitBreakerProvider;
-        this.roles = roles;
-        this.checkJwtProperties = settings.get(AUTH_HOST_BASED_JWT_ISS_SETTING.getKey()) == null;
     }
 
     @Override
@@ -165,15 +150,6 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         return values != null && (values.equals(singletonList("")) || values.equals(singletonList("true")));
     }
 
-    @Override
-    public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
-        if (session != null) {
-            session.close();
-            session = null;
-        }
-        super.channelUnregistered(ctx);
-    }
-
     void sendResponse(CoordinatorSessionSettings sessionSettings,
                       ChannelHandlerContext ctx,
                       FullHttpRequest request,
@@ -191,7 +167,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             // In case of partial success buffer can contain some data
             // Clearing buffer to ensure that error is not mixed with partial result.
             result.clear();
-            AccessControl accessControl = roles.getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
+            AccessControl accessControl = roles().getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
             var throwable = SQLExceptions.prepareForClientTransmission(accessControl, t);
             HttpError httpError = HttpError.fromThrowable(throwable);
             String mediaType;
@@ -249,20 +225,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         }
     }
 
-    @VisibleForTesting
-    Session ensureSession(ConnectionProperties connectionProperties, FullHttpRequest request) {
-        String defaultSchema = request.headers().get(REQUEST_HEADER_SCHEMA);
-        Role authenticatedUser = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
-        Session session = this.session;
-        if (session == null) {
-            session = sessions.newSession(connectionProperties, defaultSchema, authenticatedUser);
-        } else if (session.sessionSettings().authenticatedUser().equals(authenticatedUser) == false) {
-            session.close();
-            session = sessions.newSession(connectionProperties, defaultSchema, authenticatedUser);
-        }
-        this.session = session;
-        return session;
-    }
+
 
     private CompletableFuture<XContentBuilder> executeSimpleRequest(Session session,
                                                                     ByteBuf resultBuffer,
@@ -318,7 +281,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             }
         }
         var sessionSettings = session.sessionSettings();
-        AccessControl accessControl = roles.getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
+        AccessControl accessControl = roles().getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
         return session.sync(true)
             .thenApply(_ -> {
                 try {
@@ -335,30 +298,6 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                     throw new RuntimeException(e);
                 }
             });
-    }
-
-    /**
-     * Doesn't do authentication as it's already done
-     * in {@link HttpAuthUpstreamHandler} which is registered before this handler
-     * Checks user existence and if not possible to resolve from header (basic or jwt),
-     * returns trusted user from configuration.
-     */
-    Role userFromAuthHeader(@Nullable String authHeaderValue) {
-        try (Credentials credentials = Headers.extractCredentialsFromHttpAuthHeader(authHeaderValue)) {
-            Predicate<Role> rolePredicate = credentials.matchByToken(checkJwtProperties);
-            if (rolePredicate != null) {
-                Role role = roles.findUser(rolePredicate);
-                if (role != null) {
-                    credentials.setUsername(role.name());
-                }
-            }
-            String username = credentials.username();
-            // Fallback to trusted user from configuration
-            if (username == null || username.isEmpty()) {
-                username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
-            }
-            return roles.findUser(username);
-        }
     }
 
     private static boolean bothProvided(@Nullable List<Object> args, @Nullable List<List<Object>> bulkArgs) {

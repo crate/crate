@@ -600,7 +600,13 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             aggregator.setMaxCumulationBufferComponents(transport.maxCompositeBufferComponents);
             pipeline.addLast("chunked", new ChunkedWriteHandler());
             pipeline.addLast("auth_handler", new HttpAuthUpstreamHandler(settings, authentication, roles));
-            pipeline.addLast("blob_handler", new HttpBlobHandler(blobService));
+            pipeline.addLast("blob_handler", new HttpBlobHandler(
+                blobService,
+                settings,
+                sessions,
+                roles
+            ));
+
             pipeline.addLast("aggregator", aggregator);
             if (transport.compression) {
                 pipeline.addLast("encoder_compress", new HttpContentCompressor(transport.compressionLevel));
