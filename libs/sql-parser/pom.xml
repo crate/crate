@@ -55,7 +55,7 @@
         <dependency>
             <groupId>net.jqwik</groupId>
             <artifactId>jqwik-api</artifactId>
-            <version>1.8.5</version>
+            <version>${versions.jqwik}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
