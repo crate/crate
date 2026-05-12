@@ -22,32 +22,7 @@
 package io.crate.execution.engine.indexing;
 
 import org.elasticsearch.index.shard.ShardId;
+import org.jspecify.annotations.Nullable;
 
-public class ShardLocation {
-    final ShardId shardId;
-    final String nodeId;
-
-    public ShardLocation(ShardId shardId, String nodeId) {
-        this.shardId = shardId;
-        this.nodeId = nodeId;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ShardLocation that = (ShardLocation) o;
-
-        if (!shardId.equals(that.shardId)) return false;
-        return nodeId != null ? nodeId.equals(that.nodeId) : that.nodeId == null;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = shardId.hashCode();
-        result = 31 * result + (nodeId != null ? nodeId.hashCode() : 0);
-        return result;
-    }
-
+public record ShardLocation(ShardId shardId, @Nullable String nodeId) {
 }
