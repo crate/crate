@@ -51,6 +51,8 @@ import org.elasticsearch.test.IntegTestCase;
 import org.jspecify.annotations.Nullable;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.metadata.RelationName;
@@ -59,6 +61,7 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.SUITE, numDataNodes = 2)
 @WindowsIncompatible
+@Repeat(iterations = 100)
 public class BlobIntegrationTest extends BlobHttpIntegrationTest {
 
     private String uploadSmallBlob() throws Exception {

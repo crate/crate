@@ -29,11 +29,12 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.auth.Protocol;
 import io.crate.expression.udf.UserDefinedFunctionService;
@@ -592,6 +593,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     }
 
     @Test
+    @Repeat(iterations = 100)
     public void testAccessesToPgProcEntriesWithRespectToPrivileges() throws Exception {
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
         try (Session testUserSession = testUserSession()) {

@@ -36,6 +36,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.analyze.WhereClause;
 import io.crate.expression.symbol.Symbol;
@@ -45,6 +46,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.CheckConstraint;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
+@Repeat(iterations = 100)
 public class SchemasITest extends IntegTestCase {
 
     private Schemas schemas;

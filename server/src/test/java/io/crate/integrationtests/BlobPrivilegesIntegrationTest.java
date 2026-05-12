@@ -28,6 +28,8 @@ import java.net.URI;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.role.Role;
 import io.crate.role.metadata.RolesHelper;
 
@@ -39,6 +41,7 @@ import io.crate.role.metadata.RolesHelper;
 public class BlobPrivilegesIntegrationTest extends BlobHttpIntegrationTest {
 
     @Test
+    @Repeat(iterations = 100)
     public void test_missing_privileges() throws Exception {
         Role john = RolesHelper.userOf("john");
         String digest = "c520e6109835c876fd98636efec43dd61634b7d3";

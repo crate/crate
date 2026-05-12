@@ -160,6 +160,8 @@ public class HttpBlobHandler extends HttpHandler<Object> {
                 isKeepAlive = HttpUtil.isKeepAlive(request);
                 is100ContinueExpected = HttpUtil.is100ContinueExpected(request);
                 range = request.headers().get(HttpHeaderNames.RANGE);
+            } catch (Exception e) {
+                LOGGER.warn("couldn't create session in blob handler", e);
             } finally {
                 // This handler has auto-release disabled,
                 // releasing request as we are not forwarding it.
