@@ -145,23 +145,27 @@ public class HttpBlobHandler extends HttpHandler<Object> {
                 return;
             }
 
-            session = ensureSession(
-                new ConnectionProperties(
-                    null, // not used
-                    Netty4HttpServerTransport.getRemoteAddress(ctx.channel()),
-                    Protocol.HTTP,
-                    getSession(ctx.channel())
-                ),
-                request
-            );
+            try {
+                session = ensureSession(
+                    new ConnectionProperties(
+                        null, // not used
+                        Netty4HttpServerTransport.getRemoteAddress(ctx.channel()),
+                        Protocol.HTTP,
+                        getSession(ctx.channel())
+                    ),
+                    request
+                );
 
-            method = request.method();
-            isKeepAlive = HttpUtil.isKeepAlive(request);
-            is100ContinueExpected = HttpUtil.is100ContinueExpected(request);
-            range = request.headers().get(HttpHeaderNames.RANGE);
-            // This handler has auto-release disabled,
-            // releasing request as we are not forwarding it.
-            ReferenceCountUtil.release(msg);
+                method = request.method();
+                isKeepAlive = HttpUtil.isKeepAlive(request);
+                is100ContinueExpected = HttpUtil.is100ContinueExpected(request);
+                range = request.headers().get(HttpHeaderNames.RANGE);
+            } finally {
+                // This handler has auto-release disabled,
+                // releasing request as we are not forwarding it.
+                ReferenceCountUtil.release(msg);
+            }
+
 
             Matcher matcher = blobsMatcher.reset(uri);
             if (!matcher.matches()) {
@@ -193,33 +197,31 @@ public class HttpBlobHandler extends HttpHandler<Object> {
     }
 
     private void handleBlobRequest(@Nullable HttpContent content) throws Exception {
-        if (possibleRedirect(index, digest)) {
-            return;
-        }
-
-        Role user = session.sessionSettings().sessionUser();
-        if (method.equals(HttpMethod.GET)) {
-            Privileges.ensureUserHasPrivilege(roles(), user, Permission.DQL, Securable.TABLE, index);
-            get(index, digest);
-            reset();
-        } else if (method.equals(HttpMethod.HEAD)) {
-            Privileges.ensureUserHasPrivilege(roles(), user, Permission.DQL, Securable.TABLE, index);
-            head(index, digest);
-        } else if (method.equals(HttpMethod.PUT)) {
-            try {
+        try {
+            if (possibleRedirect(index, digest)) {
+                return;
+            }
+            Role user = session.sessionSettings().sessionUser();
+            if (method.equals(HttpMethod.GET)) {
+                Privileges.ensureUserHasPrivilege(roles(), user, Permission.DQL, Securable.TABLE, index);
+                get(index, digest);
+                reset();
+            } else if (method.equals(HttpMethod.HEAD)) {
+                Privileges.ensureUserHasPrivilege(roles(), user, Permission.DQL, Securable.TABLE, index);
+                head(index, digest);
+            } else if (method.equals(HttpMethod.PUT)) {
                 Privileges.ensureUserHasPrivilege(roles(), user, Permission.DML, Securable.TABLE, index);
                 put(content, index, digest);
-            } finally {
-                if (content != null) {
-                    // PUT can get null content when is100ContinueExpected is true
-                    content.release();
-                }
+            } else if (method.equals(HttpMethod.DELETE)) {
+                Privileges.ensureUserHasPrivilege(roles(), user, Permission.DML, Securable.TABLE, index);
+                delete(index, digest);
+            } else {
+                simpleResponse(HttpResponseStatus.METHOD_NOT_ALLOWED);
             }
-        } else if (method.equals(HttpMethod.DELETE)) {
-            Privileges.ensureUserHasPrivilege(roles(), user, Permission.DML, Securable.TABLE, index);
-            delete(index, digest);
-        } else {
-            simpleResponse(HttpResponseStatus.METHOD_NOT_ALLOWED);
+        } finally {
+            if (content != null) {
+                content.release();
+            }
         }
     }
 
