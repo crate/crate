@@ -25,6 +25,8 @@ package io.crate.metadata.sys;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.elasticsearch.cluster.routing.allocation.decider.AwarenessAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -35,6 +37,12 @@ import org.junit.Test;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.metadata.ColumnIdent;
+import io.crate.role.Permission;
+import io.crate.role.Policy;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
+import io.crate.role.Roles;
+import io.crate.role.Securable;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class SysClusterTableInfoTest extends CrateDummyClusterServiceUnitTest {
@@ -50,10 +58,10 @@ public class SysClusterTableInfoTest extends CrateDummyClusterServiceUnitTest {
                     .build(),
                 ClusterSettings.BUILT_IN_CLUSTER_SETTINGS),
             THREAD_POOL);
-        var clusterTable = SysClusterTableInfo.of(clusterService);
+        var clusterTable = SysClusterTableInfo.of(clusterService, () -> List.of());
 
-        StaticTableReferenceResolver<Void> refResolver = new StaticTableReferenceResolver<>(clusterTable.expressions());
-        NestableCollectExpression<Void, ?> awareness = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
+        StaticTableReferenceResolver<Role> refResolver = new StaticTableReferenceResolver<>(clusterTable.expressions());
+        NestableCollectExpression<Role, ?> awareness = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
             "settings",
                 List.of("cluster", "routing", "allocation", "awareness"))));
         awareness.setNextRow(null);
@@ -79,26 +87,41 @@ public class SysClusterTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_license_data_can_be_selected() {
-        var clusterTable = SysClusterTableInfo.of(clusterService);
+        var clusterTable = SysClusterTableInfo.of(clusterService, () -> List.of());
 
-        StaticTableReferenceResolver<Void> refResolver = new StaticTableReferenceResolver<>(clusterTable.expressions());
-        NestableCollectExpression<Void, ?> expiryDate = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
+        StaticTableReferenceResolver<Role> refResolver = new StaticTableReferenceResolver<>(clusterTable.expressions());
+        NestableCollectExpression<Role, ?> expiryDate = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
             "license",
             "expiry_date")));
         expiryDate.setNextRow(null);
         assertThat(expiryDate.value()).isNull();
 
-        NestableCollectExpression<Void, ?> issuedTo = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
+        NestableCollectExpression<Role, ?> issuedTo = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
             "license",
             "issued_to")));
         issuedTo.setNextRow(null);
         assertThat(issuedTo.value()).isNull();
 
-        NestableCollectExpression<Void, ?> maxNodes = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
+        NestableCollectExpression<Role, ?> maxNodes = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
             "license",
             "max_nodes")));
         maxNodes.setNextRow(null);
         assertThat(maxNodes.value()).isNull();
     }
 
+    @Test
+    public void test_only_al_user_can_view_state() throws Exception {
+        Privilege privilege = new Privilege(Policy.GRANT, Permission.AL, Securable.CLUSTER, null, Role.CRATE_USER.name());
+        Role arthur = new Role("arthur", true, Set.of(), Set.of(), null, null, Map.of());
+        Role trillian = new Role("trillian", true, Set.of(privilege), Set.of(), null, null, Map.of());
+        Roles roles = () -> List.of(arthur, trillian);
+        var clusterTable = SysClusterTableInfo.of(clusterService, roles);
+
+        NestableCollectExpression<Role, ?> expression = clusterTable.expressions().get(ColumnIdent.of("state")).create();
+        expression.setNextRow(arthur);
+        assertThat(expression.value()).isEqualTo("***");
+
+        expression.setNextRow(trillian);
+        assertThat(expression.value()).isNotEqualTo("***");
+    }
 }

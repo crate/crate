@@ -74,7 +74,7 @@ public class SysTableDefinitions {
                                TasksService tasksService,
                                Sessions sessions) {
         Supplier<DiscoveryNode> localNode = clusterService::localNode;
-        var sysClusterTableInfo = (SystemTable<Void>) sysSchemaInfo.getTableInfo(SysClusterTableInfo.IDENT.name());
+        var sysClusterTableInfo = (SystemTable<Role>) sysSchemaInfo.getTableInfo(SysClusterTableInfo.IDENT.name());
         assert sysClusterTableInfo != null : "sys.cluster table must exist in sys schema";
 
         SystemTable<Role> userTable = SysUsersTableInfo.create(() -> clusterService.state().metadata().clusterUUID());
@@ -109,7 +109,10 @@ public class SysTableDefinitions {
             Map.entry(
                 SysClusterTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    () -> completedFuture(Collections.singletonList(null)), sysClusterTableInfo.expressions(), false)
+                    (_, user) -> completedFuture(Collections.singletonList(user)),
+                    sysClusterTableInfo.expressions(),
+                    false
+                )
             ),
             Map.entry(
                 SysJobsTableInfo.IDENT,

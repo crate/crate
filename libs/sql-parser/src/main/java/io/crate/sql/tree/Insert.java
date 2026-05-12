@@ -83,7 +83,14 @@ public final class Insert<T> extends Statement {
 
     @Override
     public int hashCode() {
-        return Objects.hash(table, duplicateKeyContext, columns, insertSource, returning);
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + table.hashCode();
+        result = prime * result + duplicateKeyContext.hashCode();
+        result = prime * result + columns.hashCode();
+        result = prime * result + insertSource.hashCode();
+        result = prime * result + returning.hashCode();
+        return result;
     }
 
     @Override
@@ -158,7 +165,12 @@ public final class Insert<T> extends Statement {
 
         @Override
         public int hashCode() {
-            return Objects.hash(type, onDuplicateKeyAssignments, constraintColumns);
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + type.hashCode();
+            result = prime * result + onDuplicateKeyAssignments.hashCode();
+            result = prime * result + constraintColumns.hashCode();
+            return result;
         }
 
         @Override

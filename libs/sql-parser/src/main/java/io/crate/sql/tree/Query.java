@@ -90,7 +90,14 @@ public class Query extends Statement {
 
     @Override
     public int hashCode() {
-        return Objects.hash(with, queryBody, orderBy, limit, offset);
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + with.hashCode();
+        result = prime * result + queryBody.hashCode();
+        result = prime * result + orderBy.hashCode();
+        result = prime * result + limit.hashCode();
+        result = prime * result + offset.hashCode();
+        return result;
     }
 
     @Override

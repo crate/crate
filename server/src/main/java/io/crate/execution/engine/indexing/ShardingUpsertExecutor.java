@@ -219,7 +219,7 @@ public class ShardingUpsertExecutor
             ShardUpsertRequest request = entry.getValue();
             it.remove();
 
-            String nodeId = entry.getKey().nodeId;
+            String nodeId = entry.getKey().nodeId();
             ConcurrencyLimit nodeLimit = nodeLimits.get(nodeId);
             ActionListener<ShardResponse> listener =
                 new ShardResponseActionListener(
@@ -245,7 +245,7 @@ public class ShardingUpsertExecutor
 
     private boolean shouldPauseOnTargetNodeJobsCounter(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> requests) {
         for (ShardLocation shardLocation : requests.itemsByShard.keySet()) {
-            String requestNodeId = shardLocation.nodeId;
+            String requestNodeId = shardLocation.nodeId();
             ConcurrencyLimit nodeLimit = nodeLimits.get(requestNodeId);
             if (nodeLimit.exceedsLimit()) {
                 if (isDebugEnabled) {
@@ -320,7 +320,7 @@ public class ShardingUpsertExecutor
     private long getMaxLastRttInMs(ShardedRequests<ShardUpsertRequest, Item> req) {
         long rtt = 0;
         for (var shardLocation : req.itemsByShard.keySet()) {
-            String nodeId = shardLocation.nodeId;
+            String nodeId = shardLocation.nodeId();
             rtt = Math.max(rtt, nodeLimits.get(nodeId).getLastRtt(TimeUnit.MILLISECONDS));
         }
         return rtt;

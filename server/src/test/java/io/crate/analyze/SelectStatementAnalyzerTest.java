@@ -34,6 +34,7 @@ import static io.crate.testing.Asserts.isScopedSymbol;
 import static io.crate.testing.Asserts.toCondition;
 import static io.crate.types.ArrayType.makeArray;
 import static org.assertj.core.api.Assertions.anyOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -182,9 +183,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testAllColumnCluster() throws Exception {
         var executor = SQLExecutor.of(clusterService);
         AnalyzedRelation relation = executor.analyze("select * from sys.cluster");
-        assertThat(relation.outputs()).hasSize(5);
-        assertThat(outputNames(relation)).containsExactlyInAnyOrder("id", "license", "master_node", "name", "settings");
-        assertThat(relation.outputs()).hasSize(5);
+        assertThat(relation.outputs()).hasSize(6);
+        assertThat(outputNames(relation)).containsExactlyInAnyOrder(
+            "id", "license", "master_node", "name", "settings", "state");
     }
 
     @Test

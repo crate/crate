@@ -21,13 +21,19 @@
 
 package io.crate.metadata.sys;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 
 import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -37,6 +43,8 @@ import io.crate.metadata.SystemTable;
 import io.crate.metadata.SystemTable.Builder;
 import io.crate.metadata.SystemTable.ObjectBuilder;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -49,13 +57,14 @@ public class SysClusterTableInfo {
 
     public record LoggerEntry(String loggerName, String level) {}
 
-    public static SystemTable<Void> of(ClusterService clusterService) {
+    public static SystemTable<Role> of(ClusterService clusterService, Roles roles) {
         Settings settings = clusterService.getSettings();
         ClusterSettings clusterSettings = clusterService.getClusterSettings();
-        var relBuilder = SystemTable.<Void>builder(IDENT)
+        var relBuilder = SystemTable.<Role>builder(IDENT)
             .add("id", DataTypes.STRING, _ -> clusterService.state().metadata().clusterUUID())
             .add("name", DataTypes.STRING, _ -> ClusterName.CLUSTER_NAME_SETTING.get(settings).value())
             .add("master_node", DataTypes.STRING, _ -> clusterService.state().nodes().getMasterNodeId())
+            .add("state", DataTypes.STRING, user -> encodeState(roles, user, clusterService.state()))
             .startObject("license", _ -> true)
                 .add("expiry_date", DataTypes.TIMESTAMPZ, _ -> null)
                 .add("issued_to", DataTypes.STRING, _ -> null)
@@ -100,8 +109,21 @@ public class SysClusterTableInfo {
             .build();
     }
 
+    private static String encodeState(Roles roles, Role user, ClusterState state) {
+        if (!roles.hasALPrivileges(user)) {
+            return "***";
+        }
+        try (var out = new BytesStreamOutput()) {
+            state.writeTo(out);
+            byte[] bytes = BytesReference.toBytes(out.bytes());
+            return Base64.getEncoder().encodeToString(bytes);
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
+    }
+
     private static void addSetting(ClusterSettings clusterSettings,
-                                   ObjectBuilder<Void, ? extends Builder<Void>> settingsBuilder,
+                                   ObjectBuilder<Role, ? extends Builder<Role>> settingsBuilder,
                                    Node element) {
         if (element instanceof Leaf leaf) {
             var setting = leaf.value;
@@ -124,7 +146,7 @@ public class SysClusterTableInfo {
         }
     }
 
-    private static Function<Void, List<LoggerEntry>> extractLoggers(ClusterSettings clusterSettings) {
+    private static Function<Role, List<LoggerEntry>> extractLoggers(ClusterSettings clusterSettings) {
         return _ -> {
             Settings loggerSettings = clusterSettings.getLoggerSettings();
             ArrayList<LoggerEntry> loggers = new ArrayList<>(loggerSettings.size());
