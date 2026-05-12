@@ -97,6 +97,9 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Improved the performance of bulk insert operations against tables that use
+  user defined functions in a generated column which also has check constraints.
+
 - Increased the default queue size of the ``write`` search pool but lowered the
   amount of internal retries for ``INSERT INTO <table> VALUES`` statements in
   exchange. This should lower the load for bulk inserts into tables with many
