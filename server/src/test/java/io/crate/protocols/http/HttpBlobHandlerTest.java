@@ -293,6 +293,22 @@ public class HttpBlobHandlerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(req.refCnt()).isEqualTo(0);
     }
 
+    @Test
+    public void test_session_creation_failure_does_not_leak_request() throws Throwable {
+        var sessions = mock(Sessions.class);
+        when(sessions.newSession(any(), any(), any())).thenThrow(new RuntimeException("dummy"));
+        var embeddedChannel = createEmbeddedChannel(blobService, sessions);
+
+        // Imitate handleBlobRequest with null content - get headers and instantiate currentMessage
+        FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.PUT, BLOB_URI);
+        request.headers().set(HttpHeaderNames.EXPECT, HttpHeaderValues.CONTINUE);
+        try {
+            embeddedChannel.writeInbound(request);
+        } catch (Exception ignored) { }
+
+        assertThat(request.refCnt()).isEqualTo(0);
+    }
+
     private EmbeddedChannel createEmbeddedChannel(BlobService blobService) {
         Role crate = Role.CRATE_USER;
         var sessionSettings = new CoordinatorSessionSettings(crate);
@@ -320,5 +336,15 @@ public class HttpBlobHandlerTest extends CrateDummyClusterServiceUnitTest {
             mockedSessions,
             () -> List.of(Role.CRATE_USER)
         ));
+    }
+
+    private EmbeddedChannel createEmbeddedChannel(BlobService blobService, Sessions sessions) {
+        return new EmbeddedChannel(new HttpBlobHandler(
+            blobService,
+            Settings.EMPTY,
+            sessions,
+            () -> List.of(Role.CRATE_USER)
+        ));
+
     }
 }
