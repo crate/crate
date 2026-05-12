@@ -174,7 +174,6 @@ public class GenericFunctionQuery extends Query implements Accountable {
 
     @Override
     public void visit(QueryVisitor visitor) {
-        // Used by the RamUsageQueryVisitor.
         visitor.visitLeaf(this);
     }
 
