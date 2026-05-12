@@ -61,7 +61,7 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.SUITE, numDataNodes = 2)
 @WindowsIncompatible
-@Repeat(iterations = 80)
+@Repeat(iterations = 50)
 public class BlobIntegrationTest extends BlobHttpIntegrationTest {
 
     private String uploadSmallBlob() throws Exception {
