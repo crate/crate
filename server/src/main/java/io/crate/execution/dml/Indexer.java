@@ -59,8 +59,6 @@ import io.crate.expression.InputFactory.Context;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.DynamicReference;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
@@ -144,12 +142,18 @@ public class Indexer {
         private final List<Reference> targetColumns;
         private final DocTableInfo table;
         private final SymbolEvaluator symbolEval;
+        private final InputFactory inputFactory;
+        private final TransactionContext txnCtx;
 
-        private RefResolver(SymbolEvaluator symbolEval,
+        private RefResolver(InputFactory inputFactory,
+                            SymbolEvaluator symbolEval,
+                            TransactionContext txnCtx,
                             List<String> partitionValues,
                             List<Reference> targetColumns,
                             DocTableInfo table) {
+            this.inputFactory = inputFactory;
             this.symbolEval = symbolEval;
+            this.txnCtx = txnCtx;
             this.partitionValues = partitionValues;
             this.targetColumns = targetColumns;
             this.table = table;
@@ -216,9 +220,7 @@ public class Indexer {
                 Symbol defaultExpression = ref.defaultExpression();
                 if (defaultExpression == null) {
                     if (ref instanceof GeneratedReference generated) {
-                        return NestableCollectExpression.forFunction(
-                            item -> fromGenerated(generated, item)
-                        );
+                        return fromGenerated(generated);
                     }
                     return NestableCollectExpression.constant(null);
                 }
@@ -238,14 +240,18 @@ public class Indexer {
             if (rootIndex == -1) {
                 return NestableCollectExpression.constant(null);
             }
+            CollectExpression<IndexItem, Object> fromGenerated = ref instanceof GeneratedReference generated
+                ? fromGenerated(generated)
+                : null;
             Function<IndexItem, Object> getValue = item -> {
                 Object val = Maps.getByPath(item.insertValues()[rootIndex], column.path());
                 if (val == null) {
                     Symbol defaultExpression = ref.defaultExpression();
                     if (defaultExpression != null) {
                         val = defaultExpression.accept(symbolEval, Row.EMPTY).value();
-                    } else if (ref instanceof GeneratedReference generated) {
-                        return fromGenerated(generated, item);
+                    } else if (fromGenerated != null) {
+                        fromGenerated.setNextRow(item);
+                        return fromGenerated.value();
                     }
                 }
                 return val;
@@ -253,14 +259,24 @@ public class Indexer {
             return NestableCollectExpression.forFunction(getValue);
         }
 
-        private Object fromGenerated(GeneratedReference generated, IndexItem item) {
-            Symbol generatedExpression = RefReplacer.replaceRefs(generated.generatedExpression(), x -> {
-                var collectExpression = getImplementation(x);
-                collectExpression.setNextRow(item);
-                return Literal.ofUnchecked(x.valueType(), collectExpression.value());
-            });
-            Input<?> accept = generatedExpression.accept(symbolEval, Row.EMPTY);
-            return accept.value();
+        private CollectExpression<IndexItem, Object> fromGenerated(GeneratedReference generated) {
+            Context<CollectExpression<IndexItem, Object>> ctx = inputFactory.ctxForRefs(txnCtx, this);
+            final List<CollectExpression<IndexItem, Object>> expressions = ctx.expressions();
+            final Input<?> input = ctx.add(generated.generatedExpression());
+            return new CollectExpression<>() {
+
+                @Override
+                public Object value() {
+                    return input.value();
+                }
+
+                @Override
+                public void setNextRow(IndexItem row) {
+                    for (var expr : expressions) {
+                        expr.setNextRow(row);
+                    }
+                }
+            };
         }
     }
 
@@ -498,7 +514,7 @@ public class Indexer {
         this.getRef = table::getReference;
         InputFactory inputFactory = new InputFactory(nodeCtx);
         SymbolEvaluator symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
-        var referenceResolver = new RefResolver(symbolEval, partitionValues, columns, table);
+        var referenceResolver = new RefResolver(inputFactory, symbolEval, txnCtx, partitionValues, columns, table);
         Context<CollectExpression<IndexItem, Object>> ctxForRefs = inputFactory.ctxForRefs(
             txnCtx,
             referenceResolver
@@ -1059,7 +1075,7 @@ public class Indexer {
                                                             List<Reference> targetColumns) {
         var symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
         InputFactory inputFactory = new InputFactory(nodeCtx);
-        var referenceResolver = new RefResolver(symbolEval, partitionValues, targetColumns, table);
+        var referenceResolver = new RefResolver(inputFactory, symbolEval, txnCtx, partitionValues, targetColumns, table);
         Context<CollectExpression<IndexItem, Object>> ctxForRefs = inputFactory.ctxForRefs(
             txnCtx,
             referenceResolver
