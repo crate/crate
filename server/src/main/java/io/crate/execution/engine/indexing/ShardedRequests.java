@@ -72,7 +72,7 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         usedMemoryEstimate += itemSizeInBytes;
         TReq req = itemsByShard.get(shardLocation);
         if (req == null) {
-            req = requestFactory.apply(shardLocation.shardId);
+            req = requestFactory.apply(shardLocation.shardId());
             itemsByShard.put(shardLocation, req);
         }
         location++;
