@@ -206,8 +206,15 @@ public class HttpBlobHandler extends HttpHandler<Object> {
             Privileges.ensureUserHasPrivilege(roles(), user, Permission.DQL, Securable.TABLE, index);
             head(index, digest);
         } else if (method.equals(HttpMethod.PUT)) {
-            Privileges.ensureUserHasPrivilege(roles(), user, Permission.DML, Securable.TABLE, index);
-            put(content, index, digest);
+            try {
+                Privileges.ensureUserHasPrivilege(roles(), user, Permission.DML, Securable.TABLE, index);
+                put(content, index, digest);
+            } finally {
+                if (content != null) {
+                    // PUT can get null content when is100ContinueExpected is true
+                    content.release();
+                }
+            }
         } else if (method.equals(HttpMethod.DELETE)) {
             Privileges.ensureUserHasPrivilege(roles(), user, Permission.DML, Securable.TABLE, index);
             delete(index, digest);
@@ -458,11 +465,8 @@ public class HttpBlobHandler extends HttpHandler<Object> {
 
         boolean isLast = content instanceof LastHttpContent;
         ByteBuf byteBuf = content.content();
-        try {
-            writeToFile(byteBuf, isLast);
-        } finally {
-            byteBuf.release();
-        }
+        // Release is handled by the caller.
+        writeToFile(byteBuf, isLast);
     }
 
     private void delete(String index, String digest) throws IOException {
