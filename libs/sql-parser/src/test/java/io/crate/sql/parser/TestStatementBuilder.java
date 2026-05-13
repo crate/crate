@@ -76,6 +76,7 @@ import io.crate.sql.tree.OptimizeStatement;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.Query;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.ResetStatement;
 import io.crate.sql.tree.RestoreSnapshot;
@@ -113,6 +114,24 @@ public class TestStatementBuilder {
         statements = SqlParser.createStatementsForSimpleQuery("SET extra_float_digits = 3", str -> str);
         assertThat(statements).hasSize(1);
         assertThat(statements.get(0)).isExactlyInstanceOf(SetStatement.class);
+
+        assertThat(SqlParser.createStatementsForSimpleQuery("; select 1", x -> x))
+            .hasSize(1)
+            .hasOnlyElementsOfType(Query.class);
+
+        assertThat(SqlParser.createStatementsForSimpleQuery(";;; select 1", x -> x))
+            .hasSize(1)
+            .hasOnlyElementsOfType(Query.class);
+
+        assertThat(SqlParser.createStatementsForSimpleQuery("select 1;;;", x -> x))
+            .hasSize(1)
+            .hasOnlyElementsOfType(Query.class);
+
+        assertThat(SqlParser.createStatementsForSimpleQuery("; select 1; select 2;", x -> x))
+            .hasSize(2)
+            .hasOnlyElementsOfType(Query.class);
+
+        assertThat(SqlParser.createStatementsForSimpleQuery(";;;;", x -> x)).isEmpty();
     }
 
     @Test

@@ -917,8 +917,24 @@ public class PostgresITest extends IntegTestCase {
                               "create table t (id int);" +
                               "insert into t values (42);" +
                               "refresh table t");
+
+            // Test simple select
             statement = conn.createStatement();
             ResultSet resultSet = statement.executeQuery("select * from hoschi.t");
+            resultSet.next();
+            assertThat(resultSet.getInt(1)).isEqualTo(42);
+            assertThat(resultSet.isLast()).isTrue();
+
+            // Test with empty statement added to the query
+            statement = conn.createStatement();
+            resultSet = statement.executeQuery("select * from hoschi.t;;");
+            resultSet.next();
+            assertThat(resultSet.getInt(1)).isEqualTo(42);
+            assertThat(resultSet.isLast()).isTrue();
+
+            // Test with empty statement prepended to the query
+            statement = conn.createStatement();
+            resultSet = statement.executeQuery(";; select * from hoschi.t");
             resultSet.next();
             assertThat(resultSet.getInt(1)).isEqualTo(42);
             assertThat(resultSet.isLast()).isTrue();
