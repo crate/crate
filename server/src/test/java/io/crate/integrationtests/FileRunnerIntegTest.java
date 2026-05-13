@@ -1,0 +1,167 @@
+/*
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
+package io.crate.integrationtests;
+
+import static io.crate.test.integration.FileRunnerIntegTestHelper.parseCmd;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+
+import org.elasticsearch.test.IntegTestCase;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.test.integration.FileRunnerIntegTestHelper;
+import io.crate.testing.UseJdbc;
+
+/**
+ * Runs sqllogic style *.test files against CrateDB
+ */
+@IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
+public class FileRunnerIntegTest extends IntegTestCase {
+
+    private List<File> testFiles;
+
+    @Before
+    public void findTestFiles() {
+        Path tests_path = getDataPath("/integtests");
+        testFiles = new ArrayList<>();
+
+        for (var file : tests_path.toFile().listFiles()) {
+            if (file.toPath().getFileName().toString().toLowerCase(Locale.US).endsWith(".test")) {
+                testFiles.add(file);
+            }
+        }
+    }
+
+    @Test
+    @UseJdbc(1)
+    public void testFiles() throws Exception {
+        String schema = "doc";
+        for (File test : testFiles) {
+            Path filepath = test.toPath();
+            try (BufferedReader br = Files.newBufferedReader(filepath, StandardCharsets.UTF_8)) {
+                List<List<String>> commands = FileRunnerIntegTestHelper.getCommands(br).stream()
+                    .filter(FileRunnerIntegTestHelper::shouldExecOnCrate)
+                    .toList();
+
+                boolean dmlDone = false;
+                try {
+                    for (List<String> cmd : commands) {
+                        FileRunnerIntegTestHelper.Cmd parsed = parseCmd(cmd, filepath.toString());
+                        if (parsed instanceof FileRunnerIntegTestHelper.StatementCmd stmt) {
+                            try {
+                                execute(stmt.getQuery());
+                            } catch (Exception e) {
+                                if (stmt.isExpectOk()) {
+                                    throw new FileRunnerIntegTestHelper.IncorrectResultException(e.getMessage());
+                                }
+                            }
+                        }
+                        if (parsed instanceof FileRunnerIntegTestHelper.QueryCmd query) {
+                            if (!dmlDone) {
+                                dmlDone = true;
+                                refreshTables(schema);
+                            }
+
+                            execute(query.getQuery());
+                            int colCount = response.cols().length;
+                            List<List<Object>> rows = new ArrayList<>();
+                            for (Object[] resultRow : response.rows()) {
+                                List<Object> row = new ArrayList<>(colCount);
+                                for (int c = 0; c < colCount; c++) {
+                                    if (resultRow[c] == null) {
+                                        row.add("NULL");
+                                    } else {
+                                        String raw = resultRow[c].toString();
+                                        FileRunnerIntegTestHelper.ColumnFormat fmt = query.resultFormats.get(c % query.resultFormats.size());
+                                        row.add(fmt.format(raw));
+                                    }
+                                }
+                                rows.add(row);
+                            }
+
+                            if (query.sort == FileRunnerIntegTestHelper.SortMode.ROWSORT) {
+                                rows.sort(FileRunnerIntegTestHelper::lexicographicByString);
+                            }
+
+                            List<Object> actual;
+                            if (query.sort == FileRunnerIntegTestHelper.SortMode.ROWS) {
+                                actual = new ArrayList<>(rows);
+                            } else {
+                                actual = new ArrayList<>(rows.size() * Math.max(1, colCount));
+                                for (List<Object> r : rows) {
+                                    actual.addAll(r);
+                                }
+                            }
+
+                            if (query.sort == FileRunnerIntegTestHelper.SortMode.VALUESORT) {
+                                // Explicit lambda avoids relying on overload resolution
+                                // for the polymorphic String.valueOf method reference.
+                                actual.sort(Comparator.comparing(String::valueOf));
+                            }
+
+                            query.validator.validate(actual);
+                        }
+                    }
+                } finally {
+                    dropRelations(schema);
+                }
+            }
+        }
+    }
+
+    private void refreshTables(String schema) {
+        List<String> tables = listRelations(schema, "BASE TABLE");
+        for (String table : tables) {
+            execute("refresh table " + table);
+        }
+    }
+
+    private void dropRelations(String schema) {
+        List<String> tables = listRelations(schema, "BASE TABLE");
+        for (String table : tables) {
+            execute("drop table " + table);
+        }
+        List<String> views = listRelations(schema, "VIEW");
+        for (String view : views) {
+            execute("drop view " + view);
+        }
+    }
+
+    private List<String> listRelations(String schema, String type) {
+        execute("select table_schema, table_name from information_schema.tables " +
+                "where table_schema = ? and table_type = ?", new Object[]{schema, type});
+        List<String> tables = new ArrayList<>((int) response.rowCount());
+        for (Object[] row : response.rows()) {
+            tables.add('"' + row[0].toString() + "\".\"" + row[1].toString() + '"');
+        }
+        return tables;
+    }
+}
