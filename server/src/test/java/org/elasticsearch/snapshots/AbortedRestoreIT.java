@@ -20,6 +20,7 @@
 package org.elasticsearch.snapshots;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -105,7 +106,9 @@ public class AbortedRestoreIT extends AbstractSnapshotIntegTestCase {
         logger.info("--> unblocking repository [{}]", repositoryName);
         unblockAllDataNodes(repositoryName);
 
-        future.get();
+        assertThatThrownBy(future::get)
+            .hasCauseInstanceOf(SnapshotRestoreException.class)
+            .hasMessageContaining("[repo:snap1] failed to restore 1 of 1 shards");
 
         logger.info("--> waiting for snapshot thread pool to be empty");
         waitForMaxActiveSnapshotThreads(dataNode, 0);
