@@ -46,18 +46,18 @@ public class BlobPrivilegesIntegrationTest extends BlobHttpIntegrationTest {
         String body = "a".repeat(1500);
 
         var response = get(uri, john);
-        assertThat(response.statusCode()).isEqualTo(500);
+        assertThat(response.statusCode()).isEqualTo(404);
         assertThat(response.body()).isEqualTo("Schema 'blob' unknown");
 
         var response2 = head(uri, john);
-        assertThat(response2.statusCode()).isEqualTo(500);
+        assertThat(response2.statusCode()).isEqualTo(404);
 
         var response3 = put(uri, body, john);
-        assertThat(response3.statusCode()).isEqualTo(500);
+        assertThat(response3.statusCode()).isEqualTo(404);
         assertThat(response3.body()).isEqualTo("Schema 'blob' unknown");
 
         var response4 = delete(uri, john);
-        assertThat(response4.statusCode()).isEqualTo(500);
+        assertThat(response4.statusCode()).isEqualTo(404);
     }
 }
 
