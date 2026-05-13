@@ -49,6 +49,9 @@ series.
 Fixes
 =====
 
+- Fixed an issue that could cause queries against ``sys.allocations`` to fail if
+  concurrently resizing the shards of a table.
+
 - Fixed a performance regression introduced in 6.0.0 that could cause ``INSERT
   INTO <table> VALUES (...)`` bulk statements that hit many shards to be less
   aggressive than possible, taking longer than necessary.

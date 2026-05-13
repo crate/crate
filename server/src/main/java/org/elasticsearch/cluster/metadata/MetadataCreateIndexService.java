@@ -84,11 +84,11 @@ import org.elasticsearch.indices.ShardLimitValidator;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
-import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.execution.ddl.tables.CreateBlobTableRequest;
 import io.crate.execution.ddl.tables.CreateTableResponse;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.DocReferences;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
@@ -419,7 +419,7 @@ public class MetadataCreateIndexService {
                 }
             }
 
-            String resizedIndexName = AlterTableClient.RESIZE_PREFIX + sourceIndex.getIndex().getName();
+            String resizedIndexName = IndexName.RESIZE_PREFIX + sourceIndex.getIndex().getName();
             IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(resizedIndexUUID)
                 .indexName(resizedIndexName)
                 .settings(indexSettingsBuilder)
