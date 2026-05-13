@@ -75,8 +75,6 @@ import io.crate.sql.tree.GenericProperties;
 @Singleton
 public class AlterTableClient {
 
-    public static final String RESIZE_PREFIX = ".resized.";
-
     private static final Logger LOGGER = LogManager.getLogger(AlterTableClient.class);
 
     private final ClusterService clusterService;

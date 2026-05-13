@@ -83,4 +83,12 @@ public class IndexPartsTest {
         assertThat(IndexName.isDangling(".shrinked.schema..partitioned.t.ident")).isTrue();
     }
 
+    @Test
+    public void test_can_decode_resized_index() throws Exception {
+        String indexName = IndexName.encode("s1", "tbl", "pident1");
+        IndexParts parts = IndexName.decode(IndexName.RESIZE_PREFIX + indexName);
+        assertThat(parts.schema()).isEqualTo("s1");
+        assertThat(parts.table()).isEqualTo("tbl");
+        assertThat(parts.partitionIdent()).isEqualTo("pident1");
+    }
 }

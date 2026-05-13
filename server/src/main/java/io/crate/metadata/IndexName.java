@@ -30,9 +30,9 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.blob.v2.BlobIndex;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
 
@@ -42,6 +42,7 @@ public final class IndexName {
     private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LOGGER);
     private static final String PARTITIONED_KEY_WORD = "partitioned";
 
+    public static final String RESIZE_PREFIX = ".resized.";
     public static final int MAX_INDEX_NAME_BYTES = 255;
 
     private IndexName() {}
@@ -120,7 +121,12 @@ public final class IndexName {
                 assertPartitionPrefix(parts[2]);
                 yield new IndexParts(parts[0], parts[3], parts[4]);
             }
-            default -> throw new IllegalArgumentException("Invalid index name: " + indexName);
+            default -> {
+                if (indexName.startsWith(RESIZE_PREFIX)) {
+                    yield decode(indexName.substring(RESIZE_PREFIX.length()));
+                }
+                throw new IllegalArgumentException("Invalid index name: " + indexName);
+            }
         };
     }
 
