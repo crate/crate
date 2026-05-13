@@ -49,8 +49,11 @@ import io.crate.blob.exceptions.MissingHTTPEndpointException;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobShard;
 import io.crate.blob.v2.BlobsDisabledException;
+import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.SchemaUnknownException;
 import io.crate.protocols.postgres.ConnectionProperties;
+import io.crate.rest.action.HttpErrorStatus;
 import io.crate.role.Permission;
 import io.crate.role.Privileges;
 import io.crate.role.Role;
@@ -76,6 +79,7 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.stream.ChunkedFile;
@@ -187,7 +191,6 @@ public class HttpBlobHandler extends HttpHandler<Object> {
                 ctx.fireChannelRead(httpContent);
                 return;
             }
-
             handleBlobRequest(httpContent);
         } else {
             // Neither HttpMessage or HttpChunk
@@ -218,6 +221,18 @@ public class HttpBlobHandler extends HttpHandler<Object> {
             } else {
                 simpleResponse(HttpResponseStatus.METHOD_NOT_ALLOWED);
             }
+        } catch (MissingPrivilegeException | SchemaUnknownException | RelationUnknown e) {
+            String message = e.getMessage();
+            ByteBuf responseMsg = ByteBufUtil.writeUtf8(ctx.alloc(), message);
+            HttpErrorStatus httpErrorStatus = e.httpErrorStatus();
+            var response = new DefaultFullHttpResponse(
+                HttpVersion.HTTP_1_1,
+                httpErrorStatus.httpResponseStatus(),
+                responseMsg
+            );
+            HttpUtil.setContentLength(response, message.length());
+            maybeSetConnectionCloseHeader(response);
+            sendResponse(response);
         } finally {
             if (content != null) {
                 content.release();
