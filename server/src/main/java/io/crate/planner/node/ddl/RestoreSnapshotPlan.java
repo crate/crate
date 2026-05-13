@@ -32,6 +32,8 @@ import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TransportRestoreSnapshot;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.snapshots.SnapshotRestoreException;
+
 import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedRestoreSnapshot;
@@ -127,7 +129,20 @@ public class RestoreSnapshotPlan implements Plan {
             stmt.globalSettings()
         );
         dependencies.client().execute(TransportRestoreSnapshot.ACTION, request)
-            .whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(r == null ? -1L : 1L)));
+            .whenComplete(new OneRowActionListener<>(consumer, response -> {
+                if (response == null) {
+                    return new Row1(-1L);
+                }
+                var restoreInfo = response.getRestoreInfo();
+                if (restoreInfo != null && restoreInfo.failedShards() > 0) {
+                    throw new SnapshotRestoreException(
+                        restoreSnapshot.repository(),
+                        restoreSnapshot.snapshot(),
+                        "failed to restore " + restoreInfo.failedShards() + " of " + restoreInfo.totalShards() + " shards"
+                    );
+                }
+                return new Row1(1L);
+            }));
     }
 
     @VisibleForTesting
