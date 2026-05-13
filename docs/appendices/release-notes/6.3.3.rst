@@ -50,3 +50,6 @@ Fixes
   parsing failure instead of returning empty statement results when executed via
   the simple mode of the PostgreSQL wire protocol.
 
+- Fixed an issue that caused :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>` to
+  return ``RESTORE OK`` even if some shards failed to restore (for example, due
+  to exceeded disk watermarks). It now fails with a ``SnapshotRestoreException``.
