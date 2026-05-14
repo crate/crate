@@ -58,7 +58,7 @@ are supported to alter an existing user account:
   JWT properties map (``iss``, ``username`` and ``aud``) entered as a string literal.
   e.g.::
 
-     ALTER USER john WITH (jwt = {"iss" = 'new_issuer', "username" = 'john.smith', "aud" = 'new_aud'})
+     ALTER USER john SET (jwt = {"iss" = 'new_issuer', "username" = 'john.smith', "aud" = 'new_aud'})
 
   New JWT properties must not coincide with JWT properties of another user.
 
@@ -82,15 +82,15 @@ are supported to alter an existing user account:
 :session settings:
 
   Any of the modifiable :ref:`session settings <conf-session>`. The value set
-  is used for the user when logins to the database, instead of the default
+  is used when the user logs in to the database, instead of the default
   value, thus, there is no need to use ``SET`` statements to modify the setting
   value on its user session.
 
 
 .. NOTE::
 
-    The session settings can only be set to a user and not on a role and
-    are therefore are not inherited to other users.
+    The session settings can only be set for a user and not for a role and
+    are therefore not inherited by other users.
 
     Changes to session settings are only applied to new sessions opened by the
     user.
@@ -107,5 +107,5 @@ Resets modifiable :ref:`session settings <conf-session>` to their default value.
 
 :ALL:
 
-  Resets all the  modifiable :ref:`session settings <conf-session>` of the user
+  Resets all the modifiable :ref:`session settings <conf-session>` of the user
   to their default values.
