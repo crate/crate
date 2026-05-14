@@ -123,12 +123,12 @@ import io.crate.types.DataType;
  * sync()
  * </pre>
  * <p>
- * (https://www.postgresql.org/docs/9.2/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY)
+ * See: <a href="https://www.postgresql.org/docs/9.2/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY">PostgreSQL: Extended Query Protocol</a>.
  */
 public class Session implements AutoCloseable {
 
     // Logger name should be SQLOperations here
-    private static final Logger LOGGER = LogManager.getLogger(Sessions.class);
+    private static final Logger LOGGER = LogManager.getLogger(Session.class);
 
     public static final String UNNAMED = "";
     private final DependencyCarrier executor;
@@ -329,6 +329,11 @@ public class Session implements AutoCloseable {
         return sessionSettings;
     }
 
+    /**
+     * Parses the input query string into a statement and saves it under the given statement name
+     * (if parsing was successful).
+     * The method expects a single statement in the provided query string.
+     */
     public void parse(String statementName, String query, List<DataType<?>> paramTypes) {
         TimeoutToken timeoutToken = newTimeoutToken();
         if (LOGGER.isDebugEnabled()) {
