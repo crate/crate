@@ -46,4 +46,7 @@ series.
 Fixes
 =====
 
-None
+- Fixed an issue that caused multiple empty statements like `;;` to result in a
+  parsing failure instead of returning empty statement results when executed via
+  the simple mode of the PostgreSQL wire protocol.
+

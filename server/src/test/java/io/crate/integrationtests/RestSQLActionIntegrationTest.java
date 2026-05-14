@@ -338,4 +338,21 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(response.body()).contains(
             "\"results\":[{\"rowcount\":-2,\"error\":{\"code\":4091,\"message\":\"DuplicateKeyException[A document with the same primary key exists already]\"}}]}");
     }
+
+    @Test
+    public void test_only_single_statements_allowed() throws Exception {
+        String body =
+            """
+            {
+                "stmt": "select 1; select 2;"
+            }
+            """;
+        var response = post(body);
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(response.body()).contains(
+            """
+            "error":{"message":"SQLParseException[line 1:11: mismatched input 'select' expecting <EOF>]","code":4000}
+            """.stripIndent().stripTrailing()
+        );
+    }
 }
