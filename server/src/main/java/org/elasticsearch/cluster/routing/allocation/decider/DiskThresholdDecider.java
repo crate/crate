@@ -176,8 +176,14 @@ public class DiskThresholdDecider extends AllocationDecider {
 
         // flag that determines whether the low threshold checks below can be skipped. We use this for a primary shard that is freshly
         // allocated and empty.
-        boolean skipLowThresholdChecks = shardRouting.primary() &&
-            shardRouting.active() == false && shardRouting.recoverySource().getType() == RecoverySource.Type.EMPTY_STORE;
+        boolean skipLowThresholdChecks = false;
+        boolean isSnapshotRecovery = false;
+        if (shardRouting.primary() && shardRouting.active() == false) {
+            RecoverySource.Type recoverySourceType = shardRouting.recoverySource().getType();
+            isSnapshotRecovery = recoverySourceType == RecoverySource.Type.SNAPSHOT;
+            skipLowThresholdChecks = recoverySourceType == RecoverySource.Type.EMPTY_STORE ||
+                isSnapshotRecovery;
+        }
 
         // checks for exact byte comparisons
         if (freeBytes < diskThresholdSettings.getFreeBytesThresholdLow().getBytes()) {
@@ -200,9 +206,11 @@ public class DiskThresholdDecider extends AllocationDecider {
                                     "but allowing allocation because primary has never been allocated",
                             diskThresholdSettings.getFreeBytesThresholdLow(), freeBytesValue, node.nodeId());
                 }
-                return allocation.decision(Decision.YES, NAME,
-                        "the node is above the low watermark, but less than the high watermark, and this primary shard has " +
-                        "never been allocated before");
+                if (isSnapshotRecovery == false) {
+                    return allocation.decision(Decision.YES, NAME,
+                            "the node is above the low watermark, but less than the high watermark, and this primary shard has " +
+                            "never been allocated before");
+                }
             } else {
                 // Even though the primary has never been allocated, the node is
                 // above the high watermark, so don't allow allocating the shard
@@ -244,9 +252,11 @@ public class DiskThresholdDecider extends AllocationDecider {
                             Strings.format1Decimals(usedDiskThresholdLow, "%"),
                             Strings.format1Decimals(usedDiskPercentage, "%"), node.nodeId());
                 }
-                return allocation.decision(Decision.YES, NAME,
-                    "the node is above the low watermark, but less than the high watermark, and this primary shard has " +
-                    "never been allocated before");
+                if (isSnapshotRecovery == false) {
+                    return allocation.decision(Decision.YES, NAME,
+                        "the node is above the low watermark, but less than the high watermark, and this primary shard has " +
+                        "never been allocated before");
+                }
             } else {
                 // Even though the primary has never been allocated, the node is
                 // above the high watermark, so don't allow allocating the shard
