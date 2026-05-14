@@ -13,7 +13,8 @@ You can enable SSL on a per-protocol basis:
 .. rst-class:: open
 
 - If you enable SSL for :ref:`HTTP <interface-http>`, all connections will
-  require HTTPS.
+  require HTTPS. :ref:`HTTP/3 <interface-http-http3>` (QUIC) is available when
+  enabled via :ref:`http.quic.enabled <http.quic.enabled>`.
 
 - By default, if you enable SSL for the :ref:`PostgreSQL wire protocol
   <interface-postgresql>`, clients can negotiate on a per-connection basis

@@ -58,6 +58,8 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Protocol;
 import io.crate.common.Optionals;
+import io.netty.handler.codec.quic.QuicSslContext;
+import io.netty.handler.codec.quic.QuicSslContextBuilder;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -148,6 +150,23 @@ public class SslContextProvider implements Supplier<SslContext> {
             throw e;
         } catch (Exception e) {
             throw new SslConfigurationException("Failed to build SSL configuration: " + e.getMessage(), e);
+        }
+    }
+
+    public QuicSslContext getQuicServerContext(Protocol protocol) {
+        try {
+            var keyStore = loadKeyStore(keystorePath, keystorePass);
+            var keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            keyManagerFactory.init(keyStore, keystoreKeyPass);
+            return QuicSslContextBuilder
+                .forServer(keyManagerFactory, null)
+                .applicationProtocols("h3")
+                .clientAuth(AuthSettings.resolveClientAuth(settings, protocol))
+                .build();
+        } catch (SslConfigurationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new SslConfigurationException("Failed to build QUIC SSL configuration: " + e.getMessage(), e);
         }
     }
 

@@ -62,7 +62,6 @@ import io.crate.role.Securable;
 import io.crate.session.Sessions;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -81,6 +80,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
+import io.netty.handler.codec.quic.QuicStreamChannel;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.stream.ChunkedFile;
 import io.netty.util.ReferenceCountUtil;
@@ -287,7 +287,7 @@ public class HttpBlobHandler extends HttpHandler<Object> {
     }
 
     private void sendResponse(HttpResponse response) {
-        ChannelFuture cf = ctx.channel().writeAndFlush(response);
+        ChannelFuture cf = ctx.writeAndFlush(response);
         if (method != null && isKeepAlive == false) {
             cf.addListener(ChannelFutureListener.CLOSE);
         }
@@ -379,7 +379,7 @@ public class HttpBlobHandler extends HttpHandler<Object> {
             response.headers().set(HttpHeaderNames.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + raf.length());
             setDefaultGetHeaders(response);
 
-            ctx.channel().write(response);
+            ctx.write(response);
             ChannelFuture writeFuture = transferFile(digest, raf, start, end - start + 1);
             if (isKeepAlive == false) {
                 writeFuture.addListener(ChannelFutureListener.CLOSE);
@@ -404,7 +404,7 @@ public class HttpBlobHandler extends HttpHandler<Object> {
             HttpUtil.setContentLength(response, raf.length());
             setDefaultGetHeaders(response);
             LOGGER.trace("HttpResponse: {}", response);
-            ctx.channel().write(response);
+            ctx.write(response);
             ChannelFuture writeFuture = transferFile(digest, raf, 0, raf.length());
             if (isKeepAlive == false) {
                 writeFuture.addListener(ChannelFutureListener.CLOSE);
@@ -421,7 +421,8 @@ public class HttpBlobHandler extends HttpHandler<Object> {
     }
 
     private boolean sslEnabled() {
-        return ctx.pipeline().get(SslHandler.class) != null;
+        return ctx.pipeline().get(SslHandler.class) != null
+            || ctx.channel() instanceof QuicStreamChannel;
     }
 
     private String activeScheme() {
@@ -432,19 +433,18 @@ public class HttpBlobHandler extends HttpHandler<Object> {
                                        RandomAccessFile raf,
                                        long position,
                                        long count) throws IOException {
-        Channel channel = ctx.channel();
         final ChannelFuture fileFuture;
         final ChannelFuture lastContentFuture;
         if (sslEnabled()) {
             var chunkedFile = new ChunkedFile(raf, 0, count, HTTPS_CHUNK_SIZE);
-            fileFuture = channel.writeAndFlush(new HttpChunkedInput(chunkedFile), ctx.newProgressivePromise());
+            fileFuture = ctx.writeAndFlush(new HttpChunkedInput(chunkedFile), ctx.newProgressivePromise());
 
             // HttpChunkedInput also writes the end marker (LastHttpContent)
             lastContentFuture = fileFuture;
         } else {
             var region = new DefaultFileRegion(raf.getChannel(), position, count);
-            fileFuture = channel.write(region, ctx.newProgressivePromise());
-            lastContentFuture = channel.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+            fileFuture = ctx.write(region, ctx.newProgressivePromise());
+            lastContentFuture = ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
         }
 
         fileFuture.addListener(new ChannelProgressiveFutureListener() {

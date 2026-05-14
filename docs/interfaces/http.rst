@@ -16,6 +16,8 @@ the statement is sent as value associated to the key ``stmt``.
 
     :ref:`dml`
 
+    :ref:`interface-http-http3`
+
 A simple ``SELECT`` statement can be submitted like this::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
@@ -46,6 +48,70 @@ A simple ``SELECT`` statement can be submitted like this::
     see how to run this by hand in the terminal. For the rest of the examples
     in this document, we use `here documents`_ (i.e. ``EOF``) for multi line
     readability.
+
+
+.. _interface-http-http3:
+
+HTTP/3 (QUIC)
+=============
+
+CrateDB can expose the HTTP interface over `HTTP/3`_ using the QUIC transport
+protocol on UDP. HTTP/3 is optional and enabled by default via
+:ref:`http.quic.enabled <http.quic.enabled>` when
+:ref:`ssl.http.enabled <ssl.http.enabled>` is ``true``.
+
+HTTPS and HTTP/3
+----------------
+
+HTTP/3 in CrateDB always uses TLS. You must configure HTTPS as described in
+:ref:`admin_ssl` before HTTP/3 can start.
+
+When HTTP/3 is available, the node adds an ``Alt-Svc`` header to HTTPS
+responses. HTTP clients that support HTTP/3 can use this header to discover and
+upgrade to HTTP/3 on subsequent requests. Clients may also connect directly
+over HTTP/3 if they support it.
+
+Connecting with curl
+--------------------
+
+Recent versions of ``curl`` with HTTP/3 support can talk to CrateDB directly
+over HTTP/3. Use ``https://`` and your node's HTTP port (the same port used
+for HTTPS)::
+
+    sh$ curl --http3-only -k -sS -H 'Content-Type: application/json' \
+    ... -X POST 'https://127.0.0.1:4200/_sql' \
+    ... -d '{"stmt":"select 1"}'
+
+The ``-k`` flag skips certificate verification and is shown here for local
+testing only.
+
+To rely on automatic upgrade via ``Alt-Svc``, omit ``--http3-only`` and use a
+``curl`` build that advertises HTTP/3 support::
+
+    sh$ curl --http3 -k -sS -H 'Content-Type: application/json' \
+    ... -X POST 'https://127.0.0.1:4200/_sql' \
+    ... -d '{"stmt":"select 1"}'
+
+All HTTP endpoints—including ``/_sql``, ``/_sql?types``, and the
+:ref:`BLOB endpoint <blob-endpoint>`—are reachable over HTTP/3.
+
+Configuration
+-------------
+
+HTTP/3 behavior is controlled by the settings documented under
+:ref:`http3-settings` in the node configuration reference:
+
+- :ref:`http.quic.enabled <http.quic.enabled>` to enable or disable HTTP/3
+- :ref:`http.quic.alt_svc.port <http.quic.alt_svc.port>` to advertise a
+  different port in ``Alt-Svc``
+- :ref:`http.quic.token_secret <http.quic.token_secret>` for multi-node
+  clusters
+
+.. WARNING::
+
+    Ensure the HTTP/UDP port is reachable from clients when HTTP/3 is enabled.
+    On platforms without a bundled native QUIC library, CrateDB serves HTTPS
+    only. See :ref:`http3-settings` for platform details.
 
 
 .. _http-param-substitution:
@@ -599,4 +665,5 @@ There are two kinds of error behaviors for bulk requests:
 
 
 .. _here documents: https://en.wikipedia.org/wiki/Here_document
+.. _HTTP/3: https://datatracker.ietf.org/doc/html/rfc9114
 .. _prepared statement: https://en.wikipedia.org/wiki/Prepared_statement

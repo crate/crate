@@ -45,11 +45,14 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.IoHandlerFactory;
 import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollDatagramChannel;
 import io.netty.channel.epoll.EpollIoHandler;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.epoll.EpollSocketChannel;
 import io.netty.channel.nio.NioIoHandler;
+import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.ServerSocketChannel;
+import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.Future;
@@ -107,6 +110,14 @@ public class NettyBootstrap extends AbstractLifecycleComponent {
             return EpollServerSocketChannel.class;
         } else {
             return NioServerSocketChannel.class;
+        }
+    }
+
+    public static Class<? extends DatagramChannel> datagramChannel() {
+        if (Epoll.isAvailable()) {
+            return EpollDatagramChannel.class;
+        } else {
+            return NioDatagramChannel.class;
         }
     }
 

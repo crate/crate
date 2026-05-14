@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.transport.PortsRange;
@@ -106,6 +107,15 @@ public final class HttpTransportSettings {
     // A default of 0 means that by default there is no read timeout
     public static final Setting<TimeValue> SETTING_HTTP_READ_TIMEOUT =
         Setting.timeSetting("http.read_timeout", new TimeValue(0), new TimeValue(0), Property.NodeScope);
+
+    public static final Setting<Boolean> SETTING_HTTP_QUIC_ENABLED =
+        Setting.boolSetting("http.quic.enabled", true, Property.NodeScope);
+
+    public static final Setting<Integer> SETTING_HTTP_QUIC_ALT_SVC_PORT =
+        Setting.intSetting("http.quic.alt_svc.port", -1, -1, Property.NodeScope);
+
+    public static final Setting<SecureString> SETTING_HTTP_QUIC_TOKEN_SECRET =
+        Setting.maskedString("http.quic.token_secret");
 
     // Tcp socket settings
 

@@ -698,8 +698,11 @@ Layer Security (TLS).
   | *Default:* ``false``
   | *Runtime:*  ``no``
 
-  Set this to true to enable secure communication between the CrateDB node
+  Set this to ``true`` to enable secure communication between the CrateDB node
   and the client through SSL via the HTTPS protocol.
+
+  This setting is required for :ref:`HTTP/3 <interface-http-http3>` (QUIC).
+  See :ref:`http.quic.enabled <http.quic.enabled>`.
 
 .. _ssl.psql.enabled:
 
@@ -777,6 +780,59 @@ Layer Security (TLS).
 
   The frequency at which SSL files such as keystore and truststore are polled
   for changes.
+
+HTTP/3 (QUIC)
+=============
+
+.. _http3-settings:
+
+CrateDB can serve the :ref:`HTTP interface <interface-http>` over `HTTP/3`_
+using the QUIC transport protocol on UDP. HTTP/3 requires
+:ref:`ssl.http.enabled <ssl.http.enabled>` to be ``true`` and uses the same TLS
+certificate configuration as HTTPS.
+
+When HTTP/3 is active, HTTPS responses include an ``Alt-Svc`` header so clients
+can discover and upgrade to HTTP/3. See :ref:`interface-http-http3` for client
+usage.
+
+.. NOTE::
+
+  Native QUIC support is currently bundled for ``linux-x86_64`` only. On other
+  platforms HTTP/3 is not started and the node continues to serve HTTPS only.
+
+.. _http.quic.enabled:
+
+**http.quic.enabled**
+  | *Default:* ``true``
+  | *Runtime:* ``no``
+
+  Enable or disable HTTP/3. HTTP/3 is only started when
+  :ref:`ssl.http.enabled <ssl.http.enabled>` is enabled and a native QUIC
+  implementation is available on the platform.
+
+.. _http.quic.alt_svc.port:
+
+**http.quic.alt_svc.port**
+  | *Default:* ``-1``
+  | *Runtime:* ``no``
+
+  The UDP port advertised in the ``Alt-Svc`` response header for HTTP/3
+  discovery. A value of ``-1`` uses the published HTTP port (the same port QUIC
+  listens on). Set an explicit port when clients reach the node on a different
+  port than the one bound locally (for example when using
+  :ref:`http.publish_port <http.publish_port>` behind a load balancer).
+
+.. _http.quic.token_secret:
+
+**http.quic.token_secret**
+  | *Runtime:* ``no``
+
+  Optional shared secret used to sign QUIC address-validation tokens. In
+  multi-node clusters the same value must be configured on every node so
+  0-RTT connection resumption works when clients connect to different nodes.
+  The value can be provided as hex or base64 (optionally prefixed with ``hex:``
+  or ``base64:``) and must decode to at least 16 bytes. If unset, each node
+  generates a random secret at startup.
 
 Cross-origin resource sharing (CORS)
 ====================================
@@ -1009,6 +1065,7 @@ Custom attributes are not validated by CrateDB, unlike core node attributes.
 
 
 .. _plugins: https://github.com/crate/crate/blob/master/devs/docs/plugins.rst
+.. _HTTP/3: https://datatracker.ietf.org/doc/html/rfc9114
 .. _Nagle's algorithm: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
 .. _SO_RCVBUF: https://docs.oracle.com/javase/7/docs/api/java/net/StandardSocketOptions.html#SO_RCVBUF
 .. _SO_SNDBUF: https://docs.oracle.com/javase/7/docs/api/java/net/StandardSocketOptions.html#SO_SNDBUF

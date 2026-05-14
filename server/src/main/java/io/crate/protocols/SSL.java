@@ -22,6 +22,7 @@
 package io.crate.protocols;
 
 import io.netty.channel.Channel;
+import io.netty.handler.codec.quic.QuicChannel;
 import io.netty.handler.ssl.SslHandler;
 
 import org.jspecify.annotations.Nullable;
@@ -50,6 +51,10 @@ public final class SSL {
         SslHandler sslHandler = channel.pipeline().get(SslHandler.class);
         if (sslHandler != null) {
             return sslHandler.engine().getSession();
+        }
+        Channel parent = channel.parent();
+        if (parent instanceof QuicChannel quicChannel) {
+            return quicChannel.sslEngine().getSession();
         }
         return null;
     }

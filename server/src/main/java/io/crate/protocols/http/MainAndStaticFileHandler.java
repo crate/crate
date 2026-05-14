@@ -96,16 +96,14 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
                 // This can happen when old instances of the Admin UI are running because the
                 // ports of HTTP/HTTPS are the same.
                 LOGGER.debug("Received unencrypted message from '{}'", ctx.channel().remoteAddress());
-                ctx.channel()
-                    .writeAndFlush(new DefaultFullHttpResponse(
+                ctx.writeAndFlush(new DefaultFullHttpResponse(
                         HttpVersion.HTTP_1_1,
                         HttpResponseStatus.BAD_REQUEST
                     ))
                     .addListener(ChannelFutureListener.CLOSE);
             }
             case EsRejectedExecutionException _ -> {
-                ctx.channel()
-                    .writeAndFlush(new DefaultFullHttpResponse(
+                ctx.writeAndFlush(new DefaultFullHttpResponse(
                         HttpVersion.HTTP_1_1,
                         HttpResponseStatus.TOO_MANY_REQUESTS
                     ))
@@ -136,8 +134,7 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
             content
         );
         HttpUtil.setContentLength(response, message.length());
-        ctx.channel()
-            .writeAndFlush(response)
+        ctx.writeAndFlush(response)
             .addListener(ChannelFutureListener.CLOSE);
     }
 
@@ -174,7 +171,7 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
         } else {
             Headers.setKeepAlive(req.protocolVersion(), resp);
         }
-        ctx.channel().writeAndFlush(resp, promise);
+        ctx.writeAndFlush(resp, promise);
     }
 
     private CompletableFuture<FullHttpResponse> serveJsonOrSite(FullHttpRequest request, ByteBufAllocator alloc) throws IOException {

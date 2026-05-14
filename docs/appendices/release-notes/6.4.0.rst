@@ -147,3 +147,29 @@ Client interfaces
 
       The types of the columns within VALUES lists must match.
       Found `text_array` and `object_array` at position: 1
+
+- `Christoph Spörk <https://github.com/DarwinsBuddy>`_ added HTTP/3 (QUIC)
+  support for the :ref:`HTTP interface <interface-http>` when
+  :ref:`ssl.http.enabled <ssl.http.enabled>` is enabled. HTTPS responses include
+  an ``Alt-Svc`` header so supporting clients can upgrade to HTTP/3. The REST
+  API, including the :ref:`BLOB endpoint <blob-endpoint>`, is available over
+  HTTP/3.
+
+  HTTP/3 can be controlled with the following node settings:
+
+  - :ref:`http.quic.enabled <http.quic.enabled>` (default: ``true``): enable or
+    disable HTTP/3.
+  - :ref:`http.quic.alt_svc.port <http.quic.alt_svc.port>`: port advertised in
+    the ``Alt-Svc`` header when it differs from the bound HTTP port (for example
+    when using :ref:`http.publish_port <http.publish_port>` behind a load
+    balancer or in a containerized setup).
+  - :ref:`http.quic.token_secret <http.quic.token_secret>`: shared secret for
+    QUIC address-validation tokens. In multi-node clusters the same value must
+    be configured on every node to allow 0-RTT resumption when clients connect
+    to different nodes. If unset, each node generates a random secret at
+    startup.
+
+  Native QUIC is currently bundled for ``linux-x86_64`` only. On other
+  platforms CrateDB serves HTTPS only and logs a warning at startup. Ensure the
+  HTTP/UDP port is reachable when HTTP/3 is enabled.
+

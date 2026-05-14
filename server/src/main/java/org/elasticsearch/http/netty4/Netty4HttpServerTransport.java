@@ -37,6 +37,8 @@ import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_MAX_INIT
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_PORT;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_PUBLISH_HOST;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_PUBLISH_PORT;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_QUIC_ALT_SVC_PORT;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_QUIC_ENABLED;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_READ_TIMEOUT;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_RESET_COOKIES;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_TCP_KEEP_ALIVE;
@@ -107,6 +109,8 @@ import io.crate.blob.BlobService;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ConnectionStats;
+import io.crate.protocols.http.HmacQuicTokenHandler;
+import io.crate.protocols.http.QuicTokenSecrets;
 import io.crate.protocols.http.HttpBlobHandler;
 import io.crate.protocols.http.MainAndStaticFileHandler;
 import io.crate.protocols.ssl.SslContextProvider;
@@ -115,6 +119,7 @@ import io.crate.rest.action.SqlHttpHandler;
 import io.crate.role.Roles;
 import io.crate.session.Sessions;
 import io.crate.types.DataTypes;
+import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -133,6 +138,13 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.handler.codec.http3.Http3;
+import io.netty.handler.codec.http3.Http3FrameToHttpObjectCodec;
+import io.netty.handler.codec.http3.Http3ServerConnectionHandler;
+import io.netty.handler.codec.quic.Quic;
+import io.netty.handler.codec.quic.QuicChannel;
+import io.netty.handler.codec.quic.QuicServerCodecBuilder;
+import io.netty.handler.codec.quic.QuicSslContext;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.ReadTimeoutHandler;
@@ -148,6 +160,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
      * By default we assume the Ethernet MTU (1500 bytes) but users can override it with a system property.
      */
     private static final ByteSizeValue MTU = new ByteSizeValue(Long.parseLong(System.getProperty("es.net.mtu", "1500")));
+    private static final int HTTP3_ALT_SVC_MAX_AGE_SECONDS = 86_400;
 
     private static final String SETTING_KEY_HTTP_NETTY_MAX_COMPOSITE_BUFFER_COMPONENTS = "http.netty.max_composite_buffer_components";
 
@@ -227,6 +240,9 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     protected volatile BoundTransportAddress boundAddress;
 
     protected final List<Channel> serverChannels = new ArrayList<>();
+    private final List<Channel> quicChannels = new ArrayList<>();
+    @Nullable
+    private volatile String http3AltSvcHeader;
 
     private final StatsTracker statsTracker = new StatsTracker();
     @Nullable
@@ -345,6 +361,9 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             this.boundAddress = createBoundHttpAddress();
             if (logger.isInfoEnabled()) {
                 logger.info("{}", boundAddress);
+            }
+            if (SETTING_HTTP_QUIC_ENABLED.get(settings)) {
+                tryStartHttp3();
             }
             success = true;
         } finally {
@@ -476,8 +495,89 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         return new TransportAddress(boundSocket.get());
     }
 
+    private void tryStartHttp3() {
+        if (!Quic.isAvailable()) {
+            Throwable cause = Quic.unavailabilityCause();
+            logHttp3StartupSkipped("HTTP/3 (QUIC) is not available on this platform: " + (cause != null ? cause.getMessage() : ""), cause);
+            return;
+        }
+        if (!SslSettings.isHttpsEnabled(settings)) {
+            logHttp3StartupSkipped("HTTP/3 (QUIC) requires ssl.http.enabled=true", null);
+            return;
+        }
+        try {
+            startQuic();
+        } catch (Exception e) {
+            int port = boundAddress.publishAddress().getPort();
+            logHttp3StartupSkipped("Failed to start HTTP/3 (QUIC) on UDP port " + port, e);
+        }
+    }
+
+    private void logHttp3StartupSkipped(String detail, Throwable cause) {
+        logger.warn("{}; continuing with HTTPS (HTTP/1.1 over TLS) only", detail, cause);
+    }
+
+    private void startQuic() throws Exception {
+        QuicSslContext quicSslContext = sslContextProvider.getQuicServerContext(Protocol.HTTP);
+        byte[] tokenSecret = QuicTokenSecrets.resolve(settings);
+
+        int port = boundAddress.publishAddress().getPort();
+        List<InetAddress> hostAddresses;
+        try {
+            hostAddresses = networkService.resolveBindHostAddresses(bindHosts);
+        } catch (IOException e) {
+            throw new BindHttpException("Failed to resolve host for HTTP/3", e);
+        }
+        try {
+            for (InetAddress address : hostAddresses) {
+                // QuicheQuicServerCodec is not @Sharable — one codec (and bootstrap) per bind address.
+                ChannelHandler quicCodec = createQuicServerCodecBuilder(quicSslContext, tokenSecret)
+                    .handler(new Http3ConnectionChannelInitializer(this))
+                    .build();
+                Bootstrap bootstrap = new Bootstrap()
+                    .group(eventLoopGroup)
+                    .channel(NettyBootstrap.datagramChannel())
+                    .handler(quicCodec);
+                ChannelFuture future = bootstrap.bind(new InetSocketAddress(address, port)).sync();
+                synchronized (quicChannels) {
+                    quicChannels.add(future.channel());
+                }
+            }
+            int altSvcPort = resolveHttp3AltSvcPort(port);
+            http3AltSvcHeader = formatHttp3AltSvcHeader(altSvcPort);
+            logger.info("HTTP/3 (QUIC) listening on UDP port {} (Alt-Svc h3 port {})", port, altSvcPort);
+        } catch (Exception e) {
+            stopQuic();
+            throw e;
+        }
+    }
+
+    private void stopQuic() {
+        http3AltSvcHeader = null;
+        synchronized (quicChannels) {
+            if (!quicChannels.isEmpty()) {
+                try {
+                    Netty4Utils.closeChannels(quicChannels);
+                } catch (IOException e) {
+                    logger.trace("exception while closing QUIC channels", e);
+                }
+                quicChannels.clear();
+            }
+        }
+    }
+
+    private int resolveHttp3AltSvcPort(int boundPort) {
+        int configured = SETTING_HTTP_QUIC_ALT_SVC_PORT.get(settings);
+        return configured < 0 ? boundPort : configured;
+    }
+
+    static String formatHttp3AltSvcHeader(int port) {
+        return "h3=\":" + port + "\"; ma=" + HTTP3_ALT_SVC_MAX_AGE_SECONDS;
+    }
+
     @Override
     protected void doStop() {
+        stopQuic();
         synchronized (serverChannels) {
             if (!serverChannels.isEmpty()) {
                 try {
@@ -546,7 +646,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         private final NodeClient nodeClient;
         private final String nodeName;
         private final Path home;
-        private BlobService blobService;
+        private final BlobService blobService;
         private final Sessions sessions;
         private final Authentication authentication;
         private final Roles roles;
@@ -594,7 +694,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
                 Math.toIntExact(transport.maxChunkSize.getBytes()));
             decoder.setCumulator(ByteToMessageDecoder.COMPOSITE_CUMULATOR);
             pipeline.addLast("decoder", decoder);
-            pipeline.addLast("decoder_compress", new HttpContentDecompressor());
+            pipeline.addLast("decoder_compress", new HttpContentDecompressor(0));
             pipeline.addLast("encoder", new HttpResponseEncoder());
             final HttpObjectAggregator aggregator = new HttpObjectAggregator(Math.toIntExact(transport.maxContentLength.getBytes()));
             aggregator.setMaxCumulationBufferComponents(transport.maxCompositeBufferComponents);
@@ -622,8 +722,9 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
                 home,
                 nodeClient
             ));
+            pipeline.addAfter("encoder", "alt_svc", new Netty4AltSvcHandler(() -> transport.http3AltSvcHeader));
             if (SETTING_CORS_ENABLED.get(transport.settings())) {
-                pipeline.addAfter("encoder", "cors", new Netty4CorsHandler(transport.getCorsConfig()));
+                pipeline.addAfter("alt_svc", "cors", new Netty4CorsHandler(transport.getCorsConfig()));
             }
         }
 
@@ -635,6 +736,16 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     }
 
 
+    private static QuicServerCodecBuilder createQuicServerCodecBuilder(QuicSslContext sslContext, byte[] tokenSecret) {
+        return Http3.newQuicServerCodecBuilder()
+            .sslContext(sslContext)
+            .maxIdleTimeout(30_000, TimeUnit.MILLISECONDS)
+            .initialMaxData(10_000_000)
+            .initialMaxStreamsBidirectional(100)
+            .initialMaxStreamDataBidirectionalRemote(1_000_000)
+            .tokenHandler(new HmacQuicTokenHandler(tokenSecret, 300));
+    }
+
     public static InetAddress getRemoteAddress(Channel channel) {
         if (channel.remoteAddress() instanceof InetSocketAddress isa) {
             return isa.getAddress();
@@ -644,5 +755,81 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         // which does not have an address.
         // An embedded socket address is handled like a local connection via loopback.
         return InetAddresses.forString("127.0.0.1");
+    }
+
+    /**
+     * Per-connection pipeline initializer for HTTP/3.
+     *
+     * <p>Called once per accepted QUIC connection (i.e. per {@link QuicChannel}).
+     * Installs {@link Http3ServerConnectionHandler}, which owns the HTTP/3 control
+     * streams (SETTINGS, QPACK encoder/decoder) and dispatches each incoming request
+     * stream through {@link Http3ChannelInitializer}.
+     */
+    static class Http3ConnectionChannelInitializer extends ChannelInitializer<QuicChannel> {
+
+        private final Netty4HttpServerTransport transport;
+
+        Http3ConnectionChannelInitializer(Netty4HttpServerTransport transport) {
+            this.transport = transport;
+        }
+
+        @Override
+        protected void initChannel(QuicChannel ch) {
+            ch.pipeline().addLast(new Http3ServerConnectionHandler(new Http3ChannelInitializer(transport)));
+        }
+    }
+
+    /**
+     * Per-request-stream pipeline initializer for HTTP/3.
+     *
+     * <p>Passed to {@link Http3ServerConnectionHandler} which invokes it for each incoming
+     * HTTP/3 request stream. {@link Http3FrameToHttpObjectCodec} translates HTTP/3 frames
+     * into HTTP/1.1 objects (HttpRequest, HttpContent, LastHttpContent) so all downstream
+     * handlers work unchanged. No SslHandler is needed — QUIC owns TLS at the transport layer.
+     */
+    static class Http3ChannelInitializer extends ChannelInitializer<Channel> {
+
+        private final Netty4HttpServerTransport transport;
+
+        Http3ChannelInitializer(Netty4HttpServerTransport transport) {
+            this.transport = transport;
+        }
+
+        @Override
+        protected void initChannel(Channel ch) {
+            ChannelPipeline pipeline = ch.pipeline();
+            // Translates HTTP/3 frames ↔ HTTP/1.1 objects; replaces HttpRequestDecoder + HttpResponseEncoder
+            pipeline.addLast(new Http3FrameToHttpObjectCodec(true));
+            pipeline.addLast("decoder_compress", new HttpContentDecompressor());
+            // ChunkedWriteHandler is required for blob downloads that write HttpChunkedInput
+            pipeline.addLast("chunked", new ChunkedWriteHandler());
+            pipeline.addLast("auth_handler", new HttpAuthUpstreamHandler(
+                transport.settings, transport.authentication, transport.roles));
+            pipeline.addLast("blob_handler", new HttpBlobHandler(
+                transport.blobService,
+                transport.settings,
+                transport.sessions,
+                transport.roles
+            ));
+            final HttpObjectAggregator aggregator =
+                new HttpObjectAggregator(Math.toIntExact(transport.maxContentLength.getBytes()));
+            aggregator.setMaxCumulationBufferComponents(transport.maxCompositeBufferComponents);
+            pipeline.addLast("aggregator", aggregator);
+            if (transport.compression) {
+                pipeline.addLast("encoder_compress",
+                    new HttpContentCompressor(transport.compressionLevel));
+            }
+            pipeline.addLast("sql_handler", new SqlHttpHandler(
+                transport.settings,
+                transport.sessions,
+                transport.breakerService::getBreaker,
+                transport.roles
+            ));
+            pipeline.addLast("handler", new MainAndStaticFileHandler(
+                NODE_NAME_SETTING.get(transport.settings),
+                PathUtils.get(PATH_HOME_SETTING.get(transport.settings)).normalize(),
+                transport.nodeClient
+            ));
+        }
     }
 }
