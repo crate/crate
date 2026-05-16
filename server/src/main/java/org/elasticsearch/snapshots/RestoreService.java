@@ -95,9 +95,11 @@ import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
 /**
@@ -605,13 +607,30 @@ public class RestoreService implements ClusterStateApplier {
 
             if (existingRelation instanceof RelationMetadata.Table existingTable) {
                 assert existingTable.state().equals(IndexMetadata.State.OPEN) : "Can only restore into open tables";
-                RelationMetadata.Table table = snapshotRelation instanceof RelationMetadata.Table snapshotTable
-                    ? snapshotTable
-                    : existingTable;
+
+                RelationMetadata.Table table;
+                List<Reference> mergedColumns;
+                if (snapshotRelation instanceof RelationMetadata.Table snapshotTable) {
+                    table = snapshotTable;
+                    SnapshotSchemaValidator.validate(snapshot, targetName, snapshotTable, existingTable);
+                    Set<ColumnIdent> existingColumns = existingTable.columns().stream()
+                        .filter(x -> !x.isDropped())
+                        .map(Reference::column)
+                        .collect(Collectors.toSet());
+                    mergedColumns = new ArrayList<>(existingTable.columns());
+                    for (var snapshotColumn : snapshotTable.columns()) {
+                        if (!existingColumns.contains(snapshotColumn.column())) {
+                            mergedColumns.add(snapshotColumn);
+                        }
+                    }
+                } else {
+                    table = existingTable;
+                    mergedColumns = existingTable.columns();
+                }
                 mdBuilder.setTable(
                     targetName,
                     Lists.map(
-                        table.columns(),
+                        mergedColumns,
                         ref -> ref.withRelation(targetName)
                     ),
                     table.settings(),

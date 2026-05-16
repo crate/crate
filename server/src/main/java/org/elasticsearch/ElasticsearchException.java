@@ -46,6 +46,7 @@ import io.crate.common.CheckedFunction;
 import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.DependentObjectsExists;
+import io.crate.exceptions.IncompatibleSchemaForRestoreException;
 import io.crate.exceptions.RoleUnknownException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SchemaAlreadyExists;
@@ -762,6 +763,12 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
             ColumnUnknownException::new,
             186,
             Version.V_6_3_0
+        ),
+        INCOMPATIBLE_SCHEMA(
+            IncompatibleSchemaForRestoreException.class,
+            IncompatibleSchemaForRestoreException::new,
+            187,
+            Version.V_6_3_3
         );
 
         final Class<? extends ElasticsearchException> exceptionClass;
