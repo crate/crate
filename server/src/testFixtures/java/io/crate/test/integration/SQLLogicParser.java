@@ -28,7 +28,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -38,7 +38,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Gatherer;
 import java.util.stream.Stream;
 
+import org.jspecify.annotations.Nullable;
+
 import io.crate.common.collections.Lists;
+import io.crate.testing.SQLResponse;
 
 /// Partial port of sqllogictest.py from crate-qa
 ///
@@ -115,6 +118,7 @@ public final class SQLLogicParser {
         /** The SQL text (without the statement/query header). */
         public abstract String getQuery();
 
+        public abstract void validate(SQLResponse response);
 
         static Cmd parse(Path filename, List<NumberedLine> lines) {
             if (lines.isEmpty()) {
@@ -159,6 +163,10 @@ public final class SQLLogicParser {
         public boolean isExpectOk() {
             return expectOk;
         }
+
+        @Override
+        public void validate(SQLResponse response) {
+        }
     }
 
     /** A {@code query <formats> <sort> [<label>]} block, optionally followed by results. */
@@ -166,12 +174,13 @@ public final class SQLLogicParser {
         private final String query;
         private final int lnum;
 
-        public final List<ColumnFormat> resultFormats;
-        public final SortMode sort;
-        // null when there is no result block at all.
+        private final List<ColumnFormat> resultFormats;
+        private final SortMode sort;
+
+        /// null when there is no result block at all.
+        @Nullable
         private final List<String> rawExpected;
         private final String filename;
-        public final ResultValidator validator;
 
         QueryCmd(List<NumberedLine> lines, String filename) {
             this.filename = filename;
@@ -189,11 +198,10 @@ public final class SQLLogicParser {
                         "Invalid result format codes: " + formatsStr + "\n" + lines);
                 }
             }
-            List<ColumnFormat> formats = new ArrayList<>(formatsStr.length());
+            this.resultFormats = new ArrayList<>(formatsStr.length());
             for (char c : formatsStr.toCharArray()) {
-                formats.add(ColumnFormat.valueOf(String.valueOf(c)));
+                resultFormats.add(ColumnFormat.valueOf(String.valueOf(c)));
             }
-            this.resultFormats = Collections.unmodifiableList(formats);
             this.sort = SortMode.fromToken(sortStr);
 
             // Find the '----' separator and split the body.
@@ -211,27 +219,82 @@ public final class SQLLogicParser {
                 this.query = Lists.joinOn(" ", lines.subList(1, sep), NumberedLine::line);
                 this.rawExpected = new ArrayList<>(Lists.map(lines.subList(sep + 1, lines.size()), NumberedLine::line));
             }
-
-            this.validator = initValidator();
         }
 
-        private ResultValidator initValidator() {
+        @Override
+        public void validate(SQLResponse response) {
             if (rawExpected == null) {
-                return _ -> {};
+                return;
             }
             if (rawExpected.size() == 1) {
                 Matcher m = HASHING_RE.matcher(rawExpected.getFirst());
                 if (m.matches()) {
                     int expectedValues = Integer.parseInt(m.group(1));
                     String expectedHash = m.group(2);
-                    return rows -> validateHash(rows, expectedValues, expectedHash, filename, lnum);
+                    validateHash(response, expectedValues, expectedHash, filename, lnum);
+                    return;
                 }
             }
             List<Object> expected = (sort == SortMode.ROWS)
                 ? formatExpectedRows(rawExpected)
                 : formatExpectedFlat(rawExpected);
-            return actual -> validateCmpResult(actual, expected, query, filename, lnum);
+            validateCmpResult(response, expected, query, filename, lnum);
         }
+
+        private void validateCmpResult(SQLResponse response,
+                                       List<Object> expected,
+                                       String query,
+                                       String filename,
+                                       int lnum) {
+
+            int colCount = response.cols().length;
+            List<List<Object>> rows = new ArrayList<>();
+            for (Object[] resultRow : response.rows()) {
+                List<Object> row = new ArrayList<>(colCount);
+                for (int c = 0; c < colCount; c++) {
+                    if (resultRow[c] == null) {
+                        row.add("NULL");
+                    } else {
+                        String raw = resultRow[c].toString();
+                        ColumnFormat fmt = resultFormats.get(c % resultFormats.size());
+                        row.add(fmt.format(raw));
+                    }
+                }
+                rows.add(row);
+            }
+
+            if (sort == SQLLogicParser.SortMode.ROWSORT) {
+                rows.sort(SQLLogicParser::lexicographicByString);
+            }
+
+            List<Object> actual;
+            if (sort == SQLLogicParser.SortMode.ROWS) {
+                actual = new ArrayList<>(rows);
+            } else {
+                actual = new ArrayList<>(rows.size() * Math.max(1, colCount));
+                for (List<Object> r : rows) {
+                    actual.addAll(r);
+                }
+            }
+
+            if (sort == SQLLogicParser.SortMode.VALUESORT) {
+                // Explicit lambda avoids relying on overload resolution
+                // for the polymorphic String.valueOf method reference.
+                actual.sort(Comparator.comparing(String::valueOf));
+            }
+
+        if (!actual.equals(expected)) {
+            throw new IncorrectResultException(String.format(
+                Locale.ENGLISH,
+                "[%s:%d] Expected rows: %s. Got: %s running %s",
+                filename,
+                lnum,
+                expected,
+                actual,
+                query
+            ));
+        }
+    }
 
         /** Parse each expected line as a multi-column row separated by "| ". */
         private List<Object> formatExpectedRows(List<String> lines) {
@@ -304,26 +367,26 @@ public final class SQLLogicParser {
         return Integer.compare(a.size(), b.size());
     }
 
-    @FunctionalInterface
-    public interface ResultValidator {
-        void validate(List<Object> rows);
-    }
-
-    private static void validateHash(List<Object> rows,
+    private static void validateHash(SQLResponse response,
                                      int expectedValues,
                                      String expectedHash,
                                      String filename,
                                      int lnum) {
-        int got = rows.size();
+        long got = response.rowCount();
         if (got != expectedValues) {
             throw new IncorrectResultException(
                 "Expected " + expectedValues + " values, got " + got);
         }
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
-            for (Object row : rows) {
-                md.update(String.valueOf(row).getBytes(StandardCharsets.US_ASCII));
-                md.update((byte) '\n');
+            for (Object[] row : response.rows()) {
+                for (Object value : row) {
+                    if (value == null) {
+                        value = "NULL";
+                    }
+                    md.update(String.valueOf(value).getBytes(StandardCharsets.US_ASCII));
+                    md.update((byte) '\n');
+                }
             }
             String digest = bytesToHex(md.digest());
             if (!digest.equals(expectedHash)) {
@@ -334,7 +397,7 @@ public final class SQLLogicParser {
                     lnum,
                     expectedHash,
                     digest,
-                    rows
+                    response
                 ));
             }
         } catch (NoSuchAlgorithmException e) {
@@ -342,23 +405,7 @@ public final class SQLLogicParser {
         }
     }
 
-    private static void validateCmpResult(List<Object> actual,
-                                          List<Object> expected,
-                                          String query,
-                                          String filename,
-                                          int lnum) {
-        if (!actual.equals(expected)) {
-            throw new IncorrectResultException(String.format(
-                Locale.ENGLISH,
-                "[%s:%d] Expected rows: %s. Got: %s running %s",
-                filename,
-                lnum,
-                expected,
-                actual,
-                query
-            ));
-        }
-    }
+
 
     private static String bytesToHex(byte[] bytes) {
         char[] hex = "0123456789abcdef".toCharArray();
