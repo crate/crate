@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.test.integration.FileRunnerIntegTestHelper.parseCmd;
+import static io.crate.test.integration.SQLLogicParser.parseCmd;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -37,14 +37,14 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.test.integration.FileRunnerIntegTestHelper;
+import io.crate.test.integration.SQLLogicParser;
 import io.crate.testing.UseJdbc;
 
 /**
  * Runs sqllogic style *.test files against CrateDB
  */
 @IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
-public class FileRunnerIntegTest extends IntegTestCase {
+public class SQLLogicITest extends IntegTestCase {
 
     private List<File> testFiles;
 
@@ -67,30 +67,30 @@ public class FileRunnerIntegTest extends IntegTestCase {
         for (File test : testFiles) {
             Path filepath = test.toPath();
             try (BufferedReader br = Files.newBufferedReader(filepath, StandardCharsets.UTF_8)) {
-                List<List<String>> commands = FileRunnerIntegTestHelper.getCommands(br).stream()
-                    .filter(FileRunnerIntegTestHelper::shouldExecOnCrate)
+                List<List<String>> commands = SQLLogicParser.getCommands(br).stream()
+                    .filter(SQLLogicParser::shouldExecOnCrate)
                     .toList();
 
                 boolean dmlDone = false;
                 try {
                     for (List<String> cmd : commands) {
-                        FileRunnerIntegTestHelper.Cmd parsed = parseCmd(cmd, filepath.toString());
-                        if (parsed instanceof FileRunnerIntegTestHelper.StatementCmd stmt) {
+                        SQLLogicParser.Cmd parsed = parseCmd(cmd, filepath.toString());
+                        if (parsed instanceof SQLLogicParser.StatementCmd stmt) {
                             try {
-                                execute(stmt.getQuery());
+                                execute(stmt.getQuery(), schema);
                             } catch (Exception e) {
                                 if (stmt.isExpectOk()) {
-                                    throw new FileRunnerIntegTestHelper.IncorrectResultException(e.getMessage());
+                                    throw new SQLLogicParser.IncorrectResultException(e.getMessage());
                                 }
                             }
                         }
-                        if (parsed instanceof FileRunnerIntegTestHelper.QueryCmd query) {
+                        if (parsed instanceof SQLLogicParser.QueryCmd query) {
                             if (!dmlDone) {
                                 dmlDone = true;
                                 refreshTables(schema);
                             }
 
-                            execute(query.getQuery());
+                            execute(query.getQuery(), schema);
                             int colCount = response.cols().length;
                             List<List<Object>> rows = new ArrayList<>();
                             for (Object[] resultRow : response.rows()) {
@@ -100,19 +100,19 @@ public class FileRunnerIntegTest extends IntegTestCase {
                                         row.add("NULL");
                                     } else {
                                         String raw = resultRow[c].toString();
-                                        FileRunnerIntegTestHelper.ColumnFormat fmt = query.resultFormats.get(c % query.resultFormats.size());
+                                        SQLLogicParser.ColumnFormat fmt = query.resultFormats.get(c % query.resultFormats.size());
                                         row.add(fmt.format(raw));
                                     }
                                 }
                                 rows.add(row);
                             }
 
-                            if (query.sort == FileRunnerIntegTestHelper.SortMode.ROWSORT) {
-                                rows.sort(FileRunnerIntegTestHelper::lexicographicByString);
+                            if (query.sort == SQLLogicParser.SortMode.ROWSORT) {
+                                rows.sort(SQLLogicParser::lexicographicByString);
                             }
 
                             List<Object> actual;
-                            if (query.sort == FileRunnerIntegTestHelper.SortMode.ROWS) {
+                            if (query.sort == SQLLogicParser.SortMode.ROWS) {
                                 actual = new ArrayList<>(rows);
                             } else {
                                 actual = new ArrayList<>(rows.size() * Math.max(1, colCount));
@@ -121,13 +121,14 @@ public class FileRunnerIntegTest extends IntegTestCase {
                                 }
                             }
 
-                            if (query.sort == FileRunnerIntegTestHelper.SortMode.VALUESORT) {
+                            if (query.sort == SQLLogicParser.SortMode.VALUESORT) {
                                 // Explicit lambda avoids relying on overload resolution
                                 // for the polymorphic String.valueOf method reference.
                                 actual.sort(Comparator.comparing(String::valueOf));
                             }
 
                             query.validator.validate(actual);
+
                         }
                     }
                 } finally {

@@ -1,7 +1,7 @@
 statement ok
 create table t(d double, i integer) clustered into 1 shards with (number_of_replicas=0);
 
-statement ok        
+statement ok
 insert into t(d) values (1.3), (1.6), (2.2);
 
 query RRRRRRRRR rows null-args
@@ -47,7 +47,7 @@ select ln(i) from t where ln(i) = 2.302585092994046
 query R rowsort select-where-log
 select log(i, 100) from t where log(i, 100) = 0.5
 ----
-0.8
+0.5
 
 
 query II rows select-where-log-2

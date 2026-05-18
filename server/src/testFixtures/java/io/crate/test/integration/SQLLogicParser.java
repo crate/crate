@@ -24,56 +24,27 @@ package io.crate.test.integration;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.FileHandler;
-import java.util.logging.Formatter;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Java port of {@code sqllogictest.py}.
- *
- * <p>Executes <a href="https://www.sqlite.org/sqllogic/doc/trunk/about.wiki">
- * sqllogic</a> {@code .test} files against a running CrateDB instance over
- * JDBC. Supports the same subset of sqllogic features as the Python
- * implementation (only "full scripts", no "prototype scripts"), plus the
- * custom {@code rows} sort mode for asserting multi-column row order.
- *
- * <p>External dependencies required at runtime:
- * <ul>
- *   <li>{@code org.postgresql:postgresql} (pgjdbc) — JDBC driver for CrateDB's
- *       PostgreSQL wire protocol.</li>
- * </ul>
- */
-public final class FileRunnerIntegTestHelper {
-
-    private static final List<Pattern> QUERY_WHITELIST = Arrays.asList(
-        // CREATE INDEX is not supported, but raises SQLParseException
-        Pattern.compile("CREATE INDEX.*", Pattern.CASE_INSENSITIVE),
-        Pattern.compile(".*BETWEEN.*NULL.*", Pattern.CASE_INSENSITIVE),
-        // Result is not deterministic
-        Pattern.compile(
-            "SELECT - SUM \\( col1 \\) \\* \\+ col1 FROM tab0 cor0 GROUP BY col1, col1",
-            Pattern.CASE_INSENSITIVE)
-    );
+/// Partial port of sqllogictest.py from crate-qa
+///
+/// Parses [sqllogic test files](https://www.sqlite.org/sqllogic/doc/trunk/about.wiki)
+/// into a list of [Cmd]. Those commands (statement or query) are supposed to be executed
+/// against CrateDB and their result can then be validated using [ResultValidator#validate(List)]
+public final class SQLLogicParser {
 
     private static final Pattern VARCHAR_RE = Pattern.compile("VARCHAR\\(\\d+\\)");
     private static final Pattern HASHING_RE =
         Pattern.compile("(\\d+) values hashing to ([a-z0-9]+)");
 
-    FileRunnerIntegTestHelper() {}
+    SQLLogicParser() {}
 
     /** Replace {@code VARCHAR(n)} with {@code STRING} */
     static String varcharToString(String sql) {
