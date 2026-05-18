@@ -609,10 +609,11 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
             this.maxChecks = maxChecks;
         }
 
-        public void check() {
+        @Override
+        public void check(String context) {
             checks++;
             if (timeout().nanos() > 0 && checks > maxChecks) {
-                throw JobKilledException.of("statement_timeout (" + timeout() + ")");
+                throw JobKilledException.of("statement_timeout (" + timeout() + "/" + context + ")");
             }
         }
     }
