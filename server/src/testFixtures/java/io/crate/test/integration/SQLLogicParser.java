@@ -21,17 +21,24 @@
 
 package io.crate.test.integration;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Gatherer;
+import java.util.stream.Stream;
+
+import io.crate.common.collections.Lists;
 
 /// Partial port of sqllogictest.py from crate-qa
 ///
@@ -109,20 +116,40 @@ public final class SQLLogicParser {
     }
 
     /** Parsed test command — either a {@link StatementCmd} or {@link QueryCmd}. */
-    public abstract static class Cmd {
+    public abstract static sealed class Cmd permits StatementCmd, QueryCmd {
 
         /** The SQL text (without the statement/query header). */
         public abstract String getQuery();
+
+
+        static Cmd parse(Path filename, List<NumberedLine> lines) {
+            if (lines.isEmpty()) {
+                throw new IllegalArgumentException("Empty command after stripping skipif/onlyif: " + lines);
+            }
+            NumberedLine first = lines.getFirst();
+            if (first.line().startsWith("statement")) {
+                String query = Lists.joinOn("\n", lines.subList(1, lines.size()), NumberedLine::line);
+                boolean expectOk = first.line().endsWith("ok");
+                return new StatementCmd(first.lnum(), expectOk, query);
+            }
+            if (first.line().startsWith("query")) {
+                return new QueryCmd(lines, filename.toString());
+            }
+            throw new IllegalArgumentException("Could not parse command: " + lines);
+        }
     }
 
     /** A {@code statement ok|error} block. */
     public static final class StatementCmd extends Cmd {
+
+        private final int lnum;
         private final boolean expectOk;
         private final String query;
 
-        StatementCmd(List<String> lines) {
-            this.expectOk = lines.getFirst().endsWith("ok");
-            this.query = String.join("\n", lines.subList(1, lines.size()));
+        StatementCmd(int lnum, boolean expectOk, String query) {
+            this.lnum = lnum;
+            this.expectOk = expectOk;
+            this.query = query;
         }
 
         @Override
@@ -132,7 +159,7 @@ public final class SQLLogicParser {
 
         @Override
         public String toString() {
-            return "Statement<" + truncate(query, 30) + ">";
+            return "Statement<line:" + lnum + ", q: " + truncate(query, 30) + ">";
         }
 
         public boolean isExpectOk() {
@@ -143,6 +170,8 @@ public final class SQLLogicParser {
     /** A {@code query <formats> <sort> [<label>]} block, optionally followed by results. */
     public static final class QueryCmd extends Cmd {
         private final String query;
+        private final int lnum;
+
         public final List<ColumnFormat> resultFormats;
         public final SortMode sort;
         // null when there is no result block at all.
@@ -150,11 +179,13 @@ public final class SQLLogicParser {
         private final String filename;
         public final ResultValidator validator;
 
-        QueryCmd(List<String> lines, String filename) {
+        QueryCmd(List<NumberedLine> lines, String filename) {
             this.filename = filename;
 
             // Header: "query <formats> <sort> [<label>]"
-            String[] header = lines.getFirst().split("\\s+");
+            NumberedLine first = lines.getFirst();
+            this.lnum = first.lnum();
+            String[] header = first.line().split("\\s+");
             String formatsStr = header[1];
             String sortStr = header[2];
 
@@ -174,17 +205,17 @@ public final class SQLLogicParser {
             // Find the '----' separator and split the body.
             int sep = -1;
             for (int i = 1; i < lines.size(); i++) {
-                if (lines.get(i).startsWith("---")) {
+                if (lines.get(i).line().startsWith("---")) {
                     sep = i;
                     break;
                 }
             }
             if (sep == -1) {
-                this.query = String.join(" ", lines.subList(1, lines.size()));
+                this.query = Lists.joinOn(" ", lines.subList(1, lines.size()), NumberedLine::line);
                 this.rawExpected = null;
             } else {
-                this.query = String.join(" ", lines.subList(1, sep));
-                this.rawExpected = new ArrayList<>(lines.subList(sep + 1, lines.size()));
+                this.query = Lists.joinOn(" ", lines.subList(1, sep), NumberedLine::line);
+                this.rawExpected = new ArrayList<>(Lists.map(lines.subList(sep + 1, lines.size()), NumberedLine::line));
             }
 
             this.validator = initValidator();
@@ -199,13 +230,13 @@ public final class SQLLogicParser {
                 if (m.matches()) {
                     int expectedValues = Integer.parseInt(m.group(1));
                     String expectedHash = m.group(2);
-                    return rows -> validateHash(rows, expectedValues, expectedHash, filename);
+                    return rows -> validateHash(rows, expectedValues, expectedHash, filename, lnum);
                 }
             }
             List<Object> expected = (sort == SortMode.ROWS)
                 ? formatExpectedRows(rawExpected)
                 : formatExpectedFlat(rawExpected);
-            return actual -> validateCmpResult(actual, expected, query, filename);
+            return actual -> validateCmpResult(actual, expected, query, filename, lnum);
         }
 
         /** Parse each expected line as a multi-column row separated by "| ". */
@@ -251,6 +282,8 @@ public final class SQLLogicParser {
         public String toString() {
             StringBuilder sb = new StringBuilder();
             sb.append("Query<");
+            sb.append(lnum);
+            sb.append(": ");
             for (ColumnFormat f : resultFormats) {
                 sb.append(f.name());
             }
@@ -285,7 +318,8 @@ public final class SQLLogicParser {
     private static void validateHash(List<Object> rows,
                                      int expectedValues,
                                      String expectedHash,
-                                     String filename) {
+                                     String filename,
+                                     int lnum) {
         int got = rows.size();
         if (got != expectedValues) {
             throw new IncorrectResultException(
@@ -299,9 +333,15 @@ public final class SQLLogicParser {
             }
             String digest = bytesToHex(md.digest());
             if (!digest.equals(expectedHash)) {
-                throw new IncorrectResultException(
-                    "[" + filename + "] Expected values hashing to " + expectedHash
-                        + ". Got " + digest + "\n" + rows);
+                throw new IncorrectResultException(String.format(
+                    Locale.ENGLISH,
+                    "[%s:d] Expected values hashing to %s. Got: %s\n%s",
+                    filename,
+                    lnum,
+                    expectedHash,
+                    digest,
+                    rows
+                ));
             }
         } catch (NoSuchAlgorithmException e) {
             throw new IncorrectResultException(e.getMessage());
@@ -311,11 +351,18 @@ public final class SQLLogicParser {
     private static void validateCmpResult(List<Object> actual,
                                           List<Object> expected,
                                           String query,
-                                          String filename) {
+                                          String filename,
+                                          int lnum) {
         if (!actual.equals(expected)) {
-            throw new IncorrectResultException(
-                "[" + filename + "] Expected rows: " + expected + ". Got " + actual
-                    + " running " + query);
+            throw new IncorrectResultException(String.format(
+                Locale.ENGLISH,
+                "[%s:%d] Expected rows: %s. Got: %s running %s",
+                filename,
+                lnum,
+                expected,
+                actual,
+                query
+            ));
         }
     }
 
@@ -334,47 +381,32 @@ public final class SQLLogicParser {
         return s.length() <= n ? s : s.substring(0, n);
     }
 
-    /** Group raw lines into commands (separated by blank lines). */
-    public static List<List<String>> getCommands(BufferedReader br) throws IOException {
-        List<List<String>> out = new ArrayList<>();
-        List<String> current = new ArrayList<>();
-        String line;
-        while ((line = br.readLine()) != null) {
-            if (line.startsWith("#") || line.startsWith("hash-threshold")) {
-                continue;
-            }
-            if (!line.isEmpty()) {
-                current.add(line);
-            } else if (!current.isEmpty()) {
-                out.add(current);
-                current = new ArrayList<>();
-            }
-        }
-        if (!current.isEmpty()) {
-            out.add(current);
-        }
-        return out;
-    }
+    record NumberedLine(int lnum, String line) {}
 
-    /** Parse a command into a {@link StatementCmd} or {@link QueryCmd}. */
-    public static Cmd parseCmd(List<String> cmd, String filename) {
-        // Strip leading skipif/onlyif lines.
-        List<String> lines = new ArrayList<>(cmd);
-        while (!lines.isEmpty()
-            && (lines.getFirst().startsWith("skipif")
-            || lines.getFirst().startsWith("onlyif"))) {
-            lines.removeFirst();
-        }
-        if (lines.isEmpty()) {
-            throw new IllegalArgumentException("Empty command after stripping skipif/onlyif: " + cmd);
-        }
-        String type = lines.getFirst();
-        if (type.startsWith("statement")) {
-            return new StatementCmd(lines);
-        }
-        if (type.startsWith("query")) {
-            return new QueryCmd(lines, filename);
-        }
-        throw new IllegalArgumentException("Could not parse command: " + cmd);
+    public static Stream<Cmd> parse(Path file) throws IOException {
+        AtomicInteger lnum = new AtomicInteger(0);
+        Gatherer<NumberedLine, List<NumberedLine>, Cmd> gatherCmds = Gatherer.ofSequential(
+            () -> new ArrayList<NumberedLine>(),
+            (state, element, downstream) -> {
+                String line = element.line();
+                if (!line.isEmpty()) {
+                    state.add(element);
+                } else if (!state.isEmpty()) {
+                    Cmd cmd = Cmd.parse(file, state);
+                    state.clear();
+                    return downstream.push(cmd);
+                }
+                return true;
+            },
+            (state, downstream) -> {
+                if (!state.isEmpty()) {
+                    downstream.push(Cmd.parse(file, state));
+                }
+            }
+        );
+        return Files.lines(file).sequential()
+            .map(line -> new NumberedLine(lnum.incrementAndGet(), line))
+            .filter(nline -> !(nline.line().startsWith("#") || nline.line().startsWith("hash-treshold")))
+            .gather(gatherCmds);
     }
 }
