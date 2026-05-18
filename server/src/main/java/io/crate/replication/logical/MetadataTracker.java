@@ -216,11 +216,25 @@ public final class MetadataTracker implements Closeable {
             subscription.connectionInfo().user()
         );
         CompletableFuture<Response> publicationsState = client.execute(PublicationsStateAction.INSTANCE, request)
-            .thenApply(r ->
-                new Response(
-                    metadataUpgradeService.upgradeMetadata(r.metadata()),
+            .thenApply(r -> {
+                Metadata remoteMetadata = r.metadata();
+                LOGGER.warn(
+                    "LR MetadataTracker upgrading remote publication metadata. subscription={}, unknownPublications={}, remoteSchemaUDFs={}",
+                    subscriptionName,
+                    r.unknownPublications(),
+                    schemaUdfSummary(remoteMetadata)
+                );
+                Metadata upgradedMetadata = metadataUpgradeService.upgradeMetadata(remoteMetadata);
+                LOGGER.warn(
+                    "LR MetadataTracker upgraded remote publication metadata. subscription={}, upgradedSchemaUDFs={}",
+                    subscriptionName,
+                    schemaUdfSummary(upgradedMetadata)
+                );
+                return new Response(
+                    upgradedMetadata,
                     r.unknownPublications()
-                ));
+                );
+            });
         CompletableFuture<Boolean> updatedClusterState = publicationsState.thenCompose(response -> {
             if (response.unknownPublications().containsAll(subscription.publications())) {
                 stopTracking(subscriptionName);
@@ -619,6 +633,14 @@ public final class MetadataTracker implements Closeable {
             indexScopedSettings.isDynamicSetting(key) &&
             !indexScopedSettings.isPrivateSetting(key) &&
             !NON_REPLICATED_SETTINGS.contains(setting);
+    }
+
+    private static String schemaUdfSummary(Metadata metadata) {
+        return metadata.schemas().values().stream()
+            .flatMap(schema -> schema.udfs().stream())
+            .map(udf -> udf.schema() + "." + udf.specificName())
+            .sorted()
+            .collect(Collectors.joining(", ", "[", "]"));
     }
 
     @Override

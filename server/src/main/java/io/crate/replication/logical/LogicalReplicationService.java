@@ -240,11 +240,25 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                                 publications,
                                 connectionInfo.settings().get(ConnectionInfo.USERNAME.getKey())
                             ))
-                        .thenApply(r ->
-                            new PublicationsStateAction.Response(
-                                metadataUpgradeService.upgradeMetadata(r.metadata()),
+                        .thenApply(r -> {
+                            Metadata remoteMetadata = r.metadata();
+                            LOGGER.warn(
+                                "LR LogicalReplicationService upgrading remote publication metadata. publications={}, unknownPublications={}, remoteSchemaUDFs={}",
+                                publications,
+                                r.unknownPublications(),
+                                schemaUdfSummary(remoteMetadata)
+                            );
+                            Metadata upgradedMetadata = metadataUpgradeService.upgradeMetadata(remoteMetadata);
+                            LOGGER.warn(
+                                "LR LogicalReplicationService upgraded remote publication metadata. publications={}, upgradedSchemaUDFs={}",
+                                publications,
+                                schemaUdfSummary(upgradedMetadata)
+                            );
+                            return new PublicationsStateAction.Response(
+                                upgradedMetadata,
                                 r.unknownPublications()
-                            ))
+                            );
+                        })
                         .whenComplete((d, stateErr) -> {
                             if (stateErr == null) {
                                 finalFuture.complete(d);
@@ -409,5 +423,13 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             return Metadata.OID_UNASSIGNED; // when the subscription exists but the RelationMetadata has not been replicated yet
         }
         return relationMetadata.oid();
+    }
+
+    private static String schemaUdfSummary(Metadata metadata) {
+        return metadata.schemas().values().stream()
+            .flatMap(schema -> schema.udfs().stream())
+            .map(udf -> udf.schema() + "." + udf.specificName())
+            .sorted()
+            .collect(Collectors.joining(", ", "[", "]"));
     }
 }

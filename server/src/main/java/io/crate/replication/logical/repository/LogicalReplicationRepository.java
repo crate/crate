@@ -36,6 +36,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -484,11 +485,28 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             .routingTable(includeRouting)
             .waitForTimeout(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC));
         return remoteClient.state(clusterStateRequest)
-            .thenApply(r -> new ClusterStateResponse(
-                r.getClusterName(),
-                ClusterState.builder(r.getState())
-                    .metadata(metadataUpgradeService.upgradeMetadata(r.getState().metadata())).build(),
-                r.isWaitForTimedOut()));
+            .thenApply(r -> {
+                Metadata remoteMetadata = r.getState().metadata();
+                LOGGER.warn(
+                    "LR getRemoteClusterState upgrading remote metadata. subscription={}, relations={}, remoteCluster={}, remoteSchemaUDFs={}",
+                    subscriptionName,
+                    relationNames,
+                    r.getClusterName(),
+                    schemaUdfSummary(remoteMetadata)
+                );
+                Metadata upgradedMetadata = metadataUpgradeService.upgradeMetadata(remoteMetadata);
+                LOGGER.warn(
+                    "LR getRemoteClusterState upgraded remote metadata. subscription={}, remoteCluster={}, upgradedSchemaUDFs={}",
+                    subscriptionName,
+                    r.getClusterName(),
+                    schemaUdfSummary(upgradedMetadata)
+                );
+                return new ClusterStateResponse(
+                    r.getClusterName(),
+                    ClusterState.builder(r.getState())
+                        .metadata(upgradedMetadata).build(),
+                    r.isWaitForTimedOut());
+            });
     }
 
     private CompletableFuture<Response> getPublicationsState() {
@@ -497,11 +515,33 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             new PublicationsStateAction.Request(
                 logicalReplicationService.subscriptions().get(subscriptionName).publications(),
                 logicalReplicationService.subscriptions().get(subscriptionName).connectionInfo().settings().get(ConnectionInfo.USERNAME.getKey())
-            )).thenApply(r ->
-                new Response(
-                    metadataUpgradeService.upgradeMetadata(r.metadata()),
+            )).thenApply(r -> {
+                Metadata remoteMetadata = r.metadata();
+                LOGGER.warn(
+                    "LR getPublicationsState upgrading remote metadata. subscription={}, unknownPublications={}, remoteSchemaUDFs={}",
+                    subscriptionName,
+                    r.unknownPublications(),
+                    schemaUdfSummary(remoteMetadata)
+                );
+                Metadata upgradedMetadata = metadataUpgradeService.upgradeMetadata(remoteMetadata);
+                LOGGER.warn(
+                    "LR getPublicationsState upgraded remote metadata. subscription={}, upgradedSchemaUDFs={}",
+                    subscriptionName,
+                    schemaUdfSummary(upgradedMetadata)
+                );
+                return new Response(
+                    upgradedMetadata,
                     r.unknownPublications()
-                ));
+                );
+            });
+    }
+
+    private static String schemaUdfSummary(Metadata metadata) {
+        return metadata.schemas().values().stream()
+            .flatMap(schema -> schema.udfs().stream())
+            .map(udf -> udf.schema() + "." + udf.specificName())
+            .sorted()
+            .collect(Collectors.joining(", ", "[", "]"));
     }
 
     private void releasePublisherResources(Client remoteClient,

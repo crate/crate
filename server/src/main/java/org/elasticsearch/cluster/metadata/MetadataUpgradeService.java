@@ -86,6 +86,12 @@ public class MetadataUpgradeService {
         final Metadata.Builder newMetadata = Metadata.builder(metadata);
 
         UserDefinedFunctionsMetadata udfMetadata = metadata.custom(UserDefinedFunctionsMetadata.TYPE);
+        LOGGER.warn(
+            "Upgrading metadata on thread [{}]. schemaUDFs={}, legacyUDFs={}",
+            Thread.currentThread().getName(),
+            metadata.numUDFs(),
+            udfMetadata == null ? 0 : udfMetadata.functionsMetadata().size()
+        );
         if (udfMetadata == null) {
             userDefinedFunctionService.updateImplementations(metadata);
         } else {
@@ -93,7 +99,15 @@ public class MetadataUpgradeService {
                 newMetadata.setUDF(udf);
             }
             newMetadata.removeCustom(UserDefinedFunctionsMetadata.TYPE);
-            userDefinedFunctionService.updateImplementations(newMetadata.build());
+            Metadata upgradedMetadata = newMetadata.build();
+            LOGGER.warn(
+                "Upgraded legacy UDF metadata on thread [{}]. schemaUDFsBefore={}, legacyUDFs={}, schemaUDFsAfter={}",
+                Thread.currentThread().getName(),
+                metadata.numUDFs(),
+                udfMetadata.functionsMetadata().size(),
+                upgradedMetadata.numUDFs()
+            );
+            userDefinedFunctionService.updateImplementations(upgradedMetadata);
         }
 
         ViewsMetadata viewsMetadata = metadata.custom(ViewsMetadata.TYPE);
