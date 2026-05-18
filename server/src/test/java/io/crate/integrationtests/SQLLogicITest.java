@@ -50,7 +50,6 @@ public class SQLLogicITest extends IntegTestCase {
         String schema = "doc";
         try (BufferedReader br = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
             List<List<String>> commands = SQLLogicParser.getCommands(br).stream()
-                .filter(SQLLogicParser::shouldExecOnCrate)
                 .toList();
 
             boolean dmlDone = false;

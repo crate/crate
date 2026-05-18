@@ -356,18 +356,6 @@ public final class SQLLogicParser {
         return out;
     }
 
-    public static boolean shouldExecOnCrate(List<String> cmd) {
-        for (String line : cmd) {
-            if (line.startsWith("skipif crate")) {
-                return false;
-            }
-            if (line.startsWith("onlyif") && !line.startsWith("onlyif crate")) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     /** Parse a command into a {@link StatementCmd} or {@link QueryCmd}. */
     public static Cmd parseCmd(List<String> cmd, String filename) {
         // Strip leading skipif/onlyif lines.
