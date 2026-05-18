@@ -21,16 +21,13 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.test.integration.SQLLogicParser.parseCmd;
-
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -38,6 +35,9 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.test.integration.SQLLogicParser;
+import io.crate.test.integration.SQLLogicParser.Cmd;
+import io.crate.test.integration.SQLLogicParser.QueryCmd;
+import io.crate.test.integration.SQLLogicParser.StatementCmd;
 import io.crate.testing.UseJdbc;
 
 /**
@@ -48,15 +48,13 @@ public class SQLLogicITest extends IntegTestCase {
 
     private void runFile(Path file) {
         String schema = "doc";
-        try (BufferedReader br = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-            List<List<String>> commands = SQLLogicParser.getCommands(br).stream()
-                .toList();
-
+        try (var cmds = SQLLogicParser.parse(file)) {
             boolean dmlDone = false;
-            try {
-                for (List<String> cmd : commands) {
-                    SQLLogicParser.Cmd parsed = parseCmd(cmd, file.toString());
-                    if (parsed instanceof SQLLogicParser.StatementCmd stmt) {
+            Iterator<Cmd> iterator = cmds.iterator();
+            while (iterator.hasNext()) {
+                Cmd cmd = iterator.next();
+                switch (cmd) {
+                    case StatementCmd stmt -> {
                         try {
                             execute(stmt.getQuery(), schema);
                         } catch (Exception e) {
@@ -65,7 +63,7 @@ public class SQLLogicITest extends IntegTestCase {
                             }
                         }
                     }
-                    if (parsed instanceof SQLLogicParser.QueryCmd query) {
+                    case QueryCmd query -> {
                         if (!dmlDone) {
                             dmlDone = true;
                             refreshTables(schema);
@@ -109,14 +107,13 @@ public class SQLLogicITest extends IntegTestCase {
                         }
 
                         query.validator.validate(actual);
-
                     }
                 }
-            } finally {
-                dropRelations(schema);
             }
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
+        } finally {
+            dropRelations(schema);
         }
     }
 
