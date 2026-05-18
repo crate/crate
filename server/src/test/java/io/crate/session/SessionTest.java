@@ -24,7 +24,6 @@ package io.crate.session;
 import static io.crate.session.Session.UNNAMED;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -75,12 +74,23 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.FormatCodes.FormatCode;
 import io.crate.protocols.postgres.Portal;
+import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class SessionTest extends CrateDummyClusterServiceUnitTest {
+
+    @Test
+    public void test_parse_fails_with_multiple_statements() {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
+        try (Session session = sqlExecutor.createSession()) {
+            assertThatThrownBy(() -> session.parse("S_1", "select 1; select 2;", Collections.emptyList()))
+                .isExactlyInstanceOf(ParsingException.class)
+                .hasMessage("line 1:11: mismatched input 'select' expecting <EOF>");
+        }
+    }
 
     @Test
     public void test_out_of_bounds_getParamType_fails() throws Exception {
@@ -137,7 +147,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         assertThat(session.deferredExecutionsByStmt).hasSize(0);
         assertThat(session.activeExecution).isNull();
     }
-
 
     @Test
     public void test_flush_triggers_deferred_executions_and_sets_active_execution() throws Exception {
