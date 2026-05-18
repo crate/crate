@@ -358,8 +358,8 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
             clusterService,
             new MetaStateService(nodeEnvironment, writableRegistry(), xContentRegistry()),
             null,
-            persistedClusterStateService
-        );
+            persistedClusterStateService,
+            null);
         final CoordinationState.PersistedState persistedState = gateway.getPersistedState();
         assertThat(persistedState).isExactlyInstanceOf(GatewayMetaState.AsyncLucenePersistedState.class);
 

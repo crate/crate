@@ -84,16 +84,12 @@ public class MetadataUpgradeService {
 
     public Metadata upgradeMetadata(Metadata metadata) {
         final Metadata.Builder newMetadata = Metadata.builder(metadata);
-
         UserDefinedFunctionsMetadata udfMetadata = metadata.custom(UserDefinedFunctionsMetadata.TYPE);
-        if (udfMetadata == null) {
-            userDefinedFunctionService.updateImplementations(metadata);
-        } else {
+        if (udfMetadata != null) {
             for (var udf : udfMetadata.functionsMetadata()) {
                 newMetadata.setUDF(udf);
             }
             newMetadata.removeCustom(UserDefinedFunctionsMetadata.TYPE);
-            userDefinedFunctionService.updateImplementations(newMetadata.build());
         }
 
         ViewsMetadata viewsMetadata = metadata.custom(ViewsMetadata.TYPE);

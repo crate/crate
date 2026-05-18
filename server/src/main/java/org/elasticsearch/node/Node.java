@@ -1038,8 +1038,8 @@ public class Node implements Closeable {
             clusterService,
             injector.getInstance(MetaStateService.class),
             injector.getInstance(MetadataUpgradeService.class),
-            injector.getInstance(PersistedClusterStateService.class)
-        );
+            injector.getInstance(PersistedClusterStateService.class),
+            injector.getInstance(UserDefinedFunctionService.class));
         if (Assertions.ENABLED) {
             try {
                 assert injector.getInstance(MetaStateService.class).loadFullState().v1().isEmpty();

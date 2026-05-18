@@ -58,6 +58,7 @@ import org.elasticsearch.transport.TransportService;
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
+import io.crate.expression.udf.UserDefinedFunctionService;
 
 /**
  * Loads (and maybe upgrades) cluster metadata at startup, and persistently stores cluster metadata for future restarts.
@@ -94,7 +95,8 @@ public class GatewayMetaState implements Closeable {
                       ClusterService clusterService,
                       MetaStateService metaStateService,
                       MetadataUpgradeService metadataUpgradeService,
-                      PersistedClusterStateService persistedClusterStateService) {
+                      PersistedClusterStateService persistedClusterStateService,
+                      UserDefinedFunctionService userDefinedFunctionService) {
         assert persistedState.get() == null : "should only start once, but already have " + persistedState.get();
 
         if (DiscoveryNode.isMasterEligibleNode(settings) || DiscoveryNode.isDataNode(settings)) {
@@ -121,7 +123,7 @@ public class GatewayMetaState implements Closeable {
                         transportService, clusterService,
                         ClusterState.builder(ClusterName.CLUSTER_NAME_SETTING.get(settings))
                             .version(lastAcceptedVersion)
-                            .metadata(upgradeMetadataForNode(metadata, metadataUpgradeService))
+                            .metadata(upgradeMetadataForNode(metadata, metadataUpgradeService, userDefinedFunctionService))
                             .build());
                     if (DiscoveryNode.isMasterEligibleNode(settings)) {
                         persistedStateTmp = new LucenePersistedState(persistedClusterStateService, currentTerm, clusterState);
@@ -190,8 +192,10 @@ public class GatewayMetaState implements Closeable {
     }
 
     // exposed so it can be overridden by tests
-    Metadata upgradeMetadataForNode(Metadata metadata, MetadataUpgradeService metadataUpgradeService) {
-        return metadataUpgradeService.upgradeMetadata(metadata);
+    Metadata upgradeMetadataForNode(Metadata metadata, MetadataUpgradeService metadataUpgradeService, UserDefinedFunctionService userDefinedFunctionService) {
+        Metadata upgraded = metadataUpgradeService.upgradeMetadata(metadata);
+        userDefinedFunctionService.updateImplementations(upgraded);
+        return upgraded;
     }
 
     @Override

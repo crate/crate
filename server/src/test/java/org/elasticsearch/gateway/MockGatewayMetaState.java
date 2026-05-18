@@ -40,6 +40,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.collections.Tuple;
+import io.crate.expression.udf.UserDefinedFunctionService;
 
 /**
  * {@link GatewayMetaState} constructor accepts a lot of arguments.
@@ -57,7 +58,7 @@ public class MockGatewayMetaState extends GatewayMetaState {
     }
 
     @Override
-    Metadata upgradeMetadataForNode(Metadata metadata, MetadataUpgradeService metadataIndexUpgradeService) {
+    Metadata upgradeMetadataForNode(Metadata metadata, MetadataUpgradeService metadataIndexUpgradeService, UserDefinedFunctionService userDefinedFunctionService) {
         // Metadata upgrade is tested in GatewayMetaStateTests, we override this method to NOP to make mocking easier
         return metadata;
     }
@@ -94,7 +95,7 @@ public class MockGatewayMetaState extends GatewayMetaState {
             clusterService,
             metaStateService,
             null,
-            persistedClusterStateService
-        );
+            persistedClusterStateService,
+                null);
     }
 }
