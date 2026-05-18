@@ -26,7 +26,6 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
@@ -68,45 +67,8 @@ public class SQLLogicITest extends IntegTestCase {
                             dmlDone = true;
                             refreshTables(schema);
                         }
-
-                        execute(query.getQuery(), schema);
-                        int colCount = response.cols().length;
-                        List<List<Object>> rows = new ArrayList<>();
-                        for (Object[] resultRow : response.rows()) {
-                            List<Object> row = new ArrayList<>(colCount);
-                            for (int c = 0; c < colCount; c++) {
-                                if (resultRow[c] == null) {
-                                    row.add("NULL");
-                                } else {
-                                    String raw = resultRow[c].toString();
-                                    SQLLogicParser.ColumnFormat fmt = query.resultFormats.get(c % query.resultFormats.size());
-                                    row.add(fmt.format(raw));
-                                }
-                            }
-                            rows.add(row);
-                        }
-
-                        if (query.sort == SQLLogicParser.SortMode.ROWSORT) {
-                            rows.sort(SQLLogicParser::lexicographicByString);
-                        }
-
-                        List<Object> actual;
-                        if (query.sort == SQLLogicParser.SortMode.ROWS) {
-                            actual = new ArrayList<>(rows);
-                        } else {
-                            actual = new ArrayList<>(rows.size() * Math.max(1, colCount));
-                            for (List<Object> r : rows) {
-                                actual.addAll(r);
-                            }
-                        }
-
-                        if (query.sort == SQLLogicParser.SortMode.VALUESORT) {
-                            // Explicit lambda avoids relying on overload resolution
-                            // for the polymorphic String.valueOf method reference.
-                            actual.sort(Comparator.comparing(String::valueOf));
-                        }
-
-                        query.validator.validate(actual);
+                        var response = execute(query.getQuery(), schema);
+                        query.validate(response);
                     }
                 }
             }
