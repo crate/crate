@@ -43,14 +43,12 @@ import io.crate.expression.udf.UdfUnitTest;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
@@ -246,14 +244,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
             .put(indexTemplateMetadata)
             .putCustom(UserDefinedFunctionsMetadata.TYPE, udfs)
             .build();
-        metadataUpgradeService.upgradeMetadata(metadata);
-        FunctionImplementation functionImplementation = e.nodeCtx.functions().get(
-            "custom",
-            "foo",
-            List.of(),
-            SearchPath.pathWithPGCatalogAndDoc()
-        );
-        assertThat(functionImplementation).isNotNull();
+        metadataUpgradeService.upgradeIndexMetadata(indexMetadata, indexTemplateMetadata, Version.V_5_7_0, metadata);
     }
 
     @Test

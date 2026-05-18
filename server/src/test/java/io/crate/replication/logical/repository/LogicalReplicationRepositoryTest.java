@@ -48,6 +48,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 import org.junit.Test;
 
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.NodeContext;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
 
@@ -80,10 +82,15 @@ public class LogicalReplicationRepositoryTest {
         when(remoteClient.state(any())).thenReturn(CompletableFuture.completedFuture(resp));
         when(repositoryMetadata.name()).thenReturn(REMOTE_REPOSITORY_PREFIX);
 
+        ClusterService clusterService = mock(ClusterService.class);
+        NodeContext nodeCtx = createNodeContext();
         LogicalReplicationRepository logicalReplicationRepository = new LogicalReplicationRepository(
-            mock(ClusterService.class),
+            clusterService,
             mock(LogicalReplicationService.class),
-            new MetadataUpgradeService(createNodeContext(), IndexScopedSettings.DEFAULT_SCOPED_SETTINGS, null),
+            new MetadataUpgradeService(nodeCtx,
+                IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+                new UserDefinedFunctionService(clusterService, nodeCtx)
+            ),
             remoteClusters,
             repositoryMetadata,
             mock(ThreadPool.class),

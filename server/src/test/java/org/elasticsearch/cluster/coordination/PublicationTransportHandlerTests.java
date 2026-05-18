@@ -55,7 +55,6 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.transport.CapturingTransport;
 import org.elasticsearch.transport.BytesTransportRequest;
 import org.elasticsearch.transport.RequestHandlerRegistry;
@@ -64,15 +63,18 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
+import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 
-public class PublicationTransportHandlerTests extends ESTestCase {
+public class PublicationTransportHandlerTests extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDiffSerializationFailure() {
@@ -142,7 +144,12 @@ public class PublicationTransportHandlerTests extends ESTestCase {
 
         AtomicReference<PublishRequest> publishRequestRef = new AtomicReference<>();
 
-        MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(createNodeContext(), null, null);
+        NodeContext nodeCtx = createNodeContext();
+        MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(
+            nodeCtx,
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            new UserDefinedFunctionService(clusterService, nodeCtx)
+        );
         new PublicationTransportHandler(
             localTransportService,
             writableRegistry(),
@@ -257,7 +264,12 @@ public class PublicationTransportHandlerTests extends ESTestCase {
 
         AtomicReference<PublishRequest> publishRequestRef = new AtomicReference<>();
 
-        MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(createNodeContext(), IndexScopedSettings.DEFAULT_SCOPED_SETTINGS, null);
+        NodeContext nodeCtx = createNodeContext();
+        MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(
+            nodeCtx,
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            new UserDefinedFunctionService(clusterService, nodeCtx)
+        );
         new PublicationTransportHandler(
             localTransportService,
             writableRegistry(),

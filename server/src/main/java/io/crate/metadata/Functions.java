@@ -122,6 +122,10 @@ public class Functions {
         udfFunctionImplementations = functions;
     }
 
+    public Functions copyOfBuiltIns() {
+        return new Functions(functionImplementations);
+    }
+
     @Nullable
     public Signature findFunctionSignatureByOid(int oid) {
         for (var signature : signatures()) {
