@@ -24,17 +24,17 @@ package io.crate.integrationtests;
 import static io.crate.test.integration.SQLLogicParser.parseCmd;
 
 import java.io.BufferedReader;
-import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
+import java.util.stream.Stream;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.test.integration.SQLLogicParser;
@@ -46,95 +46,89 @@ import io.crate.testing.UseJdbc;
 @IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class SQLLogicITest extends IntegTestCase {
 
-    private List<File> testFiles;
+    private void runFile(Path file) {
+        String schema = "doc";
+        try (BufferedReader br = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            List<List<String>> commands = SQLLogicParser.getCommands(br).stream()
+                .filter(SQLLogicParser::shouldExecOnCrate)
+                .toList();
 
-    @Before
-    public void findTestFiles() {
-        Path tests_path = getDataPath("/integtests");
-        testFiles = new ArrayList<>();
+            boolean dmlDone = false;
+            try {
+                for (List<String> cmd : commands) {
+                    SQLLogicParser.Cmd parsed = parseCmd(cmd, file.toString());
+                    if (parsed instanceof SQLLogicParser.StatementCmd stmt) {
+                        try {
+                            execute(stmt.getQuery(), schema);
+                        } catch (Exception e) {
+                            if (stmt.isExpectOk()) {
+                                throw new SQLLogicParser.IncorrectResultException(e.getMessage());
+                            }
+                        }
+                    }
+                    if (parsed instanceof SQLLogicParser.QueryCmd query) {
+                        if (!dmlDone) {
+                            dmlDone = true;
+                            refreshTables(schema);
+                        }
 
-        for (var file : tests_path.toFile().listFiles()) {
-            if (file.toPath().getFileName().toString().toLowerCase(Locale.US).endsWith(".test")) {
-                testFiles.add(file);
+                        execute(query.getQuery(), schema);
+                        int colCount = response.cols().length;
+                        List<List<Object>> rows = new ArrayList<>();
+                        for (Object[] resultRow : response.rows()) {
+                            List<Object> row = new ArrayList<>(colCount);
+                            for (int c = 0; c < colCount; c++) {
+                                if (resultRow[c] == null) {
+                                    row.add("NULL");
+                                } else {
+                                    String raw = resultRow[c].toString();
+                                    SQLLogicParser.ColumnFormat fmt = query.resultFormats.get(c % query.resultFormats.size());
+                                    row.add(fmt.format(raw));
+                                }
+                            }
+                            rows.add(row);
+                        }
+
+                        if (query.sort == SQLLogicParser.SortMode.ROWSORT) {
+                            rows.sort(SQLLogicParser::lexicographicByString);
+                        }
+
+                        List<Object> actual;
+                        if (query.sort == SQLLogicParser.SortMode.ROWS) {
+                            actual = new ArrayList<>(rows);
+                        } else {
+                            actual = new ArrayList<>(rows.size() * Math.max(1, colCount));
+                            for (List<Object> r : rows) {
+                                actual.addAll(r);
+                            }
+                        }
+
+                        if (query.sort == SQLLogicParser.SortMode.VALUESORT) {
+                            // Explicit lambda avoids relying on overload resolution
+                            // for the polymorphic String.valueOf method reference.
+                            actual.sort(Comparator.comparing(String::valueOf));
+                        }
+
+                        query.validator.validate(actual);
+
+                    }
+                }
+            } finally {
+                dropRelations(schema);
             }
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
         }
     }
 
     @Test
     @UseJdbc(1)
     public void testFiles() throws Exception {
-        String schema = "doc";
-        for (File test : testFiles) {
-            Path filepath = test.toPath();
-            try (BufferedReader br = Files.newBufferedReader(filepath, StandardCharsets.UTF_8)) {
-                List<List<String>> commands = SQLLogicParser.getCommands(br).stream()
-                    .filter(SQLLogicParser::shouldExecOnCrate)
-                    .toList();
-
-                boolean dmlDone = false;
-                try {
-                    for (List<String> cmd : commands) {
-                        SQLLogicParser.Cmd parsed = parseCmd(cmd, filepath.toString());
-                        if (parsed instanceof SQLLogicParser.StatementCmd stmt) {
-                            try {
-                                execute(stmt.getQuery(), schema);
-                            } catch (Exception e) {
-                                if (stmt.isExpectOk()) {
-                                    throw new SQLLogicParser.IncorrectResultException(e.getMessage());
-                                }
-                            }
-                        }
-                        if (parsed instanceof SQLLogicParser.QueryCmd query) {
-                            if (!dmlDone) {
-                                dmlDone = true;
-                                refreshTables(schema);
-                            }
-
-                            execute(query.getQuery(), schema);
-                            int colCount = response.cols().length;
-                            List<List<Object>> rows = new ArrayList<>();
-                            for (Object[] resultRow : response.rows()) {
-                                List<Object> row = new ArrayList<>(colCount);
-                                for (int c = 0; c < colCount; c++) {
-                                    if (resultRow[c] == null) {
-                                        row.add("NULL");
-                                    } else {
-                                        String raw = resultRow[c].toString();
-                                        SQLLogicParser.ColumnFormat fmt = query.resultFormats.get(c % query.resultFormats.size());
-                                        row.add(fmt.format(raw));
-                                    }
-                                }
-                                rows.add(row);
-                            }
-
-                            if (query.sort == SQLLogicParser.SortMode.ROWSORT) {
-                                rows.sort(SQLLogicParser::lexicographicByString);
-                            }
-
-                            List<Object> actual;
-                            if (query.sort == SQLLogicParser.SortMode.ROWS) {
-                                actual = new ArrayList<>(rows);
-                            } else {
-                                actual = new ArrayList<>(rows.size() * Math.max(1, colCount));
-                                for (List<Object> r : rows) {
-                                    actual.addAll(r);
-                                }
-                            }
-
-                            if (query.sort == SQLLogicParser.SortMode.VALUESORT) {
-                                // Explicit lambda avoids relying on overload resolution
-                                // for the polymorphic String.valueOf method reference.
-                                actual.sort(Comparator.comparing(String::valueOf));
-                            }
-
-                            query.validator.validate(actual);
-
-                        }
-                    }
-                } finally {
-                    dropRelations(schema);
-                }
-            }
+        Path testsLocation = getDataPath("/integtests");
+        try (Stream<Path> files = Files.list(testsLocation)) {
+            files
+                .filter(path -> path.toString().endsWith(".test"))
+                .forEach(this::runFile);
         }
     }
 
