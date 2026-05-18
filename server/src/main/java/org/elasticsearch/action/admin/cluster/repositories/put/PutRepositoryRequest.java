@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.elasticsearch.ElasticsearchGenerationException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -46,8 +47,6 @@ public class PutRepositoryRequest extends AcknowledgedRequest<PutRepositoryReque
     private String name;
 
     private String type;
-
-    private boolean verify = true;
 
     private Settings settings = Settings.EMPTY;
 
@@ -164,21 +163,6 @@ public class PutRepositoryRequest extends AcknowledgedRequest<PutRepositoryReque
     }
 
     /**
-     * Sets whether or not the repository should be verified after creation
-     */
-    public PutRepositoryRequest verify(boolean verify) {
-        this.verify = verify;
-        return this;
-    }
-
-    /**
-     * Returns true if repository should be verified after creation
-     */
-    public boolean verify() {
-        return this.verify;
-    }
-
-    /**
      * Parses repository definition.
      *
      * @param repositoryDefinition repository definition
@@ -205,7 +189,9 @@ public class PutRepositoryRequest extends AcknowledgedRequest<PutRepositoryReque
         name = in.readString();
         type = in.readString();
         settings = readSettingsFromStream(in);
-        verify = in.readBoolean();
+        if (in.getVersion().before(Version.V_6_4_0)) {
+            in.readBoolean();
+        }
     }
 
     @Override
@@ -214,6 +200,8 @@ public class PutRepositoryRequest extends AcknowledgedRequest<PutRepositoryReque
         out.writeString(name);
         out.writeString(type);
         writeSettingsToStream(out, settings);
-        out.writeBoolean(verify);
+        if (out.getVersion().before(Version.V_6_4_0)) {
+            out.writeBoolean(true);
+        }
     }
 }
