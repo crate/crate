@@ -24,6 +24,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_U
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -38,10 +39,10 @@ import org.elasticsearch.index.Index;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.blob.v2.BlobIndex;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTablesMetadata;
+import io.crate.metadata.Functions;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
@@ -70,32 +71,31 @@ public class MetadataUpgradeService {
 
     private final IndexScopedSettings indexScopedSettings;
     private final MetadataIndexUpgrader indexUpgrader;
-    private final DocTableInfoFactory tableFactory;
-    private final UserDefinedFunctionService userDefinedFunctionService;
+    private final Function<Metadata, DocTableInfoFactory> metadataToDocTableInfoFactory;
 
     public MetadataUpgradeService(NodeContext nodeContext,
                                   IndexScopedSettings indexScopedSettings,
                                   UserDefinedFunctionService userDefinedFunctionService) {
-        this.tableFactory = new DocTableInfoFactory(nodeContext);
+        // Creates a DocTableInfoFactory for each upgrade invocation.
+        // Metadata can come from a foreign cluster, so the factory must be solely based on the metadata being upgraded.
+        this.metadataToDocTableInfoFactory = metadata -> {
+            Functions functions = nodeContext.functions().copyOfBuiltIns();
+            functions.setUDFs(userDefinedFunctionService.buildUDFResolvers(metadata));
+            return new DocTableInfoFactory(
+                new NodeContext(
+                    functions,
+                    nodeContext.roles(),
+                    _ -> nodeContext.schemas(),
+                    nodeContext.tableStats()
+                )
+            );
+        };
         this.indexScopedSettings = indexScopedSettings;
         this.indexUpgrader = new MetadataIndexUpgrader();
-        this.userDefinedFunctionService = userDefinedFunctionService;
     }
 
     public Metadata upgradeMetadata(Metadata metadata) {
-        final Metadata.Builder newMetadata = Metadata.builder(metadata);
-
-        UserDefinedFunctionsMetadata udfMetadata = metadata.custom(UserDefinedFunctionsMetadata.TYPE);
-        if (udfMetadata == null) {
-            userDefinedFunctionService.updateImplementations(metadata);
-        } else {
-            for (var udf : udfMetadata.functionsMetadata()) {
-                newMetadata.setUDF(udf);
-            }
-            newMetadata.removeCustom(UserDefinedFunctionsMetadata.TYPE);
-            userDefinedFunctionService.updateImplementations(newMetadata.build());
-        }
-
+        final Metadata.Builder newMetadata = Metadata.builder(upgradeUDFMetadata(metadata));
         ViewsMetadata viewsMetadata = metadata.custom(ViewsMetadata.TYPE);
         if (viewsMetadata != null) {
             for (var entry : viewsMetadata.views().entrySet()) {
@@ -111,6 +111,10 @@ public class MetadataUpgradeService {
             }
             newMetadata.removeCustom(ViewsMetadata.TYPE);
         }
+
+        // DocTableInfoFactory must have access to the UDF definitions from the given
+        // Metadata so table validation can resolve UDF dependencies.
+        DocTableInfoFactory tableInfoFactory = metadataToDocTableInfoFactory.apply(newMetadata.build());
 
         ForeignTablesMetadata foreignTablesMetadata = metadata.custom(ForeignTablesMetadata.TYPE);
         if (foreignTablesMetadata != null) {
@@ -134,7 +138,7 @@ public class MetadataUpgradeService {
             assert relation == null
                 : "If there is still a template present there shouldn't be any RelationMetadata";
 
-            DocTableInfo docTable = tableFactory.create(template, OID_UNASSIGNED);
+            DocTableInfo docTable = tableInfoFactory.create(template, OID_UNASSIGNED);
             Version versionCreated = getFixedVersionCreated(metadata, docTable);
 
             // versionCreated could be missing from the template settings and "calculated" afterwards
@@ -173,7 +177,8 @@ public class MetadataUpgradeService {
                 IndexName.isPartitioned(indexName)
                     ? newMetadata.getTemplate(PartitionName.templateName(indexName))
                     : null,
-                Version.CURRENT.minimumIndexCompatibilityVersion());
+                Version.CURRENT.minimumIndexCompatibilityVersion(),
+                tableInfoFactory);
             // Remove any existing metadata, registered by it's name, for the index
             newMetadata.remove(indexName);
             newMetadata.put(newIndexMetadata, false);
@@ -186,7 +191,7 @@ public class MetadataUpgradeService {
                 RelationName relationName = indexParts.toRelationName();
                 relation = newMetadata.getRelation(relationName);
                 if (!BlobIndex.isBlobIndex(indexName)) {
-                    tableInfo = tableFactory.create(newIndexMetadata, OID_UNASSIGNED);
+                    tableInfo = tableInfoFactory.create(newIndexMetadata, OID_UNASSIGNED);
                 }
             }
             if (relation == null) {
@@ -230,6 +235,18 @@ public class MetadataUpgradeService {
             }
         }
 
+        return newMetadata.build();
+    }
+
+    private static Metadata upgradeUDFMetadata(Metadata metadata) {
+        final Metadata.Builder newMetadata = Metadata.builder(metadata);
+        UserDefinedFunctionsMetadata udfMetadata = metadata.custom(UserDefinedFunctionsMetadata.TYPE);
+        if (udfMetadata != null) {
+            for (var udf : udfMetadata.functionsMetadata()) {
+                newMetadata.setUDF(udf);
+            }
+            newMetadata.removeCustom(UserDefinedFunctionsMetadata.TYPE);
+        }
         return newMetadata.build();
     }
 
@@ -286,7 +303,19 @@ public class MetadataUpgradeService {
      */
     public IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata,
                                               @Nullable IndexTemplateMetadata indexTemplateMetadata,
-                                              Version minimumIndexCompatibilityVersion) {
+                                              Version minimumIndexCompatibilityVersion,
+                                              Metadata metadata) {
+        return upgradeIndexMetadata(
+            indexMetadata,
+            indexTemplateMetadata,
+            minimumIndexCompatibilityVersion,
+            metadataToDocTableInfoFactory.apply(upgradeUDFMetadata(metadata)));
+    }
+
+    private IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata,
+                                               @Nullable IndexTemplateMetadata indexTemplateMetadata,
+                                               Version minimumIndexCompatibilityVersion,
+                                               DocTableInfoFactory tableInfoFactory) {
         if (isUpgraded(indexMetadata)) {
             return indexMetadata;
         }
@@ -298,7 +327,7 @@ public class MetadataUpgradeService {
         // with broken settings and fail in checkMappingsCompatibility
         newMetadata = archiveBrokenIndexSettings(newMetadata);
         newMetadata = indexUpgrader.upgrade(newMetadata, indexTemplateMetadata);
-        checkMappingsCompatibility(newMetadata);
+        checkMappingsCompatibility(newMetadata, tableInfoFactory);
         return markAsUpgraded(newMetadata);
     }
 
@@ -335,10 +364,9 @@ public class MetadataUpgradeService {
     /**
      * Checks the mappings for compatibility with the current version
      */
-    @VisibleForTesting
-    void checkMappingsCompatibility(IndexMetadata indexMetadata) {
+    private void checkMappingsCompatibility(IndexMetadata indexMetadata, DocTableInfoFactory tableInfoFactory) {
         try {
-            tableFactory.create(indexMetadata, OID_UNASSIGNED);
+            tableInfoFactory.create(indexMetadata, OID_UNASSIGNED);
 
             // We cannot instantiate real analysis server or similarity service at this point because the node
             // might not have been started yet. However, we don't really need real analyzers or similarities at
