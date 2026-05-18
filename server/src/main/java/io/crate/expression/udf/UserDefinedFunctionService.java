@@ -43,8 +43,8 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
@@ -208,17 +208,7 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent imple
     }
 
     public void updateImplementations(List<UserDefinedFunctionMetadata> userDefinedFunctions) {
-        final Map<FunctionName, List<FunctionProvider>> implementations = new HashMap<>();
-        for (var functionMetadata : userDefinedFunctions) {
-            FunctionProvider provider = buildFunctionResolver(functionMetadata);
-            if (provider == null) {
-                continue;
-            }
-            FunctionName name = provider.signature().getName();
-            var providers = implementations.computeIfAbsent(name, k -> new ArrayList<>());
-            providers.add(provider);
-        }
-        nodeCtx.functions().setUDFs(implementations);
+        nodeCtx.functions().setUDFs(buildUDFResolvers(userDefinedFunctions));
     }
 
     @Nullable
@@ -284,9 +274,30 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent imple
     public void clusterChanged(ClusterChangedEvent event) {
         if (event.changedCustomMetadataSet().contains(UserDefinedFunctionsMetadata.TYPE)) {
             Metadata newMetadata = event.state().metadata();
-            UserDefinedFunctionsMetadata udfMetadata = newMetadata.custom(UserDefinedFunctionsMetadata.TYPE);
-            updateImplementations(udfMetadata == null ? List.of() : udfMetadata.functionsMetadata());
+            nodeCtx.functions().setUDFs(buildUDFResolvers(newMetadata));
         }
+    }
+
+    public Map<FunctionName, List<FunctionProvider>> buildUDFResolvers(Metadata newMetadata) {
+        UserDefinedFunctionsMetadata udfMetadata = newMetadata.custom(UserDefinedFunctionsMetadata.TYPE);
+        if (udfMetadata == null) {
+            return Map.of();
+        }
+        return buildUDFResolvers(udfMetadata.functionsMetadata());
+    }
+
+    public Map<FunctionName, List<FunctionProvider>> buildUDFResolvers(List<UserDefinedFunctionMetadata> udfs) {
+        final Map<FunctionName, List<FunctionProvider>> implementations = new HashMap<>();
+        for (var functionMetadata : udfs) {
+            FunctionProvider provider = buildFunctionResolver(functionMetadata);
+            if (provider == null) {
+                continue;
+            }
+            FunctionName name = provider.signature().getName();
+            var providers = implementations.computeIfAbsent(name, k -> new ArrayList<>());
+            providers.add(provider);
+        }
+        return implementations;
     }
 
     @Override
