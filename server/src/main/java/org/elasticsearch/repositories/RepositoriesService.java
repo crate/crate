@@ -172,20 +172,16 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
         };
         clusterService.submitStateUpdateTask("put_repository [" + request.name() + "]", updateTask);
 
-        if (request.verify()) {
-            return updateTask.completionFuture().thenCompose(response -> {
-                if (response.isAcknowledged()) {
-                    // The response was acknowledged - all nodes should know about the new repository, let's verify them
-                    FutureActionListener<List<DiscoveryNode>> listener = new FutureActionListener<>();
-                    verifyRepository(request.name(), listener);
-                    return listener.thenApply(ignored -> response);
-                } else {
-                    return CompletableFuture.completedFuture(response);
-                }
-            });
-        } else {
-            return updateTask.completionFuture();
-        }
+        return updateTask.completionFuture().thenCompose(response -> {
+            if (response.isAcknowledged()) {
+                // The response was acknowledged - all nodes should know about the new repository, let's verify them
+                FutureActionListener<List<DiscoveryNode>> listener = new FutureActionListener<>();
+                verifyRepository(request.name(), listener);
+                return listener.thenApply(ignored -> response);
+            } else {
+                return CompletableFuture.completedFuture(response);
+            }
+        });
     }
 
     /**
