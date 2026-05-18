@@ -47,7 +47,7 @@ import io.crate.testing.SQLResponse;
 ///
 /// Parses [sqllogic test files](https://www.sqlite.org/sqllogic/doc/trunk/about.wiki)
 /// into a list of [Cmd]. Those commands (statement or query) are supposed to be executed
-/// against CrateDB and their result can then be validated using [ResultValidator#validate(List)]
+/// against CrateDB and their result can then be validated using [Cmd#validate(List)]
 public final class SQLLogicParser {
 
     private static final Pattern HASHING_RE =
@@ -181,6 +181,7 @@ public final class SQLLogicParser {
         @Nullable
         private final List<String> rawExpected;
         private final String filename;
+        private final String testname;
 
         QueryCmd(List<NumberedLine> lines, String filename) {
             this.filename = filename;
@@ -191,6 +192,7 @@ public final class SQLLogicParser {
             String[] header = first.line().split("\\s+");
             String formatsStr = header[1];
             String sortStr = header[2];
+            this.testname = header[3];
 
             for (char c : formatsStr.toCharArray()) {
                 if (c != 'I' && c != 'R' && c != 'T') {
@@ -238,13 +240,14 @@ public final class SQLLogicParser {
             List<Object> expected = (sort == SortMode.ROWS)
                 ? formatExpectedRows(rawExpected)
                 : formatExpectedFlat(rawExpected);
-            validateCmpResult(response, expected, query, filename, lnum);
+            validateCmpResult(response, expected, query, filename, testname, lnum);
         }
 
         private void validateCmpResult(SQLResponse response,
                                        List<Object> expected,
                                        String query,
                                        String filename,
+                                       String testname,
                                        int lnum) {
 
             int colCount = response.cols().length;
@@ -286,9 +289,10 @@ public final class SQLLogicParser {
         if (!actual.equals(expected)) {
             throw new IncorrectResultException(String.format(
                 Locale.ENGLISH,
-                "[%s:%d] Expected rows: %s. Got: %s running %s",
+                "[%s:%d][%s] Expected rows: %s. Got: %s running %s",
                 filename,
                 lnum,
+                testname,
                 expected,
                 actual,
                 query
