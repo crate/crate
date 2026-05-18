@@ -119,7 +119,22 @@ public class Functions {
     }
 
     public void setUDFs(Map<FunctionName, List<FunctionProvider>> functions) {
+        LOGGER.warn(
+            "Replacing UDF function implementations on thread [{}]. old={}, new={}",
+            Thread.currentThread().getName(),
+            udfFunctionImplementationsSummary(udfFunctionImplementations),
+            udfFunctionImplementationsSummary(functions)
+        );
         udfFunctionImplementations = functions;
+    }
+
+    private static String udfFunctionImplementationsSummary(Map<FunctionName, List<FunctionProvider>> functions) {
+        return functions.entrySet().stream()
+            .sorted(Comparator.comparing(entry -> entry.getKey().displayName()))
+            .map(entry -> entry.getKey().displayName() + "=" + entry.getValue().stream()
+                .map(provider -> provider.signature().toString())
+                .toList())
+            .collect(Collectors.joining(", ", "[", "]"));
     }
 
     @Nullable
