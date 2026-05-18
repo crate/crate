@@ -47,16 +47,10 @@ import io.crate.common.collections.Lists;
 /// against CrateDB and their result can then be validated using [ResultValidator#validate(List)]
 public final class SQLLogicParser {
 
-    private static final Pattern VARCHAR_RE = Pattern.compile("VARCHAR\\(\\d+\\)");
     private static final Pattern HASHING_RE =
         Pattern.compile("(\\d+) values hashing to ([a-z0-9]+)");
 
     SQLLogicParser() {}
-
-    /** Replace {@code VARCHAR(n)} with {@code STRING} */
-    static String varcharToString(String sql) {
-        return VARCHAR_RE.matcher(sql).replaceAll("STRING");
-    }
 
     /** Thrown when the actual cursor result does not match the expected one. */
     public static final class IncorrectResultException extends RuntimeException {
@@ -154,7 +148,7 @@ public final class SQLLogicParser {
 
         @Override
         public String getQuery() {
-            return varcharToString(query);
+            return query;
         }
 
         @Override
@@ -275,7 +269,7 @@ public final class SQLLogicParser {
 
         @Override
         public String getQuery() {
-            return varcharToString(query);
+            return query;
         }
 
         @Override
