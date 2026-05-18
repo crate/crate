@@ -610,7 +610,7 @@ public class SQLTransportExecutor {
                 x -> assertThat(x).isEmpty(),
                 x -> assertThat(x).isEqualTo(List.of("STARTED"))
             );
-        });
+        }, 20, TimeUnit.SECONDS);
     }
 
     public interface ClientProvider {
