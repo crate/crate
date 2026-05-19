@@ -23,10 +23,14 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.AccessDeniedException;
+import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexOutput;
@@ -39,13 +43,31 @@ final class ByteSizeCachingDirectory extends FilterDirectory {
 
     private static long estimateSizeInBytes(Directory directory) throws IOException {
         long estimatedSize = 0;
-        String[] files = directory.listAll();
-        for (String file : files) {
-            try {
-                estimatedSize += directory.fileLength(file);
-            } catch (NoSuchFileException | FileNotFoundException | AccessDeniedException e) {
-                // ignore, the file is not there no more; on Windows, if one thread concurrently deletes a file while
-                // calling Files.size, you can also sometimes hit AccessDeniedException
+        // optimize FSDirectory case: Avoids String[] files allocations and sorting
+        if (directory instanceof FSDirectory fsdir) {
+            Set<String> pendingDeletions = fsdir.getPendingDeletions();
+            try (var files = Files.newDirectoryStream(fsdir.getDirectory())) {
+                for (Path path : files) {
+                    String name = path.getFileName().toString();
+                    if (!pendingDeletions.contains(name)) {
+                        try {
+                            estimatedSize += Files.size(path);
+                        } catch (NoSuchFileException | FileNotFoundException | AccessDeniedException e) {
+                            // ignore, the file is not there no more; on Windows, if one thread concurrently deletes a file while
+                            // calling Files.size, you can also sometimes hit AccessDeniedException
+                        }
+                    }
+                }
+            }
+        } else {
+            String[] files = directory.listAll();
+            for (String file : files) {
+                try {
+                    estimatedSize += directory.fileLength(file);
+                } catch (NoSuchFileException | FileNotFoundException | AccessDeniedException e) {
+                    // ignore, the file is not there no more; on Windows, if one thread concurrently deletes a file while
+                    // calling Files.size, you can also sometimes hit AccessDeniedException
+                }
             }
         }
         return estimatedSize;
@@ -59,7 +81,6 @@ final class ByteSizeCachingDirectory extends FilterDirectory {
             () -> {
                 final long size;
                 try {
-                    // Compute this OUTSIDE of the lock
                     size = estimateSizeInBytes(getDelegate());
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
@@ -72,7 +93,7 @@ final class ByteSizeCachingDirectory extends FilterDirectory {
     }
 
     /** Return the cumulative size of all files in this directory. */
-    Long estimateSizeInBytes() throws IOException {
+    long estimateSizeInBytes() throws IOException {
         try {
             return size.get();
         } catch (UncheckedIOException e) {

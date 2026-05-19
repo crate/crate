@@ -705,7 +705,7 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
         }
 
         /** Estimate the cumulative size of all files in this directory in bytes. */
-        Long estimateSize() throws IOException {
+        long estimateSize() throws IOException {
             return ((ByteSizeCachingDirectory) getDelegate()).estimateSizeInBytes();
         }
 
