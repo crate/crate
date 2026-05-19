@@ -10,19 +10,19 @@ select round(null), ceil(null), floor(null), abs(null), sqrt(null), log(null), l
 NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL
 
 
-query R rowsort select-where-round
+query R rows select-where-round
 select d from t where round(d) < 2
 ----
 1.3
 
 
-query R rowsort select-where-ceil
+query R rows select-where-ceil
 select d from t where ceil(d) < 3 ORDER BY 1
 ----
 1.3
 1.6
 
-query I rowsort select-where-floor
+query I rows select-where-floor
 select floor(d) from t where floor(d) = 2
 ----
 2
@@ -33,25 +33,190 @@ insert into t(d, i) values (-0.2, 10)
 statement ok
 refresh table t;
 
-query R rowsort select-where-abs
+query R rows select-where-abs
 select abs(d) from t where abs(d) = 0.2
 ----
 0.2
 
-query R rowsort select-where-ln
+query R rows select-where-ln
 select ln(i) from t where ln(i) = 2.302585092994046
 ----
 2.302585092994046
 
 
-query R rowsort select-where-log
+query R rows select-where-log
 select log(i, 100) from t where log(i, 100) = 0.5
 ----
 0.5
 
 
-query II rows select-where-log-2
+query II rows select-round-agg-where-abs
 select round(d), count(*) from t where abs(d) > 1 group by 1 order by 1
 ----
 1| 1
 2| 2
+
+statement ok
+drop table t
+
+
+statement ok
+create table t (d double, i integer, name string) clustered into 1 shards with (number_of_replicas=0)
+
+statement ok
+insert into t (d, name) values (1.3, 'Arthur'), (1.6, null), (2.2, 'Marvin')
+
+statement ok
+refresh table t;
+
+query RT rows select-orderby-rounf
+select d, name from t order by round(d) * 2 + 3
+----
+1.3| Arthur
+1.6| NULL
+2.2| Marvin
+
+query RT rows select-orderby-ceil
+select d, name from t order by ceil(d), d
+----
+1.3| Arthur
+1.6| NULL
+2.2| Marvin
+
+query RT rows select-orderby-floor
+select d, name from t order by floor(d), d
+----
+1.3| Arthur
+1.6| NULL
+2.2| Marvin
+
+statement ok
+insert into t (d, i) values (-0.2, 10), (0.1, 5)
+
+statement ok
+refresh table t
+
+query RI rows select-orderby-abs
+select d, i from t order by abs(d)
+----
+0.1| 5
+-0.2| 10
+1.3| NULL
+1.6| NULL
+2.2| NULL
+
+query RI rows select-orderby-ln
+select i from t order by ln(i)
+----
+5
+10
+NULL
+NULL
+NULL
+
+query RI rows select-orderby-log
+select i from t order by log(i, 100)
+----
+5
+10
+NULL
+NULL
+NULL
+
+statement ok
+drop table t
+
+
+statement ok
+create table t (d double, i integer) clustered into 1 shards with (number_of_replicas=0)
+
+statement ok
+insert into t (d,i) values (1.3, 1), (1.6, 2), (2.2, 9)
+
+statement ok
+refresh table t;
+
+query I rows where-with-arithmetic-scalar-two-references
+select i from t where round(d)::integer = i order by i
+----
+1
+2
+
+statement ok
+drop table t
+
+
+statement ok
+create table t (x long, base long) clustered into 1 shards with (number_of_replicas=0)
+
+statement ok
+insert into t (x, base) values (144, 12), (65536, 2), (9, 3)
+
+statement ok
+refresh table t;
+
+query II rows where-arithmetic-scalar-two-reference-args
+select x, base, round(log(x, base)) from t where round(log(x, base)) = 2 order by x
+----
+  9|  3| 2
+144| 12| 2
+
+
+statement ok
+drop table t
+
+
+statement ok
+create table t (i integer, l long, d double) clustered into 3 shards with (number_of_replicas=0)
+
+statement ok
+insert into t (i, l, d) values (1, 2, 90.5), (-1, 4, 90.5), (193384, 31234594433, 99.0), (1, 2, 99.0), (-1, 4, 99.0)
+
+statement ok
+refresh table t
+
+query IR rows select-scalar-order-by
+select l, log(d,l) from t order by l, log(d,l) desc
+----
+2| 6.6293566200796095
+2| 6.499845887083206
+4| 3.3146783100398047
+4| 3.249922943541603
+31234594433| 0.19015764044502392
+
+statement ok
+drop table t
+
+
+statement ok
+create table t (d long) clustered into 1 shards with (number_of_replicas=0)
+
+statement ok
+insert into t (d) values (-7), (null), (5), (null)
+
+statement ok
+refresh table t;
+
+query RR rows order-by-arithmetic-with-nulls
+select (d - 10) from t order by (d - 10) nulls first limit 2
+----
+NULL
+NULL
+
+statement ok
+drop table t
+
+
+statement ok
+create table t (i int, bi bigint, d double, f float) clustered into 1 shards with (number_of_replicas=0)
+
+statement ok
+insert into t (i, bi, d, f) values (1, 1, 1, 1)
+
+statement ok
+refresh table t;
+
+query RRRRRR rows floating-point-arithmetic
+select i / 3.0, bi / 3.0::float, d * 5::int, f * 5, 1::int / 3.0, 1 / 3.0 from t
+----
+0.3333333333333333| 0.33333334| 5.0| 5.0| 0.3333333333333333| 0.3333333333333333

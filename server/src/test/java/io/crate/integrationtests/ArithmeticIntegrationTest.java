@@ -49,66 +49,7 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testMathFunctionNullArguments() throws Exception {
-        testMathFunction("round(null)");
-        testMathFunction("ceil(null)");
-        testMathFunction("floor(null)");
-        testMathFunction("abs(null)");
-        testMathFunction("sqrt(null)");
-        testMathFunction("log(null)");
-        testMathFunction("log(null, 1)");
-        testMathFunction("log(1, null)");
-        testMathFunction("log(null, null)");
-        testMathFunction("ln(null)");
-    }
-
-    public void testMathFunction(String function) {
-        execute("select " + function + " from sys.cluster");
-        assertThat(response.rows()[0][0]).isNull();
-    }
-
-    @Test
-    public void testSelectWhereArithmeticScalar() throws Exception {
-        execute("create table t (d double, i integer) clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into t (d) values (?), (?), (?)", new Object[]{1.3d, 1.6d, 2.2d});
-        execute("refresh table t");
-
-        execute("select * from t where round(d) < 2");
-        assertThat(response).hasRowCount(1L);
-
-        execute("select * from t where ceil(d) < 3");
-        assertThat(response).hasRowCount(2L);
-
-        execute("select floor(d) from t where floor(d) = 2");
-        assertThat(response).hasRowCount(1L);
-        assertThat((Long) response.rows()[0][0]).isEqualTo(2L);
-
-        execute("insert into t (d, i) values (?, ?)", new Object[]{-0.2, 10});
-        execute("refresh table t");
-
-        execute("select abs(d) from t where abs(d) = 0.2");
-        assertThat(response).hasRowCount(1L);
-        assertThat((Double) response.rows()[0][0]).isEqualTo(0.2);
-
-        execute("select ln(i) from t where ln(i) = 2.302585092994046");
-        assertThat(response).hasRowCount(1L);
-        assertThat((Double) response.rows()[0][0]).isEqualTo(2.302585092994046);
-
-        execute("select log(i, 100) from t where log(i, 100) = 0.5");
-        assertThat(response).hasRowCount(1L);
-        assertThat((Double) response.rows()[0][0]).isEqualTo(0.5);
-
-        execute("select round(d), count(*) from t where abs(d) > 1 group by 1 order by 1");
-        assertThat(response).hasRowCount(2L);
-        assertThat((Long) response.rows()[0][0]).isEqualTo(1L);
-        assertThat((Long) response.rows()[0][1]).isEqualTo(1L);
-        assertThat((Long) response.rows()[1][0]).isEqualTo(2L);
-        assertThat((Long) response.rows()[1][1]).isEqualTo(2L);
-    }
-
-    @Test
-    public void testSelectOrderByScalar() throws Exception {
+    public void testSelectOrderBySubstr() throws Exception {
         execute("create table t (d double, i integer, name string) clustered into 1 shards with (number_of_replicas=0)");
         execute("insert into t (d, name) values (?, ?)", new Object[][]{
             new Object[]{1.3d, "Arthur"},
@@ -116,10 +57,6 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
             new Object[]{2.2d, "Marvin"}
         });
         execute("refresh table t");
-
-        execute("select * from t order by round(d) * 2 + 3");
-        assertThat(response).hasRowCount(3L);
-        assertThat(response.rows()[0][0]).isEqualTo(1.3d);
 
         execute("select name from t order by substr(name, 1, 1) nulls first");
         assertThat(response).hasRowCount(3L);
@@ -131,82 +68,6 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
             "Arthur",
             "Marvin",
             "NULL");
-
-        execute("select * from t order by ceil(d), d");
-        assertThat(response).hasRowCount(3L);
-        assertThat(response.rows()[0][0]).isEqualTo(1.3d);
-
-        execute("select * from t order by floor(d), d");
-        assertThat(response).hasRowCount(3L);
-        assertThat(response.rows()[0][0]).isEqualTo(1.3d);
-
-        execute("insert into t (d, i) values (?, ?), (?, ?)", new Object[]{-0.2, 10, 0.1, 5});
-        execute("refresh table t");
-
-        execute("select * from t order by abs(d)");
-        assertThat(response).hasRowCount(5L);
-        assertThat(response.rows()[0][0]).isEqualTo(0.1);
-
-        execute("select i from t order by ln(i)");
-        assertThat(response).hasRowCount(5L);
-        assertThat(response.rows()[0][0]).isEqualTo(5);
-
-        execute("select i from t order by log(i, 100)");
-        assertThat(response).hasRowCount(5L);
-        assertThat(response.rows()[0][0]).isEqualTo(5);
-    }
-
-    @Test
-    public void testSelectWhereArithmeticScalarTwoReferences() throws Exception {
-        execute("create table t (d double, i integer) clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into t (d, i) values (?, ?), (?, ?), (?, ?)", new Object[]{
-            1.3d, 1,
-            1.6d, 2,
-            2.2d, 9});
-        execute("refresh table t");
-
-        execute("select i from t where round(d)::integer = i order by i");
-        assertThat(response).hasRowCount(2L);
-        assertThat((Integer) response.rows()[0][0]).isEqualTo(1);
-        assertThat((Integer) response.rows()[1][0]).isEqualTo(2);
-    }
-
-    @Test
-    public void testSelectWhereArithmeticScalarTwoReferenceArgs() throws Exception {
-        execute("create table t (x long, base long) clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into t (x, base) values (?, ?), (?, ?), (?, ?)", new Object[]{
-            144L, 12L, // 2
-            65536L, 2L, // 16
-            9L, 3L // 2
-        });
-        execute("refresh table t");
-
-        execute("select x, base, round(log(x, base)) from t where round(log(x, base)) = 2 order by x");
-        assertThat(response).hasRowCount(2L);
-        assertThat((Long) response.rows()[0][0]).isEqualTo(9L);
-        assertThat((Long) response.rows()[0][1]).isEqualTo(3L);
-        assertThat((Long) response.rows()[0][2]).isEqualTo(2L);
-        assertThat((Long) response.rows()[1][0]).isEqualTo(144L);
-        assertThat((Long) response.rows()[1][1]).isEqualTo(12L);
-        assertThat((Long) response.rows()[1][2]).isEqualTo(2L);
-    }
-
-    @Test
-    public void testScalarInOrderByAndSelect() throws Exception {
-        execute("create table t (i integer, l long, d double) clustered into 3 shards with (number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into t (i, l, d) values (1, 2, 90.5), (-1, 4, 90.5), (193384, 31234594433, 99.0)");
-        execute("insert into t (i, l, d) values (1, 2, 99.0), (-1, 4, 99.0)");
-        execute("refresh table t");
-        execute("select l, log(d,l) from t order by l, log(d,l) desc");
-        assertThat(response).hasRows(
-            "2| 6.6293566200796095",
-            "2| 6.499845887083206",
-            "4| 3.3146783100398047",
-            "4| 3.249922943541603",
-            "31234594433| 0.19015764044502392");
     }
 
     @Test
@@ -438,41 +299,5 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
             String doubleCall = String.format(Locale.ENGLISH, functionCall, "d");
             execute(String.format(Locale.ENGLISH, "select %s, d from t where %s < 2", doubleCall, doubleCall));
         }
-    }
-
-    @Test
-    public void testSelectOrderByScalarOnNullValue() throws Exception {
-        execute("create table t (d long) clustered into 1 shards with (number_of_replicas=0)");
-        ensureGreen();
-        execute("insert into t (d) values (?)", new Object[][]{
-            new Object[]{-7L},
-            new Object[]{null},
-            new Object[]{5L},
-            new Object[]{null}
-
-        });
-        execute("refresh table t");
-        execute("select (d - 10) from t order by (d - 10) nulls first limit 2");
-        assertThat(response.rows()[0][0]).isNull();
-    }
-
-    @Test
-    public void test_floating_point_arithmetic() {
-        execute("create table t1 (i int, bi bigint, d double, f float)");
-        execute("insert into t1 (i, bi, d, f) values (1, 1, 1, 1)");
-        execute("refresh table t1");
-        execute(
-            """
-            select
-                i / 3.0,
-                bi / 3.0::float,
-                d * 5::int,
-                f * 5,
-                1::int / 3.0,
-                1 / 3.0
-            from t1
-            """);
-        assertThat(response).hasRows(
-            "0.3333333333333333| 0.33333334| 5.0| 5.0| 0.3333333333333333| 0.3333333333333333");
     }
 }
