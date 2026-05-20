@@ -200,10 +200,12 @@ public class IntervalFunctionTest extends ScalarTestCase {
     public void test_date_interval_null() {
         assertEvaluateNull("null + '86400000'::date");
         assertEvaluateNull("'86400000'::date + null");
+        assertEvaluateNull("null - '86400000'::date");
+        assertEvaluateNull("'86400000'::date - null");
     }
 
     @Test
-    public void test_unallowed_interval_date_subtraction() {
+    public void test_disallowed_interval_date_subtraction() {
         assertThatThrownBy(
             () -> assertEvaluate("interval '1 second' - '86401000'::date", 86400000L))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
