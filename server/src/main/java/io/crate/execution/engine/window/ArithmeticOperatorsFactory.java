@@ -26,6 +26,7 @@ import io.crate.expression.scalar.arithmetic.IntervalTimestampArithmeticScalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
+import io.crate.types.DateType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
@@ -52,6 +53,7 @@ class ArithmeticOperatorsFactory {
     static BiFunction getAddFunction(DataType<?> fstArgDataType, DataType<?> sndArgDataType) {
         switch (fstArgDataType.id()) {
             case LongType.ID:
+            case DateType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {
@@ -83,6 +85,7 @@ class ArithmeticOperatorsFactory {
     static BiFunction getSubtractFunction(DataType<?> fstArgDataType, DataType<?> sndArgDataType) {
         switch (fstArgDataType.id()) {
             case LongType.ID:
+            case DateType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {

@@ -79,6 +79,53 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
                     )
             );
         }
+
+        // DATE +/- INTERVAL (return TIMESTAMP per PostgreSQL spec: date + interval → timestamp)
+        module.add(
+            Signature.builder(ArithmeticFunctions.Names.ADD, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.DATE.getTypeSignature())
+                .returnType(DataTypes.TIMESTAMP.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .forbidCoercion()
+                .build(),
+            (signature, boundSignature) ->
+                new IntervalTimestampArithmeticScalar(
+                    "+",
+                    signature,
+                    boundSignature
+                )
+        );
+        module.add(
+            Signature.builder(ArithmeticFunctions.Names.ADD, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.DATE.getTypeSignature(),
+                    DataTypes.INTERVAL.getTypeSignature())
+                .returnType(DataTypes.TIMESTAMP.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .forbidCoercion()
+                .build(),
+            (signature, boundSignature) ->
+                new IntervalTimestampArithmeticScalar(
+                    "+",
+                    signature,
+                    boundSignature
+                )
+        );
+        module.add(
+            Signature.builder(ArithmeticFunctions.Names.SUBTRACT, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.DATE.getTypeSignature(),
+                    DataTypes.INTERVAL.getTypeSignature())
+                .returnType(DataTypes.TIMESTAMP.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .forbidCoercion()
+                .build(),
+            (signature, boundSignature) ->
+                new IntervalTimestampArithmeticScalar(
+                    "-",
+                    signature,
+                    boundSignature
+                )
+        );
     }
 
     public static Signature signatureFor(DataType<?> timestampType, String name) {
