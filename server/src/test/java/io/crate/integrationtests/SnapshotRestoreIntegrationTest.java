@@ -68,13 +68,23 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.common.unit.TimeValue;
+import io.crate.data.Input;
 import io.crate.exceptions.PartitionAlreadyExistsException;
+import io.crate.expression.udf.UDFLanguage;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.BoundSignature;
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.role.Permission;
 import io.crate.role.Policy;
@@ -99,6 +109,44 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
     public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
 
     private File defaultRepositoryLocation;
+
+    private static class DefinitionLang implements UDFLanguage {
+
+        @Override
+        public Scalar<?, ?> createFunctionImplementation(UserDefinedFunctionMetadata metadata,
+                                                         Signature signature,
+                                                         BoundSignature boundSignature) {
+            return new DefinitionFunction(metadata, signature, boundSignature);
+        }
+
+        @Override
+        public String validate(UserDefinedFunctionMetadata metadata) {
+            return null;
+        }
+
+        @Override
+        public String name() {
+            return "definition_lang";
+        }
+    }
+
+    private static class DefinitionFunction extends Scalar<String, Object> {
+
+        private final UserDefinedFunctionMetadata metadata;
+
+        private DefinitionFunction(UserDefinedFunctionMetadata metadata,
+                                   Signature signature,
+                                   BoundSignature boundSignature) {
+            super(signature, boundSignature);
+            this.metadata = metadata;
+        }
+
+        @Override
+        @SafeVarargs
+        public final String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
+            return metadata.definition();
+        }
+    }
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
@@ -128,9 +176,11 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         );
 
         var dummyLang = new UserDefinedFunctionsIntegrationTest.DummyLang();
+        var definitionLang = new DefinitionLang();
         Iterable<UserDefinedFunctionService> udfServices = cluster().getInstances(UserDefinedFunctionService.class);
         for (UserDefinedFunctionService udfService : udfServices) {
             udfService.registerLanguage(dummyLang);
+            udfService.registerLanguage(definitionLang);
         }
     }
 
@@ -732,6 +782,54 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'my_table'");
         assertThat(response.rowCount()).isEqualTo(0L);
 
+    }
+
+    @Test
+    public void test_restore_table_with_udf_dependency_on_to_empty_udf_registry() throws Exception {
+        execute("CREATE FUNCTION foo(integer) RETURNS STRING LANGUAGE definition_lang AS 'foo'");
+        execute("CREATE TABLE t (a integer, b string GENERATED ALWAYS AS foo(a)) " +
+                "CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
+        execute("INSERT INTO t (a) VALUES (1)");
+        execute("REFRESH TABLE t");
+
+        execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion = true)");
+        execute("DROP TABLE t");
+        execute("DROP FUNCTION foo(integer)");
+
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE t WITH (wait_for_completion = true)");
+        waitNoPendingTasksOnAll();
+
+        assertThatThrownBy(() -> execute("SELECT foo(1)"))
+            .hasMessageContaining("Unknown function: foo");
+        assertThatThrownBy(() -> execute("INSERT INTO t (a) VALUES (2)"))
+            .hasMessageContaining("name='foo'}(integer) is not a scalar function");
+    }
+
+    @Repeat(iterations = 30)
+    @Test
+    public void test_restore_table_with_udf_dependency_on_to_udf_registry_containing_another_udf_with_same_signature() throws Exception {
+        execute("CREATE FUNCTION foo() RETURNS STRING LANGUAGE definition_lang AS 'foo'");
+        execute("CREATE TABLE t (a integer, b string GENERATED ALWAYS AS foo()) " +
+                "CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
+        execute("INSERT INTO t (a) VALUES (1)");
+        execute("REFRESH TABLE t");
+
+        execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion = true)");
+        execute("DROP TABLE t");
+        execute("DROP FUNCTION foo()");
+        execute("CREATE FUNCTION foo() RETURNS STRING LANGUAGE definition_lang AS 'bar'");
+
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE t WITH (wait_for_completion = true)");
+        waitNoPendingTasksOnAll();
+
+        assertThat(execute("SELECT foo()")).hasRows("bar");
+
+        execute("INSERT INTO t (a) VALUES (2)");
+        execute("REFRESH TABLE t");
+        assertThat(execute("SELECT a, b FROM t ORDER BY a")).hasRows(
+            "1| foo",
+            "2| bar"
+        );
     }
 
     /**

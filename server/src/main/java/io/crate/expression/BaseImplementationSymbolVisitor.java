@@ -54,7 +54,6 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
     public Input<?> visitFunction(Function function, C context) {
         Signature signature = function.signature();
         FunctionImplementation functionImplementation = nodeCtx.functions().getQualified(function);
-        assert functionImplementation != null : "Function implementation not found using full qualified lookup";
 
         if (functionImplementation instanceof Scalar<?, ?>) {
             List<Symbol> arguments = function.arguments();
