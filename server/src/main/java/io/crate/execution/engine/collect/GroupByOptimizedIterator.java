@@ -451,7 +451,7 @@ final class GroupByOptimizedIterator {
         if (!(shardProjection instanceof GroupProjection groupProjection)) {
             return null;
         }
-        if (groupProjection.keys().size() != 1 || groupProjection.keys().get(0).valueType() != DataTypes.STRING) {
+        if (groupProjection.keys().size() != 1 || groupProjection.keys().get(0).valueType().id() != DataTypes.STRING.id()) {
             return null;
         }
         return groupProjection;
