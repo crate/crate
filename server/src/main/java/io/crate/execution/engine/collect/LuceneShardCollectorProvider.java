@@ -171,7 +171,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             partitionName.values(),
             luceneQueryBuilder,
             bigArrays,
-            new InputFactory(nodeCtx),
+            nodeCtx,
             docInputFactory,
             normalizedPhase,
             collectTask
