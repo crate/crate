@@ -43,6 +43,7 @@
                     <descriptors>
                         <descriptor>src/assembly/src.xml</descriptor>
                     </descriptors>
+                    <tarLongFileMode>posix</tarLongFileMode>
                 </configuration>
                 <executions>
                     <execution>
