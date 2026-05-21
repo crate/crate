@@ -571,19 +571,10 @@ public class Session implements AutoCloseable {
              *          preparedStatement.execute(args)
              *      conn.commit()
              */
-            deferredExecutionsByStmt.compute(
-                portal.preparedStmt().parsedStatement(), (_, oldValue) -> {
-                    DeferredExecution deferredExecution = new DeferredExecution(portal, maxRows, resultReceiver);
-                    if (oldValue == null) {
-                        ArrayList<DeferredExecution> deferredExecutions = new ArrayList<>();
-                        deferredExecutions.add(deferredExecution);
-                        return deferredExecutions;
-                    } else {
-                        oldValue.add(deferredExecution);
-                        return oldValue;
-                    }
-                }
-            );
+            deferredExecutionsByStmt.computeIfAbsent(
+                portal.preparedStmt().parsedStatement(),
+                _ -> new ArrayList<>()
+            ).add(new DeferredExecution(portal, maxRows, resultReceiver));
             return resultReceiver.completionFuture();
         } else {
             if (analyzedStmt instanceof AnalyzedClose close) {
