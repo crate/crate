@@ -117,7 +117,8 @@ public final class IOUtils {
     }
 
     /**
-     * Closes all given {@link Closeable}s, suppressing all thrown exceptions. Some of the {@link Closeable}s may be null, they are ignored.
+     * Closes all given {@link Closeable}s, suppressing all {@link IOException}s and {@link RuntimeException}s.
+     * Some of the {@link Closeable}s may be null, they are ignored.
      *
      * @param objects objects to close
      */
@@ -126,7 +127,7 @@ public final class IOUtils {
     }
 
     /**
-     * Closes all given {@link Closeable}s, suppressing all thrown exceptions.
+     * Closes all given {@link Closeable}s, suppressing all {@link IOException}s and {@link RuntimeException}s.
      *
      * @param objects objects to close
      *
