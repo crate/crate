@@ -287,6 +287,12 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void testAlterRepository() throws Exception {
+        analyze("alter repository my_repo set (compress = true)");
+        assertAskedForCluster(Permission.DDL);
+    }
+
+    @Test
     public void testCreateSnapshot() throws Exception {
         analyze("create snapshot my_repo.my_snapshot table users");
         assertAskedForCluster(Permission.DDL);

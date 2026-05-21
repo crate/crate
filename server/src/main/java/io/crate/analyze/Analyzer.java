@@ -52,6 +52,7 @@ import io.crate.session.Cursor;
 import io.crate.session.Cursors;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterPublication;
+import io.crate.sql.tree.AlterRepository;
 import io.crate.sql.tree.AlterRoleReset;
 import io.crate.sql.tree.AlterRoleSet;
 import io.crate.sql.tree.AlterServer;
@@ -166,6 +167,7 @@ public class Analyzer {
     private final DeleteAnalyzer deleteAnalyzer;
     private final DropRepositoryAnalyzer dropRepositoryAnalyzer;
     private final CreateRepositoryAnalyzer createRepositoryAnalyzer;
+    private final AlterRepositoryAnalyzer alterRepositoryAnalyzer;
     private final DropSnapshotAnalyzer dropSnapshotAnalyzer;
     private final CreateSnapshotAnalyzer createSnapshotAnalyzer;
     private final RestoreSnapshotAnalyzer restoreSnapshotAnalyzer;
@@ -220,6 +222,7 @@ public class Analyzer {
         this.createTableLikeAnalyzer = new CreateTableLikeAnalyzer(schemas, createTableStatementAnalyzer);
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas, nodeCtx);
         this.createRepositoryAnalyzer = new CreateRepositoryAnalyzer(repositoryService, nodeCtx);
+        this.alterRepositoryAnalyzer = new AlterRepositoryAnalyzer(nodeCtx);
         this.dropRepositoryAnalyzer = new DropRepositoryAnalyzer(repositoryService);
         this.createSnapshotAnalyzer = new CreateSnapshotAnalyzer(repositoryService, nodeCtx);
         this.dropSnapshotAnalyzer = new DropSnapshotAnalyzer(repositoryService);
@@ -437,6 +440,14 @@ public class Analyzer {
         public AnalyzedStatement visitCreateRepository(CreateRepository<?> node, Analysis context) {
             return createRepositoryAnalyzer.analyze(
                 (CreateRepository<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterRepository(AlterRepository<?> node, Analysis context) {
+            return alterRepositoryAnalyzer.analyze(
+                (AlterRepository<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext());
         }
