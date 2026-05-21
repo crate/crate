@@ -237,6 +237,14 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
                 return null;
             }
         }
+
+        @Override
+        public OverflowAwareMutableLong reduce(RamAccounting ramAccounting, OverflowAwareMutableLong state1, OverflowAwareMutableLong state2) {
+            if (state1 == null) {
+                return state2;
+            }
+            return state1.merge(state2);
+        }
     }
 
     static class SumDouble implements DocValueAggregator<BigDecimalValueWrapper> {
@@ -284,6 +292,17 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
                 return null;
             }
         }
+
+        @Override
+        public BigDecimalValueWrapper reduce(RamAccounting ramAccounting, BigDecimalValueWrapper state1, BigDecimalValueWrapper state2) {
+            if (state1.hasValue()) {
+                if (state2.hasValue()) {
+                    state1.setValue(state1.value().add(state2.value()));
+                }
+                return state1;
+            }
+            return state2;
+        }
     }
 
     static class SumFloat implements DocValueAggregator<BigDecimalValueWrapper> {
@@ -330,6 +349,17 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
             } else {
                 return null;
             }
+        }
+
+        @Override
+        public BigDecimalValueWrapper reduce(RamAccounting ramAccounting, BigDecimalValueWrapper state1, BigDecimalValueWrapper state2) {
+            if (state1.hasValue()) {
+                if (state2.hasValue()) {
+                    state1.setValue(state1.value().add(state2.value()));
+                }
+                return state1;
+            }
+            return state2;
         }
     }
 }

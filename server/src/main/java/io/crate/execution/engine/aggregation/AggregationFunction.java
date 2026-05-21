@@ -28,6 +28,7 @@ import java.util.List;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.TriFunction;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.jspecify.annotations.Nullable;
 
@@ -162,7 +163,8 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
 
     protected DocValueAggregator<?> getNumericDocValueAggregator(
         List<Reference> aggregationReferences,
-        TriConsumer<RamAccounting, TPartial, BigDecimal> applyToState) {
+        TriConsumer<RamAccounting, TPartial, BigDecimal> applyToState,
+        TriFunction<RamAccounting, TPartial, TPartial, TPartial> reducer) {
 
         Reference reference = getAggReference(aggregationReferences);
         if (reference == null) {
@@ -189,7 +191,8 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
                 (ramAccounting, values, state) -> {
                     long docValue = values.nextValue();
                     applyToState.accept(ramAccounting, state, BigDecimal.valueOf(docValue, scale));
-                }
+                },
+                reducer
             );
         } else {
             return new BinaryDocValueAggregator<>(
@@ -200,7 +203,8 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
                     BytesRef bytesRef = values.lookupOrd(values.nextOrd());
                     BigInteger bigInteger = NumericUtils.sortableBytesToBigInt(bytesRef.bytes, bytesRef.offset, bytesRef.length);
                     applyToState.accept(ramAccounting, state, new BigDecimal(bigInteger, scale));
-                }
+                },
+                reducer
             );
         }
     }

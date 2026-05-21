@@ -307,7 +307,7 @@ final class DocValuesGroupByOptimizedIterator {
         }
 
         @SuppressWarnings("rawtypes")
-        private static <K> Iterable<Row> getRows(Map<K, Object[]> groupedStates,
+        public static <K> Iterable<Row> getRows(Map<K, Object[]> groupedStates,
                                                  int numberOfKeys,
                                                  BiConsumer<K, Object[]> applyKeyToCells,
                                                  List<DocValueAggregator> aggregators,

@@ -33,6 +33,7 @@ import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.TriFunction;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.hash.MurmurHash3;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -194,6 +195,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         if (reference == null) {
             return null;
         }
+        TriFunction<RamAccounting, HllState, HllState, HllState> reducer = this::reduce;
         DataType<?> valueType = reference.valueType();
         switch (valueType.id()) {
             case ByteType.ID:
@@ -211,7 +213,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     (_, values, state) -> {
                         var hash = BitMixer.mix64(values.nextValue());
                         state.addHash(hash);
-                    }
+                    },
+                    reducer
                 );
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
@@ -229,7 +232,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                         // => mix64(sortableDoubleBits(values.nextValue()))
                         var hash = BitMixer.mix64(NumericUtils.sortableDoubleBits(values.nextValue()));
                         state.addHash(hash);
-                    }
+                    },
+                    reducer
                 );
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
@@ -246,7 +250,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                         // => mix64(doubleToLongBits(NumericUtils.sortableIntToFloat((int)values.nextValue()))) - no need to double cast, auto widening
                         var hash = BitMixer.mix64(doubleToLongBits(NumericUtils.sortableIntToFloat((int) values.nextValue())));
                         state.addHash(hash);
-                    }
+                    },
+                    reducer
                 );
             case StringType.ID:
             case CharacterType.ID:
@@ -258,6 +263,11 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                             var hash = MurmurHash3.hash64(ref.bytes, ref.offset, ref.length);
                             state.addHash(hash);
                         }
+                    }
+
+                    @Override
+                    public HllState reduce(RamAccounting ramAccounting, HllState state1, HllState state2) {
+                        return reducer.apply(ramAccounting, state1, state2);
                     }
                 };
             case IpType.ID:
@@ -271,6 +281,11 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                             var hash = MurmurHash3.hash64(bytes, 0, bytes.length);
                             state.addHash(hash);
                         }
+                    }
+
+                    @Override
+                    public HllState reduce(RamAccounting ramAccounting, HllState state1, HllState state2) {
+                        return reducer.apply(ramAccounting, state1, state2);
                     }
                 };
             default:

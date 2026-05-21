@@ -50,4 +50,6 @@ public interface DocValueAggregator<T> {
     // → never return final value, but always partial result
     @Nullable
     Object partialResult(RamAccounting ramAccounting, T state);
+
+    T reduce(RamAccounting ramAccounting, T state1, T state2);
 }

@@ -327,7 +327,8 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
                         ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
                         return new GeometricMeanState();
                     },
-                    (_, values, state) -> state.addValue(values.nextValue())
+                    (_, values, state) -> state.addValue(values.nextValue()),
+                    this::reduce
                 );
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
@@ -339,7 +340,8 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
                     (_, values, state) -> {
                         var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                         state.addValue(value);
-                    }
+                    },
+                    this::reduce
                 );
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
@@ -351,7 +353,8 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
                     (_, values, state) -> {
                         var value = NumericUtils.sortableLongToDouble((values.nextValue()));
                         state.addValue(value);
-                    }
+                    },
+                    this::reduce
                 );
             default:
                 return null;

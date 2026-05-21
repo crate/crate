@@ -128,6 +128,14 @@ public abstract class MaximumAggregation extends AggregationFunction<Object, Obj
                 return null;
             }
         }
+
+        @Override
+        public MutableLong reduce(RamAccounting ramAccounting, MutableLong state1, MutableLong state2) {
+            if (state2.value() >= state1.value()) {
+                return state2;
+            }
+            return state1;
+        }
     }
 
 
@@ -169,6 +177,14 @@ public abstract class MaximumAggregation extends AggregationFunction<Object, Obj
                 return null;
             }
         }
+
+        @Override
+        public MutableDouble reduce(RamAccounting ramAccounting, MutableDouble state1, MutableDouble state2) {
+            if (state2.value() >= state1.value()) {
+                return state2;
+            }
+            return state1;
+        }
     }
 
 
@@ -209,6 +225,14 @@ public abstract class MaximumAggregation extends AggregationFunction<Object, Obj
             } else {
                 return null;
             }
+        }
+
+        @Override
+        public MutableFloat reduce(RamAccounting ramAccounting, MutableFloat state1, MutableFloat state2) {
+            if (state2.value() >= state1.value()) {
+                return state2;
+            }
+            return state1;
         }
     }
 
