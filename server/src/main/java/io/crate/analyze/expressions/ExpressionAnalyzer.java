@@ -242,12 +242,12 @@ public class ExpressionAnalyzer {
 
     /**
      * Converts an expression into a symbol.
-     *
+     * <p>
      * Expressions like QualifiedName that reference a column are resolved using the fieldResolver that were passed
      * to the constructor.
-     *
+     * <p>
      * Some information (like resolved function symbols) are written onto the given expressionAnalysisContext.
-     *
+     * <p>
      * Functions with constants will be normalized.
      */
     public Symbol convert(Expression expression, ExpressionAnalysisContext expressionAnalysisContext) {
