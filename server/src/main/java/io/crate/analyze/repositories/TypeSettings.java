@@ -21,16 +21,15 @@
 
 package io.crate.analyze.repositories;
 
-import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
 
 public class TypeSettings {
 
@@ -65,13 +64,5 @@ public class TypeSettings {
 
     public Map<String, Setting<?>> all() {
         return all;
-    }
-
-
-    /**
-     * Return possible dynamic GenericProperties which will not be validated.
-     */
-    public GenericProperties<?> dynamicProperties(GenericProperties<?> genericProperties) {
-        return GenericProperties.empty();
     }
 }

@@ -49,21 +49,21 @@ public class RepositoryParamValidatorTest extends ESTestCase {
 
     @Test
     public void test_validate_invalid_type() {
-        assertThatThrownBy(() -> validator.validate("invalid_type", GenericProperties.empty(), Settings.EMPTY))
+        assertThatThrownBy(() -> validator.validate("invalid_type", Settings.EMPTY))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid repository type \"invalid_type\"");
     }
 
     @Test
     public void test_validate_required_param_missing() {
-        assertThatThrownBy(() -> validator.validate("fs", GenericProperties.empty(), Settings.EMPTY))
+        assertThatThrownBy(() -> validator.validate("fs", Settings.EMPTY))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("The following required parameters are missing to create a repository of type \"fs\": [location]");
     }
 
     @Test
     public void test_validate_unsupported_setting() {
-        assertThatThrownBy(() -> validator.validate("fs", GenericProperties.empty(), Settings.builder().put("foo", "bar").build()))
+        assertThatThrownBy(() -> validator.validate("fs", Settings.builder().put("foo", "bar").build()))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Setting 'foo' is not supported");
     }

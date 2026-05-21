@@ -93,7 +93,7 @@ public class CreateRepositoryPlan implements Plan {
         var genericProperties = createRepository.properties().map(eval);
         var settings = Settings.builder().put(genericProperties).build();
 
-        repositoryParamValidator.validate(createRepository.type(), createRepository.properties(), settings);
+        repositoryParamValidator.validate(createRepository.type(), settings);
 
         PutRepositoryRequest request = new PutRepositoryRequest(createRepository.name());
         request.type(createRepository.type());
