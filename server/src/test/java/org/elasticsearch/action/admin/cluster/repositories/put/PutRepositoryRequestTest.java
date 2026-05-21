@@ -33,9 +33,11 @@ public class PutRepositoryRequestTest extends ESTestCase {
 
     @Test
     public void test_streaming() throws Exception {
-        PutRepositoryRequest request = new PutRepositoryRequest("dummy_repo");
-        request.type("dummy_type");
-        request.settings(Settings.builder().put("foo", "bar"));
+        PutRepositoryRequest request = new PutRepositoryRequest(
+            "dummy_repo",
+            "dummy_type",
+            Settings.builder().put("foo", "bar").build()
+        );
 
 
         BytesStreamOutput out = new BytesStreamOutput();
