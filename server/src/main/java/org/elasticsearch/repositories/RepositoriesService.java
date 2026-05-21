@@ -108,7 +108,7 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
      * @param request  register repository request
      * @return
      */
-    public CompletableFuture<ClusterStateUpdateResponse> registerRepository(final PutRepositoryRequest request) {
+    public CompletableFuture<ClusterStateUpdateResponse> createRepository(final PutRepositoryRequest request) {
         assert lifecycle.started() : "Trying to register new repository but service is in state [" + lifecycle.state() + "]";
 
         final RepositoryMetadata newRepositoryMetadata = new RepositoryMetadata(request.name(), request.type(), request.settings());
@@ -508,35 +508,6 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
 
         repository = internalRepositories.get(repositoryName);
         return repository;
-    }
-
-    /**
-     * Creates a new repository and adds it to the list of registered repositories.
-     * <p>
-     * If a repository with the same name but different types or settings already exists, it will be closed and
-     * replaced with the new repository. If a repository with the same name exists, but it has the same type and settings
-     * the new repository is ignored.
-     *
-     * @param repositoryMetadata new repository metadata
-     * @return {@code true} if new repository was added or {@code false} if it was ignored
-     */
-    private boolean registerRepository(RepositoryMetadata repositoryMetadata) {
-        Repository previous = repositories.get(repositoryMetadata.name());
-        if (previous != null) {
-            RepositoryMetadata previousMetadata = previous.getMetadata();
-            if (previousMetadata.equals(repositoryMetadata)) {
-                // Previous version is the same as this one - ignore it
-                return false;
-            }
-        }
-        Repository newRepo = createRepository(repositoryMetadata);
-        if (previous != null) {
-            closeRepository(previous);
-        }
-        Map<String, Repository> newRepositories = new HashMap<>(repositories);
-        newRepositories.put(repositoryMetadata.name(), newRepo);
-        repositories = newRepositories;
-        return true;
     }
 
     public void registerInternalRepository(String name, String type) {

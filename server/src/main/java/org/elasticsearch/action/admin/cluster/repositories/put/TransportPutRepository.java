@@ -80,7 +80,7 @@ public class TransportPutRepository extends TransportMasterNodeAction<PutReposit
     protected void masterOperation(final PutRepositoryRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) {
-        repositoriesService.registerRepository(request)
+        repositoriesService.createRepository(request)
             .thenApply(resp -> new AcknowledgedResponse(resp.isAcknowledged()))
             .whenComplete(listener);
     }
