@@ -42,7 +42,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 
-
 public class CreateRepositoryPlan implements Plan {
 
     private final AnalyzedCreateRepository createRepository;
@@ -95,10 +94,10 @@ public class CreateRepositoryPlan implements Plan {
 
         repositoryParamValidator.validate(createRepository.type(), settings);
 
-        PutRepositoryRequest request = new PutRepositoryRequest(createRepository.name());
-        request.type(createRepository.type());
-        request.settings(settings);
-
-        return request;
+        return new PutRepositoryRequest(
+            createRepository.name(),
+            createRepository.type(),
+            settings
+        );
     }
 }

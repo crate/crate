@@ -23,165 +23,29 @@ import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 
 import java.io.IOException;
-import java.util.Map;
 
-import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 /**
  * Register repository request.
  * <p>
- * Registers a repository with given name, type and settings. If the repository with the same name already
- * exists in the cluster, the new repository will replace the existing repository.
+ * Registers a repository with given name, type and settings. The request fails if a repository with the same name
+ * already exists in the cluster.
  */
 public class PutRepositoryRequest extends AcknowledgedRequest<PutRepositoryRequest> {
 
-    private String name;
+    private final String name;
+    private final String type;
+    private final Settings settings;
 
-    private String type;
-
-    private Settings settings = Settings.EMPTY;
-
-    public PutRepositoryRequest() {
-    }
-
-    /**
-     * Constructs a new put repository request with the provided name.
-     */
-    public PutRepositoryRequest(String name) {
+    public PutRepositoryRequest(String name, String type, Settings settings) {
         this.name = name;
-    }
-
-    /**
-     * Sets the name of the repository.
-     *
-     * @param name repository name
-     */
-    public PutRepositoryRequest name(String name) {
-        this.name = name;
-        return this;
-    }
-
-    /**
-     * The name of the repository.
-     *
-     * @return repository name
-     */
-    public String name() {
-        return this.name;
-    }
-
-    /**
-     * The type of the repository
-     * <ul>
-     * <li>"fs" - shared filesystem repository</li>
-     * </ul>
-     *
-     * @param type repository type
-     * @return this request
-     */
-    public PutRepositoryRequest type(String type) {
         this.type = type;
-        return this;
-    }
-
-    /**
-     * Returns repository type
-     *
-     * @return repository type
-     */
-    public String type() {
-        return this.type;
-    }
-
-    /**
-     * Sets the repository settings
-     *
-     * @param settings repository settings
-     * @return this request
-     */
-    public PutRepositoryRequest settings(Settings settings) {
         this.settings = settings;
-        return this;
-    }
-
-    /**
-     * Sets the repository settings
-     *
-     * @param settings repository settings
-     * @return this request
-     */
-    public PutRepositoryRequest settings(Settings.Builder settings) {
-        this.settings = settings.build();
-        return this;
-    }
-
-    /**
-     * Sets the repository settings.
-     *
-     * @param source repository settings in json or yaml format
-     * @param xContentType the content type of the source
-     * @return this request
-     */
-    public PutRepositoryRequest settings(String source, XContentType xContentType) {
-        this.settings = Settings.builder().loadFromSource(source, xContentType).build();
-        return this;
-    }
-
-    /**
-     * Sets the repository settings.
-     *
-     * @param source repository settings
-     * @return this request
-     */
-    public PutRepositoryRequest settings(Map<String, Object> source) {
-        try {
-            XContentBuilder builder = JsonXContent.builder();
-            builder.map(source);
-            settings(Strings.toString(builder), builder.contentType());
-        } catch (IOException e) {
-            throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
-        }
-        return this;
-    }
-
-    /**
-     * Returns repository settings
-     *
-     * @return repository settings
-     */
-    public Settings settings() {
-        return this.settings;
-    }
-
-    /**
-     * Parses repository definition.
-     *
-     * @param repositoryDefinition repository definition
-     */
-    public PutRepositoryRequest source(Map<String, Object> repositoryDefinition) {
-        for (Map.Entry<String, Object> entry : repositoryDefinition.entrySet()) {
-            String name = entry.getKey();
-            if (name.equals("type")) {
-                type(entry.getValue().toString());
-            } else if (name.equals("settings")) {
-                if (!(entry.getValue() instanceof Map)) {
-                    throw new IllegalArgumentException("Malformed settings section, should include an inner object");
-                }
-                @SuppressWarnings("unchecked")
-                Map<String, Object> sub = (Map<String, Object>) entry.getValue();
-                settings(sub);
-            }
-        }
-        return this;
     }
 
     public PutRepositoryRequest(StreamInput in) throws IOException {
@@ -203,5 +67,17 @@ public class PutRepositoryRequest extends AcknowledgedRequest<PutRepositoryReque
         if (out.getVersion().before(Version.V_6_4_0)) {
             out.writeBoolean(true);
         }
+    }
+
+    public String name() {
+        return this.name;
+    }
+
+    public String type() {
+        return this.type;
+    }
+
+    public Settings settings() {
+        return this.settings;
     }
 }

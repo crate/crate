@@ -58,12 +58,14 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
         String dataNode = cluster().startDataOnlyNode();
 
         logger.info("-->  creating repository");
-        var putRepositoryRequest = new PutRepositoryRequest("repo")
-            .type("mock")
-            .settings(Settings.builder()
+        var putRepositoryRequest = new PutRepositoryRequest(
+            "repo",
+            "mock",
+            Settings.builder()
                 .put("location", randomRepoPath())
                 .put("compress", randomBoolean())
                 .put("chunk_size", randomIntBetween(100, 1000), ByteSizeUnit.BYTES)
+                .build()
             );
         assertAcked(client().execute(TransportPutRepository.ACTION, putRepositoryRequest).get());
 

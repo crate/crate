@@ -129,8 +129,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
         ));
 
         RepositoryService repositoryService = new RepositoryService(clusterService, nodeClient);
-        PutRepositoryRequest request = new PutRepositoryRequest("repo1");
-        request.type("fs");
+        PutRepositoryRequest request = new PutRepositoryRequest("repo1", "fs", Settings.EMPTY);
         assertThatThrownBy(() -> repositoryService.execute(request).get(10, TimeUnit.SECONDS))
             .isExactlyInstanceOf(ExecutionException.class)
             .hasCauseExactlyInstanceOf(RepositoryException.class);
