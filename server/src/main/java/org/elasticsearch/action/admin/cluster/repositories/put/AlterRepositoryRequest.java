@@ -23,6 +23,7 @@ import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -66,5 +67,24 @@ public class AlterRepositoryRequest extends AcknowledgedRequest<AlterRepositoryR
 
     public Settings settings() {
         return this.settings;
+    }
+
+    @Override
+    public String toString() {
+        return "AlterRepositoryRequest{" +
+            "name=" + name + ";" +
+            "settings=" + settings.toString() +
+            '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof AlterRepositoryRequest that)) return false;
+        return Objects.equals(name, that.name) && Objects.equals(settings, that.settings);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, settings);
     }
 }

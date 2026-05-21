@@ -34,7 +34,6 @@ import org.elasticsearch.repositories.RepositoryMissingException;
 import io.crate.analyze.AnalyzedAlterRepository;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.repositories.RepositoryParamValidator;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -95,8 +94,7 @@ public class AlterRepositoryPlan implements Plan {
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 
-    @VisibleForTesting
-    public static AlterRepositoryRequest createRequest(AnalyzedAlterRepository alterRepository,
+    private AlterRepositoryRequest createRequest(AnalyzedAlterRepository alterRepository,
                                                        CoordinatorTxnCtx txnCtx,
                                                        NodeContext nodeCtx,
                                                        Row parameters,
@@ -113,17 +111,14 @@ public class AlterRepositoryPlan implements Plan {
             subQueryResults
         );
 
+        // make sure that only supported keys are used
         var genericProperties = alterRepository.properties().map(eval);
         var repository = repositoryService.getRepository(alterRepository.name());
         if (repository == null) {
             throw new RepositoryMissingException(alterRepository.name());
         }
 
-        // make sure that only supported keys are used
-        var supportedKeys = repositoryParamValidator.settingsForType(repository.type())
-            .all()
-            .keySet();
-        genericProperties.ensureContainsOnly(supportedKeys);
+        repositoryParamValidator.validateSupportedOnly(repository.type(), genericProperties);
 
         // build and return request
         return new AlterRepositoryRequest(
