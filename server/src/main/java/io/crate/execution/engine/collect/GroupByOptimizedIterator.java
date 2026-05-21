@@ -416,12 +416,18 @@ final class GroupByOptimizedIterator {
                         statesByKey.put(BytesRef.deepCopyOf(sharedKey), states);
                     } else {
                         for (int i = 0; i < aggregations.size(); i++) {
+                            Object state1 = prevStates[i];
+                            Object state2 = states[i];
+                            if (aggregators != null) {
+                                //state1 = aggregators.get(i).partialResult(ramAccounting, state1);
+                                state2 = aggregators.get(i).partialResult(ramAccounting, state2);
+                            }
                             AggregationContext aggregation = aggregations.get(i);
                             //noinspection unchecked
                             prevStates[i] = aggregation.function().reduce(
                                 ramAccounting,
-                                prevStates[i],
-                                states[i]
+                                state1,
+                                state2
                             );
                         }
                     }
