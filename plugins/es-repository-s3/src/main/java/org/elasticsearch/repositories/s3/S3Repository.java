@@ -146,7 +146,7 @@ public class S3Repository extends BlobStoreRepository {
         this.storageClass = STORAGE_CLASS_SETTING.get(metadata.settings());
 
         LOGGER.debug(
-            "using bucket [{}], chunk_size [{}], server_side_encryption [{}], buffer_size [{}], cannedACL [{}], storageClass [{}]",
+            "using bucket [{}], chunk_size [{}], server_side_encryption [{}], buffer_size [{}], storageClass [{}]",
             bucket,
             chunkSize,
             serverSideEncryption,
