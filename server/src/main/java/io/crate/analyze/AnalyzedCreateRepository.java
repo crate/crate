@@ -26,29 +26,8 @@ import java.util.function.Consumer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.GenericProperties;
 
-public class AnalyzedCreateRepository implements DDLStatement {
-
-    private final String name;
-    private final String type;
-    private final GenericProperties<Symbol> properties;
-
-    public AnalyzedCreateRepository(String name, String type, GenericProperties<Symbol> properties) {
-        this.name = name;
-        this.type = type;
-        this.properties = properties;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    public String type() {
-        return type;
-    }
-
-    public GenericProperties<Symbol> properties() {
-        return properties;
-    }
+public record AnalyzedCreateRepository(String name, String type,
+                                       GenericProperties<Symbol> properties) implements DDLStatement {
 
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
