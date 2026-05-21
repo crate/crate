@@ -29,6 +29,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 /**
  * @deprecated Use {@link io.crate.rest.action.HttpErrorStatus} instead.
  */
+@Deprecated
 public enum RestStatus {
     /**
      * The client SHOULD continue with its request. This interim response is used to inform the client that the
