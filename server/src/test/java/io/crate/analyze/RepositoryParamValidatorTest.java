@@ -33,6 +33,7 @@ import org.junit.Test;
 
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.analyze.repositories.TypeSettings;
+import io.crate.expression.symbol.Literal;
 import io.crate.sql.tree.GenericProperties;
 
 public class RepositoryParamValidatorTest extends ESTestCase {
@@ -47,16 +48,49 @@ public class RepositoryParamValidatorTest extends ESTestCase {
     }
 
     @Test
-    public void testValidate() throws Exception {
+    public void test_validate_invalid_type() {
         assertThatThrownBy(() -> validator.validate("invalid_type", GenericProperties.empty(), Settings.EMPTY))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid repository type \"invalid_type\"");
     }
 
     @Test
-    public void testRequiredTypeIsMissing() throws Exception {
+    public void test_validate_required_param_missing() {
         assertThatThrownBy(() -> validator.validate("fs", GenericProperties.empty(), Settings.EMPTY))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("The following required parameters are missing to create a repository of type \"fs\": [location]");
+    }
+
+    @Test
+    public void test_validate_unsupported_setting() {
+        assertThatThrownBy(() -> validator.validate("fs", GenericProperties.empty(), Settings.builder().put("foo", "bar").build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Setting 'foo' is not supported");
+    }
+
+    @Test
+    public void test_validate_supported_only_with_unsupported_setting() {
+        assertThatThrownBy(() -> validator.validateSupportedOnly("fs", new GenericProperties<>(Map.of("foo", Literal.of("bar")))))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Setting 'foo' is not supported");
+    }
+
+    @Test
+    public void test_validate_supported_only_with_mandatory_only() {
+        validator.validateSupportedOnly(
+            "fs",
+            new GenericProperties<>(Map.of("location", Literal.of("/tmp/something")))
+        );
+    }
+
+    @Test
+    public void test_validate_supported_only_with_mandatory_and_optional() {
+        validator.validateSupportedOnly(
+            "fs",
+            new GenericProperties<>(Map.of(
+                "location", Literal.of("/tmp/something"),
+                "compress", Literal.of(false)
+            ))
+        );
     }
 }
