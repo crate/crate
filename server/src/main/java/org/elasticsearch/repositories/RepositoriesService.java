@@ -58,10 +58,12 @@ import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.io.IOUtils;
 import io.crate.concurrent.FutureActionListener;
+import io.crate.exceptions.RepositoryAlreadyExistsException;
 
 /**
  * Service responsible for maintaining and providing access to snapshot repositories on nodes.
@@ -98,7 +100,7 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
     }
 
     /**
-     * Registers new repository in the cluster
+     * Creates a new repository in the cluster.
      * <p>
      * This method can be only called on the master node. It tries to create a new repository on the master
      * and if it was successful it adds new repository to cluster metadata.
@@ -119,44 +121,19 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
 
             @Override
             public ClusterState execute(ClusterState currentState) throws IOException {
-                ensureRepositoryNotInUse(currentState, request.name());
-                // Trying to create the new repository on master to make sure it works
-                if (!registerRepository(newRepositoryMetadata)) {
-                    // The new repository has the same settings as the old one - ignore
-                    return currentState;
+                var repo = getRepositoryNoFail(request.name());
+                if (repo != null) {
+                    throw new RepositoryAlreadyExistsException(request.name());
                 }
+
+                // Trying to create the new repository on master to make sure it works
+                tryCreateRepo(newRepositoryMetadata);
+
                 Metadata metadata = currentState.metadata();
                 Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
-                RepositoriesMetadata repositories = metadata.custom(RepositoriesMetadata.TYPE);
-                if (repositories == null) {
-                    LOGGER.info("put repository [{}]", request.name());
-                    repositories = new RepositoriesMetadata(
-                        Collections.singletonList(new RepositoryMetadata(request.name(), request.type(), request.settings())));
-                } else {
-                    boolean found = false;
-                    List<RepositoryMetadata> repositoriesMetadata = new ArrayList<>(repositories.repositories().size() + 1);
+                RepositoriesMetadata existingRepos = metadata.custom(RepositoriesMetadata.TYPE);
 
-                    for (RepositoryMetadata repositoryMetadata : repositories.repositories()) {
-                        if (repositoryMetadata.name().equals(newRepositoryMetadata.name())) {
-                            if (newRepositoryMetadata.equalsIgnoreGenerations(repositoryMetadata)) {
-                                // Previous version is the same as this one no update is needed.
-                                return currentState;
-                            }
-                            found = true;
-                            repositoriesMetadata.add(newRepositoryMetadata);
-                        } else {
-                            repositoriesMetadata.add(repositoryMetadata);
-                        }
-                    }
-                    if (!found) {
-                        LOGGER.info("put repository [{}]", request.name());
-                        repositoriesMetadata.add(new RepositoryMetadata(request.name(), request.type(), request.settings()));
-                    } else {
-                        LOGGER.info("update repository [{}]", request.name());
-                    }
-                    repositories = new RepositoriesMetadata(repositoriesMetadata);
-                }
-                mdBuilder.putCustom(RepositoriesMetadata.TYPE, repositories);
+                mdBuilder.putCustom(RepositoriesMetadata.TYPE, createRepository(existingRepos, newRepositoryMetadata));
                 return ClusterState.builder(currentState).metadata(mdBuilder).build();
             }
 
@@ -184,6 +161,19 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
                 return CompletableFuture.completedFuture(response);
             }
         });
+    }
+
+    private Metadata.Custom createRepository(RepositoriesMetadata existingRepos, RepositoryMetadata newRepositoryMetadata) {
+        LOGGER.info("creating new repository metadata [{}]", newRepositoryMetadata.name());
+        if (existingRepos == null) {
+            return new RepositoriesMetadata(Collections.singletonList(newRepositoryMetadata));
+        }
+
+        List<RepositoryMetadata> withNewRepo = new ArrayList<>(existingRepos.repositories().size() + 1);
+        withNewRepo.addAll(existingRepos.repositories());
+        withNewRepo.add(newRepositoryMetadata);
+
+        return new RepositoriesMetadata(withNewRepo);
     }
 
     public CompletableFuture<AcknowledgedResponse> alterRepository(final AlterRepositoryRequest request) {
@@ -492,7 +482,7 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
     }
 
     /**
-     * Returns registered repository
+     * Returns registered repository.
      * <p>
      * This method is called only on the master node
      *
@@ -501,22 +491,30 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
      * @throws RepositoryMissingException if repository with such name isn't registered
      */
     public Repository repository(String repositoryName) {
+        Repository repository = getRepositoryNoFail(repositoryName);
+        if (repository != null) {
+            return repository;
+        }
+
+        throw new RepositoryMissingException(repositoryName);
+    }
+
+    @Nullable
+    private Repository getRepositoryNoFail(String repositoryName) {
         Repository repository = repositories.get(repositoryName);
         if (repository != null) {
             return repository;
         }
+
         repository = internalRepositories.get(repositoryName);
-        if (repository != null) {
-            return repository;
-        }
-        throw new RepositoryMissingException(repositoryName);
+        return repository;
     }
 
     /**
      * Creates a new repository and adds it to the list of registered repositories.
      * <p>
      * If a repository with the same name but different types or settings already exists, it will be closed and
-     * replaced with the new repository. If a repository with the same name exists but it has the same type and settings
+     * replaced with the new repository. If a repository with the same name exists, but it has the same type and settings
      * the new repository is ignored.
      *
      * @param repositoryMetadata new repository metadata
