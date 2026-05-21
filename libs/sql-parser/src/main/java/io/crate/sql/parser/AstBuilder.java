@@ -81,6 +81,7 @@ import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.AllocatePrimaryShard;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterPublication;
+import io.crate.sql.tree.AlterRepository;
 import io.crate.sql.tree.AlterRoleReset;
 import io.crate.sql.tree.AlterRoleSet;
 import io.crate.sql.tree.AlterServer;
@@ -636,6 +637,14 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             getIdentText(context.name),
             getIdentText(context.type),
             extractGenericProperties(context.withProperties()));
+    }
+
+    @Override
+    public Node visitAlterRepository(SqlBaseParser.AlterRepositoryContext context) {
+        return new AlterRepository<>(
+            getIdentText(context.name),
+            extractGenericProperties(context.genericProperties())
+        );
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

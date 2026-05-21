@@ -43,6 +43,7 @@ import io.crate.common.collections.Lists;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.AlterPublication;
+import io.crate.sql.tree.AlterRepository;
 import io.crate.sql.tree.AlterRoleReset;
 import io.crate.sql.tree.AlterRoleSet;
 import io.crate.sql.tree.AlterServer;
@@ -1352,6 +1353,18 @@ public final class SqlFormatter {
         public Void visitDropRepository(DropRepository node, Integer indent) {
             builder.append("DROP REPOSITORY ")
                 .append(quoteIdentifierIfNeeded(node.name()));
+            return null;
+        }
+
+        @Override
+        public Void visitAlterRepository(AlterRepository<?> node, Integer indent) {
+            builder.append("ALTER REPOSITORY ")
+                .append(quoteIdentifierIfNeeded(node.repository()));
+            if (node.properties() != null && !node.properties().isEmpty()) {
+                builder.append(" SET (");
+                appendProperties(node.properties(), indent);
+                builder.append(")");
+            }
             return null;
         }
 

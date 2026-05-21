@@ -24,6 +24,7 @@ import org.elasticsearch.action.admin.cluster.configuration.TransportClearVoting
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealth;
 import org.elasticsearch.action.admin.cluster.node.stats.TransportNodesStats;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepository;
+import org.elasticsearch.action.admin.cluster.repositories.put.TransportAlterRepository;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepository;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteAction;
 import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
@@ -181,6 +182,7 @@ public class ActionModule extends AbstractModule {
 
         // Repository & Snapshot actions
         bind(binder, TransportPutRepository.ACTION, TransportPutRepository.class);
+        bind(binder, TransportAlterRepository.ACTION, TransportAlterRepository.class);
         bind(binder, TransportDeleteRepository.ACTION, TransportDeleteRepository.class);
         bind(binder, TransportDeleteSnapshot.ACTION, TransportDeleteSnapshot.class);
         bind(binder, TransportCreateSnapshot.ACTION, TransportCreateSnapshot.class);

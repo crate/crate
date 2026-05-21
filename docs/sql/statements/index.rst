@@ -11,6 +11,7 @@ SQL Statements
 
     alter-cluster
     alter-publication
+    alter-repository
     alter-role
     alter-server
     alter-table

@@ -58,6 +58,8 @@ Changes
 SQL Statements
 --------------
 
+- Added support for :ref:`ALTER REPOSITORY <sql-alter-repository>`.
+
 None
 
 SQL Standard and PostgreSQL Compatibility

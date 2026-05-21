@@ -44,6 +44,9 @@ Creating a repository with the same name will result in an error::
     ... WITH (location='another_repo_path', compress=false);
     RepositoryAlreadyExistsException[Repository 'where_my_snapshots_go' already exists]
 
+Repository settings can be changed after a repository has been created by using
+the :ref:`sql-alter-repository` statement.
+
 .. NOTE::
 
     When upgrading a cluster to a new major version (e.g. from 5.x to 6.x) it's
