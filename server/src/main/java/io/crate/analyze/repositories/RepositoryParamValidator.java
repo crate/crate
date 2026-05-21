@@ -44,6 +44,9 @@ public class RepositoryParamValidator {
     }
 
     public void validate(String type, GenericProperties<?> genericProperties, Settings settings) {
+        // make sure only supported keys are present
+        validateSupportedOnly(type, new GenericProperties<>(settings.getAsStructuredMap()));
+
         TypeSettings typeSettings = settingsForType(type);
         Map<String, Setting<?>> allSettings = typeSettings.all();
 
@@ -69,6 +72,22 @@ public class RepositoryParamValidator {
                     String.join(", ", missingRequiredSettings))
             );
         }
+    }
+
+    /**
+     * Validates that the provided {@code properties} contain only supported keys for the given {@code type}.
+     * The method is useful in contexts where an object is updated. To check if required properties are present
+     * use {@link #validate(String, GenericProperties, Settings)}.
+     *
+     * @param type          the type whose supported keys are checked against
+     * @param properties    the properties map to validate
+     * @throws IllegalArgumentException if unsupported properties are found
+     */
+    public void validateSupportedOnly(String type, GenericProperties<Object> properties) {
+        var supportedKeys = settingsForType(type)
+            .all()
+            .keySet();
+        properties.ensureContainsOnly(supportedKeys);
     }
 
     public TypeSettings settingsForType(String type) {
