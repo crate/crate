@@ -377,5 +377,13 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
             }
             return compareBy;
         }
+
+        @Override
+        public CmpByLongState reduce(RamAccounting ramAccounting, CmpByLongState state1, CmpByLongState state2) {
+            if (hasPrecedence(state2.cmpValue, state1.cmpValue)) {
+                return state2;
+            }
+            return state1;
+        }
     }
 }

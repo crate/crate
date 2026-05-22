@@ -23,12 +23,12 @@ package io.crate.execution.engine.aggregation;
 
 import java.io.IOException;
 
+import org.apache.lucene.index.LeafReaderContext;
+import org.elasticsearch.Version;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.data.breaker.RamAccounting;
 import io.crate.memory.MemoryManager;
-import org.apache.lucene.index.LeafReaderContext;
-import org.elasticsearch.Version;
 
 public interface DocValueAggregator<T> {
 
@@ -43,4 +43,6 @@ public interface DocValueAggregator<T> {
     // → never return final value, but always partial result
     @Nullable
     Object partialResult(RamAccounting ramAccounting, T state);
+
+    T reduce(RamAccounting ramAccounting, T state1, T state2);
 }

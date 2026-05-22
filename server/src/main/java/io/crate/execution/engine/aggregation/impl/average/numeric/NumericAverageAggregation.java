@@ -191,6 +191,8 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
                 ramAccounting.addBytes(NumericType.sizeDiff(newValue, state.sum.value()));
                 state.sum.setValue(newValue);
                 state.count++;
-            });
+            },
+            this::reduce
+        );
     }
 }

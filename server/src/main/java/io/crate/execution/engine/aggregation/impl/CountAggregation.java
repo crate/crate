@@ -268,7 +268,8 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
                         ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
                         return new MutableLong(0L);
                     },
-                    (_, _, state) -> state.add(1L)
+                    (_, _, state) -> state.add(1L),
+                    this::reduce
                 );
             case IpType.ID, StringType.ID, BitStringType.ID -> new BinaryDocValueAggregator<>(
                 ref.storageIdent(),
@@ -276,7 +277,8 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
                     ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
                     return new MutableLong(0L);
                 },
-                (_, _, state) -> state.add(1L)
+                (_, _, state) -> state.add(1L),
+                this::reduce
             );
             default -> null;
         };

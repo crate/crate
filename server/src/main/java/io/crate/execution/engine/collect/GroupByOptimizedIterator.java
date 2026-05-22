@@ -419,8 +419,9 @@ final class GroupByOptimizedIterator {
                             Object state1 = prevStates[i];
                             Object state2 = states[i];
                             if (aggregators != null) {
-                                //state1 = aggregators.get(i).partialResult(ramAccounting, state1);
-                                state2 = aggregators.get(i).partialResult(ramAccounting, state2);
+                                //noinspection unchecked
+                                aggregators.get(i).reduce(ramAccounting, state1, state2);
+                                continue;
                             }
                             AggregationContext aggregation = aggregations.get(i);
                             //noinspection unchecked

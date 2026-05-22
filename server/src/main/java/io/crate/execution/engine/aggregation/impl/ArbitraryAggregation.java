@@ -278,6 +278,14 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                 return null;
             }
         }
+
+        @Override
+        public MutableObject reduce(RamAccounting ramAccounting, MutableObject state1, MutableObject state2) {
+            if (state1 == null) {
+                return state2;
+            }
+            return state1;
+        }
     }
 
 
@@ -324,6 +332,14 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                 return null;
             }
         }
+
+        @Override
+        public MutableObject reduce(RamAccounting ramAccounting, MutableObject state1, MutableObject state2) {
+            if (state1 == null) {
+                return state2;
+            }
+            return state1;
+        }
     }
 
     private static class ArbitraryIPDocValueAggregator implements DocValueAggregator<MutableObject> {
@@ -367,6 +383,14 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
             } else {
                 return null;
             }
+        }
+
+        @Override
+        public MutableObject reduce(RamAccounting ramAccounting, MutableObject state1, MutableObject state2) {
+            if (state1 == null) {
+                return state2;
+            }
+            return state1;
         }
     }
 }

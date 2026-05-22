@@ -323,7 +323,8 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
                 },
                 (_, values, state) -> {
                     state.addNumber(values.nextValue(), true); // Mutates state.
-                }
+                },
+                this::reduce
             );
             case FloatType.ID -> new SortedNumericDocValueAggregator<>(
                 reference.storageIdent(),
@@ -334,7 +335,8 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
                 (_, values, state) -> {
                     var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                     state.addNumber(value, false); // Mutates state.
-                }
+                },
+                this::reduce
             );
             case DoubleType.ID -> new SortedNumericDocValueAggregator<>(
                 reference.storageIdent(),
@@ -345,7 +347,8 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
                 (_, values, state) -> {
                     var value = NumericUtils.sortableLongToDouble((values.nextValue()));
                     state.addNumber(value, false); // Mutates state.
-                }
+                },
+                this::reduce
             );
             default -> null;
         };
