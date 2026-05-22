@@ -58,7 +58,6 @@ import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.io.IOUtils;
@@ -121,20 +120,16 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
 
             @Override
             public ClusterState execute(ClusterState currentState) throws IOException {
-                var repo = getRepositoryNoFail(request.name());
-                if (repo != null) {
-                    throw new RepositoryAlreadyExistsException(request.name());
-                }
+                RepositoriesMetadata existingRepos = currentState.metadata().custom(RepositoriesMetadata.TYPE);
+                ensureRepositoryDoesNotExist(existingRepos, request.name());
 
-                // Trying to create the new repository on master to make sure it works
+                // Trying to create the new repository on master node to make sure it works.
                 tryCreateRepo(newRepositoryMetadata);
 
-                Metadata metadata = currentState.metadata();
-                Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
-                RepositoriesMetadata existingRepos = metadata.custom(RepositoriesMetadata.TYPE);
-
-                mdBuilder.putCustom(RepositoriesMetadata.TYPE, createRepository(existingRepos, newRepositoryMetadata));
-                return ClusterState.builder(currentState).metadata(mdBuilder).build();
+                var updatedMeta = Metadata.builder(currentState.metadata())
+                    .putCustom(RepositoriesMetadata.TYPE, createRepository(existingRepos, newRepositoryMetadata))
+                    .build();
+                return ClusterState.builder(currentState).metadata(updatedMeta).build();
             }
 
             @Override
@@ -161,6 +156,18 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
                 return CompletableFuture.completedFuture(response);
             }
         });
+    }
+
+    private void ensureRepositoryDoesNotExist(RepositoriesMetadata repositories, String name) {
+        if (repositories == null || repositories.repositories() == null) {
+            return;
+        }
+
+        for (RepositoryMetadata r : repositories.repositories()) {
+            if (r.name().equals(name)) {
+                throw new RepositoryAlreadyExistsException(name);
+            }
+        }
     }
 
     private Metadata.Custom createRepository(RepositoriesMetadata existingRepos, RepositoryMetadata newRepositoryMetadata) {
@@ -491,23 +498,17 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
      * @throws RepositoryMissingException if repository with such name isn't registered
      */
     public Repository repository(String repositoryName) {
-        Repository repository = getRepositoryNoFail(repositoryName);
-        if (repository != null) {
-            return repository;
-        }
-
-        throw new RepositoryMissingException(repositoryName);
-    }
-
-    @Nullable
-    private Repository getRepositoryNoFail(String repositoryName) {
         Repository repository = repositories.get(repositoryName);
         if (repository != null) {
             return repository;
         }
 
         repository = internalRepositories.get(repositoryName);
-        return repository;
+        if (repository != null) {
+            return repository;
+        }
+
+        throw new RepositoryMissingException(repositoryName);
     }
 
     public void registerInternalRepository(String name, String type) {
