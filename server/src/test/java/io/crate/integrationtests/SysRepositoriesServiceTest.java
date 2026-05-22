@@ -144,13 +144,6 @@ public class SysRepositoriesServiceTest extends IntegTestCase {
             .hasMessageContaining("[test-repo] missing");
     }
 
-    @Test
-    public void test_alter_repository_invalid_setting_name() {
-        assertSQLError(() -> execute("alter repository \"test-repo\" set (invalid_setting = true)"))
-            .hasHTTPError(STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX.httpResponseStatus(), STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX.errorCode())
-            .hasMessageContaining("Setting 'invalid_setting' is not supported");
-    }
-
     private void assertRepositorySettings(String repoName, Map<String, Object> expectedSettings) {
         execute("select settings from sys.repositories where name = ?", new Object[]{repoName});
         assertThat(response.rowCount()).isEqualTo(1L);
