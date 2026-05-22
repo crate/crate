@@ -38,6 +38,10 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -129,8 +133,18 @@ public class UserDefinedFunctionMetadata implements Writeable {
         return specificName;
     }
 
+    public Signature signature() {
+        return Signature.builder(new FunctionName(schema, name), FunctionType.SCALAR)
+            .argumentTypes(Lists.map(argumentTypes, DataType::getTypeSignature))
+            .returnType(returnType.getTypeSignature())
+            .features(Scalar.Feature.DETERMINISTIC)
+            .build();
+    }
+
     public boolean sameSignature(String schema, String name, List<DataType<?>> types) {
-        return this.schema().equals(schema) && this.name().equals(name) && this.argumentTypes().equals(types);
+        Signature signature = signature();
+        return signature.getName().equals(new FunctionName(schema, name))
+            && signature.getArgumentDataTypes().equals(types);
     }
 
     static UserDefinedFunctionMetadata fromXContent(XContentParser parser) throws IOException {

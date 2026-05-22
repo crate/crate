@@ -46,14 +46,12 @@ import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionProvider;
-import io.crate.metadata.FunctionType;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -190,12 +188,7 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent imple
 
     @Nullable
     public FunctionProvider buildFunctionResolver(UserDefinedFunctionMetadata udf) {
-        var functionName = new FunctionName(udf.schema(), udf.name());
-        var signature = Signature.builder(functionName, FunctionType.SCALAR)
-            .argumentTypes(Lists.map(udf.argumentTypes(), DataType::getTypeSignature))
-            .returnType(udf.returnType().getTypeSignature())
-            .features(Scalar.Feature.DETERMINISTIC)
-            .build();
+        Signature signature = udf.signature();
 
         final Scalar<?, ?> scalar;
         try {
