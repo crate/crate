@@ -58,6 +58,7 @@ import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.io.IOUtils;
@@ -170,7 +171,7 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
         }
     }
 
-    private Metadata.Custom createRepository(RepositoriesMetadata existingRepos, RepositoryMetadata newRepositoryMetadata) {
+    private Metadata.Custom createRepository(@Nullable RepositoriesMetadata existingRepos, RepositoryMetadata newRepositoryMetadata) {
         LOGGER.info("creating new repository metadata [{}]", newRepositoryMetadata.name());
         if (existingRepos == null) {
             return new RepositoriesMetadata(Collections.singletonList(newRepositoryMetadata));
