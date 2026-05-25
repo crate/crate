@@ -49,4 +49,5 @@ series.
 Fixes
 =====
 
-None
+- Fixed an issue that caused nodes to fail to start when parsing persisted
+  mappings for tables containing columns of type ``uuid``.

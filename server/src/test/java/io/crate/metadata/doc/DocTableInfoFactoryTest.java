@@ -50,6 +50,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.types.UUIDType;
 
 
 public class DocTableInfoFactoryTest extends ESTestCase {
@@ -275,5 +276,35 @@ public class DocTableInfoFactoryTest extends ESTestCase {
 
         assertThat(docTableInfo.indexColumn(ColumnIdent.of("text_ft")))
             .isNotNull();
+    }
+
+    @Test
+    public void test_uuid_column_from_mapping_is_parsed_as_uuid_type() {
+        RelationName tbl = new RelationName(randomSchema(), "tbl");
+        String mapping = """
+            {
+              "default": {
+                "properties": {
+                  "id": {
+                    "type": "uuid",
+                    "position": 1
+                  }
+                }
+              }
+            }
+            """;
+        IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(tbl.indexNameOrAlias())
+            .settings(Settings.builder().put("index.version.created", Version.CURRENT).build())
+            .numberOfReplicas(0)
+            .numberOfShards(5)
+            .putMapping(mapping);
+        Metadata metadata = new Metadata.Builder()
+            .put(indexMetadataBuilder)
+            .build();
+        metadata = metadataUpgradeService.upgradeMetadata(metadata);
+
+        DocTableInfo docTableInfo = new DocTableInfoFactory(nodeCtx).create(tbl, metadata);
+
+        assertThat(docTableInfo.getReference(ColumnIdent.of("id")).valueType()).isEqualTo(UUIDType.INSTANCE);
     }
 }
