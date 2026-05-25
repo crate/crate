@@ -44,15 +44,19 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
-import io.crate.common.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.concurrent.CompletableFutures;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.JobKilledException;
+import io.crate.execution.engine.collect.collectors.ShardStateObserver;
 import io.crate.execution.support.ThreadPools;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -133,7 +137,41 @@ public class CountOperation {
                 return CompletableFuture.failedFuture(e);
             }
         }
-        IndexShard indexShard = indexService.getShard(shardId);
+
+        try {
+            IndexShard indexShard = indexService.getShard(shardId);
+            return awaitShardSearchActiveAndCount(indexService, indexShard, txnCtx, filter, onPartitionedTable);
+        } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
+            if (onPartitionedTable) {
+                return CompletableFuture.completedFuture(() -> 0L);
+            }
+            return reResolveAndCount(txnCtx, index, shardId, filter);
+        }
+    }
+
+    private CompletableFuture<Supplier<Long>> reResolveAndCount(TransactionContext txnCtx, Index index, int shardId, Symbol filter) {
+        var shardIdObj = new ShardId(index, shardId);
+        return new ShardStateObserver(clusterService)
+            .waitForActiveShard(shardIdObj)
+            .thenCompose(routing -> {
+                String localNodeId = clusterService.localNode().getId();
+                if (localNodeId.equals(routing.currentNodeId())) {
+                    // Cluster state caught up — shard is on us now. Retry locally.
+                    return prepareGetCount(txnCtx, index, shardId, filter, false);
+                }
+                // todo wormhole pattern, count on a remote node
+                return CompletableFuture.completedFuture(() -> 0L);
+            })
+            .exceptionally(err -> {
+                throw Exceptions.toRuntimeException(err);
+            });
+    }
+
+    private CompletableFuture<Supplier<Long>> awaitShardSearchActiveAndCount(IndexService indexService,
+                                                                             IndexShard indexShard,
+                                                                             TransactionContext txnCtx,
+                                                                             Symbol filter,
+                                                                             boolean onPartitionedTable) {
         CompletableFuture<Supplier<Long>> futureCount = new CompletableFuture<>();
         indexShard.awaitShardSearchActive(b -> {
             try {
