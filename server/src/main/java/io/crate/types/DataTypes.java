@@ -493,7 +493,8 @@ public final class DataTypes {
         entry("nested", UNTYPED_OBJECT),
         entry("interval", DataTypes.INTERVAL),
         entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE),
-        entry("undefined", DataTypes.UNDEFINED)
+        entry("undefined", DataTypes.UNDEFINED),
+        entry(UUIDType.NAME, UUIDType.INSTANCE)
     );
 
     private static final Map<Integer, String> TYPE_IDS_TO_MAPPINGS = Map.ofEntries(

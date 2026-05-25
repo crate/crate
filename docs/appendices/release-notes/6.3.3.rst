@@ -66,3 +66,6 @@ Fixes
 - Fixed intermittent ``UDF`` resolution failures when upgrading metadata from a
   remote cluster, for example during
   :ref:`logical replication <administration-logical-replication>`.
+
+- Fixed an issue that caused nodes to fail to start when parsing persisted
+  mappings for tables containing columns of type ``uuid``.
