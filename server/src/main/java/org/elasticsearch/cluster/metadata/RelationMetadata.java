@@ -54,10 +54,11 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.doc.SysColumns;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
@@ -277,6 +278,15 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata>
         @Override
         public short ord() {
             return ORD;
+        }
+
+        public ColumnIdent routingColumnOrDefault() {
+            if (routingColumn == null) {
+                return primaryKeys.size() == 1
+                    ? primaryKeys.get(0)
+                    : SysColumns.ID.COLUMN;
+            }
+            return routingColumn;
         }
 
         public static Table of(StreamInput in) throws IOException {

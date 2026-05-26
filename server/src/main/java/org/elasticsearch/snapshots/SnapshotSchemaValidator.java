@@ -144,25 +144,9 @@ public final class SnapshotSchemaValidator {
         if (!snapshotTable.partitionedBy().equals(targetTable.partitionedBy())) {
             throw mismatch(snapshot, targetName, "PARTITIONED BY columns differ");
         }
-        // null routingColumn means "no explicit CLUSTERED BY" - the routing
-        // column is derived from PK metadata at read time. Treat it as
-        // equivalent to any explicit PK column on the other side.
-        // TODO: Follow up to ensure a single representation in RelationMetadata.
-        if (!routingColumnsEqual(snapshotTable, targetTable)) {
+        if (!snapshotTable.routingColumnOrDefault().equals(targetTable.routingColumnOrDefault())) {
             throw mismatch(snapshot, targetName, "CLUSTERED BY column differs");
         }
-    }
-
-    private static boolean routingColumnsEqual(RelationMetadata.Table snap, RelationMetadata.Table target) {
-        ColumnIdent snapRouting = snap.routingColumn();
-        ColumnIdent targetRouting = target.routingColumn();
-        if (Objects.equals(snapRouting, targetRouting)) {
-            return true;
-        }
-        // null means "no explicit CLUSTERED BY" - derived from PK metadata at
-        // read time. Treat as equal to any explicit routing on the other side
-        // until both representations are unified (see TODO above).
-        return snapRouting == null || targetRouting == null;
     }
 
     private static Map<ColumnIdent, Reference> byColumn(RelationMetadata.Table table) {
