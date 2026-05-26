@@ -263,7 +263,7 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
             }
 
             found = true;
-            var settings = patchRepositorySettings(repoMeta.settings(), req);
+            var settings = patchRepositorySettings(repoMeta, req);
             if (settings.equals(repoMeta.settings())) {
                 return repositories;
             }
@@ -281,23 +281,28 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
         return updatedRepos;
     }
 
-    private Settings patchRepositorySettings(Settings original, AlterRepositoryRequest req) {
-        // set properties
+    private Settings patchRepositorySettings(RepositoryMetadata repoMeta, AlterRepositoryRequest req) {
+        var original = repoMeta.settings();
+        // Set properties
         if (!req.settings().isEmpty()) {
             return Settings.builder().put(original).put(req.settings()).build();
         }
 
-        // reset properties
-        // no need to check if those are required at this point,
-        // because we will attempt to create a Repository object later on.
+        // Reset properties
+        // No need to check if those are required at this point,
+        // because the AlterRepositoryRequest has already been validated, and we will attempt
+        // to create a repository later on too.
         if (!req.resetProperties().isEmpty()) {
             var updated = Settings.builder().put(original);
             req.resetProperties().forEach(updated::remove);
             return updated.build();
         }
 
-        // reset all
-        return Settings.EMPTY;
+        // Reset all optional
+        Set<String> required = typesRegistry.get(repoMeta.type()).settings().required().keySet();
+        var updated = Settings.builder().put(original);
+        updated.keys().removeIf(prop -> !required.contains(prop));
+        return updated.build();
     }
 
     // Tries to create a repository using the given metadata.
