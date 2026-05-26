@@ -88,6 +88,10 @@ public class RepositoryParamValidator {
         properties.ensureContainsOnly(supportedKeys);
     }
 
+    /**
+     * Validates that the provided {@code properties} can be reset for the given {@code type}.
+     * All the provided properties need to be supported, and none of them can be required.
+     */
     public void validateCanReset(String type, Collection<String> properties) {
         // only supported properties can be reset
         validateSupportedOnly(type, properties);
