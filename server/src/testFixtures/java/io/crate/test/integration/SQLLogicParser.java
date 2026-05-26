@@ -181,7 +181,7 @@ public final class SQLLogicParser {
         @Nullable
         private final List<String> rawExpected;
         private final String filename;
-        private final String testname;
+        private final String testName;
 
         QueryCmd(List<NumberedLine> lines, String filename) {
             this.filename = filename;
@@ -192,7 +192,7 @@ public final class SQLLogicParser {
             String[] header = first.line().split("\\s+");
             String formatsStr = header[1];
             String sortStr = header[2];
-            this.testname = header[3];
+            this.testName = header[3];
 
             for (char c : formatsStr.toCharArray()) {
                 if (c != 'I' && c != 'R' && c != 'T') {
@@ -233,14 +233,14 @@ public final class SQLLogicParser {
                 if (m.matches()) {
                     int expectedValues = Integer.parseInt(m.group(1));
                     String expectedHash = m.group(2);
-                    validateHash(response, expectedValues, expectedHash, filename, lnum);
+                    validateHash(response, expectedValues, expectedHash, filename, testName, lnum);
                     return;
                 }
             }
             List<Object> expected = (sort == SortMode.ROWS)
                 ? formatExpectedRows(rawExpected)
                 : formatExpectedFlat(rawExpected);
-            validateCmpResult(response, expected, query, filename, testname, lnum);
+            validateCmpResult(response, expected, query, filename, testName, lnum);
         }
 
         private void validateCmpResult(SQLResponse response,
@@ -334,6 +334,10 @@ public final class SQLLogicParser {
             return out;
         }
 
+        public String testName() {
+            return testName;
+        }
+
         @Override
         public String getQuery() {
             return query;
@@ -375,6 +379,7 @@ public final class SQLLogicParser {
                                      int expectedValues,
                                      String expectedHash,
                                      String filename,
+                                     String testname,
                                      int lnum) {
         long got = response.rowCount();
         if (got != expectedValues) {
@@ -396,9 +401,10 @@ public final class SQLLogicParser {
             if (!digest.equals(expectedHash)) {
                 throw new IncorrectResultException(String.format(
                     Locale.ENGLISH,
-                    "[%s:d] Expected values hashing to %s. Got: %s\n%s",
+                    "[%s:%d][%s] Expected values hashing to %s:. Got: %s running %s",
                     filename,
                     lnum,
+                    testname,
                     expectedHash,
                     digest,
                     response
@@ -431,7 +437,7 @@ public final class SQLLogicParser {
     public static Stream<Cmd> parse(Path file) throws IOException {
         AtomicInteger lnum = new AtomicInteger(0);
         Gatherer<NumberedLine, List<NumberedLine>, Cmd> gatherCmds = Gatherer.ofSequential(
-            () -> new ArrayList<NumberedLine>(),
+            ArrayList::new,
             (state, element, downstream) -> {
                 String line = element.line();
                 if (!line.isEmpty()) {

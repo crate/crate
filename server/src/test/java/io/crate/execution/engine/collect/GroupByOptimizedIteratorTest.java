@@ -68,7 +68,6 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
@@ -242,7 +241,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             PARTITION_NAME.values(),
             new LuceneQueryBuilder(nodeCtx),
             mock(BigArrays.class),
-            new InputFactory(nodeCtx),
+            nodeCtx,
             new DocInputFactory(
                 nodeCtx,
                 new LuceneReferenceResolver(PARTITION_NAME.values(), List.of(), List.of(), Version.CURRENT, (_) -> false)
