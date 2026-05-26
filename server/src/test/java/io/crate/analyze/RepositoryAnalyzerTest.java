@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
@@ -140,5 +141,21 @@ public class RepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(statement.name()).isEqualTo("my_repo");
         assertThat(statement.properties().toMap(HashMap::new))
             .isEqualTo(Map.of("compress", Literal.of(true)));
+    }
+
+    @Test
+    public void test_alter_repository_reset_properties() {
+        AnalyzedAlterRepository statement = analyze(e, "ALTER REPOSITORY my_repo RESET (compress)");
+        assertThat(statement.name()).isEqualTo("my_repo");
+        assertThat(statement.properties()).isEmpty();
+        assertThat(statement.resetProperties()).isEqualTo(List.of("compress"));
+    }
+
+    @Test
+    public void test_alter_repository_reset_all() {
+        AnalyzedAlterRepository statement = analyze(e, "ALTER REPOSITORY my_repo RESET ALL");
+        assertThat(statement.name()).isEqualTo("my_repo");
+        assertThat(statement.properties()).isEmpty();
+        assertThat(statement.resetProperties()).isEmpty();
     }
 }

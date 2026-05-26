@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 
 import org.jspecify.annotations.Nullable;
 
+import io.crate.common.collections.CollectionUtils;
 import io.crate.common.collections.Lists;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
@@ -1360,11 +1361,19 @@ public final class SqlFormatter {
         public Void visitAlterRepository(AlterRepository<?> node, Integer indent) {
             builder.append("ALTER REPOSITORY ")
                 .append(quoteIdentifierIfNeeded(node.repository()));
-            if (node.properties() != null && !node.properties().isEmpty()) {
+
+            if (GenericProperties.isNotEmpty(node.properties())) {
                 builder.append(" SET (");
                 appendProperties(node.properties(), indent);
                 builder.append(")");
+            } else if (CollectionUtils.isNotEmpty(node.resetProperties())) {
+                builder.append(" RESET (")
+                    .append(String.join(",", node.resetProperties()))
+                    .append(")");
+            } else {
+                builder.append(" RESET ALL");
             }
+
             return null;
         }
 

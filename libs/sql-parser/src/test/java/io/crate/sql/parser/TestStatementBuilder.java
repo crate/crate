@@ -1526,6 +1526,8 @@ public class TestStatementBuilder {
                                             "repository=myRepo}");
 
         printStatement("ALTER REPOSITORY my_repo SET (location='/mount/backups/my_backup_1', max_restore_bytes_per_sec='123')");
+        printStatement("ALTER REPOSITORY my_repo RESET (max_restore_bytes_per_sec, compress)");
+        printStatement("ALTER REPOSITORY my_repo RESET ALL");
     }
 
     @Test
