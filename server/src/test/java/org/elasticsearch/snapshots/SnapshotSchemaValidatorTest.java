@@ -202,10 +202,20 @@ public class SnapshotSchemaValidatorTest {
         // null routingColumn is the "implicit default" derived from PK at read time.
         // Treated as equal to any explicit routingColumn on the other side until
         // CrateDB unifies the two representations (see TODO in validator).
-        var snap = table(List.of(col("a", (long) 1, true, DataTypes.INTEGER)),
-                         null, null, List.of(), List.of());
-        var target = table(List.of(col("a", (long) 1, true, DataTypes.INTEGER)),
-                           ColumnIdent.of("a"), null, List.of(), List.of());
+        RelationMetadata.Table snap = table(
+            List.of(col("a", (long) 1, true, DataTypes.INTEGER)),
+            null,
+            null,
+            List.of(ColumnIdent.of("a")),
+            List.of()
+        );
+        RelationMetadata.Table target = table(
+            List.of(col("a", (long) 1, true, DataTypes.INTEGER)),
+            ColumnIdent.of("a"),
+            null,
+            List.of(ColumnIdent.of("a")),
+            List.of()
+        );
         assertThatCode(() -> SnapshotSchemaValidator.validate(SNAP, REL, snap, target))
             .doesNotThrowAnyException();
     }

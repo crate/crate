@@ -150,12 +150,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
 
         Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(table.settings());
         Version versionUpgraded = table.settings().getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
-        ColumnIdent routingColumn = table.routingColumn();
-        if (routingColumn == null) {
-            routingColumn = table.primaryKeys().size() == 1
-                ? table.primaryKeys().get(0)
-                : SysColumns.ID.COLUMN;
-        }
+        ColumnIdent routingColumn = table.routingColumnOrDefault();
         List<CheckConstraint<Symbol>> checkConstraints = getCheckConstraints(
             expressionAnalyzer,
             expressionAnalysisContext,
