@@ -99,12 +99,12 @@ public class AlterRepositoryPlanTest {
         );
 
         when(repoService.getRepository("repo-name"))
-            .thenReturn(new RepositoryMetadata("repo-name", "dummy-type", Settings.EMPTY));
+            .thenReturn(new RepositoryMetadata("repo-name", "fs", Settings.EMPTY));
 
         assertThatThrownBy(() ->
             underTest.executeOrFail(dependencyCarrier, plannerCtx, rowConsumer, Row.EMPTY, SubQueryResults.EMPTY)
         ).isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("invalid property");
+            .hasMessageContaining("Setting 'foo' is not supported");
     }
 
     @Test
@@ -122,11 +122,11 @@ public class AlterRepositoryPlanTest {
     @Test
     public void test_reset_unsupported_property() {
         var underTest = new AlterRepositoryPlan(
-            new AnalyzedAlterRepository("repo-name", GenericProperties.empty(), List.of("foo"))
+            new AnalyzedAlterRepository("repo-name", GenericProperties.empty(), List.of("invalid"))
         );
 
         when(repoService.getRepository("repo-name"))
-            .thenReturn(new RepositoryMetadata("repo-name", "dummy-type", Settings.EMPTY));
+            .thenReturn(new RepositoryMetadata("repo-name", "fs", Settings.EMPTY));
 
         assertThatThrownBy(() ->
             underTest.executeOrFail(dependencyCarrier, plannerCtx, rowConsumer, Row.EMPTY, SubQueryResults.EMPTY)
