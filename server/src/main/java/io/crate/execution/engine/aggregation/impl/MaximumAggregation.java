@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.DocValuesSkipper;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
@@ -94,6 +95,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Object, Obj
         private final String columnName;
         private final DataType<?> partialType;
         private SortedNumericDocValues values;
+        private long readerMaxValue = Long.MIN_VALUE;
 
         public LongMax(String columnName, DataType<?> partialType) {
             this.columnName = columnName;
@@ -108,14 +110,20 @@ public abstract class MaximumAggregation extends AggregationFunction<Object, Obj
 
         @Override
         public void loadDocValues(LeafReaderContext reader) throws IOException {
+            DocValuesSkipper docValuesSkipper = reader.reader().getDocValuesSkipper(columnName);
+            readerMaxValue = docValuesSkipper == null ? Long.MAX_VALUE : docValuesSkipper.maxValue();
             values = DocValues.getSortedNumeric(reader.reader(), columnName);
         }
 
         @Override
         public MutableLong apply(RamAccounting ramAccounting, int doc, MutableLong state) throws IOException {
+            long currentValue = state.value();
+            if (currentValue > readerMaxValue) {
+                return state;
+            }
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 long value = values.nextValue();
-                if (value >= state.value()) {
+                if (value >= currentValue) {
                     state.setValue(value);
                 }
             }

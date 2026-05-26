@@ -24,7 +24,6 @@ package io.crate.execution.dml;
 import java.io.IOException;
 
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
@@ -50,23 +49,19 @@ public class LongIndexer implements ValueIndexer<Long> {
             throw new IllegalArgumentException(
                 "Value " + longValue + " exceeds allowed range for column of type bigint");
         }
-        if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
-            docBuilder.addField(new LongField(name, longValue, Field.Store.NO));
+        if (ref.indexType() != IndexType.NONE) {
+            docBuilder.addField(new LongPoint(name, longValue));
+        }
+        if (ref.hasDocValues()) {
+            docBuilder.addField(SortedNumericDocValuesField.indexedField(name, longValue));
         } else {
-            if (ref.indexType() != IndexType.NONE) {
-                docBuilder.addField(new LongPoint(name, longValue));
+            if (docBuilder.maybeAddStoredField()) {
+                docBuilder.addField(new StoredField(name, longValue));
             }
-            if (ref.hasDocValues()) {
-                docBuilder.addField(new SortedNumericDocValuesField(name, longValue));
-            } else {
-                if (docBuilder.maybeAddStoredField()) {
-                    docBuilder.addField(new StoredField(name, longValue));
-                }
-                docBuilder.addField(new Field(
-                        SysColumns.FieldNames.NAME,
-                        name,
-                        SysColumns.FieldNames.FIELD_TYPE));
-            }
+            docBuilder.addField(new Field(
+                    SysColumns.FieldNames.NAME,
+                    name,
+                    SysColumns.FieldNames.FIELD_TYPE));
         }
         docBuilder.translogWriter().writeValue(longValue);
     }
