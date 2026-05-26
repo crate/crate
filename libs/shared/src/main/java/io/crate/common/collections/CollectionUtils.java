@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,24 +19,22 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.common.collections;
 
-import java.util.List;
-import java.util.function.Consumer;
+import java.util.Collection;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.sql.tree.GenericProperties;
-
-// todo split?
-public record AnalyzedAlterRepository(String name, GenericProperties<Symbol> properties, List<String> resetProperties) implements DDLStatement {
-
-    @Override
-    public void visitSymbols(Consumer<? super Symbol> consumer) {
-        properties.forValues(consumer);
+/**
+ * A collection of utility methods for working with collections.
+ */
+public final class CollectionUtils {
+    private CollectionUtils() {
     }
 
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitAlterRepositoryAnalyzedStatement(this, context);
+    public static <T> boolean isNotEmpty(Collection<T> c) {
+        return c != null && !c.isEmpty();
+    }
+
+    public static <T> boolean isEmpty(Collection<T> c) {
+        return !isNotEmpty(c);
     }
 }

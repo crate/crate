@@ -148,6 +148,11 @@ alterStmt
     | ALTER (USER | ROLE) name=ident RESET (property=ident | ALL)                    #alterRoleReset
     | ALTER REPOSITORY name=ident
         SET OPEN_ROUND_BRACKET genericProperties CLOSE_ROUND_BRACKET                 #alterRepository
+    | ALTER REPOSITORY name=ident
+        RESET (
+          (OPEN_ROUND_BRACKET resetIdents+=ident (COMMA resetIdents+=ident)* CLOSE_ROUND_BRACKET)?
+          | ALL
+        )                                                                            #alterRepositoryReset
     | ALTER PUBLICATION name=ident
         ((ADD | SET | DROP) TABLE qname ASTERISK?  (COMMA qname ASTERISK? )*)        #alterPublication
     | ALTER SUBSCRIPTION name=ident alterSubscriptionMode                            #alterSubscription

@@ -21,16 +21,27 @@
 
 package io.crate.sql.tree;
 
+import java.util.List;
 import java.util.Objects;
+
+import io.crate.common.collections.CollectionUtils;
 
 public class AlterRepository<T> extends Statement {
 
     private final String repository;
     private final GenericProperties<T> properties;
+    private final List<String> resetProperties;
 
-    public AlterRepository(String repository, GenericProperties<T> genericProperties) {
+    public AlterRepository(String repository,
+                           GenericProperties<T> genericProperties,
+                           List<String> resetProperties) {
+
+        if (GenericProperties.isNotEmpty(genericProperties) && CollectionUtils.isNotEmpty(resetProperties)) {
+            throw new IllegalArgumentException("ALTER REPOSITORY: cannot set and reset properties at the same time");
+        }
         this.repository = repository;
         this.properties = genericProperties;
+        this.resetProperties = resetProperties;
     }
 
     public String repository() {
@@ -41,22 +52,26 @@ public class AlterRepository<T> extends Statement {
         return properties;
     }
 
+    public List<String> resetProperties() {
+        return resetProperties;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof AlterRepository<?> that)) {
             return false;
         }
-        AlterRepository<?> that = (AlterRepository<?>) o;
         return Objects.equals(repository, that.repository) &&
-               Objects.equals(properties, that.properties);
+               Objects.equals(properties, that.properties) &&
+               Objects.equals(resetProperties, that.resetProperties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(repository, properties);
+        return Objects.hash(repository, properties, resetProperties);
     }
 
     @Override
@@ -64,6 +79,7 @@ public class AlterRepository<T> extends Statement {
         return "AlterRepository{" +
                "repository=" + repository +
                ", properties=" + properties +
+               ", resetProperties=" + resetProperties +
                '}';
     }
 

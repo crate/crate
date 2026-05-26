@@ -24,9 +24,12 @@ package io.crate.planner.node.ddl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -83,7 +86,8 @@ public class AlterRepositoryPlanTest {
         var underTest = new AlterRepositoryPlan(
             new AnalyzedAlterRepository(
                 "repo-name",
-                new GenericProperties<>(Map.of("location", Literal.of("/tmp/data")))
+                new GenericProperties<>(Map.of("location", Literal.of("/tmp/data"))),
+                List.of()
             )
         );
 
@@ -102,9 +106,33 @@ public class AlterRepositoryPlanTest {
     }
 
     @Test
+    public void test_execute_or_fail_reset_property() throws Exception {
+        var underTest = new AlterRepositoryPlan(
+            new AnalyzedAlterRepository(
+                "repo-name",
+                GenericProperties.empty(),
+                List.of("reset-this-property")
+            )
+        );
+
+        when(repoService.getRepository("repo-name"))
+            .thenReturn(new RepositoryMetadata("repo-name", "dummy-type", Settings.EMPTY));
+        when(client.execute(
+            TransportAlterRepository.ACTION, new AlterRepositoryRequest("repo-name", List.of("reset-this-property"))
+        )).thenReturn(CompletableFuture.completedFuture(new AcknowledgedResponse(true)));
+
+        underTest.executeOrFail(dependencyCarrier, plannerCtx, rowConsumer, Row.EMPTY, SubQueryResults.EMPTY);
+
+        assertThat(rowConsumer.getResult()).hasSize(1);
+        assertThat(rowConsumer.getResult().getFirst()).hasSize(1);
+        // the number of rows changed
+        assertThat(rowConsumer.getResult().getFirst()[0]).isEqualTo(1L);
+    }
+
+    @Test
     public void test_execute_or_fail_missing_repository() {
         var underTest = new AlterRepositoryPlan(
-            new AnalyzedAlterRepository("repo-name", new GenericProperties<>(Map.of()))
+            new AnalyzedAlterRepository("repo-name", new GenericProperties<>(Map.of()), List.of())
         );
 
         assertThatThrownBy(() ->
@@ -116,13 +144,46 @@ public class AlterRepositoryPlanTest {
     @Test
     public void test_execute_or_fail_unsupported_property() {
         var underTest = new AlterRepositoryPlan(
-            new AnalyzedAlterRepository("repo-name", new GenericProperties<>(Map.of()))
+            new AnalyzedAlterRepository(
+                "repo-name",
+                new GenericProperties<>(Map.of("foo", Literal.of("bar"))),
+                List.of()
+            )
         );
 
         when(repoService.getRepository("repo-name"))
             .thenReturn(new RepositoryMetadata("repo-name", "dummy-type", Settings.EMPTY));
         doThrow(new IllegalArgumentException("invalid property"))
-            .when(repoParamValidator).validateSupportedOnly(any(), any());
+            .when(repoParamValidator).validateSupportedOnly(anyString(), any(GenericProperties.class));
+
+        assertThatThrownBy(() ->
+            underTest.executeOrFail(dependencyCarrier, plannerCtx, rowConsumer, Row.EMPTY, SubQueryResults.EMPTY)
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("invalid property");
+    }
+
+    @Test
+    public void test_reset_missing_repository() {
+        var underTest = new AlterRepositoryPlan(
+            new AnalyzedAlterRepository("repo-name", GenericProperties.empty(), List.of("foo"))
+        );
+
+        assertThatThrownBy(() ->
+            underTest.executeOrFail(dependencyCarrier, plannerCtx, rowConsumer, Row.EMPTY, SubQueryResults.EMPTY)
+        ).isExactlyInstanceOf(RepositoryMissingException.class)
+            .hasMessageContaining("[repo-name]");
+    }
+
+    @Test
+    public void test_reset_unsupported_property() {
+        var underTest = new AlterRepositoryPlan(
+            new AnalyzedAlterRepository("repo-name", GenericProperties.empty(), List.of("foo"))
+        );
+
+        when(repoService.getRepository("repo-name"))
+            .thenReturn(new RepositoryMetadata("repo-name", "dummy-type", Settings.EMPTY));
+        doThrow(new IllegalArgumentException("invalid property"))
+            .when(repoParamValidator).validateSupportedOnly(anyString(), anyList());
 
         assertThatThrownBy(() ->
             underTest.executeOrFail(dependencyCarrier, plannerCtx, rowConsumer, Row.EMPTY, SubQueryResults.EMPTY)
@@ -133,7 +194,7 @@ public class AlterRepositoryPlanTest {
     @Test
     public void test_execute_or_fail_min_node_version() {
         var underTest = new AlterRepositoryPlan(
-            new AnalyzedAlterRepository("repo-name", new GenericProperties<>(Map.of()))
+            new AnalyzedAlterRepository("repo-name", new GenericProperties<>(Map.of()), List.of())
         );
 
         when(plannerCtx.clusterState().nodes().getMinNodeVersion()).thenReturn(Version.V_6_3_2);

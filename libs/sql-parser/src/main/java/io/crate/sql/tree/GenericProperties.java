@@ -62,6 +62,10 @@ public class GenericProperties<T> extends Node implements Iterable<Entry<String,
         return (GenericProperties<T>) EMPTY;
     }
 
+    public static <T> boolean isNotEmpty(GenericProperties<T> properties) {
+        return properties != null && !properties.isEmpty();
+    }
+
     private final Map<String, T> properties;
 
     public GenericProperties(Map<String, T> map) {

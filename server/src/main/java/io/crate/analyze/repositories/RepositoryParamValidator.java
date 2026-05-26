@@ -21,6 +21,8 @@
 
 package io.crate.analyze.repositories;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -93,5 +95,17 @@ public class RepositoryParamValidator {
         }
 
         return typeSettings;
+    }
+
+    public void validateSupportedOnly(String type, List<String> properties) {
+        var supportedKeys = settingsForType(type)
+            .all()
+            .keySet();
+
+        for (String key : properties) {
+            if (!supportedKeys.contains(key)) {
+                throw new IllegalArgumentException("Setting '" + key + "' is not supported");
+            }
+        }
     }
 }
