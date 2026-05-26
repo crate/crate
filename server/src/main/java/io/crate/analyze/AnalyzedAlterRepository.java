@@ -27,7 +27,6 @@ import java.util.function.Consumer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.GenericProperties;
 
-// todo split?
 public record AnalyzedAlterRepository(String name, GenericProperties<Symbol> properties, List<String> resetProperties) implements DDLStatement {
 
     @Override
