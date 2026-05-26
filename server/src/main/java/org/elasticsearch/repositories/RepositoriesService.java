@@ -282,26 +282,23 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
     }
 
     private Settings patchRepositorySettings(RepositoryMetadata repoMeta, AlterRepositoryRequest req) {
-        var original = repoMeta.settings();
-        // Set properties
-        if (!req.settings().isEmpty()) {
-            return Settings.builder().put(original).put(req.settings()).build();
-        }
-
-        // Reset properties
-        // No need to check if those are required at this point,
-        // because the AlterRepositoryRequest has already been validated, and we will attempt
-        // to create a repository later on too.
-        if (!req.resetProperties().isEmpty()) {
-            var updated = Settings.builder().put(original);
-            req.resetProperties().forEach(updated::remove);
-            return updated.build();
-        }
-
-        // Reset all optional
+        var updated = Settings.builder().put(repoMeta.settings());
         Set<String> required = typesRegistry.get(repoMeta.type()).settings().required().keySet();
-        var updated = Settings.builder().put(original);
-        updated.keys().removeIf(prop -> !required.contains(prop));
+
+        // Set properties
+        // todo maybe handle `reset all`
+        for (String prop : req.settings().keySet()) {
+            String value = req.settings().get(prop);
+            if (value == null) {
+                if (required.contains(prop)) {
+                    throw new IllegalArgumentException("cannot reset required: " + prop);
+                }
+                updated.remove(prop);
+            } else {
+                updated.put(prop, value);
+            }
+        }
+
         return updated.build();
     }
 

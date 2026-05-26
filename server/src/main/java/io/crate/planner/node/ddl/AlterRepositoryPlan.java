@@ -129,9 +129,12 @@ public class AlterRepositoryPlan implements Plan {
         }
 
         repositoryParamValidator.validateCanReset(repository.type(), alterRepository.resetProperties());
+
+        var resetSettings = Settings.builder();
+        alterRepository.resetProperties().forEach(resetSettings::putNull);
         return new AlterRepositoryRequest(
             alterRepository.name(),
-            alterRepository.resetProperties()
+            resetSettings.build()
         );
 
     }

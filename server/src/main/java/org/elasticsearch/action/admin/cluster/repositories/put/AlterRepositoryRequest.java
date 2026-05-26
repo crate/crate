@@ -23,7 +23,6 @@ import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
 
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
@@ -43,25 +42,16 @@ public class AlterRepositoryRequest extends AcknowledgedRequest<AlterRepositoryR
 
     private final String name;
     private final Settings settings;
-    private final List<String> resetProperties;
 
     public AlterRepositoryRequest(String name, Settings settings) {
         this.name = name;
         this.settings = settings;
-        this.resetProperties = List.of();
-    }
-
-    public AlterRepositoryRequest(String name, List<String> resetProperties) {
-        this.name = name;
-        this.settings = Settings.EMPTY;
-        this.resetProperties = resetProperties;
     }
 
     public AlterRepositoryRequest(StreamInput in) throws IOException {
         super(in);
         name = in.readString();
         settings = readSettingsFromStream(in);
-        resetProperties = in.readStringList();
     }
 
     @Override
@@ -69,7 +59,6 @@ public class AlterRepositoryRequest extends AcknowledgedRequest<AlterRepositoryR
         super.writeTo(out);
         out.writeString(name);
         writeSettingsToStream(out, settings);
-        out.writeStringCollection(resetProperties);
     }
 
     public String name() {
@@ -80,16 +69,11 @@ public class AlterRepositoryRequest extends AcknowledgedRequest<AlterRepositoryR
         return this.settings;
     }
 
-    public List<String> resetProperties() {
-        return this.resetProperties;
-    }
-
     @Override
     public String toString() {
         return "AlterRepositoryRequest{" +
             "name=" + name + ";" +
             "settings=" + settings.toString() +
-            "resetProperties=" + resetProperties.toString() +
             '}';
     }
 
@@ -97,12 +81,11 @@ public class AlterRepositoryRequest extends AcknowledgedRequest<AlterRepositoryR
     public boolean equals(Object o) {
         if (!(o instanceof AlterRepositoryRequest that)) return false;
         return Objects.equals(name, that.name) &&
-            Objects.equals(settings, that.settings) &&
-            Objects.equals(resetProperties, that.resetProperties);
+            Objects.equals(settings, that.settings);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, settings, resetProperties);
+        return Objects.hash(name, settings);
     }
 }
