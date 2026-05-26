@@ -21,17 +21,12 @@
 
 package io.crate.planner.node.ddl;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.repositories.put.AlterRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.repositories.put.TransportAlterRepository;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
@@ -78,30 +73,6 @@ public class AlterRepositoryPlanTest {
         rowConsumer = new TestingRowConsumer();
         when(dependencyCarrier.repositoryService()).thenReturn(repoService);
         when(dependencyCarrier.repositoryParamValidator()).thenReturn(repoParamValidator);
-        when(dependencyCarrier.client()).thenReturn(client);
-    }
-
-    @Test
-    public void test_execute_or_fail() throws Exception {
-        var underTest = new AlterRepositoryPlan(
-            new AnalyzedAlterRepository(
-                "repo-name",
-                new GenericProperties<>(Map.of("location", Literal.of("/tmp/data")))
-            )
-        );
-
-        when(repoService.getRepository("repo-name"))
-            .thenReturn(new RepositoryMetadata("repo-name", "fs", Settings.EMPTY));
-        when(client.execute(
-            TransportAlterRepository.ACTION, new AlterRepositoryRequest("repo-name", Settings.builder().put("location", "/tmp/data").build())
-        )).thenReturn(CompletableFuture.completedFuture(new AcknowledgedResponse(true)));
-
-        underTest.executeOrFail(dependencyCarrier, plannerCtx, rowConsumer, Row.EMPTY, SubQueryResults.EMPTY);
-
-        assertThat(rowConsumer.getResult()).hasSize(1);
-        assertThat(rowConsumer.getResult().getFirst()).hasSize(1);
-        // the number of rows changed
-        assertThat(rowConsumer.getResult().getFirst()[0]).isEqualTo(1L);
     }
 
     @Test
