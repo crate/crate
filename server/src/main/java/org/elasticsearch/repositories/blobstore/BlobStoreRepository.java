@@ -961,7 +961,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                             throw new IOException("dummy");
                         }
                         LOGGER.info("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
-                        executeOneStaleIndexDelete(staleIndicesToDelete, listener);
                         return 1L;
                     } catch (IOException e) {
                         LOGGER.warn(() -> new ParameterizedMessage(
@@ -972,6 +971,14 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                         assert false : e;
                         LOGGER.warn(new ParameterizedMessage("[{}] Exception during single stale index delete", metadata.name()), e);
                         return 0L;
+                    } finally {
+                        // Initial loop starts max_workers recursive calls.
+                        // When stale_indices > max_workers and ALL recursion trees fail because of a storage backend issue
+                        // (for example, rate limiting on S3),
+                        // we can end up with unfinished MultiActionListener
+                        // as it's decremented only when we schedule next stale delete.
+                        executeOneStaleIndexDelete(staleIndicesToDelete, listener);
+
                     }
                 }));
             } else {

@@ -1198,13 +1198,14 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         }
 
         execute("DROP SNAPSHOT " + REPOSITORY_NAME + ".test_snapshot");
-        /*
+
+
         assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("select * from sys.snapshots where name = 'test_snapshot'");
         assertThat(response.rowCount()).isEqualTo(0L);
         assertAllRepoSnapshotFilesAreDeleted(defaultRepositoryLocation);
-        */
+
     }
 
     private void execute_statements_that_restore_tables_with_different_fqn(boolean partitioned) throws Exception {
