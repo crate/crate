@@ -55,8 +55,8 @@ public final class SQLLogicParser {
 
     SQLLogicParser() {}
 
-    /** Thrown when the actual cursor result does not match the expected one. */
-    public static final class IncorrectResultException extends RuntimeException {
+    /** Thrown when the actual result does not match the expected one. */
+    public static final class IncorrectResultException extends AssertionError {
 
         public IncorrectResultException(String message) {
             super(message);
