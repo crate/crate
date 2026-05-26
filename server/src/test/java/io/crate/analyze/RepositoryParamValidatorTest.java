@@ -23,8 +23,10 @@ package io.crate.analyze;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.fs.FsRepository;
 import org.elasticsearch.test.ESTestCase;
@@ -92,5 +94,28 @@ public class RepositoryParamValidatorTest extends ESTestCase {
                 "compress", Literal.of(false)
             ))
         );
+    }
+
+    @Test
+    public void test_validate_can_reset_optional() {
+        // single
+        validator.validateCanReset("fs", List.of("compress"));
+        // multiple
+        validator.validateCanReset("fs", FsRepository.optionalSettings().stream().map(Setting::getKey).toList());
+        // empty inputs
+        validator.validateCanReset("fs", List.of());
+    }
+
+    @Test
+    public void test_validate_can_reset_fails_with_required() {
+        // single required
+        assertThatThrownBy(() -> validator.validateCanReset("fs", List.of("location")))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The following required parameters are required for type \"fs\" and cannot be reset: [location]");
+
+        // required mixed with optional
+        assertThatThrownBy(() -> validator.validateCanReset("fs", List.of("compress", "location")))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The following required parameters are required for type \"fs\" and cannot be reset: [location]");
     }
 }

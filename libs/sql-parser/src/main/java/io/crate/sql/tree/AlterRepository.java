@@ -21,10 +21,11 @@
 
 package io.crate.sql.tree;
 
+import static io.crate.common.collections.CollectionUtils.isNotEmpty;
+import static io.crate.sql.tree.GenericProperties.isNotEmpty;
+
 import java.util.List;
 import java.util.Objects;
-
-import io.crate.common.collections.CollectionUtils;
 
 public class AlterRepository<T> extends Statement {
 
@@ -36,7 +37,7 @@ public class AlterRepository<T> extends Statement {
                            GenericProperties<T> genericProperties,
                            List<String> resetProperties) {
 
-        if (GenericProperties.isNotEmpty(genericProperties) && CollectionUtils.isNotEmpty(resetProperties)) {
+        if (isNotEmpty(genericProperties) && isNotEmpty(resetProperties)) {
             throw new IllegalArgumentException("ALTER REPOSITORY: cannot set and reset properties at the same time");
         }
         this.repository = repository;

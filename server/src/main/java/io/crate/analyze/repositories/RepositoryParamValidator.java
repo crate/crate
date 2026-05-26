@@ -106,9 +106,9 @@ public class RepositoryParamValidator {
             throw new IllegalArgumentException(
                 String.format(
                     Locale.ENGLISH,
-                    "The following required parameters are required for type \"%s\" and cannot be reset: [%s]",
+                    "The following required parameters are required for type \"%s\" and cannot be reset: %s",
                     type,
-                    String.join(", ", resetRequired))
+                    resetRequired)
             );
         }
     }
