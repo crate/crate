@@ -50,6 +50,6 @@ class AlterRepositoryAnalyzer {
         GenericProperties<Symbol> genericProperties = alterRepository.properties()
             .map(p -> exprAnalyzerWithFieldsAsString.convert(p, exprCtx));
 
-        return new AnalyzedAlterRepository(repositoryName, genericProperties, alterRepository.resetProperties());
+        return new AnalyzedAlterRepository(repositoryName, genericProperties);
     }
 }

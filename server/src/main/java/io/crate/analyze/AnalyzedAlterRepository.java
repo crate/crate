@@ -21,13 +21,13 @@
 
 package io.crate.analyze;
 
-import java.util.List;
 import java.util.function.Consumer;
 
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.GenericProperties;
 
-public record AnalyzedAlterRepository(String name, GenericProperties<Symbol> properties, List<String> resetProperties) implements DDLStatement {
+public record AnalyzedAlterRepository(String name, GenericProperties<Symbol> properties) implements DDLStatement {
 
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
@@ -37,5 +37,15 @@ public record AnalyzedAlterRepository(String name, GenericProperties<Symbol> pro
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitAlterRepositoryAnalyzedStatement(this, context);
+    }
+
+    public boolean isSet() {
+        // this is a reset
+        if (properties.isEmpty()) {
+            return false;
+        }
+
+        Symbol val = properties().iterator().next().getValue();
+        return Literal.NULL.equals(val);
     }
 }

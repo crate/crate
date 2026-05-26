@@ -24,7 +24,6 @@ package io.crate.planner.node.ddl;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
@@ -79,7 +78,7 @@ public class AlterRepositoryPlanTest {
     @Test
     public void test_execute_or_fail_missing_repository() {
         var underTest = new AlterRepositoryPlan(
-            new AnalyzedAlterRepository("repo-name", new GenericProperties<>(Map.of()), List.of())
+            new AnalyzedAlterRepository("repo-name", new GenericProperties<>(Map.of()))
         );
 
         assertThatThrownBy(() ->
@@ -93,8 +92,7 @@ public class AlterRepositoryPlanTest {
         var underTest = new AlterRepositoryPlan(
             new AnalyzedAlterRepository(
                 "repo-name",
-                new GenericProperties<>(Map.of("foo", Literal.of("bar"))),
-                List.of()
+                new GenericProperties<>(Map.of("foo", Literal.of("bar")))
             )
         );
 
@@ -110,7 +108,7 @@ public class AlterRepositoryPlanTest {
     @Test
     public void test_reset_missing_repository() {
         var underTest = new AlterRepositoryPlan(
-            new AnalyzedAlterRepository("repo-name", GenericProperties.empty(), List.of("foo"))
+            new AnalyzedAlterRepository("repo-name", GenericProperties.empty())
         );
 
         assertThatThrownBy(() ->
@@ -122,7 +120,7 @@ public class AlterRepositoryPlanTest {
     @Test
     public void test_reset_unsupported_property() {
         var underTest = new AlterRepositoryPlan(
-            new AnalyzedAlterRepository("repo-name", GenericProperties.empty(), List.of("invalid"))
+            new AnalyzedAlterRepository("repo-name", GenericProperties.empty())
         );
 
         when(repoService.getRepository("repo-name"))
@@ -137,7 +135,7 @@ public class AlterRepositoryPlanTest {
     @Test
     public void test_execute_or_fail_min_node_version() {
         var underTest = new AlterRepositoryPlan(
-            new AnalyzedAlterRepository("repo-name", new GenericProperties<>(Map.of()), List.of())
+            new AnalyzedAlterRepository("repo-name", new GenericProperties<>(Map.of()))
         );
 
         when(plannerCtx.clusterState().nodes().getMinNodeVersion()).thenReturn(Version.V_6_3_2);

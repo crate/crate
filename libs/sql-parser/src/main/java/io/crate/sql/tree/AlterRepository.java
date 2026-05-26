@@ -21,28 +21,16 @@
 
 package io.crate.sql.tree;
 
-import static io.crate.common.collections.CollectionUtils.isNotEmpty;
-import static io.crate.sql.tree.GenericProperties.isNotEmpty;
-
-import java.util.List;
 import java.util.Objects;
 
 public class AlterRepository<T> extends Statement {
 
     private final String repository;
     private final GenericProperties<T> properties;
-    private final List<String> resetProperties;
 
-    public AlterRepository(String repository,
-                           GenericProperties<T> genericProperties,
-                           List<String> resetProperties) {
-
-        if (isNotEmpty(genericProperties) && isNotEmpty(resetProperties)) {
-            throw new IllegalArgumentException("ALTER REPOSITORY: cannot set and reset properties at the same time");
-        }
+    public AlterRepository(String repository, GenericProperties<T> genericProperties) {
         this.repository = repository;
         this.properties = genericProperties;
-        this.resetProperties = resetProperties;
     }
 
     public String repository() {
@@ -51,10 +39,6 @@ public class AlterRepository<T> extends Statement {
 
     public GenericProperties<T> properties() {
         return properties;
-    }
-
-    public List<String> resetProperties() {
-        return resetProperties;
     }
 
     @Override
@@ -66,13 +50,12 @@ public class AlterRepository<T> extends Statement {
             return false;
         }
         return Objects.equals(repository, that.repository) &&
-               Objects.equals(properties, that.properties) &&
-               Objects.equals(resetProperties, that.resetProperties);
+               Objects.equals(properties, that.properties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(repository, properties, resetProperties);
+        return Objects.hash(repository, properties);
     }
 
     @Override
@@ -80,12 +63,21 @@ public class AlterRepository<T> extends Statement {
         return "AlterRepository{" +
                "repository=" + repository +
                ", properties=" + properties +
-               ", resetProperties=" + resetProperties +
                '}';
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitAlterRepository(this, context);
+    }
+
+    public boolean isSet() {
+        // this is a reset
+        if (properties.isEmpty()) {
+            return false;
+        }
+
+        var val = properties().iterator().next().getValue();
+        return !NullLiteral.INSTANCE.equals(val);
     }
 }

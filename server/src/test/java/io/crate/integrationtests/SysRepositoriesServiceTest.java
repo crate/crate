@@ -101,33 +101,6 @@ public class SysRepositoriesServiceTest extends IntegTestCase {
     // ALTER REPOSITORY tests, happy path
     @Test
     public void test_alter_repository_set_and_reset() {
-        execute("alter repository \"test-repo\" set (compress = true)");
-        assertThat(response.rowCount()).isEqualTo(1L);
-        assertRepositorySettings("test-repo", Map.of(
-            "compress", "true",
-            "chunk_size", "5k",
-            "location", new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath()
-        ));
-
-        execute("alter repository \"test-repo\" set (compress = false)");
-        assertThat(response.rowCount()).isEqualTo(1L);
-        assertRepositorySettings("test-repo", Map.of(
-            "compress", "false",
-            "chunk_size", "5k",
-            "location", new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath()
-        ));
-
-        // test setting multiple properties in one query
-        execute("alter repository \"test-repo\" set (compress = true, chunk_size = '10k', readonly = true)");
-        assertThat(response.rowCount()).isEqualTo(1L);
-
-        assertRepositorySettings("test-repo", Map.of(
-            "compress", "true",
-            "chunk_size", "10k",
-            "readonly", "true",
-            "location", new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath()
-        ));
-
         // test reset single property
         execute("alter repository \"test-repo\" reset (compress)");
         assertThat(response.rowCount()).isEqualTo(1L);

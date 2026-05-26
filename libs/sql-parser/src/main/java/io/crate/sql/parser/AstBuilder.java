@@ -643,18 +643,16 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     public Node visitAlterRepository(SqlBaseParser.AlterRepositoryContext context) {
         return new AlterRepository<>(
             getIdentText(context.name),
-            extractGenericProperties(context.genericProperties()),
-            List.of()
+            extractGenericProperties(context.genericProperties())
         );
     }
 
     @Override
     public Node visitAlterRepositoryReset(SqlBaseParser.AlterRepositoryResetContext ctx) {
-        return new AlterRepository<>(
-            getIdentText(ctx.name),
-            GenericProperties.empty(),
-            identsToStrings(ctx.resetIdents)
-        );
+        var resetProps = new HashMap<String, Literal>();
+        identsToStrings(ctx.resetIdents).forEach(resetProp -> resetProps.put(resetProp, NullLiteral.INSTANCE));
+
+        return new AlterRepository<>(getIdentText(ctx.name), new GenericProperties<>(resetProps));
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

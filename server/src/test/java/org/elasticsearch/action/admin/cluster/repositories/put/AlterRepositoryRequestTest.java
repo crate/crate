@@ -23,8 +23,6 @@ package org.elasticsearch.action.admin.cluster.repositories.put;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.jupiter.api.Test;
@@ -51,7 +49,7 @@ class AlterRepositoryRequestTest {
     void test_streaming_reset_properties() throws Exception {
         var request = new AlterRepositoryRequest(
             "dummy_repo",
-            List.of("foo", "bar")
+            Settings.builder().putNull("foo").putNull("bar").build()
         );
 
         BytesStreamOutput out = new BytesStreamOutput();

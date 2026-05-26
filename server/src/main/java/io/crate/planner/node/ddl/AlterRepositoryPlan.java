@@ -46,7 +46,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.sql.tree.GenericProperties;
 
 public class AlterRepositoryPlan implements Plan {
 
@@ -119,21 +118,18 @@ public class AlterRepositoryPlan implements Plan {
 
         // We have two "flavors" of AlterRepositoryRequest: one that sets properties and one that resets.
         // For both, we validate the properties and then build and return the request.
-        if (GenericProperties.isNotEmpty(alterRepository.properties())) {
-            var setProperties = alterRepository.properties().map(eval);
+        var setProperties = alterRepository.properties().map(eval);
+        if (alterRepository.isSet()) {
             repositoryParamValidator.validateSupportedOnly(repository.type(), setProperties);
-            return new AlterRepositoryRequest(
-                alterRepository.name(),
-                Settings.builder().put(setProperties).build()
-            );
+        } else {
+            repositoryParamValidator.validateCanReset(repository.type(), setProperties.keys());
+
         }
 
-        repositoryParamValidator.validateCanReset(repository.type(), alterRepository.resetProperties());
         return new AlterRepositoryRequest(
             alterRepository.name(),
-            alterRepository.resetProperties()
+            Settings.builder().put(setProperties).build()
         );
-
     }
 
 }

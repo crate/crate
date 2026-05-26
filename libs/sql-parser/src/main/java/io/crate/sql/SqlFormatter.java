@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
 
 import org.jspecify.annotations.Nullable;
 
-import io.crate.common.collections.CollectionUtils;
 import io.crate.common.collections.Lists;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
@@ -76,7 +75,6 @@ import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateTableAs;
 import io.crate.sql.tree.CreateTableLike;
 import io.crate.sql.tree.CreateUserMapping;
-import io.crate.sql.tree.LikeOption;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.DefaultConstraint;
@@ -117,6 +115,7 @@ import io.crate.sql.tree.JoinCriteria;
 import io.crate.sql.tree.JoinOn;
 import io.crate.sql.tree.JoinType;
 import io.crate.sql.tree.JoinUsing;
+import io.crate.sql.tree.LikeOption;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.NaturalJoin;
 import io.crate.sql.tree.Node;
@@ -1362,13 +1361,13 @@ public final class SqlFormatter {
             builder.append("ALTER REPOSITORY ")
                 .append(quoteIdentifierIfNeeded(node.repository()));
 
-            if (GenericProperties.isNotEmpty(node.properties())) {
+            if (node.isSet()) {
                 builder.append(" SET (");
                 appendProperties(node.properties(), indent);
                 builder.append(")");
-            } else if (CollectionUtils.isNotEmpty(node.resetProperties())) {
+            } else if (!node.properties().isEmpty()) {
                 builder.append(" RESET (")
-                    .append(String.join(",", node.resetProperties()))
+                    .append(String.join(",", node.properties().keys()))
                     .append(")");
             } else {
                 builder.append(" RESET ALL");

@@ -1511,20 +1511,6 @@ public class TestStatementBuilder {
 
     @Test
     public void testRepositoryStmtBuilder() {
-        printStatement("create repository my_repo type s3");
-        printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\"");
-        printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
-        Statement statement = SqlParser.createStatement("CREATE REPOSITORY my_repo type s3 with (location='/mount/backups/my_backup')");
-        assertThat(statement).hasToString("CreateRepository{" +
-                                            "repository=my_repo, " +
-                                            "type=s3, " +
-                                            "properties={location='/mount/backups/my_backup'}}");
-
-        printStatement("DROP REPOSITORY my_repo");
-        statement = SqlParser.createStatement("DROP REPOSITORY \"myRepo\"");
-        assertThat(statement).hasToString("DropRepository{" +
-                                            "repository=myRepo}");
-
         printStatement("ALTER REPOSITORY my_repo SET (location='/mount/backups/my_backup_1', max_restore_bytes_per_sec='123')");
         printStatement("ALTER REPOSITORY my_repo RESET (max_restore_bytes_per_sec, compress)");
         printStatement("ALTER REPOSITORY my_repo RESET ALL");

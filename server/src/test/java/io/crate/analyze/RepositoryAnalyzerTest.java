@@ -26,7 +26,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
@@ -50,6 +49,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.CreateRepositoryPlan;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.NullLiteral;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -147,8 +147,8 @@ public class RepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_alter_repository_reset_properties() {
         AnalyzedAlterRepository statement = analyze(e, "ALTER REPOSITORY my_repo RESET (compress)");
         assertThat(statement.name()).isEqualTo("my_repo");
-        assertThat(statement.properties()).isEmpty();
-        assertThat(statement.resetProperties()).isEqualTo(List.of("compress"));
+        assertThat(statement.properties().toMap(HashMap::new))
+            .isEqualTo(Map.of("compress", NullLiteral.INSTANCE));
     }
 
     @Test
@@ -156,6 +156,5 @@ public class RepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedAlterRepository statement = analyze(e, "ALTER REPOSITORY my_repo RESET ALL");
         assertThat(statement.name()).isEqualTo("my_repo");
         assertThat(statement.properties()).isEmpty();
-        assertThat(statement.resetProperties()).isEmpty();
     }
 }
