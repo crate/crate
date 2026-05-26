@@ -23,38 +23,24 @@ package org.elasticsearch.action.admin.cluster.repositories.put;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class PutRepositoryRequestTest extends ESTestCase {
+class AlterRepositoryRequestTest {
 
     @Test
-    public void test_streaming() throws Exception {
-        PutRepositoryRequest request = new PutRepositoryRequest(
+    void test_streaming() throws Exception {
+        var request = new AlterRepositoryRequest(
             "dummy_repo",
-            "dummy_type",
             Settings.builder().put("foo", "bar").build()
         );
 
-
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
-        PutRepositoryRequest actual = new PutRepositoryRequest(out.bytes().streamInput());
-        assertThat(actual.name()).isEqualTo(request.name());
-        assertThat(actual.type()).isEqualTo(request.type());
-        assertThat(actual.settings()).isEqualTo(request.settings());
 
-        out = new BytesStreamOutput();
-        out.setVersion(Version.V_6_3_2);
-        request.writeTo(out);
-        var in = out.bytes().streamInput();
-        in.setVersion(Version.V_6_3_2);
-        actual = new PutRepositoryRequest(in);
+        var actual = new AlterRepositoryRequest(out.bytes().streamInput());
         assertThat(actual.name()).isEqualTo(request.name());
-        assertThat(actual.type()).isEqualTo(request.type());
         assertThat(actual.settings()).isEqualTo(request.settings());
     }
 }

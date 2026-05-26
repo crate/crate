@@ -21,14 +21,12 @@
 
 package io.crate.analyze.repositories;
 
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.common.collections.Sets;
@@ -43,21 +41,22 @@ public class RepositoryParamValidator {
         typeSettings = repositoryTypeSettings;
     }
 
-    public void validate(String type, GenericProperties<?> genericProperties, Settings settings) {
+    /**
+     * Validates the provided {@code settings} for the given repository {@code type}.
+     * <p>
+     * Ensures that only supported keys are present and that no required properties are missing.
+     * Throws an exception if either condition is violated.
+     *
+     * @param type     the repository type used to determine supported and required settings
+     * @param settings the settings to validate
+     * @throws IllegalArgumentException if unsupported keys are present or required settings are missing
+     */
+    public void validate(String type, Settings settings) {
+        // make sure only supported keys are present
+        validateSupportedOnly(type, new GenericProperties<>(settings.getAsStructuredMap()));
+
+        // make sure no required properties are missing
         TypeSettings typeSettings = settingsForType(type);
-        Map<String, Setting<?>> allSettings = typeSettings.all();
-
-        // create string settings for all dynamic settings
-        GenericProperties<?> dynamicProperties = typeSettings.dynamicProperties(genericProperties);
-        if (!dynamicProperties.isEmpty()) {
-            // allSettings are immutable by default, copy map
-            allSettings = new HashMap<>(allSettings);
-            for (String key : dynamicProperties.keys()) {
-                allSettings.put(key, Setting.simpleString(key));
-            }
-        }
-
-        // validate all settings
         Set<String> names = settings.keySet();
         Set<String> missingRequiredSettings = Sets.difference(typeSettings.required().keySet(), names);
         if (!missingRequiredSettings.isEmpty()) {
@@ -69,6 +68,22 @@ public class RepositoryParamValidator {
                     String.join(", ", missingRequiredSettings))
             );
         }
+    }
+
+    /**
+     * Validates that the provided {@code properties} contain only supported keys for the given {@code type}.
+     * The method is useful in contexts where an object is updated. To check if required properties are present
+     * use {@link #validate(String, Settings)}.
+     *
+     * @param type          the type whose supported keys are checked against
+     * @param properties    the properties map to validate
+     * @throws IllegalArgumentException if unsupported properties are found
+     */
+    public void validateSupportedOnly(String type, GenericProperties<Object> properties) {
+        var supportedKeys = settingsForType(type)
+            .all()
+            .keySet();
+        properties.ensureContainsOnly(supportedKeys);
     }
 
     public TypeSettings settingsForType(String type) {

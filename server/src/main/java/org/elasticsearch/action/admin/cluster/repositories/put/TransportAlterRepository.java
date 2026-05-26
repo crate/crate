@@ -36,14 +36,14 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 /**
- * Transport action for register repository operation
+ * A transport action for altering a repository.
  */
-public class TransportPutRepository extends TransportMasterNodeAction<PutRepositoryRequest, AcknowledgedResponse> {
+public class TransportAlterRepository extends TransportMasterNodeAction<AlterRepositoryRequest, AcknowledgedResponse> {
 
     public static final Action ACTION = new Action();
 
     public static class Action extends ActionType<AcknowledgedResponse> {
-        private static final String NAME = "cluster:admin/repository/put";
+        private static final String NAME = "cluster:admin/repository/alter";
 
         private Action() {
             super(NAME);
@@ -53,11 +53,11 @@ public class TransportPutRepository extends TransportMasterNodeAction<PutReposit
     private final RepositoriesService repositoriesService;
 
     @Inject
-    public TransportPutRepository(TransportService transportService,
-                                  ClusterService clusterService,
-                                  RepositoriesService repositoriesService,
-                                  ThreadPool threadPool) {
-        super(ACTION.name(), transportService, clusterService, threadPool, PutRepositoryRequest::new);
+    public TransportAlterRepository(TransportService transportService,
+                                    ClusterService clusterService,
+                                    RepositoriesService repositoriesService,
+                                    ThreadPool threadPool) {
+        super(ACTION.name(), transportService, clusterService, threadPool, AlterRepositoryRequest::new);
         this.repositoriesService = repositoriesService;
     }
 
@@ -72,17 +72,15 @@ public class TransportPutRepository extends TransportMasterNodeAction<PutReposit
     }
 
     @Override
-    protected ClusterBlockException checkBlock(PutRepositoryRequest request, ClusterState state) {
+    protected ClusterBlockException checkBlock(AlterRepositoryRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 
     @Override
-    protected void masterOperation(final PutRepositoryRequest request,
+    protected void masterOperation(final AlterRepositoryRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) {
-        repositoriesService.createRepository(request)
-            .thenApply(resp -> new AcknowledgedResponse(resp.isAcknowledged()))
-            .whenComplete(listener);
+        repositoriesService.alterRepository(request).whenComplete(listener);
     }
 }
 

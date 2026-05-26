@@ -23,7 +23,9 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.INVALID_OBJECT_DEFINITION;
 import static io.crate.rest.action.HttpErrorStatus.GENERIC_NOT_FOUND;
+import static io.crate.rest.action.HttpErrorStatus.RESTORE_SCHEMA_INCOMPATIBLE;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
@@ -1355,6 +1357,81 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
         assertThat(response.rows()[0][0]).isEqualTo(state.name());
         assertThat(response.rows()[0][1]).isEqualTo(1);
+    }
+
+    /**
+     * Reproducer from https://github.com/crate/crate/issues/18965 - a partition restore
+     * into a table whose column type differs from the snapshot used to succeed silently
+     * and corrupt the table; now it must reject at restore time with a clear error.
+     */
+    @Test
+    public void test_restore_partition_into_incompatible_schema_is_rejected() {
+        execute("CREATE TABLE doc.t (id INT, p INT, a INT) PARTITIONED BY (p)");
+        execute("INSERT INTO doc.t (id, p, a) VALUES (1, 1, 100)");
+        execute("REFRESH TABLE doc.t");
+        execute("CREATE SNAPSHOT " + snapshotName() +
+                " TABLE doc.t PARTITION (p=1) WITH (wait_for_completion=true)");
+
+        execute("DROP TABLE doc.t");
+        execute("CREATE TABLE doc.t (id INT, p INT, a TEXT) PARTITIONED BY (p)");
+
+        Asserts.assertSQLError(() ->
+                execute("RESTORE SNAPSHOT " + snapshotName() +
+                        " TABLE doc.t PARTITION (p=1) WITH (wait_for_completion=true)"))
+            .hasPGError(INVALID_OBJECT_DEFINITION)
+            .hasHTTPError(CONFLICT, RESTORE_SCHEMA_INCOMPATIBLE.errorCode())
+            .hasMessageContaining("cannot restore relation [doc.t]")
+            .hasMessageContaining("column [a] type mismatch - snapshot: [integer], target: [text]");
+
+        // Recreated table is untouched by the failed restore - no corruption.
+        execute("SELECT count(*) FROM doc.t");
+        assertThat(response).hasRows("0");
+    }
+
+    /**
+     * Happy-path coverage for partition restore - bundled to keep IT count minimal.
+     * Exercises every metadata element the validator checks in a single restore:
+     * <ul>
+     *   <li>PRIMARY KEY (multi-column)</li>
+     *   <li>CLUSTERED BY</li>
+     *   <li>PARTITIONED BY</li>
+     *   <li>Extra nullable column on target that is not in the snapshot
+     *       (verifies Change C - target's nullable extras survive the
+     *       restoreRelation overwrite)</li>
+     *   <li>Post-restore SELECT returns the snapshot row with NULL for the extra</li>
+     *   <li>Post-restore INSERT writes to the preserved extra column</li>
+     * </ul>
+     */
+    @Test
+    public void test_restore_partition_into_compatible_schema_succeeds() {
+        execute("CREATE TABLE doc.t (id INT, p INT, a INT, " +
+                "PRIMARY KEY (id, p)) " +
+                "CLUSTERED BY (id) PARTITIONED BY (p)");
+        execute("INSERT INTO doc.t (id, p, a) VALUES (1, 1, 100)");
+        execute("REFRESH TABLE doc.t");
+        execute("CREATE SNAPSHOT " + snapshotName() +
+                " TABLE doc.t PARTITION (p=1) WITH (wait_for_completion=true)");
+
+        execute("DROP TABLE doc.t");
+        // Recreate with identical PK + CLUSTERED BY + PARTITIONED BY plus an
+        // extra nullable column b that the snapshot doesn't have.
+        execute("CREATE TABLE doc.t (id INT, p INT, a INT, b TEXT, " +
+                "PRIMARY KEY (id, p)) " +
+                "CLUSTERED BY (id) PARTITIONED BY (p)");
+
+        execute("RESTORE SNAPSHOT " + snapshotName() +
+                " TABLE doc.t PARTITION (p=1) WITH (wait_for_completion=true)");
+        execute("REFRESH TABLE doc.t");
+
+        // Restored row has the original a, and NULL for the extra column b.
+        execute("SELECT id, a, b FROM doc.t WHERE p = 1");
+        assertThat(response).hasRows("1| 100| NULL");
+
+        // Extra column b is preserved in the relation - must still be writable.
+        execute("INSERT INTO doc.t (id, p, a, b) VALUES (2, 1, 200, 'hello')");
+        execute("REFRESH TABLE doc.t");
+        execute("SELECT id, a, b FROM doc.t WHERE p = 1 ORDER BY id");
+        assertThat(response).hasRows("1| 100| NULL", "2| 200| hello");
     }
 
     private static void assertAllRepoSnapshotFilesAreDeleted(File location) throws IOException {

@@ -21,11 +21,9 @@
 
 package io.crate.planner.node.ddl;
 
-import java.util.Map;
 import java.util.function.Function;
 
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.AnalyzedCreateRepository;
@@ -43,7 +41,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-
 
 public class CreateRepositoryPlan implements Plan {
 
@@ -93,17 +90,14 @@ public class CreateRepositoryPlan implements Plan {
         );
 
         var genericProperties = createRepository.properties().map(eval);
-        Map<String, Setting<?>> supportedSettings = repositoryParamValidator.settingsForType(createRepository.type()).all();
-        genericProperties.ensureContainsOnly(supportedSettings.keySet());
         var settings = Settings.builder().put(genericProperties).build();
 
-        repositoryParamValidator.validate(
-            createRepository.type(), createRepository.properties(), settings);
+        repositoryParamValidator.validate(createRepository.type(), settings);
 
-        PutRepositoryRequest request = new PutRepositoryRequest(createRepository.name());
-        request.type(createRepository.type());
-        request.settings(settings);
-
-        return request;
+        return new PutRepositoryRequest(
+            createRepository.name(),
+            createRepository.type(),
+            settings
+        );
     }
 }

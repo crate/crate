@@ -35,6 +35,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.analyze.AnalyzedAlterRepository;
 import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.analyze.AnalyzedAlterServer;
 import io.crate.analyze.AnalyzedAlterTable;
@@ -118,6 +119,7 @@ import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.consumer.CreateTableAsPlan;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
+import io.crate.planner.node.ddl.AlterRepositoryPlan;
 import io.crate.planner.node.ddl.AlterRolePlan;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
 import io.crate.planner.node.ddl.AlterTableAlterColumnDefaultPlan;
@@ -357,6 +359,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     protected Plan visitCreateRepositoryAnalyzedStatement(AnalyzedCreateRepository analysis,
                                                           PlannerContext context) {
         return new CreateRepositoryPlan(analysis);
+    }
+
+    @Override
+    protected Plan visitAlterRepositoryAnalyzedStatement(AnalyzedAlterRepository analysis,
+                                                         PlannerContext context) {
+        return new AlterRepositoryPlan(analysis);
     }
 
     @Override

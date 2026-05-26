@@ -14,7 +14,7 @@ register a new repository that you can use to create, manage, and restore
 .. SEEALSO::
 
     :ref:`DROP REPOSITORY <sql-drop-repository>`
-
+    :ref:`ALTER REPOSITORY <sql-alter-repository>`
 
 .. _sql-create-repo-synopsis:
 
@@ -65,22 +65,9 @@ Parameters
 **type**
   The :ref:`repository type <sql-create-repo-types>`.
 
-.. CAUTION::
+.. NOTE::
 
-    You cannot change any repository parameters after creating the repository
-    (including parameters set by the :ref:`WITH <sql-create-repo-with>`
-    clause).
-
-    Suppose you want to use new parameters for an existing repository. In that
-    case, you must first drop the repository using the :ref:`DROP REPOSITORY
-    <sql-drop-repository>` statement and then recreate it with a new ``CREATE
-    REPOSITORY`` statement.
-
-    When you drop a repository, CrateDB deletes the corresponding record from
-    :ref:`sys.repositories <sys-repositories>` but does not delete any
-    snapshots from the corresponding backend data storage. If you create a new
-    repository using the same backend data storage, any existing snapshots will
-    become available again.
+    Properties can be changed post-creation with :ref:`ALTER REPOSITORY <sql-alter-repository>`
 
 
 .. _sql-create-repo-clauses:

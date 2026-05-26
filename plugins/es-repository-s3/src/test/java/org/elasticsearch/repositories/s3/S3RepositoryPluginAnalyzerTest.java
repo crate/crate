@@ -105,7 +105,6 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
         properties.put("base_path", "/data");
         properties.put("bucket", "myBucket");
         properties.put("buffer_size", "5mb");
-        properties.put("canned_acl", "cannedACL");
         properties.put("chunk_size", "4g");
         properties.put("compress", "true");
         properties.put("endpoint", "myEndpoint");
@@ -115,12 +114,8 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
         properties.put("server_side_encryption", "false");
         properties.put("storage_class", "standard_ia");
         GenericProperties<Object> genericProperties = new GenericProperties<>(properties);
-        repositoryParamValidator.validate(
-            "s3",
-            genericProperties,
-            Settings.builder().put(genericProperties).build());
+        repositoryParamValidator.validate("s3", Settings.builder().put(genericProperties).build());
     }
-
 
     @Test
     public void testCreateS3RepoWithWrongSettings() {

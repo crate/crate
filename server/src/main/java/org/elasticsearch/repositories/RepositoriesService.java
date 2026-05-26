@@ -36,7 +36,9 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
+import org.elasticsearch.action.admin.cluster.repositories.put.AlterRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -56,10 +58,12 @@ import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.io.IOUtils;
 import io.crate.concurrent.FutureActionListener;
+import io.crate.exceptions.RepositoryAlreadyExistsException;
 
 /**
  * Service responsible for maintaining and providing access to snapshot repositories on nodes.
@@ -96,7 +100,7 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
     }
 
     /**
-     * Registers new repository in the cluster
+     * Creates a new repository in the cluster.
      * <p>
      * This method can be only called on the master node. It tries to create a new repository on the master
      * and if it was successful it adds new repository to cluster metadata.
@@ -104,11 +108,11 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
      * @param request  register repository request
      * @return
      */
-    public CompletableFuture<ClusterStateUpdateResponse> registerRepository(final PutRepositoryRequest request) {
+    public CompletableFuture<ClusterStateUpdateResponse> createRepository(final PutRepositoryRequest request) {
         assert lifecycle.started() : "Trying to register new repository but service is in state [" + lifecycle.state() + "]";
 
         final RepositoryMetadata newRepositoryMetadata = new RepositoryMetadata(request.name(), request.type(), request.settings());
-        AckedClusterStateUpdateTask<ClusterStateUpdateResponse> updateTask = new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request) {
+        AckedClusterStateUpdateTask<ClusterStateUpdateResponse> updateTask = new AckedClusterStateUpdateTask<>(request) {
 
             @Override
             protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
@@ -117,45 +121,16 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
 
             @Override
             public ClusterState execute(ClusterState currentState) throws IOException {
-                ensureRepositoryNotInUse(currentState, request.name());
-                // Trying to create the new repository on master to make sure it works
-                if (!registerRepository(newRepositoryMetadata)) {
-                    // The new repository has the same settings as the old one - ignore
-                    return currentState;
-                }
-                Metadata metadata = currentState.metadata();
-                Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
-                RepositoriesMetadata repositories = metadata.custom(RepositoriesMetadata.TYPE);
-                if (repositories == null) {
-                    LOGGER.info("put repository [{}]", request.name());
-                    repositories = new RepositoriesMetadata(
-                        Collections.singletonList(new RepositoryMetadata(request.name(), request.type(), request.settings())));
-                } else {
-                    boolean found = false;
-                    List<RepositoryMetadata> repositoriesMetadata = new ArrayList<>(repositories.repositories().size() + 1);
+                RepositoriesMetadata existingRepos = currentState.metadata().custom(RepositoriesMetadata.TYPE);
+                ensureRepositoryDoesNotExist(existingRepos, request.name());
 
-                    for (RepositoryMetadata repositoryMetadata : repositories.repositories()) {
-                        if (repositoryMetadata.name().equals(newRepositoryMetadata.name())) {
-                            if (newRepositoryMetadata.equalsIgnoreGenerations(repositoryMetadata)) {
-                                // Previous version is the same as this one no update is needed.
-                                return currentState;
-                            }
-                            found = true;
-                            repositoriesMetadata.add(newRepositoryMetadata);
-                        } else {
-                            repositoriesMetadata.add(repositoryMetadata);
-                        }
-                    }
-                    if (!found) {
-                        LOGGER.info("put repository [{}]", request.name());
-                        repositoriesMetadata.add(new RepositoryMetadata(request.name(), request.type(), request.settings()));
-                    } else {
-                        LOGGER.info("update repository [{}]", request.name());
-                    }
-                    repositories = new RepositoriesMetadata(repositoriesMetadata);
-                }
-                mdBuilder.putCustom(RepositoriesMetadata.TYPE, repositories);
-                return ClusterState.builder(currentState).metadata(mdBuilder).build();
+                // Trying to create the new repository on master node to make sure it works.
+                tryCreateRepo(newRepositoryMetadata);
+
+                var updatedMeta = Metadata.builder(currentState.metadata())
+                    .putCustom(RepositoriesMetadata.TYPE, createRepository(existingRepos, newRepositoryMetadata))
+                    .build();
+                return ClusterState.builder(currentState).metadata(updatedMeta).build();
             }
 
             @Override
@@ -182,6 +157,143 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
                 return CompletableFuture.completedFuture(response);
             }
         });
+    }
+
+    private void ensureRepositoryDoesNotExist(RepositoriesMetadata repositories, String name) {
+        if (repositories == null || repositories.repositories() == null) {
+            return;
+        }
+
+        for (RepositoryMetadata r : repositories.repositories()) {
+            if (r.name().equals(name)) {
+                throw new RepositoryAlreadyExistsException(name);
+            }
+        }
+    }
+
+    private Metadata.Custom createRepository(@Nullable RepositoriesMetadata existingRepos, RepositoryMetadata newRepositoryMetadata) {
+        LOGGER.info("creating new repository metadata [{}]", newRepositoryMetadata.name());
+        if (existingRepos == null) {
+            return new RepositoriesMetadata(Collections.singletonList(newRepositoryMetadata));
+        }
+
+        List<RepositoryMetadata> withNewRepo = new ArrayList<>(existingRepos.repositories().size() + 1);
+        withNewRepo.addAll(existingRepos.repositories());
+        withNewRepo.add(newRepositoryMetadata);
+
+        return new RepositoriesMetadata(withNewRepo);
+    }
+
+    public CompletableFuture<AcknowledgedResponse> alterRepository(final AlterRepositoryRequest request) {
+        assert lifecycle.started() : "Trying to alter repository but service is in state [" + lifecycle.state() + "]";
+
+        AckedClusterStateUpdateTask<ClusterStateUpdateResponse> updateTask = new AckedClusterStateUpdateTask<>(request) {
+
+            @Override
+            protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
+                return new ClusterStateUpdateResponse(acknowledged);
+            }
+
+            @Override
+            public ClusterState execute(ClusterState currentState) {
+                // check if repository exists and is not being used
+                var _ = repository(request.name());
+                ensureRepositoryNotInUse(currentState, request.name());
+
+                // try updating metadata, fail if repository not found
+                RepositoriesMetadata repositories = currentState.metadata().custom(RepositoriesMetadata.TYPE);
+                var updatedRepos = updateRepository(repositories.repositories(), request.name(), request.settings());
+                if (repositories.repositories() == updatedRepos) {
+                    LOGGER.info("request to alter repository [{}] produced no change", request.name());
+                    return currentState;
+                }
+
+                // update and return cluster metadata
+                LOGGER.info("alter repository [{}]", request.name());
+                Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata())
+                    .putCustom(RepositoriesMetadata.TYPE, new RepositoriesMetadata(updatedRepos));
+                return ClusterState.builder(currentState).metadata(mdBuilder).build();
+            }
+
+            @Override
+            public void onFailure(String source, Exception e) {
+                LOGGER.warn("failed to alter repository [{}]", request.name(), e);
+                super.onFailure(source, e);
+            }
+
+            @Override
+            public boolean mustAck(DiscoveryNode discoveryNode) {
+                // repository is updated on both master and data nodes
+                return discoveryNode.isMasterEligibleNode() || discoveryNode.isDataNode();
+            }
+        };
+        clusterService.submitStateUpdateTask("alter_repository [" + request.name() + "]", updateTask);
+
+        return updateTask.completionFuture().thenCompose(response -> {
+            if (response.isAcknowledged()) {
+                // The response was acknowledged - all nodes should know about the updated repository, let's verify them
+                FutureActionListener<List<DiscoveryNode>> listener = new FutureActionListener<>();
+                verifyRepository(request.name(), listener);
+                return listener.thenApply(ignored -> new AcknowledgedResponse(true));
+            } else {
+                return CompletableFuture.completedFuture(new AcknowledgedResponse(false));
+            }
+        });
+    }
+
+    /**
+     * Updates the repository with {@code name} in the provided list of repositories,
+     * patching it with {@code newSettings}.
+     * <p>
+     * Validates the updated metadata by creating a temporary {@link Repository} object.
+     *
+     * @param repositories      the list of repositories to update
+     * @param name              the name of the repository to update
+     * @param newSettings       the settings to patch onto the existing repository configuration
+     * @return the updated list if the repository metadata changed, or the original list if nothing changed
+     */
+    private List<RepositoryMetadata> updateRepository(List<RepositoryMetadata> repositories, String name, Settings newSettings) {
+        boolean found = false;
+        RepositoryMetadata updatedMeta;
+
+        List<RepositoryMetadata> updatedRepos = new ArrayList<>(repositories.size());
+        for (var repoMeta : repositories) {
+            if (!repoMeta.name().equals(name)) {
+                updatedRepos.add(repoMeta);
+                continue;
+            }
+
+            found = true;
+            var settings = Settings.builder().put(repoMeta.settings()).put(newSettings).build();
+            if (settings.equals(repoMeta.settings())) {
+                return repositories;
+            }
+
+            updatedMeta = new RepositoryMetadata(repoMeta.name(), repoMeta.type(), settings);
+            tryCreateRepo(updatedMeta);
+            updatedRepos.add(updatedMeta);
+        }
+
+        if (!found) {
+            LOGGER.error("alter repository [{}] requested, but repository has not been found", name);
+            throw new RepositoryMissingException(name);
+        }
+
+        return updatedRepos;
+    }
+
+    // Tries to create a repository using the given metadata.
+    // The repository is closed immediately after being created, and not persisted anywhere.
+    // The method is useful for checking if the metadata can indeed be used to create a repository when needed.
+    private void tryCreateRepo(RepositoryMetadata meta) {
+        try (var _ = createRepository(meta)) {
+            // Intentionally empty block (see method's documentation).
+            // If the repository's `close()` method throws an exception, we let the exception be re-thrown,
+            // since it's likely that something is wrong with the metadata.
+        } catch (Exception e) {
+            LOGGER.warn("failed validating metadata for repository [{}]", meta.name(), e);
+            throw e;
+        }
     }
 
     /**
@@ -378,7 +490,7 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
     }
 
     /**
-     * Returns registered repository
+     * Returns registered repository.
      * <p>
      * This method is called only on the master node
      *
@@ -391,40 +503,13 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
         if (repository != null) {
             return repository;
         }
+
         repository = internalRepositories.get(repositoryName);
         if (repository != null) {
             return repository;
         }
-        throw new RepositoryMissingException(repositoryName);
-    }
 
-    /**
-     * Creates a new repository and adds it to the list of registered repositories.
-     * <p>
-     * If a repository with the same name but different types or settings already exists, it will be closed and
-     * replaced with the new repository. If a repository with the same name exists but it has the same type and settings
-     * the new repository is ignored.
-     *
-     * @param repositoryMetadata new repository metadata
-     * @return {@code true} if new repository was added or {@code false} if it was ignored
-     */
-    private boolean registerRepository(RepositoryMetadata repositoryMetadata) throws IOException {
-        Repository previous = repositories.get(repositoryMetadata.name());
-        if (previous != null) {
-            RepositoryMetadata previousMetadata = previous.getMetadata();
-            if (previousMetadata.equals(repositoryMetadata)) {
-                // Previous version is the same as this one - ignore it
-                return false;
-            }
-        }
-        Repository newRepo = createRepository(repositoryMetadata);
-        if (previous != null) {
-            closeRepository(previous);
-        }
-        Map<String, Repository> newRepositories = new HashMap<>(repositories);
-        newRepositories.put(repositoryMetadata.name(), newRepo);
-        repositories = newRepositories;
-        return true;
+        throw new RepositoryMissingException(repositoryName);
     }
 
     public void registerInternalRepository(String name, String type) {
@@ -477,9 +562,12 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
             throw e;
         } catch (Exception e) {
             IOUtils.closeWhileHandlingException(repository);
-            LOGGER.warn(new ParameterizedMessage("failed to create repository [{}][{}]",
-                repositoryMetadata.type(), repositoryMetadata.name()), e);
-            throw new RepositoryException(repositoryMetadata.name(), "failed to create repository", e);
+            LOGGER.warn("failed to create repository [{}][{}]", repositoryMetadata.type(), repositoryMetadata.name(), e);
+            throw new RepositoryException(
+                repositoryMetadata.name(),
+                "failed to create repository: " + e.getMessage(),
+                e
+            );
         }
     }
 

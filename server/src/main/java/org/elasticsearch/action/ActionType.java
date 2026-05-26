@@ -59,4 +59,9 @@ public class ActionType<Response extends TransportResponse> {
     public int hashCode() {
         return name.hashCode();
     }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

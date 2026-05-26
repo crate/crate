@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
@@ -44,13 +45,14 @@ import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.analyze.repositories.TypeSettings;
 import io.crate.data.Row;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
+import io.crate.expression.symbol.Literal;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.CreateRepositoryPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
-public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTest {
+public class RepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
     private PlannerContext plannerContext;
@@ -90,6 +92,8 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
                 repositoryParamValidator);
         } else if (analyzedStatement instanceof AnalyzedDropRepository) {
             return (S) analyzedStatement;
+        } else if (analyzedStatement instanceof AnalyzedAlterRepository) {
+            return (S) analyzedStatement;
         } else {
             throw new AssertionError("Statement of type " + analyzedStatement.getClass() + " not supported");
         }
@@ -128,5 +132,13 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
     public void testDropExistingRepo() {
         AnalyzedDropRepository statement = analyze(e, "DROP REPOSITORY my_repo");
         assertThat(statement.name()).isEqualTo("my_repo");
+    }
+
+    @Test
+    public void testAlterRepository() {
+        AnalyzedAlterRepository statement = analyze(e, "ALTER REPOSITORY my_repo SET (compress=True)");
+        assertThat(statement.name()).isEqualTo("my_repo");
+        assertThat(statement.properties().toMap(HashMap::new))
+            .isEqualTo(Map.of("compress", Literal.of(true)));
     }
 }

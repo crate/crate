@@ -29,11 +29,11 @@ public interface ClusterStatePublisher {
     /**
      * Publish all the changes to the cluster from the master (can be called just by the master). The publish
      * process should apply this state to the master as well!
-     *
+     * <p>
      * The publishListener allows to wait for the publication to complete, which can be either successful completion, timing out or failing.
      * The method is guaranteed to pass back a {@link FailedToCommitClusterStateException} to the publishListener if the change is not
      * committed and should be rejected. Any other exception signals that something bad happened but the change is committed.
-     *
+     * <p>
      * The {@link AckListener} allows to keep track of the ack received from nodes, and verify whether
      * they updated their own cluster state or not.
      */

@@ -1524,6 +1524,8 @@ public class TestStatementBuilder {
         statement = SqlParser.createStatement("DROP REPOSITORY \"myRepo\"");
         assertThat(statement).hasToString("DropRepository{" +
                                             "repository=myRepo}");
+
+        printStatement("ALTER REPOSITORY my_repo SET (location='/mount/backups/my_backup_1', max_restore_bytes_per_sec='123')");
     }
 
     @Test

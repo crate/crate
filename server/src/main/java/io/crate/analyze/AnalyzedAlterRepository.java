@@ -26,8 +26,7 @@ import java.util.function.Consumer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.GenericProperties;
 
-public record AnalyzedCreateRepository(String name, String type,
-                                       GenericProperties<Symbol> properties) implements DDLStatement {
+public record AnalyzedAlterRepository(String name, GenericProperties<Symbol> properties) implements DDLStatement {
 
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
@@ -36,6 +35,6 @@ public record AnalyzedCreateRepository(String name, String type,
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitCreateRepositoryAnalyzedStatement(this, context);
+        return analyzedStatementVisitor.visitAlterRepositoryAnalyzedStatement(this, context);
     }
 }

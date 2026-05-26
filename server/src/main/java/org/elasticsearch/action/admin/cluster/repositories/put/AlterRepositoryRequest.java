@@ -23,61 +23,68 @@ import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 
 import java.io.IOException;
+import java.util.Objects;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 
 /**
- * Register repository request.
+ * Alter repository request.
  * <p>
- * Registers a repository with given name, type and settings. The request fails if a repository with the same name
- * already exists in the cluster.
+ * Alters an existing repository by adding the specified settings or replacing them
+ * if they are already set.
  */
-public class PutRepositoryRequest extends AcknowledgedRequest<PutRepositoryRequest> {
+public class AlterRepositoryRequest extends AcknowledgedRequest<AlterRepositoryRequest> {
+
+    // When adding or removing fields, don't forget to update AlterRepositoryRequestTest!
 
     private final String name;
-    private final String type;
     private final Settings settings;
 
-    public PutRepositoryRequest(String name, String type, Settings settings) {
+    public AlterRepositoryRequest(String name, Settings settings) {
         this.name = name;
-        this.type = type;
         this.settings = settings;
     }
 
-    public PutRepositoryRequest(StreamInput in) throws IOException {
+    public AlterRepositoryRequest(StreamInput in) throws IOException {
         super(in);
         name = in.readString();
-        type = in.readString();
         settings = readSettingsFromStream(in);
-        if (in.getVersion().before(Version.V_6_4_0)) {
-            in.readBoolean();
-        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeString(name);
-        out.writeString(type);
         writeSettingsToStream(out, settings);
-        if (out.getVersion().before(Version.V_6_4_0)) {
-            out.writeBoolean(true);
-        }
     }
 
     public String name() {
         return this.name;
     }
 
-    public String type() {
-        return this.type;
-    }
-
     public Settings settings() {
         return this.settings;
+    }
+
+    @Override
+    public String toString() {
+        return "AlterRepositoryRequest{" +
+            "name=" + name + ";" +
+            "settings=" + settings.toString() +
+            '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof AlterRepositoryRequest that)) return false;
+        return Objects.equals(name, that.name) && Objects.equals(settings, that.settings);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, settings);
     }
 }

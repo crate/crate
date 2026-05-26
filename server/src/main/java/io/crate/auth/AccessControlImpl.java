@@ -25,6 +25,7 @@ import static io.crate.role.Permission.READ_WRITE_DEFINE;
 
 import java.util.Locale;
 
+import io.crate.analyze.AnalyzedAlterRepository;
 import io.crate.analyze.AnalyzedAlterRole;
 import io.crate.analyze.AnalyzedAlterServer;
 import io.crate.analyze.AnalyzedAlterTable;
@@ -435,6 +436,18 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         protected Void visitCreateRepositoryAnalyzedStatement(AnalyzedCreateRepository analysis, Role user) {
+            Privileges.ensureUserHasPrivilege(
+                relationVisitor.roles,
+                user,
+                Permission.DDL,
+                Securable.CLUSTER,
+                null
+            );
+            return null;
+        }
+
+        @Override
+        protected Void visitAlterRepositoryAnalyzedStatement(AnalyzedAlterRepository analysis, Role user) {
             Privileges.ensureUserHasPrivilege(
                 relationVisitor.roles,
                 user,

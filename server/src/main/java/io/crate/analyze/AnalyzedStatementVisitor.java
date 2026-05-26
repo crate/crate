@@ -47,6 +47,10 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
+    protected R visitAlterRepositoryAnalyzedStatement(AnalyzedAlterRepository analysis, C context) {
+        return visitDDLStatement(analysis, context);
+    }
+
     protected R visitAnalyzedInsertStatement(AnalyzedInsertStatement analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
