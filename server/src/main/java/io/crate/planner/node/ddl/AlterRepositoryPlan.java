@@ -112,7 +112,6 @@ public class AlterRepositoryPlan implements Plan {
             subQueryResults
         );
 
-
         var repository = repositoryService.getRepository(alterRepository.name());
         if (repository == null) {
             throw new RepositoryMissingException(alterRepository.name());
@@ -129,7 +128,7 @@ public class AlterRepositoryPlan implements Plan {
             );
         }
 
-        repositoryParamValidator.validateSupportedOnly(repository.type(), alterRepository.resetProperties());
+        repositoryParamValidator.validateCanReset(repository.type(), alterRepository.resetProperties());
         return new AlterRepositoryRequest(
             alterRepository.name(),
             alterRepository.resetProperties()

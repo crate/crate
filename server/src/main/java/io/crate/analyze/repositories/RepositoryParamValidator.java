@@ -21,8 +21,8 @@
 
 package io.crate.analyze.repositories;
 
+import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -55,7 +55,7 @@ public class RepositoryParamValidator {
      */
     public void validate(String type, Settings settings) {
         // make sure only supported keys are present
-        validateSupportedOnly(type, new GenericProperties<>(settings.getAsStructuredMap()));
+        validateSupportedOnly(type, settings.getAsStructuredMap().keySet());
 
         // make sure no required properties are missing
         TypeSettings typeSettings = settingsForType(type);
@@ -88,6 +88,27 @@ public class RepositoryParamValidator {
         properties.ensureContainsOnly(supportedKeys);
     }
 
+    public void validateCanReset(String type, Collection<String> properties) {
+        // only supported properties can be reset
+        validateSupportedOnly(type, properties);
+
+        // required properties cannot be reset
+        TypeSettings typeSettings = settingsForType(type);
+        Set<String> resetRequired = Sets.intersection(
+            typeSettings.required().keySet(), new HashSet<>(properties)
+        );
+
+        if (!resetRequired.isEmpty()) {
+            throw new IllegalArgumentException(
+                String.format(
+                    Locale.ENGLISH,
+                    "The following required parameters are required for type \"%s\" and cannot be reset: [%s]",
+                    type,
+                    String.join(", ", resetRequired))
+            );
+        }
+    }
+
     public TypeSettings settingsForType(String type) {
         TypeSettings typeSettings = this.typeSettings.get(type);
         if (typeSettings == null) {
@@ -97,7 +118,7 @@ public class RepositoryParamValidator {
         return typeSettings;
     }
 
-    public void validateSupportedOnly(String type, List<String> properties) {
+    private void validateSupportedOnly(String type, Collection<String> properties) {
         var supportedKeys = settingsForType(type)
             .all()
             .keySet();

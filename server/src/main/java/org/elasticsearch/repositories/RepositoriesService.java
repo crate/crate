@@ -202,7 +202,7 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
 
                 // try updating metadata, fail if repository not found
                 RepositoriesMetadata repositories = currentState.metadata().custom(RepositoriesMetadata.TYPE);
-                var updatedRepos = updateRepository(repositories.repositories(), request.name(), request.settings());
+                var updatedRepos = updateRepository(repositories.repositories(), request);
                 if (repositories.repositories() == updatedRepos) {
                     LOGGER.info("request to alter repository [{}] produced no change", request.name());
                     return currentState;
@@ -248,23 +248,22 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
      * Validates the updated metadata by creating a temporary {@link Repository} object.
      *
      * @param repositories      the list of repositories to update
-     * @param name              the name of the repository to update
-     * @param newSettings       the settings to patch onto the existing repository configuration
+     * @param req               the request that contains properties to be set or reset
      * @return the updated list if the repository metadata changed, or the original list if nothing changed
      */
-    private List<RepositoryMetadata> updateRepository(List<RepositoryMetadata> repositories, String name, Settings newSettings) {
+    private List<RepositoryMetadata> updateRepository(List<RepositoryMetadata> repositories, AlterRepositoryRequest req) {
         boolean found = false;
         RepositoryMetadata updatedMeta;
 
         List<RepositoryMetadata> updatedRepos = new ArrayList<>(repositories.size());
         for (var repoMeta : repositories) {
-            if (!repoMeta.name().equals(name)) {
+            if (!repoMeta.name().equals(req.name())) {
                 updatedRepos.add(repoMeta);
                 continue;
             }
 
             found = true;
-            var settings = Settings.builder().put(repoMeta.settings()).put(newSettings).build();
+            var settings = patchRepositorySettings(repoMeta.settings(), req);
             if (settings.equals(repoMeta.settings())) {
                 return repositories;
             }
@@ -275,11 +274,30 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
         }
 
         if (!found) {
-            LOGGER.error("alter repository [{}] requested, but repository has not been found", name);
-            throw new RepositoryMissingException(name);
+            LOGGER.error("alter repository [{}] requested, but repository has not been found", req.name());
+            throw new RepositoryMissingException(req.name());
         }
 
         return updatedRepos;
+    }
+
+    private Settings patchRepositorySettings(Settings original, AlterRepositoryRequest req) {
+        // set properties
+        if (!req.settings().isEmpty()) {
+            return Settings.builder().put(original).put(req.settings()).build();
+        }
+
+        // reset properties
+        // no need to check if those are required at this point,
+        // because we will attempt to create a Repository object later on.
+        if (!req.resetProperties().isEmpty()) {
+            var updated = Settings.builder().put(original);
+            req.resetProperties().forEach(updated::remove);
+            return updated.build();
+        }
+
+        // reset all
+        return Settings.EMPTY;
     }
 
     // Tries to create a repository using the given metadata.

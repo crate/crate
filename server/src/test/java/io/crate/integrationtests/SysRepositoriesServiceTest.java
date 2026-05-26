@@ -137,6 +137,10 @@ public class SysRepositoriesServiceTest extends IntegTestCase {
             "readonly", "true",
             "location", new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath()
         ));
+
+        assertSQLError(() -> execute("alter repository \"test-repo\" reset (location)"))
+            .hasHTTPError(STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX.httpResponseStatus(), STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX.errorCode())
+            .hasMessageContaining("The following required parameters are required for type \"fs\" and cannot be reset: [location]");
     }
 
     // ALTER REPOSITORY tests, error handling
@@ -159,6 +163,6 @@ public class SysRepositoriesServiceTest extends IntegTestCase {
         execute("select settings from sys.repositories where name = ?", new Object[]{repoName});
         assertThat(response.rowCount()).isEqualTo(1L);
         Map<String, Object> settings = (Map<String, Object>) response.rows()[0][0];
-        assertThat(settings).containsAllEntriesOf(expectedSettings);
+        assertThat(settings).containsExactlyInAnyOrderEntriesOf(expectedSettings);
     }
 }

@@ -24,7 +24,6 @@ package io.crate.planner.node.ddl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -183,7 +182,7 @@ public class AlterRepositoryPlanTest {
         when(repoService.getRepository("repo-name"))
             .thenReturn(new RepositoryMetadata("repo-name", "dummy-type", Settings.EMPTY));
         doThrow(new IllegalArgumentException("invalid property"))
-            .when(repoParamValidator).validateSupportedOnly(anyString(), anyList());
+            .when(repoParamValidator).validateSupportedOnly(anyString(), any());
 
         assertThatThrownBy(() ->
             underTest.executeOrFail(dependencyCarrier, plannerCtx, rowConsumer, Row.EMPTY, SubQueryResults.EMPTY)
