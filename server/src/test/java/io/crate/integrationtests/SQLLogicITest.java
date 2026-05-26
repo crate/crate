@@ -28,15 +28,18 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.elasticsearch.test.IntegTestCase;
+import org.jspecify.annotations.Nullable;
 import org.junit.Test;
 
 import io.crate.test.integration.SQLLogicParser;
 import io.crate.test.integration.SQLLogicParser.Cmd;
 import io.crate.test.integration.SQLLogicParser.QueryCmd;
 import io.crate.test.integration.SQLLogicParser.StatementCmd;
+import io.crate.testing.SqlLogic;
 import io.crate.testing.UseJdbc;
 
 /**
@@ -45,7 +48,7 @@ import io.crate.testing.UseJdbc;
 @IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class SQLLogicITest extends IntegTestCase {
 
-    private void runFile(Path file) {
+    private void runFile(Path file, @Nullable String testName) {
         String schema = "doc";
         try (var cmds = SQLLogicParser.parse(file)) {
             boolean dmlDone = false;
@@ -63,12 +66,14 @@ public class SQLLogicITest extends IntegTestCase {
                         }
                     }
                     case QueryCmd query -> {
-                        if (!dmlDone) {
-                            dmlDone = true;
-                            refreshTables(schema);
+                        if (testName == null || query.testName().equals(testName)) {
+                            if (!dmlDone) {
+                                dmlDone = true;
+                                refreshTables(schema);
+                            }
+                            var response = execute(query.getQuery(), schema);
+                            query.validate(response);
                         }
-                        var response = execute(query.getQuery(), schema);
-                        query.validate(response);
                     }
                 }
             }
@@ -82,11 +87,23 @@ public class SQLLogicITest extends IntegTestCase {
     @Test
     @UseJdbc(1)
     public void testFiles() throws Exception {
+        Predicate<Path> fileFilter = path -> path.toString().endsWith(".test");
+        final String[] testName = new String[] {null};
+        SqlLogic annotation = getTestAnnotation(SqlLogic.class);
+        if (annotation != null) {
+            if (annotation.file().isEmpty() == false) {
+                fileFilter = path -> annotation.file().equals(path.getFileName().toString());
+            }
+            if (annotation.testName().isEmpty() == false) {
+                testName[0] = annotation.testName();
+            }
+        }
+
         Path testsLocation = getDataPath("/integtests");
         try (Stream<Path> files = Files.list(testsLocation)) {
             files
-                .filter(path -> path.toString().endsWith(".test"))
-                .forEach(this::runFile);
+                .filter(fileFilter)
+                .forEach(path -> runFile(path, testName[0]));
         }
     }
 
