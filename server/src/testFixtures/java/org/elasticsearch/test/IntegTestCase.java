@@ -1881,7 +1881,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * @return the annotation if one is present or null otherwise
      */
     @Nullable
-    private <T extends Annotation> T getTestAnnotation(Class<T> annotationClass) {
+    protected <T extends Annotation> T  getTestAnnotation(Class<T> annotationClass) {
         try {
             Class<?> clazz = this.getClass();
             String testMethodName = testName.getMethodName();

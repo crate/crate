@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.collect;
 
-import static io.crate.execution.dsl.projection.Projections.shardProjections;
 import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.formatSource;
 
 import java.io.IOException;
@@ -84,7 +83,9 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.DocReferences;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.DataTypes;
@@ -116,12 +117,11 @@ final class GroupByOptimizedIterator {
                                                          List<String> partitionValues,
                                                          LuceneQueryBuilder luceneQueryBuilder,
                                                          BigArrays bigArrays,
-                                                         InputFactory inputFactory,
+                                                         NodeContext nodeCtx,
                                                          DocInputFactory docInputFactory,
                                                          RoutedCollectPhase collectPhase,
                                                          CollectTask collectTask) {
-        Collection<? extends Projection> shardProjections = shardProjections(collectPhase.projections());
-        GroupProjection groupProjection = getSingleStringKeyGroupProjection(shardProjections);
+        GroupProjection groupProjection = getSingleStringKeyGroupProjection(collectPhase.projections());
         if (groupProjection == null) {
             return null;
         }
@@ -154,6 +154,7 @@ final class GroupByOptimizedIterator {
         InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx = docInputFactory.getCtx(collectTask.txnCtx());
         docCtx.add(collectPhase.toCollect().stream()::iterator);
 
+        InputFactory inputFactory = new InputFactory(nodeCtx);
         InputFactory.Context<CollectExpression<Row, ?>> ctxForAggregations = inputFactory.ctxForAggregations(collectTask.txnCtx());
         ctxForAggregations.add(groupProjection.values());
         final List<CollectExpression<Row, ?>> aggExpressions = ctxForAggregations.expressions();
@@ -443,12 +444,18 @@ final class GroupByOptimizedIterator {
         return null;
     }
 
-    private static GroupProjection getSingleStringKeyGroupProjection(Collection<? extends Projection> shardProjections) {
-        if (shardProjections.size() != 1) {
-            return null;
+    private static GroupProjection getSingleStringKeyGroupProjection(Collection<? extends Projection> projections) {
+        GroupProjection groupProjection = null;
+        int shardProjections = 0;
+        for (var projection : projections) {
+            if (projection.requiredGranularity() == RowGranularity.SHARD) {
+                shardProjections++;
+                if (projection instanceof GroupProjection gProjection) {
+                    groupProjection = gProjection;
+                }
+            }
         }
-        Projection shardProjection = shardProjections.iterator().next();
-        if (!(shardProjection instanceof GroupProjection groupProjection)) {
+        if (shardProjections != 1 || groupProjection == null) {
             return null;
         }
         if (groupProjection.keys().size() != 1 || groupProjection.keys().get(0).valueType().id() != DataTypes.STRING.id()) {

@@ -46,6 +46,11 @@ series.
 Fixes
 =====
 
+- Fixed an issue where :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>` of a
+  partition into a table with an incompatible schema would silently succeed and
+  produce unreadable data. CrateDB now rejects such restores with a clear
+  error when the snapshot and target table schemas do not match.
+
 - Fixed an issue that caused multiple empty statements like `;;` to result in a
   parsing failure instead of returning empty statement results when executed via
   the simple mode of the PostgreSQL wire protocol.
