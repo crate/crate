@@ -932,7 +932,10 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 ? ((ThreadPoolExecutor) executor).getMaximumPoolSize()
                 : 1;
             final int workers = Math.min(maximumPoolSize, staleIndicesToDelete.size());
+
+            LOGGER.info("workers number = {}, Runtime.getRuntime().availableProcessors() = {}", workers, Runtime.getRuntime().availableProcessors());
             for (int i = 0; i < workers; ++i) {
+                LOGGER.info("WORKER # " + i + " scheduling executeOneStaleIndexDelete");
                 executeOneStaleIndexDelete(staleIndicesToDelete, groupedListener);
             }
         } catch (Exception e) {
@@ -946,26 +949,36 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     private void executeOneStaleIndexDelete(BlockingQueue<Map.Entry<String, BlobContainer>> staleIndicesToDelete,
                                             ActionListener<Long> listener) throws InterruptedException {
-        Map.Entry<String, BlobContainer> indexEntry = staleIndicesToDelete.poll(0L, TimeUnit.MILLISECONDS);
-        if (indexEntry != null) {
-            final String indexSnId = indexEntry.getKey();
-            threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.supply(listener, () -> {
-                try {
-                    indexEntry.getValue().delete();
-                    LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
-                    executeOneStaleIndexDelete(staleIndicesToDelete, listener);
-                    return 1L;
-                } catch (IOException e) {
-                    LOGGER.warn(() -> new ParameterizedMessage(
-                        "[{}] index {} is no longer part of any snapshots in the repository, " +
-                            "but failed to clean up their index folders", metadata.name(), indexSnId), e);
-                    return 0L;
-                } catch (Exception e) {
-                    assert false : e;
-                    LOGGER.warn(new ParameterizedMessage("[{}] Exception during single stale index delete", metadata.name()), e);
-                    return 0L;
-                }
-            }));
+        try {
+            LOGGER.info("Before staleIndicesToDelete.poll");
+            Map.Entry<String, BlobContainer> indexEntry = staleIndicesToDelete.poll(0L, TimeUnit.MILLISECONDS);
+            LOGGER.info("after staleIndicesToDelete.poll");
+            if (indexEntry != null) {
+                final String indexSnId = indexEntry.getKey();
+                threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.supply(listener, () -> {
+                    try {
+                        if (3 < 5) {
+                            throw new IOException("dummy");
+                        }
+                        LOGGER.info("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
+                        executeOneStaleIndexDelete(staleIndicesToDelete, listener);
+                        return 1L;
+                    } catch (IOException e) {
+                        LOGGER.warn(() -> new ParameterizedMessage(
+                            "[{}] index {} is no longer part of any snapshots in the repository, " +
+                                "but failed to clean up their index folders", metadata.name(), indexSnId), e);
+                        return 0L;
+                    } catch (Exception e) {
+                        assert false : e;
+                        LOGGER.warn(new ParameterizedMessage("[{}] Exception during single stale index delete", metadata.name()), e);
+                        return 0L;
+                    }
+                }));
+            } else {
+                LOGGER.info("staleIndicesToDelete.poll returned NULL, doing nothing");
+            }
+        } catch (Exception e) {
+            LOGGER.error(e);
         }
     }
 
