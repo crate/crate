@@ -58,8 +58,9 @@ final class TimestampType extends BaseTimestampType {
 
     private static final DateTimeFormatter ISO_FORMATTER = new DateTimeFormatterBuilder()
         .parseCaseInsensitive()
-        .appendPattern("yyyy-MM-dd HH:mm:ss.SSS+00")
-        .toFormatter(Locale.ENGLISH).withResolverStyle(ResolverStyle.STRICT);
+        .appendPattern("yyyy-MM-dd HH:mm:ss.SSS")
+        .toFormatter(Locale.ENGLISH)
+        .withResolverStyle(ResolverStyle.STRICT);
 
     private static final DateTimeFormatter ISO_FORMATTER_WITH_ERA = new DateTimeFormatterBuilder()
         .parseCaseInsensitive()
