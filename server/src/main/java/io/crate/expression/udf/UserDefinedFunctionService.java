@@ -252,10 +252,10 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent imple
         if (!event.metadataChanged()) {
             return;
         }
-        updateImplementations(event.state().metadata());
+        nodeCtx.functions().setUDFs(buildUDFResolvers((event.state().metadata())));
     }
 
-    public void updateImplementations(Metadata newMetadata) {
+    public Map<FunctionName, List<FunctionProvider>> buildUDFResolvers(Metadata newMetadata) {
         final Map<FunctionName, List<FunctionProvider>> implementations = new HashMap<>();
         for (var schema : newMetadata.schemas().values()) {
             for (var udf : schema.udfs()) {
@@ -268,7 +268,7 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent imple
                 providers.add(provider);
             }
         }
-        nodeCtx.functions().setUDFs(implementations);
+        return implementations;
     }
 
     @Override
