@@ -1438,7 +1438,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         //Make sure the file location does not consist of any .dat file
         Files.walk(location.toPath())
             .filter(Files::isRegularFile)
-            .forEach(x -> assertThat(x.getFileName().endsWith(".dat")).isFalse());
+            .forEach(x -> assertThat(x.getFileName().toString().endsWith(".dat")).isFalse());
     }
 
     private RepositoryData getRepositoryData() throws Exception {
