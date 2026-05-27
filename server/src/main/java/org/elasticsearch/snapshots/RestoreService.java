@@ -94,13 +94,22 @@ import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
+import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.AdHocDocTableInfoFactoryProvider;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.tree.CheckConstraint;
 
 /**
  * Service responsible for restoring snapshots
@@ -136,6 +145,8 @@ public class RestoreService implements ClusterStateApplier {
 
     private final MetadataUpgradeService metadataUpgradeService;
 
+    private final AdHocDocTableInfoFactoryProvider adHocDocTableInfoFactoryProvider;
+
     private final ClusterSettings clusterSettings;
 
     private final CleanRestoreStateTaskExecutor cleanRestoreStateTaskExecutor;
@@ -147,6 +158,8 @@ public class RestoreService implements ClusterStateApplier {
                           AllocationService allocationService,
                           MetadataCreateIndexService createIndexService,
                           MetadataUpgradeService metadataUpgradeService,
+                          NodeContext nodeContext,
+                          UserDefinedFunctionService userDefinedFunctionService,
                           ClusterSettings clusterSettings,
                           ShardLimitValidator shardLimitValidator) {
         this.clusterService = clusterService;
@@ -154,6 +167,7 @@ public class RestoreService implements ClusterStateApplier {
         this.allocationService = allocationService;
         this.createIndexService = createIndexService;
         this.metadataUpgradeService = metadataUpgradeService;
+        this.adHocDocTableInfoFactoryProvider = new AdHocDocTableInfoFactoryProvider(nodeContext, userDefinedFunctionService);
         if (DiscoveryNode.isMasterEligibleNode(clusterService.getSettings())) {
             clusterService.addStateApplier(this);
         }
@@ -417,6 +431,11 @@ public class RestoreService implements ClusterStateApplier {
             MapBuilder<ShardId, RestoreInProgress.ShardRestoreStatus> shardsBuilder = MapBuilder.newMapBuilder();
             boolean ignoreUnavailable = IGNORE_UNAVAILABLE.get(request.settings());
             HashSet<String> restoreIndexNames = new HashSet<>();
+            List<String> customMetadataTypes = Arrays.asList(request.customMetadataTypes());
+            boolean includeAll = customMetadataTypes.isEmpty();
+            boolean restoreSnapshotUDFs = request.includeCustomMetadata()
+                && (includeAll || customMetadataTypes.contains(UserDefinedFunctionsMetadata.TYPE));
+            boolean checkSnapshotTableUDFs = request.includeTables() && restoreSnapshotUDFs == false;
 
             for (Map.Entry<RelationName, RestoreRelation> entry : restoreRelations.entrySet()) {
                 RelationName relationName = entry.getKey();
@@ -499,7 +518,15 @@ public class RestoreService implements ClusterStateApplier {
                     }
                 }
 
-                restoreRelation(relationName, targetName, mdBuilder, currentMetadata, newIndexUUIDs, !ignoreUnavailable);
+                restoreRelation(
+                    relationName,
+                    targetName,
+                    mdBuilder,
+                    currentMetadata,
+                    newIndexUUIDs,
+                    checkSnapshotTableUDFs,
+                    !ignoreUnavailable
+                );
             }
 
 
@@ -558,10 +585,7 @@ public class RestoreService implements ClusterStateApplier {
 
             if (request.includeCustomMetadata() && snapshotMetadata.customs() != null) {
                 // CrateDB patch to only restore defined custom metadata types
-                List<String> customMetadataTypes = Arrays.asList(request.customMetadataTypes());
-                boolean includeAll = customMetadataTypes.isEmpty();
-
-                if (includeAll || customMetadataTypes.contains(UserDefinedFunctionsMetadata.TYPE)) {
+                if (restoreSnapshotUDFs) {
                     for (var schema : snapshotMetadata.schemas().values()) {
                         for (var udf : schema.udfs()) {
                             mdBuilder.setUDF(udf);
@@ -595,6 +619,7 @@ public class RestoreService implements ClusterStateApplier {
                                      Metadata.Builder mdBuilder,
                                      Metadata currentMetadata,
                                      List<String> indexUUIDs,
+                                     boolean checkSnapshotTableUDFs,
                                      boolean strict) {
             RelationMetadata existingRelation = currentMetadata.getRelation(targetName);
             RelationMetadata snapshotRelation = snapshotMetadata.getRelation(relationName);
@@ -611,6 +636,13 @@ public class RestoreService implements ClusterStateApplier {
                 RelationMetadata.Table table;
                 List<Reference> mergedColumns;
                 if (snapshotRelation instanceof RelationMetadata.Table snapshotTable) {
+                    if (checkSnapshotTableUDFs) {
+                        ensureSnapshotTableUDFsMatchCurrentMetadata(
+                            currentMetadata,
+                            snapshotMetadata,
+                            adHocDocTableInfoFactoryProvider.forMetadata(snapshotMetadata).create(snapshotTable.name(), snapshotMetadata)
+                        );
+                    }
                     table = snapshotTable;
                     SnapshotSchemaValidator.validate(snapshot, targetName, snapshotTable, existingTable);
                     Set<ColumnIdent> existingColumns = existingTable.columns().stream()
@@ -647,6 +679,13 @@ public class RestoreService implements ClusterStateApplier {
                 );
             } else if (existingRelation == null) {
                 if (snapshotRelation instanceof RelationMetadata.Table table) {
+                    if (checkSnapshotTableUDFs) {
+                        ensureSnapshotTableUDFsMatchCurrentMetadata(
+                            currentMetadata,
+                            snapshotMetadata,
+                            adHocDocTableInfoFactoryProvider.forMetadata(snapshotMetadata).create(table.name(), snapshotMetadata)
+                        );
+                    }
                     mdBuilder.setTable(
                         targetName,
                         Lists.map(
@@ -962,6 +1001,69 @@ public class RestoreService implements ClusterStateApplier {
             renamed = new RelationName(schema, table);
         }
         return renamed;
+    }
+
+    // RESTORE TABLE does not restore UDF metadata; UDFs referenced by snapshot tables
+    // must already exist in the current metadata with the same definition.
+    @VisibleForTesting
+    static void ensureSnapshotTableUDFsMatchCurrentMetadata(Metadata currentMetadata,
+                                                            Metadata snapshotMetadata,
+                                                            DocTableInfo snapshotTable) {
+        ArrayList<Symbol> expressions = new ArrayList<>();
+        RelationName tableName = snapshotTable.ident();
+        for (Reference column : snapshotTable.defaultExpressionColumns()) {
+            Symbol defaultExpression = column.defaultExpression();
+            if (defaultExpression != null) {
+                expressions.add(defaultExpression);
+            }
+        }
+        for (GeneratedReference generatedReference : snapshotTable.generatedColumns()) {
+            expressions.add(generatedReference.generatedExpression());
+        }
+        for (CheckConstraint<Symbol> checkConstraint : snapshotTable.checkConstraints()) {
+            expressions.add(checkConstraint.expression());
+        }
+
+        for (Symbol expression : expressions) {
+            expression.any(s -> {
+                if (s instanceof Function fn) {
+                    UserDefinedFunctionMetadata snapshotUdf = findUDF(snapshotMetadata, fn);
+                    if (snapshotUdf == null) {
+                        return false;
+                    }
+                    UserDefinedFunctionMetadata currentUdf = findUDF(currentMetadata, fn);
+                    if (currentUdf == null) {
+                        throw new IllegalArgumentException(
+                            "Cannot restore table " + tableName +
+                            " because it depends on UDF " + snapshotUdf.schema() + "." + snapshotUdf.specificName() +
+                            " which does not exist in the current metadata"
+                        );
+                    }
+                    if (currentUdf.equals(snapshotUdf) == false) {
+                        throw new IllegalArgumentException(
+                            "Cannot restore table " + tableName +
+                            " because it depends on UDF " + snapshotUdf.schema() + "." + snapshotUdf.specificName() +
+                            " but a different UDF with the same signature exists in the current metadata"
+                        );
+                    }
+                }
+                return false;
+            });
+        }
+    }
+
+    private static UserDefinedFunctionMetadata findUDF(Metadata metadata, Function function) {
+        var functionName = function.signature().getName();
+        var schemaMetadata = metadata.schemas().get(functionName.schema());
+        if (schemaMetadata == null) {
+            return null;
+        }
+        for (var udf : schemaMetadata.udfs()) {
+            if (udf.sameSignature(functionName.schema(), functionName.name(), function.signature().getArgumentDataTypes())) {
+                return udf;
+            }
+        }
+        return null;
     }
 
     /**

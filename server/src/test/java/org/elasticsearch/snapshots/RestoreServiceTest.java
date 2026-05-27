@@ -22,7 +22,9 @@
 package org.elasticsearch.snapshots;
 
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
+import static io.crate.expression.udf.UdfUnitTest.DUMMY_LANG;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.snapshots.RestoreService.resolveRelations;
 import static org.elasticsearch.test.IntegTestCase.resolveIndex;
 
@@ -39,13 +41,121 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.junit.Test;
 
+import io.crate.analyze.FunctionArgumentDefinition;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
 
 public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
+
+    @Test
+    public void test_restore_table_with_udf_dependency_fails_if_udf_is_missing_in_current_metadata() throws Exception {
+        UserDefinedFunctionMetadata snapshotUdf = new UserDefinedFunctionMetadata(
+            "doc",
+            "foo",
+            List.of(FunctionArgumentDefinition.of("i", DataTypes.INTEGER)),
+            DataTypes.INTEGER,
+            DUMMY_LANG.name(),
+            "function foo(i) { return i + 1; }"
+        );
+        SQLExecutor e = SQLExecutor.builder(clusterService).build()
+            .addUDFLanguage(DUMMY_LANG)
+            .addUDF(snapshotUdf)
+            .addTable("create table doc.t (id int, gen as foo(id))");
+        Metadata snapshotMetadata = clusterService.state().metadata();
+        DocTableInfo table = new DocTableInfoFactory(e.nodeCtx).create(new RelationName("doc", "t"), snapshotMetadata);
+
+        assertThatThrownBy(() -> RestoreService.ensureSnapshotTableUDFsMatchCurrentMetadata(
+            Metadata.EMPTY_METADATA,
+            snapshotMetadata,
+            table
+        ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot restore table doc.t because it depends on UDF doc.foo(integer) " +
+                        "which does not exist in the current metadata");
+    }
+
+    @Test
+    public void test_restore_table_with_udf_dependency_fails_if_current_udf_has_different_definition() throws Exception {
+        UserDefinedFunctionMetadata snapshotUdf = new UserDefinedFunctionMetadata(
+            "doc",
+            "foo",
+            List.of(FunctionArgumentDefinition.of("i", DataTypes.INTEGER)),
+            DataTypes.INTEGER,
+            DUMMY_LANG.name(),
+            "function foo(i) { return i + 1; }"
+        );
+        UserDefinedFunctionMetadata currentUdf = new UserDefinedFunctionMetadata(
+            "doc",
+            "foo",
+            List.of(FunctionArgumentDefinition.of("i", DataTypes.INTEGER)),
+            DataTypes.INTEGER,
+            DUMMY_LANG.name(),
+            "function foo(i) { return i + 2; }"
+        );
+        SQLExecutor e = SQLExecutor.builder(clusterService).build()
+            .addUDFLanguage(DUMMY_LANG)
+            .addUDF(snapshotUdf)
+            .addTable("create table doc.t (id int, gen as foo(id))");
+        Metadata snapshotMetadata = clusterService.state().metadata();
+        DocTableInfo table = new DocTableInfoFactory(e.nodeCtx).create(new RelationName("doc", "t"), snapshotMetadata);
+        Metadata currentMetadata = Metadata.builder(Metadata.EMPTY_METADATA)
+            .setUDF(currentUdf)
+            .build();
+
+        assertThatThrownBy(() -> RestoreService.ensureSnapshotTableUDFsMatchCurrentMetadata(
+            currentMetadata,
+            snapshotMetadata,
+            table
+        ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot restore table doc.t because it depends on UDF doc.foo(integer) " +
+                        "but a different UDF with the same signature exists in the current metadata");
+    }
+
+    @Test
+    public void test_restore_table_with_udf_dependency_in_check_constraint_fails_if_current_udf_has_different_definition() throws Exception {
+        UserDefinedFunctionMetadata snapshotUdf = new UserDefinedFunctionMetadata(
+            "doc",
+            "foo",
+            List.of(FunctionArgumentDefinition.of("i", DataTypes.INTEGER)),
+            DataTypes.INTEGER,
+            DUMMY_LANG.name(),
+            "function foo(i) { return i + 1; }"
+        );
+        UserDefinedFunctionMetadata currentUdf = new UserDefinedFunctionMetadata(
+            "doc",
+            "foo",
+            List.of(FunctionArgumentDefinition.of("i", DataTypes.INTEGER)),
+            DataTypes.INTEGER,
+            DUMMY_LANG.name(),
+            "function foo(i) { return i + 2; }"
+        );
+        SQLExecutor e = SQLExecutor.builder(clusterService).build()
+            .addUDFLanguage(DUMMY_LANG)
+            .addUDF(snapshotUdf)
+            .addTable("create table doc.t (id int, constraint chk check (foo(id) > 0))");
+        Metadata snapshotMetadata = clusterService.state().metadata();
+        DocTableInfo table = new DocTableInfoFactory(e.nodeCtx).create(new RelationName("doc", "t"), snapshotMetadata);
+        Metadata currentMetadata = Metadata.builder(Metadata.EMPTY_METADATA)
+            .setUDF(currentUdf)
+            .build();
+
+        assertThatThrownBy(() -> RestoreService.ensureSnapshotTableUDFsMatchCurrentMetadata(
+            currentMetadata,
+            snapshotMetadata,
+            table
+        ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot restore table doc.t because it depends on UDF doc.foo(integer) " +
+                        "but a different UDF with the same signature exists in the current metadata");
+    }
 
     @Test
     public void resolve_indices_multiple_tables_specified() throws Exception {

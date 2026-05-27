@@ -62,3 +62,8 @@ Fixes
 - Fixed intermittent ``UDF`` resolution failures when upgrading metadata from a
   remote cluster, for example during
   :ref:`logical replication <administration-logical-replication>`.
+
+- Fixed an issue that caused :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>` of
+  tables with ``UDF`` dependencies to accept a matching ``UDF`` signature with
+  a different definition, which led to unexpected generated values on
+  subsequent inserts.
