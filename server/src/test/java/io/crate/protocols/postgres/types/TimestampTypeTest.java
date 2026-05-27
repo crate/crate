@@ -53,8 +53,8 @@ public class TimestampTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testEncodeAsUTF8Text() {
-        assertThat(new String(TimestampType.INSTANCE.encodeAsUTF8Text(1467072000000L), UTF_8)).isEqualTo("2016-06-28 00:00:00.000+00");
-        assertThat(new String(TimestampType.INSTANCE.encodeAsUTF8Text(-93661920000000L), UTF_8)).isEqualTo("1000-12-22 00:00:00.000+00 BC");
+        assertThat(new String(TimestampType.INSTANCE.encodeAsUTF8Text(1467072000000L), UTF_8)).isEqualTo("2016-06-28 00:00:00.000");
+        assertThat(new String(TimestampType.INSTANCE.encodeAsUTF8Text(-93661920000000L), UTF_8)).isEqualTo("1000-12-22 00:00:00.000 BC");
     }
 
     @Test
@@ -67,6 +67,8 @@ public class TimestampTypeTest extends BasePGTypeTest<Long> {
     @Test
     public void test_decode_ts_string() throws Exception {
         assertThat(TimestampType.INSTANCE.decodeUTF8Text("2021-01-13T14:37:17.25988".getBytes(UTF_8), null))
+            .isEqualTo(1610548637259L);
+        assertThat(TimestampType.INSTANCE.decodeUTF8Text("2021-01-13 14:37:17.25988".getBytes(UTF_8), null))
             .isEqualTo(1610548637259L);
     }
 }
