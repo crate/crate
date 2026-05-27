@@ -141,6 +141,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.FutureActionListener;
 import io.crate.concurrent.MultiActionListener;
 import io.crate.exceptions.InvalidArgumentException;
+import io.crate.execution.support.ThreadPools;
 import io.crate.server.xcontent.LoggingDeprecationHandler;
 
 
@@ -900,57 +901,45 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     private void cleanupStaleIndices(Map<String, BlobContainer> foundIndices,
                                      Set<String> survivingIndexIds,
                                      ActionListener<Long> listener) {
-        try {
-            final BlockingQueue<Map.Entry<String, BlobContainer>> staleIndicesToDelete = new LinkedBlockingQueue<>();
-            for (Map.Entry<String, BlobContainer> indexEntry : foundIndices.entrySet()) {
-                if (survivingIndexIds.contains(indexEntry.getKey()) == false) {
-                    staleIndicesToDelete.put(indexEntry);
-                }
-            }
-            final ActionListener<Long> groupedListener = new MultiActionListener<>(
-                staleIndicesToDelete.size(), Collectors.summingLong(Long::longValue), listener);
+        final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
+        // TODO: Replace with ThreadPools.numIdleThreads ?
+        int maximumPoolSize = executor instanceof ThreadPoolExecutor
+            ? ((ThreadPoolExecutor) executor).getMaximumPoolSize()
+            : 1;
 
-            // Start as many workers as fit into the snapshot pool at once at the most
-            final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
-            int maximumPoolSize = executor instanceof ThreadPoolExecutor
-                ? ((ThreadPoolExecutor) executor).getMaximumPoolSize()
-                : 1;
-            final int workers = Math.min(maximumPoolSize, staleIndicesToDelete.size());
-            for (int i = 0; i < workers; ++i) {
-                executeOneStaleIndexDelete(staleIndicesToDelete, groupedListener);
+        List<Supplier<Long>> deleteActions = foundIndices.entrySet().stream()
+            .filter(entry -> survivingIndexIds.contains(entry.getKey()) == false)
+            .map(entry -> execDelete(entry))
+            .toList();
+        CompletableFuture<List<Long>> deleteCounts = ThreadPools.runWithAvailableThreads(executor, () -> maximumPoolSize, deleteActions);
+        deleteCounts.whenComplete((counts, err) -> {
+            if (err == null) {
+                listener.onResponse(counts.stream().mapToLong(x -> x).sum());
+            } else {
+                listener.onFailure(Exceptions.toRuntimeException(err));
             }
-        } catch (Exception e) {
-            // TODO: We shouldn't be blanket catching and suppressing all exceptions here and instead handle them safely upstream.
-            //       Currently this catch exists as a stop gap solution to tackle unexpected runtime exceptions from implementations
-            //       bubbling up and breaking the snapshot functionality.
-            assert false : e;
-            LOGGER.warn(new ParameterizedMessage("[{}] Exception during cleanup of stale indices", metadata.name()), e);
-        }
+        });
     }
 
-    private void executeOneStaleIndexDelete(BlockingQueue<Map.Entry<String, BlobContainer>> staleIndicesToDelete,
-                                            ActionListener<Long> listener) throws InterruptedException {
-        Map.Entry<String, BlobContainer> indexEntry = staleIndicesToDelete.poll(0L, TimeUnit.MILLISECONDS);
-        if (indexEntry != null) {
-            final String indexSnId = indexEntry.getKey();
-            threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.supply(listener, () -> {
-                try {
-                    indexEntry.getValue().delete();
-                    LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
-                    executeOneStaleIndexDelete(staleIndicesToDelete, listener);
-                    return 1L;
-                } catch (IOException e) {
-                    LOGGER.warn(() -> new ParameterizedMessage(
-                        "[{}] index {} is no longer part of any snapshots in the repository, " +
-                            "but failed to clean up their index folders", metadata.name(), indexSnId), e);
-                    return 0L;
-                } catch (Exception e) {
-                    assert false : e;
-                    LOGGER.warn(new ParameterizedMessage("[{}] Exception during single stale index delete", metadata.name()), e);
-                    return 0L;
-                }
-            }));
-        }
+    private Supplier<Long> execDelete(Map.Entry<String, BlobContainer> entry) {
+        return () -> {
+            String indexSnId = entry.getKey();
+            BlobContainer container = entry.getValue();
+            try {
+                container.delete();
+                LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
+                return 1L;
+            } catch (IOException e) {
+                LOGGER.warn(() -> new ParameterizedMessage(
+                    "[{}] index {} is no longer part of any snapshots in the repository, " +
+                        "but failed to clean up their index folders", metadata.name(), indexSnId), e);
+                return 0L;
+            } catch (Exception e) {
+                assert false : e;
+                LOGGER.warn(new ParameterizedMessage("[{}] Exception during single stale index delete", metadata.name()), e);
+                return 0L;
+            }
+        };
     }
 
     /**
