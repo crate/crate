@@ -24,7 +24,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_U
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -42,7 +41,6 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTablesMetadata;
-import io.crate.metadata.Functions;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
@@ -50,6 +48,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.doc.AdHocDocTableInfoFactoryProvider;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.metadata.upgrade.MetadataIndexUpgrader;
 import io.crate.metadata.view.ViewMetadata;
@@ -71,25 +70,12 @@ public class MetadataUpgradeService {
 
     private final IndexScopedSettings indexScopedSettings;
     private final MetadataIndexUpgrader indexUpgrader;
-    private final Function<Metadata, DocTableInfoFactory> metadataToDocTableInfoFactory;
+    private final AdHocDocTableInfoFactoryProvider adHocDocTableInfoFactoryProvider;
 
     public MetadataUpgradeService(NodeContext nodeContext,
                                   IndexScopedSettings indexScopedSettings,
                                   UserDefinedFunctionService userDefinedFunctionService) {
-        // Creates a DocTableInfoFactory for each upgrade invocation.
-        // Metadata can come from a foreign cluster, so the factory must be solely based on the metadata being upgraded.
-        this.metadataToDocTableInfoFactory = metadata -> {
-            Functions functions = nodeContext.functions().copyOfBuiltIns();
-            functions.setUDFs(userDefinedFunctionService.buildUDFResolvers(metadata));
-            return new DocTableInfoFactory(
-                new NodeContext(
-                    functions,
-                    nodeContext.roles(),
-                    _ -> nodeContext.schemas(),
-                    nodeContext.tableStats()
-                )
-            );
-        };
+        this.adHocDocTableInfoFactoryProvider = new AdHocDocTableInfoFactoryProvider(nodeContext, userDefinedFunctionService);
         this.indexScopedSettings = indexScopedSettings;
         this.indexUpgrader = new MetadataIndexUpgrader();
     }
@@ -114,7 +100,7 @@ public class MetadataUpgradeService {
 
         // DocTableInfoFactory must have access to the UDF definitions from the given
         // Metadata so table validation can resolve UDF dependencies.
-        DocTableInfoFactory tableInfoFactory = metadataToDocTableInfoFactory.apply(newMetadata.build());
+        DocTableInfoFactory adHocTableInfoFactory = adHocDocTableInfoFactoryProvider.forMetadata(newMetadata.build());
 
         ForeignTablesMetadata foreignTablesMetadata = metadata.custom(ForeignTablesMetadata.TYPE);
         if (foreignTablesMetadata != null) {
@@ -138,7 +124,7 @@ public class MetadataUpgradeService {
             assert relation == null
                 : "If there is still a template present there shouldn't be any RelationMetadata";
 
-            DocTableInfo docTable = tableInfoFactory.create(template, OID_UNASSIGNED);
+            DocTableInfo docTable = adHocTableInfoFactory.create(template, OID_UNASSIGNED);
             Version versionCreated = getFixedVersionCreated(metadata, docTable);
 
             // versionCreated could be missing from the template settings and "calculated" afterwards
@@ -178,7 +164,7 @@ public class MetadataUpgradeService {
                     ? newMetadata.getTemplate(PartitionName.templateName(indexName))
                     : null,
                 Version.CURRENT.minimumIndexCompatibilityVersion(),
-                tableInfoFactory);
+                adHocTableInfoFactory);
             // Remove any existing metadata, registered by it's name, for the index
             newMetadata.remove(indexName);
             newMetadata.put(newIndexMetadata, false);
@@ -191,7 +177,7 @@ public class MetadataUpgradeService {
                 RelationName relationName = indexParts.toRelationName();
                 relation = newMetadata.getRelation(relationName);
                 if (!BlobIndex.isBlobIndex(indexName)) {
-                    tableInfo = tableInfoFactory.create(newIndexMetadata, OID_UNASSIGNED);
+                    tableInfo = adHocTableInfoFactory.create(newIndexMetadata, OID_UNASSIGNED);
                 }
             }
             if (relation == null) {
@@ -309,7 +295,7 @@ public class MetadataUpgradeService {
             indexMetadata,
             indexTemplateMetadata,
             minimumIndexCompatibilityVersion,
-            metadataToDocTableInfoFactory.apply(upgradeUDFMetadata(metadata)));
+            adHocDocTableInfoFactoryProvider.forMetadata(upgradeUDFMetadata(metadata)));
     }
 
     private IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata,
