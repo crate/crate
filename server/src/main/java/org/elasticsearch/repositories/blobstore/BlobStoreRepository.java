@@ -909,7 +909,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
         List<Supplier<Long>> deleteActions = foundIndices.entrySet().stream()
             .filter(entry -> survivingIndexIds.contains(entry.getKey()) == false)
-            .map(entry -> execDelete(entry))
+            .map(entry -> (Supplier<Long>) () -> execDelete(entry))
             .toList();
         CompletableFuture<List<Long>> deleteCounts = ThreadPools.runWithAvailableThreads(executor, () -> maximumPoolSize, deleteActions);
         deleteCounts.whenComplete((counts, err) -> {
@@ -921,25 +921,23 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         });
     }
 
-    private Supplier<Long> execDelete(Map.Entry<String, BlobContainer> entry) {
-        return () -> {
-            String indexSnId = entry.getKey();
-            BlobContainer container = entry.getValue();
-            try {
-                container.delete();
-                LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
-                return 1L;
-            } catch (IOException e) {
-                LOGGER.warn(() -> new ParameterizedMessage(
-                    "[{}] index {} is no longer part of any snapshots in the repository, " +
-                        "but failed to clean up their index folders", metadata.name(), indexSnId), e);
-                return 0L;
-            } catch (Exception e) {
-                assert false : e;
-                LOGGER.warn(new ParameterizedMessage("[{}] Exception during single stale index delete", metadata.name()), e);
-                return 0L;
-            }
-        };
+    private Long execDelete(Map.Entry<String, BlobContainer> entry) {
+        String indexSnId = entry.getKey();
+        BlobContainer container = entry.getValue();
+        try {
+            container.delete();
+            LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
+            return 1L;
+        } catch (IOException e) {
+            LOGGER.warn(() -> new ParameterizedMessage(
+                "[{}] index {} is no longer part of any snapshots in the repository, " +
+                    "but failed to clean up their index folders", metadata.name(), indexSnId), e);
+            return 0L;
+        } catch (Exception e) {
+            assert false : e;
+            LOGGER.warn(new ParameterizedMessage("[{}] Exception during single stale index delete", metadata.name()), e);
+            return 0L;
+        }
     }
 
     /**
