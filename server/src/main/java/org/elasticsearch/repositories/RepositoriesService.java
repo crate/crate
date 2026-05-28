@@ -264,12 +264,12 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
             }
 
             found = true;
-            var settings = Settings.builder().put(repoMeta.settings()).put(newSettings).build();
-            if (settings.equals(repoMeta.settings())) {
+            var updatedSettings = updateSettings(repoMeta.settings(), newSettings);
+            if (updatedSettings.equals(repoMeta.settings())) {
                 return repositories;
             }
 
-            updatedMeta = new RepositoryMetadata(repoMeta.name(), repoMeta.type(), settings);
+            updatedMeta = new RepositoryMetadata(repoMeta.name(), repoMeta.type(), updatedSettings);
             tryCreateRepo(updatedMeta);
             updatedRepos.add(updatedMeta);
         }
@@ -281,6 +281,22 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
 
         return updatedRepos;
     }
+
+    private Settings updateSettings(Settings original, Settings newSettings) {
+        var updated = Settings.builder().put(original);
+
+        for (String name : newSettings.keySet()) {
+            String value = newSettings.get(name);
+            if (value != null) {
+                updated.put(name, value);
+            } else {
+                updated.remove(name);
+            }
+        }
+
+        return updated.build();
+    }
+
 
     // Tries to create a repository using the given metadata.
     // The repository is closed immediately after being created, and not persisted anywhere.

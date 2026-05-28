@@ -100,7 +100,7 @@ public class SysRepositoriesServiceTest extends IntegTestCase {
 
     // ALTER REPOSITORY tests, happy path
     @Test
-    public void test_alter_repository_set_and_revert_setting() {
+    public void test_alter_repository_set_and_reset() {
         execute("alter repository \"test-repo\" set (compress = true)");
         assertThat(response.rowCount()).isEqualTo(1L);
         assertRepositorySettings("test-repo", Map.of(
@@ -118,14 +118,38 @@ public class SysRepositoriesServiceTest extends IntegTestCase {
         ));
 
         // test setting multiple properties in one query
-        execute("alter repository \"test-repo\" set (compress = true, chunk_size = '10k')");
+        execute("alter repository \"test-repo\" set (compress = true, chunk_size = '10k', readonly = true)");
         assertThat(response.rowCount()).isEqualTo(1L);
 
         assertRepositorySettings("test-repo", Map.of(
             "compress", "true",
             "chunk_size", "10k",
+            "readonly", "true",
             "location", new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath()
         ));
+
+        // test reset single property
+        execute("alter repository \"test-repo\" reset (compress)");
+        assertThat(response.rowCount()).isEqualTo(1L);
+
+        assertRepositorySettings("test-repo", Map.of(
+            "chunk_size", "10k",
+            "readonly", "true",
+            "location", new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath()
+        ));
+
+        // test reset multiple
+        execute("alter repository \"test-repo\" reset (chunk_size, readonly)");
+        assertThat(response.rowCount()).isEqualTo(1L);
+
+        assertRepositorySettings("test-repo", Map.of(
+            "location", new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath()
+        ));
+
+        // test reset required property
+        assertSQLError(() -> execute("alter repository \"test-repo\" reset (location)"))
+            .hasHTTPError(STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX.httpResponseStatus(), STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX.errorCode())
+            .hasMessageContaining("The following required parameters are required for type \"fs\" and cannot be reset: [location]");
     }
 
     // ALTER REPOSITORY tests, error handling
@@ -148,6 +172,6 @@ public class SysRepositoriesServiceTest extends IntegTestCase {
         execute("select settings from sys.repositories where name = ?", new Object[]{repoName});
         assertThat(response.rowCount()).isEqualTo(1L);
         Map<String, Object> settings = (Map<String, Object>) response.rows()[0][0];
-        assertThat(settings).containsAllEntriesOf(expectedSettings);
+        assertThat(settings).containsExactlyInAnyOrderEntriesOf(expectedSettings);
     }
 }

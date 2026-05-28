@@ -1360,11 +1360,17 @@ public final class SqlFormatter {
         public Void visitAlterRepository(AlterRepository<?> node, Integer indent) {
             builder.append("ALTER REPOSITORY ")
                 .append(quoteIdentifierIfNeeded(node.repository()));
-            if (node.properties() != null && !node.properties().isEmpty()) {
+
+            if (!node.properties().isEmpty()) {
                 builder.append(" SET (");
                 appendProperties(node.properties(), indent);
                 builder.append(")");
+            } else if (!node.resetProperties().isEmpty()) {
+                builder.append(" RESET (")
+                    .append(String.join(",", node.resetProperties()))
+                    .append(")");
             }
+
             return null;
         }
 

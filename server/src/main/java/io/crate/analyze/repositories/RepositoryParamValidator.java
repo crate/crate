@@ -21,6 +21,8 @@
 
 package io.crate.analyze.repositories;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -53,7 +55,7 @@ public class RepositoryParamValidator {
      */
     public void validate(String type, Settings settings) {
         // make sure only supported keys are present
-        validateSupportedOnly(type, new GenericProperties<>(settings.getAsStructuredMap()));
+        validateSupportedOnly(type, settings.getAsStructuredMap().keySet());
 
         // make sure no required properties are missing
         TypeSettings typeSettings = settingsForType(type);
@@ -86,6 +88,31 @@ public class RepositoryParamValidator {
         properties.ensureContainsOnly(supportedKeys);
     }
 
+    /**
+     * Validates that the provided {@code properties} can be reset for the given {@code type}.
+     * All the provided properties need to be supported, and none of them can be required.
+     */
+    public void validateCanReset(String type, Collection<String> properties) {
+        // only supported properties can be reset
+        validateSupportedOnly(type, properties);
+
+        // required properties cannot be reset
+        TypeSettings typeSettings = settingsForType(type);
+        Set<String> resetRequired = Sets.intersection(
+            typeSettings.required().keySet(), new HashSet<>(properties)
+        );
+
+        if (!resetRequired.isEmpty()) {
+            throw new IllegalArgumentException(
+                String.format(
+                    Locale.ENGLISH,
+                    "The following required parameters are required for type \"%s\" and cannot be reset: %s",
+                    type,
+                    resetRequired)
+            );
+        }
+    }
+
     public TypeSettings settingsForType(String type) {
         TypeSettings typeSettings = this.typeSettings.get(type);
         if (typeSettings == null) {
@@ -93,5 +120,17 @@ public class RepositoryParamValidator {
         }
 
         return typeSettings;
+    }
+
+    private void validateSupportedOnly(String type, Collection<String> properties) {
+        var supportedKeys = settingsForType(type)
+            .all()
+            .keySet();
+
+        for (String key : properties) {
+            if (!supportedKeys.contains(key)) {
+                throw new IllegalArgumentException("Setting '" + key + "' for '" + type + "' repository is not supported");
+            }
+        }
     }
 }
