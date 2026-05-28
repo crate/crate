@@ -1361,9 +1361,9 @@ public final class SqlFormatter {
             builder.append("ALTER REPOSITORY ")
                 .append(quoteIdentifierIfNeeded(node.repository()));
 
-            if (!node.properties().isEmpty()) {
+            if (!node.setProperties().isEmpty()) {
                 builder.append(" SET (");
-                appendProperties(node.properties(), indent);
+                appendProperties(node.setProperties(), indent);
                 builder.append(")");
             } else if (!node.resetProperties().isEmpty()) {
                 builder.append(" RESET (")

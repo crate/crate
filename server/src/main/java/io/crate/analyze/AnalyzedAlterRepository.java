@@ -27,11 +27,11 @@ import java.util.function.Consumer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.GenericProperties;
 
-public record AnalyzedAlterRepository(String name, GenericProperties<Symbol> properties, List<String> resetProperties) implements DDLStatement {
+public record AnalyzedAlterRepository(String name, GenericProperties<Symbol> setProperties, List<String> resetProperties) implements DDLStatement {
 
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
-        properties.forValues(consumer);
+        setProperties.forValues(consumer);
     }
 
     @Override
