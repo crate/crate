@@ -60,4 +60,8 @@ Fixes
 - Fixed an issue that could lead to an ``OutOfMemoryError`` when running a
   distributed query with aggregations or joins under memory pressure.
 
-- Fixed an authorization issue for ``_blobs`` HTTP endpoint.
+- Fixed an authorization issue for ``_blobs`` HTTP endpoint. For more details
+  please the `Security advisory`_.
+
+
+.. _Security advisory: https://github.com/crate/crate/security/advisories/GHSA-2xv8-gjwh-fv8p
