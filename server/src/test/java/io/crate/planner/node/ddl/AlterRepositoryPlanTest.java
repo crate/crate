@@ -24,6 +24,7 @@ package io.crate.planner.node.ddl;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
@@ -78,7 +79,7 @@ public class AlterRepositoryPlanTest {
     @Test
     public void test_execute_or_fail_missing_repository() {
         var underTest = new AlterRepositoryPlan(
-            new AnalyzedAlterRepository("repo-name", new GenericProperties<>(Map.of()))
+            new AnalyzedAlterRepository("repo-name", new GenericProperties<>(Map.of()), List.of())
         );
 
         assertThatThrownBy(() ->
@@ -90,7 +91,11 @@ public class AlterRepositoryPlanTest {
     @Test
     public void test_execute_or_fail_unsupported_property() {
         var underTest = new AlterRepositoryPlan(
-            new AnalyzedAlterRepository("repo-name", new GenericProperties<>(Map.of("invalid", Literal.of("setting"))))
+            new AnalyzedAlterRepository(
+                "repo-name",
+                new GenericProperties<>(Map.of("foo", Literal.of("bar"))),
+                List.of()
+            )
         );
 
         when(repoService.getRepository("repo-name"))
@@ -99,13 +104,40 @@ public class AlterRepositoryPlanTest {
         assertThatThrownBy(() ->
             underTest.executeOrFail(dependencyCarrier, plannerCtx, rowConsumer, Row.EMPTY, SubQueryResults.EMPTY)
         ).isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Setting 'invalid' is not supported");
+            .hasMessageContaining("Setting 'foo' is not supported");
+    }
+
+    @Test
+    public void test_reset_missing_repository() {
+        var underTest = new AlterRepositoryPlan(
+            new AnalyzedAlterRepository("repo-name", GenericProperties.empty(), List.of("foo"))
+        );
+
+        assertThatThrownBy(() ->
+            underTest.executeOrFail(dependencyCarrier, plannerCtx, rowConsumer, Row.EMPTY, SubQueryResults.EMPTY)
+        ).isExactlyInstanceOf(RepositoryMissingException.class)
+            .hasMessageContaining("[repo-name]");
+    }
+
+    @Test
+    public void test_reset_unsupported_property() {
+        var underTest = new AlterRepositoryPlan(
+            new AnalyzedAlterRepository("repo-name", GenericProperties.empty(), List.of("invalid"))
+        );
+
+        when(repoService.getRepository("repo-name"))
+            .thenReturn(new RepositoryMetadata("repo-name", "fs", Settings.EMPTY));
+
+        assertThatThrownBy(() ->
+            underTest.executeOrFail(dependencyCarrier, plannerCtx, rowConsumer, Row.EMPTY, SubQueryResults.EMPTY)
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Setting 'invalid' for 'fs' repository is not supported");
     }
 
     @Test
     public void test_execute_or_fail_min_node_version() {
         var underTest = new AlterRepositoryPlan(
-            new AnalyzedAlterRepository("repo-name", new GenericProperties<>(Map.of()))
+            new AnalyzedAlterRepository("repo-name", new GenericProperties<>(Map.of()), List.of())
         );
 
         when(plannerCtx.clusterState().nodes().getMinNodeVersion()).thenReturn(Version.V_6_3_2);

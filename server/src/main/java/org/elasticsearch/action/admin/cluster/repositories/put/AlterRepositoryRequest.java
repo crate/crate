@@ -31,16 +31,26 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 
 /**
- * Alter repository request.
+ * Request object for altering an existing repository.
  * <p>
- * Alters an existing repository by adding the specified settings or replacing them
- * if they are already set.
+ * This request modifies the repository's settings by:
+ * <ul>
+ * <li>Adding new settings that do not currently exist.</li>
+ * <li>Overwriting/updating existing settings with new values.</li>
+ * <li>Removing settings if they are explicitly passed as null or empty (if applicable).</li>
+ * </ul>
+ *
+ * One request should contain properties to be set and other to be reset.
  */
 public class AlterRepositoryRequest extends AcknowledgedRequest<AlterRepositoryRequest> {
 
     // When adding or removing fields, don't forget to update AlterRepositoryRequestTest!
 
     private final String name;
+
+    // Settings to be set or reset.
+    // Properties that need to be reset exist as keys with a null value
+    // (i.e., keys not found in `settings` should not be changed).
     private final Settings settings;
 
     public AlterRepositoryRequest(String name, Settings settings) {

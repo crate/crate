@@ -30,10 +30,25 @@ import org.junit.jupiter.api.Test;
 class AlterRepositoryRequestTest {
 
     @Test
-    void test_streaming() throws Exception {
+    void test_streaming_set_properties() throws Exception {
         var request = new AlterRepositoryRequest(
             "dummy_repo",
             Settings.builder().put("foo", "bar").build()
+        );
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        request.writeTo(out);
+
+        var actual = new AlterRepositoryRequest(out.bytes().streamInput());
+        assertThat(actual.name()).isEqualTo(request.name());
+        assertThat(actual.settings()).isEqualTo(request.settings());
+    }
+
+    @Test
+    void test_streaming_reset_properties() throws Exception {
+        var request = new AlterRepositoryRequest(
+            "dummy_repo",
+            Settings.builder().putNull("foo").putNull("bar").build()
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
