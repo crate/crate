@@ -47,9 +47,9 @@ class AlterRepositoryAnalyzer {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
         var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
-        GenericProperties<Symbol> genericProperties = alterRepository.properties()
+        GenericProperties<Symbol> genericProperties = alterRepository.setProperties()
             .map(p -> exprAnalyzerWithFieldsAsString.convert(p, exprCtx));
 
-        return new AnalyzedAlterRepository(repositoryName, genericProperties);
+        return new AnalyzedAlterRepository(repositoryName, genericProperties, alterRepository.resetProperties());
     }
 }

@@ -95,12 +95,12 @@ public class AlterRepositoryPlan implements Plan {
     }
 
     private AlterRepositoryRequest createRequest(AnalyzedAlterRepository alterRepository,
-                                                       CoordinatorTxnCtx txnCtx,
-                                                       NodeContext nodeCtx,
-                                                       Row parameters,
-                                                       SubQueryResults subQueryResults,
-                                                       RepositoryService repositoryService,
-                                                       RepositoryParamValidator repositoryParamValidator) {
+                                                 CoordinatorTxnCtx txnCtx,
+                                                 NodeContext nodeCtx,
+                                                 Row parameters,
+                                                 SubQueryResults subQueryResults,
+                                                 RepositoryService repositoryService,
+                                                 RepositoryParamValidator repositoryParamValidator) {
 
         // bind parameter values and get properties
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
@@ -111,20 +111,26 @@ public class AlterRepositoryPlan implements Plan {
             subQueryResults
         );
 
-        // make sure that only supported keys are used
-        var genericProperties = alterRepository.properties().map(eval);
         var repository = repositoryService.getRepository(alterRepository.name());
         if (repository == null) {
             throw new RepositoryMissingException(alterRepository.name());
         }
 
-        repositoryParamValidator.validateSupportedOnly(repository.type(), genericProperties);
+        // We have two "flavors" of AlterRepositoryRequest: one that sets properties and one that resets.
+        // For both, we validate the properties and then build and return the request.
+        if (!alterRepository.setProperties().isEmpty()) {
+            var setProperties = alterRepository.setProperties().map(eval);
+            repositoryParamValidator.validateSupportedOnly(repository.type(), setProperties);
+            return new AlterRepositoryRequest(
+                alterRepository.name(),
+                Settings.builder().put(setProperties).build()
+            );
+        }
 
-        // build and return request
-        return new AlterRepositoryRequest(
-            alterRepository.name(),
-            Settings.builder().put(genericProperties).build()
-        );
+        repositoryParamValidator.validateCanReset(repository.type(), alterRepository.resetProperties());
+        var resetProperties = Settings.builder();
+        alterRepository.resetProperties().forEach(resetProperties::putNull);
+        return new AlterRepositoryRequest(alterRepository.name(), resetProperties.build());
     }
 
 }

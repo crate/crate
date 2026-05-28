@@ -105,6 +105,6 @@ public class AzureRepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThatThrownBy(
             () -> analyze(e, "CREATE REPOSITORY foo TYPE azure WITH (wrong=true)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Setting 'wrong' is not supported");
+            .hasMessage("Setting 'wrong' for 'azure' repository is not supported");
     }
 }

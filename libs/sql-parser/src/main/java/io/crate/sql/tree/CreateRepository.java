@@ -31,10 +31,10 @@ public class CreateRepository<T> extends Statement {
 
     public CreateRepository(String repository,
                             String type,
-                            GenericProperties<T> genericProperties) {
+                            GenericProperties<T> properties) {
         this.repository = repository;
         this.type = type;
-        this.properties = genericProperties;
+        this.properties = properties;
     }
 
     public String repository() {
