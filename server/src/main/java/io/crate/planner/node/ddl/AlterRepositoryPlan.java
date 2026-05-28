@@ -118,8 +118,8 @@ public class AlterRepositoryPlan implements Plan {
 
         // We have two "flavors" of AlterRepositoryRequest: one that sets properties and one that resets.
         // For both, we validate the properties and then build and return the request.
-        if (!alterRepository.properties().isEmpty()) {
-            var setProperties = alterRepository.properties().map(eval);
+        if (!alterRepository.setProperties().isEmpty()) {
+            var setProperties = alterRepository.setProperties().map(eval);
             repositoryParamValidator.validateSupportedOnly(repository.type(), setProperties);
             return new AlterRepositoryRequest(
                 alterRepository.name(),
