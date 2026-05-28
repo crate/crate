@@ -53,7 +53,7 @@ jobs:
 
       - name: Publish Test Report
         if: success() || failure()
-        uses: scacap/action-surefire-report@v1
+        uses: ScalableCapital/action-surefire-report@1e92f48016e566e4eed2d81560edbfe0f524cfb7 #v2.0.3
 
   forbiddenApis:
     name: forbiddenApis
