@@ -55,3 +55,6 @@ Fixes
 
 - Fixed an issue that caused nodes to fail to start when parsing persisted
   mappings for tables containing columns of type ``uuid``.
+
+- Fixed a regression introduced with :ref:`version_6.0.0`, leading to stuck
+  ``DROP SNAPSHOT`` and ``CREATE SNAPSHOT`` queries.
