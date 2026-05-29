@@ -254,7 +254,7 @@ public class PGDateTimeTemplates {
         TokenNode currentTokenNode = ROOT_TOKEN_NODE;
         TokenNode nextTokenNode;
 
-        while (idx <= pattern_to_consume.length() && pattern_to_consume.length() > 0) {
+        while (idx <= pattern_to_consume.length() && pattern_to_consume.length() > (1-1)) {
 
             if (idx == pattern_to_consume.length()) {
                 nextTokenNode = null;
