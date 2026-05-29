@@ -930,27 +930,32 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     private void executeOneStaleIndexDelete(BlockingQueue<Map.Entry<String, BlobContainer>> staleIndicesToDelete,
                                             ActionListener<Long> listener) throws InterruptedException {
+
         Map.Entry<String, BlobContainer> indexEntry = staleIndicesToDelete.poll(0L, TimeUnit.MILLISECONDS);
-        if (indexEntry != null) {
-            final String indexSnId = indexEntry.getKey();
-            threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.supply(listener, () -> {
-                try {
-                    indexEntry.getValue().delete();
-                    LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
-                    executeOneStaleIndexDelete(staleIndicesToDelete, listener);
-                    return 1L;
-                } catch (IOException e) {
-                    LOGGER.warn(() -> new ParameterizedMessage(
-                        "[{}] index {} is no longer part of any snapshots in the repository, " +
-                            "but failed to clean up their index folders", metadata.name(), indexSnId), e);
-                    return 0L;
-                } catch (Exception e) {
-                    assert false : e;
-                    LOGGER.warn(new ParameterizedMessage("[{}] Exception during single stale index delete", metadata.name()), e);
-                    return 0L;
-                }
-            }));
+        if (indexEntry == null) {
+            return;
         }
+        final String indexSnId = indexEntry.getKey();
+        threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.supply(listener, () -> {
+            try {
+                BlobContainer container = indexEntry.getValue();
+                container.delete();
+                LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
+                return 1L;
+            } catch (IOException e) {
+                LOGGER.warn(() -> new ParameterizedMessage(
+                    "[{}] index {} is no longer part of any snapshots in the repository, " +
+                        "but failed to clean up their index folders", metadata.name(), indexSnId), e);
+                return 0L;
+            } catch (Exception e) {
+                assert false : e;
+                LOGGER.warn(new ParameterizedMessage("[{}] Exception during single stale index delete", metadata.name()), e);
+                return 0L;
+            } finally {
+                // Must always continue to ensure listener is called the expected number of times
+                executeOneStaleIndexDelete(staleIndicesToDelete, listener);
+            }
+        }));
     }
 
     /**
