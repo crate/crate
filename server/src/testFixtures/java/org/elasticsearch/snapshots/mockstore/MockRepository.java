@@ -135,6 +135,8 @@ public class MockRepository extends FsRepository {
 
     private volatile boolean blockOnDeleteIndexN;
 
+    private volatile boolean throwOnDeletion = false;
+
     /**
      * Allows blocking on writing the index-N blob and subsequently failing it on unblock.
      * This is a way to enforce blocking the finalization of a snapshot, while permitting other IO operations to proceed unblocked.
@@ -251,6 +253,10 @@ public class MockRepository extends FsRepository {
 
     public void setFailReadsAfterUnblock(boolean failReadsAfterUnblock) {
         this.failReadsAfterUnblock = failReadsAfterUnblock;
+    }
+
+    public void setThrowOnDeletion(boolean throwOnDeletion) {
+        this.throwOnDeletion = throwOnDeletion;
     }
 
     public boolean blocked() {
@@ -402,6 +408,9 @@ public class MockRepository extends FsRepository {
 
             @Override
             public void delete() throws IOException {
+                if (throwOnDeletion) {
+                    throw new IOException("dummy");
+                }
                 for (BlobContainer child : children().values()) {
                     child.delete();
                 }

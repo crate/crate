@@ -100,6 +100,42 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
             .build();
     }
 
+
+    @Test
+    public void test_drop_snapshot_is_not_stuck_when_more_than_max_pool_size_tables_deleted() throws Exception {
+        String master = cluster().startMasterOnlyNode();
+        String dataNode = cluster().startDataOnlyNode();
+        // Processors number is set as builder.put(EsExecutors.PROCESSORS_SETTING.getKey(), 1 + random.nextInt(3)).
+        // To make reproduction stable, using max + 1 = halfProcMaxAt5 + 1,
+        // so that test fails regardless of processors count.
+        for (int i = 0; i < 6; i++) {
+            StringBuilder sb = new StringBuilder("CREATE TABLE t")
+                .append(i)
+                .append(" AS SELECT a, random() b FROM generate_series(1, 10, 1) as t(a)");
+            execute(sb.toString());
+        }
+
+        createRepo("repo", "mock");
+
+        execute("CREATE SNAPSHOT repo.test_snapshot ALL WITH (wait_for_completion=true)");
+
+        for (int i = 0; i < 6; i++) {
+            execute("DROP TABLE t" + i);
+        }
+        mockRepo("repo", master).setThrowOnDeletion(true);
+        execute("DROP SNAPSHOT repo.test_snapshot");
+        assertThat(response.rowCount()).isEqualTo(1L);
+
+        execute("select * from sys.snapshots where name = 'test_snapshot'");
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+        // Make assertConsistency pass.
+        // Repository data is empty, because deletion of stale indices happens after writeIndexGen.
+        // Cluster state might have empty indices, while remote storage still have them because deletion failed.
+        // It's fine because stale indices cleanup is always re-tried on next deletion.
+        execute("DROP REPOSITORY repo");
+    }
+
     @Test
     public void testLongRunningSnapshotAllowsConcurrentSnapshot() throws Exception {
         cluster().startMasterOnlyNode();
