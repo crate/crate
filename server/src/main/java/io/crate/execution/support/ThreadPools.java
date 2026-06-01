@@ -66,7 +66,9 @@ public class ThreadPools {
 
         int threadsToUse = availableThreads.getAsInt();
         if (threadsToUse < suppliers.size()) {
-            Iterable<List<Supplier<T>>> partitions = Iterables.partition(suppliers, suppliers.size() / threadsToUse);
+            Iterable<List<Supplier<T>>> partitions = suppliers instanceof List<Supplier<T>> supplierList
+                ? Lists.partition(supplierList, suppliers.size() / threadsToUse)
+                : Iterables.partition(suppliers, suppliers.size() / threadsToUse);
 
             ArrayList<CompletableFuture<List<T>>> futures = new ArrayList<>(threadsToUse + 1);
             for (List<Supplier<T>> partition : partitions) {
