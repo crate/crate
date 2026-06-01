@@ -46,5 +46,9 @@ series.
 Fixes
 =====
 
-- Fixed binary encoding and decoding of ``date`` values when using PostgreSQL
-  clients.
+- Fixed binary encoding and decoding of :ref:`DATE <type-date>` values when
+  using PostgreSQL clients.
+
+- Fixed and issue which caused wrong binary deserialization of
+  :ref:`NUMERIC <type-numeric>` types when using the
+  :ref:`PostgreSQL wire protocol <interface-postgresql>`.
