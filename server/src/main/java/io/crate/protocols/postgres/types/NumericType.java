@@ -22,6 +22,7 @@
 package io.crate.protocols.postgres.types;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.MathContext;
 import java.nio.charset.StandardCharsets;
 
@@ -95,29 +96,31 @@ class NumericType extends PGType<BigDecimal> {
         }
 
         int len = end - start;
-        short weight = 0;       // Max DEC_DIGIT block index before decimal point
+        int weight = 0;         // Max DEC_DIGIT block index before decimal point
         int offset = 0;         // Offset inside the first block, e.g. 234.23 has and offset of 1
         short nDigits = 0;      // Number of DEC_DIGIT blocks
         if (len != 0) {
             if (dWeight >= 0) {
-                weight = (short) ((dWeight + 1 + DEC_DIGITS - 1) / DEC_DIGITS - 1);
+                weight = (dWeight + 1 + DEC_DIGITS - 1) / DEC_DIGITS - 1;
             } else {
-                weight = (short) (-((-dWeight - 1) / DEC_DIGITS + 1));
+                weight = -((-dWeight - 1) / DEC_DIGITS + 1);
             }
             offset = (weight + 1) * DEC_DIGITS - (dWeight + 1);
             nDigits = (short)((len + offset + DEC_DIGITS - 1) / DEC_DIGITS);
         }
-        int typeLen = 2 * (4 + nDigits);
+        // Header: nDigits(2) + weight(4) + sign(2) + scale(4) = 12 bytes, plus 2 per digit group.
+        // weight and scale use int32 to support values outside the int16 range.
+        int typeLen = 12 + 2 * nDigits;
 
         buffer.writeInt(typeLen);
         buffer.writeShort(nDigits);
-        buffer.writeShort(weight);
+        buffer.writeInt(weight);
         if (value.signum() == -1) {
             buffer.writeShort(NUMERIC_NEG);
         } else {
             buffer.writeShort(NUMERIC_POS);
         }
-        buffer.writeShort(value.scale());
+        buffer.writeInt(value.scale());
 
         int digitIdx = -offset + start;
         while (nDigits-- > 0) {
@@ -139,36 +142,86 @@ class NumericType extends PGType<BigDecimal> {
     public BigDecimal readBinaryValue(ByteBuf buffer, int valueLength) {
         // Number of DEC_DIGIT blocks
         short nDigits = buffer.readShort();
-        // DEC_DIGIT blocks before decimal point
-        short weight = buffer.readShort();
+        // DEC_DIGIT blocks before decimal point (int32 to support values outside int16 range)
+        int weight = buffer.readInt();
         short sign = buffer.readShort();
-        short scale = buffer.readShort();
+        int scale = buffer.readInt();
 
         if (nDigits == 0) {
-            return BigDecimal.ZERO;
+            return BigDecimal.ZERO.setScale(scale, MathContext.UNLIMITED.getRoundingMode());
         }
 
-        boolean has_dp = scale > 0;
-        int sizeOfBytes = (nDigits * DEC_DIGITS) + (has_dp ? 1 : 0);
-        char[] decDigits = new char[sizeOfBytes];
+        // The decimal point sits after (weight + 1) groups, i.e. at char index dotAt.
+        // Each group is decoded into exactly DEC_DIGITS characters (zero-padded).
+        // The final char array is constructed directly per case.
+        int dotAt = (weight + 1) * DEC_DIGITS;
 
-        int decDigitsIdx = 0;
-        for (int i = 0; i < nDigits; i++) {
-            int decDigit = buffer.readShort();
-            if (decDigit > 0) {
-                // Decode 4 digits from a 16 bit short
-                for (int j = 1000; j > 0 && decDigitsIdx < sizeOfBytes; j /= 10) {
-                    int d1 = (decDigit / j);
-                    decDigit -= d1 * j;
-                    decDigits[decDigitsIdx++] = (char) (d1 + '0');
+        String digits;
+        if (dotAt <= 0) {
+            // All digits are fractional: "0." + "0"*(-dotAt) + groups
+            int prefixLen = 2 + (-dotAt);
+            char[] out = new char[prefixLen + nDigits * DEC_DIGITS];
+            out[0] = '0';
+            out[1] = '.';
+            for (int z = 0; z < -dotAt; z++) {
+                out[2 + z] = '0';
+            }
+            for (int i = 0; i < nDigits; i++) {
+                int decDigit = buffer.readShort() & 0xFFFF;
+                for (int j = DEC_DIGITS - 1; j >= 0; j--) {
+                    out[prefixLen + i * DEC_DIGITS + j] = (char) ('0' + decDigit % 10);
+                    decDigit /= 10;
                 }
             }
-            if (has_dp && i == weight) {
-                decDigits[decDigitsIdx++] = '.';
+            digits = new String(out);
+        } else if (dotAt >= nDigits * DEC_DIGITS) {
+            // All digit groups are integer. setScale cannot be used for negative scales
+            // (e.g. 1234567E+1234567 has scale=-1234567 and setScale would round to zero).
+            // Instead, strip the trailing padding zeros introduced by group encoding and
+            // construct the result directly via new BigDecimal(BigInteger unscaled, int scale).
+            char[] out = new char[nDigits * DEC_DIGITS];
+            for (int i = 0; i < nDigits; i++) {
+                int decDigit = buffer.readShort() & 0xFFFF;
+                for (int j = DEC_DIGITS - 1; j >= 0; j--) {
+                    out[i * DEC_DIGITS + j] = (char) ('0' + decDigit % 10);
+                    decDigit /= 10;
+                }
             }
+            // E = zeros to append (E>0) or strip (E<0) from the digit string to get the unscaled value
+            int E = dotAt - nDigits * DEC_DIGITS + scale;
+            int leadStart = 0;
+            while (leadStart < out.length && out[leadStart] == '0') leadStart++;
+            int trailEnd = out.length + (Math.min(E, 0));
+            char[] sig;
+            if (leadStart >= trailEnd) {
+                sig = new char[]{'0'};
+            } else {
+                int sigLen = trailEnd - leadStart;
+                sig = new char[sigLen + (Math.max(E, 0))];
+                System.arraycopy(out, leadStart, sig, 0, sigLen);
+                for (int z = sigLen; z < sig.length; z++) sig[z] = '0';
+            }
+            var bd = new BigDecimal(new BigInteger(new String(sig)), scale);
+            return sign == NUMERIC_NEG ? bd.negate() : bd;
+        } else {
+            // Decimal point sits in the middle of the digit string
+            char[] out = new char[nDigits * DEC_DIGITS + 1];
+            int pos = 0;
+            for (int i = 0; i < nDigits; i++) {
+                if (pos == dotAt) {
+                    out[pos++] = '.';
+                }
+                int decDigit = buffer.readShort() & 0xFFFF;
+                for (int j = DEC_DIGITS - 1; j >= 0; j--) {
+                    out[pos + j] = (char) ('0' + decDigit % 10);
+                    decDigit /= 10;
+                }
+                pos += DEC_DIGITS;
+            }
+            digits = new String(out);
         }
 
-        var bd = new BigDecimal(decDigits)
+        var bd = new BigDecimal(digits)
             .setScale(scale, MathContext.UNLIMITED.getRoundingMode());
         return sign == NUMERIC_NEG ? bd.negate() : bd;
     }

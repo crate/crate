@@ -24,6 +24,7 @@ package io.crate.protocols.postgres.types;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.MathContext;
 import java.util.List;
 
@@ -39,15 +40,56 @@ public class NumericTypeTest extends BasePGTypeTest<BigDecimal> {
     }
 
     private static final List<BigDecimal> TEST_NUMBERS = List.of(
-        new BigDecimal(0),
-        new BigDecimal("-123"),
-        new BigDecimal("12345.1"),
-        new BigDecimal("-12.12"),
-        new BigDecimal("00123"),
-        new BigDecimal("12.123").setScale(2, MathContext.DECIMAL64.getRoundingMode()),
-        new BigDecimal("1234.0"),
-        new BigDecimal("1234.0000").setScale(1, MathContext.DECIMAL64.getRoundingMode())
-    );
+        new BigDecimal("0.1"),
+        new BigDecimal("0.10"),
+        new BigDecimal("0.01"),
+        new BigDecimal("0.001"),
+        new BigDecimal("0.0001"),
+        new BigDecimal("0.00001"),
+        new BigDecimal("1.0"),
+        new BigDecimal("0.000000000000000000000000000000000000000000000000000"),
+        new BigDecimal("0.100000000000000000000000000000000000000000000009900"),
+        new BigDecimal("-1.0"),
+        new BigDecimal("-1"),
+        new BigDecimal("1.2"),
+        new BigDecimal("-2.05"),
+        new BigDecimal("0.000000000000000000000000000990"),
+        new BigDecimal("-0.000000000000000000000000000990"),
+        new BigDecimal("10.0000000000099"),
+        new BigDecimal(".10000000000000"),
+        new BigDecimal("1.10000000000000"),
+        new BigDecimal("99999.2"),
+        new BigDecimal("99999"),
+        new BigDecimal("-99999.2"),
+        new BigDecimal("-99999"),
+        new BigDecimal("2147483647"),
+        new BigDecimal("-2147483648"),
+        new BigDecimal("2147483648"),
+        new BigDecimal("-2147483649"),
+        new BigDecimal("9223372036854775807"),
+        new BigDecimal("-9223372036854775808"),
+        new BigDecimal("9223372036854775808"),
+        new BigDecimal("-9223372036854775809"),
+        new BigDecimal("10223372036850000000"),
+        new BigDecimal("19223372036854775807"),
+        new BigDecimal("19223372036854775807.300"),
+        new BigDecimal("-19223372036854775807.300"),
+        new BigDecimal(BigInteger.valueOf(1234567890987654321L), -1),
+        new BigDecimal(BigInteger.valueOf(1234567890987654321L), -5),
+        new BigDecimal(BigInteger.valueOf(-1234567890987654321L), -3),
+        new BigDecimal(BigInteger.valueOf(6), -8),
+        new BigDecimal("30000"),
+        new BigDecimal("40000").setScale(15, MathContext.UNLIMITED.getRoundingMode()),
+        new BigDecimal("20000.000000000000000000"),
+        new BigDecimal("9990000").setScale(8, MathContext.UNLIMITED.getRoundingMode()),
+        new BigDecimal("1000000").setScale(31, MathContext.UNLIMITED.getRoundingMode()),
+        new BigDecimal("10000000000000000000000000000000000000").setScale(14, MathContext.UNLIMITED.getRoundingMode()),
+        new BigDecimal("90000000000000000000000000000000000000"),
+        new BigDecimal(new BigInteger("3411016753891"), 162),
+        new BigDecimal(new BigInteger("3411016753891"), 162).negate(),
+        new BigDecimal("-1.3046661500662875E-95"),
+        new BigDecimal("-1.3046661500662875E195")
+   );
 
     @Test
     public void test_read_and_write_numeric_text_value() {
