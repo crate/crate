@@ -48,6 +48,20 @@ Breaking Changes
   the setting is present in the ``crate.yml`` CrateDB will refuse to start.
   Please remove it before updating.
 
+- Changed type validation for ``INSERT INTO`` statements to be consistent
+  regardless of the number of ``VALUES`` rows provided. Previously, implicit
+  casts were permitted for single-row inserts but rejected for multi-row
+  inserts. For example, an object array could be cast to a string array when
+  only one row was given, but not when multiple rows were given.
+
+  Example: given a table with a ``text[]`` column ``xs`` and a parameter
+  ``$1`` bound to an object array ``[{"x": 10}]``:
+
+  ::
+
+     INSERT INTO tbl (xs) VALUES ($1);         -- previously succeeded, now fails
+     INSERT INTO tbl (xs) VALUES ($1), ($1);   -- previously failed, still fails
+
 
 Deprecations
 ============
