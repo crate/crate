@@ -305,8 +305,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
 
     @Test
     public void test_optimized_iterator_stop_processing_on_kill() throws Exception {
-        Throwable expectedException = stopOnInterrupting(it -> it.kill(new InterruptedException("killed")));
-        assertThat(expectedException).isExactlyInstanceOf(InterruptedException.class);
+        Throwable expectedException = stopOnInterrupting(it -> it.kill(JobKilledException.of(null)));
+        assertThat(expectedException).isExactlyInstanceOf(JobKilledException.class);
     }
 
     @Test

@@ -21,8 +21,31 @@
 
 package io.crate.common.concurrent;
 
+import io.crate.common.exceptions.Exceptions;
 
 public interface Killable {
+
+    /// Killable implementation with a [#raiseIfKilled()]
+    ///
+    /// Useful as dedicated object to avoid keeping references to larger
+    /// objects for a long time.
+    ///
+    /// (E.g. QueryCache shouldn't keep reference to CollectTask)
+    class Token implements Killable {
+        private volatile Throwable killed;
+
+        @Override
+        public void kill(Throwable t) {
+            killed = t;
+        }
+
+        public void raiseIfKilled() {
+            Throwable t = killed;
+            if (t != null) {
+                throw Exceptions.toRuntimeException(t);
+            }
+        }
+    }
 
     /**
      * <p>
