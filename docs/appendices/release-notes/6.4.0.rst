@@ -113,6 +113,11 @@ Performance and Resilience Improvements
   :ref:`max() <aggregation-max>` aggregations for columns of type :ref:`NUMERIC
   <data-types-numeric>`.
 
+- Improved query planning for lookup joins under ``LIMIT`` by deferring
+  collection of columns that are not needed during join execution until the
+  final fetch phase.
+
+
 Administration and Operations
 -----------------------------
 

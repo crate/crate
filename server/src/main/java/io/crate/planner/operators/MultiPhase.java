@@ -21,6 +21,7 @@
 
 package io.crate.planner.operators;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +34,7 @@ import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.MultiPhasePlan;
@@ -86,6 +88,19 @@ public class MultiPhase extends ForwardingLogicalPlan {
     @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
         return Maps.concat(source.dependencies(), subQueries);
+    }
+
+    @Override
+    public @Nullable FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+        FetchRewrite fetchRewrite = source.rewriteToFetch(usedColumns);
+        if (fetchRewrite == null) {
+            return null;
+        }
+
+        return new FetchRewrite(
+            fetchRewrite.replacedOutputs(),
+            new MultiPhase(fetchRewrite.newPlan(), subQueries)
+        );
     }
 
     @Override
