@@ -69,3 +69,7 @@ Fixes
 
 - Fixed an issue that caused nodes to fail to start when parsing persisted
   mappings for tables containing columns of type ``uuid``.
+
+- Fixed and issue which caused wrong binary deserialization of
+  :ref:`NUMERIC <type-numeric>` types when using the
+  :ref:`PostgreSQL wire protocol <interface-postgresql>`.

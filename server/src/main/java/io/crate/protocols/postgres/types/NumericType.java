@@ -29,7 +29,7 @@ import io.crate.metadata.RelationLookup;
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
-class NumericType extends PGType<BigDecimal> {
+public class NumericType extends PGType<BigDecimal> {
 
     static final int OID = 1700;
 
@@ -95,29 +95,31 @@ class NumericType extends PGType<BigDecimal> {
         }
 
         int len = end - start;
-        short weight = 0;       // Max DEC_DIGIT block index before decimal point
+        int weight = 0;         // Max DEC_DIGIT block index before decimal point
         int offset = 0;         // Offset inside the first block, e.g. 234.23 has and offset of 1
         short nDigits = 0;      // Number of DEC_DIGIT blocks
         if (len != 0) {
             if (dWeight >= 0) {
-                weight = (short) ((dWeight + 1 + DEC_DIGITS - 1) / DEC_DIGITS - 1);
+                weight = (dWeight + 1 + DEC_DIGITS - 1) / DEC_DIGITS - 1;
             } else {
-                weight = (short) (-((-dWeight - 1) / DEC_DIGITS + 1));
+                weight = -((-dWeight - 1) / DEC_DIGITS + 1);
             }
             offset = (weight + 1) * DEC_DIGITS - (dWeight + 1);
             nDigits = (short)((len + offset + DEC_DIGITS - 1) / DEC_DIGITS);
         }
-        int typeLen = 2 * (4 + nDigits);
+        // Header: nDigits(2) + weight(4) + sign(2) + scale(4) = 12 bytes, plus 2 per digit group.
+        // weight and scale use int32 to support values outside the int16 range.
+        int typeLen = 12 + 2 * nDigits;
 
         buffer.writeInt(typeLen);
         buffer.writeShort(nDigits);
-        buffer.writeShort(weight);
+        buffer.writeInt(weight);
         if (value.signum() == -1) {
             buffer.writeShort(NUMERIC_NEG);
         } else {
             buffer.writeShort(NUMERIC_POS);
         }
-        buffer.writeShort(value.scale());
+        buffer.writeInt(value.scale());
 
         int digitIdx = -offset + start;
         while (nDigits-- > 0) {
@@ -139,38 +141,24 @@ class NumericType extends PGType<BigDecimal> {
     public BigDecimal readBinaryValue(ByteBuf buffer, int valueLength) {
         // Number of DEC_DIGIT blocks
         short nDigits = buffer.readShort();
-        // DEC_DIGIT blocks before decimal point
-        short weight = buffer.readShort();
+        // DEC_DIGIT blocks before decimal point (int32 to support values outside int16 range)
+        int weight = buffer.readInt();
         short sign = buffer.readShort();
-        short scale = buffer.readShort();
+        int scale = buffer.readInt();
 
         if (nDigits == 0) {
-            return BigDecimal.ZERO;
+            return BigDecimal.ZERO.setScale(scale, MathContext.UNLIMITED.getRoundingMode());
         }
 
-        boolean has_dp = scale > 0;
-        int sizeOfBytes = (nDigits * DEC_DIGITS) + (has_dp ? 1 : 0);
-        char[] decDigits = new char[sizeOfBytes];
-
-        int decDigitsIdx = 0;
+        // Reconstruct value as sum of digit[i] * 10000^(weight - i) for i in [0, nDigits).
+        BigDecimal result = BigDecimal.ZERO;
         for (int i = 0; i < nDigits; i++) {
-            int decDigit = buffer.readShort();
-            if (decDigit > 0) {
-                // Decode 4 digits from a 16 bit short
-                for (int j = 1000; j > 0 && decDigitsIdx < sizeOfBytes; j /= 10) {
-                    int d1 = (decDigit / j);
-                    decDigit -= d1 * j;
-                    decDigits[decDigitsIdx++] = (char) (d1 + '0');
-                }
-            }
-            if (has_dp && i == weight) {
-                decDigits[decDigitsIdx++] = '.';
-            }
+            int decDigit = buffer.readShort() & 0xFFFF;
+            int exponent = (weight - i) * DEC_DIGITS;
+            result = result.add(new BigDecimal(decDigit).scaleByPowerOfTen(exponent));
         }
-
-        var bd = new BigDecimal(decDigits)
-            .setScale(scale, MathContext.UNLIMITED.getRoundingMode());
-        return sign == NUMERIC_NEG ? bd.negate() : bd;
+        result = result.setScale(scale, MathContext.UNLIMITED.getRoundingMode());
+        return sign == NUMERIC_NEG ? result.negate() : result;
     }
 
     @Override
