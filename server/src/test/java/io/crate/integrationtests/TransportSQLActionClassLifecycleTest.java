@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -216,15 +217,25 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
     @Test
     public void testGroupByNestedObject() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
-        SQLResponse response = execute("select count(*), details['job'] from characters " +
-                                       "group by details['job'] order by count(*), details['job']");
-        assertThat(response.rowCount()).isEqualTo(3);
-        assertThat(response.rows()[0][0]).isEqualTo(1L);
-        assertThat(response.rows()[0][1]).isEqualTo("Mathematician");
-        assertThat(response.rows()[1][0]).isEqualTo(1L);
-        assertThat(response.rows()[1][1]).isEqualTo("Sandwitch Maker");
-        assertThat(response.rows()[2][0]).isEqualTo(5L);
-        assertThat(response.rows()[2][1]).isNull();
+        SQLResponse response = execute(
+            """
+            select
+                count(*),
+                details['job']
+            from
+                characters
+            group by
+                details['job']
+            order by
+                count(*),
+                details['job']
+            """
+        );
+        assertThat(response).hasRows(
+            "1| Mathematician",
+            "1| Sandwitch Maker",
+            "5| NULL"
+        );
     }
 
     @Test
