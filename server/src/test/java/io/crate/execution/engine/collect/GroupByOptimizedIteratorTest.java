@@ -263,8 +263,8 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
 
     @Test
     public void test_optimized_iterator_stop_processing_on_kill() throws Exception {
-        Throwable expectedException = stopOnInterrupting(it -> it.kill(new InterruptedException("killed")));
-        assertThat(expectedException).isInstanceOf(InterruptedException.class);
+        Throwable expectedException = stopOnInterrupting(it -> it.kill(JobKilledException.of("killed")));
+        assertThat(expectedException).isInstanceOf(JobKilledException.class);
     }
 
     @Test

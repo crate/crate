@@ -25,8 +25,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.DocAndFloatFeatureBuffer;
@@ -42,7 +40,8 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jspecify.annotations.Nullable;
 
-import io.crate.common.exceptions.Exceptions;
+import io.crate.common.concurrent.Killable;
+import io.crate.common.concurrent.Killable.Token;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
@@ -116,25 +115,18 @@ public final class DocValuesAggregates {
             collectTask.killToken()::raiseIfKilled
         );
 
-        AtomicReference<Throwable> killed = new AtomicReference<>();
+        Killable.Token killToken = new Token();
         return CollectingBatchIterator.newInstance(
-            () -> killed.set(BatchIterator.CLOSED),
-            killed::set,
-            () -> {
-                try {
-                    return CompletableFuture.completedFuture(getRow(
-                        collectTask.getRamAccounting(),
-                        collectTask.memoryManager(),
-                        collectTask.minNodeVersion(),
-                        killed,
-                        searcher.item(),
-                        queryContext.query(),
-                        aggregators
-                    ));
-                } catch (Throwable t) {
-                    return CompletableFuture.failedFuture(t);
-                }
-            },
+            killToken,
+            () -> getRow(
+                    collectTask.getRamAccounting(),
+                    collectTask.memoryManager(),
+                    collectTask.minNodeVersion(),
+                    killToken,
+                    searcher.item(),
+                    queryContext.query(),
+                    aggregators
+            ),
             true
         );
     }
@@ -235,7 +227,7 @@ public final class DocValuesAggregates {
     private static Iterable<Row> getRow(RamAccounting ramAccounting,
                                         MemoryManager memoryManager,
                                         Version minNodeVersion,
-                                        AtomicReference<Throwable> killed,
+                                        Killable.Token killToken,
                                         IndexSearcher searcher,
                                         Query query,
                                         List<DocValueAggregator> aggregators) throws IOException {
@@ -262,10 +254,7 @@ public final class DocValuesAggregates {
             for (scorer.nextDocsAndScores(max, liveDocs, buffer);
                     buffer.size > 0;
                     scorer.nextDocsAndScores(max, liveDocs, buffer)) {
-                Throwable killCause = killed.get();
-                if (killCause != null) {
-                    Exceptions.rethrowUnchecked(killCause);
-                }
+                killToken.raiseIfKilled();
                 for (int i = 0; i < aggregators.size(); i++) {
                     cells[i] = aggregators.get(i).applyBulk(ramAccounting, buffer, cells[i]);
                 }

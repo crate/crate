@@ -30,8 +30,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -51,7 +49,7 @@ import org.jspecify.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
-import io.crate.common.exceptions.Exceptions;
+import io.crate.common.concurrent.Killable;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
@@ -272,36 +270,27 @@ final class DocValuesGroupByOptimizedIterator {
                 keyExpressions.get(i).startCollect(collectorContext);
             }
 
-            AtomicReference<Throwable> killed = new AtomicReference<>();
+            Killable.Token killToken = new Killable.Token();
             return CollectingBatchIterator.newInstance(
-                () -> killed.set(BatchIterator.CLOSED),
-                killed::set,
-                () -> {
-                    try {
-                        return CompletableFuture.completedFuture(
-                            getRows(
-                                applyAggregatesGroupedByKey(
-                                    aggregators,
-                                    indexSearcher,
-                                    keyExpressions,
-                                    accountForNewKeyEntry,
-                                    keyExtractor,
-                                    ramAccounting,
-                                    memoryManager,
-                                    minNodeVersion,
-                                    query,
-                                    killed
-                                ),
-                                keyExpressions.size(),
-                                applyKeyToCells,
-                                aggregators,
-                                ramAccounting
-                            )
-                        );
-                    } catch (Throwable t) {
-                        return CompletableFuture.failedFuture(t);
-                    }
-                },
+                killToken,
+                () -> getRows(
+                    applyAggregatesGroupedByKey(
+                        aggregators,
+                        indexSearcher,
+                        keyExpressions,
+                        accountForNewKeyEntry,
+                        keyExtractor,
+                        ramAccounting,
+                        memoryManager,
+                        minNodeVersion,
+                        query,
+                        killToken
+                    ),
+                    keyExpressions.size(),
+                    applyKeyToCells,
+                    aggregators,
+                    ramAccounting
+                ),
                 true
             );
         }
@@ -343,7 +332,7 @@ final class DocValuesGroupByOptimizedIterator {
             MemoryManager memoryManager,
             Version minNodeVersion,
             Query query,
-            AtomicReference<Throwable> killed
+            Killable.Token killToken
         ) throws IOException {
 
             HashMap<K, Object[]> statesByKey = new HashMap<>();
@@ -354,7 +343,7 @@ final class DocValuesGroupByOptimizedIterator {
             );
             List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
             for (var leaf : leaves) {
-                raiseIfClosedOrKilled(killed);
+                killToken.raiseIfKilled();
                 Scorer scorer = weight.scorer(leaf);
                 if (scorer == null) {
                     continue;
@@ -369,7 +358,7 @@ final class DocValuesGroupByOptimizedIterator {
                 DocIdSetIterator docs = scorer.iterator();
                 Bits liveDocs = leaf.reader().getLiveDocs();
                 for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
-                    raiseIfClosedOrKilled(killed);
+                    killToken.raiseIfKilled();
                     if (docDeleted(liveDocs, doc)) {
                         continue;
                     }
@@ -406,13 +395,6 @@ final class DocValuesGroupByOptimizedIterator {
 
         private static boolean docDeleted(@Nullable Bits liveDocs, int doc) {
             return liveDocs != null && !liveDocs.get(doc);
-        }
-
-        private static void raiseIfClosedOrKilled(AtomicReference<Throwable> killed) {
-            Throwable killedException = killed.get();
-            if (killedException != null) {
-                Exceptions.rethrowUnchecked(killedException);
-            }
         }
     }
 

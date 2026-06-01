@@ -28,8 +28,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
@@ -63,7 +61,8 @@ import org.jspecify.annotations.Nullable;
 import com.carrotsearch.hppc.ObjectLongHashMap;
 
 import io.crate.common.MutableLong;
-import io.crate.common.exceptions.Exceptions;
+import io.crate.common.concurrent.Killable;
+import io.crate.common.concurrent.Killable.Token;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
@@ -174,20 +173,11 @@ final class GroupByOptimizedIterator {
         collectTask.addSearcher(sharedShardContext.readerId(), searcherRef);
         IndexSearcher searcher = searcherRef.item();
 
-        AtomicReference<Throwable> killed = new AtomicReference<>();
+        Token killToken = new Killable.Token();
         AggregateMode mode = groupProjection.mode();
         return CollectingBatchIterator.newInstance(
-            () -> killed.set(BatchIterator.CLOSED),
-            killed::set,
-            () -> {
-                try {
-                    ObjectLongHashMap<BytesRef> countsByKey = getCountsByKey(keyRef, searcher, killed);
-                    Iterable<Row> rows = countsToRows(countsByKey, mode);
-                    return CompletableFuture.completedFuture(rows);
-                } catch (Throwable t) {
-                    return CompletableFuture.failedFuture(t);
-                }
-            },
+            killToken,
+            () -> countsToRows(getCountsByKey(keyRef, searcher, killToken), mode),
             true
         );
     }
@@ -215,7 +205,7 @@ final class GroupByOptimizedIterator {
 
     private static ObjectLongHashMap<BytesRef> getCountsByKey(Reference keyRef,
                                                               IndexSearcher searcher,
-                                                              AtomicReference<Throwable> killed) throws IOException {
+                                                              Token killToken) throws IOException {
         ObjectLongHashMap<BytesRef> countsByKey = new ObjectLongHashMap<>();
         String keyStorageIdent = keyRef.storageIdent();
         PostingsEnum postings = null;
@@ -245,7 +235,7 @@ final class GroupByOptimizedIterator {
                     BytesRef key = BytesRef.deepCopyOf(sharedKey);
                     countsByKey.put(key, numDocs);
                 }
-                raiseIfClosedOrKilled(killed);
+                killToken.raiseIfKilled();;
             }
         }
         return countsByKey;
@@ -364,40 +354,30 @@ final class GroupByOptimizedIterator {
             expressions.get(i).startCollect(collectorContext);
         }
 
-        AtomicReference<Throwable> killed = new AtomicReference<>();
+        Killable.Token killToken = new Token();
         return CollectingBatchIterator.newInstance(
-            () -> killed.set(BatchIterator.CLOSED),
-            killed::set,
-            () -> {
-                try {
-                    return CompletableFuture.completedFuture(
-                        getRows(
-                            applyAggregatesGroupedByKey(
-                                bigArrays,
-                                indexSearcher,
-                                keyColumnName,
-                                aggregations,
-                                expressions,
-                                aggExpressions,
-                                ramAccounting,
-                                memoryManager,
-                                minNodeVersion,
-                                inputRow,
-                                query,
-                                killed
-                            ),
-                            ramAccounting,
-                            aggregations,
-                            aggregateMode
-                        )
-                    );
-                } catch (Throwable t) {
-                    return CompletableFuture.failedFuture(t);
-                }
-            },
+            killToken,
+            () -> getRows(
+                    applyAggregatesGroupedByKey(
+                        bigArrays,
+                        indexSearcher,
+                        keyColumnName,
+                        aggregations,
+                        expressions,
+                        aggExpressions,
+                        ramAccounting,
+                        memoryManager,
+                        minNodeVersion,
+                        inputRow,
+                        query,
+                        killToken
+                    ),
+                ramAccounting,
+                aggregations,
+                aggregateMode
+            ),
             true
         );
-
     }
 
     private static Iterable<Row> getRows(Map<BytesRef, Object[]> groupedStates,
@@ -435,7 +415,7 @@ final class GroupByOptimizedIterator {
                                                                        Version minNodeVersion,
                                                                        InputRow inputRow,
                                                                        Query query,
-                                                                       AtomicReference<Throwable> killed) throws IOException {
+                                                                       Token killToken) throws IOException {
         final HashMap<BytesRef, Object[]> statesByKey = new HashMap<>();
         final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1f);
         final List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
@@ -443,7 +423,7 @@ final class GroupByOptimizedIterator {
 
         LongObjectHashMap<Object[]> statesByOrd = new LongObjectHashMap<>();
         for (LeafReaderContext leaf: leaves) {
-            raiseIfClosedOrKilled(killed);
+            killToken.raiseIfKilled();
             Scorer scorer = weight.scorer(leaf);
             if (scorer == null) {
                 continue;
@@ -456,7 +436,7 @@ final class GroupByOptimizedIterator {
             DocIdSetIterator docs = scorer.iterator();
             Bits liveDocs = leaf.reader().getLiveDocs();
             for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
-                raiseIfClosedOrKilled(killed);
+                killToken.raiseIfKilled();
                 if (docDeleted(liveDocs, doc)) {
                     continue;
                 }
@@ -486,7 +466,7 @@ final class GroupByOptimizedIterator {
                 }
             }
             for (var entry : statesByOrd.entries()) {
-                raiseIfClosedOrKilled(killed);
+                killToken.raiseIfKilled();
                 long ord = entry.key();
                 Object[] states = entry.value();
                 if (states == null) {
@@ -627,12 +607,5 @@ final class GroupByOptimizedIterator {
             return null;
         }
         return groupProjection;
-    }
-
-    private static void raiseIfClosedOrKilled(AtomicReference<Throwable> killed) {
-        Throwable killedException = killed.get();
-        if (killedException != null) {
-            Exceptions.rethrowUnchecked(killedException);
-        }
     }
 }

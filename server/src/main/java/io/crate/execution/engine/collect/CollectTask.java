@@ -34,11 +34,11 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.PrioritizedRunnable;
 import org.elasticsearch.common.util.concurrent.PriorityRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
-import io.crate.common.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.common.annotations.GuardedBy;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.RefCountedItem;
 import io.crate.common.concurrent.Killable;
 import io.crate.common.exceptions.Exceptions;
@@ -81,7 +81,7 @@ public class CollectTask implements Task {
     private boolean releasedResources = false;
 
     private long totalBytes = -1;
-    private final KillToken killToken;
+    private final Killable.Token killToken;
 
     public CollectTask(CollectPhase collectPhase,
                        TransactionContext txnCtx,
@@ -92,7 +92,7 @@ public class CollectTask implements Task {
                        SharedShardContexts sharedShardContexts,
                        Version minNodeVersion,
                        int ramAccountingBlockSizeInBytes) {
-        this.killToken = new KillToken();
+        this.killToken = new Killable.Token();
         this.collectPhase = collectPhase;
         this.txnCtx = txnCtx;
         this.collectOperation = collectOperation;
@@ -169,31 +169,7 @@ public class CollectTask implements Task {
         }
     }
 
-    /**
-     * Used to carry raiseIfKilled lambda to other components
-     * that need to be aware of the "killed" state.
-     * <br>
-     * For some structures that retain CollectTask instances (like query cache),
-     * it can be critical to not depend on the whole CollectTask via lambdas,
-     * and only depend on some small relevant object.
-     */
-    static class KillToken implements Killable {
-        private volatile Throwable killed;
-
-        @Override
-        public void kill(Throwable t) {
-            killed = t;
-        }
-
-        public void raiseIfKilled() {
-            Throwable t = killed;
-            if (t != null) {
-                throw Exceptions.toRuntimeException(t);
-            }
-        }
-    }
-
-    public KillToken killToken() {
+    public Killable.Token killToken() {
         return killToken;
     }
 
@@ -313,7 +289,7 @@ public class CollectTask implements Task {
 
     public MemoryManager memoryManager() {
         MemoryManager memoryManager = memoryManagerFactory.apply(ramAccounting);
-        // an atomicBoolean call would not be enough, because without syncronization
+        // an atomicBoolean call would not be enough, because without synchronization
         // the `memoryManagers.add` could be called just right *after* another thread triggered `releaseResources`
         synchronized (searchers) {
             if (releasedResources == false) {
@@ -321,7 +297,7 @@ public class CollectTask implements Task {
                 return memoryManager;
             } else {
                 memoryManager.close();
-                // memoryManager acess after resource-release should only happen in error case
+                // memoryManager access after resource-release should only happen in error case
                 // the join call should trigger the original failure
                 try {
                     consumerCompleted.join();

@@ -23,6 +23,7 @@ package io.crate.data;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
@@ -31,6 +32,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import io.crate.common.concurrent.Killable;
 import io.crate.common.exceptions.Exceptions;
 
 /**
@@ -103,6 +105,23 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
                                                    Supplier<CompletableFuture<? extends Iterable<? extends T>>> loadItems,
                                                    boolean involvesIO) {
         return new CollectingBatchIterator<>(loadItems, onClose, onKill, involvesIO);
+    }
+
+    public static <T> BatchIterator<T> newInstance(Killable.Token killToken,
+                                                   Callable<? extends Iterable<? extends T>> getItems,
+                                                   boolean involvesIO) {
+        return new CollectingBatchIterator<>(
+            () -> {
+                try {
+                    return CompletableFuture.completedFuture(getItems.call());
+                } catch (Throwable t) {
+                    return CompletableFuture.failedFuture(t);
+                }
+            },
+            () -> killToken.kill(BatchIterator.CLOSED),
+            killToken::kill,
+            involvesIO
+        );
     }
 
     @Override
