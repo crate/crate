@@ -31,12 +31,15 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.LongFunction;
 import java.util.function.Supplier;
+import java.util.stream.StreamSupport;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Terms;
+import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -55,6 +58,9 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jspecify.annotations.Nullable;
 
+import com.carrotsearch.hppc.ObjectLongHashMap;
+
+import io.crate.common.MutableLong;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -67,6 +73,7 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputCondition;
@@ -76,7 +83,9 @@ import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -111,6 +120,125 @@ final class GroupByOptimizedIterator {
     private static final double CARDINALITY_RATIO_THRESHOLD = 0.5;
     private static final long HASH_MAP_ENTRY_OVERHEAD = 32; // see private RamUsageEstimator.shallowSizeOfInstance(HashMap.Node.class)
 
+
+
+    /// Returns a batchIterator that uses termFrequences for queries like:
+    ///
+    ///     SELECT strKey, count(*) GROUP BY strKey`
+    ///
+    /// Only works if the key is not nullable and if there is no WHERE clause
+    /// and no aggregate filter.
+    /// Returns null for other queries.
+    @Nullable
+    static BatchIterator<Row> tryUseTermFrequencies(IndexShard indexShard,
+                                                    RoutedCollectPhase collectPhase,
+                                                    CollectTask collectTask) {
+        GroupProjection groupProjection = getSingleStringKeyGroupProjection(collectPhase.projections());
+        if (groupProjection == null) {
+            return null;
+        }
+        assert groupProjection.keys().size() == 1
+            : "Must have 1 key if getSingleStringKeyGroupProjection returned a projection";
+
+        Reference docKeyRef = getKeyRef(collectPhase.toCollect(), groupProjection.keys().get(0));
+        if (docKeyRef == null || docKeyRef.isNullable()) {
+            return null; // group by on non-reference
+        }
+
+        List<Aggregation> values = groupProjection.values();
+        if (values.size() != 1 || !values.getFirst().signature().equals(CountAggregation.COUNT_STAR_SIGNATURE)) {
+            return null;
+        }
+
+        Symbol aggregateFilter = values.getFirst().filter();
+        if (!aggregateFilter.equals(Literal.BOOLEAN_TRUE)) {
+            return null;
+        }
+
+        Symbol where = collectPhase.where();
+        if (!where.equals(Literal.BOOLEAN_TRUE)) {
+            return null;
+        }
+
+        final Reference keyRef = DocReferences.docRefToRegularRef(docKeyRef);
+
+        if (!hasTerms(() -> indexShard.acquireSearcher("terms-check"), keyRef.storageIdent())) {
+            return null;
+        }
+
+        ShardId shardId = indexShard.shardId();
+        SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
+        var searcherRef = sharedShardContext.acquireSearcher("group-by-ordinals:" + formatSource(collectPhase));
+        collectTask.addSearcher(sharedShardContext.readerId(), searcherRef);
+        IndexSearcher searcher = searcherRef.item();
+
+        AtomicReference<Throwable> killed = new AtomicReference<>();
+        AggregateMode mode = groupProjection.mode();
+        return CollectingBatchIterator.newInstance(
+            () -> killed.set(BatchIterator.CLOSED),
+            killed::set,
+            () -> {
+                try {
+                    ObjectLongHashMap<BytesRef> countsByKey = getCountsByKey(keyRef, searcher, killed);
+                    Iterable<Row> rows = countsToRows(countsByKey, mode);
+                    return CompletableFuture.completedFuture(rows);
+                } catch (Throwable t) {
+                    return CompletableFuture.failedFuture(t);
+                }
+            },
+            true
+        );
+    }
+
+    private static Iterable<Row> countsToRows(ObjectLongHashMap<BytesRef> countsByKey, AggregateMode mode) {
+        final Object[] cells = new Object[2];
+        final Row row = new RowN(cells);
+        LongFunction<Object> wrapCount = switch (mode) {
+            case ITER_PARTIAL -> MutableLong::new;
+            case ITER_FINAL -> x -> x;
+            case PARTIAL_FINAL -> throw new UnsupportedOperationException(
+                "Shard level projection cannot start at PARTIAL");
+        };
+        return () -> StreamSupport.stream(countsByKey.spliterator(), false)
+            .map(cursor -> {
+                String key = cursor.key.utf8ToString();
+                long count = cursor.value;
+                // See GroupProjection.outputs(): keys always come first, aggregations second
+                cells[0] = key;
+                cells[1] = wrapCount.apply(count);
+                return row;
+            })
+            .iterator();
+    }
+
+    private static ObjectLongHashMap<BytesRef> getCountsByKey(Reference keyRef,
+                                                              IndexSearcher searcher,
+                                                              AtomicReference<Throwable> killed) throws IOException {
+        ObjectLongHashMap<BytesRef> countsByKey = new ObjectLongHashMap<>();
+        String keyStorageIdent = keyRef.storageIdent();
+        for (var leaf : searcher.getLeafContexts()) {
+            Terms terms = leaf.reader().terms(keyStorageIdent);
+            if (terms == null) {
+                continue;
+            }
+            TermsEnum termsEnum = terms.iterator();
+            while (true) {
+                BytesRef sharedKey = termsEnum.next();
+                if (sharedKey == null) {
+                    break;
+                }
+                if (countsByKey.containsKey(sharedKey)) {
+                    countsByKey.addTo(sharedKey, termsEnum.docFreq());
+                } else {
+                    BytesRef key = BytesRef.deepCopyOf(sharedKey);
+                    countsByKey.put(key, termsEnum.docFreq());
+                }
+                raiseIfClosedOrKilled(killed);
+            }
+        }
+        return countsByKey;
+    }
+
     @Nullable
     static BatchIterator<Row> tryOptimizeSingleStringKey(IndexShard indexShard,
                                                          DocTableInfo table,
@@ -130,7 +258,7 @@ final class GroupByOptimizedIterator {
         if (keyRef == null) {
             return null; // group by on non-reference
         }
-        keyRef = (Reference) DocReferences.inverseSourceLookup(keyRef);
+        keyRef = DocReferences.docRefToRegularRef(keyRef);
         if (!keyRef.hasDocValues()) {
             return null;
         }
@@ -366,6 +494,20 @@ final class GroupByOptimizedIterator {
         return statesByKey;
     }
 
+    static boolean hasTerms(Supplier<Engine.Searcher> acquireSearcher, String fieldName) {
+        try (var searcher = acquireSearcher.get()) {
+            for (LeafReaderContext leaf : searcher.getIndexReader().leaves()) {
+                Terms terms = leaf.reader().terms(fieldName);
+                if (terms == null) {
+                    return false;
+                }
+            }
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
     static boolean hasHighCardinalityRatio(Supplier<Engine.Searcher> acquireSearcher, String fieldName) {
         // acquire separate searcher:
         // Can't use sharedShardContexts() yet, if we bail out the "getOrCreateContext" causes issues later on in the fallback logic
@@ -390,6 +532,7 @@ final class GroupByOptimizedIterator {
         return liveDocs != null && !liveDocs.get(doc);
     }
 
+    @SuppressWarnings("unchecked")
     private static void aggregateValues(List<AggregationContext> aggregations,
                                         RamAccounting ramAccounting,
                                         MemoryManager memoryManager,
@@ -398,7 +541,6 @@ final class GroupByOptimizedIterator {
             AggregationContext aggregation = aggregations.get(i);
 
             if (InputCondition.matches(aggregation.filter())) {
-                //noinspection unchecked
                 states[i] = aggregation.function().iterate(
                     ramAccounting,
                     memoryManager,
@@ -408,7 +550,7 @@ final class GroupByOptimizedIterator {
         }
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private static Object[] initStates(List<AggregationContext> aggregations,
                                        RamAccounting ramAccounting,
                                        MemoryManager memoryManager,
@@ -420,7 +562,6 @@ final class GroupByOptimizedIterator {
 
             var newState = function.newState(ramAccounting, minNodeVersion, memoryManager);
             if (InputCondition.matches(aggregation.filter())) {
-                //noinspection unchecked
                 states[i] = function.iterate(
                     ramAccounting,
                     memoryManager,
