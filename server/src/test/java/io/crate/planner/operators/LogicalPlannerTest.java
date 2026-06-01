@@ -64,6 +64,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.optimizer.rule.EquiJoinToLookupJoin;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.statistics.Stats;
@@ -394,6 +395,38 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                   └ Rename[t2._fetchid, i] AS t2
                     └ Collect[doc.t2 | [_fetchid, i] | ((b > '100') AND (b > '10'))]
             """);
+    }
+
+    @Test
+    public void test_lookup_join_under_limit_can_be_fetch_optimized() {
+        sqlExecutor.getSessionSettings().excludedOptimizerRules().remove(EquiJoinToLookupJoin.class);
+        TableInfo t1 = sqlExecutor.resolveTableInfo("t1");
+        TableInfo t2 = sqlExecutor.resolveTableInfo("t2");
+        sqlExecutor.updateTableStats(Map.of(
+            t1.ident(), new Stats(10_000, 0, Map.of()),
+            t2.ident(), new Stats(100, 0, Map.of())
+        ));
+
+        LogicalPlan plan = plan(
+            """
+            SELECT t1.i, t1.a, t2.i
+            FROM t1
+            JOIN t2 ON t1.i = t2.i
+            LIMIT 5
+            """
+        );
+
+        assertThat(plan).isEqualTo(
+            """
+            Fetch[i, a, i]
+              └ Limit[5::bigint;0]
+                └ HashJoin[INNER | (i = i)]
+                  ├ MultiPhase
+                  │  └ Collect[doc.t1 | [_fetchid, i] | (i = ANY((doc.t2)))]
+                  │  └ Collect[doc.t2 | [i] | true]
+                  └ Collect[doc.t2 | [i] | true]
+            """
+        );
     }
 
     @Test
