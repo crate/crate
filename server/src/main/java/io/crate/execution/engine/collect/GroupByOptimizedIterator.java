@@ -49,7 +49,6 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.ObjectArray;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
@@ -89,6 +88,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.DataTypes;
+import io.netty.util.collection.LongObjectHashMap;
 
 final class GroupByOptimizedIterator {
 
@@ -290,6 +290,7 @@ final class GroupByOptimizedIterator {
         final List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
         Object[] nullStates = null;
 
+        LongObjectHashMap<Object[]> statesByOrd = new LongObjectHashMap<>();
         for (LeafReaderContext leaf: leaves) {
             raiseIfClosedOrKilled(killed);
             Scorer scorer = weight.scorer(leaf);
@@ -301,63 +302,63 @@ final class GroupByOptimizedIterator {
                 expressions.get(i).setNextReader(readerContext);
             }
             SortedSetDocValues values = DocValues.getSortedSet(leaf.reader(), keyColumnName);
-            try (ObjectArray<Object[]> statesByOrd = bigArrays.newObjectArray(values.getValueCount())) {
-                DocIdSetIterator docs = scorer.iterator();
-                Bits liveDocs = leaf.reader().getLiveDocs();
-                for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
-                    raiseIfClosedOrKilled(killed);
-                    if (docDeleted(liveDocs, doc)) {
-                        continue;
-                    }
-                    for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
-                        expressions.get(i).setNextDocId(doc);
-                    }
-                    for (int i = 0, expressionsSize = aggExpressions.size(); i < expressionsSize; i++) {
-                        aggExpressions.get(i).setNextRow(inputRow);
-                    }
-                    if (values.advanceExact(doc)) {
-                        long ord = values.nextOrd();
-                        Object[] states = statesByOrd.get(ord);
-                        if (states == null) {
-                            statesByOrd.set(ord, initStates(aggregations, ramAccounting, memoryManager, minNodeVersion));
-                        } else {
-                            aggregateValues(aggregations, ramAccounting, memoryManager, states);
-                        }
-                        if (values.docValueCount() > 1) {
-                            throw new ArrayViaDocValuesUnsupportedException(keyColumnName);
-                        }
-                    } else {
-                        if (nullStates == null) {
-                            nullStates = initStates(aggregations, ramAccounting, memoryManager, minNodeVersion);
-                        } else {
-                            aggregateValues(aggregations, ramAccounting, memoryManager, nullStates);
-                        }
-                    }
+            DocIdSetIterator docs = scorer.iterator();
+            Bits liveDocs = leaf.reader().getLiveDocs();
+            for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
+                raiseIfClosedOrKilled(killed);
+                if (docDeleted(liveDocs, doc)) {
+                    continue;
                 }
-                for (long ord = 0; ord < statesByOrd.size(); ord++) {
-                    raiseIfClosedOrKilled(killed);
+                for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
+                    expressions.get(i).setNextDocId(doc);
+                }
+                for (int i = 0, expressionsSize = aggExpressions.size(); i < expressionsSize; i++) {
+                    aggExpressions.get(i).setNextRow(inputRow);
+                }
+                if (values.advanceExact(doc)) {
+                    long ord = values.nextOrd();
                     Object[] states = statesByOrd.get(ord);
                     if (states == null) {
-                        continue;
-                    }
-                    BytesRef sharedKey = values.lookupOrd(ord);
-                    Object[] prevStates = statesByKey.get(sharedKey);
-                    if (prevStates == null) {
-                        ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + sharedKey.length + HASH_MAP_ENTRY_OVERHEAD);
-                        statesByKey.put(BytesRef.deepCopyOf(sharedKey), states);
+                        statesByOrd.put(ord, initStates(aggregations, ramAccounting, memoryManager, minNodeVersion));
                     } else {
-                        for (int i = 0; i < aggregations.size(); i++) {
-                            AggregationContext aggregation = aggregations.get(i);
-                            //noinspection unchecked
-                            prevStates[i] = aggregation.function().reduce(
-                                ramAccounting,
-                                prevStates[i],
-                                states[i]
-                            );
-                        }
+                        aggregateValues(aggregations, ramAccounting, memoryManager, states);
+                    }
+                    if (values.docValueCount() > 1) {
+                        throw new ArrayViaDocValuesUnsupportedException(keyColumnName);
+                    }
+                } else {
+                    if (nullStates == null) {
+                        nullStates = initStates(aggregations, ramAccounting, memoryManager, minNodeVersion);
+                    } else {
+                        aggregateValues(aggregations, ramAccounting, memoryManager, nullStates);
                     }
                 }
             }
+            for (var entry : statesByOrd.entries()) {
+                raiseIfClosedOrKilled(killed);
+                long ord = entry.key();
+                Object[] states = entry.value();
+                if (states == null) {
+                    continue;
+                }
+                BytesRef sharedKey = values.lookupOrd(ord);
+                Object[] prevStates = statesByKey.get(sharedKey);
+                if (prevStates == null) {
+                    ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + sharedKey.length + HASH_MAP_ENTRY_OVERHEAD);
+                    statesByKey.put(BytesRef.deepCopyOf(sharedKey), states);
+                } else {
+                    for (int i = 0; i < aggregations.size(); i++) {
+                        AggregationContext aggregation = aggregations.get(i);
+                        //noinspection unchecked
+                        prevStates[i] = aggregation.function().reduce(
+                            ramAccounting,
+                            prevStates[i],
+                            states[i]
+                        );
+                    }
+                }
+            }
+            statesByOrd.clear();
         }
         if (nullStates != null) {
             statesByKey.put(null, nullStates);
