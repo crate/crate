@@ -314,4 +314,23 @@ public class WindowFunctionsIntegrationTest extends IntegTestCase {
             "1| [1]",
             "2| [1]");
     }
+
+    @Test
+    public void testSumOverDateRangeIntervalOffset() {
+        // Window function with ts::date ORDER BY and RANGE BETWEEN INTERVAL offset.
+        execute("create table t (x int, ts timestamp)");
+        execute("insert into t values (1, 0), (2, 86400000), (3, 172800000), (4, 259200000)");
+        execute("refresh table t");
+
+        execute(
+            "SELECT sum(x) OVER(ORDER BY ts::date RANGE BETWEEN INTERVAL '1 day' PRECEDING AND CURRENT ROW) " +
+            "FROM t"
+        );
+        assertThat(response).hasRows(
+            "1",   // ts=0, only current row in 1-day window
+            "3",   // ts=1day, 1+2=3
+            "5",   // ts=2days, 2+3=5
+            "7"    // ts=3days, 3+4=7
+        );
+    }
 }
