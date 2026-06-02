@@ -154,10 +154,10 @@ public class Setup {
     public void groupBySetup(String numericType) throws Exception {
         transportExecutor.exec(String.format(Locale.ENGLISH, "create table characters (" +
                                                              " race string," +
-                                                             " gender string not null," +
+                                                             " gender string," +
                                                              " age %s," +
                                                              " birthdate timestamp with time zone," +
-                                                             " name string not null," +
+                                                             " name string," +
                                                              " details object as (job string)," +
                                                              " details_ignored object(ignored)" +
                                                              ")", numericType));
