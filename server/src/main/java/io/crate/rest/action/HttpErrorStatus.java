@@ -23,10 +23,10 @@ package io.crate.rest.action;
 
 import java.io.IOException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-
-import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 
@@ -101,7 +101,6 @@ public enum HttpErrorStatus {
     USER_DEFINED_FUNCTION_WITH_SAME_SIGNATURE_EXISTS_ALREADY(HttpResponseStatus.CONFLICT,4098),
     USER_WITH_SAME_NAME_EXISTS_ALREADY(HttpResponseStatus.CONFLICT,4099),
     DUPLICATE_OBJECT(HttpResponseStatus.CONFLICT, 40910),
-    RESTORE_SCHEMA_INCOMPATIBLE(HttpResponseStatus.CONFLICT, 40911),
 
     TOO_MANY_REQUESTS(HttpResponseStatus.TOO_MANY_REQUESTS, 4290),
 
@@ -124,18 +123,14 @@ public enum HttpErrorStatus {
     NO_NODE_AVAILABLE(HttpResponseStatus.SERVICE_UNAVAILABLE, 5032),
     NO_SHARD_AVAILABLE(HttpResponseStatus.SERVICE_UNAVAILABLE, 5033),
     PROCESS_CLUSTER_EVENT_TIMEOUT(HttpResponseStatus.SERVICE_UNAVAILABLE, 5034),
-    STATE_NOT_RECOVERED(HttpResponseStatus.SERVICE_UNAVAILABLE, 5035);
+    STATE_NOT_RECOVERED(HttpResponseStatus.SERVICE_UNAVAILABLE, 5035),
 
-    private static final IntObjectHashMap<HttpErrorStatus> CODE_TO_STATUS;
 
-    static {
-        HttpErrorStatus[] values = values();
-        IntObjectHashMap<HttpErrorStatus> codeToStatus = new IntObjectHashMap<>(values.length);
-        for (HttpErrorStatus value : values) {
-            codeToStatus.put(value.errorCode, value);
-        }
-        CODE_TO_STATUS = codeToStatus;
-    }
+    RESTORE_SCHEMA_INCOMPATIBLE(HttpResponseStatus.CONFLICT, 40911),
+    ;
+
+    private static final HttpErrorStatus[] VALUES = values();
+    private static final Logger LOGGER = LogManager.getLogger(HttpErrorStatus.class);
 
     private final HttpResponseStatus httpResponseStatus;
     private final int errorCode;
@@ -155,7 +150,15 @@ public enum HttpErrorStatus {
     }
 
     public static HttpErrorStatus readFrom(StreamInput in) throws IOException {
-        return in.readEnum(HttpErrorStatus.class);
+        int ordinal = in.readVInt();
+        if (ordinal < 0 || ordinal >= VALUES.length) {
+            LOGGER.warn(
+                "Received out of range HttpErrorStatus. If the cluster is currently running with mixed nodes versions this is okay. If not, please report an issue",
+                ordinal
+            );
+            return HttpErrorStatus.UNHANDLED_SERVER_ERROR;
+        }
+        return VALUES[ordinal];
     }
 
     public static void writeTo(StreamOutput out, HttpErrorStatus status) throws IOException {
