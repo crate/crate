@@ -36,7 +36,9 @@ import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
 import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
@@ -216,27 +218,48 @@ final class GroupByOptimizedIterator {
                                                               AtomicReference<Throwable> killed) throws IOException {
         ObjectLongHashMap<BytesRef> countsByKey = new ObjectLongHashMap<>();
         String keyStorageIdent = keyRef.storageIdent();
+        PostingsEnum postings = null;
         for (var leaf : searcher.getLeafContexts()) {
-            Terms terms = leaf.reader().terms(keyStorageIdent);
+            LeafReader reader = leaf.reader();
+            Terms terms = reader.terms(keyStorageIdent);
             if (terms == null) {
                 continue;
             }
             TermsEnum termsEnum = terms.iterator();
+            Bits liveDocs = reader.getLiveDocs();
             while (true) {
                 BytesRef sharedKey = termsEnum.next();
                 if (sharedKey == null) {
                     break;
                 }
+                int numDocs;
+                if (liveDocs == null) {
+                    numDocs = termsEnum.docFreq();
+                } else {
+                    postings = termsEnum.postings(postings, PostingsEnum.NONE);
+                    numDocs = countFromPostings(postings, liveDocs);
+                }
                 if (countsByKey.containsKey(sharedKey)) {
-                    countsByKey.addTo(sharedKey, termsEnum.docFreq());
+                    countsByKey.addTo(sharedKey, numDocs);
                 } else {
                     BytesRef key = BytesRef.deepCopyOf(sharedKey);
-                    countsByKey.put(key, termsEnum.docFreq());
+                    countsByKey.put(key, numDocs);
                 }
                 raiseIfClosedOrKilled(killed);
             }
         }
         return countsByKey;
+    }
+
+    private static int countFromPostings(PostingsEnum postings, Bits liveDocs) throws IOException {
+        int numDocs = 0;
+        int doc;
+        while ((doc = postings.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
+            if (liveDocs.get(doc)) {
+                numDocs++;
+            }
+        }
+        return numDocs;
     }
 
     @Nullable
