@@ -40,12 +40,10 @@ import io.crate.test.integration.SQLLogicParser.Cmd;
 import io.crate.test.integration.SQLLogicParser.QueryCmd;
 import io.crate.test.integration.SQLLogicParser.StatementCmd;
 import io.crate.testing.SqlLogic;
-import io.crate.testing.UseJdbc;
 
 /**
  * Runs sqllogic style *.test files against CrateDB
  */
-@IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class SQLLogicITest extends IntegTestCase {
 
     private void runFile(Path file, @Nullable String testName) {
@@ -85,7 +83,6 @@ public class SQLLogicITest extends IntegTestCase {
     }
 
     @Test
-    @UseJdbc(1)
     public void testFiles() throws Exception {
         Predicate<Path> fileFilter = path -> path.toString().endsWith(".test");
         final String[] testName = new String[] {null};
