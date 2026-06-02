@@ -24,7 +24,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_U
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -71,27 +70,31 @@ public class MetadataUpgradeService {
 
     private final IndexScopedSettings indexScopedSettings;
     private final MetadataIndexUpgrader indexUpgrader;
-    private final Function<Metadata, DocTableInfoFactory> metadataToDocTableInfoFactory;
+    private final UserDefinedFunctionService userDefinedFunctionService;
+    private final NodeContext nodeContext;
 
     public MetadataUpgradeService(NodeContext nodeContext,
                                   IndexScopedSettings indexScopedSettings,
                                   UserDefinedFunctionService userDefinedFunctionService) {
-        // Creates a DocTableInfoFactory for each upgrade invocation.
-        // Metadata can come from a foreign cluster, so the factory must be solely based on the metadata being upgraded.
-        this.metadataToDocTableInfoFactory = metadata -> {
-            Functions functions = nodeContext.functions().copyOfBuiltIns();
-            functions.setUDFs(userDefinedFunctionService.buildUDFResolvers(metadata));
-            return new DocTableInfoFactory(
-                new NodeContext(
-                    functions,
-                    nodeContext.roles(),
-                    _ -> nodeContext.schemas(),
-                    nodeContext.tableStats()
-                )
-            );
-        };
+        this.nodeContext = nodeContext;
+        this.userDefinedFunctionService = userDefinedFunctionService;
         this.indexScopedSettings = indexScopedSettings;
         this.indexUpgrader = new MetadataIndexUpgrader();
+    }
+
+    /// Creates a DocTableInfoFactory for each upgrade invocation.
+    /// Metadata can come from a foreign cluster, so the factory must be solely based on the metadata being upgraded.
+    private DocTableInfoFactory createDocTableFactory(Metadata metadata) {
+        Functions functions = nodeContext.functions().copyOfBuiltIns();
+        functions.setUDFs(userDefinedFunctionService.buildUDFResolvers(metadata));
+        return new DocTableInfoFactory(
+            new NodeContext(
+                functions,
+                nodeContext.roles(),
+                _ -> nodeContext.schemas(),
+                nodeContext.tableStats()
+            )
+        );
     }
 
     public Metadata upgradeMetadata(Metadata metadata) {
@@ -114,7 +117,7 @@ public class MetadataUpgradeService {
 
         // DocTableInfoFactory must have access to the UDF definitions from the given
         // Metadata so table validation can resolve UDF dependencies.
-        DocTableInfoFactory tableInfoFactory = metadataToDocTableInfoFactory.apply(newMetadata.build());
+        DocTableInfoFactory tableInfoFactory = createDocTableFactory(newMetadata.build());
 
         ForeignTablesMetadata foreignTablesMetadata = metadata.custom(ForeignTablesMetadata.TYPE);
         if (foreignTablesMetadata != null) {
@@ -309,7 +312,7 @@ public class MetadataUpgradeService {
             indexMetadata,
             indexTemplateMetadata,
             minimumIndexCompatibilityVersion,
-            metadataToDocTableInfoFactory.apply(upgradeUDFMetadata(metadata)));
+            createDocTableFactory(upgradeUDFMetadata(metadata)));
     }
 
     private IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata,
