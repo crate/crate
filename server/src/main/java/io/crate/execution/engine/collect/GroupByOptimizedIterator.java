@@ -33,11 +33,9 @@ import java.util.function.LongFunction;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
-import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.PostingsEnum;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
@@ -51,6 +49,7 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TotalHitCountCollectorManager;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.RamUsageEstimator;
@@ -74,7 +73,6 @@ import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
@@ -105,7 +103,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.DataTypes;
-import io.netty.util.collection.LongObjectHashMap;
 
 final class GroupByOptimizedIterator {
 
@@ -437,10 +434,10 @@ final class GroupByOptimizedIterator {
                                                                        Token killToken) throws IOException {
         final HashMap<BytesRef, Object[]> statesByKey = new HashMap<>();
         final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1f);
-        final List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
+        final List<LeafReaderContext> leaves = indexSearcher.getLeafContexts();
         Object[] nullStates = null;
 
-        LongObjectHashMap<Object[]> statesByOrd = new LongObjectHashMap<>();
+        PostingsEnum postings = null;
         for (LeafReaderContext leaf: leaves) {
             killToken.raiseIfKilled();
             Scorer scorer = weight.scorer(leaf);
@@ -451,67 +448,45 @@ final class GroupByOptimizedIterator {
             for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
                 expressions.get(i).setNextReader(readerContext);
             }
-            SortedSetDocValues values = DocValues.getSortedSet(leaf.reader(), keyColumnName);
+            LeafReader reader = leaf.reader();
+            // SortedSetDocValues values = DocValues.getSortedSet(reader, keyColumnName);
+
             DocIdSetIterator docs = scorer.iterator();
-            Bits liveDocs = leaf.reader().getLiveDocs();
-            for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
-                killToken.raiseIfKilled();
-                if (docDeleted(liveDocs, doc)) {
-                    continue;
+            BitSet matchedDocs = BitSet.of(docs, reader.maxDoc());
+            Bits liveDocs = reader.getLiveDocs();
+            Terms terms = reader.terms(keyColumnName);
+            if (terms == null) {
+                continue;
+            }
+            TermsEnum termsEnum = terms.iterator();
+            while (true) {
+                BytesRef sharedKey = termsEnum.next();
+                if (sharedKey == null) {
+                    break;
                 }
-                for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
-                    expressions.get(i).setNextDocId(doc);
-                }
-                for (int i = 0, expressionsSize = aggExpressions.size(); i < expressionsSize; i++) {
-                    aggExpressions.get(i).setNextRow(inputRow);
-                }
-                if (values.advanceExact(doc)) {
-                    long ord = values.nextOrd();
-                    Object[] states = statesByOrd.get(ord);
+                postings = termsEnum.postings(postings, PostingsEnum.NONE);
+                int doc;
+                while ((doc = postings.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
+                    killToken.raiseIfKilled();
+                    if (docDeleted(liveDocs, doc) || !matchedDocs.get(doc)) {
+                        continue;
+                    }
+                    for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
+                        expressions.get(i).setNextDocId(doc);
+                    }
+                    for (int i = 0, expressionsSize = aggExpressions.size(); i < expressionsSize; i++) {
+                        aggExpressions.get(i).setNextRow(inputRow);
+                    }
+                    Object[] states = statesByKey.get(sharedKey);
                     if (states == null) {
-                        statesByOrd.put(ord, initStates(aggregations, ramAccounting, memoryManager, minNodeVersion));
+                        ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + sharedKey.length + HASH_MAP_ENTRY_OVERHEAD);
+                        states = initStates(aggregations, ramAccounting, memoryManager, minNodeVersion);
+                        statesByKey.put(BytesRef.deepCopyOf(sharedKey), states);
                     } else {
                         aggregateValues(aggregations, ramAccounting, memoryManager, states);
                     }
-                    if (values.docValueCount() > 1) {
-                        throw new ArrayViaDocValuesUnsupportedException(keyColumnName);
-                    }
-                } else {
-                    if (nullStates == null) {
-                        nullStates = initStates(aggregations, ramAccounting, memoryManager, minNodeVersion);
-                    } else {
-                        aggregateValues(aggregations, ramAccounting, memoryManager, nullStates);
-                    }
                 }
             }
-            for (var entry : statesByOrd.entries()) {
-                killToken.raiseIfKilled();
-                long ord = entry.key();
-                Object[] states = entry.value();
-                if (states == null) {
-                    continue;
-                }
-                BytesRef sharedKey = values.lookupOrd(ord);
-                Object[] prevStates = statesByKey.get(sharedKey);
-                if (prevStates == null) {
-                    ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + sharedKey.length + HASH_MAP_ENTRY_OVERHEAD);
-                    statesByKey.put(BytesRef.deepCopyOf(sharedKey), states);
-                } else {
-                    for (int i = 0; i < aggregations.size(); i++) {
-                        AggregationContext aggregation = aggregations.get(i);
-                        //noinspection unchecked
-                        prevStates[i] = aggregation.function().reduce(
-                            ramAccounting,
-                            prevStates[i],
-                            states[i]
-                        );
-                    }
-                }
-            }
-            statesByOrd.clear();
-        }
-        if (nullStates != null) {
-            statesByKey.put(null, nullStates);
         }
         return statesByKey;
     }
