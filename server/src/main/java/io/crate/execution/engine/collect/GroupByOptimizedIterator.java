@@ -184,7 +184,7 @@ final class GroupByOptimizedIterator {
         AggregateMode mode = groupProjection.mode();
         return CollectingBatchIterator.newInstance(
             killToken,
-            () -> countsToRows(getCountsByKey(keyRef, searcher, killToken), mode),
+            () -> countsToRows(getCountsByKey(collectTask.getRamAccounting(), keyRef, searcher, killToken), mode),
             true
         );
     }
@@ -210,7 +210,8 @@ final class GroupByOptimizedIterator {
             .iterator();
     }
 
-    private static ObjectLongHashMap<BytesRef> getCountsByKey(Reference keyRef,
+    private static ObjectLongHashMap<BytesRef> getCountsByKey(RamAccounting ramAccounting,
+                                                              Reference keyRef,
                                                               IndexSearcher searcher,
                                                               Token killToken) throws IOException {
         ObjectLongHashMap<BytesRef> countsByKey = new ObjectLongHashMap<>();
@@ -240,6 +241,7 @@ final class GroupByOptimizedIterator {
                     countsByKey.addTo(sharedKey, numDocs);
                 } else {
                     BytesRef key = BytesRef.deepCopyOf(sharedKey);
+                    ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + sharedKey.length + HASH_MAP_ENTRY_OVERHEAD);
                     countsByKey.put(key, numDocs);
                 }
                 killToken.raiseIfKilled();;
@@ -254,6 +256,7 @@ final class GroupByOptimizedIterator {
             TotalHitCountCollectorManager topHitCounts = new TotalHitCountCollectorManager(searcher.getSlices());
             Integer count = searcher.search(notNull, topHitCounts);
             if (count > 0) {
+                ramAccounting.addBytes(HASH_MAP_ENTRY_OVERHEAD);
                 countsByKey.put(null, count);
             }
         }
