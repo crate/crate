@@ -65,7 +65,7 @@ public class GenericFunctionQuery extends Query implements Accountable {
     private final DocInputFactory docInputFactory;
     private final TransactionContext txnCtx;
     private final Runnable raiseIfKilled;
-    private final long ramBytesUsed;
+    private final SmallCacheableQuery smallCacheableQuery;
 
     GenericFunctionQuery(Function function,
                          CollectorContext collectorContext,
@@ -73,18 +73,11 @@ public class GenericFunctionQuery extends Query implements Accountable {
                          TransactionContext txnCtx,
                          Runnable raiseIfKilled) {
         this.function = function;
+        this.smallCacheableQuery = new SmallCacheableQuery(function);
         this.collectorContext = collectorContext;
         this.docInputFactory = docInputFactory;
         this.txnCtx = txnCtx;
         this.raiseIfKilled = raiseIfKilled;
-        this.ramBytesUsed =
-            function.ramBytesUsed()
-            + RamUsageEstimator.shallowSizeOf(collectorContext)
-            + RamUsageEstimator.shallowSizeOf(docInputFactory)
-            + RamUsageEstimator.shallowSizeOf(txnCtx)
-            // raiseIfKilled references KillToken which has a link to Throwable.
-            + RamUsageEstimator.NUM_BYTES_OBJECT_HEADER + RamUsageEstimator.NUM_BYTES_OBJECT_REF
-            + 8; // ramBytesUsed
     }
 
     @Override
@@ -97,10 +90,58 @@ public class GenericFunctionQuery extends Query implements Accountable {
         return function.hashCode();
     }
 
+    /**
+     * @return memory usage of the part that is actually passed to the cache.
+     * LRUCache uses SmallCacheableQuery's memory accounting directly.
+     * This method is solely used by the RamUsageQueryVisitor.
+     */
+    @Override
+    public long ramBytesUsed() {
+        return smallCacheableQuery.ramBytesUsed();
+    }
+
+    static class SmallCacheableQuery extends Query implements Accountable {
+
+        private final Function function;
+        private final long ramBytesUsed;
+
+        private SmallCacheableQuery(Function function) {
+            this.function = function;
+            this.ramBytesUsed =
+                RamUsageEstimator.NUM_BYTES_OBJECT_HEADER
+                + RamUsageEstimator.NUM_BYTES_OBJECT_REF
+                + function.ramBytesUsed();
+        }
+
+        @Override
+        public String toString(String field) {
+            return function.toString();
+        }
+
+        @Override
+        public void visit(QueryVisitor visitor) {
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof SmallCacheableQuery other && function.equals(other.function);
+        }
+
+        @Override
+        public int hashCode() {
+            return function.hashCode();
+        }
+
+        @Override
+        public long ramBytesUsed() {
+            return ramBytesUsed;
+        }
+    }
+
+
     @Override
     public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) throws IOException {
-
-        return new Weight(this) {
+        return new Weight(smallCacheableQuery) {
             // Queries in the cache can end up retaining heavy objects,
             // and prevent them being garbage collected.
             // expressions can reference a heavy readers via expression.setNextReader(readerContext),
@@ -181,11 +222,6 @@ public class GenericFunctionQuery extends Query implements Accountable {
     @Override
     public String toString(String field) {
         return function.toString();
-    }
-
-    @Override
-    public long ramBytesUsed() {
-        return ramBytesUsed;
     }
 
     private static class FilteredTwoPhaseIterator extends TwoPhaseIterator {
