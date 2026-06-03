@@ -200,6 +200,7 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
             .hasMessage("pattern '\\' must not end with escape character '\\'");
 
         // no index
+<<<<<<< HEAD
         assertThatThrownBy(() -> convert("text_no_index like '\\'"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("pattern '\\' must not end with escape character '\\'");
@@ -207,6 +208,10 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThatThrownBy(() -> convert("text_no_index ilike '\\'"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("pattern '\\' must not end with escape character '\\'");
+=======
+        assertThatThrownBy(() -> convert("text_no_index like '\\'"));
+        assertThatThrownBy(() -> convert("text_no_index ilike '\\'"));
+>>>>>>> b19c8c4 (Don't recompute LuceneCollectorExpression in GenericFunctionQuery on each Weight creation)
     }
 
     /**
