@@ -301,7 +301,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.release>25</maven.compiler.release>
+        <maven.compiler.release>26</maven.compiler.release>
 
         <!-- see surefire plugin configuration for explanation -->
         <skipRunTests>false</skipRunTests>

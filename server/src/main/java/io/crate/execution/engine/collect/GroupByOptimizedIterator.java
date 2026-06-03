@@ -38,19 +38,25 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TotalHitCountCollectorManager;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
@@ -92,6 +98,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.DocReferences;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
@@ -142,7 +149,7 @@ final class GroupByOptimizedIterator {
             : "Must have 1 key if getSingleStringKeyGroupProjection returned a projection";
 
         Reference docKeyRef = getKeyRef(collectPhase.toCollect(), groupProjection.keys().get(0));
-        if (docKeyRef == null || docKeyRef.isNullable()) {
+        if (docKeyRef == null) {
             return null; // group by on non-reference
         }
 
@@ -177,7 +184,7 @@ final class GroupByOptimizedIterator {
         AggregateMode mode = groupProjection.mode();
         return CollectingBatchIterator.newInstance(
             killToken,
-            () -> countsToRows(getCountsByKey(keyRef, searcher, killToken), mode),
+            () -> countsToRows(getCountsByKey(collectTask.getRamAccounting(), keyRef, searcher, killToken), mode),
             true
         );
     }
@@ -193,17 +200,18 @@ final class GroupByOptimizedIterator {
         };
         return () -> StreamSupport.stream(countsByKey.spliterator(), false)
             .map(cursor -> {
-                String key = cursor.key.utf8ToString();
+                BytesRef key = cursor.key;
                 long count = cursor.value;
                 // See GroupProjection.outputs(): keys always come first, aggregations second
-                cells[0] = key;
+                cells[0] = key == null ? null : key.utf8ToString();
                 cells[1] = wrapCount.apply(count);
                 return row;
             })
             .iterator();
     }
 
-    private static ObjectLongHashMap<BytesRef> getCountsByKey(Reference keyRef,
+    private static ObjectLongHashMap<BytesRef> getCountsByKey(RamAccounting ramAccounting,
+                                                              Reference keyRef,
                                                               IndexSearcher searcher,
                                                               Token killToken) throws IOException {
         ObjectLongHashMap<BytesRef> countsByKey = new ObjectLongHashMap<>();
@@ -233,9 +241,23 @@ final class GroupByOptimizedIterator {
                     countsByKey.addTo(sharedKey, numDocs);
                 } else {
                     BytesRef key = BytesRef.deepCopyOf(sharedKey);
+                    ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + sharedKey.length + HASH_MAP_ENTRY_OVERHEAD);
                     countsByKey.put(key, numDocs);
                 }
                 killToken.raiseIfKilled();;
+            }
+        }
+        if (keyRef.isNullable()) {
+            Query existsQuery = keyRef.hasDocValues() || keyRef.indexType() == IndexType.FULLTEXT
+                ? new FieldExistsQuery(keyStorageIdent)
+                : new ConstantScoreQuery(new TermQuery(new Term(SysColumns.FieldNames.NAME, keyStorageIdent)));
+            Query notNull = Queries.not(existsQuery);
+
+            TotalHitCountCollectorManager topHitCounts = new TotalHitCountCollectorManager(searcher.getSlices());
+            Integer count = searcher.search(notNull, topHitCounts);
+            if (count > 0) {
+                ramAccounting.addBytes(HASH_MAP_ENTRY_OVERHEAD);
+                countsByKey.put(null, count);
             }
         }
         return countsByKey;
