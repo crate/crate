@@ -58,3 +58,6 @@ Fixes
 
 - Fixed a regression introduced with :ref:`version_6.0.0`, leading to stuck
   ``DROP SNAPSHOT`` and ``CREATE SNAPSHOT`` queries.
+
+- Fixed an issue causing cache to retain some heavy structures, potentially
+  leading to an ``OutOfMemoryError``.
