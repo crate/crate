@@ -23,6 +23,7 @@ package io.crate.lucene;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
@@ -43,15 +44,11 @@ import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.RamUsageEstimator;
 
 import io.crate.data.Input;
-import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.InputCondition;
-import io.crate.expression.InputFactory;
-import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.symbol.Function;
 import io.crate.metadata.Reference;
-import io.crate.metadata.TransactionContext;
 
 /**
  * Query implementation which filters docIds by evaluating {@code condition} on each docId to verify if it matches.
@@ -61,22 +58,20 @@ import io.crate.metadata.TransactionContext;
 public class GenericFunctionQuery extends Query implements Accountable {
 
     private final Function function;
-    private final CollectorContext collectorContext;
-    private final DocInputFactory docInputFactory;
-    private final TransactionContext txnCtx;
+    private final LuceneCollectorExpression<?>[] expressions;
+    private final Input<Boolean> condition;
     private final Runnable raiseIfKilled;
     private final SmallCacheableQuery smallCacheableQuery;
 
     GenericFunctionQuery(Function function,
-                         CollectorContext collectorContext,
-                         DocInputFactory docInputFactory,
-                         TransactionContext txnCtx,
+                         Collection<? extends LuceneCollectorExpression<?>> expressions,
+                         Input<Boolean> condition,
                          Runnable raiseIfKilled) {
         this.function = function;
         this.smallCacheableQuery = new SmallCacheableQuery(function);
-        this.collectorContext = collectorContext;
-        this.docInputFactory = docInputFactory;
-        this.txnCtx = txnCtx;
+        // inner loop iterates over expressions - call toArray to avoid iterator allocations
+        this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
+        this.condition = condition;
         this.raiseIfKilled = raiseIfKilled;
     }
 
@@ -142,21 +137,6 @@ public class GenericFunctionQuery extends Query implements Accountable {
     @Override
     public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) throws IOException {
         return new Weight(smallCacheableQuery) {
-            // Queries in the cache can end up retaining heavy objects,
-            // and prevent them being garbage collected.
-            // expressions can reference a heavy readers via expression.setNextReader(readerContext),
-            // hence we move expressions dependency out of the GenericFunctionQuery and re-create them per-weight.
-
-            final InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = docInputFactory.getCtx(txnCtx);
-            @SuppressWarnings("unchecked")
-            final Input<Boolean> condition = (Input<Boolean>) ctx.add(function);
-            final LuceneCollectorExpression<?>[] expressions = ctx.expressions().toArray(new LuceneCollectorExpression[0]);
-            {
-                for (LuceneCollectorExpression<?> expression: expressions) {
-                    expression.startCollect(collectorContext);
-                }
-
-            }
 
             @Override
             public boolean isCacheable(LeafReaderContext ctx) {
