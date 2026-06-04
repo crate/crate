@@ -318,7 +318,7 @@
         <versions.jspecify>1.0.0</versions.jspecify>
         <versions.log4j>2.26.0</versions.log4j>
         <versions.assertj>3.27.7</versions.assertj>
-        <versions.junit5>6.0.3</versions.junit5>
+        <versions.junit5>6.1.0</versions.junit5>
         <versions.junit>4.13.2</versions.junit>
         <versions.randomizedrunner>2.8.4</versions.randomizedrunner>
         <versions.jackson>2.21.1</versions.jackson>
