@@ -24,7 +24,7 @@ package io.crate.beans;
 import java.util.List;
 
 /**
- * The {@link NodeInfoMXBean | interface is required to define a standard MXBean,
+ * The {@link NodeInfoMXBean} interface is required to define a standard MXBean,
  * such as a standard MXBean is composed of an MXBean interface and a class.
  *
  * This interface lists the methods for all exposed attributes.

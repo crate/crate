@@ -1390,7 +1390,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
          * </p>
          * <p>
          * oidSupplier is only parameterized for testing.
-         * For production code use {@link #setTable(RelationName, List, Settings, ColumnIdent, ColumnPolicy, String, Map, List, List, State, List, long, int)
+         * For production code use {@link #setTable(RelationName, List, Settings, ColumnIdent, ColumnPolicy, String, Map, List, List, State, List, long, int)}
          **/
         @VisibleForTesting
         public Builder setTable(LongSupplier oidSupplier,

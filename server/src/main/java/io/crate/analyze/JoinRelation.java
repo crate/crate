@@ -39,7 +39,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.JoinType;
 
 /**
- * Join Relation represents a Join containing its lhs and rhs as {@link AnalyzedRelation'}.
+ * Join Relation represents a Join containing its lhs and rhs as {@link AnalyzedRelation}s.
  * It is used inside {@link io.crate.analyze.relations.RelationAnalyzer} to
  * determine join pairs and for internal validation.
  * It is not possible to generate a logical plan from a JoinRelation.

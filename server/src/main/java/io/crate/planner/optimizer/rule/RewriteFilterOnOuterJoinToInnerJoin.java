@@ -52,7 +52,7 @@ import io.crate.sql.tree.JoinType;
  * we can push down the filter and turn the OUTER JOIN into an inner join. (Note: this rule is only responsible for
  * filter push-downs to non-preserved sides only. See {@link MoveFilterBeneathJoin} for further details.)
  * So this tries to transform
- * </p>
+ * <p>
  *
  * <pre>
  *     Filter (lhs.x = 1 AND rhs.x = 2)

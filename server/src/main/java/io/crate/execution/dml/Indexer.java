@@ -745,7 +745,7 @@ public class Indexer {
 
     /**
      * Trigger resolving of columns and update indexers if needed.
-     * Should be only triggered when new columns were detected by {@link #collectSchemaUpdates(IndexItem)
+     * Should be only triggered when new columns were detected by {@link #collectSchemaUpdates(IndexItem)}
      * and added to the cluster state
      *
      * @param getRef A function that returns a reference for a given column ident based on the current cluster state

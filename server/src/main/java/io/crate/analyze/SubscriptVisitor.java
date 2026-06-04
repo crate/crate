@@ -48,7 +48,7 @@ public final class SubscriptVisitor {
 
     /**
      * Extracts index and subscript information from the passed in SubscriptExpression
-     * </p>
+     * <p>
      * Note that array index out of bound validation does not happen here, as index
      * expressions such as `-1` or `x + 1` are not yet evaluated.  This will happen instead
      * during the implicit cast of indexes to integers by a {@link io.crate.expression.scalar.SubscriptFunction}

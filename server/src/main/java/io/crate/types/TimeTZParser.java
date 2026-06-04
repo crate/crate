@@ -83,7 +83,7 @@ import java.util.Locale;
  * <p>
  * The above formats accept a suffix (-|+)HH[[:]MM[[:]SS]] (and all ISO-8601
  * compliant) to define the time zone. If the time zone is not defined,
- * then <b>UTC is implicit</>. Time zone values are limited to 18:00 in
+ * then <b>UTC is implicit</b>. Time zone values are limited to 18:00 in
  * either direction.
  */
 public final class TimeTZParser {

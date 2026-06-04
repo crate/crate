@@ -151,7 +151,7 @@ public interface BatchIterator<T> extends Killable {
 
 
     /**
-     * Move the batchIterator by {@code steps} utilizing {@link #moveNext()
+     * Move the batchIterator by {@code steps} utilizing {@link #moveNext()}
      *
      * @param onNext called for each successful moveNext.
      * @param onFinish called after {@code steps}, if exhausted, or on error.

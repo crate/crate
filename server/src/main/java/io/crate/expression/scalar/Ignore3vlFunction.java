@@ -40,7 +40,7 @@ import io.crate.types.DataTypes;
 
 /**
  * This scalar function removes the 3-valued logic from the tree of operators below it.
- * If used as a normal scalar (eg. SELECT ignore3vl(<some_boolean_expression)) it just
+ * If used as a normal scalar (eg. SELECT ignore3vl(&lt;some_boolean_expression&gt;)) it just
  * evaluates NULL to false.
  *
  * Its main usage though is in the WHERE clause because it acts as a marker
