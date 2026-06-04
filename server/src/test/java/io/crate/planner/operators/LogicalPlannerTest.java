@@ -430,6 +430,41 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_lookup_join_under_filter_and_limit_can_be_fetch_optimized() {
+        sqlExecutor.getSessionSettings().excludedOptimizerRules().remove(EquiJoinToLookupJoin.class);
+        TableInfo t1 = sqlExecutor.resolveTableInfo("t1");
+        TableInfo t2 = sqlExecutor.resolveTableInfo("t2");
+        sqlExecutor.updateTableStats(Map.of(
+            t1.ident(), new Stats(10_000, 0, Map.of()),
+            t2.ident(), new Stats(100, 0, Map.of())
+        ));
+
+        LogicalPlan plan = plan(
+            """
+            SELECT t1.i, t1.a, t2.i
+            FROM t1
+            JOIN t2 ON t1.i = t2.i
+            WHERE t1.x > t2.y
+            LIMIT 5
+            """
+        );
+
+        assertThat(plan).isEqualTo(
+            """
+            Eval[i, a, i]
+              └ Fetch[i, a, x, i, y]
+                └ Limit[5::bigint;0]
+                  └ Filter[(x > y)]
+                    └ HashJoin[INNER | (i = i)]
+                      ├ MultiPhase
+                      │  └ Collect[doc.t1 | [_fetchid, i, x] | (i = ANY((doc.t2)))]
+                      │  └ Collect[doc.t2 | [i] | true]
+                      └ Collect[doc.t2 | [i, y] | true]
+            """
+        );
+    }
+
+    @Test
     public void testPlanOfJoinedViewsHasBoundaryWithViewOutputs() {
         LogicalPlan plan = plan(
             """

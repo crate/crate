@@ -21,6 +21,7 @@
 
 package io.crate.planner.operators;
 
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.SequencedCollection;
@@ -108,6 +109,20 @@ public final class Filter extends ForwardingLogicalPlan {
             return this;
         }
         return new Filter(newSource, query);
+    }
+
+    @Override
+    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+        LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>(usedColumns);
+        Symbols.intersection(query, source.outputs(), toKeep::add);
+        FetchRewrite fetchRewrite = source.rewriteToFetch(toKeep);
+        if (fetchRewrite == null) {
+            return null;
+        }
+        return new FetchRewrite(
+            fetchRewrite.replacedOutputs(),
+            new Filter(fetchRewrite.newPlan(), query)
+        );
     }
 
     @Override
