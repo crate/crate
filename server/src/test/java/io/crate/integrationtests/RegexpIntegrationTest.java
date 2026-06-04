@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -79,8 +78,8 @@ public class RegexpIntegrationTest extends IntegTestCase {
      * <p>
      * This engine is the default when using the regexp tilde operator `~`.
      *
-     * @see {@link org.apache.lucene.search.RegexpQuery}
-     * @see {@link org.apache.lucene.util.automaton.RegExp}
+     * @see org.apache.lucene.search.RegexpQuery
+     * @see org.apache.lucene.util.automaton.RegExp
      * @see <a href="http://www.brics.dk/automaton/">http://www.brics.dk/automaton/</a>
      * @see <a href="http://tusker.org/regex/regex_benchmark.html">http://tusker.org/regex/regex_benchmark.html</a>
      */
@@ -131,8 +130,8 @@ public class RegexpIntegrationTest extends IntegTestCase {
      * <p>
      * This engine is active when using the case-insensitive regexp tilde operator `~*`.
      *
-     * @see {@link RegexQuery}
-     * @see {@link java.util.regex}
+     * @see RegexQuery
+     * @see java.util.regex
      */
     @Test
     public void testRegexpMatchQueryOperatorWithCaseInsensitivity() throws Exception {
@@ -164,8 +163,8 @@ public class RegexpIntegrationTest extends IntegTestCase {
      * implementation {@link org.apache.lucene.util.automaton.RegExp}
      * isn't capable of.
      *
-     * @see {@link RegexQuery}
-     * @see {@link java.util.regex}
+     * @see RegexQuery
+     * @see java.util.regex
      */
     @Test
     public void testRegexpMatchQueryOperatorWithPcre() throws Exception {

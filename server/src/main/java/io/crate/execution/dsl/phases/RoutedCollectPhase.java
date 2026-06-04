@@ -120,7 +120,6 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
 
     /**
      * This is the amount of rows a node *probably* has to provide in order to have enough rows to satisfy the query limit.
-     * </p>
      * <p>
      * E.g. in a query like <pre>select * from t limit 1000</pre> in a 2 node cluster each node probably only has to return 500 rows.
      * </p>
@@ -131,7 +130,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     }
 
     /**
-     * <p><
+     * <p>
      * set the nodePageSizeHint
      * <p>
      * See {@link #nodePageSizeHint()}

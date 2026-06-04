@@ -124,10 +124,10 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     /**
      * On the first call this will do an initial search and provide {@link #batchSize} number of rows
      * (or less if there aren't more available)
-     * </p>
+     * <p>
      * On subsequent calls it will return more rows (max {@link #batchSize} or less.
      * These rows are always the rows that come after the last row of the previously returned rows
-     * <p/>
+     * <p>
      * Basically, calling this function multiple times pages through the shard in batches.
      */
     @Override

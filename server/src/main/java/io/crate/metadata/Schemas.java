@@ -279,7 +279,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      *
      * <p>
      * If you use this without having made a
-     * {@link #findRelation(QualifiedName, Operation, Role, SearchPath) call, make
+     * {@link #findRelation(QualifiedName, Operation, Role, SearchPath)} call, make
      * sure to call {@link Operation#blockedRaiseException(RelationInfo, Operation)}
      * to ensure the operation is supported for the given relation.
      * </p>

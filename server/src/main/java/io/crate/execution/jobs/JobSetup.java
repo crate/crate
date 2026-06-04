@@ -305,7 +305,7 @@ public class JobSetup {
     /**
      * recursively build all contexts that depend on startPhaseId (excl. startPhaseId)
      * <p>
-     * {@link Context#opCtx#targetToSourceMap} will be used to traverse the nodeOperations
+     * {@link NodeOperationCtx#targetToSourceMap} will be used to traverse the nodeOperations
      */
     private void prepareSourceOperations(int startPhaseId, Context context) {
         IntContainer sourcePhaseIds = context.opCtx.targetToSourceMap.get(startPhaseId);

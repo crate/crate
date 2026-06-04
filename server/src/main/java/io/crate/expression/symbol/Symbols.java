@@ -119,7 +119,7 @@ public final class Symbols {
     }
 
     /**
-     * Similar to {@link Collection#contains(Object) this will check if
+     * Similar to {@link Collection#contains(Object)} this will check if
      * {@code symbol} is contained in {@code symbols} but opposed to
      * {@link Collection#contains(Object)} this will also return true if
      * {@code symbol} is a subscript on a column contained in {@code symbols}

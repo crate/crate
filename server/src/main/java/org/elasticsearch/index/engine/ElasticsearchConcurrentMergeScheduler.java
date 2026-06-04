@@ -87,7 +87,7 @@ class ElasticsearchConcurrentMergeScheduler extends ConcurrentMergeScheduler {
     protected void doMerge(MergeSource mergeSource, MergePolicy.OneMerge merge) throws IOException {
         int totalNumDocs = merge.totalNumDocs();
         long totalSizeInBytes = merge.totalBytesSize();
-        long timeNS = System.nanoTime();
+        final long timeNS = System.nanoTime();
         currentMerges.inc();
         currentMergesNumDocs.inc(totalNumDocs);
         currentMergesSizeInBytes.inc(totalSizeInBytes);

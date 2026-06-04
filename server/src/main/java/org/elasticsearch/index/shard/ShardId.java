@@ -65,7 +65,7 @@ public class ShardId implements Writeable, Comparable<ShardId> {
      * Any indexName usage is deprecated, it may even be removed in the future.
      * All index resolving must be done using the index UUID instead.
      *
-     * @deprecated Use {@link {@link #getIndexUUID()} instead.
+     * @deprecated Use {@link #getIndexUUID()} instead.
      */
     @Deprecated
     public String getIndexName() {

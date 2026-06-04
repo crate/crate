@@ -67,7 +67,7 @@ public interface ValueIndexer<T> {
 
     /**
      * Update value indexer of inner columns.
-     * Should be only triggered when new columns were detected by {@link #collectSchemaUpdates(Object, Consumer, Synthetics)
+     * Should be only triggered when new columns were detected by {@link #collectSchemaUpdates(Object, Consumer, Synthetics)}
      * and added to the cluster state
      *
      * @param getRef A function that returns a reference for a given column ident based on the current cluster state

@@ -86,7 +86,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         String metaCodec,
         String metaExtension)
         throws IOException {
-        String metaName = IndexFileNames.segmentFileName(state.segmentInfo.name, state.segmentSuffix, metaExtension);
+        final String metaName = IndexFileNames.segmentFileName(state.segmentInfo.name, state.segmentSuffix, metaExtension);
         this.maxDoc = state.segmentInfo.maxDoc();
         numerics = new IntObjectHashMap<>();
         binaries = new IntObjectHashMap<>();

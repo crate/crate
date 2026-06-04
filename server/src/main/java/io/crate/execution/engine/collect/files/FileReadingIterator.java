@@ -67,7 +67,7 @@ import io.crate.data.BatchIterator;
  *
  * <p>
  * The iterator automatically retries reading on
- * @{link {@link SocketException} or {@link SocketTimeoutException}
+ * {@link SocketException} or {@link SocketTimeoutException}
  * </p>
  *
  * <p>

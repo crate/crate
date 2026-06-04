@@ -74,7 +74,7 @@ public class PgDecoder extends ByteToMessageDecoder {
         STARTUP_VERSION_NEGOTIATE,
 
         /**
-         * In this state the handler must consume the startup payload and then call {@link #startupDone()
+         * In this state the handler must consume the startup payload and then call {@link #startupDone()}
          */
         STARTUP_PARAMETERS,
 

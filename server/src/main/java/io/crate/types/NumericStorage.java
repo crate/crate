@@ -60,8 +60,7 @@ import io.crate.metadata.doc.SysColumns;
  * Values with > 18 digits are stored with binary doc-values with dimensions set
  * to support using {@link PointRangeQuery}
  * </li>
- * </p>
- *
+ * </ul>
  **/
 public final class NumericStorage extends StorageSupport<BigDecimal> {
 

@@ -86,7 +86,7 @@ public class NumberOfReplicas extends Setting<Settings> {
     }
 
     /**
-     * Reverse of {@link #parseValue(String). Converts {@code index.} settings into the user-facing value used in SQL statements.
+     * Reverse of {@link #parseValue(String)}. Converts {@code index.} settings into the user-facing value used in SQL statements.
      *
      * @return A single value (e.g {@code 2}) or a range (e.g {@code 0-1} or {@code 0-all})
      **/
