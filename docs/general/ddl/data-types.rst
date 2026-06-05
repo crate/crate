@@ -294,14 +294,15 @@ The following precedence order is used for data types (highest to lowest):
 17. :ref:`Interval <type-interval>`
 18. :ref:`Regclass <type-regclass>`
 19. :ref:`Regproc <type-regproc>`
-20. :ref:`Integer <type-integer>`
-21. :ref:`Time with time zone <type-time>`
-22. :ref:`Smallint <type-smallint>`
-23. :ref:`Boolean <type-boolean>`
-24. :ref:`"Char" <type-char>`
-25. :ref:`Text <type-text>`
-26. :ref:`Character <data-type-character>`
-27. :ref:`NULL <type-null>` (lowest)
+20. :ref:`Regtype <type-regtype>`
+21. :ref:`Integer <type-integer>`
+22. :ref:`Time with time zone <type-time>`
+23. :ref:`Smallint <type-smallint>`
+24. :ref:`Boolean <type-boolean>`
+25. :ref:`"Char" <type-char>`
+26. :ref:`Text <type-text>`
+27. :ref:`Character <data-type-character>`
+28. :ref:`NULL <type-null>` (lowest)
 
 
 .. _data-types-primitive:
@@ -3901,6 +3902,28 @@ in the corresponding relation name or ``oid`` value, respectively.
     name identifier, see also
     :ref:`identifier naming restrictions <ddl-create-table-naming>`.
     The given relation name won't be validated against existing relations.
+
+.. _type-regtype:
+
+``REGTYPE``
+'''''''''''
+
+An alias for the :ref:`oid <type-oid>` type.
+
+The ``REGTYPE`` type is used by the tables in the :ref:`postgres-pg_catalog`
+schema to reference data type names in the `pg_type`_ table.
+
+:ref:`Casting <data-types-casting>` a ``REGTYPE`` type to a :ref:`type-text`
+or :ref:`integer <type-numeric>` will result in the corresponding data type name
+or ``oid`` value, respectively.
+
+.. NOTE::
+
+   String values casted to the ``REGTYPE`` type must match an entry in the
+   `pg_type`_ table. For example, casting 'boolean' to ``REGTYPE`` 
+   will result in an error because 'boolean' is a CrateDB type and is not
+   found in the `pg_type`_ table. Rather, 'bool' is.
+   
 
 .. _type-oidvector:
 
