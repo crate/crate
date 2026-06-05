@@ -441,7 +441,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
                 EXISTS (
                     SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem);
             """);
-        assertThat(response).hasRowCount(25L);
+        assertThat(response).hasRowCount(26L);
     }
 
     /**
