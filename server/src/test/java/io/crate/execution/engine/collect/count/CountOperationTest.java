@@ -116,4 +116,23 @@ public class CountOperationTest extends IntegTestCase {
         );
         assertThat(count).isEqualTo(0);
     }
+
+    @Test
+    public void test_shard_not_found_on_partitioned_table_doesnt_cause_count_to_fail() throws Exception {
+        execute("create table doc.t (name string, p int) partitioned by (p) clustered into 1 shards with (number_of_replicas = 0)");
+        execute("insert into doc.t (name, p) values ('Foo', 1)");
+        execute("refresh table doc.t");
+        CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+        Index index = resolveIndex("doc.t", List.of("1"));
+        CountOperation countOperation = cluster().getDataNodeInstance(CountOperation.class);
+
+        // CountOperation.count iterates over shards map
+        // and can fail on prepareGetCount, we need to pass non-empty map
+        IntArrayList shards = new IntArrayList(1);
+        shards.add(-1); // Ensure that ShardNotFoundException will be thrown by providing invalid id (normally must be positive number).
+        Map<String, IntIndexedContainer> indexShards = Map.of(index.getUUID(), shards);
+
+        CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, Literal.BOOLEAN_TRUE, true);
+        assertThat(count.get(5, TimeUnit.SECONDS)).isEqualTo(0L);
+    }
 }
