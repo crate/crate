@@ -191,7 +191,7 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void test_like_ilike_with_trailing_escape_char() throws Exception {
+    public void test_like_ilike_with_trailing_escape_char() {
         assertThatThrownBy(() -> convert("name like '\\'"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("pattern '\\' must not end with escape character '\\'");
@@ -200,8 +200,13 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
             .hasMessage("pattern '\\' must not end with escape character '\\'");
 
         // no index
-        assertThatThrownBy(() -> convert("text_no_index like '\\'"));
-        assertThatThrownBy(() -> convert("text_no_index ilike '\\'"));
+        assertThatThrownBy(() -> convert("text_no_index like '\\'"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("pattern '\\' must not end with escape character '\\'");
+
+        assertThatThrownBy(() -> convert("text_no_index ilike '\\'"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("pattern '\\' must not end with escape character '\\'");
     }
 
     /**
