@@ -75,3 +75,7 @@ Fixes
 
 - Fixed an issue causing cache to retain some heavy structures, potentially
   leading to an ``OutOfMemoryError``.
+
+- Fixed an issue causing ``COUNT`` queries on a partitioned table to fail with
+  ``ShardNotFoundException`` error if some partition shards were temporarily
+  unavailable.
