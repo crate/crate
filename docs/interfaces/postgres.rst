@@ -231,7 +231,7 @@ table available in CrateDB::
     | 1022 | _float8      |        0 |     701 |     -1 | b       | A           |
     | 1042 | bpchar       |     1014 |       0 |     -1 | b       | S           |
     | 1043 | varchar      |     1015 |       0 |     -1 | b       | S           |
-    | 1082 | date         |     1182 |       0 |      8 | b       | D           |
+    | 1082 | date         |     1182 |       0 |      4 | b       | D           |
     | 1114 | timestamp    |     1115 |       0 |      8 | b       | D           |
     | 1115 | _timestamp   |        0 |    1114 |     -1 | b       | A           |
     | 1182 | _date        |        0 |    1082 |     -1 | b       | A           |
