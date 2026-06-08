@@ -44,6 +44,7 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import io.crate.common.annotations.VisibleForTesting;
@@ -124,16 +125,18 @@ public class CountOperation {
                                                              Symbol filter,
                                                              boolean onPartitionedTable) {
         IndexService indexService;
+        IndexShard indexShard;
         try {
             indexService = indicesService.indexServiceSafe(index);
-        } catch (IndexNotFoundException e) {
+            indexShard = indexService.getShard(shardId);
+        } catch (IndexNotFoundException | ShardNotFoundException e) {
             if (onPartitionedTable) {
                 return CompletableFuture.completedFuture(() -> 0L);
             } else {
                 return CompletableFuture.failedFuture(e);
             }
         }
-        IndexShard indexShard = indexService.getShard(shardId);
+
         CompletableFuture<Supplier<Long>> futureCount = new CompletableFuture<>();
         indexShard.awaitShardSearchActive(b -> {
             try {

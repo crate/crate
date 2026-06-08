@@ -59,6 +59,10 @@ class InitializationTracker {
         });
     }
 
+    public CountdownFuture countdownFuture() {
+        return future;
+    }
+
     @Override
     public String toString() {
         return "InitializationTracker{" + future + "}";
