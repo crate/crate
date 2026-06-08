@@ -63,7 +63,7 @@ public class CastIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(2L);
         assertThat(response.rows()[0][0]).isEqualTo(1);
         assertThat((response.rows()[0][1])).isNull();
-        assertThat((List<Object>) response.rows()[0][2]).containsExactly((byte) 1, (byte) 2);
+        assertThat((List<Object>) response.rows()[0][2]).containsExactly(byteOrShort(1), byteOrShort(2));
         assertThat(response.rows()[1][0]).isEqualTo(2);
         assertThat(response.rows()[1][1]).isNull();
         assertThat(response.rows()[1][2]).isNull();

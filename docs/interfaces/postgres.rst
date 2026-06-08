@@ -202,7 +202,6 @@ table available in CrateDB::
     |  oid | typname      | typarray | typelem | typlen | typtype | typcategory |
     +------+--------------+----------+---------+--------+---------+-------------+
     |   16 | bool         |     1000 |       0 |      1 | b       | N           |
-    |   18 | char         |     1002 |       0 |      1 | b       | S           |
     |   19 | name         |       -1 |       0 |     64 | b       | S           |
     |   20 | int8         |     1016 |       0 |      8 | b       | N           |
     |   21 | int2         |     1005 |       0 |      2 | b       | N           |
@@ -218,7 +217,6 @@ table available in CrateDB::
     |  701 | float8       |     1022 |       0 |      8 | b       | N           |
     |  705 | unknown      |        0 |       0 |     -2 | p       | X           |
     | 1000 | _bool        |        0 |      16 |     -1 | b       | A           |
-    | 1002 | _char        |        0 |      18 |     -1 | b       | A           |
     | 1005 | _int2        |        0 |      21 |     -1 | b       | A           |
     | 1007 | _int4        |        0 |      23 |     -1 | b       | A           |
     | 1008 | _regproc     |        0 |      24 |     -1 | b       | A           |
@@ -254,7 +252,7 @@ table available in CrateDB::
     | 2950 | uuid         |     2951 |       0 |     16 | b       | U           |
     | 2951 | _uuid        |        0 |    2950 |     -1 | b       | A           |
     +------+--------------+----------+---------+--------+---------+-------------+
-    SELECT 52 rows in set (... sec)
+    SELECT 50 rows in set (... sec)
 
 .. NOTE::
 
