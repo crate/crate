@@ -469,17 +469,8 @@ public class SQLTransportExecutor {
             while (resultSet.next()) {
                 Object[] row = new Object[metadata.getColumnCount()];
                 for (int i = 0; i < row.length; i++) {
-                    Object value;
                     String typeName = metadata.getColumnTypeName(i + 1);
-                    value = getObject(resultSet, i, typeName);
-                    if (typeName.equals("char") && value != null) {
-                        // ResultSetParser is dedicated to deal with Postgres specific "char" type which can be single ASCII character.
-                        // This code is also used in tests to get results via JDBC which is not necessarily bound to PG logic.
-                        // Hence, cancel PG specific logic here.
-                        assert value instanceof String;
-                        value = Byte.parseByte((String) value);
-                    }
-                    row[i] = value;
+                    row[i] = getObject(resultSet, i, typeName);
                 }
                 rows.add(row);
             }

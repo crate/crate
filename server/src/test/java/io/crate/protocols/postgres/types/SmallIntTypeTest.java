@@ -21,19 +21,52 @@
 
 package io.crate.protocols.postgres.types;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.nio.charset.StandardCharsets;
 
 import org.junit.Test;
 
-public class SmallIntTypeTest extends BasePGTypeTest<Short> {
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+
+public class SmallIntTypeTest extends BasePGTypeTest<Number> {
 
     public SmallIntTypeTest() {
         super(SmallIntType.INSTANCE);
     }
 
     @Test
-    public void testWriteValue() throws Exception {
+    public void test_write_read_short_value() throws Exception {
         assertBytesWritten(Short.MIN_VALUE, new byte[]{0, 0, 0, 2, -128, 0});
+        assertBytesReadBinary(new byte[]{-128, 0}, Short.MIN_VALUE);
+    }
+
+    @Test
+    public void test_write_read_byte_value() {
+        byte[] expected = {0, 0, 0, 2, -1, -128};
+        assertBytesWritten((byte) -128, expected);
+        assertBytesReadBinary(new byte[]{-1, -128}, (short) -128);
+    }
+
+    @Test
+    public void test_encode_byte_value_as_text() {
+        byte[] textBytes = "42".getBytes(StandardCharsets.UTF_8);
+        assertThat(pgType.encodeAsUTF8Text((byte) 42)).isEqualTo(textBytes);
+        assertBytesReadText(textBytes, (short) 42);
+    }
+
+    @Test
+    public void test_write_out_of_range_value_throws() {
+        ByteBuf buffer = Unpooled.buffer();
+        try {
+            assertThatThrownBy(() -> pgType.writeAsBinary(buffer, 70000))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("short value out of range: 70000");
+        } finally {
+            buffer.release();
+        }
     }
 
     @Test

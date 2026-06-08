@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.DriverManager;
@@ -441,7 +440,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
                 EXISTS (
                     SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem);
             """);
-        assertThat(response).hasRowCount(26L);
+        assertThat(response).hasRowCount(25L);
     }
 
     /**

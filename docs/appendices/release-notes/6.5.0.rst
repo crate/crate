@@ -44,7 +44,17 @@ Version 6.5.0 - Unreleased
 Breaking Changes
 ================
 
-None
+- The PostgreSQL type mapping of CrateDB's ``byte`` type changed from ``"char"``
+  (OID 18) to ``int2`` (OID 21). Clients now receive ``byte`` columns as
+  ``int2`` in both text and binary formats.
+
+  Most clients reading data determine the type of a column dynamically, and are
+  largely unaffected. With ``pgjdbc``, ``ResultSet``'s ``getString()`` and
+  ``getByte()`` return the same results as before. ``getObject()`` now returns a
+  ``Short`` instead of a ``String``.
+
+  The CrateDB JDBC driver is unaffected: ``getObject()`` returns an ``Integer``
+  as it did before.
 
 Deprecations
 ============
