@@ -83,9 +83,18 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
+- Added support for adding or subtracting intervals to values of type :ref:`date
+  <type-date>`.
+
 - Added support for ``TH`` and ``th`` template patterns to the :ref:`to_char
   <scalar-to_char>` scalar function which can be used to add a ordinal suffix
   for numbers.
+
+- Added support for marking literal characters with double quotes in the
+  :ref:`to_char <scalar-to_char>` template pattern. Characters enclosed in
+  ``"..."`` are treated as literal text and not interpreted as formatting
+  tokens. Backslash escaping within double-quoted sections is also supported
+  (e.g., ``\"`` for a literal ``"``, ``\\`` for a literal ``\``).
 
 - `Robert Palmer <https://github.com/robd003>`_ added the
   :ref:`blake3 <scalar-blake3>` scalar function for computing BLAKE3 checksums of
@@ -98,6 +107,20 @@ Scalar and Aggregation Functions
 
 Performance and Resilience Improvements
 ---------------------------------------
+
+- Improved the performance of ``SELECT strKeyColumn, count(*) FROM <tbl> GROUP
+  BY 1`` queries if they don't contain any ``WHERE`` clause. In some of our
+  benchmarks by up to 140%.
+
+- Improved the performance of queries on the ``sys.shards`` table. In some of
+  our benchmarks by up to ~20% if the sequence number of translog stats were
+  selected.
+
+- Added column pruning for scalar subqueries. This can help improve performance
+  for sub-queries which intermediately selected columns not used in the results.
+
+- Improved the performance of the :ref:``to_char <scalar-to_char>`` scalar. In
+  some of our benchmarks by up to ~25%.
 
 - Improved the performance of bulk insert operations against tables that use
   user defined functions in a generated column which also has check constraints.

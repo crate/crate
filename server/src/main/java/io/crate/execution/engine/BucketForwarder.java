@@ -31,7 +31,7 @@ import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.jobs.transport.JobResponse;
 
 /**
- * Forwards buckets to {@link PageBucketReceiver}s
+ * Forwards buckets from direct responses to {@link PageBucketReceiver}s
  */
 final class BucketForwarder implements ActionListener<JobResponse> {
 
@@ -50,7 +50,9 @@ final class BucketForwarder implements ActionListener<JobResponse> {
     public void onResponse(JobResponse jobResponse) {
         initializationTracker.jobInitialized();
         List<StreamBucket> directResponses = jobResponse.getDirectResponses(bucketReceivers.getFirst().streamers());
-        for (int i = 0; i < bucketReceivers.size(); i++) {
+        assert directResponses.isEmpty() || bucketReceivers.size() == directResponses.size()
+            : "Direct responses must either be empty or match number of bucketReceivers";
+        for (int i = 0; i < directResponses.size(); i++) {
             PageBucketReceiver pageBucketReceiver = bucketReceivers.get(i);
             Bucket bucket = directResponses.get(i);
             assert bucket != null : "buckets must contain a non-null bucket at idx=" + i;
