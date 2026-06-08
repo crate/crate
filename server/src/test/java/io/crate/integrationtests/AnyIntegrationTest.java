@@ -79,20 +79,20 @@ public class AnyIntegrationTest extends IntegTestCase {
 
         execute("select b from t where b = ANY([1, 2, 4]) order by b");
         assertThat(response).hasRowCount(2);
-        assertThat(response.rows()[0][0]).isEqualTo((byte) 1);
-        assertThat(response.rows()[1][0]).isEqualTo((byte) 2);
+        assertThat(response.rows()[0][0]).isEqualTo(byteOrShort(1));
+        assertThat(response.rows()[1][0]).isEqualTo(byteOrShort(2));
 
         execute("select * from t where b != ANY([1, 2, 4]) order by b");
         assertThat(response).hasRowCount(3); // all rows does not contain at least one of the array elements
 
         execute("select b from t where b <= ANY([-1, 0, 1])");
         assertThat(response).hasRowCount(1);
-        assertThat(response.rows()[0][0]).isEqualTo((byte) 1);
+        assertThat(response.rows()[0][0]).isEqualTo(byteOrShort(1));
 
         execute("select b from t where s like ANY(['%ar', 'go%']) order by b DESC");
         assertThat(response).hasRowCount(2);
-        assertThat(response.rows()[0][0]).isEqualTo((byte) 2);
-        assertThat(response.rows()[1][0]).isEqualTo((byte) 1);
+        assertThat(response.rows()[0][0]).isEqualTo(byteOrShort(2));
+        assertThat(response.rows()[1][0]).isEqualTo(byteOrShort(1));
     }
 
     @Test
