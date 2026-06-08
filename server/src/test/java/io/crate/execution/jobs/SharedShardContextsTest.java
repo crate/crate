@@ -23,20 +23,30 @@ package io.crate.execution.jobs;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import org.junit.Test;
+
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntIndexedContainer;
 
 public class SharedShardContextsTest {
 
@@ -117,5 +127,31 @@ public class SharedShardContextsTest {
         assertThatThrownBy(() -> sharedShardContexts.prepareContext(shardId, readerID + 1))
             .isExactlyInstanceOf(AssertionError.class)
             .hasMessageContaining("FetchTask cannot create 2 contexts with same shardId and different readerId");
+    }
+
+    @Test
+    public void test_maybeRefreshReaders_skips_missing_shard_for_partitioned_table() throws Exception {
+        IndicesService indicesService = mock(IndicesService.class);
+        IndexService indexService = mock(IndexService.class);
+        when(indicesService.indexService(any())).thenReturn(indexService);
+        when(indexService.getShard(anyInt()))
+            .thenThrow(new ShardNotFoundException(new ShardId("dummy", "uuid", 1)));
+        SharedShardContexts contexts = new SharedShardContexts(indicesService, null);
+
+        String partitionedIndex = ".partitioned.t.abc123";
+        IndexMetadata indexMetadata = mock(IndexMetadata.class);
+        when(indexMetadata.getIndex()).thenReturn(new Index(partitionedIndex, "uuid"));
+
+        Metadata metadata = mock(Metadata.class);
+        when(metadata.index(partitionedIndex)).thenReturn(indexMetadata);
+
+        IntIndexedContainer shards = new IntArrayList();
+        shards.add(1);
+
+        Map<String, IntIndexedContainer> shardsByIndex = Map.of(partitionedIndex, shards);
+        Map<String, Integer> bases = Map.of(partitionedIndex, 1);
+
+        CompletableFuture<Void> future = contexts.maybeRefreshReaders(metadata, shardsByIndex, bases);
+        assertThat(future).succeedsWithin(5, TimeUnit.SECONDS);
     }
 }
