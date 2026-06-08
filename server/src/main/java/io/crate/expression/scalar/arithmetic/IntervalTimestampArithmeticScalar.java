@@ -55,7 +55,7 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
                     .build(),
                 (signature, boundSignature) ->
                     new IntervalTimestampArithmeticScalar(
-                        "+",
+                        DateTime::plus,
                         signature,
                         boundSignature
                     )
@@ -64,7 +64,7 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
                 signatureFor(timestampType, ArithmeticFunctions.Names.ADD),
                 (signature, boundSignature) ->
                     new IntervalTimestampArithmeticScalar(
-                        "+",
+                        DateTime::plus,
                         signature,
                         boundSignature
                     )
@@ -74,7 +74,7 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
                 signatureFor(timestampType, ArithmeticFunctions.Names.SUBTRACT),
                 (signature, boundSignature) ->
                     new IntervalTimestampArithmeticScalar(
-                        "-",
+                        DateTime::minus,
                         signature,
                         boundSignature
                     )
@@ -93,7 +93,7 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
                 .build(),
             (signature, boundSignature) ->
                 new IntervalTimestampArithmeticScalar(
-                    "+",
+                    DateTime::plus,
                     signature,
                     boundSignature
                 )
@@ -109,7 +109,7 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
                 .build(),
             (signature, boundSignature) ->
                 new IntervalTimestampArithmeticScalar(
-                    "+",
+                    DateTime::plus,
                     signature,
                     boundSignature
                 )
@@ -125,7 +125,7 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
                 .build(),
             (signature, boundSignature) ->
                 new IntervalTimestampArithmeticScalar(
-                    "-",
+                    DateTime::minus,
                     signature,
                     boundSignature
                 )
@@ -147,10 +147,11 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
     private final int periodIdx;
     private final int timestampIdx;
 
-    public IntervalTimestampArithmeticScalar(String operator,
+    public IntervalTimestampArithmeticScalar(BiFunction<DateTime, Period, DateTime> operation,
                                              Signature signature,
                                              BoundSignature boundSignature) {
         super(signature, boundSignature);
+        this.operation = operation;
         var firstArgType = boundSignature.argTypes().get(0);
         if (firstArgType.id() == IntervalType.ID) {
             periodIdx = 0;
@@ -158,22 +159,6 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
         } else {
             periodIdx = 1;
             timestampIdx = 0;
-        }
-
-        switch (operator) {
-            case "+":
-                operation = DateTime::plus;
-                break;
-            case "-":
-                if (firstArgType.id() == IntervalType.ID) {
-                    throw new IllegalArgumentException("Unsupported operator for interval " + operator);
-                }
-                operation = DateTime::minus;
-                break;
-            default:
-                operation = (a, b) -> {
-                    throw new IllegalArgumentException("Unsupported operator for interval " + operator);
-                };
         }
     }
 
