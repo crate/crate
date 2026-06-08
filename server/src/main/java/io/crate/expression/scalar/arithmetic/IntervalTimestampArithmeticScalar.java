@@ -46,10 +46,11 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
         for (var timestampType : List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ)) {
             module.add(
                 Signature.builder(ArithmeticFunctions.Names.ADD, FunctionType.SCALAR)
-                    .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
+                    .argumentTypes(
+                        DataTypes.INTERVAL.getTypeSignature(),
                         timestampType.getTypeSignature())
                     .returnType(timestampType.getTypeSignature())
-                    .features(Feature.DETERMINISTIC)
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .forbidCoercion()
                     .build(),
                 (signature, boundSignature) ->
@@ -83,10 +84,11 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
         // DATE +/- INTERVAL (return TIMESTAMP per PostgreSQL spec: date + interval → timestamp)
         module.add(
             Signature.builder(ArithmeticFunctions.Names.ADD, FunctionType.SCALAR)
-                .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
+                .argumentTypes(
+                    DataTypes.INTERVAL.getTypeSignature(),
                     DataTypes.DATE.getTypeSignature())
                 .returnType(DataTypes.TIMESTAMP.getTypeSignature())
-                .features(Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .forbidCoercion()
                 .build(),
             (signature, boundSignature) ->
@@ -98,10 +100,11 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
         );
         module.add(
             Signature.builder(ArithmeticFunctions.Names.ADD, FunctionType.SCALAR)
-                .argumentTypes(DataTypes.DATE.getTypeSignature(),
+                .argumentTypes(
+                    DataTypes.DATE.getTypeSignature(),
                     DataTypes.INTERVAL.getTypeSignature())
                 .returnType(DataTypes.TIMESTAMP.getTypeSignature())
-                .features(Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .forbidCoercion()
                 .build(),
             (signature, boundSignature) ->
@@ -113,10 +116,11 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
         );
         module.add(
             Signature.builder(ArithmeticFunctions.Names.SUBTRACT, FunctionType.SCALAR)
-                .argumentTypes(DataTypes.DATE.getTypeSignature(),
+                .argumentTypes(
+                    DataTypes.DATE.getTypeSignature(),
                     DataTypes.INTERVAL.getTypeSignature())
                 .returnType(DataTypes.TIMESTAMP.getTypeSignature())
-                .features(Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .forbidCoercion()
                 .build(),
             (signature, boundSignature) ->
@@ -130,10 +134,11 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
 
     public static Signature signatureFor(DataType<?> timestampType, String name) {
         return Signature.builder(name, FunctionType.SCALAR)
-            .argumentTypes(timestampType.getTypeSignature(),
+            .argumentTypes(
+                timestampType.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature())
             .returnType(timestampType.getTypeSignature())
-            .features(Feature.DETERMINISTIC)
+            .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
             .forbidCoercion()
             .build();
     }
