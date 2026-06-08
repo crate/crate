@@ -23,6 +23,7 @@ package io.crate.metadata.information;
 
 import static io.crate.types.DataTypes.STRING;
 
+import io.crate.Constants;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
@@ -35,6 +36,7 @@ public class InformationSchemataTableInfo {
 
     public static SystemTable<SchemaInfo> INSTANCE = SystemTable.<SchemaInfo>builder(IDENT)
         .add("schema_name", STRING, SchemaInfo::name)
+        .add("catalog_name", STRING, _ -> Constants.DB_NAME)
         .setPrimaryKeys(ColumnIdent.of("schema_name"))
         .build();
 }

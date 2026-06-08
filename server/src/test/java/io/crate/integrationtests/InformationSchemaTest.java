@@ -582,7 +582,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(1109);
+        assertThat(response.rowCount()).isEqualTo(1110);
     }
 
     @Test
@@ -1223,13 +1223,13 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     @UseRandomizedSchema(random = false)
     public void testSelectSchemata() throws Exception {
-        execute("select schema_name from information_schema.schemata order by schema_name asc");
+        execute("select * from information_schema.schemata order by schema_name asc");
         assertThat(response).hasRows(
-            "blob",
-            "doc",
-            "information_schema",
-            "pg_catalog",
-            "sys"
+            "crate| blob",
+            "crate| doc",
+            "crate| information_schema",
+            "crate| pg_catalog",
+            "crate| sys"
         );
 
         execute("create table t1 (col string) with (number_of_replicas=0)");

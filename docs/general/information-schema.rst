@@ -840,17 +840,27 @@ schema is available after the first user table is created.
 
 ::
 
-    cr> select schema_name from information_schema.schemata order by schema_name;
-    +--------------------+
-    | schema_name        |
-    +--------------------+
-    | blob               |
-    | doc                |
-    | information_schema |
-    | pg_catalog         |
-    | sys                |
-    +--------------------+
+    cr> select * from information_schema.schemata order by schema_name;
+    +--------------+--------------------+
+    | catalog_name | schema_name        |
+    +--------------+--------------------+
+    | crate        | blob               |
+    | crate        | doc                |
+    | crate        | information_schema |
+    | crate        | pg_catalog         |
+    | crate        | sys                |
+    +--------------+--------------------+
     SELECT 5 rows in set (... sec)
+
+.. rubric:: Schema
+
++------------------+---------------------------------------+-----------+
+| Name             | Data Type                             |           |
++==================+=======================================+===========+
+| ``catalog_name`` | Name of the catalog. Always ``crate`` | ``TEXT``  |
++------------------+---------------------------------------+-----------+
+| ``schema_name``  | Name of the schema                    | ``TEXT``  |
++------------------+---------------------------------------+-----------+
 
 .. _sql_features:
 
