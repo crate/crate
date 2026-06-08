@@ -83,6 +83,9 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
+- Added support for adding or subtracting intervals to values of type :ref:`date
+  <type-date>`.
+
 - Added support for ``TH`` and ``th`` template patterns to the :ref:`to_char
   <scalar-to_char>` scalar function which can be used to add a ordinal suffix
   for numbers.
