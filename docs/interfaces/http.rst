@@ -301,6 +301,8 @@ IDs of all currently available data types:
      - :ref:`CHARACTER <data-type-character>`
    * - 28
      - :ref:`FLOAT VECTOR <type-float_vector>`
+   * - 29
+     - :ref:`UUID <type-uuid>`
    * - 100
      - :ref:`ARRAY <type-array>`
 
