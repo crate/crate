@@ -246,4 +246,45 @@ public class ToCharFunctionTest extends ScalarTestCase {
         // Two standalone th followed by DD: both th should be literal
         assertEvaluate("to_char(timestamp '2024-01-15', 'ththDD')", "thth15");
     }
+
+    @Test
+    public void testDoubleQuotedLiteralCharacters() {
+        // Exact scenario from the issue 19291: T and HH should not be parsed as TH
+        assertEvaluate("to_char(timestamp '2005-05-28T20:57:00', 'YYYY-MM-DD\"T\"HH:MI:SSZ')","2005-05-28T08:57:00Z");
+        // Without double quotes, TH gets parsed as ordinal suffix
+        assertEvaluate("to_char(timestamp '2005-05-28T20:57:00', 'YYYY-MM-DDTHH:MI:SSZ')","2005-05-28THH:57:00Z");
+        // Empty quoted section: provides a no-op literal between patterns
+        assertEvaluate("to_char(timestamp '2024-01-15', 'DD\"\"MM')","1501");
+        // Multiple quoted sections in one pattern
+        assertEvaluate("to_char(timestamp '2024-01-15T14:30:45', '\"date:\" YYYY-MM-DD \"time:\" HH24:MI:SS')","date: 2024-01-15 time: 14:30:45");
+        // Unmatched quote: PostgreSQL consumes the rest as literal text
+        assertEvaluate("to_char(timestamp '2024-01-15', 'DD\"MM')","15MM");
+        // Quote at the very beginning of the pattern
+        assertEvaluate("to_char(timestamp '2024-01-15', '\"The date is\" DD/MM/YYYY')","The date is 15/01/2024");
+        // Quote at the very end of the pattern
+        assertEvaluate("to_char(timestamp '2024-01-15', 'DD/MM/YYYY\" is the date\"')","15/01/2024 is the date");
+        // Quoted literal that would otherwise be a valid pattern token
+        assertEvaluate("to_char(timestamp '2024-01-15', 'DD\"th\"')","15th");
+        // Quoted literal th after a non-numeric token (should not trigger th suffix lookup)
+        assertEvaluate("to_char(timestamp '2024-01-15', '\"th\"')","th");
+        // Mixed: quoted th followed by numeric th ordinal suffix
+        assertEvaluate("to_char(timestamp '2024-01-15', '\"th\"DDth')","th15th");
+        // Quoted MM (which is normally month number) should be literal
+        assertEvaluate("to_char(timestamp '2024-01-15', '\"MM\" MM')","MM 01");
+        // Only quoted text, no pattern tokens
+        assertEvaluate("to_char(timestamp '2024-01-15', '\"only quoted text\"')","only quoted text");
+        // Quoted text with special regex/sql characters
+        assertEvaluate("to_char(timestamp '2024-01-15', '\"YEAR:\" YYYY')","YEAR: 2024");
+        assertEvaluate("to_char(timestamp '2024-01-15', 'DD\"\\\"\"MM')","15\"01");
+        assertEvaluate("""
+            to_char(timestamp '2024-01-15', '"ab\\"cd"')""","ab\"cd");
+        assertEvaluate("""
+            to_char(timestamp '2024-01-15', '"a\\\\b"')""","a\\b");
+        assertEvaluate("""
+            to_char(timestamp '2024-01-15', '"\\T"')""","T");
+        assertEvaluate("""
+            to_char(timestamp '2024-01-15', 'DD"a\\"b"MM')""","15a\"b01");
+        assertEvaluate("""
+            to_char(timestamp '2024-01-15', '\\T')""","\\T");
+    }
 }
