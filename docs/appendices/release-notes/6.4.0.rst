@@ -90,6 +90,12 @@ Scalar and Aggregation Functions
   <scalar-to_char>` scalar function which can be used to add a ordinal suffix
   for numbers.
 
+- Added support for marking literal characters with double quotes in the
+  :ref:`to_char <scalar-to_char>` template pattern. Characters enclosed in
+  ``"..."`` are treated as literal text and not interpreted as formatting
+  tokens. Backslash escaping within double-quoted sections is also supported
+  (e.g., ``\"`` for a literal ``"``, ``\\`` for a literal ``\``).
+
 - `Robert Palmer <https://github.com/robd003>`_ added the
   :ref:`blake3 <scalar-blake3>` scalar function for computing BLAKE3 checksums of
   strings.
