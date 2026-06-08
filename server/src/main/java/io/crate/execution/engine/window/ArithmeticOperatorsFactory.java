@@ -21,6 +21,11 @@
 
 package io.crate.execution.engine.window;
 
+import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
+
+import org.joda.time.DateTime;
+
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.arithmetic.IntervalTimestampArithmeticScalar;
 import io.crate.metadata.functions.BoundSignature;
@@ -34,9 +39,6 @@ import io.crate.types.IntervalType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
-
-import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
 
 class ArithmeticOperatorsFactory {
 
@@ -62,7 +64,7 @@ class ArithmeticOperatorsFactory {
                         ArithmeticFunctions.Names.ADD
                     );
                     return new IntervalTimestampArithmeticScalar(
-                        "+",
+                        DateTime::plus,
                         signature,
                         BoundSignature.sameAsUnbound(signature)
                     );
@@ -94,7 +96,7 @@ class ArithmeticOperatorsFactory {
                         ArithmeticFunctions.Names.SUBTRACT
                     );
                     return new IntervalTimestampArithmeticScalar(
-                        "-",
+                        DateTime::minus,
                         signature,
                         BoundSignature.sameAsUnbound(signature)
                     );
