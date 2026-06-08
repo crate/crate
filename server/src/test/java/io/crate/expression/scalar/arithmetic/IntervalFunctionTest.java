@@ -179,4 +179,37 @@ public class IntervalFunctionTest extends ScalarTestCase {
             .hasMessageStartingWith(
                 "Invalid arguments in: (cast('1 second' AS INTERVAL) - cast('86401000' AS TIMESTAMP WITH TIME ZONE)) with (interval, timestamp with time zone).");
     }
+
+    @Test
+    public void test_date_interval_add() {
+        assertEvaluate("interval '1 second' + '86400000'::date", 86401000L);
+        assertEvaluate("'86400000'::date + interval '1 second'", 86401000L);
+        assertEvaluate("'86400000'::date + interval '1 day'", 172800000L);
+        assertEvaluate("'86400000'::date + interval '-1 day'", 0L);
+    }
+
+    @Test
+    public void test_date_interval_subtract() {
+        assertEvaluate("'86401000'::date - interval '1 second'", 86399000L);
+        assertEvaluate("'86400000'::date - interval '1 day'", 0L);
+        assertEvaluate("'86400000'::date - interval '-1 day'", 172800000L);
+        assertEvaluate("'86400000'::date - interval '1000 years'", -31556822400000L);
+    }
+
+    @Test
+    public void test_date_interval_null() {
+        assertEvaluateNull("null + '86400000'::date");
+        assertEvaluateNull("'86400000'::date + null");
+        assertEvaluateNull("null - '86400000'::date");
+        assertEvaluateNull("'86400000'::date - null");
+    }
+
+    @Test
+    public void test_disallowed_interval_date_subtraction() {
+        assertThatThrownBy(
+            () -> assertEvaluate("interval '1 second' - '86401000'::date", 86400000L))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith(
+                "Invalid arguments in: (cast('1 second' AS INTERVAL) - cast('86401000' AS DATE)) with (interval, date).");
+    }
 }
