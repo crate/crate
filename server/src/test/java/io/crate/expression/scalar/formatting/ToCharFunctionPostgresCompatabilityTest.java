@@ -200,4 +200,11 @@ public class ToCharFunctionPostgresCompatabilityTest extends ScalarTestCase {
         assertEvaluate("to_char(timestamp '1970-01-01T17:31:12.12345', 'OF')", "");
     }
 
+    @Test
+    public void testPostgresDoubleQuotedLiteralCharacters() {
+        // In PostgreSQL, characters within double quotes in the template pattern are treated as literal text.
+        // This prevents pattern tokens like TH from being interpreted when they appear adjacent to each other.
+        assertEvaluate("to_char(timestamp '2005-05-28T20:57:00', 'YYYY-MM-DD\"T\"HH:MI:SSZ')","2005-05-28T08:57:00Z");
+        assertEvaluate("to_char(timestamp '2005-05-28T20:57:00', 'YYYY-MM-DD\"T\"HH24:MI:SSZ')","2005-05-28T20:57:00Z");
+    }
 }

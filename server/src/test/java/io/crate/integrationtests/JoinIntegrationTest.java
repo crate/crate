@@ -351,8 +351,17 @@ public class JoinIntegrationTest extends IntegTestCase {
     @Test
     public void testCrossJoinFromInformationSchemaTable() throws Exception {
         // sys table with doc granularity on single node
-        execute("select * from information_schema.schemata t1, information_schema.schemata t2 " +
-                "order by t1.schema_name, t2.schema_name");
+        execute("""
+            select
+                t1.schema_name,
+                t2.schema_name
+            from
+                information_schema.schemata t1,
+                information_schema.schemata t2
+            order by
+                t1.schema_name,
+                t2.schema_name
+            """);
         assertThat(response).hasRows(
                "blob| blob",
                "blob| doc",

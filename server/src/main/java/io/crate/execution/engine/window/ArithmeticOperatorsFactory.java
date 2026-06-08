@@ -21,11 +21,17 @@
 
 package io.crate.execution.engine.window;
 
+import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
+
+import org.joda.time.DateTime;
+
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.arithmetic.IntervalTimestampArithmeticScalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
+import io.crate.types.DateType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
@@ -33,9 +39,6 @@ import io.crate.types.IntervalType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
-
-import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
 
 class ArithmeticOperatorsFactory {
 
@@ -52,6 +55,7 @@ class ArithmeticOperatorsFactory {
     static BiFunction getAddFunction(DataType<?> fstArgDataType, DataType<?> sndArgDataType) {
         switch (fstArgDataType.id()) {
             case LongType.ID:
+            case DateType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {
@@ -60,7 +64,7 @@ class ArithmeticOperatorsFactory {
                         ArithmeticFunctions.Names.ADD
                     );
                     return new IntervalTimestampArithmeticScalar(
-                        "+",
+                        DateTime::plus,
                         signature,
                         BoundSignature.sameAsUnbound(signature)
                     );
@@ -83,6 +87,7 @@ class ArithmeticOperatorsFactory {
     static BiFunction getSubtractFunction(DataType<?> fstArgDataType, DataType<?> sndArgDataType) {
         switch (fstArgDataType.id()) {
             case LongType.ID:
+            case DateType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {
@@ -91,7 +96,7 @@ class ArithmeticOperatorsFactory {
                         ArithmeticFunctions.Names.SUBTRACT
                     );
                     return new IntervalTimestampArithmeticScalar(
-                        "-",
+                        DateTime::minus,
                         signature,
                         BoundSignature.sameAsUnbound(signature)
                     );

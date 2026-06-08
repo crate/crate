@@ -67,6 +67,14 @@ To cancel a restore operation simply drop the tables that are being restored.
     error. However, if you try to restore metadata or cluster settings that
     already exist, they will be overwritten.
 
+.. CAUTION::
+
+    When restoring tables without restoring metadata, table expressions that
+    reference :ref:`user-defined functions <user-defined-functions>` bind to
+    UDFs available in the current cluster metadata by name and signature only.
+    Therefore, subsequent inserts may execute UDFs with the same name and
+    signature but different definitions.
+
 .. TIP::
 
     After restoring a snapshot which affects tables/partitions and their data,
