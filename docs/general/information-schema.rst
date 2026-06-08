@@ -854,18 +854,13 @@ schema is available after the first user table is created.
 
 .. rubric:: Schema
 
-+--------------+-----------+
-| Name         | Data Type |
-+==============+===========+
-| catalog_name | ``TEXT``  |
-+--------------+-----------+
-| schema_name  | ``TEXT``  |
-+--------------+-----------+
-
-:catalog_name:
-    Name of the catalog. This is always ``crate``.
-:schema_name:
-    Name of the schema.
++------------------+---------------------------------------+-----------+
+| Name             | Data Type                             |           |
++==================+=======================================+===========+
+| ``catalog_name`` | Name of the catalog. Always ``crate`` | ``TEXT``  |
++------------------+---------------------------------------+-----------+
+| ``schema_name``  | Name of the schema                    | ``TEXT``  |
++------------------+---------------------------------------+-----------+
 
 .. _sql_features:
 
