@@ -54,6 +54,35 @@ public class DateTypeTest extends BasePGTypeTest<Long> {
     }
 
     @Test
+    public void test_binary_write_sends_days_since_2000_01_01() throws Exception {
+        ByteBuf buffer = Unpooled.buffer();
+        try {
+            // 2016-06-28
+            int written = pgType.writeAsBinary(buffer, 1467072000000L);
+            int length = buffer.readInt();
+            assertThat(written).isEqualTo(8);
+            assertThat(length).isEqualTo(4);
+
+            int daysSince2000 = buffer.readInt();
+            assertThat(daysSince2000).isEqualTo(6023);
+        } finally {
+            buffer.release();
+        }
+    }
+
+    @Test
+    public void test_binary_reads_value_as_days_since_2000_01_01() throws Exception {
+        ByteBuf buffer = Unpooled.buffer();
+        try {
+            buffer.writeInt(6023);
+            Long msSince1970 = pgType.readBinaryValue(buffer, 4);
+            assertThat(msSince1970).isEqualTo(1467072000000L);
+        } finally {
+            buffer.release();
+        }
+    }
+
+    @Test
     public void testEncodeAsUTF8Text() {
         assertThat(new String(DateType.INSTANCE.encodeAsUTF8Text(1467072000000L), UTF_8)).isEqualTo("2016-06-28");
         assertThat(new String(DateType.INSTANCE.encodeAsUTF8Text(-93661920000000L), UTF_8)).isEqualTo("1000-12-22");

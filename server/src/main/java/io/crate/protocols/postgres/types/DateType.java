@@ -34,14 +34,20 @@ import java.util.Locale;
 
 import io.crate.metadata.RelationLookup;
 import io.crate.types.Regproc;
+import io.netty.buffer.ByteBuf;
 
 
-final class DateType extends BaseTimestampType {
+final class DateType extends PGType<Long> {
 
     public static final DateType INSTANCE = new DateType();
 
+    private static final int TYPE_LEN = 4;
     private static final int OID = 1082;
     private static final String NAME = "date";
+
+    /// Days between 1970-01-01 and 2000-01-01
+    private static final int EPOCH_DAY_DIFF = 10957;
+    private static final int DAY_TO_MS = 86400000;
 
     private static final DateTimeFormatter ISO_FORMATTER = new DateTimeFormatterBuilder()
         .parseCaseInsensitive()
@@ -54,7 +60,17 @@ final class DateType extends BaseTimestampType {
         .toFormatter(Locale.ENGLISH).withResolverStyle(ResolverStyle.STRICT);
 
     private DateType() {
-        super(OID, TYPE_LEN, TYPE_MOD, NAME);
+        super(OID, TYPE_LEN, -1, NAME);
+    }
+
+    @Override
+    public String typeCategory() {
+        return TypeCategory.DATETIME.code();
+    }
+
+    @Override
+    public String type() {
+        return Type.BASE.code();
     }
 
     @Override
@@ -70,6 +86,21 @@ final class DateType extends BaseTimestampType {
     @Override
     public Regproc typReceive() {
         return Regproc.of(NAME + "_recv");
+    }
+
+    @Override
+    public int writeAsBinary(ByteBuf buffer, Long msSince1970) {
+        buffer.writeInt(TYPE_LEN);
+        long daysSince1970 = msSince1970 / DAY_TO_MS;
+        buffer.writeInt((int) daysSince1970 - EPOCH_DAY_DIFF);
+        return INT32_BYTE_SIZE + TYPE_LEN;
+    }
+
+    @Override
+    public Long readBinaryValue(ByteBuf buffer, int valueLength) {
+        // https://github.com/postgres/postgres/blob/master/src/include/datatype/timestamp.h#L235
+        long numDaysSince2000 = (long) buffer.readInt();
+        return (numDaysSince2000 + EPOCH_DAY_DIFF) * DAY_TO_MS;
     }
 
     @Override

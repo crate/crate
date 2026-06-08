@@ -46,4 +46,5 @@ series.
 Fixes
 =====
 
-None
+- Fixed binary encoding and decoding of ``date`` values when using PostgreSQL
+  clients.
