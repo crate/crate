@@ -45,14 +45,22 @@ import io.crate.types.UUIDType;
 
 public class PGTypes {
 
+    /**
+     * Maps each CrateDB type to the Pg type clients see for it.
+     * <p>
+     * Several CrateDB types can map to the same pg type (e.g. string and ip -> varchar,
+     * short and byte -> int2). Insertion order then decides the reverse (pg -> CrateDB)
+     * mapping: {@link #PG_TYPES_TO_CRATE_TYPE} is built first-wins per oid, so the
+     * CrateDB type that should represent the pg type must be inserted first.
+     */
     private static final Map<DataType<?>, PGType<?>> CRATE_TO_PG_TYPES = MapBuilder.<DataType<?>, PGType<?>>newLinkedHashMapBuilder()
-        .put(DataTypes.BYTE, CharType.INSTANCE)
         .put(DataTypes.STRING, VarCharType.INSTANCE)
         .put(DataTypes.CHARACTER, CharacterType.INSTANCE)
         .put(DataTypes.BOOLEAN, BooleanType.INSTANCE)
         .put(DataTypes.UNTYPED_OBJECT, JsonType.INSTANCE)
         .put(RowType.EMPTY, RecordType.EMPTY_RECORD)
         .put(DataTypes.SHORT, SmallIntType.INSTANCE)
+        .put(DataTypes.BYTE, SmallIntType.INSTANCE)
         .put(DataTypes.INTEGER, IntegerType.INSTANCE)
         .put(DataTypes.LONG, BigIntType.INSTANCE)
         .put(DataTypes.FLOAT, RealType.INSTANCE)
@@ -72,8 +80,8 @@ public class PGTypes {
         .put(DataTypes.REGCLASS, RegclassType.INSTANCE)
         .put(BitStringType.INSTANCE_ONE, BitType.INSTANCE)
         .put(UUIDType.INSTANCE, PgUUIDType.INSTANCE)
-        .put(new ArrayType<>(DataTypes.BYTE), PGArray.CHAR_ARRAY)
         .put(new ArrayType<>(DataTypes.SHORT), PGArray.INT2_ARRAY)
+        .put(new ArrayType<>(DataTypes.BYTE), PGArray.INT2_ARRAY)
         .put(new ArrayType<>(DataTypes.INTEGER), PGArray.INT4_ARRAY)
         .put(new ArrayType<>(DataTypes.LONG), PGArray.INT8_ARRAY)
         .put(new ArrayType<>(DataTypes.FLOAT), PGArray.FLOAT4_ARRAY)
