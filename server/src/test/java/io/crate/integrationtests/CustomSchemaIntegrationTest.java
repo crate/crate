@@ -155,7 +155,7 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
             .hasMessageContaining("Schema 'foobar' already exists");
         execute("create schema if not exists foobar");
 
-        execute("select * from information_schema.schemata order by 1");
+        execute("select schema_name from information_schema.schemata order by 1");
         assertThat(response).hasRows(
             "blob",
             "doc",
@@ -174,7 +174,7 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
 
         execute("drop table foobar.tbl");
 
-        execute("select * from information_schema.schemata order by 1");
+        execute("select schema_name from information_schema.schemata order by 1");
         assertThat(response).hasRows(
             "blob",
             "doc",
@@ -186,7 +186,7 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
         );
 
         execute("drop schema foobar, foo");
-        execute("select * from information_schema.schemata order by 1");
+        execute("select schema_name from information_schema.schemata order by 1");
         assertThat(response).hasRows(
             "blob",
             "doc",

@@ -44,10 +44,10 @@ pipeline {
             '''.stripIndent()
 
             // Upload coverage report to Codecov.
-            // https://about.codecov.io/blog/introducing-codecovs-new-uploader/
+            // https://docs.codecov.com/docs/codecov-uploader
             sh '''
               # Download uploader program and perform integrity checks.
-              curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --import # One-time step
+              curl https://keybase.io/codecovsecops/pgp_keys.asc | gpg --import # One-time step
               curl -Os https://uploader.codecov.io/latest/linux/codecov
               curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM
               curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM.sig

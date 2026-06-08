@@ -1818,6 +1818,9 @@ The syntax for the ``format_string`` differs based the type of the
     * - ``TH`` / ``th``
       - Ordinal number suffix appended to the preceding numeric value
         (e.g., ``DDth`` produces ``15th``, ``1st``, ``2nd``, ``3rd``)
+    * - ``"..."``
+      - Marks characters enclosed in double quotes as literal text.
+        Backslashes can be used to escape characters within quoted text.
 
 Example::
 

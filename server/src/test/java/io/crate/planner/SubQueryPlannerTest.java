@@ -76,10 +76,10 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         List<Projection> projections = collect.collectPhase().projections();
         assertThat(projections).satisfiesExactly(
             isLimitAndOffset(10, 0),
-            exactlyInstanceOf(FetchProjection.class),
             exactlyInstanceOf(FilterProjection.class),
             exactlyInstanceOf(OrderedLimitAndOffsetProjection.class),
-            isLimitAndOffset(3, 0)
+            isLimitAndOffset(3, 0),
+            exactlyInstanceOf(FetchProjection.class)
         );
     }
 

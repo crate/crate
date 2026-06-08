@@ -34,6 +34,7 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import io.crate.common.annotations.VisibleForTesting;
 
@@ -68,8 +69,9 @@ public class SharedShardContexts {
                 continue;
             }
             IndexMetadata indexMetadata = metadata.index(indexName);
+            boolean isPartitioned = IndexName.isPartitioned(indexName);
             if (indexMetadata == null) {
-                if (IndexName.isPartitioned(indexName)) {
+                if (isPartitioned) {
                     continue;
                 }
                 refreshActions.add(CompletableFuture.failedFuture(new IndexNotFoundException(indexName)));
@@ -77,14 +79,22 @@ public class SharedShardContexts {
             }
             IndexService indexService = indicesService.indexService(indexMetadata.getIndex());
             if (indexService == null) {
-                if (!IndexName.isPartitioned(indexName)) {
+                if (isPartitioned == false) {
                     refreshActions.add(CompletableFuture.failedFuture(new IndexNotFoundException(indexName)));
                 }
                 continue;
             }
             for (var shardCursor : entry.getValue()) {
                 int shardId = shardCursor.value;
-                IndexShard shard = indexService.getShard(shardId);
+                IndexShard shard;
+                try {
+                    shard = indexService.getShard(shardId);
+                } catch (ShardNotFoundException e) {
+                    if (isPartitioned == false) {
+                        refreshActions.add(CompletableFuture.failedFuture(e));
+                    }
+                    continue;
+                }
                 refreshActions.add(shard.awaitShardSearchActive());
             }
         }

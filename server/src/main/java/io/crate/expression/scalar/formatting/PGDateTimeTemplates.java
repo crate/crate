@@ -258,6 +258,36 @@ public class PGDateTimeTemplates {
 
             if (idx == pattern_to_consume.length()) {
                 nextTokenNode = null;
+                // PostgreSQL-compatible double-quote handling.
+                // - Backslash escapes the next character (including " and \)
+                // - Unescaped " ends the quoted section
+                // - Unmatched " consumes the rest of the pattern as literal text
+            } else if (idx == 0 && pattern_to_consume.charAt(0) == '"') {
+                StringBuilder sb = new StringBuilder();
+                int pos = 1;
+                boolean foundClosingQuote = false;
+                while (pos < pattern_to_consume.length()) {
+                    char c = pattern_to_consume.charAt(pos);
+                    if (c == '\\' && pos + 1 < pattern_to_consume.length()) {
+                        sb.append(pattern_to_consume.charAt(pos + 1));
+                        pos += 2;
+                    } else if (c == '"') {
+                        foundClosingQuote = true;
+                        break;
+                    } else {
+                        sb.append(c);
+                        pos++;
+                    }
+                }
+                tokens.add(new TemplateLiteral(sb.toString()));
+                if (foundClosingQuote) {
+                    pattern_to_consume = pattern_to_consume.substring(pos + 1);
+                } else {
+                    pattern_to_consume = "";
+                }
+                currentTokenNode = ROOT_TOKEN_NODE;
+                idx = 0;
+                continue;
             } else {
                 nextTokenNode = currentTokenNode.children.get(pattern_to_consume.charAt(idx));
             }
