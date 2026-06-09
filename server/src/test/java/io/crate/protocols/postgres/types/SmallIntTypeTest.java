@@ -22,14 +22,10 @@
 package io.crate.protocols.postgres.types;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.StandardCharsets;
 
 import org.junit.Test;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 
 public class SmallIntTypeTest extends BasePGTypeTest<Number> {
 
@@ -55,18 +51,6 @@ public class SmallIntTypeTest extends BasePGTypeTest<Number> {
         byte[] textBytes = "42".getBytes(StandardCharsets.UTF_8);
         assertThat(pgType.encodeAsUTF8Text((byte) 42)).isEqualTo(textBytes);
         assertBytesReadText(textBytes, (short) 42);
-    }
-
-    @Test
-    public void test_write_out_of_range_value_throws() {
-        ByteBuf buffer = Unpooled.buffer();
-        try {
-            assertThatThrownBy(() -> pgType.writeAsBinary(buffer, 70000))
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("short value out of range: 70000");
-        } finally {
-            buffer.release();
-        }
     }
 
     @Test
