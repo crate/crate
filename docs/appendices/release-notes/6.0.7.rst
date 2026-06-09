@@ -12,7 +12,7 @@ Released on 2026-06-09.
     before you upgrade to 6.0.7.
 
     We recommend that you upgrade to the latest 5.10 release before moving to
-    6.0.6.
+    6.0.7.
 
     A rolling upgrade from >= 5.10.1 to 6.0.7 is supported.
     Before upgrading, you should `back up your data`_.
