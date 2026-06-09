@@ -323,7 +323,6 @@ public abstract class IntegTestCase extends ESTestCase {
     public TestName testName = new TestName();
 
     protected final SQLTransportExecutor sqlExecutor;
-    protected TestExecutionConfig testExecutionConfig;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -1545,8 +1544,7 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     public SQLResponse execute(String stmt, Object[] args) {
         try {
-            this.testExecutionConfig = testExecutionConfig();
-            SQLResponse response = sqlExecutor.exec(this.testExecutionConfig, stmt, args);
+            SQLResponse response = sqlExecutor.exec(testExecutionConfig(), stmt, args);
             this.response = response;
             return response;
         } catch (ElasticsearchTimeoutException e) {
@@ -1566,8 +1564,7 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) throws SQLException {
         try {
-            this.testExecutionConfig = testExecutionConfig();
-            SQLResponse response = sqlExecutor.exec(this.testExecutionConfig, stmt, args, timeout);
+            SQLResponse response = sqlExecutor.exec(testExecutionConfig(), stmt, args, timeout);
             this.response = response;
             return response;
         } catch (ElasticsearchTimeoutException e) {
@@ -1912,14 +1909,6 @@ public abstract class IntegTestCase extends ESTestCase {
         } catch (NoSuchMethodException e) {
             return null;
         }
-    }
-
-    protected Number byteOrShort(int n) {
-        if (testExecutionConfig.isJdbcEnabled()) {
-            return (short) n;
-        }
-
-        return (byte) n;
     }
 
     /**
