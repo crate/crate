@@ -1922,8 +1922,16 @@ public class TransportSQLActionTest extends IntegTestCase {
                 Object x1 = map.get("x");
                 hasPrecisionChange = x1 instanceof Map<?, ?> innerMap && innerMap.containsKey("coordinates");
             }
+
+            // Byte values are normalized to short values,
+            // since both bytes and shorts map to the same Pg type (int2).
+            if (DataTypes.BYTE.equals(type)) {
+                type = DataTypes.SHORT;
+                val1 = ((Byte) val1).shortValue();
+            }
+
             if (!hasPrecisionChange) {
-                assertThat(((DataType) type).compare(x, val1))
+                assertThat(((DataType<Object>) type).compare(x, val1))
                     .as("inserted value must match selected value for type " + type + ": val=" + val1 + " response=" + x)
                     .isEqualTo(0);
             }

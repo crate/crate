@@ -520,7 +520,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("select id, type, content from stuff where id=2 and type=126");
         assertThat(response.rowCount()).isEqualTo(1L);
         assertThat((Integer) response.rows()[0][0]).isEqualTo(2);
-        assertThat(response.rows()[0][1]).isEqualTo(byteOrShort(126));
+        assertThat(response.rows()[0][1]).isEqualTo((short) 126);
         assertThat((String) response.rows()[0][2]).isEqualTo("Time is an illusion. Lunchtime doubly so");
 
         // multiget
@@ -528,11 +528,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(2L);
 
         assertThat((Integer) response.rows()[0][0]).isEqualTo(2);
-        assertThat(response.rows()[0][1]).isEqualTo(byteOrShort(126));
+        assertThat(response.rows()[0][1]).isEqualTo((short) 126);
         assertThat((String) response.rows()[0][2]).isEqualTo("Time is an illusion. Lunchtime doubly so");
 
         assertThat((Integer) response.rows()[1][0]).isEqualTo(3);
-        assertThat(response.rows()[1][1]).isEqualTo(byteOrShort(126));
+        assertThat(response.rows()[1][1]).isEqualTo((short) 126);
         assertThat((String) response.rows()[1][2]).isEqualTo("Now panic");
     }
 
