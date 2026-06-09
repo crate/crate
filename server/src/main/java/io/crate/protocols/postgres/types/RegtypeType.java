@@ -80,7 +80,7 @@ class RegtypeType extends PGType<Regtype> {
             int oid = Integer.parseInt(str);
             return new Regtype(oid);
         } catch (NumberFormatException e) {
-            return new Regtype(str);
+            return Regtype.fromName(str);
         }
     }
 }

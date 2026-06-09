@@ -74,7 +74,7 @@ public class RegtypeTypeTest extends DataTypeTestCase<Regtype> {
 
     @Test
     public void test_implicit_cast_regtype_to_regtype() {
-        Regtype original = new Regtype("bool");
+        Regtype original = Regtype.fromName("bool");
         Regtype regtype = REGTYPE.implicitCast(original);
         assertThat(regtype).isSameAs(original);
     }

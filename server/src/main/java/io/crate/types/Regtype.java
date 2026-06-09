@@ -32,32 +32,22 @@ import io.crate.protocols.postgres.types.PGTypes;
 
 public final class Regtype implements Comparable<Regtype>, Writeable {
     private final int oid;
-    private final String name;
 
     public Regtype(int oid) throws IllegalArgumentException {
         this.oid = oid;
-        PGType<?> pgType = PGTypes.getByOid(oid);
-        if (pgType == null) {
-            this.name = Integer.toString(oid);
-        } else {
-            this.name = pgType.typName();
-        }
     }
 
-    public Regtype(String name) throws IllegalArgumentException {
+    public static Regtype fromName(String name) throws IllegalArgumentException {
         PGType<?> pgType = PGTypes.getByTypName(name);
-        this.oid = pgType.oid();
-        this.name = pgType.typName();
+        return new Regtype(pgType.oid());
     }
 
     public Regtype(StreamInput in) throws IOException {
         this.oid = in.readInt();
-        this.name = in.readString();
     }
 
     public void writeTo(StreamOutput out) throws IOException {
         out.writeInt(oid);
-        out.writeString(name);
     }
 
     public int oid() {
@@ -65,9 +55,13 @@ public final class Regtype implements Comparable<Regtype>, Writeable {
     }
 
     public String name() {
-        return name;
+        PGType<?> pgType = PGTypes.getByOid(oid);
+        if (pgType == null) {
+            return String.valueOf(oid);
+        } else {
+            return pgType.typName();
+        }
     }
-
 
     @Override
     public int compareTo(Regtype o) {
@@ -76,7 +70,7 @@ public final class Regtype implements Comparable<Regtype>, Writeable {
 
     @Override
     public String toString() {
-        return name;
+        return name();
     }
 
     @Override

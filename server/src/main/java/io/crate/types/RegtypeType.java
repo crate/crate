@@ -30,11 +30,16 @@ import org.apache.lucene.util.RamUsageEstimator;
 
 import io.crate.Streamer;
 
-public final class RegtypeType extends DataType<Regtype> implements Streamer<Regtype> {
+public final class RegtypeType extends DataType<Regtype> implements Streamer<Regtype>, FixedWidthType {
     public static final RegtypeType INSTANCE = new RegtypeType();
     public static final int ID = 30;
 
     private RegtypeType() {
+    }
+
+    @Override
+    public int fixedSize() {
+        return (int) RamUsageEstimator.shallowSizeOfInstance(Integer.class);
     }
 
     @Override
@@ -96,7 +101,7 @@ public final class RegtypeType extends DataType<Regtype> implements Streamer<Reg
             return new Regtype(num.intValue());
         }
         if (value instanceof String str) {
-            return new Regtype(str);
+            return Regtype.fromName(str);
         }
         if (value instanceof Regtype regtype) {
             return regtype;
@@ -106,10 +111,7 @@ public final class RegtypeType extends DataType<Regtype> implements Streamer<Reg
 
     @Override
     public long valueBytes(Regtype value) {
-        if (value == null) {
-            return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
-        }
-        return RamUsageEstimator.sizeOf(value.name()) + RamUsageEstimator.sizeOf(value.oid());
+        return fixedSize();
     }
 
     @Override
