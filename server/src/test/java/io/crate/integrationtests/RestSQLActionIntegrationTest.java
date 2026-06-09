@@ -43,10 +43,14 @@ import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.jspecify.annotations.Nullable;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import com.carrotsearch.randomizedtesting.annotations.Seed;
+
 import io.crate.common.exceptions.Exceptions;
 import io.crate.protocols.http.MainAndStaticFileHandler;
 import io.crate.session.Sessions;
 
+@Seed("81495644CA2FEB14")
 public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
 
     @Test
@@ -70,7 +74,8 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    @TestLogging("io.crate.protocols.http.MainAndStaticFileHandler:DEBUG")
+    @TestLogging("io.crate.protocols.http:DEBUG")
+    @Repeat(iterations = 100)
     public void test_connection_reset_doesnt_leak_bufs_or_sessions() throws Exception {
         Logger logger = LogManager.getLogger(MainAndStaticFileHandler.class);
         MockLogAppender appender = new MockLogAppender();
