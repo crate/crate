@@ -24,6 +24,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_U
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -35,7 +36,6 @@ import org.elasticsearch.common.settings.AbstractScopedSettings;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
-import org.jspecify.annotations.Nullable;
 
 import io.crate.blob.v2.BlobIndex;
 import io.crate.expression.udf.UserDefinedFunctionService;
@@ -69,7 +69,6 @@ public class MetadataUpgradeService {
     private static final Logger LOGGER = LogManager.getLogger(MetadataUpgradeService.class);
 
     private final IndexScopedSettings indexScopedSettings;
-    private final MetadataIndexUpgrader indexUpgrader;
     private final UserDefinedFunctionService userDefinedFunctionService;
     private final NodeContext nodeContext;
 
@@ -79,7 +78,6 @@ public class MetadataUpgradeService {
         this.nodeContext = nodeContext;
         this.userDefinedFunctionService = userDefinedFunctionService;
         this.indexScopedSettings = indexScopedSettings;
-        this.indexUpgrader = new MetadataIndexUpgrader();
     }
 
     /// Creates a DocTableInfoFactory for each upgrade invocation.
@@ -177,11 +175,8 @@ public class MetadataUpgradeService {
             String indexName = indexMetadata.getIndex().getName();
             IndexMetadata newIndexMetadata = upgradeIndexMetadata(
                 indexMetadata,
-                IndexName.isPartitioned(indexName)
-                    ? newMetadata.getTemplate(PartitionName.templateName(indexName))
-                    : null,
-                Version.CURRENT.minimumIndexCompatibilityVersion(),
-                tableInfoFactory);
+                Version.CURRENT.minimumIndexCompatibilityVersion()
+            );
             // Remove any existing metadata, registered by it's name, for the index
             newMetadata.remove(indexName);
             newMetadata.put(newIndexMetadata, false);
@@ -194,7 +189,10 @@ public class MetadataUpgradeService {
                 RelationName relationName = indexParts.toRelationName();
                 relation = newMetadata.getRelation(relationName);
                 if (!BlobIndex.isBlobIndex(indexName)) {
-                    tableInfo = tableInfoFactory.create(newIndexMetadata, OID_UNASSIGNED);
+                    IndexTemplateMetadata template = IndexName.isPartitioned(indexName)
+                        ? newMetadata.getTemplate(PartitionName.templateName(indexName))
+                        : null;
+                    tableInfo = tableInfoFactory.create(indexMetadata, template, OID_UNASSIGNED);
                 }
             }
             if (relation == null) {
@@ -226,7 +224,12 @@ public class MetadataUpgradeService {
                         OID_UNASSIGNED
                     );
                 } else {
-                    throw new AssertionError("If the relation is missing we need a DocTableInfo instance or it must be a blob index");
+                    throw new AssertionError(String.format(
+                        Locale.ENGLISH,
+                        "RelationMetadata for indexName=%s uuid=%s is missing. Couldn't create DocTableInfo and it is not a blob index",
+                        indexName,
+                        indexUUID
+                    ));
                 }
             } else if (relation instanceof RelationMetadata.Table table) {
                 if (!table.indexUUIDs().contains(indexUUID)) {
@@ -296,29 +299,7 @@ public class MetadataUpgradeService {
         return versionCreated;
     }
 
-
-    /**
-     * Checks that the index can be upgraded to the current version of the master node.
-     *
-     * <p>
-     * If the index does not need upgrade it returns the index metadata unchanged, otherwise it returns a modified index metadata. If index
-     * cannot be updated the method throws an exception.
-     */
-    public IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata,
-                                              @Nullable IndexTemplateMetadata indexTemplateMetadata,
-                                              Version minimumIndexCompatibilityVersion,
-                                              Metadata metadata) {
-        return upgradeIndexMetadata(
-            indexMetadata,
-            indexTemplateMetadata,
-            minimumIndexCompatibilityVersion,
-            createDocTableFactory(upgradeUDFMetadata(metadata)));
-    }
-
-    private IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata,
-                                               @Nullable IndexTemplateMetadata indexTemplateMetadata,
-                                               Version minimumIndexCompatibilityVersion,
-                                               DocTableInfoFactory tableInfoFactory) {
+    private IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata, Version minimumIndexCompatibilityVersion) {
         if (isUpgraded(indexMetadata)) {
             return indexMetadata;
         }
@@ -329,8 +310,7 @@ public class MetadataUpgradeService {
         // we have to run this first otherwise in we try to create IndexSettings
         // with broken settings and fail in checkMappingsCompatibility
         newMetadata = archiveBrokenIndexSettings(newMetadata);
-        newMetadata = indexUpgrader.upgrade(newMetadata, indexTemplateMetadata);
-        checkMappingsCompatibility(newMetadata, tableInfoFactory);
+        newMetadata = MetadataIndexUpgrader.upgrade(newMetadata);
         return markAsUpgraded(newMetadata);
     }
 
@@ -362,26 +342,6 @@ public class MetadataUpgradeService {
      */
     private static boolean isSupportedVersion(IndexMetadata indexMetadata, Version minimumIndexCompatibilityVersion) {
         return indexMetadata.getCreationVersion().onOrAfter(minimumIndexCompatibilityVersion);
-    }
-
-    /**
-     * Checks the mappings for compatibility with the current version
-     */
-    private void checkMappingsCompatibility(IndexMetadata indexMetadata, DocTableInfoFactory tableInfoFactory) {
-        try {
-            tableInfoFactory.create(indexMetadata, OID_UNASSIGNED);
-
-            // We cannot instantiate real analysis server or similarity service at this point because the node
-            // might not have been started yet. However, we don't really need real analyzers or similarities at
-            // this stage - so we can fake it using constant maps accepting every key.
-            // This is ok because all used similarities and analyzers for this index were known before the upgrade.
-            // Missing analyzers and similarities plugin will still trigger the appropriate error during the
-            // actual upgrade.
-
-        } catch (Exception ex) {
-            // Wrap the inner exception so we have the index name in the exception message
-            throw new IllegalStateException("unable to upgrade the mappings for the index [" + indexMetadata.getIndex() + "]", ex);
-        }
     }
 
     /**

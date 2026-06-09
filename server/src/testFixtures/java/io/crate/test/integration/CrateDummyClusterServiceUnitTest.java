@@ -100,10 +100,12 @@ public class CrateDummyClusterServiceUnitTest extends ESTestCase {
         return EMPTY_CLUSTER_SETTINGS;
     }
 
-    protected ClusterService createClusterService(
-        Collection<Setting<?>> additionalClusterSettings,
-        Metadata metaData,
-        Version version) {
+    public static ClusterService createClusterService(
+            String clusterName,
+            ThreadPool threadPool,
+            Metadata metadata,
+            Version version,
+            Collection<Setting<?>> additionalClusterSettings) {
         Set<Setting<?>> clusterSettingsSet = new HashSet<>(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
         clusterSettingsSet.addAll(additionalClusterSettings);
         ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, clusterSettingsSet);
@@ -113,7 +115,7 @@ public class CrateDummyClusterServiceUnitTest extends ESTestCase {
                 .put(Node.NODE_NAME_SETTING.getKey(), NODE_NAME)
                 .build(),
             clusterSettings,
-            THREAD_POOL
+            threadPool
         );
         clusterService.setNodeConnectionsService(createNoOpNodeConnectionsService());
         DiscoveryNode discoveryNode = new DiscoveryNode(
@@ -129,8 +131,8 @@ public class CrateDummyClusterServiceUnitTest extends ESTestCase {
             .localNodeId(NODE_ID)
             .masterNodeId(NODE_ID)
             .build();
-        ClusterState clusterState = ClusterState.builder(new ClusterName(this.getClass().getSimpleName()))
-            .nodes(nodes).metadata(metaData).blocks(ClusterBlocks.EMPTY_CLUSTER_BLOCK).build();
+        ClusterState clusterState = ClusterState.builder(new ClusterName(clusterName))
+            .nodes(nodes).metadata(metadata).blocks(ClusterBlocks.EMPTY_CLUSTER_BLOCK).build();
 
         ClusterApplierService clusterApplierService = clusterService.getClusterApplierService();
         clusterApplierService.setInitialState(clusterState);
@@ -141,5 +143,18 @@ public class CrateDummyClusterServiceUnitTest extends ESTestCase {
 
         clusterService.start();
         return clusterService;
+    }
+
+    protected ClusterService createClusterService(
+            Collection<Setting<?>> additionalClusterSettings,
+            Metadata metadata,
+            Version version) {
+        return createClusterService(
+            this.getClass().getSimpleName(),
+            THREAD_POOL,
+            metadata,
+            version,
+            additionalClusterSettings
+        );
     }
 }

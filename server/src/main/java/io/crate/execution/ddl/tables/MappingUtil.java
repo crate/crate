@@ -42,7 +42,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import io.crate.types.DataTypesBwc;
 import io.crate.types.ObjectType;
 
 public final class MappingUtil {
@@ -159,7 +159,7 @@ public final class MappingUtil {
 
     private static List<String> toPartitionMapping(Reference ref) {
         String fqn = ref.column().fqn();
-        String typeMappingName = DataTypes.esMappingNameFrom(ref.valueType().id());
+        String typeMappingName = DataTypesBwc.esMappingNameFrom(ref.valueType().id());
         return List.of(fqn, typeMappingName);
     }
 

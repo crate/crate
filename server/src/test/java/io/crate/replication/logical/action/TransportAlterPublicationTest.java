@@ -21,43 +21,22 @@
 
 package io.crate.replication.logical.action;
 
-import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
-import java.util.Set;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
-import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.exceptions.RelationUnknown;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.sql.tree.AlterPublication;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitTest {
-
-    private final NodeContext nodeCtx = createNodeContext();
-    private MetadataUpgradeService metadataUpgradeService;
-
-    @Before
-    public void setUpUpgradeService() throws Exception {
-        metadataUpgradeService = new MetadataUpgradeService(
-            nodeCtx,
-            new IndexScopedSettings(Settings.EMPTY, Set.of()),
-            new UserDefinedFunctionService(clusterService, nodeCtx)
-        );
-    }
 
     @Test
     public void test_unknown_table_raises_exception() {
@@ -74,48 +53,36 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
     }
 
     @Test
-    public void test_set_tables_on_existing_publication() {
+    public void test_set_tables_on_existing_publication() throws Exception {
         var oldPublication = new Publication("owner", false, List.of(RelationName.fromIndexName("t1")));
-        var metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
-            .put(IndexMetadata.builder("t2")
-                .settings(settings(Version.CURRENT))
-                .numberOfShards(1)
-                .numberOfReplicas(0)
-                .build(),
-                true
-            )
-            .build();
+
+        SQLExecutor.of(clusterService)
+            .addTable("create table t2 (x int)");
+        Metadata metadata = clusterService.state().metadata();
+
         var request = new TransportAlterPublication.Request(
             "pub1",
             AlterPublication.Operation.SET,
             List.of(RelationName.fromIndexName("t2"))
         );
 
-        metadata = metadataUpgradeService.upgradeMetadata(metadata);
         var newPublication = TransportAlterPublication.updatePublication(request, metadata, oldPublication);
         assertThat(newPublication).isNotEqualTo(oldPublication);
         assertThat(newPublication.tables()).containsExactly(RelationName.fromIndexName("t2"));
     }
 
     @Test
-    public void test_add_table_on_existing_publication() {
+    public void test_add_table_on_existing_publication() throws Exception {
         var oldPublication = new Publication("owner", false, List.of(RelationName.fromIndexName("t1")));
-        var metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
-            .put(IndexMetadata.builder("t2")
-                .settings(settings(Version.CURRENT))
-                .numberOfShards(1)
-                .numberOfReplicas(0)
-                .build(),
-                true
-            )
-            .build();
+        SQLExecutor.of(clusterService)
+            .addTable("create table t2 (x int)");
+        Metadata metadata = clusterService.state().metadata();
         var request = new TransportAlterPublication.Request(
             "pub1",
             AlterPublication.Operation.ADD,
             List.of(RelationName.fromIndexName("t2"))
         );
 
-        metadata = metadataUpgradeService.upgradeMetadata(metadata);
         var newPublication = TransportAlterPublication.updatePublication(request, metadata, oldPublication);
         assertThat(newPublication).isNotEqualTo(oldPublication);
         assertThat(newPublication.tables()).containsExactlyInAnyOrder(
@@ -123,28 +90,21 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
     }
 
     @Test
-    public void test_drop_table_from_existing_publication() {
+    public void test_drop_table_from_existing_publication() throws Exception {
         var oldPublication = new Publication(
             "owner",
             false,
             List.of(RelationName.fromIndexName("t1"), RelationName.fromIndexName("t2"))
         );
-        var metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
-            .put(IndexMetadata.builder("t2")
-                .settings(settings(Version.CURRENT))
-                .numberOfShards(1)
-                .numberOfReplicas(0)
-                .build(),
-                true
-            )
-            .build();
-
+        SQLExecutor.of(clusterService)
+            .addTable("create table t1 (x int)")
+            .addTable("create table t2 (x int)");
+        Metadata metadata = clusterService.state().metadata();
         var request = new TransportAlterPublication.Request(
             "pub1",
             AlterPublication.Operation.DROP,
             List.of(RelationName.fromIndexName("t2"))
         );
-        metadata = metadataUpgradeService.upgradeMetadata(metadata);
 
         var newPublication = TransportAlterPublication.updatePublication(request, metadata, oldPublication);
         assertThat(newPublication).isNotEqualTo(oldPublication);

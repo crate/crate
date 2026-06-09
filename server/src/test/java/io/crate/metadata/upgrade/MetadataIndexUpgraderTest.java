@@ -50,9 +50,8 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
 
     @Test
     public void testDynamicStringTemplateIsPurged() throws IOException {
-        MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
         MappingMetadata mappingMetadata = new MappingMetadata(createDynamicStringMappingTemplate());
-        MappingMetadata newMappingMetadata = metadataIndexUpgrader.createUpdatedIndexMetadata(mappingMetadata, null);
+        MappingMetadata newMappingMetadata = MetadataIndexUpgrader.createUpdatedIndexMetadata(mappingMetadata, null);
 
         Object dynamicTemplates = newMappingMetadata.sourceAsMap().get("dynamic_templates");
         assertThat(dynamicTemplates).isNull();
@@ -78,10 +77,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
                 "}")
             .build();
 
-        MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
-        IndexMetadata updatedMetadata = metadataIndexUpgrader.upgrade(indexMetadata, null);
-
-        MappingMetadata mapping = updatedMetadata.mapping();
+        MappingMetadata mapping = MetadataIndexUpgrader.createUpdatedIndexMetadata(indexMetadata.mapping(), null);
         assertThat(mapping.source().string()).isEqualTo(
             "{\"default\":{\"properties\":{\"name\":{\"type\":\"keyword\",\"position\":1}}}}");
     }
@@ -105,10 +101,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
                     "}")
             .build();
 
-        MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
-        IndexMetadata updatedMetadata = metadataIndexUpgrader.upgrade(indexMetadata, null);
-
-        MappingMetadata mapping = updatedMetadata.mapping();
+        MappingMetadata mapping = MetadataIndexUpgrader.createUpdatedIndexMetadata(indexMetadata.mapping(), null);
         assertThat(mapping.source().string()).isEqualTo(
             "{\"default\":{\"properties\":{\"name\":{\"type\":\"keyword\",\"position\":1}}}}");
     }
@@ -122,8 +115,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
             .putMapping((MappingMetadata) null) // here
             .build();
 
-        MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
-        IndexMetadata updatedMetadata = metadataIndexUpgrader.upgrade(indexMetadata, null);
+        IndexMetadata updatedMetadata = MetadataIndexUpgrader.upgrade(indexMetadata);
 
         assertThat(updatedMetadata.mapping()).isNull();
     }
@@ -161,10 +153,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
             .putMapping(MappingConstants.FULLTEXT_MAPPING_5_3)
             .build();
 
-        MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
-        IndexMetadata updatedMetadata = metadataIndexUpgrader.upgrade(indexMetadata, null);
-
-        MappingMetadata mapping = updatedMetadata.mapping();
+        MappingMetadata mapping = MetadataIndexUpgrader.createUpdatedIndexMetadata(indexMetadata.mapping(), null);
         assertThat(mapping.source().string())
             .isEqualTo(MappingConstants.FULLTEXT_MAPPING_EXPECTED_IN_5_4);
     }
@@ -299,8 +288,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
             .build();
         assertThat(indexMetadata.partitionValues()).isEmpty();
 
-        MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
-        IndexMetadata updatedMetadata = metadataIndexUpgrader.upgrade(indexMetadata, null);
+        IndexMetadata updatedMetadata = MetadataIndexUpgrader.upgrade(indexMetadata);
         assertThat(updatedMetadata.partitionValues()).contains("2023-10-01");
     }
 }

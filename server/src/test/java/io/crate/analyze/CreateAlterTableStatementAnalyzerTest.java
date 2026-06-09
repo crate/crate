@@ -85,6 +85,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.DataTypesBwc;
 import io.crate.types.FloatVectorType;
 
 public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -1590,7 +1591,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                 assertThat(sProperties)
                     .containsEntry("doc_values", "false")
                     .containsEntry("position", 1)
-                    .containsEntry("type", DataTypes.esMappingNameFrom(dataType.id()));
+                    .containsEntry("type", DataTypesBwc.esMappingNameFrom(dataType.id()));
             } else if (dataType.storageSupport() != null) {
                 assertThatThrownBy(() -> analyze(stmt))
                     .isExactlyInstanceOf(IllegalArgumentException.class)

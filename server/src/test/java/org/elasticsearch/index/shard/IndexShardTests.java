@@ -151,7 +151,9 @@ import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.FutureActionListener;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.SysColumns;
+import io.crate.testing.SQLExecutor;
 
 /**
  * Simple unit-test IndexShard related operations.
@@ -2515,15 +2517,22 @@ public class IndexShardTests extends IndexShardTestCase {
     @Test
     public void testMinimumCompatVersion() throws IOException {
         Version versionCreated = VersionUtils.randomCompatibleVersion(random(), Version.CURRENT);
+        SQLExecutor.of(clusterService)
+            .addTable("create table doc.test (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        IndexMetadata idm = clusterService.state().metadata().getIndex(
+            new RelationName("doc", "test"),
+            List.of(),
+            true,
+            x -> x
+        );
         Settings settings = Settings.builder()
+            .put(idm.getSettings())
             .put(IndexMetadata.SETTING_VERSION_CREATED, versionCreated.internalId)
-            .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
-            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
             .build();
-        IndexMetadata metaData = IndexMetadata.builder("test")
+        idm = IndexMetadata.builder(idm)
             .settings(settings)
-            .primaryTerm(0, 1).build();
-        IndexShard test = newShard(new ShardId(metaData.getIndex(), 0), true, "n1", metaData, null);
+            .build();
+        IndexShard test = newShard(new ShardId(idm.getIndex(), 0), true, "n1", idm, null);
         recoverShardFromStore(test);
 
         indexDoc(test, "test");

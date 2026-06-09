@@ -48,6 +48,7 @@ import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -56,6 +57,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.TestShardRouting;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.lucene.uid.Versions;
@@ -109,6 +111,7 @@ import io.crate.execution.dml.TranslogIndexer;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 /**
  * A base class for unit tests that need to create and shutdown {@link IndexShard} instances easily,
@@ -141,6 +144,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
 
     protected ThreadPool threadPool;
     protected long primaryTerm;
+    protected ClusterService clusterService;
 
     @Override
     public void setUp() throws Exception {
@@ -148,6 +152,13 @@ public abstract class IndexShardTestCase extends ESTestCase {
         threadPool = setUpThreadPool();
         primaryTerm = randomIntBetween(1, 100); // use random but fixed term for creating shards
         failOnShardFailures();
+        clusterService = CrateDummyClusterServiceUnitTest.createClusterService(
+            this.getClass().getSimpleName(),
+            threadPool,
+            Metadata.EMPTY_METADATA,
+            Version.CURRENT,
+            Set.of()
+        );
     }
 
     protected ThreadPool setUpThreadPool() {
@@ -156,6 +167,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
 
     @Override
     public void tearDown() throws Exception {
+        clusterService.stop();
         try {
             tearDownThreadPool();
         } finally {
@@ -242,7 +254,13 @@ public abstract class IndexShardTestCase extends ESTestCase {
         NodeContext nodeCtx = createNodeContext();
         DocTableInfoFactory tableFactory = new DocTableInfoFactory(nodeCtx);
         IndexMetadata indexMetadata = getIndexMetadata.get();
-        return tableFactory.create(indexMetadata, Metadata.OID_UNASSIGNED);
+        Metadata metadata = clusterService.state().metadata();
+        @Nullable
+        RelationMetadata relation = metadata.getRelation(indexMetadata.getIndexUUID());
+        if (relation == null) {
+            return tableFactory.create(indexMetadata, null, Metadata.OID_UNASSIGNED);
+        }
+        return tableFactory.create(relation.name(), metadata);
     }
 
     protected void assertDocCount(IndexShard shard, int docDount) throws IOException {

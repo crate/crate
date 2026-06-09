@@ -46,6 +46,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DataTypesBwc;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 
@@ -378,7 +379,7 @@ public class SimpleReference implements Reference {
     public Map<String, Object> toMapping(int position) {
         DataType<?> innerType = ArrayType.unnest(type);
         Map<String, Object> mapping = new HashMap<>();
-        mapping.put("type", DataTypes.esMappingNameFrom(innerType.id()));
+        mapping.put("type", DataTypesBwc.esMappingNameFrom(innerType.id()));
         mapping.put("position", position);
         if (oid != OID_UNASSIGNED) {
             mapping.put("oid", oid);
