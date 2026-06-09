@@ -292,6 +292,7 @@ public class PublicationTransportHandlerTests extends ESTestCase {
         String indexUUID = UUIDs.randomBase64UUID();
         IndexMetadata indexMetadata = IndexMetadata.builder(indexUUID)
             .indexName(relationName.indexNameOrAlias())
+            .putMapping("{}")
             .settings(
                 Settings.builder()
                     .put(IndexMetadata.SETTING_INDEX_UUID, indexUUID)

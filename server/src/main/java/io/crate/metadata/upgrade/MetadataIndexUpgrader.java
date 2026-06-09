@@ -30,47 +30,51 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata.Builder;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.Constants;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Maps;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
+import io.crate.types.DataTypesBwc;
 import io.crate.types.ObjectType;
 
 public class MetadataIndexUpgrader {
 
-    public IndexMetadata upgrade(IndexMetadata indexMetadata, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
-        IndexMetadata upgraded = createUpdatedIndexMetadata(indexMetadata, indexTemplateMetadata);
-        upgraded = addPartitionValues(upgraded);
-        return upgraded;
+    private MetadataIndexUpgrader() {
     }
 
-    /**
-     * Purges any dynamic template from the index metadata because they might be out-dated and the general default
-     * template will apply any defaults for all indices.
-     */
-    private IndexMetadata createUpdatedIndexMetadata(IndexMetadata indexMetadata, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
-        return IndexMetadata.builder(indexMetadata)
-            .putMapping(
-                createUpdatedIndexMetadata(
-                    indexMetadata.mapping(),
-                    indexTemplateMetadata
-                ))
-            .build();
+    /// Upgrade indexMetadata to 6.4 format:
+    /// - Remove mapping (must be using [org.elasticsearch.cluster.metadata.RelationMetadata])
+    /// - Add partitionValues
+    public static IndexMetadata upgrade(IndexMetadata indexMetadata) {
+        if (indexMetadata.mapping() == null && !indexMetadata.partitionValues().isEmpty()) {
+            return indexMetadata;
+        }
+        Builder builder = IndexMetadata.builder(indexMetadata)
+            .removeMapping();
+        if (indexMetadata.partitionValues().isEmpty() == false) {
+            return builder.build();
+        }
+        IndexParts indexParts = IndexName.decode(indexMetadata.getIndex().getName());
+        if (indexParts.isPartitioned() == false) {
+            return builder.build();
+        }
+        builder.partitionValues(indexParts.toPartitionName().values());
+        return builder.build();
     }
 
-    @VisibleForTesting
-    MappingMetadata createUpdatedIndexMetadata(MappingMetadata mappingMetadata, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
+    public static MappingMetadata createUpdatedIndexMetadata(
+            MappingMetadata mappingMetadata,
+            @Nullable IndexTemplateMetadata indexTemplateMetadata) {
         if (mappingMetadata == null) { // blobs have no mappingMetadata
             return null;
         }
@@ -145,13 +149,13 @@ public class MetadataIndexUpgrader {
             if (ArrayType.NAME.equals(type)) {
                 Map<String, Object> innerMapping = Maps.get(columnProperties, "inner");
                 String innerType = Maps.get(innerMapping, "type");
-                if (innerType == null || ObjectType.UNTYPED.equals(DataTypes.ofMappingName(innerType))) {
+                if (innerType == null || ObjectType.UNTYPED.equals(DataTypesBwc.ofMappingName(innerType))) {
                     updated |= addIndexColumnSources(rootMapping, innerMapping, columnFQN);
                 }
             } else {
                 // ObjectMapper has logic to skip type if object has "properties" field (i.e has nested sub-column).
                 // Hence, type could be null and it indicates that it's an object column.
-                if (type == null || ObjectType.UNTYPED.equals(DataTypes.ofMappingName(type))) {
+                if (type == null || ObjectType.UNTYPED.equals(DataTypesBwc.ofMappingName(type))) {
                     updated |= addIndexColumnSources(rootMapping, columnProperties, columnFQN);
                 }
             }
@@ -191,7 +195,7 @@ public class MetadataIndexUpgrader {
      * @param defaultMap An index mapping that may contain duplicates or null positions.
      * @param indexTemplateMetadata if the table is partitioned, it should contain correct column positions.
      */
-    private void upgradeColumnPositions(Map<String, Object> defaultMap, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
+    private static void upgradeColumnPositions(Map<String, Object> defaultMap, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
         if (indexTemplateMetadata != null) {
             populateColumnPositionsFromMapping(defaultMap, indexTemplateMetadata.mapping());
         } else {
@@ -241,19 +245,5 @@ public class MetadataIndexUpgrader {
 
             populateColumnPositionsImpl(indexColumnProperties, templateColumnProperties);
         }
-    }
-
-    private IndexMetadata addPartitionValues(IndexMetadata indexMetadata) {
-        if (indexMetadata.partitionValues().isEmpty() == false) {
-            return indexMetadata;
-        }
-        IndexParts indexParts = IndexName.decode(indexMetadata.getIndex().getName());
-        if (indexParts.isPartitioned() == false) {
-            return indexMetadata;
-        }
-        PartitionName partitionName = indexParts.toPartitionName();
-        IndexMetadata.Builder builder = IndexMetadata.builder(indexMetadata);
-        builder.partitionValues(partitionName.values());
-        return builder.build();
     }
 }

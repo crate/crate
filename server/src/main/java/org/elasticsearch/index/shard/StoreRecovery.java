@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
@@ -70,12 +69,10 @@ final class StoreRecovery {
 
     private final Logger logger;
     private final ShardId shardId;
-    private final Consumer<IndexMetadata> validateSchema;
 
-    StoreRecovery(ShardId shardId, Logger logger, Consumer<IndexMetadata> validateSchema) {
+    StoreRecovery(ShardId shardId, Logger logger) {
         this.logger = logger;
         this.shardId = shardId;
-        this.validateSchema = validateSchema;
     }
 
     /**
@@ -124,7 +121,6 @@ final class StoreRecovery {
                 throw new IllegalArgumentException("can't add shards from more than one index");
             }
             IndexMetadata sourceMetadata = shards.get(0).getIndexMetadata();
-            validateSchema.accept(sourceMetadata);
 
             final boolean isSplit = sourceMetadata.getNumberOfShards() < indexShard.indexSettings().getNumberOfShards();
             ActionListener<Boolean> recoveryListener = recoveryListener(indexShard, listener);

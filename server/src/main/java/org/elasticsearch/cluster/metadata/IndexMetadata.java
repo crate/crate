@@ -290,10 +290,8 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
     private final Settings settings;
 
-    /**
-     * @deprecated mapping is stored on table level via {@link RelationMetadata.Table}
-     **/
     @Deprecated
+    @Nullable
     private final MappingMetadata mapping;
 
     private final ImmutableOpenIntMap<Set<String>> inSyncAllocationIds;
@@ -458,10 +456,11 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         return partitionValues;
     }
 
-    /**
-     * Return the concrete mapping for this index or {@code null} if this index has no mappings at all.
-     */
+    /// Mapping for indices coming from old local state or old remote nodes
+    /// Null for 6.4 indices (upgraded using [MetadataUpgradeService] or newly created)
+    /// @deprecated Column info is stored in [RelationMetadata.Table] instead.
     @Nullable
+    @Deprecated
     public MappingMetadata mapping() {
         return mapping;
     }
@@ -1285,6 +1284,11 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             String indexUUID = builder.settings.get(SETTING_INDEX_UUID, INDEX_UUID_NA_VALUE);
             builder.indexUUID(indexUUID);
             return builder.build();
+        }
+
+        public Builder removeMapping() {
+            this.mapping = null;
+            return this;
         }
     }
 

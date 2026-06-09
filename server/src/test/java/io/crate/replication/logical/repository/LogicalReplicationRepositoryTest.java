@@ -56,12 +56,14 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 public class LogicalReplicationRepositoryTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
+    @SuppressWarnings("deprecation")
     public void test_getRemoteClusterState_upgrades_indexMetadata() throws Exception {
         // This test basically checks RelationMetadata was created based on IndexMetadata, where RelationMetadata
         // was introduced to 6.0, which implicitly verifies the upgrade.
         Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test")
                 .settings(settings(Version.V_5_10_0))
+                .putMapping("{}")
                 .numberOfShards(1)
                 .numberOfReplicas(1))
             .build();
@@ -98,6 +100,7 @@ public class LogicalReplicationRepositoryTest extends CrateDummyClusterServiceUn
         );
 
         ClusterStateResponse responseFromOldNode = logicalReplicationRepository.getRemoteClusterState(false, false, List.of()).get();
+        logicalReplicationRepository.close();
         assertThat(responseFromOldNode
             .getState().metadata().relations("doc", RelationMetadata.Table.class)
             .getFirst().name().toString()

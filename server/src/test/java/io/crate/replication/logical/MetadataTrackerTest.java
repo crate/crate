@@ -40,7 +40,6 @@ import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -131,10 +130,8 @@ public class MetadataTrackerTest extends ESTestCase {
         }
 
         private Builder addPartition(RelationMetadata.Table table, String indexUUID, PartitionName partitionName, Settings settings) throws IOException {
-            Map<String, Object> mapping = Map.of();
             var indexMetadata = IndexMetadata.builder(indexUUID)
                 .indexName(indexUUID)
-                .putMapping(new MappingMetadata(mapping))
                 .settings(settings(Version.CURRENT).put(settings))
                 .partitionValues(partitionName.values())
                 .numberOfShards(1)
@@ -420,7 +417,12 @@ public class MetadataTrackerTest extends ESTestCase {
             IndexMetadata syncedIndexMetadata = syncedSubscriberClusterState.metadata().index(indexUUID);
             String publisherIndexUUID = PUBLISHER_INDEX_UUID.get(syncedIndexMetadata.getSettings());
             IndexMetadata publisherIndexMetadata = updatedPublisherClusterState.metadata().index(publisherIndexUUID);
-            assertThat(syncedIndexMetadata.mapping()).isEqualTo(publisherIndexMetadata.mapping());
+            assertThat(syncedIndexMetadata.mapping())
+                .as("mapping is removed as part of the metadata upgrade. The RelationMetadata.Table is created instead")
+                .isNull();
+            assertThat(publisherIndexMetadata.mapping())
+                .as("Publisher retains mapping")
+                .isNotNull();
         }
     }
 
