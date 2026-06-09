@@ -25,7 +25,6 @@ package io.crate.protocols.postgres.types;
 import java.nio.charset.StandardCharsets;
 
 import io.crate.metadata.RelationLookup;
-import io.crate.types.DataTypes;
 import io.netty.buffer.ByteBuf;
 
 /**
@@ -63,13 +62,13 @@ class SmallIntType extends PGType<Number> {
     @Override
     public int writeAsBinary(ByteBuf buffer, Number value) {
         buffer.writeInt(TYPE_LEN);
-        buffer.writeShort(DataTypes.SHORT.implicitCast(value));
+        buffer.writeShort(value.shortValue());
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
     protected byte[] encodeAsUTF8Text(Number value) {
-        return Short.toString(DataTypes.SHORT.implicitCast(value)).getBytes(StandardCharsets.UTF_8);
+        return Short.toString(value.shortValue()).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
