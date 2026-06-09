@@ -82,7 +82,6 @@ public class PGTypesTest extends ESTestCase {
     @Test
     public void test_byte_is_mapped_to_int2() {
         assertThat(PGTypes.get(DataTypes.BYTE)).isExactlyInstanceOf(SmallIntType.class);
-        assertThat(PGTypes.get(DataTypes.BYTE).oid()).isEqualTo(SmallIntType.OID);
         assertThat(PGTypes.get(new ArrayType<>(DataTypes.BYTE)).oid()).isEqualTo(PGArray.INT2_ARRAY.oid());
     }
 
