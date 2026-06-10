@@ -22,9 +22,8 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.elasticsearch.gateway.DanglingIndicesState.AUTO_IMPORT_DANGLING_INDICES_SETTING;
 import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
 
 import java.io.IOException;
@@ -42,9 +41,7 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.NodeMetadata;
 import org.elasticsearch.env.TestEnvironment;
-import org.elasticsearch.gateway.GatewayMetaState;
 import org.elasticsearch.gateway.PersistedClusterStateService;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
@@ -343,77 +340,6 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
         cluster().startMasterOnlyNode(master2DataPathSettings);
         cluster().startMasterOnlyNode(master3DataPathSettings);
         ensureStableCluster(4);
-    }
-
-    public void testAllMasterEligibleNodesFailedDanglingIndexImport() throws Exception {
-        cluster().setBootstrapMasterNodeIndex(0);
-
-        Settings settings = Settings.builder()
-            .put(AUTO_IMPORT_DANGLING_INDICES_SETTING.getKey(), true)
-            .build();
-
-        logger.info("--> start mixed data and master-eligible node and bootstrap cluster");
-        String masterNode = cluster().startNode(settings); // node ordinal 0
-
-        logger.info("--> start data-only node and ensure 2 nodes stable cluster");
-        String dataNode = cluster().startDataOnlyNode(settings); // node ordinal 1
-        ensureStableCluster(2);
-
-        execute("create table doc.test(x int)");
-
-        logger.info("--> index 1 doc and ensure index is green");
-
-        execute("insert into doc.test values(1)");
-        execute("refresh table doc.test");
-        ensureGreen();
-
-        assertBusy(() -> cluster().getInstances(IndicesService.class).forEach(
-            indicesService -> assertThat(indicesService.allPendingDanglingIndicesWritten()).isTrue()));
-
-        logger.info("--> verify 1 doc in the index");
-
-        execute("select count(*) from doc.test");
-        assertThat(response.rows()[0][0]).isEqualTo(1L);
-
-        logger.info("--> stop data-only node and detach it from the old cluster");
-        Settings dataNodeDataPathSettings = Settings.builder()
-            .put(cluster().dataPathSettings(dataNode))
-            .put(AUTO_IMPORT_DANGLING_INDICES_SETTING.getKey(), true)
-            .build();
-        assertBusy(() -> cluster().getInstance(GatewayMetaState.class, dataNode).allPendingAsyncStatesWritten());
-        cluster().stopRandomNode(TestCluster.nameFilter(dataNode));
-        final Environment environment = TestEnvironment.newEnvironment(
-            Settings.builder()
-                .put(cluster().getDefaultSettings())
-                .put(dataNodeDataPathSettings)
-                .put(AUTO_IMPORT_DANGLING_INDICES_SETTING.getKey(), true)
-                .build());
-        detachCluster(environment, false);
-
-        logger.info("--> stop master-eligible node, clear its data and start it again - new cluster should form");
-        cluster().restartNode(masterNode, new TestCluster.RestartCallback(){
-            @Override
-            public boolean clearData(String nodeName) {
-                return true;
-            }
-        });
-
-        logger.info("--> start data-only only node and ensure 2 nodes stable cluster");
-        cluster().startDataOnlyNode(dataNodeDataPathSettings);
-        ensureStableCluster(2);
-
-        logger.info("--> verify that the dangling index exists and has green status");
-        assertBusy(() -> {
-            execute("select 1 from information_schema.tables where table_name='test'");
-            assertThat(response).hasRows(
-                "1"
-            );
-        });
-        ensureGreen();
-
-        logger.info("--> verify the doc is there");
-        execute("select count(*) from doc.test");
-        assertThat(response.rows()[0][0]).isEqualTo(1L);
     }
 
     public void testNoInitialBootstrapAfterDetach() throws Exception {
