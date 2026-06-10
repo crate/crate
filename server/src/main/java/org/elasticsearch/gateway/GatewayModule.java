@@ -24,8 +24,8 @@ import org.elasticsearch.common.inject.AbstractModule;
 public class GatewayModule extends AbstractModule {
 
     @Override
+    @SuppressWarnings("deprecation") // kept for mixed cluster BWC
     protected void configure() {
-        bind(DanglingIndicesState.class).asEagerSingleton();
         bind(GatewayService.class).asEagerSingleton();
         bind(LocalAllocateDangledIndices.class).asEagerSingleton();
     }

@@ -44,7 +44,10 @@ Version 6.4.0 - Unreleased
 Breaking Changes
 ================
 
-None
+- Removed an undocumented ``gateway.auto_import_dangling_indices`` setting. If
+  the setting is present in the ``crate.yml`` CrateDB will refuse to start.
+  Please remove it before updating.
+
 
 Deprecations
 ============
