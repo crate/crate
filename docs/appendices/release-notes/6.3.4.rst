@@ -52,3 +52,6 @@ Fixes
 - Fixed and issue which caused wrong binary deserialization of
   :ref:`NUMERIC <type-numeric>` types when using the
   :ref:`PostgreSQL wire protocol <interface-postgresql>`.
+
+- Fixed and issue causing :ref:`DECLARE <sql-declare>` statements to get stuck
+  if query within the ``DECLARE`` statement failed on initial run.
