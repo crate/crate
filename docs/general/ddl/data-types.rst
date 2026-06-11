@@ -3822,7 +3822,7 @@ See the table below for a full list of aliases:
 +-----------------------+---------------------------------+
 | ``REGPROC``           | ``TEXT``                        |
 +-----------------------+---------------------------------+
-| ``"CHAR"``            | ``BYTE``                        |
+| ``"CHAR"``            | ``CHARACTER(1)``                |
 +-----------------------+---------------------------------+
 | ``FLOAT``             | ``REAL``                        |
 +-----------------------+---------------------------------+
@@ -3857,7 +3857,7 @@ Internal-use types
 A one-byte character used internally for enumeration items in the
 :ref:`PostgreSQL system catalogs <postgres-pg_catalog>`.
 
-Specified as a signed integer in the range -128 to 127.
+Specified as a single-byte character.
 
 .. _type-oid:
 
