@@ -56,6 +56,30 @@ Breaking Changes
   The CrateDB JDBC driver is unaffected: ``getObject()`` returns an ``Integer``
   as it did before.
 
+- Changed the type mapping of PostgreSQL's ``"char"`` type from ``byte``
+  to :ref:`character(1) <data-type-character>`.
+
+  Before:
+
+    ``CREATE TABLE tbl (col "char");`` was equal to ``CREATE TABLE tbl (col byte);``
+
+  After:
+
+    ``CREATE TABLE tbl (col "char");`` is equal to ``CREATE TABLE tbl (col character(1));``
+
+  Existing tables are not affected.
+  For new tables the ``character(1)`` column will reject byte values, which are valid for a ``byte`` column:
+
+      INSERT INTO tbl (col) VALUES (65);
+      SQLParseException['65' is too long for the character type of length: 1]
+
+  This improves compatibility with PostgreSQL: In cases where a PostgreSQL
+  client sets the parameter type hint to OID 18 (``"char"``), and casts the
+  value to ``character`` or ``varchar``, the byte encoded ``"char"`` value is
+  now correctly interpreted as ASCII decimal 65, resulting in ``"A"``. Before
+  it interpreted ``65`` as a character sequence, resulting in a ``"65"``
+  string.
+
 Deprecations
 ============
 

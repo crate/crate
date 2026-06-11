@@ -27,14 +27,21 @@ import java.nio.charset.StandardCharsets;
 import io.crate.metadata.RelationLookup;
 import io.netty.buffer.ByteBuf;
 
-class CharType extends PGType<Byte> {
+/**
+ * PostgreSQL's special single-byte "char" type (OID 18). CrateDB has no dedicated
+ * data type for it; "char" maps character(1), so values are single-character strings.
+ * The wire representation is one byte.
+ */
+class CharType extends PGType<Character> {
 
     public static final CharType INSTANCE = new CharType();
     static final int OID = 18;
 
+    private static final int TYPE_LEN = 1;
+    private static final int TYPE_MOD = -1;
 
     private CharType() {
-        super(OID, 1, -1, "char");
+        super(OID, TYPE_LEN, TYPE_MOD, "char");
     }
 
     @Override
@@ -53,25 +60,26 @@ class CharType extends PGType<Byte> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, Byte value) {
-        buffer.writeInt(1);
-        buffer.writeByte(value);
-        return 5;
+    public int writeAsBinary(ByteBuf buffer, Character value) {
+        byte byteValue = (byte) value.charValue();
+        buffer.writeInt(TYPE_LEN);
+        buffer.writeByte(byteValue);
+        return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    public Byte readBinaryValue(ByteBuf buffer, int valueLength) {
-        assert valueLength == 1 : "char must have 1 byte";
-        return buffer.readByte();
+    public Character readBinaryValue(ByteBuf buffer, int valueLength) {
+        assert valueLength == TYPE_LEN : "\"char\" must have 1 byte";
+        return (char) buffer.readByte();
     }
 
     @Override
-    byte[] encodeAsUTF8Text(Byte value) {
-        return Byte.toString(value).getBytes(StandardCharsets.UTF_8);
+    byte[] encodeAsUTF8Text(Character value) {
+        return String.valueOf(value).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
-    Byte decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
-        return Byte.parseByte(new String(bytes, StandardCharsets.UTF_8));
+    Character decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
+        return (char) bytes[0];
     }
 }

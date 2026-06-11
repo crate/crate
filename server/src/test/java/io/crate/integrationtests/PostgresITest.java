@@ -396,6 +396,56 @@ public class PostgresITest extends IntegTestCase {
     }
 
     @Test
+    public void test_byte_column_mapped_to_int2() throws Exception {
+        try (var conn = DriverManager.getConnection(url(RW), properties)) {
+            conn.createStatement().executeUpdate(
+                "CREATE TABLE t (b byte) WITH (number_of_replicas = 0)");
+
+            var stmt = conn.prepareStatement("INSERT INTO t (b) VALUES (?)");
+            stmt.setShort(1, (short) -128);
+            stmt.executeUpdate();
+            conn.createStatement().execute("REFRESH TABLE t");
+
+            var rs = conn.createStatement().executeQuery("SELECT b FROM t");
+            assertThat(rs.getMetaData().getColumnTypeName(1)).isEqualTo("int2");
+            assertThat(rs.next()).isTrue();
+            assertThat(rs.getByte(1)).isEqualTo((byte) -128);
+            assertThat(rs.getShort(1)).isEqualTo((short) -128);
+            assertThat(rs.next()).isFalse();
+
+            // int2 values exceeding the byte range must be rejected on bind
+            stmt.setShort(1, (short) 300);
+            assertThatThrownBy(stmt::executeUpdate)
+                .isInstanceOf(PSQLException.class)
+                .hasMessageContaining("Cannot cast value `300` to type `byte`");
+        }
+    }
+
+    @Test
+    public void test_quoted_char_column_roundtrips() throws Exception {
+        try (var conn = DriverManager.getConnection(url(RW), properties)) {
+            conn.createStatement().executeUpdate(
+                "CREATE TABLE t (c \"char\") WITH (number_of_replicas = 0)");
+
+            var stmt = conn.prepareStatement("INSERT INTO t (c) VALUES (?)");
+            stmt.setString(1, "a");
+            stmt.executeUpdate();
+            conn.createStatement().execute("REFRESH TABLE t");
+
+            // "char" is an alias of character(1); columns describe as bpchar
+            var rs = conn.createStatement().executeQuery("SELECT c FROM t");
+            assertThat(rs.getMetaData().getColumnTypeName(1)).isEqualTo("bpchar");
+            assertThat(rs.next()).isTrue();
+            assertThat(rs.getString(1)).isEqualTo("a");
+            assertThat(rs.next()).isFalse();
+
+            var castRs = conn.createStatement().executeQuery("SELECT 'x'::\"char\"");
+            assertThat(castRs.next()).isTrue();
+            assertThat(castRs.getString(1)).isEqualTo("x");
+        }
+    }
+
+    @Test
     public void test_numeric_types_arrays() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.createStatement().executeUpdate(
