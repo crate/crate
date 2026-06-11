@@ -131,6 +131,8 @@ public class PGTypes {
         PG_TYPES_TO_CRATE_TYPE.put(PGArray.ANY_ARRAY.oid(), new ArrayType<>(DataTypes.UNDEFINED));
         PG_TYPES_TO_CRATE_TYPE.put(VarCharType.NameType.OID, DataTypes.STRING);
         PG_TYPES_TO_CRATE_TYPE.put(OidType.OID, DataTypes.INTEGER);
+        PG_TYPES_TO_CRATE_TYPE.put(CharType.OID, DataTypes.CHARACTER);
+        PG_TYPES_TO_CRATE_TYPE.put(PGArray.CHAR_ARRAY.oid(), new ArrayType<>(DataTypes.CHARACTER));
         TYPES = new HashSet<>(CRATE_TO_PG_TYPES.values()); // some pgTypes are used multiple times, de-dup them
 
         // There is no entry in `CRATE_TO_PG_TYPES` for these because we have no 1:1 mapping from dataType to pgType
@@ -148,6 +150,10 @@ public class PGTypes {
             OID_TO_PG_TYPE.put(pgType.oid(), pgType);
             TYPNAME_TO_PG_TYPE.put(pgType.typName(), pgType);
         }
+        // DataTypes.CHARACTER maps to bpchar, but "char" (a 1-byte alias of character(1))
+        // is exposed additionally so that clients can bind parameters with oid 18/1002.
+        TYPES.add(CharType.INSTANCE);
+        TYPES.add(PGArray.CHAR_ARRAY);
     }
 
     public static Iterable<PGType<?>> pgTypes() {

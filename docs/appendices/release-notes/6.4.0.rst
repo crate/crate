@@ -142,7 +142,7 @@ Performance and Resilience Improvements
 - Added column pruning for scalar subqueries. This can help improve performance
   for sub-queries which intermediately selected columns not used in the results.
 
-- Improved the performance of the :ref:``to_char <scalar-to_char>`` scalar. In
+- Improved the performance of the :ref:`to_char <scalar-to_char>` scalar. In
   some of our benchmarks by up to ~25%.
 
 - Improved the performance of bulk insert operations against tables that use
