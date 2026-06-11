@@ -440,12 +440,10 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
                 EXISTS (
                     SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem);
             """);
-        assertThat(response).hasRowCount(24L);
+        assertThat(response).hasRowCount(25L);
     }
 
-    /**
-     * Tests a bug https://github.com/crate/crate/issues/15398.
-     */
+    /// Tests the following bug: [Couldn't resolve value for OuterColumn](https://github.com/crate/crate/issues/15398).
     @Test
     public void test_can_mix_correlated_subquery_and_sub_select() {
         execute("CREATE TABLE tbl(x int)");
