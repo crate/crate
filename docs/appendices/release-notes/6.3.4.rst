@@ -53,5 +53,5 @@ Fixes
   :ref:`NUMERIC <type-numeric>` types when using the
   :ref:`PostgreSQL wire protocol <interface-postgresql>`.
 
-- Fixed and issue causing :ref:`DECLARE <sql-declare>` statements to get stuck
-  if query within the ``DECLARE`` statement failed on initial run.
+- Fixed an issue causing :ref:`DECLARE <sql-declare>` statements to get stuck
+  when the cursor query failed.
