@@ -49,5 +49,5 @@ series.
 Fixes
 =====
 
-- Fixed and issue causing :ref:`DECLARE <sql-declare>` statements to get stuck
-  if query within the ``DECLARE`` statement failed on initial run.
+- Fixed an issue causing :ref:`DECLARE <sql-declare>` statements to get stuck
+  when the cursor query failed.
