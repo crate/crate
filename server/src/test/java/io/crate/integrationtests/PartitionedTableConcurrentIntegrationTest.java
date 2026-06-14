@@ -503,7 +503,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         Thread t1 = new Thread(() -> {
             try {
                 barrier.await();
-                execute("insert into t1 select * from generate_series (1, 50)");
+                execute("insert into t1 select * from generate_series (1, 50)", null, TimeValue.timeValueSeconds(30));
             } catch (Throwable e) {
                 error.set(e);
             }
