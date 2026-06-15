@@ -303,6 +303,8 @@ IDs of all currently available data types:
      - :ref:`FLOAT VECTOR <type-float_vector>`
    * - 29
      - :ref:`UUID <type-uuid>`
+   * - 30
+     - :ref:`REGTYPE <type-regtype>`
    * - 100
      - :ref:`ARRAY <type-array>`
 

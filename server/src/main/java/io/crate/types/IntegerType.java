@@ -118,6 +118,8 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
             return ((Number) value).intValue();
         } else if (value instanceof Regclass regclass) {
             return regclass.oid();
+        } else if (value instanceof Regtype regtype) {
+            return regtype.oid();
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
