@@ -59,8 +59,8 @@ import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RelationLookup;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.parser.PgArrayParsingException;
@@ -86,20 +86,34 @@ public class ArrayType<T> extends DataType<List<T>> {
     private final DataType<T> innerType;
     private Streamer<List<T>> streamer;
 
-    private final StorageSupport<List<T>> storageSupport;
+    private boolean storageInitialized = false;
+    /// Initialized lazy to allow cases like `new ArrayType<>(NUMERIC)` for
+    /// type signatures where [#storageSupport()] is never called.
+    private StorageSupport<List<T>> storageSupport = null;
 
     /**
      * Construct a new Collection type
      * @param innerType The type of the elements inside the collection
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public ArrayType(DataType<T> innerType) {
         this.innerType = Objects.requireNonNull(innerType, "Inner type must not be null.");
+    }
+
+    public static DataType<?> makeArray(DataType<?> valueType, int numArrayDimensions) {
+        DataType<?> arrayType = valueType;
+        for (int i = 0; i < numArrayDimensions; i++) {
+            arrayType = new ArrayType<>(arrayType);
+        }
+        return arrayType;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private StorageSupport<List<T>> newStorageSupport() {
         StorageSupport innerStorage = innerType.storageSupport();
         if (innerStorage == null) {
-            this.storageSupport = null;
+            return null;
         } else if (ArrayType.unnest(this) instanceof ObjectType objectType) {
-            this.storageSupport = new StorageSupport<List<T>>(innerStorage) {
+            return new StorageSupport<List<T>>(innerStorage) {
                 @Override
                 public ValueIndexer<List<? super T>> valueIndexer(RelationName table,
                                                             Reference ref,
@@ -136,7 +150,7 @@ public class ArrayType<T> extends DataType<List<T>> {
                 }
             };
         } else {
-            this.storageSupport = new StorageSupport<List<T>>(innerStorage) {
+            return new StorageSupport<List<T>>(innerStorage) {
                 @Override
                 public ValueIndexer<List<T>> valueIndexer(RelationName table,
                                                     Reference ref,
@@ -172,14 +186,6 @@ public class ArrayType<T> extends DataType<List<T>> {
         }
     }
 
-    public static DataType<?> makeArray(DataType<?> valueType, int numArrayDimensions) {
-        DataType<?> arrayType = valueType;
-        for (int i = 0; i < numArrayDimensions; i++) {
-            arrayType = new ArrayType<>(arrayType);
-        }
-        return arrayType;
-    }
-
     @Override
     public TypeSignature getTypeSignature() {
         return new TypeSignature(NAME, List.of(innerType.getTypeSignature()));
@@ -196,7 +202,9 @@ public class ArrayType<T> extends DataType<List<T>> {
     @Override
     public Streamer<List<T>> streamer() {
         if (streamer == null) {
-            streamer = new ArrayStreamer<>(innerType);
+            ArrayStreamer<T> arrayStreamer = new ArrayStreamer<>(innerType);
+            streamer = arrayStreamer;
+            return arrayStreamer;
         }
         return streamer;
     }
@@ -492,6 +500,12 @@ public class ArrayType<T> extends DataType<List<T>> {
     @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public StorageSupport storageSupport() {
+        if (!storageInitialized) {
+            StorageSupport<List<T>> arrayStorage = newStorageSupport();
+            storageSupport = arrayStorage;
+            storageInitialized = true;
+            return arrayStorage;
+        }
         return storageSupport;
     }
 

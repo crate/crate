@@ -135,11 +135,11 @@ public class MinimumAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_numeric_aggregation_not_supported_without_scale_or_precision() {
-        assertThat(getDocValueAggregator(MinimumAggregation.NAME, List.of(new NumericType(6, null))))
-            .isNull();
+        assertThatThrownBy(() -> getDocValueAggregator(MinimumAggregation.NAME, List.of(new NumericType(6, null))))
+            .isExactlyInstanceOf(UnsupportedOperationException.class);
 
-        assertThat(getDocValueAggregator(MinimumAggregation.NAME, List.of(new NumericType(null, null))))
-            .isNull();
+        assertThatThrownBy(() -> getDocValueAggregator(MinimumAggregation.NAME, List.of(new NumericType(null, null))))
+            .isExactlyInstanceOf(UnsupportedOperationException.class);
     }
 
     @Test

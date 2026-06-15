@@ -33,6 +33,7 @@ import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StoredField;
+import org.apache.lucene.index.PointValues;
 import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
@@ -73,6 +74,18 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
     public NumericStorage(NumericType numericType) {
         super(true, true, NumericEqQuery.of(numericType));
         this.type = numericType;
+        Integer precision = numericType.numericPrecision();
+        if (precision == null || numericType.scale() == null) {
+            // Scale would be lost with the current encoding schemes used in NumericStorage
+            // The error is raised here to trigger this early on CREATE TABLE instead of
+            // INSERT INTO
+            throw new UnsupportedOperationException(
+                "NUMERIC storage is only supported if precision and scale are specified");
+        }
+        if (numericType.maxBytes() > PointValues.MAX_NUM_BYTES) {
+            throw new UnsupportedOperationException(
+                "Precision for NUMERIC(" + precision + ") is too large. Only up to 38 can be stored");
+        }
     }
 
     @Override
