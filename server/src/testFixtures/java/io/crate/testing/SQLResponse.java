@@ -29,30 +29,18 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-public final class SQLResponse {
+public record SQLResponse(String[] cols, Object[][] rows, DataType<?>[] columnTypes, long rowCount) {
 
-    private final String[] cols;
-    private final DataType<?>[] colTypes;
-    private final Object[][] rows;
-    private final long rowCount;
-
-    SQLResponse(String[] cols,
-                Object[][] rows,
-                DataType<?>[] colTypes,
-                long rowCount) {
-        assert cols.length == colTypes.length : "cols and colTypes differ";
+    public SQLResponse {
+        assert cols.length == columnTypes.length : "cols and colTypes differ";
         // Convert byte->short to normalize result between Session/jdbc. In PGTypes byte is mapped to int2.
         // Can't convert the PG version using `executeAndConvertResult` / `ResultSetParser`
         // because from ResultSetMetadata alone it isn't known if the type was byte/int2.
-        for (int i = 0; i < colTypes.length; i++) {
+        for (int i = 0; i < columnTypes.length; i++) {
             for (Object[] row : rows) {
-                row[i] = normalizeByteValue(row[i], colTypes[i]);
+                row[i] = normalizeByteValue(row[i], columnTypes[i]);
             }
         }
-        this.cols = cols;
-        this.colTypes = colTypes;
-        this.rows = rows;
-        this.rowCount = rowCount;
     }
 
     private static Object normalizeByteValue(Object val, DataType<?> type) {
@@ -77,22 +65,6 @@ public final class SQLResponse {
         return type;
     }
 
-    public String[] cols() {
-        return cols;
-    }
-
-    public DataType<?>[] columnTypes() {
-        return colTypes;
-    }
-
-    public Object[][] rows() {
-        return rows;
-    }
-
-    public long rowCount() {
-        return rowCount;
-    }
-
     private static String arrayToString(@Nullable Object[] array) {
         return array == null ? null : Arrays.toString(array);
     }
@@ -100,10 +72,10 @@ public final class SQLResponse {
     @Override
     public String toString() {
         return "SQLResponse{" +
-               "cols=" + arrayToString(cols()) +
-               "colTypes=" + arrayToString(columnTypes()) +
-               ", rows=" + ((rows != null) ? rows.length : -1) +
-               ", rowCount=" + rowCount +
-               '}';
+                "cols=" + arrayToString(cols()) +
+                "colTypes=" + arrayToString(columnTypes()) +
+                ", rows=" + ((rows != null) ? rows.length : -1) +
+                ", rowCount=" + rowCount +
+                '}';
     }
 }
