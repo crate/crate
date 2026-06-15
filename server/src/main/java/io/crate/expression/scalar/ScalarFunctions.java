@@ -97,6 +97,7 @@ import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
 import io.crate.expression.scalar.systeminformation.FormatTypeFunction;
 import io.crate.expression.scalar.systeminformation.ObjDescriptionFunction;
 import io.crate.expression.scalar.systeminformation.PgFunctionIsVisibleFunction;
+import io.crate.expression.scalar.systeminformation.PgGetConstraintDefFunction;
 import io.crate.expression.scalar.systeminformation.PgGetExpr;
 import io.crate.expression.scalar.systeminformation.PgGetFunctionResultFunction;
 import io.crate.expression.scalar.systeminformation.PgGetPartkeydefFunction;
@@ -236,6 +237,7 @@ public class ScalarFunctions implements FunctionsProvider {
         CurrentSchemaFunction.register(builder);
         CurrentSchemasFunction.register(builder);
         PgGetExpr.register(builder);
+        PgGetConstraintDefFunction.register(builder);
         PgGetPartkeydefFunction.register(builder);
         CurrentSettingFunction.register(builder, sessionSettingRegistry);
 

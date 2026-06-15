@@ -4862,6 +4862,53 @@ Example:
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-pg_get_constraintdef:
+
+``pg_catalog.pg_get_constraintdef()``
+-------------------------------------
+
+The function ``pg_get_constraintdef`` returns the SQL definition of the
+``PRIMARY KEY`` or ``CHECK`` constraint identified by the given
+``pg_constraint`` OID. It returns ``NULL`` if no constraint matches the OID.
+
+The optional ``pretty`` argument exists for compatibility with PostgreSQL but
+is ignored; the definition is always returned in the same format. Like other
+strict functions, it returns ``NULL`` whenever any argument is ``NULL`` — so a
+``NULL`` ``pretty`` value also yields ``NULL``, even with a valid OID.
+
+Returns: ``text``
+
+Synopsis::
+
+   pg_get_constraintdef(constraint_oid integer [, pretty boolean])
+
+.. Hidden: create table pg_get_constraintdef_example
+
+    cr> create table tbl (
+    ...   id int primary key,
+    ...   qty int constraint qty_check check (qty > 0));
+    CREATE OK, 1 row affected (... sec)
+
+Example::
+
+    cr> select conname, pg_get_constraintdef(oid) as def
+    ...   from pg_constraint
+    ...   where conname in ('tbl_pkey', 'qty_check')
+    ...   order by conname;
+    +-----------+-------------------+
+    | conname   | def               |
+    +-----------+-------------------+
+    | qty_check | CHECK ("qty" > 0) |
+    | tbl_pkey  | PRIMARY KEY (id)  |
+    +-----------+-------------------+
+    SELECT 2 rows in set (... sec)
+
+.. Hidden: drop table pg_get_constraintdef_example
+
+    cr> drop table tbl;
+    DROP OK, 1 row affected (... sec)
+
+
 .. _scalar-version:
 
 ``pg_catalog.version()``
