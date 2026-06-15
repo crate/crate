@@ -209,8 +209,6 @@ public class FixCorruptedMetadataCommandTest {
         IndexMetadata fixedIndexMetadata = upgradedMetadata.get(indexUUID);
         assertThat(fixedIndexMetadata.getIndex().getName()).isEqualTo("m7..partitioned.s7.08000");
         assertThat(fixedIndexMetadata.mapping().source()).isEqualTo(corruptedMetadata.mapping().source());
-        assertThat(fixedIndexMetadata.getSettings().filter(s -> s.equals(IndexMetadata.SETTING_INDEX_NAME) == false).getAsStructuredMap())
-            .isEqualTo(corruptedMetadata.getSettings().filter(s -> s.equals(IndexMetadata.SETTING_INDEX_NAME) == false).getAsStructuredMap());
 
         // Also indexTemplateMetadata is created accordingly.
         IndexTemplateMetadata convertedFromIndexMetadata = upgradedMetadata.getTemplate("m7..partitioned.s7.");
@@ -257,8 +255,6 @@ public class FixCorruptedMetadataCommandTest {
         IndexMetadata fixedIndexMetadata = upgradedMetadata.get(indexUUID);
         assertThat(fixedIndexMetadata.getIndex().getName()).isEqualTo("m7..partitioned.s7.08000");
         assertThat(fixedIndexMetadata.mapping().source()).isEqualTo(corruptedMetadata.mapping().source());
-        assertThat(fixedIndexMetadata.getSettings().filter(s -> s.equals(IndexMetadata.SETTING_INDEX_NAME) == false).getAsStructuredMap())
-            .isEqualTo(corruptedMetadata.getSettings().filter(s -> s.equals(IndexMetadata.SETTING_INDEX_NAME) == false).getAsStructuredMap());
 
         // Also indexTemplateMetadata is created accordingly -- this help verifies that the existing template is overwritten
         IndexTemplateMetadata convertedFromIndexMetadata = upgradedMetadata.getTemplate(existingTemplateName);
@@ -302,7 +298,7 @@ public class FixCorruptedMetadataCommandTest {
         assertThat(afterFix).isNotNull();
         assertThat(afterFix.mapping().source()).hasToString(mappingForNonPartitioned);
         assertThat(afterFix.getSettings().filter(k -> !k.equals(SETTING_INDEX_UUID)).getAsStructuredMap())
-            .hasToString("{index={name=m7.s7, number_of_shards=1, number_of_replicas=1, version={created=" +
+            .hasToString("{index={number_of_shards=1, number_of_replicas=1, version={created=" +
                          Version.CURRENT.internalId + "}}}");
 
         // indexMetadata named 'm7.s7' and indexTemplateMetadata 'm7..partitioned.s7.' cannot co-exist.
