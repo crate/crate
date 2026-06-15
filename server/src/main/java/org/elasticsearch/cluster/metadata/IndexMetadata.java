@@ -204,7 +204,6 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         new Setting<>(SETTING_DATA_PATH, "", Function.identity(), DataTypes.STRING, Property.IndexScope);
     public static final String INDEX_UUID_NA_VALUE = "_na_";
 
-    public static final String SETTING_INDEX_NAME = "index.name";
     public static final String INDEX_NAME_NA_VALUE = "_na_";
 
     public static final String INDEX_ROUTING_REQUIRE_GROUP_PREFIX = "index.routing.allocation.require";
@@ -1051,11 +1050,10 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
             final MapBuilder<String, AliasMetadata> tmpAliases = aliases;
             indexName = indexName == null ? indexUUID : indexName;
-            final Settings tmpSettings = Settings.builder()
+            final Settings.Builder tmpSettings = Settings.builder()
                 .put(settings)
-                .put(SETTING_INDEX_NAME, indexName)
-                .put(SETTING_INDEX_UUID, indexUUID)
-                .build();
+                .put(SETTING_INDEX_UUID, indexUUID);
+            tmpSettings.remove("index.name");
 
             Integer maybeNumberOfShards = settings.getAsInt(SETTING_NUMBER_OF_SHARDS, null);
             if (maybeNumberOfShards == null) {
@@ -1143,7 +1141,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
                 state,
                 numberOfShards,
                 numberOfReplicas,
-                tmpSettings,
+                tmpSettings.build(),
                 mapping,
                 tmpAliases.immutableMap(),
                 partitionValues,
