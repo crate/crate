@@ -3911,7 +3911,8 @@ in the corresponding relation name or ``oid`` value, respectively.
 An alias for the :ref:`oid <type-oid>` type.
 
 The ``REGTYPE`` type is used by the tables in the :ref:`postgres-pg_catalog`
-schema to reference data type names in the `pg_type`_ table.
+schema to reference data type names in the :ref:`pg_type <postgres-pg_type>`
+table.
 
 :ref:`Casting <data-types-casting>` a ``REGTYPE`` type to a :ref:`type-text`
 or :ref:`integer <type-numeric>` will result in the corresponding data type name
@@ -3920,10 +3921,10 @@ or ``oid`` value, respectively.
 .. NOTE::
 
    String values casted to the ``REGTYPE`` type must match an entry in the
-   `pg_type`_ table. For example, casting 'boolean' to ``REGTYPE`` 
-   will result in an error because 'boolean' is a CrateDB type and is not
-   found in the `pg_type`_ table. Rather, 'bool' is.
-   
+   ``pg_type`` table. For example, casting ``boolean`` to ``REGTYPE`` will
+   result in an error because ``boolean`` is a CrateDB type and is not found in
+   the ``pg_type`` table. Rather, ``bool`` is.
+
 
 .. _type-oidvector:
 
