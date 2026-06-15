@@ -105,7 +105,11 @@ public final class MappingUtil {
      * @param tableColumnPolicy has default value STRICT if not specified on a table creation.
      * On column addition it's NULL in order to not override an existing value.
      *
+     * @deprecated IndexMetadata since 6.4 doesn't contain a mapping anymore.
+     * Table schema is in {@link org.elasticsearch.cluster.metadata.RelationMetadata} instead.
+     * This is used for BWC - when communicating with older nodes.
      */
+    @Deprecated
     public static Map<String, Object> createMapping(AllocPosition allocPosition,
                                                     @Nullable String pkConstraintName,
                                                     List<Reference> columns,

@@ -86,8 +86,6 @@ import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.tables.CreateBlobTableRequest;
 import io.crate.execution.ddl.tables.CreateTableResponse;
-import io.crate.execution.ddl.tables.MappingUtil;
-import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
@@ -95,7 +93,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 
 /**
@@ -290,7 +287,6 @@ public class MetadataCreateIndexService {
                     mdBuilder,
                     indexUUID,
                     indexMetadata,
-                    new MappingMetadata(Map.of()),
                     calculateNumRoutingShards(numShards, versionCreated)
                 );
                 // ensure table can be parsed
@@ -480,7 +476,6 @@ public class MetadataCreateIndexService {
                 metadataBuilder,
                 resizedIndexUUID,
                 indexService.getMetadata(),
-                sourceIndex.mapping(),
                 routingNumShards
             ));
         }
@@ -596,17 +591,6 @@ public class MetadataCreateIndexService {
         validateIndexSettings(indexName, concreteIndexSettings, true);
 
         Metadata.Builder metadataBuilder = Metadata.builder(metadata);
-        final MappingMetadata mapping = new MappingMetadata(Map.of("default", MappingUtil.createMapping(
-            MappingUtil.AllocPosition.forNewTable(),
-            table.pkConstraintName(),
-            DocReferences.applyOid(table.columns(), new DocTableInfo.OidSupplier(0)),
-            table.primaryKeys(),
-            table.checkConstraints(),
-            table.partitionedBy(),
-            table.columnPolicy(),
-            table.routingColumn()
-        )));
-
         Settings.Builder indexSettingsBuilder = Settings.builder()
             .put(table.settings())
             .put(concreteIndexSettings)
@@ -649,7 +633,6 @@ public class MetadataCreateIndexService {
                 metadataBuilder,
                 newIndexUUID,
                 tmpImd,
-                mapping,
                 routingNumShards
             );
             SchemaInfo docSchemaInfo = nodeContext.schemas().getOrCreateSchemaInfo(tableName.schema());
@@ -664,15 +647,13 @@ public class MetadataCreateIndexService {
                                          Metadata.Builder metadataBuilder,
                                          String indexUUID,
                                          IndexMetadata tmpImd,
-                                         MappingMetadata mapping,
                                          int routingNumShards) {
         final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexUUID)
             .indexName(tmpImd.getIndex().getName())
             .settings(tmpImd.getSettings())
             .setRoutingNumShards(routingNumShards)
             .partitionValues(tmpImd.partitionValues())
-            .state(State.OPEN)
-            .putMapping(mapping);
+            .state(State.OPEN);
 
         for (int shardId = 0; shardId < tmpImd.getNumberOfShards(); shardId++) {
             indexMetadataBuilder.primaryTerm(shardId, tmpImd.primaryTerm(shardId));

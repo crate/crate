@@ -54,11 +54,7 @@ public class SubscriptionsMetadata extends AbstractNamedDiffable<Metadata.Custom
     }
 
     public static SubscriptionsMetadata get(Metadata metadata) {
-        var subscriptionsMetadata = (SubscriptionsMetadata) metadata.custom(SubscriptionsMetadata.TYPE);
-        if (subscriptionsMetadata == null) {
-            return EMPTY;
-        }
-        return subscriptionsMetadata;
+        return (SubscriptionsMetadata) metadata.custom(SubscriptionsMetadata.TYPE, EMPTY);
     }
 
     private final Map<String, Subscription> subscriptionByName;
