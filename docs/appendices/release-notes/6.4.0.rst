@@ -128,6 +128,10 @@ Scalar and Aggregation Functions
   function for downsampling data using the Largest Triangle Three Buckets
   algorithm
 
+- Added the :ref:`pg_get_constraintdef() <scalar-pg_get_constraintdef>` scalar function to
+  improve PostgreSQL compatibility for ORM schema introspection (e.g. Prisma,
+  TypeORM).
+
 Performance and Resilience Improvements
 ---------------------------------------
 
