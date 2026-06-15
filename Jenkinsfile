@@ -33,7 +33,6 @@ pipeline {
             sh './mvnw compile'
             sh '''
               x=(~/.m2/jdks/jdk-$(./mvnw help:evaluate -Dexpression=versions.jdk -q -DforceStdout)*); JAVA_HOME="$x/" ./mvnw test \
-                -B \
                 -DforkCount=8 \
                 -DthreadCount=2 \
                 -Dcheckstyle.skip \

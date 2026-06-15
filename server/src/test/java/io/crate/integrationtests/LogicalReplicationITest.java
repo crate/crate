@@ -335,14 +335,18 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         response = executeOnSubscriber("SELECT table_name FROM information_schema.tables WHERE table_name = 't1'");
         assertThat(response.rows().length).isZero();
 
-        // also, doc.t1 must not be listed inside the subscription state/metadata
-        var res = executeOnSubscriber(
-            "SELECT" +
-                " s.subname, r.relname, sr.srsubstate, sr.srsubstate_reason" +
-                " FROM pg_subscription s" +
-                " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
-                " JOIN pg_class r ON sr.srrelid = r.oid");
-        assertThat(res).hasRows("sub1| t2| r| NULL");
+        // wait for the subscription state to be updated from d -> r
+        // https://cratedb.com/docs/crate/reference/en/latest/admin/system-information.html#pg-subscription-rel
+        assertBusy(() -> {
+            // also, doc.t1 must not be listed inside the subscription state/metadata
+            var res = executeOnSubscriber(
+                "SELECT" +
+                    " s.subname, r.relname, sr.srsubstate, sr.srsubstate_reason" +
+                    " FROM pg_subscription s" +
+                    " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                    " JOIN pg_class r ON sr.srrelid = r.oid");
+            assertThat(res).hasRows("sub1| t2| r| NULL");
+        });
     }
 
     @Test

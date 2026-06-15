@@ -140,6 +140,7 @@ def _execute_sql(stmt):
         c = conn.cursor()
         try:
             c.execute(stmt)
+            return c
         except ConnectionError as e:
             logfile = os.path.join(crate.logs_path, crate.cluster_name + '.log')
             with open(logfile, 'r') as f:
@@ -433,10 +434,28 @@ class DocTests(unittest.TestSuite):
             crate.stop()
             cmd.close()
 
+class CrateDBVersionTest(unittest.TestCase):
+    """
+    Verify that the CrateDB version running in the test matches the version
+    from the pom.xml file.
+    Ensures that ./mvnw versions:set -DnewVersion=x.y.z is not forgotten
+    """
+    def test_mvn_version_matches_node_version(self):
+        cmd = ["./mvnw", "help:evaluate", "-Dexpression=project.version", "-q", "-DforceStdout"]
+        project_version = subprocess.check_output(cmd, cwd=project_path()).decode("utf-8").rstrip()
+        cursor = _execute_sql("SELECT version['number'] FROM sys.nodes LIMIT 1")
+        running_version = cursor.fetchone()[0]
+        err = (
+            f"Version mismatch! Project version from pom.xml: {project_version}, "
+            f"but CrateDB running version: {running_version}"
+        )
+        self.assertEqual(project_version, running_version, err)
+
 
 def load_tests(loader, suite, ignore):
     tests = []
     crate.start()
+    tests.extend(loader.loadTestsFromTestCase(CrateDBVersionTest))
     for fn in doctest_files('general/blobs.rst', 'interfaces/http.rst',):
         tests.append(
             docsuite(

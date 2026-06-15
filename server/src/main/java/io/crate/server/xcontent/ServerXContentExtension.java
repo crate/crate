@@ -66,6 +66,7 @@ import io.crate.sql.tree.BitString;
 import io.crate.types.IntervalType;
 import io.crate.types.Regclass;
 import io.crate.types.Regproc;
+import io.crate.types.Regtype;
 import io.crate.types.TimeTZ;
 
 /**
@@ -127,6 +128,7 @@ public class ServerXContentExtension implements XContentBuilderExtension {
         });
         writers.put(Regproc.class, (b, v) -> b.value(((Regproc) v).name()));
         writers.put(Regclass.class, (b, v) -> b.value(((Regclass) v).oid()));
+        writers.put(Regtype.class, (b, v) -> b.value(((Regtype) v).name()));
         writers.put(PointImpl.class, (b, v) -> {
             Point point = (Point) v;
             b.startArray();

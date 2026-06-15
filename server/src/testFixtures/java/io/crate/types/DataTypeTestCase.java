@@ -27,6 +27,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +46,8 @@ import org.apache.lucene.search.Weight;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.junit.Test;
 
@@ -80,6 +83,16 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
     }
 
     protected abstract DataDef<T> getDataDef();
+
+    @Test
+    public void test_can_write_using_xcontent() throws Exception {
+        DataDef<T> dataDef = getDataDef();
+        T sampelValue = dataDef.data().get();
+
+        try (var builder = new XContentBuilder(JsonXContent.JSON_XCONTENT, new ByteArrayOutputStream())) {
+            builder.value(sampelValue);
+        }
+    }
 
     @Test
     public void test_reference_resolver() throws Exception {
