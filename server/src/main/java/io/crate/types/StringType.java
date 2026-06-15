@@ -286,6 +286,8 @@ public class StringType extends DataType<String> implements Streamer<String> {
             return regproc.name();
         } else if (value instanceof Regclass regclass) {
             return regclass.name();
+        } else if (value instanceof Regtype regtype) {
+            return regtype.name();
         } else if (value instanceof BitString bitString) {
             return bitString.asPrefixedBitString();
         } else {

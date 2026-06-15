@@ -24,7 +24,6 @@ package io.crate.analyze.relations;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -34,6 +33,7 @@ import java.util.Objects;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.expression.scalar.SubscriptFunction;
@@ -43,6 +43,8 @@ import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
 
 public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -88,7 +90,7 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testColumnNameFromArrayComparisonExpression() {
         AnalyzedRelation relation = executor.analyze("select 'foo' = any(partitioned_by) " +
-                                                     "from information_schema.tables");
+            "from information_schema.tables");
         assertThat(relation.outputs().getFirst().toColumn().sqlFqn()).isEqualTo("('foo' = ANY(partitioned_by))");
     }
 
@@ -97,6 +99,29 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedRelation relation = executor.analyze("VALUES ([1, 2], 'a')");
         assertThat(relation).isExactlyInstanceOf(TableFunctionRelation.class);
         assertThat(relation.relationName()).hasToString(ValuesFunction.NAME);
+    }
+
+    /// See bug: [ARRAY inner types: When inserting multiple records, validation is skipped on the first record](https://github.com/crate/crate/issues/19231)
+    @Test
+    public void test_insert_values_with_incompatible_types() throws Exception {
+        executor.addTable("create table t01 (data array(string));");
+        var objArrayType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
+
+        assertThatThrownBy(() -> executor.analyze(
+            "insert into t01 (data) values (?), (?);",
+            new ParamTypeHints(List.of(objArrayType, objArrayType))
+        ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot convert VALUES element in row 1 of type `object_array` to `text_array` for `data`");
+
+
+        assertThatThrownBy(() -> executor.analyze(
+            "insert into t01 (data) values (?);",
+            new ParamTypeHints(List.of(objArrayType))
+        ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot convert VALUES element in row 1 of type `object_array` to `text_array` for `data`");
+
     }
 
     @Test

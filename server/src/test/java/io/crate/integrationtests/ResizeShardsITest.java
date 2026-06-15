@@ -253,13 +253,13 @@ public class ResizeShardsITest extends IntegTestCase {
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("the number of source shards [3] must be a must be a factor of [8]");
 
-        execute("alter table t1 set (number_of_shards = 12)");
+        execute("alter table t1 set (number_of_shards = 6)");
         ensureYellow();
 
         execute("select count(*), primary from sys.shards where table_name = 't1' group by primary order by 2");
         assertThat(response).hasRows(
-            "24| false",
-            "12| true");
+            "12| false",
+            "6| true");
         execute("select x from t1");
         assertThat(response).hasRowCount(12L);
     }

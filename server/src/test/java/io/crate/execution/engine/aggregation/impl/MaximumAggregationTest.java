@@ -21,6 +21,15 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+import org.joda.time.Period;
+import org.junit.Test;
+
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
@@ -29,14 +38,6 @@ import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.NumericType;
-import org.joda.time.Period;
-import org.junit.Test;
-
-import java.math.BigDecimal;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class MaximumAggregationTest extends AggregationTestCase {
 
@@ -134,10 +135,10 @@ public class MaximumAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_numeric_aggregation_not_supported_without_scale_or_precision() {
-        assertThat(getDocValueAggregator(MaximumAggregation.NAME, List.of(new NumericType(6, null))))
-            .isNull();
-        assertThat(getDocValueAggregator(MaximumAggregation.NAME, List.of(new NumericType(null, null))))
-            .isNull();
+        assertThatThrownBy(() -> getDocValueAggregator(MaximumAggregation.NAME, List.of(new NumericType(6, null))))
+            .isExactlyInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> getDocValueAggregator(MaximumAggregation.NAME, List.of(new NumericType(null, null))))
+            .isExactlyInstanceOf(UnsupportedOperationException.class);
     }
 
     @Test
