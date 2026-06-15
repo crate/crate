@@ -152,6 +152,8 @@ public final class NodeEnvironment implements Closeable {
     }
 
     private final Logger logger = LogManager.getLogger(NodeEnvironment.class);
+    private final Environment environment;
+    private final Settings settings;
     private final NodePath[] nodePaths;
     private final Path sharedDataPath;
     private final Lock[] locks;
@@ -239,6 +241,8 @@ public final class NodeEnvironment implements Closeable {
      * @param settings settings from elasticsearch.yml
      */
     public NodeEnvironment(Settings settings, Environment environment) throws IOException {
+        this.settings = settings;
+        this.environment = environment;
         if (!DiscoveryNode.nodeRequiresLocalStorage(settings)) {
             nodePaths = null;
             sharedDataPath = null;
@@ -299,6 +303,10 @@ public final class NodeEnvironment implements Closeable {
                 close();
             }
         }
+    }
+
+    public Environment environment() {
+        return environment;
     }
 
     /**

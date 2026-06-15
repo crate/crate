@@ -246,7 +246,8 @@ public class IndexShard extends AbstractIndexShardComponent {
             BigArrays bigArrays,
             List<IndexingOperationListener> listeners,
             Runnable globalCheckpointSyncer,
-            RetentionLeaseSyncer retentionLeaseSyncer, CircuitBreakerService circuitBreakerService) throws IOException {
+            RetentionLeaseSyncer retentionLeaseSyncer,
+            CircuitBreakerService circuitBreakerService) throws IOException {
         super(shardRouting.shardId(), indexSettings);
         assert shardRouting.initializing();
         this.shardRouting = shardRouting;

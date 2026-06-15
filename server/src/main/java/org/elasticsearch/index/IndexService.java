@@ -49,6 +49,7 @@ import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.Assertions;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -92,10 +93,9 @@ import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.blob.BlobTableInfo;
+import io.crate.metadata.blob.BlobTableInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.table.TableInfo;
 
 public class IndexService extends AbstractIndexComponent implements Iterable<IndexShard> {
@@ -399,7 +399,8 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
                 bigArrays,
                 indexingOperationListeners,
                 () -> globalCheckpointSyncer.accept(shardId),
-                retentionLeaseSyncer, circuitBreakerService
+                retentionLeaseSyncer,
+                circuitBreakerService
             );
             eventListener.indexShardStateChanged(indexShard, null, indexShard.state(), "shard created");
             eventListener.afterIndexShardCreated(indexShard);
@@ -494,7 +495,7 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
         return indexSettings;
     }
 
-    public void validateMapping(Metadata metadata, final IndexMetadata newIndexMetadata) {
+    public void updateMapping(Metadata metadata, final IndexMetadata newIndexMetadata) {
         Index index = newIndexMetadata.getIndex();
         String indexName = index.getName();
         if (IndexName.isDangling(indexName)) {
@@ -504,23 +505,16 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
         if (relation == null) {
             throw new IndexNotFoundException(index);
         }
-        RelationName relationName = relation.name();
-        SchemaInfo schemaInfo = nodeContext.schemas().getOrCreateSchemaInfo(relationName.schema());
-        var tableInfo = schemaInfo.create(relationName, metadata);
-        TranslogIndexer indexer = getTranslogIndexer(tableInfo);
+        Version indexVersionCreated = indexSettings.getIndexVersionCreated();
+        TranslogIndexer indexer = switch (relation) {
+            case RelationMetadata.Table table ->
+                new TranslogIndexer(new DocTableInfoFactory(nodeContext).create(table.name(), metadata), indexVersionCreated);
+            case RelationMetadata.BlobTable blobTable ->
+                new TranslogIndexer(new BlobTableInfoFactory(nodeEnv.environment()).create(blobTable.name(), metadata), indexVersionCreated);
+            default -> throw new UnsupportedFeatureException(
+                "Unsupported table type: " + relation.getClass().getSimpleName());
+        };
         this.getTranslogIndexer = () -> indexer;
-    }
-
-    private <T extends TableInfo> TranslogIndexer getTranslogIndexer(T tableInfo) {
-        TranslogIndexer indexer;
-        if (tableInfo instanceof DocTableInfo docTableInfo) {
-            indexer = new TranslogIndexer(docTableInfo, this.indexSettings.getIndexVersionCreated());
-        } else if (tableInfo instanceof BlobTableInfo blobTableInfo) {
-            indexer = new TranslogIndexer(blobTableInfo, this.indexSettings.getIndexVersionCreated());
-        } else {
-            throw new UnsupportedFeatureException("Unsupported table type: " + tableInfo.getClass().getName());
-        }
-        return indexer;
     }
 
     @VisibleForTesting

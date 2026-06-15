@@ -421,8 +421,8 @@ public class MetadataTrackerTest extends ESTestCase {
                 .as("mapping is removed as part of the metadata upgrade. The RelationMetadata.Table is created instead")
                 .isNull();
             assertThat(publisherIndexMetadata.mapping())
-                .as("Publisher retains mapping")
-                .isNotNull();
+                .as("mapping is removed as part of the metadata upgrade. The RelationMetadata.Table is created instead")
+                .isNull();
         }
     }
 
