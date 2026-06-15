@@ -21,6 +21,7 @@
 
 package io.crate.protocols.postgres.types;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
@@ -70,6 +71,7 @@ public class PGTypes {
         .put(DataTypes.INTERVAL, IntervalType.INSTANCE)
         .put(DataTypes.REGPROC, RegprocType.INSTANCE)
         .put(DataTypes.REGCLASS, RegclassType.INSTANCE)
+        .put(DataTypes.REGTYPE, RegtypeType.INSTANCE)
         .put(BitStringType.INSTANCE_ONE, BitType.INSTANCE)
         .put(UUIDType.INSTANCE, PgUUIDType.INSTANCE)
         .put(new ArrayType<>(DataTypes.BYTE), PGArray.CHAR_ARRAY)
@@ -95,12 +97,15 @@ public class PGTypes {
         .put(new ArrayType<>(RowType.EMPTY), PGArray.EMPTY_RECORD_ARRAY)
         .put(new ArrayType<>(DataTypes.REGPROC), PGArray.REGPROC_ARRAY)
         .put(new ArrayType<>(DataTypes.REGCLASS), PGArray.REGCLASS_ARRAY)
+        .put(new ArrayType<>(DataTypes.REGTYPE), PGArray.REGTYPE_ARRAY)
         .put(new ArrayType<>(BitStringType.INSTANCE_ONE), PGArray.BIT_ARRAY)
         .put(new ArrayType<>(UUIDType.INSTANCE), PGArray.UUID_ARRAY)
         .put(DataTypes.OIDVECTOR, PgOidVectorType.INSTANCE)
         .immutableMap();
 
     private static final IntObjectMap<DataType<?>> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();
+    private static final IntObjectMap<PGType<?>> OID_TO_PG_TYPE = new IntObjectHashMap<>();
+    private static final Map<String, PGType<?>> TYPNAME_TO_PG_TYPE = new HashMap<>();
     private static final Set<PGType<?>> TYPES;
 
     static {
@@ -130,15 +135,37 @@ public class PGTypes {
         // But want to expose text additionally as well
         TYPES.add(VarCharType.TextType.INSTANCE);
         TYPES.add(PGArray.TEXT_ARRAY);
+
+        for (PGType<?> pgType: TYPES) {
+            OID_TO_PG_TYPE.put(pgType.oid(), pgType);
+            TYPNAME_TO_PG_TYPE.put(pgType.typName(), pgType);
+        }
     }
 
     public static Iterable<PGType<?>> pgTypes() {
         return TYPES;
     }
 
+    public static int[] oids() {
+        return OID_TO_PG_TYPE.keys().toArray();
+    }
+
     @Nullable
     public static DataType<?> fromOID(int oid) {
         return PG_TYPES_TO_CRATE_TYPE.get(oid);
+    }
+
+    @Nullable
+    public static PGType<?> getByOid(int oid) {
+        return OID_TO_PG_TYPE.get(oid);
+    }
+
+    public static PGType<?> getByTypName(String name) throws IllegalArgumentException {
+        PGType<?> pgType = TYPNAME_TO_PG_TYPE.get(name);
+        if (pgType == null) {
+            throw new IllegalArgumentException("type " + name + " does not exist");
+        }
+        return pgType;
     }
 
     public static PGType<?> get(DataType<?> type) {

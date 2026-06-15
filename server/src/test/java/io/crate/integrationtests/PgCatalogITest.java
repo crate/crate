@@ -613,4 +613,15 @@ public class PgCatalogITest extends IntegTestCase {
         // Verify query runs without error and returns rows for each schema
         assertThat(response).hasColumns("Name", "Owner", "Comment");
     }
+
+    @Test
+    public void test_regtype_bidirectional_cast_oid_and_data_type_name() {
+        execute("""
+            SELECT 'varchar'::regtype,
+                   'varchar'::regtype::int,
+                   1043::regtype,
+                   1043::regtype::text;
+            """);
+        assertThat(response).hasRows("varchar| 1043| varchar| varchar");
+    }
 }
