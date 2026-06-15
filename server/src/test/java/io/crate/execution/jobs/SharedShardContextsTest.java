@@ -21,12 +21,12 @@
 
 package io.crate.execution.jobs;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +47,8 @@ import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
+
+import io.crate.metadata.RelationName;
 
 public class SharedShardContextsTest {
 
@@ -138,20 +140,24 @@ public class SharedShardContextsTest {
             .thenThrow(new ShardNotFoundException(new ShardId("dummy", "uuid", 1)));
         SharedShardContexts contexts = new SharedShardContexts(indicesService, null);
 
-        String partitionedIndex = ".partitioned.t.abc123";
         IndexMetadata indexMetadata = mock(IndexMetadata.class);
-        when(indexMetadata.getIndex()).thenReturn(new Index(partitionedIndex, "uuid"));
+        when(indexMetadata.getIndex()).thenReturn(new Index(".partitioned.t.abc123", "uuid"));
+        when(indexMetadata.partitionValues()).thenReturn(List.of("partition"));
 
         Metadata metadata = mock(Metadata.class);
-        when(metadata.index(partitionedIndex)).thenReturn(indexMetadata);
+        when(metadata.index("uuid")).thenReturn(indexMetadata);
 
         IntIndexedContainer shards = new IntArrayList();
         shards.add(1);
 
-        Map<String, IntIndexedContainer> shardsByIndex = Map.of(partitionedIndex, shards);
-        Map<String, Integer> bases = Map.of(partitionedIndex, 1);
+        Map<String, IntIndexedContainer> shardsByIndex = Map.of("uuid", shards);
+        Map<String, Integer> bases = Map.of("uuid", 1);
 
-        CompletableFuture<Void> future = contexts.maybeRefreshReaders(metadata, shardsByIndex, bases);
+        CompletableFuture<Void> future = contexts.maybeRefreshReaders(metadata,
+            shardsByIndex,
+            bases,
+            Map.of("uuid", new RelationName("doc", "dummy"))
+        );
         assertThat(future).succeedsWithin(5, TimeUnit.SECONDS);
     }
 }
