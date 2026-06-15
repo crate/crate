@@ -35,8 +35,7 @@ public interface FixedWidthType {
      * and then there is also stuff like padding and other JVM magic.
      * <p>
      * See also:
-     * https://blogs.oracle.com/jrose/entry/fixnums_in_the_vm
-     * http://www.javaworld.com/article/2077496/testing-debugging/java-tip-130--do-you-know-your-data-size-.html
+     * https://www.infoworld.com/article/2172855/java-tip-130-do-you-know-your-data-size.html
      */
     int fixedSize();
 }

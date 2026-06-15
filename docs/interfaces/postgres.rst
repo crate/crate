@@ -246,7 +246,9 @@ table available in CrateDB::
     | 1561 | _bit         |        0 |    1560 |     -1 | b       | A           |
     | 1700 | numeric      |     1231 |       0 |     -1 | b       | N           |
     | 2205 | regclass     |     2210 |       0 |      4 | b       | N           |
+    | 2206 | regtype      |     2211 |       0 |      4 | b       | N           |
     | 2210 | _regclass    |        0 |    2205 |     -1 | b       | A           |
+    | 2211 | _regtype     |        0 |    2206 |     -1 | b       | A           |
     | 2249 | record       |     2287 |       0 |     -1 | p       | P           |
     | 2276 | any          |        0 |       0 |      4 | p       | P           |
     | 2277 | anyarray     |        0 |    2276 |     -1 | p       | P           |
@@ -254,7 +256,7 @@ table available in CrateDB::
     | 2950 | uuid         |     2951 |       0 |     16 | b       | U           |
     | 2951 | _uuid        |        0 |    2950 |     -1 | b       | A           |
     +------+--------------+----------+---------+--------+---------+-------------+
-    SELECT 52 rows in set (... sec)
+    SELECT 54 rows in set (... sec)
 
 .. NOTE::
 
@@ -282,6 +284,9 @@ CrateDB supports the :ref:`oid <type-oid>` type and the following aliases:
 +-------------------+----------------------+-------------+-------------+
 | :ref:`regclass    | `pg_class            | A relation  | ``pg_type`` |
 | <type-regclass>`  | <pgsql_pg_class_>`__ | name        |             |
++-------------------+----------------------+-------------+-------------+
+| :ref:`regtype     | `pg_type             | A data type | ``integer`` |
+| <type-regtype>`   | <pgsql_pg_type_>`__  | name        |             |
 +-------------------+----------------------+-------------+-------------+
 
 CrateDB also supports the :ref:`oidvector <type-oidvector>` type.

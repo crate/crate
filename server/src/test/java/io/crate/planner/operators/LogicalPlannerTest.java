@@ -63,6 +63,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.optimizer.rule.EquiJoinToLookupJoin;
 import io.crate.statistics.ColumnStats;
@@ -904,6 +905,41 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         // Before 5.10.13, circuit breaker memory was not released
         // if multiphased execution failed on sub-query and addWithoutBreaking() was never called.
         verify(circuitBreaker, times(1)).addWithoutBreaking(anyLong());
+    }
+
+    @Test
+    public void test_declare_forwards_query_failure_to_consumer_and_closes_cursor() throws Exception {
+        Plan declarePlan = sqlExecutor.plan(
+            "declare c1 no scroll cursor with hold for select * from generate_series(1, 10)");
+
+        // Setup some dummy failure for a query in DECLARE.
+        DependencyCarrier dependencies = sqlExecutor.dependencyMock;
+        PhasesTaskFactory phasesTaskFactory = mock(PhasesTaskFactory.class);
+        when(dependencies.phasesTaskFactory()).thenReturn(phasesTaskFactory);
+        JobLauncher jobLauncher = new JobLauncher(
+            UUID.randomUUID(),
+            clusterService,
+            Mockito.mock(JobSetup.class),
+            Mockito.mock(TasksService.class),
+            Mockito.mock(IndicesService.class),
+            null,
+            null,
+            List.of(),
+            false
+        ) {
+            @Override
+            public void execute(RowConsumer consumer, TransactionContext txnCtx) {
+                consumer.accept(null, new RuntimeException("dummy"));
+            }
+        };
+        when(phasesTaskFactory.create(any(), any(), anyBoolean())).thenReturn(jobLauncher);
+        var consumer = sqlExecutor.execute(declarePlan);
+        assertThat(consumer.completionFuture().isDone()).isTrue();
+
+        var plannerContext = sqlExecutor.getPlannerContext();
+        assertThat(plannerContext.cursors()).isEmpty();
+
+
     }
 
     /**

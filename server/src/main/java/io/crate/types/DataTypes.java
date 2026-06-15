@@ -108,6 +108,7 @@ public final class DataTypes {
 
     public static final RegprocType REGPROC = RegprocType.INSTANCE;
     public static final RegclassType REGCLASS = RegclassType.INSTANCE;
+    public static final RegtypeType REGTYPE = RegtypeType.INSTANCE;
 
     public static final List<DataType<?>> PRIMITIVE_TYPES = List.of(
         BYTE,
@@ -175,6 +176,7 @@ public final class DataTypes {
             entry(IntervalType.ID, _ -> INTERVAL),
             entry(RowType.ID, RowType::new),
             entry(RegprocType.ID, _ -> REGPROC),
+            entry(RegtypeType.ID, _ -> REGTYPE),
             entry(RegclassType.ID, _ -> REGCLASS),
             entry(OidVectorType.ID, _ -> OIDVECTOR),
             entry(DateType.ID, _ -> DATE),
@@ -197,15 +199,16 @@ public final class DataTypes {
         entry(SHORT.id(), NUMBER_CONVERSIONS),
         entry(INTEGER.id(), Stream.concat(
             NUMBER_CONVERSIONS.stream(),
-            Stream.of(RegprocType.ID, RegclassType.ID)
+            Stream.of(RegprocType.ID, RegclassType.ID, RegtypeType.ID)
         ).collect(Collectors.toUnmodifiableSet())),
         entry(REGPROC.id(), Set.of(STRING.id(), INTEGER.id(), CHARACTER.id())),
+        entry(REGTYPE.id(), Set.of(STRING.id(), INTEGER.id(), LONG.id(), CHARACTER.id())),
         entry(REGCLASS.id(), Set.of(STRING.id(), INTEGER.id(), LONG.id(), CHARACTER.id())),
         entry(
             LONG.id(),
             Stream.concat(
                 NUMBER_CONVERSIONS.stream(),
-                Stream.of(RegprocType.ID, RegclassType.ID)
+                Stream.of(RegprocType.ID, RegclassType.ID, RegtypeType.ID)
             ).collect(Collectors.toUnmodifiableSet())
         ),
         entry(NUMERIC.id(), NUMBER_CONVERSIONS),
@@ -218,6 +221,7 @@ public final class DataTypes {
                 GEO_POINT.id(),
                 ObjectType.ID,
                 RegprocType.ID,
+                RegtypeType.ID,
                 RegclassType.ID,
                 TimeTZType.ID,
                 BitStringType.ID,
@@ -233,6 +237,7 @@ public final class DataTypes {
                 GEO_POINT.id(),
                 ObjectType.ID,
                 RegprocType.ID,
+                RegtypeType.ID,
                 RegclassType.ID,
                 TimeTZType.ID,
                 BitStringType.ID,
@@ -407,6 +412,7 @@ public final class DataTypes {
         entry(GEO_POINT.getName(), GEO_POINT),
         entry(GEO_SHAPE.getName(), GEO_SHAPE),
         entry(REGPROC.getName(), REGPROC),
+        entry(REGTYPE.getName(), REGTYPE),
         entry(REGCLASS.getName(), REGCLASS),
         entry(OIDVECTOR.getName(), OIDVECTOR),
         entry("int2", SHORT),
