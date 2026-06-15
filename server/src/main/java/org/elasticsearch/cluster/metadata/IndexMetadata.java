@@ -1048,9 +1048,11 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             if (indexUUID == null || indexUUID.isEmpty()) {
                 throw new IllegalArgumentException("index uuid must not be null or empty");
             }
+            if (indexName == null) {
+                throw new IllegalArgumentException("index name must not be null or empty");
+            }
 
             final MapBuilder<String, AliasMetadata> tmpAliases = aliases;
-            indexName = indexName == null ? indexUUID : indexName;
             final Settings tmpSettings = Settings.builder()
                 .put(settings)
                 .put(SETTING_INDEX_NAME, indexName)
