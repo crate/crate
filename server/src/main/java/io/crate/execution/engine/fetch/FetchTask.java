@@ -226,8 +226,6 @@ public class FetchTask implements Task {
         }
     }
 
-
-
     @Override
     public CompletableFuture<Void> start() {
         synchronized (jobId) {
@@ -236,12 +234,24 @@ public class FetchTask implements Task {
                 return null;
             }
 
+            var index2TableIdent = new HashMap<String, RelationName>();
+            for (var entry : phase.tableIndices().entrySet()) {
+                for (String indexUUID : entry.getValue()) {
+                    index2TableIdent.put(indexUUID, entry.getKey());
+                }
+            }
+
             ArrayList<CompletableFuture<Void>> refreshActions = new ArrayList<>(routings.size());
             for (Routing routing : routings) {
                 Map<String, Map<String, IntIndexedContainer>> locations = routing.locations();
                 Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
                 try {
-                    refreshActions.add(sharedShardContexts.maybeRefreshReaders(metadata, indexShards, phase.bases()));
+                    refreshActions.add(sharedShardContexts.maybeRefreshReaders(
+                        metadata,
+                        indexShards,
+                        phase.bases(),
+                        index2TableIdent
+                    ));
                 } catch (Throwable t) {
                     result.completeExceptionally(t);
                     throw t;
@@ -251,7 +261,7 @@ public class FetchTask implements Task {
             return allRefreshed.thenApply(_ -> {
                 synchronized (jobId) {
                     if (killed == null) {
-                        setupSearchers();
+                        setupSearchers(index2TableIdent);
                     }
                 }
                 return null;
@@ -259,13 +269,7 @@ public class FetchTask implements Task {
         }
     }
 
-    private void setupSearchers() {
-        HashMap<String, RelationName> index2TableIdent = new HashMap<>();
-        for (Map.Entry<RelationName, Collection<String>> entry : phase.tableIndices().entrySet()) {
-            for (String indexUUID : entry.getValue()) {
-                index2TableIdent.put(indexUUID, entry.getKey());
-            }
-        }
+    private void setupSearchers(Map<String, RelationName> index2TableIdent) {
         Set<RelationName> tablesWithFetchRefs = new HashSet<>();
         for (Reference reference : phase.fetchRefs()) {
             tablesWithFetchRefs.add(reference.relation());

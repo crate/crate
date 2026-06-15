@@ -29,6 +29,7 @@ import java.util.function.BiFunction;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
@@ -36,12 +37,13 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
-import io.crate.common.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.engine.fetch.FetchTask;
-import io.crate.metadata.IndexName;
+import io.crate.metadata.RelationName;
 
 public class SharedShardContexts {
 
@@ -60,27 +62,39 @@ public class SharedShardContexts {
 
     public CompletableFuture<Void> maybeRefreshReaders(Metadata metadata,
                                                        Map<String, IntIndexedContainer> shardsByIndex,
-                                                       Map<String, Integer> bases) {
+                                                       Map<String, Integer> bases,
+                                                       Map<String, RelationName> index2Table) {
         ArrayList<CompletableFuture<Boolean>> refreshActions = new ArrayList<>();
         for (var entry : shardsByIndex.entrySet()) {
-            String indexName = entry.getKey();
-            Integer base = bases.get(indexName);
+            String indexUUID = entry.getKey();
+            Integer base = bases.get(indexUUID);
             if (base == null) {
                 continue;
             }
-            IndexMetadata indexMetadata = metadata.index(indexName);
-            boolean isPartitioned = IndexName.isPartitioned(indexName);
+
+            IndexMetadata indexMetadata = metadata.index(indexUUID);
             if (indexMetadata == null) {
-                if (isPartitioned) {
+                RelationName tableName = index2Table.get(indexUUID);
+                // index2Table is built in FetchTask, using FetchPhase.tableIndices()
+                // where it basically inverts the map of tables to index UUIDs.
+                // A missing table for the given index UUID means that it was removed after it was built,
+                //  which shouldn't happen.
+                assert tableName != null : "Table mapping for index UUID unexpectedly removed (was present in FetchTask)";
+                RelationMetadata.Table table = metadata.getRelation(tableName);
+                if (table == null) {
+                    refreshActions.add(CompletableFuture.failedFuture(new RelationUnknown(tableName)));
                     continue;
                 }
-                refreshActions.add(CompletableFuture.failedFuture(new IndexNotFoundException(indexName)));
+                if (table.partitionedBy().isEmpty()) {
+                    refreshActions.add(CompletableFuture.failedFuture(new IndexNotFoundException(indexUUID)));
+                }
                 continue;
             }
+
             IndexService indexService = indicesService.indexService(indexMetadata.getIndex());
             if (indexService == null) {
-                if (isPartitioned == false) {
-                    refreshActions.add(CompletableFuture.failedFuture(new IndexNotFoundException(indexName)));
+                if (indexMetadata.partitionValues().isEmpty()) {
+                    refreshActions.add(CompletableFuture.failedFuture(new IndexNotFoundException(indexUUID)));
                 }
                 continue;
             }
@@ -90,7 +104,7 @@ public class SharedShardContexts {
                 try {
                     shard = indexService.getShard(shardId);
                 } catch (ShardNotFoundException e) {
-                    if (isPartitioned == false) {
+                    if (indexMetadata.partitionValues().isEmpty()) {
                         refreshActions.add(CompletableFuture.failedFuture(e));
                     }
                     continue;
