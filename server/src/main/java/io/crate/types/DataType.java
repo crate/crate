@@ -55,12 +55,12 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     /**
      * Type precedence ids which help to decide when a type can be cast
      * into another type without losing information (upcasting).
-     *
+     * <p>
      * Lower ordinal => Lower precedence
      * Higher ordinal => Higher precedence
-     *
+     * <p>
      * Precedence list inspired by
-     * https://docs.microsoft.com/en-us/sql/t-sql/data-types/data-type-precedence-transact-sql
+     * <a href="https://docs.microsoft.com/en-us/sql/t-sql/data-types/data-type-precedence-transact-sql">Data type precedence (Transact-SQL)</a>.
      *
      */
     public enum Precedence {
@@ -68,8 +68,8 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         UNDEFINED,
         STRING,
         CHARACTER,
-        BYTE,
         BOOLEAN,
+        BYTE,
         SHORT,
         TIMETZ,
         INTEGER,
