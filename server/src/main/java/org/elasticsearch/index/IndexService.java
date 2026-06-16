@@ -82,8 +82,8 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -164,7 +164,8 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
 
                 @Override
                 protected Analyzer getWrappedAnalyzer(String storageIdent) {
-                    if (getTableInfo.get() instanceof DocTableInfo docTable) {
+                    TableInfo tableInfo = getTableInfo.get();
+                    if (tableInfo instanceof DocTableInfo docTable) {
                         Reference reference = docTable.getReference(storageIdent);
                         if (reference instanceof IndexReference indexRef) {
                             NamedAnalyzer namedAnalyzer = indexAnalyzers.get(indexRef.analyzer());

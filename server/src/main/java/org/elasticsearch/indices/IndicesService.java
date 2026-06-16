@@ -117,7 +117,6 @@ import io.crate.common.collections.Sets;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 
 public class IndicesService extends AbstractLifecycleComponent
@@ -451,8 +450,9 @@ public class IndicesService extends AbstractLifecycleComponent
         }
 
         final IndexSettings idxSettings = new IndexSettings(safeMetadata, this.settings, indexScopedSettings);
+        Index index = safeMetadata.getIndex();
         LOGGER.debug("creating Index [{}], shards [{}]/[{}] - reason [{}]",
-            safeMetadata.getIndex(),
+            index,
             idxSettings.getNumberOfShards(),
             idxSettings.getNumberOfReplicas(),
             indexCreationContext);
@@ -465,7 +465,6 @@ public class IndicesService extends AbstractLifecycleComponent
         for (IndexEventListener listener : builtInListeners) {
             indexModule.addIndexEventListener(listener);
         }
-        String indexName = safeMetadata.getIndex().getName();
         Schemas schemas = nodeContext.schemas();
         return indexModule.newIndexService(
             nodeContext,
@@ -476,7 +475,7 @@ public class IndicesService extends AbstractLifecycleComponent
             bigArrays,
             threadPool,
             indicesQueryCache,
-            () -> schemas.getTableInfo(RelationName.fromIndexName(indexName))
+            () -> schemas.getTableInfo(index)
         );
     }
 

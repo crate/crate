@@ -144,8 +144,13 @@ public class FulltextITest extends IntegTestCase {
     public void testMatchTypes() throws Exception {
         this.setup.setUpLocationsWithFTIndex();
         execute("refresh table locations");
+        execute("create table areas (name text)");
 
-        execute("select name, _score from locations where match((kind 0.8, name_description_ft 0.6), 'planet earth') " +
+        // Swap breaks indexName decoding (indexName -> RelationName no longer works because names aren't changed with swap)
+        // This is here to ensure analyzer lookup doesn't rely on it.
+        execute("alter cluster swap table locations to areas");
+
+        execute("select name, _score from areas where match((kind 0.8, name_description_ft 0.6), 'planet earth') " +
                 "using best_fields order by _score desc");
         assertThat(response).hasRows(
             "Alpha Centauri| 0.6880375",
@@ -154,7 +159,7 @@ public class FulltextITest extends IntegTestCase {
             "| 0.2462059",
             "Allosimanius Syneca| 0.16214824");
 
-        execute("select name, _score from locations where match((kind 0.6, name_description_ft 0.8), 'planet earth') using most_fields order by _score desc");
+        execute("select name, _score from areas where match((kind 0.6, name_description_ft 0.8), 'planet earth') using most_fields order by _score desc");
         assertThat(response).hasRows(
             "Alpha Centauri| 0.91738325",
             "Bartledan| 0.5132938",
@@ -162,7 +167,7 @@ public class FulltextITest extends IntegTestCase {
             "| 0.3282745",
             "Allosimanius Syneca| 0.21619764");
 
-        execute("select name, _score from locations where match((kind 0.4, name_description_ft 1.0), 'planet earth') using cross_fields order by _score desc");
+        execute("select name, _score from areas where match((kind 0.4, name_description_ft 1.0), 'planet earth') using cross_fields order by _score desc");
         assertThat(response).hasRows(
             "Alpha Centauri| 1.1467291",
             "Bartledan| 0.6416173",
@@ -170,10 +175,10 @@ public class FulltextITest extends IntegTestCase {
             "| 0.41034314",
             "Allosimanius Syneca| 0.27024707");
 
-        execute("select name, _score from locations where match((kind 1.0, name_description_ft 0.4), 'Alpha Centauri') using phrase");
+        execute("select name, _score from areas where match((kind 1.0, name_description_ft 0.4), 'Alpha Centauri') using phrase");
         assertThat(response).hasRows("Alpha Centauri| 0.91738325");
 
-        execute("select name, _score from locations where match(name_description_ft, 'Alpha Centauri') using phrase_prefix");
+        execute("select name, _score from areas where match(name_description_ft, 'Alpha Centauri') using phrase_prefix");
         assertThat(response).hasRows("Alpha Centauri| 2.2934582");
     }
 
