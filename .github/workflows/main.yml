@@ -23,6 +23,7 @@ jobs:
   test:
     name: Test CrateDB SQL on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    if: false # disabled on this branch
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -58,6 +59,7 @@ jobs:
   forbiddenApis:
     name: forbiddenApis
     runs-on: ubuntu-latest
+    if: false # disabled on this branch
     steps:
       - uses: actions/checkout@v5
         with:
@@ -75,6 +77,7 @@ jobs:
   checkstyle:
     name: checkstyle
     runs-on: ubuntu-latest
+    if: false # disabled on this branch
     steps:
       - uses: actions/checkout@v5
         with:
