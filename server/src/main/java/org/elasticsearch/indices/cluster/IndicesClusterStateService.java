@@ -463,7 +463,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             IndexService indexService = null;
             try {
                 indexService = indicesService.createIndex(indexMetadata, buildInIndexListener, true);
-                indexService.updateMapping(state.metadata(), indexMetadata);
+                indexService.updateMapping();
             } catch (Exception e) {
                 final String failShardReason;
                 if (indexService == null) {
@@ -513,7 +513,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
 
                     reason = "mapping update failed";
                     LOGGER.error("Updating mapping for {} {}", index, relation);
-                    indexService.updateMapping(metadata, newIndexMetadata);
+                    indexService.updateMapping();
                 } catch (Exception e) {
                     indicesService.removeIndex(indexService.index(), FAILURE, "removing index (" + reason + ")");
 
