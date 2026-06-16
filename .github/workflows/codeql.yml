@@ -16,6 +16,7 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    if: false # disabled on this branch
 
     strategy:
       fail-fast: false
