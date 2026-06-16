@@ -9,11 +9,14 @@ pipeline {
   }
   environment {
     CI_RUN = 'true'
+    // Single test to hammer on this branch, e.g. 'SomeITest' or 'SomeITest#some_method'.
+    TEST = 'MetadataTrackerITest#test_deleted_partition_is_replicated'
   }
   stages {
     stage('Parallel') {
       parallel {
         stage('sphinx') {
+          when { expression { false } } // disabled on this branch
           agent { label 'small' }
           steps {
             sh 'git clean -xdff'
@@ -33,17 +36,22 @@ pipeline {
             sh './mvnw compile'
             sh '''
               x=(~/.m2/jdks/jdk-$(./mvnw help:evaluate -Dexpression=versions.jdk -q -DforceStdout)*); JAVA_HOME="$x/" ./mvnw test \
+                -pl server -am \
+                -Dtest="$TEST" \
+                -Dsurefire.failIfNoSpecifiedTests=false \
                 -DforkCount=8 \
                 -DthreadCount=2 \
                 -Dcheckstyle.skip \
                 -Dforbiddenapis.skip=true \
                 -Dmaven.javadoc.skip=true \
                 -Dtests.crate.slow=true \
+                -Djacoco.skip=true \
                 jacoco:report
             '''.stripIndent()
 
             // Upload coverage report to Codecov.
             // https://docs.codecov.com/docs/codecov-uploader
+            /* disabled on this branch
             sh '''
               # Download uploader program and perform integrity checks.
               curl https://keybase.io/codecovsecops/pgp_keys.asc | gpg --import # One-time step
@@ -57,6 +65,7 @@ pipeline {
               chmod +x codecov
               ./codecov -t ${CODECOV_TOKEN}
             '''.stripIndent()
+            */
           }
           post {
             always {
@@ -65,6 +74,7 @@ pipeline {
           }
         }
         stage('itest') {
+          when { expression { false } } // disabled on this branch
           agent { label 'medium && x64' }
           steps {
             sh 'git clean -xdff'
@@ -74,6 +84,7 @@ pipeline {
           }
         }
         stage('blackbox tests') {
+          when { expression { false } } // disabled on this branch
           agent { label 'medium && x64' }
           steps {
             sh 'git clean -xdff'

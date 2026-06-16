@@ -71,7 +71,7 @@
                 <version>${versions.plugin.surefire}</version>
                 <configuration>
                     <parallel>suites</parallel>
-                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <redirectTestOutputToFile>false</redirectTestOutputToFile>
                     <includes>
                         <include>**/Test*.java</include>
                         <include>**/*IT.java</include>

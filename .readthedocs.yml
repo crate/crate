@@ -10,6 +10,11 @@ build:
 
   jobs:
 
+    # Cancel all builds of this branch and its PR (RTD exit code 183 = cancel).
+    # This config is read from the PR's head branch, so it can't affect other PRs.
+    post_checkout:
+      - exit 183
+
     # Install dependencies using `uv`.
     create_environment:
       - asdf plugin add uv
