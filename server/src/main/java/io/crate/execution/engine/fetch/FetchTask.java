@@ -93,7 +93,7 @@ public class FetchTask implements Task {
                      SharedShardContexts sharedShardContexts,
                      Metadata metadata,
                      Function<RelationName, DocTableInfo> getTableInfo,
-                     List<? extends Routing> routings) {
+                     List<Routing> routings) {
         this.jobId = jobId;
         this.phase = phase;
         this.memoryLimitInBytes = memoryLimitInBytes;

@@ -51,8 +51,8 @@ public class Routing implements Writeable {
 
     /**
      * @return a map with the locations in the following format: <p>
-     * Map&lt;nodeName (string), <br>
-     * &nbsp;&nbsp;&nbsp;&nbsp;Map&lt;indexName (string), List&lt;ShardId (int)&gt;&gt;&gt; <br>
+     * Map&lt;nodeId (string), <br>
+     * &nbsp;&nbsp;&nbsp;&nbsp;Map&lt;indexUuid (string), List&lt;ShardId (int)&gt;&gt;&gt; <br>
      * </p>
      */
     public Map<String, Map<String, IntIndexedContainer>> locations() {
@@ -132,13 +132,13 @@ public class Routing implements Writeable {
 
                 locations.put(nodeId, shardsByIndex);
                 for (int j = 0; j < numInner; j++) {
-                    String indexName = in.readString();
+                    String indexUuid = in.readString();
                     int numShards = in.readVInt();
                     IntArrayList shardIds = new IntArrayList(numShards);
                     for (int k = 0; k < numShards; k++) {
                         shardIds.add(in.readVInt());
                     }
-                    shardsByIndex.put(indexName, shardIds);
+                    shardsByIndex.put(indexUuid, shardIds);
                 }
             }
         }
@@ -148,6 +148,7 @@ public class Routing implements Writeable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(locations.size());
         for (Map.Entry<String, Map<String, IntIndexedContainer>> entry : locations.entrySet()) {
+            // node ID
             out.writeString(entry.getKey());
 
             Map<String, IntIndexedContainer> shardsByIndex = entry.getValue();
@@ -156,6 +157,7 @@ public class Routing implements Writeable {
             } else {
                 out.writeVInt(shardsByIndex.size());
                 for (Map.Entry<String, IntIndexedContainer> innerEntry : shardsByIndex.entrySet()) {
+                    // index UUID
                     out.writeString(innerEntry.getKey());
                     IntIndexedContainer shardIds = innerEntry.getValue();
                     if (shardIds == null || shardIds.size() == 0) {
