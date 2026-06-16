@@ -46,6 +46,10 @@ series.
 Fixes
 =====
 
+- Fixed an issue where queries on fulltext columns with a non-default analyzer
+  were incorrectly using the default analyzer after using running a ``ALTER
+  CLUSTER SWAP TABLE`` statement.
+
 - Fixed binary encoding and decoding of :ref:`DATE <type-date>` values when
   using PostgreSQL clients.
 
