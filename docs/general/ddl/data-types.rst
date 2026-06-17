@@ -52,6 +52,9 @@ CrateDB supports the following data types. Scroll down for more details.
     * - ``CHARACTER(n)`` and ``CHAR(n)``
       - A fixed-length, blank padded string of Unicode characters
       - ``'foobar'``
+    * - ``BYTE``
+      - A signed one-byte integer value
+      - ``123`` or ``-123``
     * - ``SMALLINT``, ``INTEGER`` and ``BIGINT``
       - A signed integer value
       - ``12345`` or ``-12345``
@@ -91,6 +94,7 @@ CrateDB supports the following data types. Scroll down for more details.
                 "foo" = 'bar',
                 "baz" = 'qux'
             }
+
     * - ``ARRAY``
       - Express an array
       - ::
@@ -99,6 +103,7 @@ CrateDB supports the following data types. Scroll down for more details.
                 {"name" = 'Alice', "age" = 33},
                 {"name" = 'Bob', "age" = 45}
             ]
+
     * - ``GEO_POINT``
       - A geographic data type comprised of a pair of coordinates (latitude and longitude)
       - ``[13.46738, 52.50463]``  or ``POINT( 13.46738 52.50463 )``
@@ -178,6 +183,10 @@ are likely to be larger due to additional metadata.
       - variable
       - Minimum length: 1. Maximum length: 2^31-1 (upper :ref:`integer <type-integer>` range). [#f1]_
       - Strings of fixed length, blank padded. All Unicode characters are allowed.
+    * - ``BYTE``
+      - 1 byte
+      - -128 to 127
+      - Tiny-range integer
     * - ``SMALLINT``
       - 2 bytes
       - -32,768 to 32,767
@@ -297,11 +306,12 @@ The following precedence order is used for data types (highest to lowest):
 20. :ref:`Integer <type-integer>`
 21. :ref:`Time with time zone <type-time>`
 22. :ref:`Smallint <type-smallint>`
-23. :ref:`Boolean <type-boolean>`
-24. :ref:`"Char" <type-char>`
-25. :ref:`Text <type-text>`
-26. :ref:`Character <data-type-character>`
-27. :ref:`NULL <type-null>` (lowest)
+23. :ref:`Byte <type-byte>`
+24. :ref:`Boolean <type-boolean>`
+25. :ref:`"Char" <type-char>`
+26. :ref:`Text <type-text>`
+27. :ref:`Character <data-type-character>`
+28. :ref:`NULL <type-null>` (lowest)
 
 
 .. _data-types-primitive:
@@ -909,6 +919,57 @@ CrateDB supports the following numeric types:
 
         cr> DROP TABLE my_table;
         DROP OK, 1 row affected (... sec)
+
+
+.. _type-byte:
+
+``BYTE``
+''''''''
+
+A tiny integer.
+
+Limited to one byte, with a range from -128 to 127.
+
+Example::
+
+    cr> CREATE TABLE my_table (
+    ...     number BYTE
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO my_table (
+    ...     number
+    ... ) VALUES (
+    ...     127
+    ... );
+    INSERT OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE my_table;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT number FROM my_table;
+    +--------+
+    | number |
+    +--------+
+    | 127    |
+    +--------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DROP TABLE my_table;
+    DROP OK, 1 row affected (... sec)
+
+.. NOTE::
+
+    Over the :ref:`PostgreSQL wire protocol <interface-postgresql>`, ``BYTE``
+    values are returned as the ``SMALLINT`` (``int2``) type.
 
 
 .. _type-smallint:
