@@ -246,7 +246,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
             .put(indexTemplateMetadata)
             .putCustom(UserDefinedFunctionsMetadata.TYPE, udfs)
             .build();
-        metadataUpgradeService.upgradeIndexMetadata(indexMetadata, indexTemplateMetadata, Version.V_5_7_0, metadata);
+        metadataUpgradeService.upgradeMetadata(metadata);
     }
 
     @Test
@@ -349,11 +349,13 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
     public void test_index_metadata_only_upgrade_when_not_on_current_version() {
         IndexMetadata indexMetadata = IndexMetadata.builder("old_index")
             .settings(settings(Version.V_5_7_0))
+            .putMapping("{}")
             .numberOfShards(1)
             .numberOfReplicas(1)
             .build();
         IndexMetadata indexMetadataAlreadyUpgraded = IndexMetadata.builder("already_upgraded")
             .settings(settings(Version.V_5_7_0).put(IndexMetadata.SETTING_VERSION_UPGRADED, Version.CURRENT))
+            .putMapping("{}")
             .numberOfShards(1)
             .numberOfReplicas(1)
             .build();
@@ -366,6 +368,21 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
             .put(indexMetadata, false)
             .put(indexMetadataAlreadyUpgraded, false)
             .put(indexMetadataCreatedOnCurrentVersion, false)
+            .setTable(
+                new RelationName("doc", "created_on_current"),
+                List.of(),
+                indexMetadataCreatedOnCurrentVersion.getSettings(),
+                null,
+                ColumnPolicy.STRICT,
+                null,
+                Map.of(),
+                List.of(),
+                List.of(),
+                State.OPEN,
+                List.of(indexMetadataCreatedOnCurrentVersion.getIndexUUID()),
+                1,
+                1
+            )
             .build();
         Metadata upgrade = metadataUpgradeService.upgradeMetadata(metadata);
 
@@ -519,6 +536,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
                 IndexMetadata.builder(indexUUID)
                     .settings(settings(Version.CURRENT))
                     .indexName(indexName)
+                    .putMapping("{}")
                     .numberOfReplicas(randomIntBetween(0, 3))
                     .numberOfShards(randomIntBetween(1, 5))
             );

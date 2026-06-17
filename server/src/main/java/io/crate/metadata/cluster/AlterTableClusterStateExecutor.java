@@ -23,12 +23,10 @@ package io.crate.metadata.cluster;
 
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.action.ActionListener;
@@ -36,7 +34,6 @@ import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
@@ -45,11 +42,9 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings.Builder;
-import org.elasticsearch.index.Index;
-import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.TableParameters;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
@@ -122,12 +117,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                 }
             }
         }
-        List<Index> concreteIndices = metadata.getIndices(
-            request.tableIdent(),
-            request.partitionValues(),
-            false,
-            IndexMetadata::getIndex
-        );
         List<PartitionName> partitions = partitions(request);
         if (request.isPartitioned()) {
             if (!request.partitionValues().isEmpty()) {
@@ -144,11 +133,9 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                     supportedSettings.add(AutoExpandReplicas.SETTING);
 
                     currentState = updateSettings(currentState, filterSettings(settings, supportedSettings), partitions);
-                    currentState = updateMapping(currentState, concreteIndices, columnPolicy);
                 }
             }
         } else {
-            currentState = updateMapping(currentState, concreteIndices, columnPolicy);
             currentState = updateSettings(currentState, settings, partitions);
         }
 
@@ -166,30 +153,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         } else {
             return List.of(new PartitionName(request.tableIdent(), List.of()));
         }
-    }
-
-    private ClusterState updateMapping(ClusterState currentState,
-                                       List<Index> concreteIndices,
-                                       @Nullable ColumnPolicy columnPolicy) throws IOException {
-        if (columnPolicy == null) {
-            return currentState;
-        }
-        Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
-        for (Index index : concreteIndices) {
-            final IndexMetadata indexMetadata = currentState.metadata().getIndexSafe(index);
-
-            Map<String, Object> indexMapping = indexMetadata.mapping().sourceAsMap();
-            String mappingValue = columnPolicy.toMappingValue();
-            if (indexMapping.get(ColumnPolicy.MAPPING_KEY).equals(mappingValue)) {
-                return currentState;
-            }
-            indexMapping.put(ColumnPolicy.MAPPING_KEY, mappingValue);
-            IndexMetadata.Builder imBuilder = IndexMetadata.builder(indexMetadata);
-            imBuilder.putMapping(new MappingMetadata(indexMapping)).mappingVersion(1 + imBuilder.mappingVersion());
-            metadataBuilder.put(imBuilder); // implicitly increments metadata version.
-        }
-
-        return ClusterState.builder(currentState).metadata(metadataBuilder).build();
     }
 
 

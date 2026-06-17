@@ -108,6 +108,7 @@ public final class DataTypes {
 
     public static final RegprocType REGPROC = RegprocType.INSTANCE;
     public static final RegclassType REGCLASS = RegclassType.INSTANCE;
+    public static final RegtypeType REGTYPE = RegtypeType.INSTANCE;
 
     public static final List<DataType<?>> PRIMITIVE_TYPES = List.of(
         BYTE,
@@ -175,6 +176,7 @@ public final class DataTypes {
             entry(IntervalType.ID, _ -> INTERVAL),
             entry(RowType.ID, RowType::new),
             entry(RegprocType.ID, _ -> REGPROC),
+            entry(RegtypeType.ID, _ -> REGTYPE),
             entry(RegclassType.ID, _ -> REGCLASS),
             entry(OidVectorType.ID, _ -> OIDVECTOR),
             entry(DateType.ID, _ -> DATE),
@@ -197,15 +199,16 @@ public final class DataTypes {
         entry(SHORT.id(), NUMBER_CONVERSIONS),
         entry(INTEGER.id(), Stream.concat(
             NUMBER_CONVERSIONS.stream(),
-            Stream.of(RegprocType.ID, RegclassType.ID)
+            Stream.of(RegprocType.ID, RegclassType.ID, RegtypeType.ID)
         ).collect(Collectors.toUnmodifiableSet())),
         entry(REGPROC.id(), Set.of(STRING.id(), INTEGER.id(), CHARACTER.id())),
+        entry(REGTYPE.id(), Set.of(STRING.id(), INTEGER.id(), LONG.id(), CHARACTER.id())),
         entry(REGCLASS.id(), Set.of(STRING.id(), INTEGER.id(), LONG.id(), CHARACTER.id())),
         entry(
             LONG.id(),
             Stream.concat(
                 NUMBER_CONVERSIONS.stream(),
-                Stream.of(RegprocType.ID, RegclassType.ID)
+                Stream.of(RegprocType.ID, RegclassType.ID, RegtypeType.ID)
             ).collect(Collectors.toUnmodifiableSet())
         ),
         entry(NUMERIC.id(), NUMBER_CONVERSIONS),
@@ -218,6 +221,7 @@ public final class DataTypes {
                 GEO_POINT.id(),
                 ObjectType.ID,
                 RegprocType.ID,
+                RegtypeType.ID,
                 RegclassType.ID,
                 TimeTZType.ID,
                 BitStringType.ID,
@@ -233,6 +237,7 @@ public final class DataTypes {
                 GEO_POINT.id(),
                 ObjectType.ID,
                 RegprocType.ID,
+                RegtypeType.ID,
                 RegclassType.ID,
                 TimeTZType.ID,
                 BitStringType.ID,
@@ -407,6 +412,7 @@ public final class DataTypes {
         entry(GEO_POINT.getName(), GEO_POINT),
         entry(GEO_SHAPE.getName(), GEO_SHAPE),
         entry(REGPROC.getName(), REGPROC),
+        entry(REGTYPE.getName(), REGTYPE),
         entry(REGCLASS.getName(), REGCLASS),
         entry(OIDVECTOR.getName(), OIDVECTOR),
         entry("int2", SHORT),
@@ -474,62 +480,6 @@ public final class DataTypes {
         return TYPES_BY_NAME_OR_ALIAS.get(typeName);
     }
 
-    private static final Map<String, DataType<?>> MAPPING_NAMES_TO_TYPES = Map.ofEntries(
-        entry("date", DataTypes.TIMESTAMPZ),
-        entry("string", DataTypes.STRING),
-        entry("keyword", DataTypes.STRING),
-        entry("text", DataTypes.STRING),
-        entry("boolean", DataTypes.BOOLEAN),
-        entry("byte", DataTypes.BYTE),
-        entry("short", DataTypes.SHORT),
-        entry("integer", DataTypes.INTEGER),
-        entry("long", DataTypes.LONG),
-        entry("float", DataTypes.FLOAT),
-        entry("double", DataTypes.DOUBLE),
-        entry("ip", DataTypes.IP),
-        entry("geo_point", DataTypes.GEO_POINT),
-        entry("geo_shape", DataTypes.GEO_SHAPE),
-        entry("object", UNTYPED_OBJECT),
-        entry("nested", UNTYPED_OBJECT),
-        entry("interval", DataTypes.INTERVAL),
-        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE),
-        entry("undefined", DataTypes.UNDEFINED),
-        entry(UUIDType.NAME, UUIDType.INSTANCE)
-    );
-
-    private static final Map<Integer, String> TYPE_IDS_TO_MAPPINGS = Map.ofEntries(
-        entry(TIMESTAMPZ.id(), "date"),
-        entry(TIMESTAMP.id(), "date"),
-        entry(STRING.id(), "keyword"),
-        entry(CHARACTER.id(), "keyword"),
-        entry(BYTE.id(), "byte"),
-        entry(BOOLEAN.id(), "boolean"),
-        entry(IP.id(), "ip"),
-        entry(DOUBLE.id(), "double"),
-        entry(FLOAT.id(), "float"),
-        entry(SHORT.id(), "short"),
-        entry(INTEGER.id(), "integer"),
-        entry(LONG.id(), "long"),
-        entry(ObjectType.ID, "object"),
-        entry(GEO_SHAPE.id(), "geo_shape"),
-        entry(GEO_POINT.id(), "geo_point"),
-        entry(INTERVAL.id(), "interval"),
-        entry(BitStringType.ID, "bit"),
-        entry(NumericType.ID, "numeric"),
-        entry(FloatVectorType.ID, FloatVectorType.INSTANCE_ONE.getName()),
-        entry(UndefinedType.ID, UndefinedType.INSTANCE.getName()),
-        entry(UUIDType.ID, UUIDType.NAME)
-    );
-
-    @Nullable
-    public static String esMappingNameFrom(int typeId) {
-        return TYPE_IDS_TO_MAPPINGS.get(typeId);
-    }
-
-    @Nullable
-    public static DataType<?> ofMappingName(String name) {
-        return MAPPING_NAMES_TO_TYPES.get(name);
-    }
 
     /**
      * Checks if the {@link DataType} is a primitive data type.

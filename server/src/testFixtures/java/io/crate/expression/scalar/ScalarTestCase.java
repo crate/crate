@@ -23,6 +23,7 @@ package io.crate.expression.scalar;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -96,7 +97,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             "  int_array array(int)," +
             "  short_array array(short)," +
             "  double_array array(double precision)," +
-            "  numeric_array array(numeric)," +
+            "  numeric_array array(numeric(38, 8))," +
             "  regex_pattern text," +
             "  geoshape geo_shape," +
             "  geopoint geo_point," +

@@ -142,8 +142,8 @@ public class TranslogIndexer {
         Map<String, Object> docMap = sourceParser.parse(source, ignoreUnknownColumns == false);
         IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(TranslogWriter.wrapBytes(source), _ -> null, Map.of(), shardCreatedVersion);
         for (var entry : docMap.entrySet()) {
-            var column = entry.getKey();
-            var indexer = indexers.get(column);
+            String columnName = entry.getKey();
+            var indexer = indexers.get(columnName);
             if (indexer == null) {
                 if (isEmpty(entry.getValue())) {
                     continue;

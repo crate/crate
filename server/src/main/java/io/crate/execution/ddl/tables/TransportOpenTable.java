@@ -29,7 +29,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -62,7 +61,6 @@ public class TransportOpenTable extends AbstractDDLTransportAction<OpenTableRequ
                               ThreadPool threadPool,
                               AllocationService allocationService,
                               DDLClusterStateService ddlClusterStateService,
-                              MetadataUpgradeService metadataIndexUpgradeService,
                               IndicesService indexServices) {
         super(ACTION.name(),
             transportService,
@@ -75,7 +73,6 @@ public class TransportOpenTable extends AbstractDDLTransportAction<OpenTableRequ
         openExecutor = new OpenTableClusterStateTaskExecutor(
             allocationService,
             ddlClusterStateService,
-            metadataIndexUpgradeService,
             indexServices
         );
     }

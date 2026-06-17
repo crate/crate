@@ -838,9 +838,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 columnValues.add(cell);
 
                 var cellType = cell.valueType();
-                if (r > 0 // skip first cell, we don't have to check for self-conversion
-                        && !cellType.isConvertableTo(targetType, false)
-                        && ArrayType.unnest(targetType).id() != DataTypes.UNDEFINED.id()) {
+                if (!cellType.isConvertableTo(targetType, false)
+                    && ArrayType.unnest(targetType).id() != DataTypes.UNDEFINED.id()) {
                     throw new IllegalArgumentException(String.format(
                         Locale.ENGLISH,
                         "Cannot convert VALUES element in row %d of type `%s` to `%s` for %s",

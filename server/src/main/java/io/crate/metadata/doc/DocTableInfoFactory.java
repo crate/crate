@@ -71,6 +71,7 @@ import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TableInfoFactory;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
+import io.crate.metadata.upgrade.MetadataIndexUpgrader;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CheckConstraint;
@@ -80,6 +81,7 @@ import io.crate.types.BitStringType;
 import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DataTypesBwc;
 import io.crate.types.FloatVectorType;
 import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
@@ -193,17 +195,25 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
      */
     @Deprecated
     @Nullable
-    public DocTableInfo create(IndexMetadata indexMetadata, int newTableOID) {
+    public DocTableInfo create(IndexMetadata indexMetadata, @Nullable IndexTemplateMetadata template, int newTableOID) {
         String indexName = indexMetadata.getIndex().getName();
         if (IndexName.isDangling(indexName)) {
             return null;
         }
+        if (indexMetadata.mapping() == null) {
+            // IndexMetadata upgraded to 6.4 has no mapping; only RelationMetadata.Table
+            // -> Must use DocTableInfo created from RelationMetadata.Table
+            return null;
+        }
+        MappingMetadata updatedIndexMetadata = MetadataIndexUpgrader.createUpdatedIndexMetadata(
+            indexMetadata.mapping(),
+            template
+        );
         RelationName relationName = RelationName.fromIndexName(indexName);
         Settings tableParameters = indexMetadata.getSettings();
         Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableParameters);
         Version versionUpgraded = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
-        MappingMetadata mapping = indexMetadata.mapping();
-        Map<String, Object> mappingSource = mapping == null ? Map.of() : mapping.sourceAsMap();
+        Map<String, Object> mappingSource = updatedIndexMetadata == null ? Map.of() : updatedIndexMetadata.sourceAsMap();
         return create(
             relationName,
             mappingSource,
@@ -728,7 +738,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                 Integer dimensions = (Integer) columnProperties.get("dimensions");
                 yield new FloatVectorType(dimensions);
             }
-            default -> Objects.requireNonNullElse(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
+            default -> Objects.requireNonNullElse(DataTypesBwc.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
         };
     }
 }

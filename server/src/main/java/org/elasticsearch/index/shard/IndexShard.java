@@ -73,7 +73,6 @@ import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.support.replication.PendingReplicationActions;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.RecoverySource.SnapshotRecoverySource;
@@ -149,7 +148,6 @@ import io.crate.exceptions.InvalidArgumentException;
 import io.crate.execution.dml.TranslogIndexer;
 import io.crate.execution.dml.TranslogMappingUpdateException;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.doc.DocTableInfoFactory;
 
 public class IndexShard extends AbstractIndexShardComponent {
 
@@ -233,8 +231,6 @@ public class IndexShard extends AbstractIndexShardComponent {
 
     private final Analyzer indexAnalyzer;
 
-    private final DocTableInfoFactory tableFactory;
-
     public IndexShard(
             NodeContext nodeContext,
             ShardRouting shardRouting,
@@ -250,7 +246,8 @@ public class IndexShard extends AbstractIndexShardComponent {
             BigArrays bigArrays,
             List<IndexingOperationListener> listeners,
             Runnable globalCheckpointSyncer,
-            RetentionLeaseSyncer retentionLeaseSyncer, CircuitBreakerService circuitBreakerService) throws IOException {
+            RetentionLeaseSyncer retentionLeaseSyncer,
+            CircuitBreakerService circuitBreakerService) throws IOException {
         super(shardRouting.shardId(), indexSettings);
         assert shardRouting.initializing();
         this.shardRouting = shardRouting;
@@ -269,7 +266,6 @@ public class IndexShard extends AbstractIndexShardComponent {
         state = IndexShardState.CREATED;
         this.path = path;
         this.circuitBreakerService = circuitBreakerService;
-        this.tableFactory = new DocTableInfoFactory(nodeContext);
         /* create engine config */
         logger.debug("state: [CREATED]");
 
@@ -1749,7 +1745,7 @@ public class IndexShard extends AbstractIndexShardComponent {
             // we are the first primary, recover from the gateway
             // if its post api allocation, the index should exists
             assert shardRouting.primary() : "recover from local shards only makes sense if the shard is a primary shard";
-            StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, indexMetadata -> tableFactory.create(indexMetadata, Metadata.OID_UNASSIGNED));
+            StoreRecovery storeRecovery = new StoreRecovery(shardId, logger);
             storeRecovery.recoverFromLocalShards(this, snapshots, recoveryListener);
             success = true;
         } finally {
@@ -1764,16 +1760,16 @@ public class IndexShard extends AbstractIndexShardComponent {
         // if its post api allocation, the index should exists
         assert shardRouting.primary() : "recover from store only makes sense if the shard is a primary shard";
         assert shardRouting.initializing() : "can only start recovery on initializing shard";
-        StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, indexMetadata -> tableFactory.create(indexMetadata, Metadata.OID_UNASSIGNED));
+        StoreRecovery storeRecovery = new StoreRecovery(shardId, logger);
         storeRecovery.recoverFromStore(this, listener);
     }
 
     public void restoreFromRepository(Repository repository, ActionListener<Boolean> listener) {
         try {
             assert shardRouting.primary() : "recover from store only makes sense if the shard is a primary shard";
-            assert recoveryState.getRecoverySource().getType() == RecoverySource.Type.SNAPSHOT : "invalid recovery type: " +
-                recoveryState.getRecoverySource();
-            StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, indexMetadata -> tableFactory.create(indexMetadata, Metadata.OID_UNASSIGNED));
+            assert recoveryState.getRecoverySource().getType() == RecoverySource.Type.SNAPSHOT
+                : "invalid recovery type: " + recoveryState.getRecoverySource();
+            StoreRecovery storeRecovery = new StoreRecovery(shardId, logger);
             storeRecovery.recoverFromRepository(this, repository, listener);
         } catch (Exception e) {
             listener.onFailure(e);

@@ -46,6 +46,7 @@ import com.carrotsearch.randomizedtesting.generators.BiasedNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
+import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
@@ -70,6 +71,8 @@ import io.crate.types.ObjectType;
 import io.crate.types.ObjectType.Builder;
 import io.crate.types.Regclass;
 import io.crate.types.RegclassType;
+import io.crate.types.Regtype;
+import io.crate.types.RegtypeType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
@@ -159,6 +162,13 @@ public final class DataTypeTesting {
                 return () -> {
                     int oid = random.nextInt();
                     return (T) new Regclass(oid, String.valueOf(oid));
+                };
+
+            case RegtypeType.ID:
+                return () -> {
+                    int[] oids = PGTypes.oids();
+                    int oid = oids[random.nextInt(oids.length)];
+                    return (T) new Regtype(oid);
                 };
 
             case GeoPointType.ID:

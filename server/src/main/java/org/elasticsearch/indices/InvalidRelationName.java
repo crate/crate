@@ -20,21 +20,32 @@
 package org.elasticsearch.indices;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 
+import io.crate.exceptions.UnscopedException;
 import io.crate.rest.action.HttpErrorStatus;
 
-public class InvalidIndexNameException extends ElasticsearchException {
+public class InvalidRelationName extends ElasticsearchException implements UnscopedException {
 
-    public InvalidIndexNameException(String name, String desc) {
-        super("Invalid index name [" + name + "], " + desc);
-        setIndex(name);
+    public InvalidRelationName(String tableName, String desc) {
+        super(String.format(Locale.ENGLISH, "Relation name '%s' is invalid. %s", tableName, desc));
+        setIndex(tableName);
     }
 
-    public InvalidIndexNameException(StreamInput in) throws IOException {
+    public InvalidRelationName(String tableName, Throwable cause) {
+        super(String.format(Locale.ENGLISH, "Relation name '%s' is invalid.", tableName), cause);
+        setIndex(tableName);
+    }
+
+    public InvalidRelationName(StreamInput in) throws IOException {
         super(in);
+    }
+
+    public String tableName() {
+        return getIndex().getName();
     }
 
     @Override

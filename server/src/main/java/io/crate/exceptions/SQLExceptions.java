@@ -38,7 +38,6 @@ import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.ElasticsearchWrapperException;
-import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.UnavailableShardsException;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -49,8 +48,6 @@ import org.elasticsearch.index.engine.EngineException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
-import org.elasticsearch.indices.InvalidIndexNameException;
-import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.NoSeedNodeLeftException;
@@ -61,7 +58,6 @@ import org.jspecify.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
 import io.crate.common.exceptions.Exceptions;
-import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
 
 public class SQLExceptions {
@@ -205,18 +201,6 @@ public class SQLExceptions {
             return new DuplicateKeyException(
                 ((EngineException) unwrappedError).getIndex().getName(),
                 "A document with the same primary key exists already", unwrappedError);
-        } else if (unwrappedError instanceof ResourceAlreadyExistsException) {
-            return new RelationAlreadyExists(((ResourceAlreadyExistsException) unwrappedError).getIndex(), unwrappedError);
-        } else if ((unwrappedError instanceof InvalidIndexNameException)) {
-            if (unwrappedError.getMessage().contains("already exists as alias")) {
-                // treat an alias like a table as aliases are not officially supported
-                return new RelationAlreadyExists(((InvalidIndexNameException) unwrappedError).getIndex(),
-                    unwrappedError);
-            }
-            return new InvalidRelationName(((InvalidIndexNameException) unwrappedError).getIndex().getName(), unwrappedError);
-        } else if (unwrappedError instanceof InvalidIndexTemplateException) {
-            PartitionName partitionName = PartitionName.fromIndexOrTemplate(((InvalidIndexTemplateException) unwrappedError).name());
-            return new InvalidRelationName(partitionName.relationName().fqn(), unwrappedError);
         } else if (unwrappedError instanceof IndexNotFoundException) {
             return new RelationUnknown(((IndexNotFoundException) unwrappedError).getIndex().getName(), unwrappedError);
         } else if (unwrappedError instanceof InterruptedException) {

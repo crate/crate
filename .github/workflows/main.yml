@@ -34,7 +34,7 @@ jobs:
       - name: Setup Maven Java
         uses: actions/setup-java@v5
         with:
-          java-version: "26.0.1"
+          java-version: "25.0.3"
           distribution: "temurin"
           cache: maven
 
@@ -43,7 +43,6 @@ jobs:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
         run: |
           mvn test \
-            -B \
             -Dtests.crate.run-windows-incompatible=true \
             -DforkCount=2 \
             -DthreadCount=2 \
@@ -66,7 +65,7 @@ jobs:
       - name: Setup Maven Java
         uses: actions/setup-java@v5
         with:
-          java-version: "26.0.1"
+          java-version: "25.0.3"
           distribution: "temurin"
           cache: maven
       - name: Run forbiddenapis:check
@@ -83,7 +82,7 @@ jobs:
       - name: Setup Maven Java
         uses: actions/setup-java@v5
         with:
-          java-version: "26.0.1"
+          java-version: "25.0.3"
           distribution: "temurin"
       - name: Run checkstyle
         run: mvn compile checkstyle:checkstyle

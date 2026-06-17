@@ -84,6 +84,21 @@ Breaking Changes
   it interpreted ``65`` as a character sequence, resulting in a ``"65"``
   string.
 
+- Changed type validation for ``INSERT INTO`` statements to be consistent
+  regardless of the number of ``VALUES`` rows provided. Previously, implicit
+  casts were permitted for single-row inserts but rejected for multi-row
+  inserts. For example, an object array could be cast to a string array when
+  only one row was given, but not when multiple rows were given.
+
+  Example: given a table with a ``text[]`` column ``xs`` and a parameter
+  ``$1`` bound to an object array ``[{"x": 10}]``:
+
+  ::
+
+     INSERT INTO tbl (xs) VALUES ($1);         -- previously succeeded, now fails
+     INSERT INTO tbl (xs) VALUES ($1), ($1);   -- previously failed, still fails
+
+
 Deprecations
 ============
 
@@ -103,8 +118,8 @@ SQL Standard and PostgreSQL Compatibility
 
 - Added a :ref:`information_schema.collations <collations>` table.
 
-- Added a ``catalog_name`` column to :ref:`information_schema.schemata
-  <schemata>`.
+- `HyeonSeon Won <https://github.com/won-seoop>`_ Added the ``catalog_name``
+  column to :ref:`information_schema.schemata <schemata>`.
 
 - `Dhruv Patel <https://github.com/DHRUV6029>`_ added the ``pg_catalog.pg_user``
   table for PostgreSQL compatibility, resolving issues with tools like
@@ -113,23 +128,26 @@ SQL Standard and PostgreSQL Compatibility
 Data Types
 ----------
 
-- Added support for ``geo_point`` values in JSON array string format, for
-  example ``"[14.988999953493476, 51.10299998894334]"``. This allows CSV files
+- `Yogesh kumar pandey <https://github.com/reachyogeshp-afk>`_ added support
+  for ``geo_point`` values in JSON array string format, for example
+  ``"[14.988999953493476, 51.10299998894334]"``. This allows CSV files
   containing ``geo_point`` values in this format to be imported without
   transforming the source data first.
+- Added the :ref:`regtype <type-regtype>` data type
 
 
 Scalar and Aggregation Functions
 --------------------------------
 
-- Added support for adding or subtracting intervals to values of type :ref:`date
-  <type-date>`.
+- `Varun Kulkarni <https://github.com/vvkulkarni360>`_ Added support for adding
+   or subtracting intervals to values of type :ref:`date<type-date>`.
 
 - Added support for ``TH`` and ``th`` template patterns to the :ref:`to_char
   <scalar-to_char>` scalar function which can be used to add a ordinal suffix
   for numbers.
 
-- Added support for marking literal characters with double quotes in the
+- `Varun Kulkarni <https://github.com/vvkulkarni360>`_  added
+  support for marking literal characters with double quotes in the
   :ref:`to_char <scalar-to_char>` template pattern. Characters enclosed in
   ``"..."`` are treated as literal text and not interpreted as formatting
   tokens. Backslash escaping within double-quoted sections is also supported
@@ -143,6 +161,10 @@ Scalar and Aggregation Functions
   three buckets <aggregation-largest-triangle-three-buckets>` aggregation
   function for downsampling data using the Largest Triangle Three Buckets
   algorithm
+
+- Added the :ref:`pg_get_constraintdef() <scalar-pg_get_constraintdef>` scalar function to
+  improve PostgreSQL compatibility for ORM schema introspection (e.g. Prisma,
+  TypeORM).
 
 Performance and Resilience Improvements
 ---------------------------------------

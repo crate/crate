@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-import org.apache.lucene.index.PointValues;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -353,17 +352,6 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
 
     @Override
     public void addMappingOptions(Map<String, Object> mapping) {
-        if (precision == null || scale == null) {
-            // Scale would be lost with the current encoding schemes used in NumericStorage
-            // The error is raised here to trigger this early on CREATE TABLE instead of
-            // INSERT INTO
-            throw new UnsupportedOperationException(
-                "NUMERIC storage is only supported if precision and scale are specified");
-        }
-        if (maxBytes() > PointValues.MAX_NUM_BYTES) {
-            throw new UnsupportedOperationException(
-                "Precision for NUMERIC(" + precision + ") is too large. Only up to 38 can be stored");
-        }
         mapping.put("precision", precision);
         mapping.put("scale", scale);
     }

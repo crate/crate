@@ -35,20 +35,12 @@ public final class IndexNotFoundException extends ResourceNotFoundException {
     }
 
     public IndexNotFoundException(String index) {
-        this(index, (Throwable) null);
-    }
-
-    public IndexNotFoundException(String index, Throwable cause) {
-        super(String.format(Locale.ENGLISH, "no such index %s", index), cause);
+        super(String.format(Locale.ENGLISH, "no such index %s", index));
         setIndex(index);
     }
 
     public IndexNotFoundException(Index index) {
-        this(index, null);
-    }
-
-    public IndexNotFoundException(Index index, Throwable cause) {
-        super(String.format(Locale.ENGLISH, "no such index %s", index), cause);
+        super(String.format(Locale.ENGLISH, "no such index %s", index));
         setIndex(index);
     }
 

@@ -470,6 +470,30 @@ public class PgCatalogITest extends IntegTestCase {
         );
     }
 
+    @Test
+    public void test_pg_get_constraintdef_renders_primary_key_and_check() throws Exception {
+        execute("CREATE TABLE doc.tbl (" +
+            "int_col int," +
+            "long_col bigint," +
+            "checked int CONSTRAINT positive CHECK(checked > 0)," +
+            "PRIMARY KEY (int_col, long_col))"
+        );
+        // Prisma/TypeORM-style introspection query joining pg_constraint and resolving the def.
+        response = execute("""
+                SELECT
+                    cn.conname,
+                    pg_catalog.pg_get_constraintdef(cn.oid)
+                FROM pg_catalog.pg_constraint cn
+                JOIN pg_catalog.pg_class c ON cn.conrelid = c.oid
+                WHERE c.relname = 'tbl'
+                ORDER BY cn.conname;
+            """);
+        assertThat(response).hasRows(
+            "positive| CHECK (\"checked\" > 0)",
+            "tbl_pkey| PRIMARY KEY (int_col, long_col)"
+        );
+    }
+
     @UseRandomizedSchema(random = false)
     @Test
     public void test_pg_class_oid_equals_cast_of_string_to_regclass() {
@@ -611,5 +635,16 @@ public class PgCatalogITest extends IntegTestCase {
             """);
         // Verify query runs without error and returns rows for each schema
         assertThat(response).hasColumns("Name", "Owner", "Comment");
+    }
+
+    @Test
+    public void test_regtype_bidirectional_cast_oid_and_data_type_name() {
+        execute("""
+            SELECT 'varchar'::regtype,
+                   'varchar'::regtype::int,
+                   1043::regtype,
+                   1043::regtype::text;
+            """);
+        assertThat(response).hasRows("varchar| 1043| varchar| varchar");
     }
 }

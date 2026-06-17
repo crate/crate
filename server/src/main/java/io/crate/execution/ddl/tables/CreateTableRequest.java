@@ -46,7 +46,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.DataTypes;
+import io.crate.types.DataTypesBwc;
 
 /**
  * Creates a table represented by an ES index or an ES template (partitioned table).
@@ -170,7 +170,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
                 Reference reference = columns.get(refIdx);
                 out.writeVInt(2);
                 out.writeString(column.fqn());
-                out.writeString(DataTypes.esMappingNameFrom(reference.valueType().id()));
+                out.writeString(DataTypesBwc.esMappingNameFrom(reference.valueType().id()));
             }
         }
     }
