@@ -80,38 +80,6 @@ public class IndicesOptions {
         EnumSet.of(WildcardStates.OPEN, WildcardStates.CLOSED)
     );
 
-    /**
-     * indices option that requires every specified index to exist, expands
-     * wildcards to both open and closed indices and allows that no indices are
-     * resolved from wildcard expressions
-     * (not returning an error).
-     */
-    public static final IndicesOptions STRICT_EXPAND_OPEN_CLOSED = new IndicesOptions(
-        EnumSet.of(Option.ALLOW_NO_INDICES),
-        EnumSet.of(WildcardStates.OPEN, WildcardStates.CLOSED)
-    );
-
-    /**
-     * indices options that requires every specified index to exist, expands
-     * wildcards only to open indices, allows that no indices are resolved from
-     * wildcard expressions (not returning an error) and forbids the use of closed
-     * indices by throwing an error.
-     */
-    public static final IndicesOptions STRICT_EXPAND_OPEN_FORBID_CLOSED = new IndicesOptions(
-        EnumSet.of(Option.ALLOW_NO_INDICES, Option.FORBID_CLOSED_INDICES),
-        EnumSet.of(WildcardStates.OPEN)
-    );
-
-    /**
-     * indices option that requires each specified index or alias to exist, doesn't
-     * expand wildcards and throws error if any of the aliases resolves to multiple
-     * indices
-     */
-    public static final IndicesOptions STRICT_SINGLE_INDEX_NO_EXPAND_FORBID_CLOSED = new IndicesOptions(
-        EnumSet.of(Option.FORBID_CLOSED_INDICES),
-        EnumSet.noneOf(WildcardStates.class)
-    );
-
     private final EnumSet<Option> options;
     private final EnumSet<WildcardStates> expandWildcards;
 
@@ -170,19 +138,6 @@ public class IndicesOptions {
 
     public static IndicesOptions readIndicesOptions(StreamInput in) throws IOException {
         return new IndicesOptions(in.readEnumSet(Option.class), in.readEnumSet(WildcardStates.class));
-    }
-
-    public static IndicesOptions fromOptions(boolean ignoreUnavailable,
-                                             boolean allowNoIndices,
-                                             boolean expandToOpenIndices,
-                                             boolean expandToClosedIndices) {
-        return fromOptions(
-            ignoreUnavailable,
-            allowNoIndices,
-            expandToOpenIndices,
-            expandToClosedIndices,
-            false
-        );
     }
 
     public static IndicesOptions fromOptions(boolean ignoreUnavailable,
