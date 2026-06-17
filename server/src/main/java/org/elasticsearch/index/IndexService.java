@@ -49,10 +49,9 @@ import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.Assertions;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -82,20 +81,17 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dml.TranslogIndexer;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
 public class IndexService extends AbstractIndexComponent implements Iterable<IndexShard> {
@@ -105,9 +101,6 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
     private final ShardStoreDeleter shardStoreDeleter;
     private final QueryCache queryCache;
     private final IndexStorePlugin.DirectoryFactory directoryFactory;
-    private Supplier<TranslogIndexer> getTranslogIndexer = () -> {
-        throw new IllegalStateException("Translog called before schema validation");
-    };
     private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
     private volatile Map<Integer, IndexShard> shards = emptyMap();
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -130,6 +123,10 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
     private IndexAnalyzers indexAnalyzers;
     private final Analyzer indexAnalyzer;
     private final NodeContext nodeContext;
+    private final Supplier<TableInfo> getTableInfo;
+
+    private volatile TableInfo currentTable;
+    private volatile Supplier<TranslogIndexer> getTranslogIndexer = null;
 
     public IndexService(
             NodeContext nodeContext,
@@ -152,6 +149,7 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
         this.indexSettings = indexSettings;
         this.circuitBreakerService = circuitBreakerService;
         this.analysisRegistry = analysisRegistry;
+        this.getTableInfo = getTableInfo;
         if (indexSettings.getIndexMetadata().getState() == IndexMetadata.State.CLOSE &&
                 indexCreationContext == IndexCreationContext.CREATE_INDEX) { // metadata verification needs a mapper service
             this.indexAnalyzers = null;
@@ -164,7 +162,8 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
 
                 @Override
                 protected Analyzer getWrappedAnalyzer(String storageIdent) {
-                    if (getTableInfo.get() instanceof DocTableInfo docTable) {
+                    TableInfo tableInfo = getTable();
+                    if (tableInfo instanceof DocTableInfo docTable) {
                         Reference reference = docTable.getReference(storageIdent);
                         if (reference instanceof IndexReference indexRef) {
                             NamedAnalyzer namedAnalyzer = indexAnalyzers.get(indexRef.analyzer());
@@ -191,6 +190,15 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
         this.globalCheckpointTask = new AsyncGlobalCheckpointTask(this);
         this.retentionLeaseSyncTask = new AsyncRetentionLeaseSyncTask(this);
         updateFsyncTaskIfNecessary();
+    }
+
+    private TableInfo getTable() {
+        TableInfo currentTable = this.currentTable;
+        if (currentTable == null) {
+            currentTable = getTableInfo.get();
+            this.currentTable = currentTable;
+        }
+        return currentTable;
     }
 
     public enum IndexCreationContext {
@@ -398,7 +406,8 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
                 bigArrays,
                 indexingOperationListeners,
                 () -> globalCheckpointSyncer.accept(shardId),
-                retentionLeaseSyncer, circuitBreakerService
+                retentionLeaseSyncer,
+                circuitBreakerService
             );
             eventListener.indexShardStateChanged(indexShard, null, indexShard.state(), "shard created");
             eventListener.afterIndexShardCreated(indexShard);
@@ -493,38 +502,27 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
         return indexSettings;
     }
 
-    public void validateMapping(Metadata metadata, final IndexMetadata newIndexMetadata) {
-        Index index = newIndexMetadata.getIndex();
-        String indexName = index.getName();
-        if (IndexName.isDangling(indexName)) {
-            return;
-        }
-        RelationMetadata relation = metadata.getRelation(index.getUUID());
-        if (relation == null) {
-            throw new IndexNotFoundException(index);
-        }
-        RelationName relationName = relation.name();
-        SchemaInfo schemaInfo = nodeContext.schemas().getOrCreateSchemaInfo(relationName.schema());
-        var tableInfo = schemaInfo.create(relationName, metadata);
-        TranslogIndexer indexer = getTranslogIndexer(tableInfo);
-        this.getTranslogIndexer = () -> indexer;
-    }
-
-    private <T extends TableInfo> TranslogIndexer getTranslogIndexer(T tableInfo) {
-        TranslogIndexer indexer;
-        if (tableInfo instanceof DocTableInfo docTableInfo) {
-            indexer = new TranslogIndexer(docTableInfo, this.indexSettings.getIndexVersionCreated());
-        } else if (tableInfo instanceof BlobTableInfo blobTableInfo) {
-            indexer = new TranslogIndexer(blobTableInfo, this.indexSettings.getIndexVersionCreated());
-        } else {
-            throw new UnsupportedFeatureException("Unsupported table type: " + tableInfo.getClass().getName());
-        }
-        return indexer;
+    public void updateMapping() {
+        this.currentTable = null;
+        this.getTranslogIndexer = null;
     }
 
     @VisibleForTesting
     TranslogIndexer getTranslogIndexer() {
-        return this.getTranslogIndexer.get();
+        Supplier<TranslogIndexer> getTranslogIndexer = this.getTranslogIndexer;
+        if (getTranslogIndexer == null) {
+            Version indexVersionCreated = indexSettings.getIndexVersionCreated();
+            TableInfo table = getTable();
+            TranslogIndexer translogIndexer = switch (table) {
+                case DocTableInfo docTable -> new TranslogIndexer(docTable, indexVersionCreated);
+                case BlobTableInfo blobTable -> new TranslogIndexer(blobTable, indexVersionCreated);
+                default -> throw new UnsupportedFeatureException(
+                    "Unsupported table type: " + table.getClass().getSimpleName());
+            };
+            this.getTranslogIndexer = () -> translogIndexer;
+            return translogIndexer;
+        }
+        return getTranslogIndexer.get();
     }
 
     private class StoreCloseListener implements Store.OnClose {

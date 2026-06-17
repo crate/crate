@@ -47,7 +47,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -67,8 +66,6 @@ import io.crate.common.StringUtils;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.execution.ddl.tables.MappingUtil;
-import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
@@ -1198,17 +1195,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         for (var check : checkConstraints) {
             checkConstraintMap.put(check.name(), check.expressionStr());
         }
-        AllocPosition allocPosition = AllocPosition.forTable(this);
-        Map<String, Object> mapping = Map.of("default", MappingUtil.createMapping(
-            allocPosition,
-            pkConstraintName,
-            allColumns,
-            primaryKeys,
-            checkConstraintMap,
-            Lists.map(partitionedByColumns, Reference::column),
-            columnPolicy,
-            clusteredBy == SysColumns.ID.COLUMN ? null : clusteredBy
-        ));
         String[] concreteIndices = concreteIndices(metadata);
         ArrayList<String> indexUUIDs = new ArrayList<>(concreteIndices.length);
         for (String indexUUID : concreteIndices) {
@@ -1241,7 +1227,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             }
             metadataBuilder.put(
                 IndexMetadata.builder(indexMetadata)
-                    .putMapping(new MappingMetadata(mapping))
                     .settings(settings)
                     .numberOfShards(indexNumberOfShards)
                     .mappingVersion(indexMetadata.getMappingVersion() + 1)

@@ -480,62 +480,6 @@ public final class DataTypes {
         return TYPES_BY_NAME_OR_ALIAS.get(typeName);
     }
 
-    private static final Map<String, DataType<?>> MAPPING_NAMES_TO_TYPES = Map.ofEntries(
-        entry("date", DataTypes.TIMESTAMPZ),
-        entry("string", DataTypes.STRING),
-        entry("keyword", DataTypes.STRING),
-        entry("text", DataTypes.STRING),
-        entry("boolean", DataTypes.BOOLEAN),
-        entry("byte", DataTypes.BYTE),
-        entry("short", DataTypes.SHORT),
-        entry("integer", DataTypes.INTEGER),
-        entry("long", DataTypes.LONG),
-        entry("float", DataTypes.FLOAT),
-        entry("double", DataTypes.DOUBLE),
-        entry("ip", DataTypes.IP),
-        entry("geo_point", DataTypes.GEO_POINT),
-        entry("geo_shape", DataTypes.GEO_SHAPE),
-        entry("object", UNTYPED_OBJECT),
-        entry("nested", UNTYPED_OBJECT),
-        entry("interval", DataTypes.INTERVAL),
-        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE),
-        entry("undefined", DataTypes.UNDEFINED),
-        entry(UUIDType.NAME, UUIDType.INSTANCE)
-    );
-
-    private static final Map<Integer, String> TYPE_IDS_TO_MAPPINGS = Map.ofEntries(
-        entry(TIMESTAMPZ.id(), "date"),
-        entry(TIMESTAMP.id(), "date"),
-        entry(STRING.id(), "keyword"),
-        entry(CHARACTER.id(), "keyword"),
-        entry(BYTE.id(), "byte"),
-        entry(BOOLEAN.id(), "boolean"),
-        entry(IP.id(), "ip"),
-        entry(DOUBLE.id(), "double"),
-        entry(FLOAT.id(), "float"),
-        entry(SHORT.id(), "short"),
-        entry(INTEGER.id(), "integer"),
-        entry(LONG.id(), "long"),
-        entry(ObjectType.ID, "object"),
-        entry(GEO_SHAPE.id(), "geo_shape"),
-        entry(GEO_POINT.id(), "geo_point"),
-        entry(INTERVAL.id(), "interval"),
-        entry(BitStringType.ID, "bit"),
-        entry(NumericType.ID, "numeric"),
-        entry(FloatVectorType.ID, FloatVectorType.INSTANCE_ONE.getName()),
-        entry(UndefinedType.ID, UndefinedType.INSTANCE.getName()),
-        entry(UUIDType.ID, UUIDType.NAME)
-    );
-
-    @Nullable
-    public static String esMappingNameFrom(int typeId) {
-        return TYPE_IDS_TO_MAPPINGS.get(typeId);
-    }
-
-    @Nullable
-    public static DataType<?> ofMappingName(String name) {
-        return MAPPING_NAMES_TO_TYPES.get(name);
-    }
 
     /**
      * Checks if the {@link DataType} is a primitive data type.

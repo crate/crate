@@ -179,6 +179,9 @@ public class Publication implements Writeable {
                         .put(REPLICATION_INDEX_ROUTING_ACTIVE.getKey(), false)
                 );
             }
+            // Add empty dummy mapping given that we're faking responses from
+            // old nodes which would have some mapping
+            publishedIndexMetadata.putMapping("{}");
             metadataBuilder.put(publishedIndexMetadata);
         }
     }

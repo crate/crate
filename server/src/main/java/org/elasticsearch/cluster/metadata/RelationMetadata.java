@@ -260,6 +260,12 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata>
 
             assert settings.hasValue(IndexMetadata.SETTING_VERSION_CREATED)
                 : "Must have version created setting";
+
+            assert columns.stream()
+                .map(ref -> ref.valueType().storageSupport())
+                .filter(x -> x == null)
+                .count() == 0
+                : "All column types must have storage support";
         }
 
 

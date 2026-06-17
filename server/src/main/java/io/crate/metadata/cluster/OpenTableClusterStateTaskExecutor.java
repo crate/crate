@@ -24,13 +24,11 @@ package io.crate.metadata.cluster;
 import java.util.List;
 
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
@@ -50,16 +48,13 @@ public class OpenTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
 
     private final AllocationService allocationService;
     private final DDLClusterStateService ddlClusterStateService;
-    private final MetadataUpgradeService metadataIndexUpgradeService;
     private final IndicesService indicesService;
 
     public OpenTableClusterStateTaskExecutor(AllocationService allocationService,
                                              DDLClusterStateService ddlClusterStateService,
-                                             MetadataUpgradeService metadataIndexUpgradeService,
                                              IndicesService indexServices) {
         this.allocationService = allocationService;
         this.ddlClusterStateService = ddlClusterStateService;
-        this.metadataIndexUpgradeService = metadataIndexUpgradeService;
         this.indicesService = indexServices;
     }
 
@@ -90,8 +85,6 @@ public class OpenTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
         }
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
             .blocks(currentState.blocks());
-        final Version minIndexCompatibilityVersion = currentState.nodes().getMaxNodeVersion()
-            .minimumIndexCompatibilityVersion();
         for (IndexMetadata closedMetadata : closedIndices) {
             final String indexUUID = closedMetadata.getIndex().getUUID();
             blocksBuilder.removeIndexBlockWithId(indexUUID, TransportCloseTable.INDEX_CLOSED_BLOCK_ID);
@@ -107,15 +100,6 @@ public class OpenTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
                 .settingsVersion(closedMetadata.getSettingsVersion() + 1)
                 .settings(updatedSettings)
                 .build();
-
-            // The index might be closed because we couldn't import it due to old incompatible version
-            // We need to check that this index can be upgraded to the current version
-            updatedIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(
-                updatedIndexMetadata,
-                null,
-                minIndexCompatibilityVersion,
-                currentState.metadata()
-            );
             try {
                 indicesService.verifyIndexMetadata(updatedIndexMetadata, updatedIndexMetadata);
             } catch (Exception e) {

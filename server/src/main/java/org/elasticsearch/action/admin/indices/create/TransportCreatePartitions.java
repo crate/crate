@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
@@ -46,7 +45,6 @@ import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
@@ -72,7 +70,6 @@ import org.joda.time.DateTimeZone;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -238,17 +235,6 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
 
             // "Probe" creation of the first index passed validation. Now add all indices to the cluster state metadata and update routing.
 
-            final MappingMetadata mapping = new MappingMetadata(Map.of("default", MappingUtil.createMapping(
-                MappingUtil.AllocPosition.forTable(docTableInfo),
-                table.pkConstraintName(),
-                table.columns(),
-                table.primaryKeys(),
-                table.checkConstraints(),
-                table.partitionedBy(),
-                table.columnPolicy(),
-                table.routingColumn()
-            )));
-
             RoutingTable.Builder routingTableBuilder = RoutingTable.builder(currentState.routingTable());
             ArrayList<String> indexUUIDs = new ArrayList<>(partitions.size());
             for (PartitionName partition : partitions) {
@@ -263,7 +249,6 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                         .put(IndexMetadata.SETTING_INDEX_UUID, indexUUID)
                     );
 
-                indexMetadataBuilder.putMapping(mapping);
                 indexMetadataBuilder.state(IndexMetadata.State.OPEN);
 
                 final IndexMetadata indexMetadata;

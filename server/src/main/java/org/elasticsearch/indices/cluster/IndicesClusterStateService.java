@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,6 +50,8 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateApplier;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -64,6 +67,7 @@ import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.env.ShardLockObtainFailedException;
 import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.seqno.GlobalCheckpointSyncAction;
@@ -89,6 +93,7 @@ import io.crate.blob.v2.BlobIndicesService;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
+import io.crate.metadata.IndexName;
 import io.crate.replication.logical.ShardReplicationService;
 
 public class IndicesClusterStateService extends AbstractLifecycleComponent implements ClusterStateApplier {
@@ -458,7 +463,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             IndexService indexService = null;
             try {
                 indexService = indicesService.createIndex(indexMetadata, buildInIndexListener, true);
-                indexService.validateMapping(state.metadata(), indexMetadata);
+                indexService.updateMapping();
             } catch (Exception e) {
                 final String failShardReason;
                 if (indexService == null) {
@@ -479,12 +484,23 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             return;
         }
         final ClusterState state = event.state();
+        Metadata metadata = state.metadata();
         for (IndexService indexService : indicesService) {
             final Index index = indexService.index();
             final IndexMetadata currentIndexMetadata = indexService.getIndexSettings().getIndexMetadata();
-            final IndexMetadata newIndexMetadata = state.metadata().index(index);
+            final IndexMetadata newIndexMetadata = metadata.index(index);
             assert newIndexMetadata != null : "index " + index + " should have been removed by deleteIndices";
-            if (ClusterChangedEvent.indexMetadataChanged(currentIndexMetadata, newIndexMetadata)) {
+
+            RelationMetadata relation = metadata.getRelation(index.getUUID());
+            if (relation == null && !IndexName.isDangling(index.getName())) {
+                indicesService.removeIndex(indexService.index(), FAILURE, "removing index (RelationMetadata missing)");
+                failShards(state, index, "RelationMetadata missing", new IndexNotFoundException(index));
+                continue;
+            }
+            RelationMetadata oldRelation = event.previousState().metadata().getRelation(index.getUUID());
+
+            boolean indexMetadataChanged = ClusterChangedEvent.indexMetadataChanged(currentIndexMetadata, newIndexMetadata);
+            if (indexMetadataChanged || !Objects.equals(relation, oldRelation)) {
                 String reason = null;
                 try {
                     reason = "metadata update failed";
@@ -496,19 +512,23 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                     }
 
                     reason = "mapping update failed";
-                    indexService.validateMapping(state.metadata(), newIndexMetadata);
+                    indexService.updateMapping();
                 } catch (Exception e) {
                     indicesService.removeIndex(indexService.index(), FAILURE, "removing index (" + reason + ")");
 
                     // fail shards that would be created or updated by createOrUpdateShards
-                    RoutingNode localRoutingNode = state.getRoutingNodes().node(state.nodes().getLocalNodeId());
-                    if (localRoutingNode != null) {
-                        for (final ShardRouting shardRouting : localRoutingNode) {
-                            if (shardRouting.index().equals(index) && failedShardsCache.containsKey(shardRouting.shardId()) == false) {
-                                sendFailShard(shardRouting, "failed to update index (" + reason + ")", e, state);
-                            }
-                        }
-                    }
+                    failShards(state, index, reason, e);
+                }
+            }
+        }
+    }
+
+    private void failShards(final ClusterState state, final Index index, String reason, Exception e) {
+        RoutingNode localRoutingNode = state.getRoutingNodes().node(state.nodes().getLocalNodeId());
+        if (localRoutingNode != null) {
+            for (final ShardRouting shardRouting : localRoutingNode) {
+                if (shardRouting.index().equals(index) && failedShardsCache.containsKey(shardRouting.shardId()) == false) {
+                    sendFailShard(shardRouting, "failed to update index (" + reason + ")", e, state);
                 }
             }
         }

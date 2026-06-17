@@ -62,8 +62,8 @@ import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.RetryRunnable;
@@ -401,20 +401,16 @@ public final class MetadataTracker implements Closeable {
                 var subscriberIndexMetadata = subscriberIndices.get(publisherIndexMetadata.getIndexUUID());
                 if (subscriberIndexMetadata != null) {
                     var updatedIndexMetadataBuilder = IndexMetadata.builder(subscriberIndexMetadata);
-                    var updatedMapping = updateIndexMetadataMappings(publisherIndexMetadata, subscriberIndexMetadata);
-                    if (updatedMapping != null) {
-                        updatedIndexMetadataBuilder.putMapping(updatedMapping).mappingVersion(publisherIndexMetadata.getMappingVersion());
-                    }
                     var updatedSettings = updateSettings(
                         publisherIndexMetadata.getSettings(),
                         subscriberIndexMetadata.getSettings(),
                         indexScopedSettings
                     );
                     if (updatedSettings != null) {
-                        updatedIndexMetadataBuilder.settings(updatedSettings).settingsVersion(subscriberIndexMetadata.getSettingsVersion() + 1L);
-                    }
-                    if (updatedMapping != null || updatedSettings != null) {
-                        IndexMetadata indexMetadata = updatedIndexMetadataBuilder.build();
+                        IndexMetadata indexMetadata = updatedIndexMetadataBuilder
+                            .settings(updatedSettings)
+                            .settingsVersion(subscriberIndexMetadata.getSettingsVersion() + 1L)
+                            .build();
                         updatedMetadataBuilder.put(indexMetadata, true);
                         updateClusterState = true;
                     }
