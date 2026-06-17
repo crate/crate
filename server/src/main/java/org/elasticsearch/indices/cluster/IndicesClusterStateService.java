@@ -512,7 +512,6 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                     }
 
                     reason = "mapping update failed";
-                    LOGGER.error("Updating mapping for {} {}", index, relation);
                     indexService.updateMapping();
                 } catch (Exception e) {
                     indicesService.removeIndex(indexService.index(), FAILURE, "removing index (" + reason + ")");
