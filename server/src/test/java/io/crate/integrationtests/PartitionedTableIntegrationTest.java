@@ -31,6 +31,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -1642,7 +1643,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 ") partitioned by (d) with (number_of_replicas=0)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4002)
-            .hasMessageContaining("Relation name \"AA A.t\" is invalid.");
+            .hasMessageContaining("Relation name 'AA A.t' is invalid. Must not contain the following characters");
     }
 
     @Test

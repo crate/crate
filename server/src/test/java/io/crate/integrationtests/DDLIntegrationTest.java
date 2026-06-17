@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -836,7 +837,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("create table \"AA A\".t (name string) with (number_of_replicas=0)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4002)
-            .hasMessageContaining("Relation name \"AA A.t\" is invalid.");
+            .hasMessageContaining("Relation name 'AA A.t' is invalid. Must not contain the following characters");
 
     }
 

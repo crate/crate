@@ -39,7 +39,6 @@ import io.crate.exceptions.AnalyzerUnknownException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.DuplicateKeyException;
-import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.PartitionUnknownException;
@@ -124,8 +123,6 @@ public class HttpError {
             httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_ANALYZER_DEFINITION;
         } else if (throwable instanceof ColumnValidationException) {
             httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
-        } else if (throwable instanceof InvalidRelationName) {
-            httpErrorStatus = HttpErrorStatus.RELATION_INVALID_NAME;
         } else if (throwable instanceof InvalidSchemaNameException) {
             httpErrorStatus = HttpErrorStatus.RELATION_INVALID_NAME;
         } else if (throwable instanceof RelationValidationException) {

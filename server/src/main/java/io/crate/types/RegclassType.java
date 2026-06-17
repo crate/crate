@@ -27,11 +27,11 @@ import java.util.Locale;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.indices.InvalidRelationName;
 
 import io.crate.Streamer;
-import io.crate.exceptions.InvalidRelationName;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RelationLookup;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;

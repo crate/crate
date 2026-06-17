@@ -26,17 +26,16 @@ import static io.crate.Constants.DB_NAME;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.indices.InvalidRelationName;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.blob.v2.BlobIndex;
-import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -46,7 +45,6 @@ import io.crate.sql.tree.Table;
 
 public final class RelationName implements Writeable, Accountable {
 
-    private static final Set<String> INVALID_NAME_CHARACTERS = Set.of(".");
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(RelationName.class);
 
     @Nullable
@@ -95,14 +93,25 @@ public final class RelationName implements Writeable, Accountable {
 
     public RelationName(@Nullable String schema, String name) {
         assert name != null : "table name must not be null";
+        ensureValidName(schema, name);
+        this.schema = schema;
+        this.name = name;
+    }
+
+    /// @throws InvalidSchemaNameException
+    /// @throws InvalidRelationName
+    private static void ensureValidName(String schema, String name) {
         if (schema != null && (isInvalidSchemaOrRelationName(schema))) {
             throw new InvalidSchemaNameException(schema);
         }
-        if (isInvalidSchemaOrRelationName(name)) {
-            throw new InvalidRelationName(schema == null ? name : schema + "." + name);
+        if (name.isEmpty()) {
+            String fullTableName = schema == null ? name : schema + "." + name;
+            throw new InvalidRelationName(fullTableName, "Name cannot be empty");
         }
-        this.schema = schema;
-        this.name = name;
+        if (containsIllegalCharacters(name)) {
+            String fullTableName = schema == null ? name : schema + "." + name;
+            throw new InvalidRelationName(fullTableName, "Name can't contain '.'");
+        }
     }
 
     public RelationName(StreamInput in) throws IOException {
@@ -189,12 +198,7 @@ public final class RelationName implements Writeable, Accountable {
     }
 
     private static boolean containsIllegalCharacters(String name) {
-        for (String illegalCharacter : INVALID_NAME_CHARACTERS) {
-            if (name.contains(illegalCharacter)) {
-                return true;
-            }
-        }
-        return false;
+        return name.contains(".");
     }
 
     @Override

@@ -28,7 +28,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.logging.DeprecationLogger;
-import org.elasticsearch.indices.InvalidIndexNameException;
+import org.elasticsearch.indices.InvalidRelationName;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.blob.v2.BlobIndex;
@@ -54,7 +54,7 @@ public final class IndexName {
      * Validate the name for an index or alias against some static rules.
      */
     public static void validate(String indexName) {
-        validate(indexName, InvalidIndexNameException::new);
+        validate(indexName, InvalidRelationName::new);
     }
 
     /**
@@ -63,10 +63,10 @@ public final class IndexName {
     public static void validate(String indexName,
                                 BiFunction<String, String, ? extends RuntimeException> exceptionCtor) {
         if (!Strings.validFileName(indexName)) {
-            throw exceptionCtor.apply(indexName, "must not contain the following characters " + Strings.INVALID_FILENAME_CHARS);
+            throw exceptionCtor.apply(indexName, "Must not contain the following characters " + Strings.INVALID_FILENAME_CHARS);
         }
         if (indexName.contains("#")) {
-            throw exceptionCtor.apply(indexName, "must not contain '#'");
+            throw exceptionCtor.apply(indexName, "Must not contain '#'");
         }
         if (indexName.contains(":")) {
             DEPRECATION_LOGGER.deprecatedAndMaybeLog("index_name_contains_colon",
@@ -74,14 +74,14 @@ public final class IndexName {
                     "but not allow creation of new indices containing ':'");
         }
         if (indexName.charAt(0) == '-' || indexName.charAt(0) == '+') {
-            throw exceptionCtor.apply(indexName, "must not start with '-', or '+'");
+            throw exceptionCtor.apply(indexName, "Must not start with '-', or '+'");
         }
         int byteCount = indexName.getBytes(StandardCharsets.UTF_8).length;
         if (byteCount > MAX_INDEX_NAME_BYTES) {
-            throw exceptionCtor.apply(indexName, "index name is too long, (" + byteCount + " > " + MAX_INDEX_NAME_BYTES + ")");
+            throw exceptionCtor.apply(indexName, "Index name is too long, (" + byteCount + " > " + MAX_INDEX_NAME_BYTES + ")");
         }
         if (indexName.equals(".") || indexName.equals("..")) {
-            throw exceptionCtor.apply(indexName, "must not be '.' or '..'");
+            throw exceptionCtor.apply(indexName, "Must not be '.' or '..'");
         }
     }
 
