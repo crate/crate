@@ -44,11 +44,22 @@ import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import com.carrotsearch.randomizedtesting.annotations.Seed;
 
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 
+@TestLogging(
+    "org.elasticsearch.env.NodeEnvironment:TRACE,"
+    + "org.elasticsearch.indices.IndicesService:TRACE,"
+    + "io.crate.execution.ddl.tables.AlterTableClient:DEBUG,"
+    + "org.elasticsearch.cluster.metadata.MetadataCreateIndexService:DEBUG"
+)
+@Seed("CA22A9923A32AA9B")
 public class ResizeShardsITest extends IntegTestCase {
 
     private String getADataNodeName(ClusterState state) {
@@ -282,6 +293,7 @@ public class ResizeShardsITest extends IntegTestCase {
         assertThat(response).hasRowCount(2L);
     }
 
+    @Repeat(iterations = 100)
     @Test
     public void test_can_kill_resize_operation() throws Exception {
         execute("create table tbl (x int, p int) clustered into 1 shards partitioned by (p) with (\"routing.allocation.total_shards_per_node\" = 2)");

@@ -467,6 +467,7 @@ public class MetadataCreateIndexService {
             }
 
             IndexMetadata tmpImd = tmpImdBuilder.build();
+            LOGGER.debug("[state version/UUID when adding .resized. indexes] {}/{}", currentState.version(), currentState.stateUUID());
 
             validator.validateShardLimit(tmpImd.getSettings(), currentState);
             return indicesService.withTempIndexService(tmpImd, indexService -> addIndex(

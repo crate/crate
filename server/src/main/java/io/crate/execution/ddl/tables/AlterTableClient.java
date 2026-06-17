@@ -206,13 +206,17 @@ public class AlterTableClient {
     }
 
     @Nullable
-    private String findResizeSourceUUID(IndexMetadata index) {
-        for (var indexMetadata : clusterService.state().metadata().indices().values()) {
+    private String findResizeSourceUUID(IndexMetadata index, boolean forKill) {
+        ClusterState state = clusterService.state();
+        for (var indexMetadata : state.metadata().indices().values()) {
             Settings settings = indexMetadata.getSettings();
             String sourceUUID = IndexMetadata.INDEX_RESIZE_SOURCE_UUID.get(settings);
             if (index.getIndexUUID().equals(sourceUUID)) {
                 return indexMetadata.getIndexUUID();
             }
+        }
+        if (forKill) {
+            LOGGER.debug("[state version/UUID when kill signal received] {}/{}", state.version(), state.stateUUID());
         }
         return null;
     }
@@ -232,7 +236,7 @@ public class AlterTableClient {
         }
 
         Callable<CompletableFuture<Long>> doResize = () -> {
-            String staleIndexUUID = findResizeSourceUUID(sourceIndexMetadata);
+            String staleIndexUUID = findResizeSourceUUID(sourceIndexMetadata, false);
             final int targetNumberOfShards = getNumberOfShards(analysis.settings());
             validateNumberOfShardsForResize(sourceIndexMetadata, targetNumberOfShards);
             validateReadOnlyIndexForResize(sourceIndexMetadata);
@@ -268,7 +272,7 @@ public class AlterTableClient {
         };
 
         Consumer<Throwable> kill = _ -> {
-            String staleIndexUUID = findResizeSourceUUID(sourceIndexMetadata);
+            String staleIndexUUID = findResizeSourceUUID(sourceIndexMetadata, true);
             if (staleIndexUUID != null) {
                 var gcReq = new GCDanglingArtifactsRequest(List.of(staleIndexUUID));
                 client.execute(TransportGCDanglingArtifacts.ACTION, gcReq);
