@@ -201,8 +201,6 @@ public class SQLExceptions {
             return new DuplicateKeyException(
                 ((EngineException) unwrappedError).getIndex().getName(),
                 "A document with the same primary key exists already", unwrappedError);
-        } else if (unwrappedError instanceof IndexNotFoundException) {
-            return new RelationUnknown(((IndexNotFoundException) unwrappedError).getIndex().getName(), unwrappedError);
         } else if (unwrappedError instanceof InterruptedException) {
             return JobKilledException.of(unwrappedError.getMessage());
         }
