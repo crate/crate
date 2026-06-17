@@ -29,9 +29,9 @@ import java.util.Map;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.indices.InvalidRelationName;
 import org.junit.Test;
 
-import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.metadata.Publication;
@@ -65,7 +65,7 @@ public class AlterTableRenameTableAnalyzerTest extends CrateDummyClusterServiceU
         var e = SQLExecutor.of(clusterService).addTable(T3.T1_DEFINITION);
         assertThatThrownBy(() -> e.analyze("alter table t1 rename to \"foo.bar\""))
             .isExactlyInstanceOf(InvalidRelationName.class)
-            .hasMessageContaining("Relation name \"doc.foo.bar\" is invalid.");
+            .hasMessageContaining("Relation name 'doc.foo.bar' is invalid. Name can't contain '.'");
     }
 
     @Test
