@@ -48,8 +48,18 @@ Here's an example:
 
 .. NOTE::
 
-    The ``COPY`` statements use :ref:`Overload Protection <overload_protection>` to ensure other
-    queries can still perform. Please change these settings during large inserts if needed.
+    The ``COPY FROM`` statements use
+    :ref:`Overload Protection <overload_protection>` to ensure other queries can
+    still perform. Please change these settings during large inserts if needed.
+
+.. NOTE::
+
+    The ``COPY FROM`` statements return success even if all or some of the
+    contents of the provided URIs fail to be parsed/inserted. To force a failure
+    you can set the ``fail_fast`` parameter to true (keep in mind that some rows
+    can still be successfully inserted into the table). Alternatively, you can
+    use the :ref:`RETURN SUMMARY <sql-copy-from-return-summary>` keyword to get
+    a detailed report of what took place.
 
 .. _sql-copy-from-formats:
 
