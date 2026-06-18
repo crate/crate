@@ -53,6 +53,7 @@ import joptsimple.OptionSet;
 
 @UseRandomizedSchema(random = false)
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
+@Repeat(iterations = 300)
 public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
 
     @Override
@@ -60,7 +61,7 @@ public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
         return Arrays.asList(MockTransportService.TestPlugin.class, MockEngineFactoryPlugin.class, InternalSettingsPlugin.class);
     }
 
-    @Repeat(iterations = 300)
+    @Test
     public void test_corrupted_table() throws Exception {
         run_corrupted_index_test(false);
     }
