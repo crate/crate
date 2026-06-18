@@ -60,7 +60,7 @@ public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
         return Arrays.asList(MockTransportService.TestPlugin.class, MockEngineFactoryPlugin.class, InternalSettingsPlugin.class);
     }
 
-    @Repeat(iterations = 100)
+    @Repeat(iterations = 300)
     public void test_corrupted_table() throws Exception {
         run_corrupted_index_test(false);
     }
