@@ -10,7 +10,7 @@ pipeline {
   environment {
     CI_RUN = 'true'
     // Single test to hammer on this branch, e.g. 'SomeITest' or 'SomeITest#some_method'.
-    TEST = 'MetadataTrackerITest#test_deleted_partition_is_replicated'
+    TEST = 'RemoveCorruptedShardDataCommandIT#test_corrupted_table'
   }
   stages {
     stage('Parallel') {
