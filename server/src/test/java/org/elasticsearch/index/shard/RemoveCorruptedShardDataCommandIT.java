@@ -53,7 +53,7 @@ import joptsimple.OptionSet;
 
 @UseRandomizedSchema(random = false)
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
-@Repeat(iterations = 300)
+@Repeat(iterations = 1000)
 public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
 
     @Override
