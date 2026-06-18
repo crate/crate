@@ -155,8 +155,13 @@ public final class DataTypeTesting {
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-            case DateType.ID :
                 return () -> (T) (Long) random.nextLong();
+
+            case DateType.ID:
+                // DATE values are normalised to midnight UTC by DateType.implicitCast,
+                // so the generator must produce day-aligned epoch-millis for round-trip
+                // tests to match the inserted value against the stored value.
+                return () -> (T) (Long) (random.nextLong() / 86_400_000L * 86_400_000L);
 
             case RegclassType.ID:
                 return () -> {

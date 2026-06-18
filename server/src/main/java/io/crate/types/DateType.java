@@ -29,12 +29,18 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
+import java.util.function.Function;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
+import io.crate.execution.dml.LongIndexer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStatsSupport;
 
 public class DateType extends DataType<Long>
@@ -44,6 +50,20 @@ public class DateType extends DataType<Long>
     public static final String NAME = "date";
     public static final DateType INSTANCE = new DateType();
     public static final int TYPE_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Long.class);
+
+    private static final StorageSupport<Long> STORAGE = new StorageSupport<>(true, true, new LongEqQuery()) {
+        @Override
+        public Long decode(long input) {
+            return input;
+        }
+
+        @Override
+        public ValueIndexer<Long> valueIndexer(RelationName table,
+                                               Reference ref,
+                                               Function<ColumnIdent, Reference> getRef) {
+            return new LongIndexer(ref);
+        }
+    };
 
     @Override
     public int id() {
@@ -136,6 +156,11 @@ public class DateType extends DataType<Long>
     @Override
     public int fixedSize() {
         return TYPE_SIZE;
+    }
+
+    @Override
+    public StorageSupport<Long> storageSupport() {
+        return STORAGE;
     }
 
     @Override

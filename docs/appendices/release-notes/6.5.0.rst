@@ -68,8 +68,10 @@ None
 Data Types
 ----------
 
-None
-
+- `Dhruv Patel <https://github.com/DHRUV6029>`_ added support for using
+  :ref:`date <type-date>` as a column type in ``CREATE TABLE`` statements,
+  enabling migration of PostgreSQL schemas containing ``DATE`` columns
+  without DDL modification.
 
 Scalar and Aggregation Functions
 --------------------------------

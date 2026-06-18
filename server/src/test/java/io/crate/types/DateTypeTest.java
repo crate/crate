@@ -26,7 +26,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
-public class DateTypeTest {
+public class DateTypeTest extends DataTypeTestCase<Long> {
+
+    @Override
+    protected DataDef<Long> getDataDef() {
+        return DataDef.fromType(DataTypes.DATE);
+    }
 
     @Test
     public void testCastFromInvalidString() {

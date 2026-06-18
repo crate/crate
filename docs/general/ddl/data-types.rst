@@ -1980,14 +1980,6 @@ must be prefixed by the plus or minus symbol. See also `Year.parse Javadoc`_::
     PostgreSQL. This behavior may change in a future version of CrateDB (see
     `tracking issue #11528`_).
 
-.. NOTE::
-
-    The ``DATE`` type is only supported as a type literal (i.e., for use in
-    SQL :ref:`expressions <gloss-expression>`, like a :ref:`type cast
-    <data-types-casting-exp>`, as below).
-
-    You cannot create table columns of type ``DATE``.
-
 Dates can be expressed as string literals (e.g., ``'2021-03-09'``) with the
 following syntax:
 

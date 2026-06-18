@@ -40,6 +40,7 @@ import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.CharacterType;
 import io.crate.types.DataType;
+import io.crate.types.DateType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.FloatVectorType;
@@ -149,7 +150,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case DoubleType.ID -> new DoubleColumnReference(fqn);
             case BooleanType.ID -> new BooleanColumnReference(fqn);
             case FloatType.ID -> new FloatColumnReference(fqn);
-            case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ -> new LongColumnReference(fqn);
+            case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ, DateType.ID -> new LongColumnReference(fqn);
             case IntegerType.ID -> new IntegerColumnReference(fqn);
             case GeoPointType.ID -> new GeoPointColumnReference(fqn);
             case ArrayType.ID -> DocCollectorExpression.create(DocReferences.toDocLookup(ref), isParentRefIgnored);

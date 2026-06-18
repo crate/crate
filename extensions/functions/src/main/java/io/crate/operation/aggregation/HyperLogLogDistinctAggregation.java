@@ -66,6 +66,7 @@ import io.crate.types.ByteType;
 import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DateType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
@@ -502,6 +503,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 case IntegerType.ID:
                 case ShortType.ID:
                 case ByteType.ID:
+                case DateType.ID:
                 case TimestampType.ID_WITH_TZ:
                 case TimestampType.ID_WITHOUT_TZ:
                     return Long.INSTANCE;
