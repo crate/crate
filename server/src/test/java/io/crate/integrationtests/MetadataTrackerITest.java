@@ -32,8 +32,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
-
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.MetadataTracker;
@@ -188,7 +186,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         });
     }
 
-    @Repeat(iterations = 300)
+    @Test
     public void test_deleted_partition_is_replicated() throws Exception {
         executeOnPublisher("CREATE TABLE t1 (id INT, p INT) PARTITIONED BY (p)");
         executeOnPublisher("INSERT INTO t1 (id, p) VALUES (1, 1), (2, 2)");

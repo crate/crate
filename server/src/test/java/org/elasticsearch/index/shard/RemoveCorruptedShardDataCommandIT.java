@@ -44,6 +44,8 @@ import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.server.cli.MockTerminal;
 import io.crate.testing.UseRandomizedSchema;
 import joptsimple.OptionParser;
@@ -58,7 +60,7 @@ public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
         return Arrays.asList(MockTransportService.TestPlugin.class, MockEngineFactoryPlugin.class, InternalSettingsPlugin.class);
     }
 
-    @Test
+    @Repeat(iterations = 100)
     public void test_corrupted_table() throws Exception {
         run_corrupted_index_test(false);
     }
