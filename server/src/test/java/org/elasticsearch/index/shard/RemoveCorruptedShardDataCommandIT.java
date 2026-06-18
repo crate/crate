@@ -32,6 +32,7 @@ import java.util.Collection;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.TestEnvironment;
+import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.MockEngineFactoryPlugin;
 import org.elasticsearch.index.translog.TestTranslog;
@@ -53,7 +54,7 @@ import joptsimple.OptionSet;
 
 @UseRandomizedSchema(random = false)
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
-@Repeat(iterations = 1000)
+@Repeat(iterations = 1)
 public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
 
     @Override
@@ -171,7 +172,13 @@ public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
                 terminal.addTextInput("y");
                 command.execute(terminal, options, environment);
 
-                return super.onNodeStopped(nodeName);
+                // Delay gateway state recovery on restart so the index metadata is not yet
+                // recovered into the cluster state when the REROUTE below is analyzed. This
+                // makes Schemas.findRelation fail deterministically with RelationUnknown,
+                // reproducing the race that ensureStableCluster does not guard against.
+                return Settings.builder()
+                    .put(GatewayService.RECOVER_AFTER_TIME_SETTING.getKey(), "3s")
+                    .build();
             }
         });
 
