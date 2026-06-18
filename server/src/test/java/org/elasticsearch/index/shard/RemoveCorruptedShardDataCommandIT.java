@@ -196,6 +196,7 @@ public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
 
         // Ensure node has started
         ensureStableCluster(1, node);
+        ensureClusterStateRecovered();
 
         execute("ALTER TABLE " + tableIdent + " REROUTE ALLOCATE STALE PRIMARY SHARD 0 ON '" + node + "' WITH (accept_data_loss = ?)", new Object[]{true});
 
