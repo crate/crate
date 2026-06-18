@@ -105,6 +105,7 @@ import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.TestEnvironment;
+import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.http.HttpTransportSettings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -758,6 +759,13 @@ public abstract class IntegTestCase extends ESTestCase {
                 client().health(new ClusterHealthRequest().waitForNodes(Integer.toString(cluster().size())))
             ));
         }
+    }
+
+    protected void ensureClusterStateRecovered() throws Exception {
+        assertBusy(() ->
+            assertThat(clusterService().state().blocks().hasGlobalBlock(GatewayService.STATE_NOT_RECOVERED_BLOCK))
+                .isFalse()
+        );
     }
 
     /**
