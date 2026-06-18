@@ -56,6 +56,7 @@ import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DateType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.FloatVectorType;
@@ -297,6 +298,7 @@ public final class SourceParser {
             case LongType.ID -> parser.longValue();
             case TimestampType.ID_WITH_TZ -> parser.longValue();
             case TimestampType.ID_WITHOUT_TZ -> parser.longValue();
+            case DateType.ID -> parser.longValue();
             case FloatType.ID -> parser.floatValue();
             case DoubleType.ID -> parser.doubleValue();
             case BitStringType.ID -> new BitString(

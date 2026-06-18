@@ -159,6 +159,13 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
+    public void test_can_create_table_with_date_column() {
+        BoundCreateTable analysis = analyze("create table t (d date)");
+        Reference d = analysis.columns().get(ColumnIdent.of("d"));
+        assertThat(d.valueType()).isEqualTo(DataTypes.DATE);
+    }
+
+    @Test
     public void testCreateTableInSystemSchemasIsProhibited() {
         for (String schema : Schemas.READ_ONLY_SYSTEM_SCHEMAS) {
             var stmt = String.format("CREATE TABLE %s.%s (ordinal INTEGER, name STRING)", schema, "my_table");
