@@ -79,7 +79,8 @@ public class TransportGCDanglingArtifacts extends AbstractDDLTransportAction<GCD
                                            GCDanglingArtifactsRequest gcDanglingArtifactsRequest) {
                 Metadata metadata = currentState.metadata();
                 Set<Index> danglingIndicesToDelete = new HashSet<>();
-                if (gcDanglingArtifactsRequest.indexUUIDs().isEmpty()) {
+                Set<String> indexUUIDs = resolveIndexUUIDs(metadata, gcDanglingArtifactsRequest);
+                if (indexUUIDs.isEmpty()) {
                     for (IndexMetadata indexMetadata : metadata.indices().values()) {
                         Index index = indexMetadata.getIndex();
                         RelationMetadata relation = metadata.getRelation(index.getUUID());
@@ -88,7 +89,7 @@ public class TransportGCDanglingArtifacts extends AbstractDDLTransportAction<GCD
                         }
                     }
                 } else {
-                    for (String indexUUID : gcDanglingArtifactsRequest.indexUUIDs()) {
+                    for (String indexUUID : indexUUIDs) {
                         IndexMetadata indexMetadata = metadata.index(indexUUID);
                         if (indexMetadata == null) {
                             continue;
@@ -105,6 +106,21 @@ public class TransportGCDanglingArtifacts extends AbstractDDLTransportAction<GCD
                 return deleteIndexService.deleteIndices(currentState, danglingIndicesToDelete);
             }
         };
+    }
+
+    private static Set<String> resolveIndexUUIDs(Metadata metadata, GCDanglingArtifactsRequest request) {
+        Set<String> indexUUIDs = new HashSet<>(request.indexUUIDs());
+        String resizeSourceUUID = request.resizeSourceUUID();
+        if (resizeSourceUUID == null) {
+            return indexUUIDs;
+        }
+        for (IndexMetadata indexMetadata : metadata.indices().values()) {
+            String candidate = IndexMetadata.INDEX_RESIZE_SOURCE_UUID.get(indexMetadata.getSettings());
+            if (resizeSourceUUID.equals(candidate)) {
+                indexUUIDs.add(indexMetadata.getIndexUUID());
+            }
+        }
+        return indexUUIDs;
     }
 
     @Override

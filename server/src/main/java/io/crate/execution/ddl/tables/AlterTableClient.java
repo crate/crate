@@ -253,7 +253,7 @@ public class AlterTableClient {
             if (staleIndexUUID == null) {
                 resizeFuture = client.execute(TransportResize.ACTION, request);
             } else {
-                GCDanglingArtifactsRequest gcReq = new GCDanglingArtifactsRequest(List.of(staleIndexUUID));
+                GCDanglingArtifactsRequest gcReq = GCDanglingArtifactsRequest.ofIndexUUIDs(List.of(staleIndexUUID));
                 resizeFuture = client.execute(TransportGCDanglingArtifacts.ACTION, gcReq)
                     .thenCompose(_ -> client.execute(TransportResize.ACTION, request));
             }
@@ -268,11 +268,8 @@ public class AlterTableClient {
         };
 
         Consumer<Throwable> kill = _ -> {
-            String staleIndexUUID = findResizeSourceUUID(sourceIndexMetadata);
-            if (staleIndexUUID != null) {
-                var gcReq = new GCDanglingArtifactsRequest(List.of(staleIndexUUID));
-                client.execute(TransportGCDanglingArtifacts.ACTION, gcReq);
-            }
+            var gcReq = GCDanglingArtifactsRequest.forResizeArtifactsOf(sourceIndexMetadata.getIndexUUID());
+            client.execute(TransportGCDanglingArtifacts.ACTION, gcReq);
         };
 
         String taskName = "resize-table: " + table.ident();

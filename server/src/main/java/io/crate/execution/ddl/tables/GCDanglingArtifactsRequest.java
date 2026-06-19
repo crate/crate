@@ -28,17 +28,28 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jspecify.annotations.Nullable;
 
 public class GCDanglingArtifactsRequest extends AcknowledgedRequest<GCDanglingArtifactsRequest> {
 
-    public static final GCDanglingArtifactsRequest ALL = new GCDanglingArtifactsRequest(List.of());
+    public static final GCDanglingArtifactsRequest ALL = GCDanglingArtifactsRequest.ofIndexUUIDs(List.of());
 
     private final List<String> indexUUIDs;
+    @Nullable
+    private final String resizeSourceUUID;
 
-    /// @param indexUUIDs indexUUIDs to delete. If empty, all dangling indices UUIDs are deleted.
-    public GCDanglingArtifactsRequest(List<String> indexUUIDs) {
+    public static GCDanglingArtifactsRequest ofIndexUUIDs(List<String> indexUUIDs) {
+        return new GCDanglingArtifactsRequest(indexUUIDs, null);
+    }
+
+    public static GCDanglingArtifactsRequest forResizeArtifactsOf(String sourceIndexUUID) {
+        return new GCDanglingArtifactsRequest(List.of(), sourceIndexUUID);
+    }
+
+    private GCDanglingArtifactsRequest(List<String> indexUUIDs, @Nullable String resizeSourceUUID) {
         super();
         this.indexUUIDs = indexUUIDs;
+        this.resizeSourceUUID = resizeSourceUUID;
     }
 
     public GCDanglingArtifactsRequest(StreamInput in) throws IOException {
@@ -49,6 +60,11 @@ public class GCDanglingArtifactsRequest extends AcknowledgedRequest<GCDanglingAr
         } else {
             this.indexUUIDs = List.of();
         }
+        if (version.onOrAfter(Version.V_6_4_0)) {
+            this.resizeSourceUUID = in.readOptionalString();
+        } else {
+            this.resizeSourceUUID = null;
+        }
     }
 
     @Override
@@ -58,10 +74,18 @@ public class GCDanglingArtifactsRequest extends AcknowledgedRequest<GCDanglingAr
         if (version.onOrAfter(Version.V_6_1_1)) {
             out.writeStringCollection(indexUUIDs);
         }
+        if (version.onOrAfter(Version.V_6_4_0)) {
+            out.writeOptionalString(resizeSourceUUID);
+        }
     }
 
-    /// Dangling indices to delete. Empty = all dangling indices
+    /// Dangling indices to delete. Empty = all dangling indices if no resize source UUID is specified.
     public List<String> indexUUIDs() {
         return indexUUIDs;
+    }
+
+    @Nullable
+    public String resizeSourceUUID() {
+        return resizeSourceUUID;
     }
 }

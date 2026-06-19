@@ -123,7 +123,7 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
                     SwapAndDropIndexRequest req = new SwapAndDropIndexRequest(resizedIndexUUID, sourceIndexUUID);
                     return swapAndDropIndexAction.execute(req).thenApply(_ -> resizeResp);
                 } else {
-                    GCDanglingArtifactsRequest gcReq = new GCDanglingArtifactsRequest(List.of(resizedIndexUUID));
+                    GCDanglingArtifactsRequest gcReq = GCDanglingArtifactsRequest.ofIndexUUIDs(List.of(resizedIndexUUID));
                     return gcDanglingArtifactsAction.execute(gcReq).handle(
                         (_, err) -> {
                             throw new IllegalStateException(
