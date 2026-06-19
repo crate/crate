@@ -63,7 +63,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         });
     }
 
-    @Test
+    @Repeat(iterations = 20)
     public void test_schema_changes_of_subscribed_table_is_replicated_and_new_data_is_synced() throws Exception {
         logger.info("hello!");
 
@@ -190,7 +190,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         });
     }
 
-    @Repeat(iterations = 300)
+    @Test
     public void test_deleted_partition_is_replicated() throws Exception {
         executeOnPublisher("CREATE TABLE t1 (id INT, p INT) PARTITIONED BY (p)");
         executeOnPublisher("INSERT INTO t1 (id, p) VALUES (1, 1), (2, 2)");
