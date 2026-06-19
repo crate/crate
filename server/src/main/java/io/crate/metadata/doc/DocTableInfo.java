@@ -1199,6 +1199,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         for (var check : checkConstraints) {
             checkConstraintMap.put(check.name(), check.expressionStr());
         }
+        // todo looks like concreteIndices are UUIDs, so the indexUUIDs below is not necessary?
         String[] concreteIndices = concreteIndices(metadata);
         ArrayList<String> indexUUIDs = new ArrayList<>(concreteIndices.length);
         for (String indexUUID : concreteIndices) {

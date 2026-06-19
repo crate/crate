@@ -63,7 +63,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         });
     }
 
-    @Repeat(iterations = 20)
+    @Repeat(iterations = 50)
     public void test_schema_changes_of_subscribed_table_is_replicated_and_new_data_is_synced() throws Exception {
         logger.info("hello!");
 
@@ -100,7 +100,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                     "6| yoda| 900"
                 );
             },
-            60, TimeUnit.SECONDS,
+            10, TimeUnit.SECONDS,
             logger
         );
     }

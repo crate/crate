@@ -39,6 +39,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
@@ -156,10 +157,18 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                 }
 
                 Engine.Result engineResult = null;
+                long currentTableVersion;
                 try {
                     engineResult = primary.applyTranslogOperation(opWithPrimary, Engine.Operation.Origin.PRIMARY);
                     String indexUUID = request.shardId().getIndexUUID();
                     IndexMetadata index = clusterService.state().metadata().index(indexUUID);
+
+                    var currentMappingVersion = clusterService.state().metadata().index(indexUUID).getMappingVersion();
+                    LOGGER.info("retryWhenMappingsAreUpdated(), currentMappingVersion before observer {}", currentMappingVersion);
+
+                    RelationMetadata.Table t = (RelationMetadata.Table) clusterService.state().metadata().getRelation(indexUUID);
+                    currentTableVersion = t.tableVersion();
+
                     LOGGER.info(
                         "performOnPrimary(), currentMappingVersion before observer {}, index UUID {}",
                         index.getMappingVersion(),
@@ -171,7 +180,7 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                 }
                 if (engineResult.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                     // Retry to process the translog operations, once the mappings are updated
-                    retryWhenMappingsAreUpdated(primary, request, accumulator, i, result, failure);
+                    retryWhenMappingsAreUpdated(primary, request, accumulator, i, result, failure, currentTableVersion);
                     return;
                 }
                 accumulator.add(engineResult);
@@ -184,11 +193,12 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                                                  List<Engine.Result> accumulator,
                                                  int offset,
                                                  Consumer<List<Engine.Result>> result,
-                                                 Consumer<Exception> failure) {
+                                                 Consumer<Exception> failure,
+                                                 long currentTableVersion) {
             LOGGER.info("retryWhenMappingsAreUpdated() called");
+
             var indexUUID = request.shardId().getIndexUUID();
-            var currentMappingVersion = clusterService.state().metadata().index(indexUUID).getMappingVersion();
-            LOGGER.info("retryWhenMappingsAreUpdated(), currentMappingVersion before observer {}", currentMappingVersion);
+
             var clusterStateObserver = new ClusterStateObserver(clusterService, new TimeValue(60_000), LOGGER);
             clusterStateObserver.waitForNextChange(
                 new ClusterStateObserver.Listener() {
@@ -211,7 +221,7 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                         failure.accept(new ElasticsearchTimeoutException("Mappings did not update in time"));
                     }
 
-                }, cs -> isIndexMetadataUpdated(cs, indexUUID, currentMappingVersion)
+                }, cs -> isTableVersionUpdated(cs, indexUUID, currentTableVersion)
             );
         }
 
@@ -224,6 +234,20 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                 var newMappingVersion = indexMetadata.getMappingVersion();
                 LOGGER.info("isIndexMetadataUpdated(), new mapping version {}, current mapping version {}", newMappingVersion, mappingVersion);
                 return newMappingVersion > mappingVersion;
+            }
+        }
+
+        private static boolean isTableVersionUpdated(ClusterState cs, String indexUUID, long tableVersion) {
+            LOGGER.info("isTableVersionUpdated() called");
+
+            RelationMetadata.Table t = (RelationMetadata.Table) cs.metadata().getRelation(indexUUID);
+
+            if (t == null) {
+                return false;
+            } else {
+                long newTableVersion = t.tableVersion();
+                LOGGER.info("isTableVersionUpdated(), new table version {}, current isTableVersionUpdated version {}", newTableVersion, tableVersion);
+                return newTableVersion > tableVersion;
             }
         }
 
