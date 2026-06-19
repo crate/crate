@@ -368,6 +368,12 @@ public final class MetadataTracker implements Closeable {
 
             // Update main table relation
             if (publisherTable.tableVersion() > subscriberTable.tableVersion()) {
+                LOGGER.info(
+                    "updateRelations(): publisher table version {}, subscriber table version {}, publisher table columns {}",
+                    publisherTable.tableVersion(),
+                    subscriberTable.tableVersion(),
+                    publisherTable.columns()
+                );
                 Settings updatedSettings = updateSettings(
                     publisherTable.settings(),
                     subscriberTable.settings(),

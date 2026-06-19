@@ -43,6 +43,8 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -157,6 +159,8 @@ import io.crate.types.UndefinedType;
  *
  */
 public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
+
+    public static final Logger LOGGER = LogManager.getLogger(DocTableInfo.class);
 
     /**
      * Tables created on or after this version use oids in the mapping
@@ -1225,6 +1229,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             if (settings.equals(indexSettings) == false) {
                 newSettingsVersion++;
             }
+            LOGGER.info("increasing mapping version {}, index UUID {}", indexMetadata.getMappingVersion(), indexMetadata.getIndex().getName());
             metadataBuilder.put(
                 IndexMetadata.builder(indexMetadata)
                     .settings(settings)

@@ -29,20 +29,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Rule;
 import org.junit.Test;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.MetadataTracker;
-import io.crate.testing.RetryRule;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
 public class MetadataTrackerITest extends LogicalReplicationITestCase {
-
-    @Rule
-    public RetryRule retryRule = new RetryRule(3);
 
     @Test
     public void test_schema_changes_of_subscribed_table_is_replicated() throws Exception {
@@ -68,6 +63,8 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_schema_changes_of_subscribed_table_is_replicated_and_new_data_is_synced() throws Exception {
+        logger.info("hello!");
+
         executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
         executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
         createPublication("pub1", false, List.of("t1"));
@@ -87,18 +84,23 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         executeOnPublisher("INSERT INTO t1 (id, name, age) VALUES (6, 'yoda', 900)");
         executeOnPublisher("REFRESH TABLE t1");
 
-        assertBusy(() -> {
-            executeOnSubscriber("REFRESH TABLE t1");
-            var r = executeOnSubscriber("SELECT * FROM t1 ORDER BY id");
-            assertThat(r).hasRows(
-                "1| NULL| NULL",
-                "2| NULL| NULL",
-                "3| chewbacca| NULL",
-                "4| r2d2| NULL",
-                "5| luke| 37",
-                "6| yoda| 900"
-            );
-        }, 60, TimeUnit.SECONDS);
+        assertBusyLogging(
+            () -> {
+                executeOnSubscriber("REFRESH TABLE t1");
+                var r = executeOnSubscriber("SELECT * FROM t1 ORDER BY id");
+                logger.info("num of results: {}", r.rows().length);
+                assertThat(r).hasRows(
+                    "1| NULL| NULL",
+                    "2| NULL| NULL",
+                    "3| chewbacca| NULL",
+                    "4| r2d2| NULL",
+                    "5| luke| 37",
+                    "6| yoda| 900"
+                );
+            },
+            60, TimeUnit.SECONDS,
+            logger
+        );
     }
 
     @Test

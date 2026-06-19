@@ -38,6 +38,7 @@ import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
@@ -157,6 +158,13 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                 Engine.Result engineResult = null;
                 try {
                     engineResult = primary.applyTranslogOperation(opWithPrimary, Engine.Operation.Origin.PRIMARY);
+                    String indexUUID = request.shardId().getIndexUUID();
+                    IndexMetadata index = clusterService.state().metadata().index(indexUUID);
+                    LOGGER.info(
+                        "performOnPrimary(), currentMappingVersion before observer {}, index UUID {}",
+                        index.getMappingVersion(),
+                        index.getIndex().getName()
+                    );
                 } catch (IOException e) {
                     failure.accept(e);
                     return;
@@ -177,13 +185,17 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                                                  int offset,
                                                  Consumer<List<Engine.Result>> result,
                                                  Consumer<Exception> failure) {
+            LOGGER.info("retryWhenMappingsAreUpdated() called");
             var indexUUID = request.shardId().getIndexUUID();
             var currentMappingVersion = clusterService.state().metadata().index(indexUUID).getMappingVersion();
+            LOGGER.info("retryWhenMappingsAreUpdated(), currentMappingVersion before observer {}", currentMappingVersion);
             var clusterStateObserver = new ClusterStateObserver(clusterService, new TimeValue(60_000), LOGGER);
             clusterStateObserver.waitForNextChange(
                 new ClusterStateObserver.Listener() {
                     @Override
                     public void onNewClusterState(ClusterState state) {
+                        LOGGER.info("retryWhenMappingsAreUpdated() -> ClusterStateObserver -> onNewClusterState()");
+
                         performOnPrimary(primary, request, accumulator, offset, result, failure);
                     }
 
@@ -194,6 +206,8 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
 
                     @Override
                     public void onTimeout(TimeValue timeout) {
+                        LOGGER.info("retryWhenMappingsAreUpdated() -> ClusterStateObserver -> onTimeout()");
+
                         failure.accept(new ElasticsearchTimeoutException("Mappings did not update in time"));
                     }
 
@@ -202,11 +216,13 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
         }
 
         private static boolean isIndexMetadataUpdated(ClusterState cs, String indexUUID, long mappingVersion) {
+            LOGGER.info("isIndexMetadataUpdated() called");
             var indexMetadata = cs.metadata().index(indexUUID);
             if (indexMetadata == null) {
                 return false;
             } else {
                 var newMappingVersion = indexMetadata.getMappingVersion();
+                LOGGER.info("isIndexMetadataUpdated(), new mapping version {}, current mapping version {}", newMappingVersion, mappingVersion);
                 return newMappingVersion > mappingVersion;
             }
         }

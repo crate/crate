@@ -720,6 +720,46 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
         }
     }
 
+    public static void assertBusyLogging(CheckedRunnable<Exception> codeBlock, long maxWaitTime, TimeUnit unit, Logger logger) throws Exception {
+        long maxTimeInMillis = TimeUnit.MILLISECONDS.convert(maxWaitTime, unit);
+        long iterations = Math.max(Math.round(Math.log10(maxTimeInMillis) / Math.log10(2)), 1);
+        long timeInMillis = 1;
+        long sum = 0;
+        List<AssertionError> failures = new ArrayList<>();
+        logger.info("assertBusyLogging(): iterations {}", iterations);
+        for (int i = 0; i < iterations; i++) {
+            try {
+                codeBlock.run();
+                logger.info("assertBusyLogging(): returning in iteration {}", i);
+                return;
+            } catch (AssertionError e) {
+                failures.add(e);
+            }
+            sum += timeInMillis;
+            Thread.sleep(timeInMillis);
+            timeInMillis *= 2;
+        }
+
+        logger.info("assertBusyLogging(): total time spent sleeping {}", sum);
+
+        timeInMillis = maxTimeInMillis - sum;
+
+        logger.info("assertBusyLogging(): sleeping for additional {}", Math.max(timeInMillis, 0));
+        Thread.sleep(Math.max(timeInMillis, 0));
+        try {
+            codeBlock.run();
+        } catch (AssertionError e) {
+            String msg = e.getMessage();
+            for (AssertionError failure : failures) {
+                if (!failure.getMessage().equals(msg)) {
+                    e.addSuppressed(failure);
+                }
+            }
+            throw e;
+        }
+        logger.info("assertBusyLogging(): done");
+    }
+
     public static boolean terminate(ExecutorService... services) {
         boolean terminated = true;
         for (ExecutorService service : services) {
