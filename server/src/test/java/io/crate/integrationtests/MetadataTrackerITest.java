@@ -81,7 +81,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         executeOnPublisher("INSERT INTO t1 (id, name) VALUES (3, 'chewbacca')");
         executeOnPublisher("INSERT INTO t1 (id, name) VALUES (4, 'r2d2')");
         executeOnPublisher("REFRESH TABLE t1");
-        //Lets alter the table again
+        //Let's alter the table again
         executeOnPublisher("ALTER TABLE t1 ADD COLUMN age integer");
         executeOnPublisher("INSERT INTO t1 (id, name, age) VALUES (5, 'luke', 37)");
         executeOnPublisher("INSERT INTO t1 (id, name, age) VALUES (6, 'yoda', 900)");
@@ -98,7 +98,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                 "5| luke| 37",
                 "6| yoda| 900"
             );
-        }, 60, TimeUnit.SECONDS);
+        }, 5, TimeUnit.SECONDS);
     }
 
     @Test
@@ -273,7 +273,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         executeOnPublisher("DROP PUBLICATION pub2"); // exclude publication with regular table
         executeOnPublisher("DROP PUBLICATION pub3"); // exclude publication with partitioned table
 
-        // Dropping of the one one multiple publications doesn't stop tracking of the whole subscription.
+        // Dropping of the one multiple publications doesn't stop tracking of the whole subscription.
         assertBusy(() -> assertThat(isTrackerActive()).isTrue());
 
         // Subscriber keeps receiving updates from non-dropped publication's regular table.
