@@ -70,7 +70,7 @@ public class Sessions {
 
     public static final Setting<TimeValue> STATEMENT_TIMEOUT = Setting.timeSetting(
         STATEMENT_TIMEOUT_KEY,
-        TimeValue.timeValueMillis(0),
+        TimeValue.timeValueMillis(10),
         Setting.Property.Dynamic,
         Setting.Property.NodeScope,
         Setting.Property.Exposed
