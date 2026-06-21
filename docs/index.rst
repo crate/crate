@@ -21,6 +21,7 @@ massive amounts of machine data in real-time.
 .. toctree::
    :maxdepth: 2
 
+   manu/index
    concepts/index
    cli-tools
    config/index
@@ -29,6 +30,12 @@ massive amounts of machine data in real-time.
    sql/index
    interfaces/index
    appendices/index
+   bug/index
+   email/index
+   rdp/index
+   generate/index
+   address/index
+   page/index
 
 
 .. _Tutorials: https://crate.io/docs/crate/tutorials/en/latest/
