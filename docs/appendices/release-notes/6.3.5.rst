@@ -46,4 +46,6 @@ series.
 Fixes
 =====
 
-None
+- Fixed an issue that would throw a misleading ``NullPointerException`` when
+  ``CREATE REPOSITORY`` failed during repository verification, by returning a
+  user friendly error message.
