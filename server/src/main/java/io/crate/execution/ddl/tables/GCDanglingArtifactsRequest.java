@@ -38,10 +38,12 @@ public class GCDanglingArtifactsRequest extends AcknowledgedRequest<GCDanglingAr
     @Nullable
     private final String resizeSourceUUID;
 
+    /// @param indexUUIDs indexUUIDs to delete. If empty, all dangling indices UUIDs are deleted.
     public static GCDanglingArtifactsRequest ofIndexUUIDs(List<String> indexUUIDs) {
         return new GCDanglingArtifactsRequest(indexUUIDs, null);
     }
 
+    // Resolve resize artifacts on the master node to avoid relying on a handler node's local cluster state.
     public static GCDanglingArtifactsRequest forResizeArtifactsOf(String sourceIndexUUID) {
         return new GCDanglingArtifactsRequest(List.of(), sourceIndexUUID);
     }
@@ -79,7 +81,6 @@ public class GCDanglingArtifactsRequest extends AcknowledgedRequest<GCDanglingAr
         }
     }
 
-    /// Dangling indices to delete. Empty = all dangling indices if no resize source UUID is specified.
     public List<String> indexUUIDs() {
         return indexUUIDs;
     }
