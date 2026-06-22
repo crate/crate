@@ -38,6 +38,7 @@ import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
@@ -154,7 +155,10 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                     break;
                 }
 
-                Engine.Result engineResult = null;
+                Engine.Result engineResult;
+                // Get table version now, because it may change while the translog op is being applied
+                // (i.e., the cluster metadata might change during that time).
+                Long currentTableVersion = getTableVersion(clusterService.state(), request.shardId().getIndexUUID());
                 try {
                     engineResult = primary.applyTranslogOperation(opWithPrimary, Engine.Operation.Origin.PRIMARY);
                 } catch (IOException e) {
@@ -163,7 +167,7 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                 }
                 if (engineResult.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                     // Retry to process the translog operations, once the mappings are updated
-                    retryWhenMappingsAreUpdated(primary, request, accumulator, i, result, failure);
+                    retryWhenMappingsAreUpdated(primary, request, accumulator, i, result, failure, currentTableVersion);
                     return;
                 }
                 accumulator.add(engineResult);
@@ -171,14 +175,23 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
             result.accept(accumulator);
         }
 
+
+        private static Long getTableVersion(ClusterState cs, String indexUUID) {
+            // Cast safe because a mapping change indicates it is a table.
+            RelationMetadata.Table table = (RelationMetadata.Table) cs.metadata()
+                .getRelation(indexUUID);
+
+            return table == null ? null : table.tableVersion();
+        }
+
         private void retryWhenMappingsAreUpdated(IndexShard primary,
                                                  Request request,
                                                  List<Engine.Result> accumulator,
                                                  int offset,
                                                  Consumer<List<Engine.Result>> result,
-                                                 Consumer<Exception> failure) {
+                                                 Consumer<Exception> failure,
+                                                 Long currentTableVersion) {
             var indexUUID = request.shardId().getIndexUUID();
-            var currentMappingVersion = clusterService.state().metadata().index(indexUUID).getMappingVersion();
             var clusterStateObserver = new ClusterStateObserver(clusterService, new TimeValue(60_000), LOGGER);
             clusterStateObserver.waitForNextChange(
                 new ClusterStateObserver.Listener() {
@@ -197,18 +210,16 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                         failure.accept(new ElasticsearchTimeoutException("Mappings did not update in time"));
                     }
 
-                }, cs -> isIndexMetadataUpdated(cs, indexUUID, currentMappingVersion)
+                }, cs -> isTableVersionUpdated(cs, indexUUID, currentTableVersion)
             );
         }
 
-        private static boolean isIndexMetadataUpdated(ClusterState cs, String indexUUID, long mappingVersion) {
-            var indexMetadata = cs.metadata().index(indexUUID);
-            if (indexMetadata == null) {
+        private static boolean isTableVersionUpdated(ClusterState cs, String indexUUID, Long prevVersion) {
+            Long currentTableVersion = getTableVersion(cs, indexUUID);
+            if (currentTableVersion == null) {
                 return false;
-            } else {
-                var newMappingVersion = indexMetadata.getMappingVersion();
-                return newMappingVersion > mappingVersion;
             }
+            return currentTableVersion > prevVersion;
         }
 
         @Override

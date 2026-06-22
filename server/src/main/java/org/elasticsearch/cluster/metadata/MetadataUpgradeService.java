@@ -31,7 +31,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.settings.AbstractScopedSettings;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -276,9 +275,8 @@ public class MetadataUpgradeService {
 
         // Look through partitions and takes their lowest version
         RelationName relationName = docTable.ident();
-        Index[] concreteIndices = IndexNameExpressionResolver.concreteIndices(
+        Index[] concreteIndices = IndexNameExpressionResolver.lenientOpenIndices(
             metadata,
-            IndicesOptions.LENIENT_EXPAND_OPEN,
             PartitionName.templatePrefix(relationName.schema(), relationName.name())
         );
         for (Index index : concreteIndices) {
