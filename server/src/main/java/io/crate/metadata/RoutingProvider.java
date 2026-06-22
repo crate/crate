@@ -118,6 +118,7 @@ public final class RoutingProvider {
     }
 
     public Routing forIndices(ClusterState state,
+                              RelationName relation,
                               String[] concreteIndicesUUIDs,
                               Set<String> routingValues,
                               boolean ignoreMissingShards,
@@ -151,12 +152,13 @@ public final class RoutingProvider {
                 default:
                     throw new AssertionError("Invalid ShardSelection: " + shardSelection);
             }
-            fillLocationsFromShardIterator(ignoreMissingShards, locations, shardIt);
+            fillLocationsFromShardIterator(relation, ignoreMissingShards, locations, shardIt);
         }
         return new Routing(locations);
     }
 
-    private static void fillLocationsFromShardIterator(boolean ignoreMissingShards,
+    private static void fillLocationsFromShardIterator(RelationName relation,
+                                                       boolean ignoreMissingShards,
                                                        Map<String, Map<String, IntIndexedContainer>> locations,
                                                        ShardIterator shardIterator) {
         ShardRouting shardRouting = shardIterator.nextOrNull();
@@ -164,7 +166,7 @@ public final class RoutingProvider {
             if (ignoreMissingShards) {
                 return;
             }
-            throw new UnavailableShardsException(shardIterator.shardId());
+            throw new UnavailableShardsException(relation, shardIterator.shardId());
         }
         processShardRouting(locations, shardRouting);
     }

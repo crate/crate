@@ -49,6 +49,7 @@ import io.crate.exceptions.ConversionException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
@@ -144,9 +145,10 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_execution_exception_is_not_wrapped_in_logical_planner() {
         LogicalPlan plan = e.logicalPlan("select * from doc.tbl");
+        RelationName relation = new RelationName("doc", "tbl");
         var mockedPlannerCtx = mock(PlannerContext.class);
         when(mockedPlannerCtx.transactionContext()).thenThrow(
-            new UnavailableShardsException(new ShardId("tbl", "uuid", 11)));
+            new UnavailableShardsException(relation, new ShardId("tbl", "uuid", 11)));
 
         assertSQLError(() -> LogicalPlanner.getNodeOperationTree(
                 plan,
@@ -157,7 +159,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             ))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(INTERNAL_SERVER_ERROR, 5002)
-            .hasMessageContaining("[tbl] shard 11 is not available");
+            .hasMessageContaining("[doc.tbl] shard 11 is not available");
     }
 
     @Test

@@ -35,13 +35,14 @@ public class UnavailableShardsExceptionTest {
 
     @Test
     public void test_can_get_relation_name_from_streamed_exception() throws Exception {
-        var ex = new UnavailableShardsException(new ShardId("idx1", UUIDs.randomBase64UUID(), 0));
+        RelationName relationName = new RelationName("doc", "idx1");
+        var ex = new UnavailableShardsException(relationName, new ShardId("idx1", UUIDs.randomBase64UUID(), 0));
         var out = new BytesStreamOutput();
         ex.writeTo(out);
         try (var in = out.bytes().streamInput()) {
             var inEx = new UnavailableShardsException(in);
 
-            assertThat(inEx.getTableIdents()).containsExactly(new RelationName("doc", "idx1"));
+            assertThat(inEx.getTableIdents()).containsExactly(relationName);
         }
     }
 }

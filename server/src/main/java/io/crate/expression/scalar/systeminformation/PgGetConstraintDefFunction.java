@@ -90,12 +90,16 @@ public class PgGetConstraintDefFunction extends Scalar<String, Object> {
     @Override
     @SafeVarargs
     public final String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
-        for (Input<Object> arg : args) {
-            if (arg.value() == null) {
+        Integer oid = (Integer) args[0].value();
+        if (oid == null) {
+            return null;
+        }
+        if (args.length == 2) {
+            Object pretty = args[1].value();
+            if (pretty == null) {
                 return null;
             }
         }
-        int oid = (Integer) args[0].value();
         Roles roles = nodeCtx.roles();
         Role user = roles.findUser(txnCtx.sessionSettings().userName());
         if (user == null) {
