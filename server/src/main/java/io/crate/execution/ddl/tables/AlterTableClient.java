@@ -25,6 +25,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_BLOCKS_WRIT
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -39,6 +40,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
 import org.elasticsearch.action.admin.indices.shrink.ResizeResponse;
 import org.elasticsearch.action.admin.indices.shrink.TransportResize;
+import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -48,6 +50,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.BoundAlterTable;
@@ -58,6 +61,7 @@ import io.crate.data.Row;
 import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
@@ -83,12 +87,14 @@ public class AlterTableClient {
     private final IndexScopedSettings indexScopedSettings;
     private final LogicalReplicationService logicalReplicationService;
     private final TasksService tasksService;
+    private final ThreadPool threadPool;
 
     @Inject
     public AlterTableClient(ClusterService clusterService,
                             NodeClient client,
                             Sessions sessions,
                             TasksService tasksService,
+                            ThreadPool threadPool,
                             IndexScopedSettings indexScopedSettings,
                             LogicalReplicationService logicalReplicationService) {
 
@@ -96,6 +102,7 @@ public class AlterTableClient {
         this.client = client;
         this.sessions = sessions;
         this.tasksService = tasksService;
+        this.threadPool = threadPool;
         this.indexScopedSettings = indexScopedSettings;
         this.logicalReplicationService = logicalReplicationService;
     }
@@ -268,11 +275,28 @@ public class AlterTableClient {
         };
 
         Consumer<Throwable> kill = _ -> {
-            String staleIndexUUID = findResizeSourceUUID(sourceIndexMetadata);
-            if (staleIndexUUID != null) {
-                var gcReq = new GCDanglingArtifactsRequest(List.of(staleIndexUUID));
-                client.execute(TransportGCDanglingArtifacts.ACTION, gcReq);
-            }
+            Iterator<TimeValue> backoff = BackoffPolicy
+                .exponentialBackoff(TimeValue.timeValueMillis(50), 10)
+                .iterator();
+            Runnable retry = new Runnable() {
+                @Override
+                public void run() {
+                    RootTask task = tasksService.getTaskOrNull(plannerContext.jobId());
+                    if (task == null || task.completionFuture().isDone()) {
+                        return;
+                    }
+                    String staleIndexUUID = findResizeSourceUUID(sourceIndexMetadata);
+                    if (staleIndexUUID != null) {
+                        var gcReq = new GCDanglingArtifactsRequest(List.of(staleIndexUUID));
+                        client.execute(TransportGCDanglingArtifacts.ACTION, gcReq);
+                        return;
+                    }
+                    if (backoff.hasNext()) {
+                        threadPool.scheduleUnlessShuttingDown(backoff.next(), ThreadPool.Names.GENERIC, this);
+                    }
+                }
+            };
+            retry.run();
         };
 
         String taskName = "resize-table: " + table.ident();
