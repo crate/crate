@@ -48,7 +48,6 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
@@ -571,24 +570,6 @@ public final class MetadataTracker implements Closeable {
             );
         }
         return updatedClusterState;
-    }
-
-    @Nullable
-    private static MappingMetadata updateIndexMetadataMappings(IndexMetadata publisherIndexMetadata,
-                                                               IndexMetadata subscriberIndexMetadata) {
-        var publisherMapping = publisherIndexMetadata.mapping();
-        var subscriberMapping = subscriberIndexMetadata.mapping();
-        if (publisherMapping != null && subscriberMapping != null) {
-            if (publisherIndexMetadata.getMappingVersion() > subscriberIndexMetadata.getMappingVersion()) {
-                if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("Updated subscriber mapping index={}, newMapping={}",
-                        subscriberIndexMetadata.getIndex().getName(),
-                        publisherMapping.sourceAsMap());
-                }
-                return publisherMapping;
-            }
-        }
-        return null;
     }
 
     @Nullable
