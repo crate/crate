@@ -66,6 +66,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
+@Repeat(iterations = 300)
 public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
 
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(10, TimeUnit.SECONDS);
@@ -493,7 +494,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         ensureGreen();
     }
 
-    @Repeat(iterations = 500)
+    @Test
     public void test_concurrent_swaps() throws Exception {
         execute("create table t1 (p int) partitioned by (p)");
         execute("create table t2 (p2 int)");
