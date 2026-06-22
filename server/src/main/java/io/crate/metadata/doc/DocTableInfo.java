@@ -468,6 +468,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         }
         return routingProvider.forIndices(
             state,
+            ident,
             indices,
             whereClause.routingValues(),
             isPartitioned,
