@@ -39,6 +39,7 @@ import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.single.shard.SingleShardRequest;
 import org.elasticsearch.action.support.single.shard.TransportSingleShardAction;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -107,8 +108,8 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
             var indexShard = indexService.getShard(shardId.id());
             var seqNoStats = indexShard.seqNoStats();
             // At this point globalCheckpoint is at least fromSeqNo
-            var toSeqNo = Math.min(seqNoStats.getGlobalCheckpoint(), request.toSeqNo());
-            var fromSeqNo = request.fromSeqNo();
+            long toSeqNo = Math.min(seqNoStats.getGlobalCheckpoint(), request.toSeqNo());
+            long fromSeqNo = request.fromSeqNo();
 
             List<Translog.Operation> ops = new ArrayList<>();
 
@@ -134,7 +135,11 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
                 final String message = "Operations are no longer available for replicating. " +
                                        "Existing retention leases [" + retentionLeases + "]; maybe increase the retention lease period setting " +
                                        "[" + IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING.getKey() + "]?";
-                throw new MissingShardOperationsException(RelationName.fromIndexName(shardId.getIndexName()), message);
+                RelationMetadata relation = clusterService.state().metadata().getRelation(shardId.getIndexUUID());
+                RelationName relationName = relation == null
+                    ? RelationName.fromIndexName(shardId.getIndexName())
+                    : relation.name();
+                throw new MissingShardOperationsException(relationName, message);
             }
 
             return new Response(
