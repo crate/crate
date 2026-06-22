@@ -33,13 +33,14 @@ import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 
 import io.crate.common.exceptions.Exceptions;
+import io.crate.metadata.RelationName;
 
 public class SQLExceptionsTest {
 
     @Test
     public void test_unavailable_shard_exception_is_shard_failure() throws Exception {
         ShardId shardId = new ShardId("idx1", UUIDs.randomBase64UUID(), 0);
-        UnavailableShardsException ex = new UnavailableShardsException(shardId);
+        UnavailableShardsException ex = new UnavailableShardsException(new RelationName("doc", "tbl"), shardId);
         assertThat(SQLExceptions.isShardNotAvailable(ex)).isTrue();
         assertThat(SQLExceptions.maybeTemporary(ex)).isTrue();
     }

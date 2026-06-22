@@ -126,7 +126,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
                               RoutingProvider.ShardSelection shardSelection,
                               CoordinatorSessionSettings sessionSettings) {
         String[] indices = state.metadata().getIndices(ident, List.of(), true, IndexMetadata::getIndexUUID).toArray(new String[0]);
-        return routingProvider.forIndices(state, indices, Set.of(), false, shardSelection);
+        return routingProvider.forIndices(state, ident, indices, Set.of(), false, shardSelection);
     }
 
     @Override

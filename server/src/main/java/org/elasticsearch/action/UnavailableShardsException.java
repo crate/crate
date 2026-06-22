@@ -24,10 +24,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.shard.ShardId;
 import org.jspecify.annotations.Nullable;
+
 import io.crate.exceptions.TableScopeException;
 import io.crate.metadata.RelationName;
 import io.crate.rest.action.HttpErrorStatus;
@@ -39,37 +43,49 @@ public class UnavailableShardsException extends ElasticsearchException implement
     @Nullable
     private final RelationName relationName;
 
-    public UnavailableShardsException(@Nullable ShardId shardId, String message, Object... args) {
-        super(buildMessage(shardId, message), args);
-        this.relationName = shardId == null ? null : RelationName.fromIndexName(shardId.getIndexName());
+    public UnavailableShardsException(ShardId shardId, @Nullable RelationName relationName, String message, Object... args) {
+        super(buildMessage(relationName, shardId, message), args);
+        this.relationName = relationName;
     }
 
-    public UnavailableShardsException(ShardId shardId) {
-        super(buildMessage(shardId));
-        this.relationName = shardId == null ? null : RelationName.fromIndexName(shardId.getIndexName());
+    public UnavailableShardsException(RelationName relation, ShardId shardId) {
+        super(buildMessage(relation, shardId));
+        this.relationName = relation;
     }
 
-    private static String buildMessage(ShardId shardId) {
-        return String.format(Locale.ENGLISH, "[%s] shard %s is not available", shardId.getIndexName(), shardId.id());
+    private static String buildMessage(RelationName relation, ShardId shardId) {
+        return String.format(Locale.ENGLISH, "[%s] shard %s is not available", relation, shardId.id());
     }
 
-    private static String buildMessage(@Nullable ShardId shardId, String message) {
-        if (shardId == null) {
-            return message;
+    private static String buildMessage(@Nullable RelationName relationName, ShardId shardId, String message) {
+        if (relationName == null) {
+            return "[" + shardId.getIndexUUID() + "][" + shardId.id() + "] " + message;
         }
-        return "[" + shardId.getIndexName() + "][" + shardId.id() + "] " + message;
+        return "[" + relationName + "][" + shardId.id() + "] " + message;
     }
 
     public UnavailableShardsException(StreamInput in) throws IOException {
         super(in);
-        RelationName name = null;
-        try {
-            Matcher matcher = MSG_INDEX_NAME_PATTERN.matcher(getMessage());
-            name = matcher.matches() ? RelationName.fromIndexName(matcher.group(1)) : null;
-        } catch (Exception ex) {
-            name = null;
+        if (in.getVersion().onOrAfter(Version.V_6_4_0)) {
+            this.relationName = in.readOptionalWriteable(RelationName::new);
+        } else {
+            RelationName name = null;
+            try {
+                Matcher matcher = MSG_INDEX_NAME_PATTERN.matcher(getMessage());
+                name = matcher.matches() ? RelationName.fromIndexName(matcher.group(1)) : null;
+            } catch (Exception ex) {
+                name = null;
+            }
+            this.relationName = name;
         }
-        this.relationName = name;
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_6_4_0)) {
+            out.writeOptionalWriteable(relationName);
+        }
     }
 
     @Override
