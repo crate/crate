@@ -471,6 +471,30 @@ public class PgCatalogITest extends IntegTestCase {
         );
     }
 
+    @Test
+    public void test_pg_get_constraintdef_renders_primary_key_and_check() throws Exception {
+        execute("CREATE TABLE doc.tbl (" +
+            "int_col int," +
+            "long_col bigint," +
+            "checked int CONSTRAINT positive CHECK(checked > 0)," +
+            "PRIMARY KEY (int_col, long_col))"
+        );
+        // Prisma/TypeORM-style introspection query joining pg_constraint and resolving the def.
+        response = execute("""
+                SELECT
+                    cn.conname,
+                    pg_catalog.pg_get_constraintdef(cn.oid)
+                FROM pg_catalog.pg_constraint cn
+                JOIN pg_catalog.pg_class c ON cn.conrelid = c.oid
+                WHERE c.relname = 'tbl'
+                ORDER BY cn.conname;
+            """);
+        assertThat(response).hasRows(
+            "positive| CHECK (\"checked\" > 0)",
+            "tbl_pkey| PRIMARY KEY (int_col, long_col)"
+        );
+    }
+
     @UseRandomizedSchema(random = false)
     @Test
     public void test_pg_class_oid_equals_cast_of_string_to_regclass() {

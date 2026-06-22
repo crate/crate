@@ -26,11 +26,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
+import org.elasticsearch.indices.InvalidRelationName;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.blob.v2.BlobIndex;
-import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.metadata.doc.DocSchemaInfo;
 
@@ -116,10 +116,10 @@ public class RelationNameTest extends ESTestCase {
     public void testCreateRelationNameWithInvalidCharacters() {
         assertThatThrownBy(() -> new RelationName("doc", ".table"))
             .isExactlyInstanceOf(InvalidRelationName.class)
-            .hasMessage("Relation name \"doc..table\" is invalid.");
+            .hasMessage("Relation name 'doc..table' is invalid. Name can't contain '.'");
         assertThatThrownBy(() -> new RelationName(null, ".table"))
             .isExactlyInstanceOf(InvalidRelationName.class)
-            .hasMessage("Relation name \".table\" is invalid.");
+            .hasMessage("Relation name '.table' is invalid. Name can't contain '.'");
         assertThatThrownBy(() -> new RelationName("doc.", ".table"))
             .isExactlyInstanceOf(InvalidSchemaNameException.class)
             .hasMessage("schema name \"doc.\" is invalid.");

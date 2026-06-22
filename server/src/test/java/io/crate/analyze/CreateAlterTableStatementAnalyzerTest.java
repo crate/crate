@@ -47,6 +47,7 @@ import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDeci
 import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.indices.InvalidRelationName;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,7 +60,6 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -795,7 +795,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableIllegalTableName() {
         assertThatThrownBy(() -> analyze("create table \"abc.def\" (id integer primary key, name string)"))
             .isExactlyInstanceOf(InvalidRelationName.class)
-            .hasMessage("Relation name \"doc.abc.def\" is invalid.");
+            .hasMessage("Relation name 'doc.abc.def' is invalid. Name can't contain '.'");
     }
 
     @Test

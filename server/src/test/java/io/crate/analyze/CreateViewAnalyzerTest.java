@@ -25,15 +25,16 @@ import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isAlias;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.Locale;
 
+import org.elasticsearch.indices.InvalidRelationName;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.exceptions.InvalidRelationName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.role.Role;
@@ -86,7 +87,7 @@ public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testViewNameWithDotsAreNotAllowed() {
         assertThatThrownBy(() -> e.analyze("create view \"v.1\" as select 1"))
             .isExactlyInstanceOf(InvalidRelationName.class)
-            .hasMessage("Relation name \"doc.v.1\" is invalid.");
+            .hasMessage("Relation name 'doc.v.1' is invalid. Name can't contain '.'");
     }
 
     @Test

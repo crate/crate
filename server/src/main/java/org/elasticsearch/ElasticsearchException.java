@@ -396,8 +396,8 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
                 org.elasticsearch.snapshots.SnapshotException::new, 30, UNKNOWN_VERSION_ADDED),
         INVALID_ALIAS_NAME_EXCEPTION(org.elasticsearch.indices.InvalidAliasNameException.class,
                 org.elasticsearch.indices.InvalidAliasNameException::new, 31, UNKNOWN_VERSION_ADDED),
-        INVALID_INDEX_NAME_EXCEPTION(org.elasticsearch.indices.InvalidIndexNameException.class,
-                org.elasticsearch.indices.InvalidIndexNameException::new, 32, UNKNOWN_VERSION_ADDED),
+        INVALID_INDEX_NAME_EXCEPTION(org.elasticsearch.indices.InvalidRelationName.class,
+                org.elasticsearch.indices.InvalidRelationName::new, 32, UNKNOWN_VERSION_ADDED),
         INDEX_PRIMARY_SHARD_NOT_ALLOCATED_EXCEPTION(org.elasticsearch.indices.IndexPrimaryShardNotAllocatedException.class,
                 org.elasticsearch.indices.IndexPrimaryShardNotAllocatedException::new, 33, UNKNOWN_VERSION_ADDED),
         TRANSPORT_EXCEPTION(org.elasticsearch.transport.TransportException.class,
@@ -489,8 +489,7 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
         // 85 used to be for AlreadyExpiredException
         // 86 used to be for AggregationExecutionException
         // 87 used to be for MergeMappingException
-        INVALID_INDEX_TEMPLATE_EXCEPTION(org.elasticsearch.indices.InvalidIndexTemplateException.class,
-                org.elasticsearch.indices.InvalidIndexTemplateException::new, 88, UNKNOWN_VERSION_ADDED),
+        // 88 used to be for InvalidIndexTemplateException
         REFRESH_FAILED_ENGINE_EXCEPTION(org.elasticsearch.index.engine.RefreshFailedEngineException.class,
                 org.elasticsearch.index.engine.RefreshFailedEngineException::new, 90, UNKNOWN_VERSION_ADDED),
         // 91 used to be for AggregationInitializationException

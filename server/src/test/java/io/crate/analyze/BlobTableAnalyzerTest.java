@@ -29,12 +29,12 @@ import java.io.IOException;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.InvalidRelationName;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.data.RowN;
-import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.blob.BlobSchemaInfo;

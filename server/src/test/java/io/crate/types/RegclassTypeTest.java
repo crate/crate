@@ -21,17 +21,17 @@
 
 package io.crate.types;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.indices.InvalidRelationName;
 import org.jspecify.annotations.Nullable;
 import org.junit.Test;
 
-import io.crate.exceptions.InvalidRelationName;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RelationLookup;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;
 
@@ -120,6 +120,6 @@ public class RegclassTypeTest extends DataTypeTestCase<Regclass> {
     public void test_cast_from_string_raise_exception_if_not_valid_relation_name() {
         Assertions.assertThatThrownBy(() -> RegclassType.INSTANCE.explicitCast("\"\"myTable\"\"", SESSION_SETTINGS, null))
             .isExactlyInstanceOf(InvalidRelationName.class)
-            .hasMessageContaining("Relation name \"\"\"myTable\"\"\" is invalid");
+            .hasMessageContaining("Relation name '\"\"myTable\"\"' is invalid");
     }
 }
