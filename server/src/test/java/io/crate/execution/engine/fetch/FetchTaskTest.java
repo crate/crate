@@ -109,7 +109,8 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
             @Override
             public CompletableFuture<Void> maybeRefreshReaders(Metadata metadata,
                                                                Map<String, IntIndexedContainer> shardsByIndex,
-                                                               Map<String, Integer> bases) {
+                                                               Map<String, Integer> bases,
+                                                               Map<String, RelationName> index2Table) {
                 calledRefreshReaders.set(true);
                 return CompletableFuture.completedFuture(null);
             }
