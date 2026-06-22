@@ -53,6 +53,8 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
@@ -64,6 +66,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
+@Repeat(iterations = 300)
 public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
 
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(10, TimeUnit.SECONDS);
