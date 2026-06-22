@@ -38,7 +38,6 @@ import io.crate.exceptions.AnalyzerInvalidException;
 import io.crate.exceptions.AnalyzerUnknownException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
-import io.crate.exceptions.DuplicateKeyException;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.PartitionUnknownException;
@@ -142,8 +141,6 @@ public class HttpError {
             httpErrorStatus = HttpErrorStatus.RELATION_UNKNOWN;
         } else if (throwable instanceof ReadOnlyException) {
             httpErrorStatus = HttpErrorStatus.ONLY_READ_OPERATION_ALLOWED_ON_THIS_NODE;
-        } else if (throwable instanceof DuplicateKeyException) {
-            httpErrorStatus = HttpErrorStatus.DOCUMENT_WITH_THE_SAME_PRIMARY_KEY_EXISTS_ALREADY;
         } else if (throwable instanceof PartitionAlreadyExistsException) {
             httpErrorStatus = HttpErrorStatus.PARTITION_FOR_THE_SAME_VALUE_EXISTS_ALREADY;
         } else if (throwable instanceof RepositoryAlreadyExistsException) {

@@ -21,21 +21,35 @@
 
 package io.crate.exceptions;
 
-import io.crate.metadata.RelationName;
-
 import java.util.Collections;
 
-public class DuplicateKeyException extends RuntimeException implements ConflictException, TableScopeException {
+import org.elasticsearch.ElasticsearchException;
+
+import io.crate.metadata.RelationName;
+import io.crate.protocols.postgres.PGErrorStatus;
+import io.crate.rest.action.HttpErrorStatus;
+
+public class DuplicateKeyException extends ElasticsearchException implements ConflictException, TableScopeException {
 
     private final RelationName relationName;
 
-    DuplicateKeyException(String indexName, String msg, Throwable e) {
+    DuplicateKeyException(RelationName relationName, String msg, Throwable e) {
         super(msg, e);
-        relationName = RelationName.fromIndexName(indexName);
+        this.relationName = relationName;
     }
 
     @Override
     public Iterable<RelationName> getTableIdents() {
         return Collections.singletonList(relationName);
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.DOCUMENT_WITH_THE_SAME_PRIMARY_KEY_EXISTS_ALREADY;
+    }
+
+    @Override
+    public PGErrorStatus pgErrorStatus() {
+        return PGErrorStatus.UNIQUE_VIOLATION;
     }
 }
