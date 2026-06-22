@@ -64,7 +64,6 @@ import org.junit.Test;
 
 import io.crate.common.collections.Sets;
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.DuplicateKeyException;
 
 /**
  * Tests various cluster operations (e.g., indexing) during disruptions.
@@ -150,7 +149,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
                                              id,
                                              node,
                                              response);
-                            } catch (ElasticsearchException | DuplicateKeyException e) {
+                            } catch (ElasticsearchException e) {
                                 exceptedExceptions.add(e);
                                 final String rowId = id;
                                 logger.trace(() -> new ParameterizedMessage("[{}] failed id [{}] through node [{}]",
