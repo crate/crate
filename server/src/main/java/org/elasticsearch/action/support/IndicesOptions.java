@@ -33,8 +33,10 @@ import org.elasticsearch.common.io.stream.StreamOutput;
  * Controls how to deal with unavailable concrete indices (closed or missing), how wildcard expressions are expanded
  * to actual indices (all, closed or open indices) and how to deal with wildcard expressions that resolve to no indices.
  */
+@Deprecated
 public class IndicesOptions {
 
+    @Deprecated
     public enum WildcardStates {
         OPEN,
         CLOSED;
@@ -42,6 +44,7 @@ public class IndicesOptions {
         public static final EnumSet<WildcardStates> NONE = EnumSet.noneOf(WildcardStates.class);
     }
 
+    @Deprecated
     public enum Option {
         IGNORE_UNAVAILABLE,
         ALLOW_NO_INDICES,
@@ -55,6 +58,7 @@ public class IndicesOptions {
      * wildcards only to open indices and allows that no indices are resolved from
      * wildcard expressions (not returning an error).
      */
+    @Deprecated
     public static final IndicesOptions STRICT_EXPAND_OPEN = new IndicesOptions(
         EnumSet.of(Option.ALLOW_NO_INDICES),
         EnumSet.of(WildcardStates.OPEN)
@@ -65,6 +69,7 @@ public class IndicesOptions {
      * open indices and allows that no indices are resolved from wildcard
      * expressions (not returning an error).
      */
+    @Deprecated
     public static final IndicesOptions LENIENT_EXPAND_OPEN = new IndicesOptions(
         EnumSet.of(Option.ALLOW_NO_INDICES, Option.IGNORE_UNAVAILABLE),
         EnumSet.of(WildcardStates.OPEN)
@@ -75,6 +80,7 @@ public class IndicesOptions {
      * open and closed indices and allows that no indices are resolved from wildcard
      * expressions (not returning an error).
      */
+    @Deprecated
     public static final IndicesOptions LENIENT_EXPAND_OPEN_CLOSED = new IndicesOptions(
         EnumSet.of(Option.ALLOW_NO_INDICES, Option.IGNORE_UNAVAILABLE),
         EnumSet.of(WildcardStates.OPEN, WildcardStates.CLOSED)
@@ -140,25 +146,12 @@ public class IndicesOptions {
         return new IndicesOptions(in.readEnumSet(Option.class), in.readEnumSet(WildcardStates.class));
     }
 
+    @Deprecated
     public static IndicesOptions fromOptions(boolean ignoreUnavailable,
                                              boolean allowNoIndices,
                                              boolean expandToOpenIndices,
                                              boolean expandToClosedIndices,
                                              IndicesOptions defaultOptions) {
-        return fromOptions(
-            ignoreUnavailable,
-            allowNoIndices,
-            expandToOpenIndices,
-            expandToClosedIndices,
-            defaultOptions.forbidClosedIndices()
-        );
-    }
-
-    public static IndicesOptions fromOptions(boolean ignoreUnavailable,
-                                             boolean allowNoIndices,
-                                             boolean expandToOpenIndices,
-                                             boolean expandToClosedIndices,
-                                             boolean forbidClosedIndices) {
         final Set<Option> opts = new HashSet<>();
         final Set<WildcardStates> wildcards = new HashSet<>();
 
@@ -174,10 +167,9 @@ public class IndicesOptions {
         if (expandToClosedIndices) {
             wildcards.add(WildcardStates.CLOSED);
         }
-        if (forbidClosedIndices) {
+        if (defaultOptions.forbidClosedIndices()) {
             opts.add(Option.FORBID_CLOSED_INDICES);
         }
-
         return new IndicesOptions(opts, wildcards);
     }
 
