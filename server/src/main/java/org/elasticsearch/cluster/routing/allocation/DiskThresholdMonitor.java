@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -298,10 +297,10 @@ public class DiskThresholdMonitor {
             LOGGER.trace("no reroute required");
             listener.onResponse(null);
         }
-        final Set<String> indicesToAutoRelease = state.routingTable().indicesRouting().keySet().stream()
+        final List<String> indicesToAutoRelease = state.routingTable().indicesRouting().keySet().stream()
             .filter(indexUUID -> indicesNotToAutoRelease.contains(indexUUID) == false)
             .filter(indexUUID -> state.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK))
-            .collect(Collectors.toSet());
+            .toList();
 
         Metadata metadata = state.metadata();
         if (indicesToAutoRelease.isEmpty() == false) {
@@ -347,7 +346,7 @@ public class DiskThresholdMonitor {
     }
 
     protected void updateIndicesReadOnly(Metadata metadata,
-                                         Set<String> indicesToUpdate,
+                                         Collection<String> indicesToUpdate,
                                          ActionListener<Void> listener,
                                          boolean readOnly) {
         // set read-only block but don't block on the response
@@ -362,7 +361,7 @@ public class DiskThresholdMonitor {
         Settings readOnlySettings = readOnly ? Settings.builder()
             .put(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE, Boolean.TRUE.toString()).build() :
             Settings.builder().putNull(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE).build();
-        ArrayList<PartitionName> partitions = new ArrayList<>();
+        ArrayList<PartitionName> partitions = new ArrayList<>(indicesToUpdate.size());
         for (String indexUUID : indicesToUpdate) {
             IndexMetadata indexMetadata = metadata.index(indexUUID);
             if (indexMetadata == null) {
