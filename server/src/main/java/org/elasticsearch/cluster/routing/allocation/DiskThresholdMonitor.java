@@ -151,7 +151,7 @@ public class DiskThresholdMonitor {
             final DiskUsage usage = entry.getValue();
             final RoutingNode routingNode = routingNodes.node(node);
 
-            if (usage.getFreeBytes() < diskThresholdSettings.getFreeBytesThresholdFloodStage().getBytes() ||
+            if (usage.freeBytes() < diskThresholdSettings.getFreeBytesThresholdFloodStage().getBytes() ||
                 usage.getFreeDiskAsPercentage() < diskThresholdSettings.getFreeDiskThresholdFloodStage()) {
 
                 nodesOverLowThreshold.add(node);
@@ -172,7 +172,7 @@ public class DiskThresholdMonitor {
                 continue;
             }
 
-            if (usage.getFreeBytes() < diskThresholdSettings.getFreeBytesThresholdHigh().getBytes() ||
+            if (usage.freeBytes() < diskThresholdSettings.getFreeBytesThresholdHigh().getBytes() ||
                 usage.getFreeDiskAsPercentage() < diskThresholdSettings.getFreeDiskThresholdHigh()) {
 
                 if (routingNode != null) { // might be temporarily null if the ClusterInfoService and the ClusterService are out of step
@@ -183,11 +183,16 @@ public class DiskThresholdMonitor {
                 }
             }
 
-            final long reservedSpace = info.getReservedSpace(usage.getNodeId(), usage.getPath()).total();
-            final DiskUsage usageWithReservedSpace = new DiskUsage(usage.getNodeId(), usage.getNodeName(), usage.getPath(),
-                usage.getTotalBytes(), Math.max(0L, usage.getFreeBytes() - reservedSpace));
+            final long reservedSpace = info.getReservedSpace(usage.nodeId(), usage.path()).total();
+            final DiskUsage usageWithReservedSpace = new DiskUsage(
+                usage.nodeId(),
+                usage.nodeName(),
+                usage.path(),
+                usage.totalBytes(),
+                Math.max(0L, usage.freeBytes() - reservedSpace)
+            );
 
-            if (usageWithReservedSpace.getFreeBytes() < diskThresholdSettings.getFreeBytesThresholdHigh().getBytes() ||
+            if (usageWithReservedSpace.freeBytes() < diskThresholdSettings.getFreeBytesThresholdHigh().getBytes() ||
                 usageWithReservedSpace.getFreeDiskAsPercentage() < diskThresholdSettings.getFreeDiskThresholdHigh()) {
 
                 nodesOverLowThreshold.add(node);
@@ -204,7 +209,7 @@ public class DiskThresholdMonitor {
                         node, diskThresholdSettings.getRerouteInterval());
                 }
 
-            } else if (usageWithReservedSpace.getFreeBytes() < diskThresholdSettings.getFreeBytesThresholdLow().getBytes() ||
+            } else if (usageWithReservedSpace.freeBytes() < diskThresholdSettings.getFreeBytesThresholdLow().getBytes() ||
                 usageWithReservedSpace.getFreeDiskAsPercentage() < diskThresholdSettings.getFreeDiskThresholdLow()) {
 
                 nodesOverHighThresholdAndRelocating.remove(node);
@@ -254,27 +259,32 @@ public class DiskThresholdMonitor {
             rerouteService.get().reroute("disk threshold monitor", Priority.HIGH, ActionListener.wrap(reroutedClusterState -> {
 
                 for (DiskUsage diskUsage : usagesOverHighThreshold) {
-                    final RoutingNode routingNode = reroutedClusterState.getRoutingNodes().node(diskUsage.getNodeId());
+                    final RoutingNode routingNode = reroutedClusterState.getRoutingNodes().node(diskUsage.nodeId());
                     final DiskUsage usageIncludingRelocations;
                     final long relocatingShardsSize;
                     if (routingNode != null) { // might be temporarily null if the ClusterInfoService and the ClusterService are out of step
                         relocatingShardsSize = sizeOfRelocatingShards(routingNode, diskUsage, info, reroutedClusterState);
-                        usageIncludingRelocations = new DiskUsage(diskUsage.getNodeId(), diskUsage.getNodeName(),
-                            diskUsage.getPath(), diskUsage.getTotalBytes(), diskUsage.getFreeBytes() - relocatingShardsSize);
+                        usageIncludingRelocations = new DiskUsage(
+                            diskUsage.nodeId(),
+                            diskUsage.nodeName(),
+                            diskUsage.path(),
+                            diskUsage.totalBytes(),
+                            diskUsage.freeBytes() - relocatingShardsSize
+                        );
                     } else {
                         usageIncludingRelocations = diskUsage;
                         relocatingShardsSize = 0L;
                     }
 
-                    if (usageIncludingRelocations.getFreeBytes() < diskThresholdSettings.getFreeBytesThresholdHigh().getBytes()
+                    if (usageIncludingRelocations.freeBytes() < diskThresholdSettings.getFreeBytesThresholdHigh().getBytes()
                         || usageIncludingRelocations.getFreeDiskAsPercentage() < diskThresholdSettings.getFreeDiskThresholdHigh()) {
 
-                        nodesOverHighThresholdAndRelocating.remove(diskUsage.getNodeId());
+                        nodesOverHighThresholdAndRelocating.remove(diskUsage.nodeId());
                         LOGGER.warn("high disk watermark [{}] exceeded on {}, shards will be relocated away from this node; " +
                                 "currently relocating away shards totalling [{}] bytes; the node is expected to continue to exceed " +
                                 "the high disk watermark when these relocations are complete",
                             diskThresholdSettings.describeHighThreshold(), diskUsage, -relocatingShardsSize);
-                    } else if (nodesOverHighThresholdAndRelocating.add(diskUsage.getNodeId())) {
+                    } else if (nodesOverHighThresholdAndRelocating.add(diskUsage.nodeId())) {
                         LOGGER.info("high disk watermark [{}] exceeded on {}, shards will be relocated away from this node; " +
                                 "currently relocating away shards totalling [{}] bytes; the node is expected to be below the high " +
                                 "disk watermark when these relocations are complete",
@@ -322,8 +332,14 @@ public class DiskThresholdMonitor {
 
     // exposed for tests to override
     long sizeOfRelocatingShards(RoutingNode routingNode, DiskUsage diskUsage, ClusterInfo info, ClusterState reroutedClusterState) {
-        return DiskThresholdDecider.sizeOfRelocatingShards(routingNode, true,
-            diskUsage.getPath(), info, reroutedClusterState.metadata(), reroutedClusterState.routingTable());
+        return DiskThresholdDecider.sizeOfRelocatingShards(
+            routingNode,
+            true,
+            diskUsage.path(),
+            info,
+            reroutedClusterState.metadata(),
+            reroutedClusterState.routingTable()
+        );
     }
 
     private void markNodesMissingUsageIneligibleForRelease(RoutingNodes routingNodes,
