@@ -21,13 +21,12 @@
 
 package io.crate.execution.engine.window;
 
-import io.crate.data.Row;
 import io.crate.data.breaker.RowAccounting;
 
-public class IgnoreRowAccounting implements RowAccounting<Row> {
+public class IgnoreRowAccounting<T> implements RowAccounting<T> {
 
     @Override
-    public long accountForAndMaybeBreak(Row row) {
+    public long accountForAndMaybeBreak(T row) {
         return 42;
     }
 
