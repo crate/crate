@@ -28,7 +28,6 @@ import java.util.Locale;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.Index;
 
 import io.crate.metadata.RelationName;
 import io.crate.rest.action.HttpErrorStatus;
@@ -47,11 +46,6 @@ public final class RelationAlreadyExists extends ElasticsearchException implemen
     public RelationAlreadyExists(RelationName relationName, String message) {
         super(message);
         this.relationName = relationName;
-    }
-
-    RelationAlreadyExists(Index index, Throwable e) {
-        super(String.format(Locale.ENGLISH, MESSAGE_TMPL, index.getName()), e);
-        this.relationName = RelationName.fromIndexName(index.getName());
     }
 
     public RelationAlreadyExists(StreamInput in) throws IOException {

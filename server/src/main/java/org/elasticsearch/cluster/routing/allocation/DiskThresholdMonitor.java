@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -44,6 +43,7 @@ import org.elasticsearch.cluster.DiskUsage;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RerouteService;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.RoutingNodes;
@@ -52,11 +52,11 @@ import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexNotFoundException;
 
 import io.crate.common.collections.Sets;
 import io.crate.concurrent.MultiActionListener;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 
 /**
  * Listens for a node to go over the high watermark and kicks off an empty
@@ -306,7 +306,7 @@ public class DiskThresholdMonitor {
         Metadata metadata = state.metadata();
         if (indicesToAutoRelease.isEmpty() == false) {
             LOGGER.info("releasing read-only-allow-delete block on indices: [{}]", indicesToAutoRelease);
-            updateIndicesReadOnly(indicesToAutoRelease, metadata::index, listener, false);
+            updateIndicesReadOnly(metadata, indicesToAutoRelease, listener, false);
         } else {
             LOGGER.trace("no auto-release required");
             listener.onResponse(null);
@@ -315,7 +315,7 @@ public class DiskThresholdMonitor {
         indicesToMarkReadOnly.removeIf(indexUUID -> state.blocks().indexBlocked(ClusterBlockLevel.WRITE, indexUUID));
         LOGGER.trace("marking indices as read-only: [{}]", indicesToMarkReadOnly);
         if (indicesToMarkReadOnly.isEmpty() == false) {
-            updateIndicesReadOnly(indicesToMarkReadOnly, metadata::index, listener, true);
+            updateIndicesReadOnly(state.metadata(), indicesToMarkReadOnly, listener, true);
         } else {
             listener.onResponse(null);
         }
@@ -346,8 +346,8 @@ public class DiskThresholdMonitor {
         lastRunTimeMillis.getAndUpdate(l -> Math.max(l, currentTimeMillisSupplier.getAsLong()));
     }
 
-    protected void updateIndicesReadOnly(Set<String> indicesToUpdate,
-                                         Function<String, IndexMetadata> indexMetadataResolver,
+    protected void updateIndicesReadOnly(Metadata metadata,
+                                         Set<String> indicesToUpdate,
                                          ActionListener<Void> listener,
                                          boolean readOnly) {
         // set read-only block but don't block on the response
@@ -362,16 +362,19 @@ public class DiskThresholdMonitor {
         Settings readOnlySettings = readOnly ? Settings.builder()
             .put(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE, Boolean.TRUE.toString()).build() :
             Settings.builder().putNull(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE).build();
-        List<PartitionName> partitions = indicesToUpdate.stream()
-            .map(indexUUID -> {
-                IndexMetadata indexMetadata = indexMetadataResolver.apply(indexUUID);
-                if (indexMetadata == null) {
-                    throw new IllegalArgumentException("Index with UUID [" + indexUUID + "] does not exist in metadata");
-                }
-                return new PartitionName(RelationName.fromIndexName(indexMetadata.getIndex().getName()), indexMetadata.partitionValues());
-            })
-            .toList();
-
+        ArrayList<PartitionName> partitions = new ArrayList<>();
+        for (String indexUUID : indicesToUpdate) {
+            IndexMetadata indexMetadata = metadata.index(indexUUID);
+            if (indexMetadata == null) {
+                throw new IndexNotFoundException(indexUUID);
+            }
+            RelationMetadata relation = metadata.getRelation(indexUUID);
+            if (relation == null) {
+                // orphaned index.
+                continue;
+            }
+            partitions.add(new PartitionName(relation.name(), indexMetadata.partitionValues()));
+        }
         client.updateSettings(new UpdateSettingsRequest(readOnlySettings, partitions))
             .thenApply(response -> (Void) null)
             .whenComplete(wrappedListener);
