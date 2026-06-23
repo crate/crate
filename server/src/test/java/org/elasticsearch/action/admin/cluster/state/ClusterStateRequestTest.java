@@ -39,6 +39,7 @@ import io.crate.metadata.RelationName;
 public class ClusterStateRequestTest {
 
     @Test
+    @SuppressWarnings("deprecation")
     public void test_streaming_bwc_can_be_read_on_5() throws Exception {
         RelationName table = new RelationName("foo", "bar");
 
@@ -71,6 +72,7 @@ public class ClusterStateRequestTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void test_streaming_bwc_can_be_read_from_5() throws Exception {
         RelationName table = new RelationName("foo", "bar");
         String[] indices = new String[] { table.indexNameOrAlias() };

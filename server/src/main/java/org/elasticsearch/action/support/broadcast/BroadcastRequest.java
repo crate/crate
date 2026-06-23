@@ -72,6 +72,7 @@ public class BroadcastRequest extends TransportRequest {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public static List<PartitionName> readPartitionNamesFromPre60(StreamInput in) throws IOException {
         String[] indexes = in.readStringArray();
         List<PartitionName> partitions = new ArrayList<>(indexes.length);
@@ -83,6 +84,7 @@ public class BroadcastRequest extends TransportRequest {
         return partitions;
     }
 
+    @SuppressWarnings("deprecation")
     public static void writePartitionNamesToPre60(StreamOutput out, List<PartitionName> partitions) throws IOException {
         List<String> indexes = new ArrayList<>();
         for (var partition : partitions) {

@@ -42,6 +42,7 @@ import io.crate.metadata.RelationName;
 public class CreateSnapshotRequestTest {
 
     @Test
+    @SuppressWarnings("deprecation")
     public void test_streaming_bwc_can_be_read_on_5() throws Exception {
         RelationName table = new RelationName("foo", "bar");
         PartitionName partition = new PartitionName(new RelationName("my_schema", "my_table"), "my_partition");
@@ -79,6 +80,7 @@ public class CreateSnapshotRequestTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void test_streaming_bwc_can_be_read_from_5() throws Exception {
         RelationName table = new RelationName("foo", "bar");
         PartitionName partition = new PartitionName(new RelationName("my_schema", "my_table"), "my_partition");
