@@ -76,11 +76,11 @@ public class ClusterInfoServiceIT extends IntegTestCase {
         assertThat(shardSizes.values().size()).as("some shard sizes are populated").isGreaterThan(0);
         for (DiskUsage usage : leastUsages.values()) {
             logger.info("--> usage: {}", usage);
-            assertThat(usage.getFreeBytes()).as("usage has be retrieved").isGreaterThan(0L);
+            assertThat(usage.freeBytes()).as("usage has be retrieved").isGreaterThan(0L);
         }
         for (DiskUsage usage : mostUsages.values()) {
             logger.info("--> usage: {}", usage);
-            assertThat(usage.getFreeBytes()).as("usage has be retrieved").isGreaterThan(0L);
+            assertThat(usage.freeBytes()).as("usage has be retrieved").isGreaterThan(0L);
         }
         for (Long size : shardSizes.values()) {
             logger.info("--> shard size: {}", size);

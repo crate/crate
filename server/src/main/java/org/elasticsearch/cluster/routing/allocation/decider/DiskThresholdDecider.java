@@ -379,7 +379,7 @@ public class DiskThresholdDecider extends AllocationDecider {
             usage = averageUsage(node, usages);
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("unable to determine disk usage for {}, defaulting to average across nodes [{} total] [{} free] [{}% free]",
-                        node.nodeId(), usage.getTotalBytes(), usage.getFreeBytes(), usage.getFreeDiskAsPercentage());
+                        node.nodeId(), usage.totalBytes(), usage.freeBytes(), usage.getFreeDiskAsPercentage());
             }
         }
 
@@ -389,7 +389,7 @@ public class DiskThresholdDecider extends AllocationDecider {
                 ? sizeOfRelocatingShards(
                     node,
                     subtractLeavingShards,
-                    usage.getPath(),
+                    usage.path(),
                     allocation.clusterInfo(),
                     allocation.metadata(),
                     allocation.routingTable()
@@ -417,8 +417,8 @@ public class DiskThresholdDecider extends AllocationDecider {
         long totalBytes = 0;
         long freeBytes = 0;
         for (DiskUsage du : usages.values()) {
-            totalBytes += du.getTotalBytes();
-            freeBytes += du.getFreeBytes();
+            totalBytes += du.totalBytes();
+            freeBytes += du.freeBytes();
         }
         return new DiskUsage(node.nodeId(), node.node().getName(), "_na_", totalBytes / usages.size(), freeBytes / usages.size());
     }
@@ -534,26 +534,26 @@ public class DiskThresholdDecider extends AllocationDecider {
 
         long getFreeBytes() {
             try {
-                return Math.subtractExact(diskUsage.getFreeBytes(), relocatingShardSize);
+                return Math.subtractExact(diskUsage.freeBytes(), relocatingShardSize);
             } catch (ArithmeticException e) {
                 return Long.MAX_VALUE;
             }
         }
 
         String getPath() {
-            return diskUsage.getPath();
+            return diskUsage.path();
         }
 
         String getNodeId() {
-            return diskUsage.getNodeId();
+            return diskUsage.nodeId();
         }
 
         String getNodeName() {
-            return diskUsage.getNodeName();
+            return diskUsage.nodeName();
         }
 
         long getTotalBytes() {
-            return diskUsage.getTotalBytes();
+            return diskUsage.totalBytes();
         }
     }
 

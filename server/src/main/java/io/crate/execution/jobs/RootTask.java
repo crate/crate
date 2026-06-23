@@ -396,7 +396,12 @@ public class RootTask implements CompletionListenable<Void> {
                     if (traceEnabled) {
                         logger.trace("Task id={} failed, killing other task={}", this.task.id(), otherTask);
                     }
-                    otherTask.kill(t);
+                    try {
+                        otherTask.kill(t);
+                    } catch (Exception e) {
+                        assert false : "kill isn't allowed/supposed to fail";
+                        logger.error("Failed to kill task {}", otherTask, e);
+                    }
                 }
             }
         }

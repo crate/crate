@@ -27,10 +27,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -44,6 +42,7 @@ import org.elasticsearch.cluster.DiskUsage;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RerouteService;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.RoutingNodes;
@@ -52,11 +51,11 @@ import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexNotFoundException;
 
 import io.crate.common.collections.Sets;
 import io.crate.concurrent.MultiActionListener;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 
 /**
  * Listens for a node to go over the high watermark and kicks off an empty
@@ -152,7 +151,7 @@ public class DiskThresholdMonitor {
             final DiskUsage usage = entry.getValue();
             final RoutingNode routingNode = routingNodes.node(node);
 
-            if (usage.getFreeBytes() < diskThresholdSettings.getFreeBytesThresholdFloodStage().getBytes() ||
+            if (usage.freeBytes() < diskThresholdSettings.getFreeBytesThresholdFloodStage().getBytes() ||
                 usage.getFreeDiskAsPercentage() < diskThresholdSettings.getFreeDiskThresholdFloodStage()) {
 
                 nodesOverLowThreshold.add(node);
@@ -173,7 +172,7 @@ public class DiskThresholdMonitor {
                 continue;
             }
 
-            if (usage.getFreeBytes() < diskThresholdSettings.getFreeBytesThresholdHigh().getBytes() ||
+            if (usage.freeBytes() < diskThresholdSettings.getFreeBytesThresholdHigh().getBytes() ||
                 usage.getFreeDiskAsPercentage() < diskThresholdSettings.getFreeDiskThresholdHigh()) {
 
                 if (routingNode != null) { // might be temporarily null if the ClusterInfoService and the ClusterService are out of step
@@ -184,11 +183,16 @@ public class DiskThresholdMonitor {
                 }
             }
 
-            final long reservedSpace = info.getReservedSpace(usage.getNodeId(), usage.getPath()).total();
-            final DiskUsage usageWithReservedSpace = new DiskUsage(usage.getNodeId(), usage.getNodeName(), usage.getPath(),
-                usage.getTotalBytes(), Math.max(0L, usage.getFreeBytes() - reservedSpace));
+            final long reservedSpace = info.getReservedSpace(usage.nodeId(), usage.path()).total();
+            final DiskUsage usageWithReservedSpace = new DiskUsage(
+                usage.nodeId(),
+                usage.nodeName(),
+                usage.path(),
+                usage.totalBytes(),
+                Math.max(0L, usage.freeBytes() - reservedSpace)
+            );
 
-            if (usageWithReservedSpace.getFreeBytes() < diskThresholdSettings.getFreeBytesThresholdHigh().getBytes() ||
+            if (usageWithReservedSpace.freeBytes() < diskThresholdSettings.getFreeBytesThresholdHigh().getBytes() ||
                 usageWithReservedSpace.getFreeDiskAsPercentage() < diskThresholdSettings.getFreeDiskThresholdHigh()) {
 
                 nodesOverLowThreshold.add(node);
@@ -205,7 +209,7 @@ public class DiskThresholdMonitor {
                         node, diskThresholdSettings.getRerouteInterval());
                 }
 
-            } else if (usageWithReservedSpace.getFreeBytes() < diskThresholdSettings.getFreeBytesThresholdLow().getBytes() ||
+            } else if (usageWithReservedSpace.freeBytes() < diskThresholdSettings.getFreeBytesThresholdLow().getBytes() ||
                 usageWithReservedSpace.getFreeDiskAsPercentage() < diskThresholdSettings.getFreeDiskThresholdLow()) {
 
                 nodesOverHighThresholdAndRelocating.remove(node);
@@ -255,27 +259,32 @@ public class DiskThresholdMonitor {
             rerouteService.get().reroute("disk threshold monitor", Priority.HIGH, ActionListener.wrap(reroutedClusterState -> {
 
                 for (DiskUsage diskUsage : usagesOverHighThreshold) {
-                    final RoutingNode routingNode = reroutedClusterState.getRoutingNodes().node(diskUsage.getNodeId());
+                    final RoutingNode routingNode = reroutedClusterState.getRoutingNodes().node(diskUsage.nodeId());
                     final DiskUsage usageIncludingRelocations;
                     final long relocatingShardsSize;
                     if (routingNode != null) { // might be temporarily null if the ClusterInfoService and the ClusterService are out of step
                         relocatingShardsSize = sizeOfRelocatingShards(routingNode, diskUsage, info, reroutedClusterState);
-                        usageIncludingRelocations = new DiskUsage(diskUsage.getNodeId(), diskUsage.getNodeName(),
-                            diskUsage.getPath(), diskUsage.getTotalBytes(), diskUsage.getFreeBytes() - relocatingShardsSize);
+                        usageIncludingRelocations = new DiskUsage(
+                            diskUsage.nodeId(),
+                            diskUsage.nodeName(),
+                            diskUsage.path(),
+                            diskUsage.totalBytes(),
+                            diskUsage.freeBytes() - relocatingShardsSize
+                        );
                     } else {
                         usageIncludingRelocations = diskUsage;
                         relocatingShardsSize = 0L;
                     }
 
-                    if (usageIncludingRelocations.getFreeBytes() < diskThresholdSettings.getFreeBytesThresholdHigh().getBytes()
+                    if (usageIncludingRelocations.freeBytes() < diskThresholdSettings.getFreeBytesThresholdHigh().getBytes()
                         || usageIncludingRelocations.getFreeDiskAsPercentage() < diskThresholdSettings.getFreeDiskThresholdHigh()) {
 
-                        nodesOverHighThresholdAndRelocating.remove(diskUsage.getNodeId());
+                        nodesOverHighThresholdAndRelocating.remove(diskUsage.nodeId());
                         LOGGER.warn("high disk watermark [{}] exceeded on {}, shards will be relocated away from this node; " +
                                 "currently relocating away shards totalling [{}] bytes; the node is expected to continue to exceed " +
                                 "the high disk watermark when these relocations are complete",
                             diskThresholdSettings.describeHighThreshold(), diskUsage, -relocatingShardsSize);
-                    } else if (nodesOverHighThresholdAndRelocating.add(diskUsage.getNodeId())) {
+                    } else if (nodesOverHighThresholdAndRelocating.add(diskUsage.nodeId())) {
                         LOGGER.info("high disk watermark [{}] exceeded on {}, shards will be relocated away from this node; " +
                                 "currently relocating away shards totalling [{}] bytes; the node is expected to be below the high " +
                                 "disk watermark when these relocations are complete",
@@ -298,15 +307,15 @@ public class DiskThresholdMonitor {
             LOGGER.trace("no reroute required");
             listener.onResponse(null);
         }
-        final Set<String> indicesToAutoRelease = state.routingTable().indicesRouting().keySet().stream()
+        final List<String> indicesToAutoRelease = state.routingTable().indicesRouting().keySet().stream()
             .filter(indexUUID -> indicesNotToAutoRelease.contains(indexUUID) == false)
             .filter(indexUUID -> state.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK))
-            .collect(Collectors.toSet());
+            .toList();
 
         Metadata metadata = state.metadata();
         if (indicesToAutoRelease.isEmpty() == false) {
             LOGGER.info("releasing read-only-allow-delete block on indices: [{}]", indicesToAutoRelease);
-            updateIndicesReadOnly(indicesToAutoRelease, metadata::index, listener, false);
+            updateIndicesReadOnly(metadata, indicesToAutoRelease, listener, false);
         } else {
             LOGGER.trace("no auto-release required");
             listener.onResponse(null);
@@ -315,7 +324,7 @@ public class DiskThresholdMonitor {
         indicesToMarkReadOnly.removeIf(indexUUID -> state.blocks().indexBlocked(ClusterBlockLevel.WRITE, indexUUID));
         LOGGER.trace("marking indices as read-only: [{}]", indicesToMarkReadOnly);
         if (indicesToMarkReadOnly.isEmpty() == false) {
-            updateIndicesReadOnly(indicesToMarkReadOnly, metadata::index, listener, true);
+            updateIndicesReadOnly(state.metadata(), indicesToMarkReadOnly, listener, true);
         } else {
             listener.onResponse(null);
         }
@@ -323,8 +332,14 @@ public class DiskThresholdMonitor {
 
     // exposed for tests to override
     long sizeOfRelocatingShards(RoutingNode routingNode, DiskUsage diskUsage, ClusterInfo info, ClusterState reroutedClusterState) {
-        return DiskThresholdDecider.sizeOfRelocatingShards(routingNode, true,
-            diskUsage.getPath(), info, reroutedClusterState.metadata(), reroutedClusterState.routingTable());
+        return DiskThresholdDecider.sizeOfRelocatingShards(
+            routingNode,
+            true,
+            diskUsage.path(),
+            info,
+            reroutedClusterState.metadata(),
+            reroutedClusterState.routingTable()
+        );
     }
 
     private void markNodesMissingUsageIneligibleForRelease(RoutingNodes routingNodes,
@@ -346,8 +361,8 @@ public class DiskThresholdMonitor {
         lastRunTimeMillis.getAndUpdate(l -> Math.max(l, currentTimeMillisSupplier.getAsLong()));
     }
 
-    protected void updateIndicesReadOnly(Set<String> indicesToUpdate,
-                                         Function<String, IndexMetadata> indexMetadataResolver,
+    protected void updateIndicesReadOnly(Metadata metadata,
+                                         Collection<String> indicesToUpdate,
                                          ActionListener<Void> listener,
                                          boolean readOnly) {
         // set read-only block but don't block on the response
@@ -362,16 +377,19 @@ public class DiskThresholdMonitor {
         Settings readOnlySettings = readOnly ? Settings.builder()
             .put(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE, Boolean.TRUE.toString()).build() :
             Settings.builder().putNull(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE).build();
-        List<PartitionName> partitions = indicesToUpdate.stream()
-            .map(indexUUID -> {
-                IndexMetadata indexMetadata = indexMetadataResolver.apply(indexUUID);
-                if (indexMetadata == null) {
-                    throw new IllegalArgumentException("Index with UUID [" + indexUUID + "] does not exist in metadata");
-                }
-                return new PartitionName(RelationName.fromIndexName(indexMetadata.getIndex().getName()), indexMetadata.partitionValues());
-            })
-            .toList();
-
+        ArrayList<PartitionName> partitions = new ArrayList<>(indicesToUpdate.size());
+        for (String indexUUID : indicesToUpdate) {
+            IndexMetadata indexMetadata = metadata.index(indexUUID);
+            if (indexMetadata == null) {
+                throw new IndexNotFoundException(indexUUID);
+            }
+            RelationMetadata relation = metadata.getRelation(indexUUID);
+            if (relation == null) {
+                // orphaned index.
+                continue;
+            }
+            partitions.add(new PartitionName(relation.name(), indexMetadata.partitionValues()));
+        }
         client.updateSettings(new UpdateSettingsRequest(readOnlySettings, partitions))
             .thenApply(response -> (Void) null)
             .whenComplete(wrappedListener);
