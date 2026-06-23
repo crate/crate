@@ -80,8 +80,8 @@ public class ClusterInfo implements Writeable {
     }
 
     public ClusterInfo(StreamInput in) throws IOException {
-        final Map<String, DiskUsage> leastMap = in.readMap(StreamInput::readString, DiskUsage::new);
-        final Map<String, DiskUsage> mostMap = in.readMap(StreamInput::readString, DiskUsage::new);
+        final Map<String, DiskUsage> leastMap = in.readMap(StreamInput::readString, DiskUsage::of);
+        final Map<String, DiskUsage> mostMap = in.readMap(StreamInput::readString, DiskUsage::of);
         final Map<String, Long> sizeMap = in.readMap(StreamInput::readString, StreamInput::readLong);
         final Map<ShardRouting, String> routingMap = in.readMap(ShardRouting::new, StreamInput::readString);
         Map<NodeAndPath, ReservedSpace> reservedSpaceMap;

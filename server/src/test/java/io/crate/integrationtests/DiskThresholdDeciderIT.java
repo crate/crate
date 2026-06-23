@@ -275,7 +275,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
         // even though it's now possible to achieve better balance, so we have to do an explicit reroute. TODO fix this?
         final ClusterInfo clusterInfo = cluster().getMasterNodeInstance(ClusterInfoService.class).getClusterInfo();
         if (clusterInfo.getNodeMostAvailableDiskUsages().values().stream()
-            .allMatch(cur -> cur.getFreeBytes() > WATERMARK_BYTES)) {
+            .allMatch(cur -> cur.freeBytes() > WATERMARK_BYTES)) {
 
             var clusterRerouteResponse = client()
                 .execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest()).get();
