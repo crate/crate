@@ -20,7 +20,6 @@
 package org.elasticsearch.action.admin.cluster.health;
 
 import java.io.IOException;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.Version;
@@ -44,11 +43,6 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
     private ActiveShardCount waitForActiveShards = ActiveShardCount.NONE;
     private String waitForNodes = "";
     private Priority waitForEvents = null;
-    /**
-     * Only used by the high-level REST Client. Controls the details level of the health information returned.
-     * The default value is 'shards' so it is backward compatible with the transport client behaviour.
-     */
-    private Level level = Level.SHARDS;
 
     public ClusterHealthRequest() {
     }
@@ -168,24 +162,6 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
         return this.waitForEvents;
     }
 
-    /**
-     * Set the level of detail for the health information to be returned.
-     * Only used by the high-level REST Client
-     * The default value is 'shards' so it is backward compatible with the transport client behaviour.
-     */
-    public void level(Level level) {
-        this.level = Objects.requireNonNull(level, "level must not be null");
-    }
-
-    /**
-     * Get the level of detail for the health information to be returned.
-     * Only used by the high-level REST Client.
-     * The default value is 'shards' so it is backward compatible with the transport client behaviour.
-     */
-    public Level level() {
-        return level;
-    }
-
     public ClusterHealthRequest(StreamInput in) throws IOException {
         super(in);
         if (in.getVersion().before(Version.V_6_0_0)) {
@@ -234,9 +210,5 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
         if (out.getVersion().before(Version.V_6_0_0)) {
             IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED.writeIndicesOptions(out);
         }
-    }
-
-    public enum Level {
-        CLUSTER, INDICES, SHARDS
     }
 }
