@@ -42,6 +42,7 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.AllocationId;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -82,6 +83,7 @@ import org.jspecify.annotations.Nullable;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.metadata.RelationName;
 
 /**
  * Base class for requests that should be executed on a primary copy followed by replica copies.
@@ -663,13 +665,13 @@ public abstract class TransportReplicationAction<
             if (primary == null || primary.active() == false) {
                 logger.trace("primary shard [{}] is not yet active, scheduling a retry: action [{}], request [{}], "
                     + "cluster state version [{}]", request.shardId(), actionName, request, state.version());
-                retryBecauseUnavailable(request.shardId(), "primary shard is not active");
+                retryBecauseUnavailable(state, request.shardId(), "primary shard is not active");
                 return;
             }
             if (state.nodes().nodeExists(primary.currentNodeId()) == false) {
                 logger.trace("primary shard [{}] is assigned to an unknown node [{}], scheduling a retry: action [{}], request [{}], "
                     + "cluster state version [{}]", request.shardId(), primary.currentNodeId(), actionName, request, state.version());
-                retryBecauseUnavailable(request.shardId(), "primary shard isn't assigned to a known node.");
+                retryBecauseUnavailable(state, request.shardId(), "primary shard isn't assigned to a known node.");
                 return;
             }
             final DiscoveryNode node = state.nodes().get(primary.currentNodeId());
@@ -701,6 +703,7 @@ public abstract class TransportReplicationAction<
                 );
 
                 retryBecauseUnavailable(
+                    state,
                     request.shardId(),
                     "failed to find primary as current cluster state with version [" + state.version() + "] is stale (expected at least [" + request.routedBasedOnClusterVersion() + "]"
                 );
@@ -823,8 +826,11 @@ public abstract class TransportReplicationAction<
             }
         }
 
-        void retryBecauseUnavailable(ShardId shardId, String message) {
-            retry(new UnavailableShardsException(shardId, "{} Timeout: [{}], request: [{}]", message, request.timeout(), request));
+        void retryBecauseUnavailable(ClusterState state, ShardId shardId, String message) {
+            @Nullable
+            RelationMetadata relation = state.metadata().getRelation(shardId.getIndexUUID());
+            RelationName relationName = relation == null ? null : relation.name();
+            retry(new UnavailableShardsException(shardId, relationName, "{} Timeout: [{}], request: [{}]", message, request.timeout(), request));
         }
     }
 

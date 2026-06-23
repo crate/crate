@@ -58,7 +58,6 @@ import org.jspecify.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
 import io.crate.common.exceptions.Exceptions;
-import io.crate.sql.parser.ParsingException;
 
 public class SQLExceptions {
 
@@ -193,7 +192,7 @@ public class SQLExceptions {
     }
 
     private static Throwable esToCrateException(Throwable unwrappedError) {
-        if (unwrappedError instanceof IllegalArgumentException || unwrappedError instanceof ParsingException) {
+        if (unwrappedError instanceof IllegalArgumentException) {
             return new SQLParseException(unwrappedError.getMessage(), (Exception) unwrappedError);
         } else if (unwrappedError instanceof UnsupportedOperationException) {
             return new UnsupportedFeatureException(unwrappedError.getMessage(), (Exception) unwrappedError);

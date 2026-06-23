@@ -91,10 +91,15 @@ public class ReplicationOperation<
 
     private final List<ReplicationResponse.ShardInfo.Failure> shardReplicaFailures = Collections.synchronizedList(new ArrayList<>());
 
-    public ReplicationOperation(Request request, Primary<Request, ReplicaRequest, PrimaryResultT> primary,
+    public ReplicationOperation(Request request,
+                                Primary<Request, ReplicaRequest, PrimaryResultT> primary,
                                 ActionListener<PrimaryResultT> listener,
                                 Replicas<ReplicaRequest> replicas,
-                                Logger logger, ThreadPool threadPool, String opType, long primaryTerm, TimeValue initialRetryBackoffBound,
+                                Logger logger,
+                                ThreadPool threadPool,
+                                String opType,
+                                long primaryTerm,
+                                TimeValue initialRetryBackoffBound,
                                 TimeValue retryTimeout) {
         this.replicasProxy = replicas;
         this.primary = primary;
@@ -113,8 +118,14 @@ public class ReplicationOperation<
         final ShardRouting primaryRouting = primary.routingEntry();
         final ShardId primaryId = primaryRouting.shardId();
         if (activeShardCountFailure != null) {
-            finishAsFailed(new UnavailableShardsException(primaryId,
-                "{} Timeout: [{}], request: [{}]", activeShardCountFailure, request.timeout(), request));
+            finishAsFailed(new UnavailableShardsException(
+                primaryId,
+                null,
+                "{} Timeout: [{}], request: [{}]",
+                activeShardCountFailure,
+                request.timeout(),
+                request
+            ));
             return;
         }
 

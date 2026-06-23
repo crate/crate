@@ -49,6 +49,7 @@ import io.crate.exceptions.RepositoryAlreadyExistsException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFunctionException;
+import io.crate.sql.parser.ParsingException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -127,7 +128,7 @@ public class HttpError {
             httpErrorStatus = HttpErrorStatus.RELATION_INVALID_NAME;
         } else if (throwable instanceof RelationValidationException) {
             httpErrorStatus = HttpErrorStatus.FIELD_VALIDATION_FAILED;
-        } else if (throwable instanceof SQLParseException) {
+        } else if (throwable instanceof SQLParseException || throwable instanceof ParsingException) {
             httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
         } else if (throwable instanceof UnsupportedFunctionException) {
             httpErrorStatus = HttpErrorStatus.POSSIBLE_FEATURE_NOT_SUPPORTED_YET;
