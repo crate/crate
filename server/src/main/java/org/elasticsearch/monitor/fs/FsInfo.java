@@ -349,8 +349,8 @@ public class FsInfo extends AbstractList<FsInfo.Path> implements Writeable {
         }
         this.total = total();
         if (in.getVersion().before(Version.V_5_2_0)) {
-            in.readOptionalWriteable(DiskUsage::new); // previously leastDiskEstimate
-            in.readOptionalWriteable(DiskUsage::new); // previously mostDiskEstimate
+            in.readOptionalWriteable(DiskUsage::of); // previously leastDiskEstimate
+            in.readOptionalWriteable(DiskUsage::of); // previously mostDiskEstimate
         }
     }
 
