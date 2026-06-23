@@ -644,8 +644,8 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         usages.put("node3", new DiskUsage("node3", "n3", "/dev/null", 100, 0));  // 100% used
 
         DiskUsage node1Usage = decider.averageUsage(rn, usages);
-        assertThat(node1Usage.getTotalBytes()).isEqualTo(100L);
-        assertThat(node1Usage.getFreeBytes()).isEqualTo(25L);
+        assertThat(node1Usage.totalBytes()).isEqualTo(100L);
+        assertThat(node1Usage.freeBytes()).isEqualTo(25L);
     }
 
     @Test
