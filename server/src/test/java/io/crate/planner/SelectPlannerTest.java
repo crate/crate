@@ -92,6 +92,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
+import io.crate.types.StringType;
 
 public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -1784,6 +1785,18 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 );
             },
             x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class)
+        );
+    }
+
+    @Test
+    public void test_removes_redundant_casts_on_collect_symbols() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x varchar(3))");
+        Collect collect = e.plan("select max(x) from tbl");
+        assertThat(collect.collectPhase().toCollect()).satisfiesExactly(
+            x -> assertThat(x).isReference()
+                    .hasName("x")
+                    .hasType(StringType.of(3))
         );
     }
 }

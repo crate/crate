@@ -293,7 +293,10 @@ public class Collect implements LogicalPlan {
         }
 
         var sessionSettings = plannerContext.transactionContext().sessionSettings();
-        List<Symbol> boundOutputs = Lists.map(outputs, binder);
+        List<Symbol> boundOutputs = Lists.map(
+            outputs,
+            binder.andThen(x -> Optimizer.optimizeCasts(x, plannerContext))
+        );
         return new RoutedCollectPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
