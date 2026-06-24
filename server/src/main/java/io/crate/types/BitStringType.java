@@ -47,8 +47,8 @@ import io.crate.execution.dml.BitStringIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RelationLookup;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnDefinition;
@@ -273,6 +273,11 @@ public final class BitStringType extends DataType<BitString> implements Streamer
             return false;
         }
         return true;
+    }
+
+    @Override
+    public boolean equalsSignature(DataType<?> other) {
+        return ID == other.id();
     }
 
     @Override

@@ -324,6 +324,11 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     }
 
     @Override
+    public boolean equalsSignature(DataType<?> other) {
+        return id() == other.id();
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), scale, precision);
     }
