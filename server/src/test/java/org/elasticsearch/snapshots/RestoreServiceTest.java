@@ -32,7 +32,6 @@ import java.util.Set;
 
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
@@ -73,7 +72,6 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             "repo1",
             snapshotInfo.snapshotId().getUUID(),
             tablesToRestore,
-            IndicesOptions.LENIENT_EXPAND_OPEN,
             Settings.EMPTY,
             true,
             false,
@@ -116,7 +114,6 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             "repo1",
             snapshotInfo.snapshotId().getName(),
             tablesToRestore,
-            IndicesOptions.LENIENT_EXPAND_OPEN,
             Settings.builder().put(IGNORE_UNAVAILABLE.getKey(), true).build(),
             true,
             false,
@@ -162,7 +159,6 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             "repo1",
             snapshotInfo.snapshotId().getName(),
             tablesToRestore,
-            IndicesOptions.LENIENT_EXPAND_OPEN,
             Settings.EMPTY,
             true,
             false,
@@ -205,7 +201,6 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             "repo1",
             snapshotInfo.snapshotId().getName(),
             tablesToRestore,
-            IndicesOptions.LENIENT_EXPAND_OPEN,
             Settings.EMPTY,
             true,
             false,
@@ -256,7 +251,6 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             "repo1",
             snapshotInfo.snapshotId().getUUID(),
             tablesToRestore,
-            IndicesOptions.LENIENT_EXPAND_OPEN,
             Settings.EMPTY,
             true,
             false,

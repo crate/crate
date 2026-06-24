@@ -45,7 +45,6 @@ import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreClusterSt
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -275,7 +274,6 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             publisherClusterRepoName,
             LogicalReplicationRepository.LATEST,
             tablesToRestore,
-            IndicesOptions.LENIENT_EXPAND_OPEN,
             restoreSettings,
             true,
             false,

@@ -66,6 +66,7 @@ public class BroadcastRequestTests extends ESTestCase {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void testPreV6ReadStreaming() throws Exception {
         // Check that reading from pre v6 indices-request-style streams provides PartitionNames
 
@@ -94,6 +95,7 @@ public class BroadcastRequestTests extends ESTestCase {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void testPre60WriteStreaming() throws Exception {
 
         List<PartitionName> partitions = partitions();

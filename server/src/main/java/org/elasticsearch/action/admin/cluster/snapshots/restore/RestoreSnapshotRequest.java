@@ -46,7 +46,6 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
     private final String snapshot;
     private final String repository;
 
-    private final IndicesOptions indicesOptions;
     private final Settings settings;
 
     private final boolean includeTables;
@@ -68,7 +67,6 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
     public RestoreSnapshotRequest(String repository,
                                   String snapshot,
                                   List<TableOrPartition> tablesToRestore,
-                                  IndicesOptions indicesOptions,
                                   Settings settings,
                                   boolean includeTables,
                                   boolean includeViews,
@@ -79,7 +77,6 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         this.repository = repository;
         this.snapshot = snapshot;
         this.tablesToRestore = tablesToRestore;
-        this.indicesOptions = indicesOptions;
         this.settings = settings;
         this.includeTables = includeTables;
         this.includeViews = includeViews;
@@ -109,16 +106,6 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
 
     public List<TableOrPartition> tablesToRestore() {
         return tablesToRestore;
-    }
-
-    /**
-     * Specifies what type of requested indices to ignore and how to deal with wildcard expressions.
-     * For example indices that don't exist.
-     *
-     * @return the desired behaviour regarding indices to ignore and wildcard indices expression
-     */
-    public IndicesOptions indicesOptions() {
-        return indicesOptions;
     }
 
     /**
@@ -206,7 +193,9 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         if (version.before(Version.V_6_0_0)) {
             in.readStringArray(); // indices
         }
-        indicesOptions = IndicesOptions.readIndicesOptions(in);
+        if (version.before(Version.V_6_4_0)) {
+            IndicesOptions.readIndicesOptions(in);
+        }
         if (version.before(Version.V_6_0_0)) {
             // Since 5.6 there are default values which behave similarly as pre-5.6 with NULL values.
             // tableRenamePattern
@@ -257,7 +246,17 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
             // indices
             out.writeStringArray(Strings.EMPTY_ARRAY);
         }
-        indicesOptions.writeIndicesOptions(out);
+        if (version.before(Version.V_6_4_0)) {
+            Boolean ignoreUnavailable = SnapshotSettings.IGNORE_UNAVAILABLE.get(settings);
+            IndicesOptions indicesOptions = IndicesOptions.fromOptions(
+                ignoreUnavailable,
+                true,
+                true,
+                false,
+                IndicesOptions.LENIENT_EXPAND_OPEN
+            );
+            indicesOptions.writeIndicesOptions(out);
+        }
         if (version.before(Version.V_6_0_0)) {
             out.writeString(tableRenamePattern());
             out.writeString(tableRenameReplacement());
@@ -301,7 +300,6 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         RestoreSnapshotRequest that = (RestoreSnapshotRequest) o;
         return Objects.equals(snapshot, that.snapshot) &&
             Objects.equals(repository, that.repository) &&
-            Objects.equals(indicesOptions, that.indicesOptions) &&
             Objects.equals(settings, that.settings) &&
             includeTables == that.includeTables &&
             includeViews == that.includeViews &&
@@ -316,7 +314,6 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
         int result = Objects.hash(
             snapshot,
             repository,
-            indicesOptions,
             settings,
             includeTables,
             includeViews,

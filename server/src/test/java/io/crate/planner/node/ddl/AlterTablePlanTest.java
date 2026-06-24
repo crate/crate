@@ -174,6 +174,7 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
             client,
             e.sqlOperations,
             tasksService,
+            THREAD_POOL,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
             mock(LogicalReplicationService.class)
         );
@@ -200,6 +201,7 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
             client,
             e.sqlOperations,
             tasksService,
+            THREAD_POOL,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
             mock(LogicalReplicationService.class)
         );

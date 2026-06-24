@@ -803,7 +803,7 @@ public class PostgresITest extends IntegTestCase {
             PreparedStatement stmt = conn.prepareStatement("select name fro sys.cluster");
             Asserts.assertSQLError(() -> stmt.executeQuery())
                 .isExactlyInstanceOf(PSQLException.class)
-                .hasPGError(INTERNAL_ERROR)
+                .hasPGError(PGErrorStatus.SYNTAX_ERROR)
                 .hasMessageContaining("mismatched input 'sys'");
         }
     }

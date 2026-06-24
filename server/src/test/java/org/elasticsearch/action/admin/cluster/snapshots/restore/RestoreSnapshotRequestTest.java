@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -45,7 +44,6 @@ public class RestoreSnapshotRequestTest {
             List.of(
                 new TableOrPartition(new RelationName("s", "t1"), null)
             ),
-            IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED,
             Settings.EMPTY,
             true,
             true,
@@ -65,7 +63,6 @@ public class RestoreSnapshotRequestTest {
             List.of(
                 new TableOrPartition(new RelationName("s", "t1"), null)
             ),
-            IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED,
             Settings.EMPTY,
             true,
             true,

@@ -21,8 +21,6 @@
 
 package io.crate.planner.node.ddl;
 
-import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.Function;
@@ -30,16 +28,14 @@ import java.util.function.Function;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TransportRestoreSnapshot;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotRestoreException;
-
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedRestoreSnapshot;
 import io.crate.analyze.BoundRestoreSnapshot;
 import io.crate.analyze.SnapshotSettings;
 import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -91,17 +87,6 @@ public class RestoreSnapshotPlan implements Plan {
             dependencies.schemas()
         );
         var settings = stmt.settings();
-        boolean ignoreUnavailable = IGNORE_UNAVAILABLE.get(settings);
-
-        // ignore_unavailable as set by statement
-        IndicesOptions indicesOptions = IndicesOptions.fromOptions(
-            ignoreUnavailable,
-            true,
-            true,
-            false,
-            IndicesOptions.LENIENT_EXPAND_OPEN
-        );
-
         boolean includeTables = stmt.includeTables();
         boolean includeViews = stmt.includeViews();
 
@@ -119,7 +104,6 @@ public class RestoreSnapshotPlan implements Plan {
             restoreSnapshot.repository(),
             restoreSnapshot.snapshot(),
             tablesToRestore,
-            indicesOptions,
             settings,
             includeTables,
             includeViews,

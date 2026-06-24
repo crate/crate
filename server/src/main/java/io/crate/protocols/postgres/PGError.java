@@ -36,6 +36,7 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
+import io.crate.sql.parser.ParsingException;
 
 
 public class PGError {
@@ -112,6 +113,8 @@ public class PGError {
             status = PGErrorStatus.AMBIGUOUS_ALIAS;
         } else if (throwable instanceof UserDefinedFunctionUnknownException) {
             status = PGErrorStatus.UNDEFINED_FUNCTION;
+        } else if (throwable instanceof ParsingException) {
+            status = PGErrorStatus.SYNTAX_ERROR;
         } else if (throwable instanceof ElasticsearchException ex) {
             status = ex.pgErrorStatus();
         }

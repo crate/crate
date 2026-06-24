@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.execution.engine.indexing.ShardingUpsertExecutor.BULK_RESPONSE_MAX_ERRORS_PER_SHARD;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.OutputStream;
 import java.net.Socket;
@@ -391,7 +392,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(400);
         assertThat(response.body()).contains(
             """
-            "error":{"message":"SQLParseException[line 1:11: mismatched input 'select' expecting <EOF>]","code":4000}
+            "error":{"message":"ParsingException[line 1:11: mismatched input 'select' expecting <EOF>]","code":4000}
             """.stripIndent().stripTrailing()
         );
     }
