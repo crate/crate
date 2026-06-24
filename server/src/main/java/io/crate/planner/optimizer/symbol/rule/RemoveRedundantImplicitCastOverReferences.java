@@ -28,13 +28,14 @@ import org.jspecify.annotations.Nullable;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.planner.optimizer.symbol.FunctionLookup;
 import io.crate.planner.optimizer.symbol.Rule;
 import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 
 /**
  * Sometimes redundant casts are introduced, i.e.:: for numeric_array column whose type is `NUMERIC(p,s)`, queries like
@@ -49,10 +50,19 @@ public class RemoveRedundantImplicitCastOverReferences implements Rule<Function>
 
     public RemoveRedundantImplicitCastOverReferences() {
         this.pattern = typeOf(Function.class)
-            .with(cast -> cast.name().equals(ImplicitCastFunction.NAME))
-            .with(cast -> cast.arguments().getFirst().symbolType() == SymbolType.REFERENCE)
-            .with(cast -> (ArrayType.unnest(cast.valueType()).id() == ArrayType.unnest(cast.arguments().getFirst().valueType()).id()) &&
-                ArrayType.dimensions(cast.valueType()) == ArrayType.dimensions(cast.arguments().getFirst().valueType()));
+            .with(fn -> isCastOnReference(fn));
+    }
+
+    private static boolean isCastOnReference(Function fn) {
+        if (!fn.name().equals(ImplicitCastFunction.NAME)) {
+            return false;
+        }
+        Symbol arg = fn.arguments().getFirst();
+        DataType<?> targetType = fn.valueType();
+        DataType<?> sourceType = arg.valueType();
+        return arg instanceof Reference
+            && ArrayType.unnest(targetType).id() == ArrayType.unnest(sourceType).id()
+            && ArrayType.dimensions(targetType) == ArrayType.dimensions(sourceType);
     }
 
     @Override
