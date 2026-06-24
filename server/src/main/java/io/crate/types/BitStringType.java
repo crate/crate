@@ -276,6 +276,11 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     }
 
     @Override
+    public boolean equalsSignature(DataType<?> other) {
+        return ID == other.id();
+    }
+
+    @Override
     public ColumnType<Expression> toColumnType(@Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
         return new ColumnType<>(getName(), List.of(length));
     }

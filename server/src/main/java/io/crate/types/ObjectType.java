@@ -61,8 +61,8 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RelationLookup;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
@@ -379,6 +379,25 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             return false;
         }
         return columnPolicy == that.columnPolicy;
+    }
+
+    @Override
+    public boolean equalsSignature(DataType<?> other) {
+        if (!(other instanceof ObjectType otherObject)) {
+            return false;
+        }
+        if (innerTypes.size() != otherObject.innerTypes.size()) {
+            return false;
+        }
+        for (var entry : innerTypes.entrySet()) {
+            String innerColumn = entry.getKey();
+            DataType<?> innerType = entry.getValue();
+            DataType<?> otherInnerType = otherObject.innerType(innerColumn);
+            if (!innerType.equalsSignature(otherInnerType)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override

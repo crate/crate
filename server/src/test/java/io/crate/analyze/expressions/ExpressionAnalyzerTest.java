@@ -77,6 +77,7 @@ import io.crate.types.BitStringType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.NumericType;
+import io.crate.types.StringType;
 
 /**
  * Additional tests for the ExpressionAnalyzer.
@@ -468,7 +469,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (str varchar(3))");
         var eq = (Function) e.asSymbol("tbl.str = 'abc'");
         assertThat(eq.arguments()).satisfiesExactly(
-            s -> assertThat(s).hasDataType(DataTypes.STRING),
+            s -> assertThat(s).hasDataType(StringType.of(3)),
             s -> assertThat(s).hasDataType(DataTypes.STRING));
     }
 
@@ -479,7 +480,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         var eq = (Function) e.asSymbol("tbl.b = B'1'");
         assertThat(eq.arguments()).satisfiesExactly(
             s -> assertThat(s).hasDataType(new BitStringType(3)),
-            s -> assertThat(s).hasDataType(new BitStringType(3)));
+            s -> assertThat(s).hasDataType(new BitStringType(1)));
     }
 
     @Test
