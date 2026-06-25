@@ -303,7 +303,6 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         boolean shouldTriggerConsumer = false;
         synchronized (lock) {
             lastThrowable = t;
-            batchPagingIterator.kill(t); // this causes a already active consumer to fail
             currentPage.completeExceptionally(t);
             if (receivingFirstPage) {
                 // no active consumer - can "activate" it with a failure
@@ -311,6 +310,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
                 shouldTriggerConsumer = true;
             }
         }
+        batchPagingIterator.kill(t); // this causes a already active consumer to fail
         if (shouldTriggerConsumer) {
             consumer.accept(null, t);
         }

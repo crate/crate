@@ -36,6 +36,7 @@ import org.junit.Test;
 import io.crate.Streamer;
 import io.crate.data.ArrayBucket;
 import io.crate.data.testing.TestingRowConsumer;
+import io.crate.exceptions.JobKilledException;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.types.DataTypes;
 
@@ -122,6 +123,62 @@ public class CumulativePageBucketReceiverTest extends ESTestCase {
             );
             bucketReceiver.consumeRows();
             assertThat(rowConsumer.completionFuture()).isDone();
+        }
+    }
+
+    @Test
+    public void two_threads_running_2_kill_chains_dont_deadlock() throws Exception {
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            CumulativePageBucketReceiver receiver1 = new CumulativePageBucketReceiver(
+                "n1",
+                1,
+                executor,
+                new Streamer[]{DataTypes.INTEGER.streamer()},
+                new TestingRowConsumer(),
+                PassThroughPagingIterator.oneShot(),
+                1
+            );
+            CumulativePageBucketReceiver receiver2 = new CumulativePageBucketReceiver(
+                "n1",
+                2,
+                executor,
+                new Streamer[]{DataTypes.INTEGER.streamer()},
+                new TestingRowConsumer(),
+                PassThroughPagingIterator.oneShot(),
+                1
+            );
+
+            // Imitating 2 concurrent kill chains.
+            // RootTask.killTasks and RootTask.taskFinishedListener.onFailure.
+            // Let's say we have the following tasks in orderedTasks:
+            // rx1_rec1, rx_rec2.
+
+            // rx1_rec1 gets killed in TaskService, forwardFailure handler kills rx1_rec1
+            receiver1.completionFuture().whenComplete((r, t) -> {
+                if (t != null) {
+                    // rx_rec2 is picked up in the RootTask.taskFinishedListener.onFailure
+                    // because other kill chain RootTasks.killTasks hasn't picked up rx_rec2 yet.
+                    receiver2.kill(t);
+                }
+            });
+            // RootTasks.killTasks goes to the next task in orderedTasks:rx_rec2
+            // and grabs its lock right after another kill chain passed isDone check
+            receiver2.completionFuture().whenComplete((r, t) -> {
+                if (t != null) {
+                    receiver1.kill(t);
+                }
+            });
+            Thread t1 = new Thread(() -> receiver1.kill(JobKilledException.of("test kill")));
+            Thread t2 = new Thread(() -> receiver2.kill(JobKilledException.of("test kill")));
+
+            t1.start();
+            t2.start();
+
+            t1.join(1000);
+            t2.join(1000);
+
+            assertThat(t1.isAlive()).isFalse();
+            assertThat(t2.isAlive()).isFalse();
         }
     }
 }
