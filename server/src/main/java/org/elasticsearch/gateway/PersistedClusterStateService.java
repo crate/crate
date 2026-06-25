@@ -40,7 +40,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
-import org.apache.lucene.codecs.lucene104.Lucene104Codec;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StoredField;
@@ -232,7 +231,6 @@ public class PersistedClusterStateService {
         indexWriterConfig.setRAMBufferSizeMB(1.0);
         // merge on the write thread (e.g. while flushing)
         indexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
-        indexWriterConfig.setCodec(new Lucene104Codec());
 
         return new IndexWriter(directory, indexWriterConfig);
     }
