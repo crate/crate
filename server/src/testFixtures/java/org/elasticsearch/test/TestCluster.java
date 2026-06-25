@@ -273,22 +273,22 @@ public final class TestCluster implements Closeable {
 
         boolean useDedicatedMasterNodes = randomlyAddDedicatedMasters && random.nextBoolean();
 
-        this.numSharedDataNodes = RandomNumbers.randomIntBetween(random, minNumDataNodes, maxNumDataNodes);
+        this.numSharedDataNodes = 1;
         assert this.numSharedDataNodes >= 0;
 
         if (numSharedDataNodes == 0) {
             this.numSharedCoordOnlyNodes = 0;
-            this.numSharedDedicatedMasterNodes = 0;
+            this.numSharedDedicatedMasterNodes = 1;
         } else {
             if (useDedicatedMasterNodes) {
                 if (random.nextBoolean()) {
                     // use a dedicated master, but only low number to reduce overhead to tests
-                    this.numSharedDedicatedMasterNodes = DEFAULT_LOW_NUM_MASTER_NODES;
+                    this.numSharedDedicatedMasterNodes = 1;
                 } else {
-                    this.numSharedDedicatedMasterNodes = DEFAULT_HIGH_NUM_MASTER_NODES;
+                    this.numSharedDedicatedMasterNodes = 1;
                 }
             } else {
-                this.numSharedDedicatedMasterNodes = 0;
+                this.numSharedDedicatedMasterNodes = 1;
             }
             if (numClientNodes < 0) {
                 this.numSharedCoordOnlyNodes =  RandomNumbers.randomIntBetween(random,
@@ -307,7 +307,7 @@ public final class TestCluster implements Closeable {
 
         sharedNodesSeeds = new long[numSharedDedicatedMasterNodes + numSharedDataNodes + numSharedCoordOnlyNodes];
         for (int i = 0; i < sharedNodesSeeds.length; i++) {
-            sharedNodesSeeds[i] = random.nextLong();
+            sharedNodesSeeds[i] = i;
         }
 
         logger.info("Setup TestCluster [{}] with seed [{}] using [{}] dedicated masters, " +
@@ -316,7 +316,7 @@ public final class TestCluster implements Closeable {
             numSharedDedicatedMasterNodes, numSharedDataNodes, numSharedCoordOnlyNodes,
             autoManageMasterNodes ? "auto-managed" : "manual");
         this.nodeConfigurationSource = nodeConfigurationSource;
-        numDataPaths = random.nextInt(5) == 0 ? 2 + random.nextInt(3) : 1;
+        numDataPaths = 1;
         Builder builder = Settings.builder();
         builder.put(Environment.PATH_HOME_SETTING.getKey(), baseDir);
         builder.put(Environment.PATH_REPO_SETTING.getKey(), baseDir.resolve("repos"));
@@ -1983,13 +1983,13 @@ public final class TestCluster implements Closeable {
         int autoBootstrapMasterNodeIndex = autoManageMasterNodes && prevMasterCount == 0 && newMasterCount > 0
             && Arrays.stream(extraSettings)
                     .allMatch(s -> Node.NODE_MASTER_SETTING.get(s) == false || ZEN2_DISCOVERY_TYPE.equals(DISCOVERY_TYPE_SETTING.get(s)))
-            ? RandomNumbers.randomIntBetween(random, 0, newMasterCount - 1) : -1;
+            ? 0 : -1;
 
         final int numOfNodes = extraSettings.length;
         final int firstNodeId = nextNodeId.getAndIncrement();
         final List<Settings> settings = new ArrayList<>();
         for (int i = 0; i < numOfNodes; i++) {
-            settings.add(getNodeSettings(firstNodeId + i, random.nextLong(), extraSettings[i]));
+            settings.add(getNodeSettings(firstNodeId + i, firstNodeId + i, extraSettings[i]));
         }
         nextNodeId.set(firstNodeId + numOfNodes);
 

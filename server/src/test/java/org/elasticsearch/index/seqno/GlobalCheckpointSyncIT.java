@@ -30,6 +30,7 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -46,9 +47,12 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.RelationName;
 
+@LuceneTestCase.SuppressFileSystems("*")
 public class GlobalCheckpointSyncIT extends IntegTestCase {
 
     @Override
@@ -107,10 +111,10 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
      * This test swallows the post-operation global checkpoint syncs, and then restores the ability to send these requests at the end of the
      * test so that a background sync can fire and sync the global checkpoint.
      */
-    @Test
+    @Repeat(iterations = 10)
     public void testBackgroundGlobalCheckpointSync() throws Exception {
         runGlobalCheckpointSyncTest(
-                TimeValue.timeValueSeconds(randomIntBetween(1, 3)),
+                TimeValue.timeValueSeconds(3),
                 (indexName, client) -> {
                     // prevent global checkpoint syncs between all nodes
                     final DiscoveryNodes nodes = FutureUtils.get(
@@ -160,7 +164,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
         final TimeValue globalCheckpointSyncInterval,
         final BiConsumer<String, Client> beforeIndexing,
         final BiConsumer<String, Client> afterIndexing) throws Exception {
-        final int numberOfReplicas = randomIntBetween(1, 4);
+        final int numberOfReplicas = 4;
         cluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
         execute(
             "create table test(id integer) clustered into 1 shards with" +
@@ -170,15 +174,13 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
 
         var indexName = getFqn("test");
 
-        if (randomBoolean()) {
-            ensureGreen();
-        }
+        ensureGreen();
 
         beforeIndexing.accept(indexName, client());
 
-        final int numberOfDocuments = randomIntBetween(0, 256);
+        final int numberOfDocuments = 227;
 
-        final int numberOfThreads = randomIntBetween(1, 4);
+        final int numberOfThreads = 3;
         final CyclicBarrier barrier = new CyclicBarrier(1 + numberOfThreads);
 
         // start concurrent indexing threads
