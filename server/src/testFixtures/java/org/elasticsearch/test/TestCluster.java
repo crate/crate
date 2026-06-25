@@ -307,7 +307,7 @@ public final class TestCluster implements Closeable {
 
         sharedNodesSeeds = new long[numSharedDedicatedMasterNodes + numSharedDataNodes + numSharedCoordOnlyNodes];
         for (int i = 0; i < sharedNodesSeeds.length; i++) {
-            sharedNodesSeeds[i] = i;
+            sharedNodesSeeds[i] = random.nextLong(); // tried sharedNodesSeeds[i] = i; no difference
         }
 
         logger.info("Setup TestCluster [{}] with seed [{}] using [{}] dedicated masters, " +

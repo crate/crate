@@ -111,7 +111,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
      * This test swallows the post-operation global checkpoint syncs, and then restores the ability to send these requests at the end of the
      * test so that a background sync can fire and sync the global checkpoint.
      */
-    @Repeat(iterations = 10)
+    @Repeat(iterations = 15)
     public void testBackgroundGlobalCheckpointSync() throws Exception {
         runGlobalCheckpointSyncTest(
                 TimeValue.timeValueSeconds(3),
