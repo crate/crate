@@ -1990,6 +1990,11 @@ public final class TestCluster implements Closeable {
         final List<Settings> settings = new ArrayList<>();
         for (int i = 0; i < numOfNodes; i++) {
             settings.add(getNodeSettings(firstNodeId + i, firstNodeId + i, extraSettings[i]));
+
+            // with @LuceneTestCase.SuppressFileSystems("*") enabled
+            // with seed 497710272D51DF6E, 15 runs, total time: 3m 44s, frequent failures
+            // without this seed: 15 runs, 3m 45s total, rare failures
+            // settings.add(getNodeSettings(firstNodeId + i, random.nextLong(), extraSettings[i]));
         }
         nextNodeId.set(firstNodeId + numOfNodes);
 

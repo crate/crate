@@ -288,7 +288,8 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     public static final String TESTS_ENABLE_MOCK_MODULES = "tests.enable_mock_modules";
 
-    private static final boolean MOCK_MODULES_ENABLED = "true".equals(System.getProperty(TESTS_ENABLE_MOCK_MODULES, "true"));
+    // private static final boolean MOCK_MODULES_ENABLED = "true".equals(System.getProperty(TESTS_ENABLE_MOCK_MODULES, "true"));
+    private static final boolean MOCK_MODULES_ENABLED = false;
 
     /**
      * Default minimum number of shards for an index
