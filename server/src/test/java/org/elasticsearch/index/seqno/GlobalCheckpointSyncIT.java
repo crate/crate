@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -224,7 +223,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
                 var maxSeqNo = row[1];
                 assertThat(globalCheckpoint).isEqualTo(maxSeqNo);
             }
-        }, 15, TimeUnit.SECONDS);
+        });
 
         for (final Thread thread : threads) {
             thread.join();
