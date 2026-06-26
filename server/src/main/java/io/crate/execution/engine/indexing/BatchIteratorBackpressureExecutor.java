@@ -170,7 +170,7 @@ public class BatchIteratorBackpressureExecutor<T, R> {
             while (batchIterator.moveNext()) {
                 T item = batchIterator.currentElement();
                 if (pauseConsumption.test(item)) {
-                    long delayInMs = getDelayInMs.apply(item);
+                    long delayInMs = getDelayInMs.apply(item) * 1000;
                     if (delayInMs > 0) {
                         if (LOGGER.isDebugEnabled()) {
                             LOGGER.debug("Pausing consumption jobId={} delayInMs={}", jobId, delayInMs);

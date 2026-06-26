@@ -45,6 +45,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.exceptions.JobKilledException;
 import io.crate.metadata.RelationName;
@@ -88,6 +89,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
             .hasMessageContaining("Job killed. Cannot cast value `fail here` to type `integer`");
     }
 
+    @Repeat(iterations = 10)
     @UseRandomizedOptimizerRules(0)
     @TestLogging("io.crate.execution.dml.upsert:DEBUG, io.crate.execution.engine.distribution:TRACE")
     @Test
