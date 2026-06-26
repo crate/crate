@@ -10,7 +10,7 @@ pipeline {
   environment {
     CI_RUN = 'true'
     // Single test to hammer on this branch, e.g. 'SomeITest' or 'SomeITest#some_method'.
-    TEST = 'MetadataTrackerITest#test_deleted_partition_is_replicated'
+    TEST = 'GlobalCheckpointSyncIT#testBackgroundGlobalCheckpointSync'
   }
   stages {
     stage('Parallel') {
@@ -38,6 +38,7 @@ pipeline {
               x=(~/.m2/jdks/jdk-$(./mvnw help:evaluate -Dexpression=versions.jdk -q -DforceStdout)*); JAVA_HOME="$x/" ./mvnw test \
                 -pl server -am \
                 -Dtest="$TEST" \
+                -Dtests.seed=497710272D51DF6E \
                 -Dsurefire.failIfNoSpecifiedTests=false \
                 -DforkCount=8 \
                 -DthreadCount=2 \

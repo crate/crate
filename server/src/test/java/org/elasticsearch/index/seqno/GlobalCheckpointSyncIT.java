@@ -46,6 +46,8 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.RelationName;
 
@@ -107,7 +109,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
      * This test swallows the post-operation global checkpoint syncs, and then restores the ability to send these requests at the end of the
      * test so that a background sync can fire and sync the global checkpoint.
      */
-    @Test
+    @Repeat(iterations = 300)
     public void testBackgroundGlobalCheckpointSync() throws Exception {
         runGlobalCheckpointSyncTest(
                 TimeValue.timeValueSeconds(randomIntBetween(1, 3)),
