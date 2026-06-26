@@ -30,7 +30,6 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
-import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -52,7 +51,7 @@ import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.RelationName;
 
-@LuceneTestCase.SuppressFileSystems("*")
+// @LuceneTestCase.SuppressFileSystems("*")
 public class GlobalCheckpointSyncIT extends IntegTestCase {
 
     @Override
@@ -113,6 +112,8 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
      */
     @Repeat(iterations = 15)
     public void testBackgroundGlobalCheckpointSync() throws Exception {
+        TimeValue interval = TimeValue.timeValueSeconds(randomIntBetween(1, 3));
+
         runGlobalCheckpointSyncTest(
                 TimeValue.timeValueSeconds(3),
                 (indexName, client) -> {
@@ -164,6 +165,8 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
         final TimeValue globalCheckpointSyncInterval,
         final BiConsumer<String, Client> beforeIndexing,
         final BiConsumer<String, Client> afterIndexing) throws Exception {
+
+        final int _numberOfReplicas = randomIntBetween(1, 4);
         final int numberOfReplicas = 4;
         cluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
         execute(
@@ -174,13 +177,17 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
 
         var indexName = getFqn("test");
 
+        final boolean _ensureGreen = randomBoolean();
         ensureGreen();
 
         beforeIndexing.accept(indexName, client());
 
+        final int _numberOfDocuments = randomIntBetween(0, 256);;
         final int numberOfDocuments = 227;
 
+        final int _numberOfThreads = randomIntBetween(1, 4);
         final int numberOfThreads = 3;
+
         final CyclicBarrier barrier = new CyclicBarrier(1 + numberOfThreads);
 
         // start concurrent indexing threads

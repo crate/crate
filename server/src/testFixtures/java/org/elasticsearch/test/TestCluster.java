@@ -273,6 +273,7 @@ public final class TestCluster implements Closeable {
 
         boolean useDedicatedMasterNodes = randomlyAddDedicatedMasters && random.nextBoolean();
 
+        var _numSharedDataNodes = RandomNumbers.randomIntBetween(random, minNumDataNodes, maxNumDataNodes);
         this.numSharedDataNodes = 1;
         assert this.numSharedDataNodes >= 0;
 
@@ -316,6 +317,7 @@ public final class TestCluster implements Closeable {
             numSharedDedicatedMasterNodes, numSharedDataNodes, numSharedCoordOnlyNodes,
             autoManageMasterNodes ? "auto-managed" : "manual");
         this.nodeConfigurationSource = nodeConfigurationSource;
+        var _numDataPaths = random.nextInt(5) == 0 ? 2 + random.nextInt(3) : 1;
         numDataPaths = 1;
         Builder builder = Settings.builder();
         builder.put(Environment.PATH_HOME_SETTING.getKey(), baseDir);
@@ -1980,6 +1982,8 @@ public final class TestCluster implements Closeable {
         final int newMasterCount = Math.toIntExact(Stream.of(extraSettings).filter(Node.NODE_MASTER_SETTING::get).count());
         final List<NodeAndClient> nodes = new ArrayList<>();
         final int prevMasterCount = getMasterNodesCount();
+
+        var x = RandomNumbers.randomIntBetween(random, 0, newMasterCount - 1);
         int autoBootstrapMasterNodeIndex = autoManageMasterNodes && prevMasterCount == 0 && newMasterCount > 0
             && Arrays.stream(extraSettings)
                     .allMatch(s -> Node.NODE_MASTER_SETTING.get(s) == false || ZEN2_DISCOVERY_TYPE.equals(DISCOVERY_TYPE_SETTING.get(s)))
@@ -1989,12 +1993,9 @@ public final class TestCluster implements Closeable {
         final int firstNodeId = nextNodeId.getAndIncrement();
         final List<Settings> settings = new ArrayList<>();
         for (int i = 0; i < numOfNodes; i++) {
-            settings.add(getNodeSettings(firstNodeId + i, firstNodeId + i, extraSettings[i]));
-
-            // with @LuceneTestCase.SuppressFileSystems("*") enabled
-            // with seed 497710272D51DF6E, 15 runs, total time: 3m 44s, frequent failures
-            // without this seed: 15 runs, 3m 45s total, rare failures
-            // settings.add(getNodeSettings(firstNodeId + i, random.nextLong(), extraSettings[i]));
+            var rndNodeSettings = getNodeSettings(firstNodeId + i, random.nextLong(), extraSettings[i]);
+            Settings nodeSettings = getNodeSettings(firstNodeId + i, firstNodeId + i, extraSettings[i]);
+            settings.add(nodeSettings);
         }
         nextNodeId.set(firstNodeId + numOfNodes);
 
