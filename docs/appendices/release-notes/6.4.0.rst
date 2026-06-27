@@ -169,6 +169,8 @@ Performance and Resilience Improvements
   collection of columns that are not needed during join execution until the
   final fetch phase.
 
+- Improved query planning by deduplicating identical join conditions joined by
+  the ``AND`` operator
 
 Administration and Operations
 -----------------------------

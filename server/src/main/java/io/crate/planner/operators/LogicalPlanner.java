@@ -95,6 +95,7 @@ import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.iterative.IterativeOptimizer;
+import io.crate.planner.optimizer.rule.DeduplicateAndJoinConditions;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.EliminateCrossJoin;
 import io.crate.planner.optimizer.rule.EquiJoinToLookupJoin;
@@ -185,6 +186,7 @@ public class LogicalPlanner {
         new EquiJoinToLookupJoin(),
         new RewriteLeftOuterJoinToHashJoin(),
         new RewriteRightOuterJoinToHashJoin(),
+        new DeduplicateAndJoinConditions(),
         new RewriteJoinPlan()
     );
 
