@@ -81,7 +81,8 @@ None
 Performance and Resilience Improvements
 ---------------------------------------
 
-None
+- Improved query planning by deduplicating identical join conditions joined by
+  the ``AND`` operator
 
 Administration and Operations
 -----------------------------
