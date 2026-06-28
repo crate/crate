@@ -266,6 +266,7 @@ public class PgCatalogITest extends IntegTestCase {
             "max_identifier_length| 255| Shows the maximum length of identifiers in bytes.| NULL| NULL",
             "max_index_keys| 32| Shows the maximum number of index keys.| NULL| NULL",
             "memory.operation_limit| 0| Memory limit in bytes for an individual operation. 0 by-passes the operation limit, relying entirely on the global circuit breaker limits| NULL| NULL",
+            "optimizer_deduplicate_filter_and_conditions| true| Indicates if the optimizer rule DeduplicateFilterAndConditions is activated.| NULL| NULL",
             "optimizer_deduplicate_order| true| Indicates if the optimizer rule DeduplicateOrder is activated.| NULL| NULL",
             "optimizer_eliminate_cross_join| true| Indicates if the optimizer rule EliminateCrossJoin is activated.| NULL| NULL",
             "optimizer_equi_join_to_lookup_join| false| Indicates if the optimizer rule EquiJoinToLookupJoin is activated.| NULL| NULL",
