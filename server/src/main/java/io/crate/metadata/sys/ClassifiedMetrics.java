@@ -21,14 +21,15 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.planner.operators.StatementClassifier.Classification;
-import org.HdrHistogram.Histogram;
-import org.HdrHistogram.Recorder;
-
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
+
+import org.HdrHistogram.Histogram;
+import org.HdrHistogram.Recorder;
+
+import io.crate.planner.operators.StatementClassifier.Classification;
 
 public class ClassifiedMetrics implements Iterable<MetricsView> {
 
@@ -96,12 +97,7 @@ public class ClassifiedMetrics implements Iterable<MetricsView> {
     }
 
     private Metrics getOrCreate(Classification classification) {
-        Metrics histogram = metrics.get(classification);
-        if (histogram == null) {
-            histogram = new Metrics(classification);
-            metrics.put(classification, histogram);
-        }
-        return histogram;
+        return metrics.computeIfAbsent(classification, Metrics::new);
     }
 
     public void reset() {

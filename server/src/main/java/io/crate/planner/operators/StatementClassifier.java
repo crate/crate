@@ -21,12 +21,10 @@
 
 package io.crate.planner.operators;
 
-import io.crate.planner.Plan;
-
-import java.util.Collections;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+
+import io.crate.planner.Plan;
 
 /**
  * Utility to classify SQL statements based on their {@link Plan}.
@@ -54,55 +52,24 @@ public final class StatementClassifier extends LogicalPlanVisitor<Set<String>, V
     }
 
     public static Classification classify(Plan plan) {
-        if (plan instanceof LogicalPlan) {
+        if (plan instanceof LogicalPlan logicalPlan) {
             Set<String> classes = new TreeSet<>();
-            ((LogicalPlan) plan).accept(INSTANCE, classes);
+            logicalPlan.accept(INSTANCE, classes);
             return new Classification(plan.type(), classes);
         } else {
             return new Classification(plan.type());
         }
     }
 
-    public static class Classification {
-
-        private final Set<String> labels;
-        private final Plan.StatementType type;
-
-        public Classification(Plan.StatementType type, Set<String> labels) {
-            this.type = type;
-            this.labels = labels;
-        }
+    public record Classification(Plan.StatementType type, Set<String> labels) {
 
         public Classification(Plan.StatementType type) {
-            this.type = type;
-            this.labels = Collections.emptySet();
-        }
-
-        public Set<String> labels() {
-            return labels;
-        }
-
-        public Plan.StatementType type() {
-            return type;
+            this(type, Set.of());
         }
 
         @Override
         public String toString() {
             return "Classification{type=" + type + ", labels=" + labels + "}";
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Classification that = (Classification) o;
-            return Objects.equals(labels, that.labels) &&
-                   type == that.type;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(labels, type);
         }
     }
 
