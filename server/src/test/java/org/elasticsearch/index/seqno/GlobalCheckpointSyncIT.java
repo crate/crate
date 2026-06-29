@@ -30,7 +30,6 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
-import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -52,7 +51,6 @@ import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.RelationName;
 
-@LuceneTestCase.SuppressFsync
 public class GlobalCheckpointSyncIT extends IntegTestCase {
 
     @Override
