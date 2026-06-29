@@ -25,6 +25,7 @@ import java.util.List;
 
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.Operation;
@@ -33,7 +34,12 @@ import io.crate.metadata.table.TableInfo;
 public class TableRelation extends AbstractTableRelation<TableInfo> {
 
     public TableRelation(TableInfo tableInfo) {
-        super(tableInfo, List.copyOf(tableInfo.rootColumns()), List.of());
+        super(tableInfo, List.copyOf(tableInfo.rootColumns()));
+    }
+
+    @Override
+    public List<Symbol> hiddenOutputs() {
+        return List.of();
     }
 
     @Override

@@ -36,12 +36,10 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
 
     protected final T tableInfo;
     private final List<Symbol> outputs;
-    private final List<Symbol> hiddenOutputs;
 
-    protected AbstractTableRelation(T tableInfo, List<Symbol> outputs, List<Symbol> hiddenOutputs) {
+    protected AbstractTableRelation(T tableInfo, List<Symbol> outputs) {
         this.tableInfo = tableInfo;
         this.outputs = outputs;
-        this.hiddenOutputs = hiddenOutputs;
     }
 
     public T tableInfo() {
@@ -51,11 +49,6 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
     @Override
     public List<Symbol> outputs() {
         return outputs;
-    }
-
-    @Override
-    public List<Symbol> hiddenOutputs() {
-        return hiddenOutputs;
     }
 
     @Nullable

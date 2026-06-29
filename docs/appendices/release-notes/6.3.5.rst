@@ -46,4 +46,10 @@ series.
 Fixes
 =====
 
-None
+- Fixed an issue that would throw a misleading ``NullPointerException`` when
+  ``CREATE REPOSITORY`` failed during repository verification, by returning a
+  user friendly error message.
+
+- Fixed an issue causing ``KILL`` statement or
+  :ref:`statement_timeout <conf-session-statement-timeout>` to not properly
+  kill a query and leading to resources leak.

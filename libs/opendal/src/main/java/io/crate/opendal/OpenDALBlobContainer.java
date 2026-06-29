@@ -29,8 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.opendal.OpenDALException;
 import org.apache.opendal.OpenDALException.Code;
 import org.apache.opendal.Operator;
@@ -38,8 +36,6 @@ import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobPath;
 
 public class OpenDALBlobContainer implements BlobContainer {
-
-    private static final Logger LOGGER = LogManager.getLogger(OpenDALBlobContainer.class);
 
     private final BlobPath path;
     private final String pathAsString;
@@ -65,10 +61,10 @@ public class OpenDALBlobContainer implements BlobContainer {
             operator.stat(path);
             return true;
         } catch (OpenDALException ex) {
-            if (ex.getCode() != Code.NotFound) {
-                LOGGER.error("blobExists stat error on {}", path, ex);
+            if (ex.getCode() == Code.NotFound) {
+                return false;
             }
-            return false;
+            throw ex;
         }
     }
 
