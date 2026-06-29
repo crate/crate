@@ -28,11 +28,12 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
@@ -45,15 +46,23 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
     public static final DeprecationLogger DEPRECATION_LOGGER =
         new DeprecationLogger(LogManager.getLogger(DocTableRelation.class));
 
+    private List<Symbol> hiddenOutputs = null;
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public DocTableRelation(DocTableInfo tableInfo) {
         // System columns are excluded from `tableInfo.columns()` by default,
         // but parent relations need to be able to see them so that they're selectable.
         // E.g. in `select a._id from tbl as a`
-        super(
-            tableInfo,
-            List.copyOf(tableInfo.rootColumns()),
-            concat(SysColumns.forTable(tableInfo.ident()), tableInfo.indexColumns())
-        );
+        super(tableInfo, (List<Symbol>) (List) tableInfo.rootColumns());
+    }
+
+    @Override
+    public List<Symbol> hiddenOutputs() {
+        // Lazy because hidden outputs aren't used without table alias in the query
+        if (hiddenOutputs == null) {
+            hiddenOutputs = concat(SysColumns.forTable(tableInfo.ident()), tableInfo.indexColumns());
+        }
+        return hiddenOutputs;
     }
 
     @Override
