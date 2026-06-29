@@ -18,7 +18,6 @@ package io.crate.common.concurrent;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.IntUnaryOperator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -94,7 +93,7 @@ public final class ConcurrencyLimit {
 
     private final int minLimit;
 
-    private final IntUnaryOperator queueSize;
+    private final int queueSize;
 
     private final double smoothing;
 
@@ -107,7 +106,7 @@ public final class ConcurrencyLimit {
     public ConcurrencyLimit(int initialLimit,
                             int minConcurrency,
                             int maxConcurrency,
-                            IntUnaryOperator queueSize,
+                            int queueSize,
                             double smoothing,
                             int longWindow,
                             double rttTolerance) {
@@ -148,7 +147,6 @@ public final class ConcurrencyLimit {
 
     private int update(final long rtt, final int inflight) {
         double estimatedLimit = this.estimatedLimit; // single volatile read
-        final double queueSize = this.queueSize.applyAsInt((int) estimatedLimit);
 
         this.lastRtt = rtt;
         final double shortRtt = (double)rtt;
