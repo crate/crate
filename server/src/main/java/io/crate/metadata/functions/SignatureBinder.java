@@ -323,6 +323,7 @@ public class SignatureBinder {
     @Nullable
     private BoundVariables iterativeSolve(List<TypeConstraintSolver> constraints) {
         BoundVariables.Builder boundVariablesBuilder = BoundVariables.builder();
+        boolean traceEnabled = LOGGER.isTraceEnabled();
         for (int i = 0; true; i++) {
             if (i == SOLVE_ITERATION_LIMIT) {
                 throw new IllegalStateException(format(
@@ -333,12 +334,12 @@ public class SignatureBinder {
             SolverReturnStatusMerger statusMerger = new SolverReturnStatusMerger();
             for (TypeConstraintSolver constraint : constraints) {
                 var constraintStatus = constraint.update(boundVariablesBuilder);
-                if (LOGGER.isTraceEnabled()) {
+                if (traceEnabled) {
                     LOGGER.trace("Status after updating constraint={}: {}", constraint, constraintStatus);
                 }
                 statusMerger.add(constraintStatus);
                 if (statusMerger.getCurrent() == SolverReturnStatus.UNSOLVABLE) {
-                    if (LOGGER.isTraceEnabled()) {
+                    if (traceEnabled) {
                         LOGGER.trace("Status merger resulted in UNSOLVABLE state");
                     }
                     return null;
@@ -360,7 +361,7 @@ public class SignatureBinder {
 
         BoundVariables boundVariables = boundVariablesBuilder.build();
         if (!allTypeVariablesBound(boundVariables)) {
-            if (LOGGER.isTraceEnabled()) {
+            if (traceEnabled) {
                 LOGGER.trace("Not all variables are bound. Defined variables={}, bound={}",
                              typeVariableConstraints,
                              boundVariables);
