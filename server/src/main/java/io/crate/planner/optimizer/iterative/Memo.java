@@ -26,8 +26,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.PrimitiveIterator.OfInt;
 
 import org.jspecify.annotations.Nullable;
 
@@ -160,16 +159,18 @@ public class Memo {
     }
 
     private void incrementReferenceCounts(LogicalPlan fromNode, int fromGroup) {
-        Set<Integer> references = allReferences(fromNode);
-        for (int group : references) {
-            groups.get(group).incomingReferences.add(fromGroup);
+        OfInt references = allReferences(fromNode);
+        while (references.hasNext()) {
+            int groupId = references.next();
+            Group group = groups.get(groupId);
+            group.incomingReferences.add(fromGroup);
         }
     }
 
     private void decrementReferenceCounts(LogicalPlan fromNode, Integer fromGroup) {
-        Set<Integer> references = allReferences(fromNode);
-
-        for (int group : references) {
+        OfInt references = allReferences(fromNode);
+        while (references.hasNext()) {
+            int group = references.next();
             Group childGroup = groups.get(group);
             if (!childGroup.incomingReferences.remove(fromGroup)) {
                 throw new IllegalStateException("Reference to remove not found");
@@ -181,11 +182,11 @@ public class Memo {
         }
     }
 
-    private Set<Integer> allReferences(LogicalPlan node) {
+    private OfInt allReferences(LogicalPlan node) {
         return node.sources().stream()
             .map(GroupReference.class::cast)
-            .map(GroupReference::groupId)
-            .collect(Collectors.toSet());
+            .mapToInt(GroupReference::groupId)
+            .iterator();
     }
 
     private void deleteGroup(int group) {
@@ -194,13 +195,10 @@ public class Memo {
     }
 
     private LogicalPlan insertChildrenAndRewrite(LogicalPlan node) {
-        return node.replaceSources(
-            node.sources().stream()
-                .map(child -> new GroupReference(
-                    insertRecursive(child),
-                    child.outputs(),
-                    child.relationNames()))
-                .collect(Collectors.toList()));
+        List<LogicalPlan> newSources = Lists.map(
+            node.sources(),
+            child -> new GroupReference(insertRecursive(child), child.outputs(), child.relationNames()));
+        return node.replaceSources(newSources);
     }
 
     private int insertRecursive(LogicalPlan node) {
