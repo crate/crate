@@ -79,7 +79,7 @@ public final class WindowFunctionBatchIterator {
 
     public static BatchIterator<Row> of(BatchIterator<Row> source,
                                         LongConsumer allocateBytes,
-                                        RowAccounting<Row> rowAccounting,
+                                        RowAccounting<Object[]> rowAccounting,
                                         ComputeFrameBoundary<Object[]> computeFrameStart,
                                         ComputeFrameBoundary<Object[]> computeFrameEnd,
                                         Comparator<Object[]> cmpPartitionBy,
@@ -96,8 +96,9 @@ public final class WindowFunctionBatchIterator {
         // As optimization we use 1 list that acts both as inputs(source) and as outputs.
         // The window function results are injected during the computation into spare cells that are eagerly created
         Function<Row, Object[]> materialize = row -> {
-            rowAccounting.accountForAndMaybeBreak(row);
-            return materializeWithSpare(row, windowFunctions.size());
+            Object[] cells = materializeWithSpare(row, windowFunctions.size());
+            rowAccounting.accountForAndMaybeBreak(cells);
+            return cells;
         };
         return CollectingBatchIterator.newInstance(
             source,
