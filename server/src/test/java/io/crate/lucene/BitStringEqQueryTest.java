@@ -73,12 +73,12 @@ public class BitStringEqQueryTest extends LuceneQueryBuilderTest {
         assertThatThrownBy(
             () -> convert("a1 < " + BIT_STRING))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Invalid arguments in: (doc.m.a1 < B'001') with (bit, bit). Valid types: (");
+            .hasMessageStartingWith("Invalid arguments in: (doc.m.a1 < B'001') with (bit(3), bit(3)). Valid types: (");
 
         assertThatThrownBy(
             () -> convert("a2 >= " + BIT_STRING))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Invalid arguments in: (doc.m.a2 >= B'001') with (bit, bit). Valid types: (");
+            .hasMessageStartingWith("Invalid arguments in: (doc.m.a2 >= B'001') with (bit(3), bit(3)). Valid types: (");
     }
 
     @Test

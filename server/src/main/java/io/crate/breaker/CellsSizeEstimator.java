@@ -43,12 +43,12 @@ public abstract class CellsSizeEstimator {
         return new CellsSizeEstimator() {
             @Override
             protected long estimateSize(int valueCount, IntFunction<Object> values) {
-                assert columnTypes.size() == valueCount
-                    : "Size of incoming cells must match number of estimators. "
+                assert columnTypes.size() <= valueCount
+                    : "Must have a column type for all incoming cells"
                     + "Cells=" + valueCount
                     + " estimators=" + columnTypes.size();
                 long size = 0;
-                for (int i = 0; i < valueCount; i++) {
+                for (int i = 0; i < columnTypes.size(); i++) {
                     DataType dataType = columnTypes.get(i);
                     size += dataType.valueBytes(values.apply(i));
                 }
