@@ -22,6 +22,9 @@
 package io.crate.opendal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -29,6 +32,8 @@ import java.util.Map;
 
 import org.apache.opendal.AsyncExecutor;
 import org.apache.opendal.AsyncOperator;
+import org.apache.opendal.OpenDALException;
+import org.apache.opendal.OpenDALException.Code;
 import org.apache.opendal.Operator;
 import org.apache.opendal.ServiceConfig;
 import org.elasticsearch.common.blobstore.BlobPath;
@@ -49,6 +54,26 @@ public class OpenDALBlobContainerTest extends ESTestCase {
     @After
     public void teardown() {
         executor.close();
+    }
+
+    @Test
+    public void test_blobExists_returns_false_on_not_found() throws Exception {
+        Operator operator = mock(Operator.class);
+        when(operator.stat("file1.txt")).thenThrow(new OpenDALException(Code.NotFound, "not found"));
+        OpenDALBlobContainer container = new OpenDALBlobContainer(BlobPath.cleanPath(), operator, 1024);
+
+        assertThat(container.blobExists("file1.txt")).isFalse();
+    }
+
+    @Test
+    public void test_blobExists_propagates_non_not_found_stat_failures() {
+        var failure = new OpenDALException(Code.Unexpected, "network failure");
+        Operator operator = mock(Operator.class);
+        when(operator.stat("file1.txt")).thenThrow(failure);
+        OpenDALBlobContainer container = new OpenDALBlobContainer(BlobPath.cleanPath(), operator, 1024);
+
+        assertThatThrownBy(() -> container.blobExists("file1.txt"))
+            .isSameAs(failure);
     }
 
     @Test
