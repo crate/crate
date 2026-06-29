@@ -37,7 +37,7 @@ import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
-import io.crate.breaker.TypedRowAccounting;
+import io.crate.breaker.TypedCellsAccounting;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
@@ -125,7 +125,7 @@ public class WindowProjector {
             () -> inputFactory.ctxForInputColumns(txnCtx);
         int arrayListElementOverHead = 32;
         List<DataType<?>> rowTypes = Symbols.typeView(projection.standalone());
-        TypedRowAccounting accounting = new TypedRowAccounting(
+        TypedCellsAccounting accounting = new TypedCellsAccounting(
             rowTypes, ramAccounting, arrayListElementOverHead);
         Comparator<Object[]> cmpPartitionBy = partitions.isEmpty()
             ? null

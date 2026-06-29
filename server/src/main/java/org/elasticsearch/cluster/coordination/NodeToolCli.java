@@ -24,7 +24,6 @@ import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.env.NodeRepurposeCommand;
 import org.elasticsearch.index.shard.RemoveCorruptedShardDataCommand;
 
-import io.crate.cluster.commands.FixCorruptedMetadataCommand;
 import io.crate.server.cli.CommandLoggingConfigurator;
 
 // NodeToolCli does not extend LoggingAwareCommand, because LoggingAwareCommand performs logging initialization
@@ -44,7 +43,6 @@ public class NodeToolCli extends MultiCommand {
         subcommands.put("detach-cluster", new DetachClusterCommand());
         subcommands.put("remove-settings", new RemoveSettingsCommand());
         subcommands.put("remove-customs", new RemoveCustomsCommand());
-        subcommands.put("fix-metadata", new FixCorruptedMetadataCommand());
         subcommands.put("remove-corrupted-data", new RemoveCorruptedShardDataCommand());
     }
 
