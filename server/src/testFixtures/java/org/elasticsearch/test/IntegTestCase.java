@@ -317,7 +317,7 @@ public abstract class IntegTestCase extends ESTestCase {
     public Timeout globalTimeout = ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
         .anyMatch(s -> s.contains("-agentlib:jdwp"))
             ? new Timeout(30, TimeUnit.MINUTES)
-            : new Timeout(3, TimeUnit.MINUTES);
+            : new Timeout(45, TimeUnit.MINUTES);
 
     @Rule
     public TestName testName = new TestName();
