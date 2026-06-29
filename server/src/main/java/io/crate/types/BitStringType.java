@@ -304,4 +304,9 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     public Sort sortSupport() {
         return Sort.COMPARATOR;
     }
+
+    @Override
+    public String toString() {
+        return NAME + "(" + length() + ")";
+    }
 }

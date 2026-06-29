@@ -30,6 +30,8 @@ import java.util.List;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
@@ -59,7 +61,17 @@ public class ValuesFunction {
         builder.add(SIGNATURE, ValuesTableFunctionImplementation::of);
     }
 
-    private static class ValuesTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {
+    public static ValuesTableFunctionImplementation of(List<Symbol> arrays) {
+        ArrayList<DataType<?>> fieldTypes = new ArrayList<>(arrays.size());
+        for (Symbol array : arrays) {
+            DataType<?> valueType = array.valueType();
+            assert valueType instanceof ArrayType : "Arguments to _values must be of type array";
+            fieldTypes.add(((ArrayType<?>) valueType).innerType());
+        }
+        return new ValuesTableFunctionImplementation(SIGNATURE, Symbols.typeView(arrays), new RowType(fieldTypes));
+    }
+
+    static class ValuesTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {
 
         private final RowType returnType;
 

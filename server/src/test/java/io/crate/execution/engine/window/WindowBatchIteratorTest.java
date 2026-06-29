@@ -39,7 +39,7 @@ import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.TypedRowAccounting;
+import io.crate.breaker.TypedCellsAccounting;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.Tuple;
 import io.crate.data.BatchIterator;
@@ -76,7 +76,7 @@ public class WindowBatchIteratorTest {
                 return WindowFunctionBatchIterator.of(
                     TestingBatchIterators.range(0, 10),
                     ignored -> {},
-                    new IgnoreRowAccounting(),
+                    new IgnoreRowAccounting<Object[]>(),
                     getComputeFrameStart(cmpOrderBy, FrameBound.Type.UNBOUNDED_PRECEDING),
                     getComputeFrameEnd(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
                     null,
@@ -101,7 +101,7 @@ public class WindowBatchIteratorTest {
                 return WindowFunctionBatchIterator.of(
                     new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 4, 2, null),
                     ignored -> {},
-                    new IgnoreRowAccounting(),
+                    new IgnoreRowAccounting<Object[]>(),
                     getComputeFrameStart(cmpOrderBy, FrameBound.Type.UNBOUNDED_PRECEDING),
                     getComputeFrameEnd(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
                     null,
@@ -341,7 +341,7 @@ public class WindowBatchIteratorTest {
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             TestingBatchIterators.range(0, 10),
             ignored -> {},
-            new TypedRowAccounting(List.of(DataTypes.INTEGER), ramAccounting, 32),
+            new TypedCellsAccounting(List.of(DataTypes.INTEGER), ramAccounting, 32),
             (_, _, _, _) -> 0,
             (_, _, currentIndex, _) -> currentIndex,
             null,
