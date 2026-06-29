@@ -187,7 +187,9 @@ public interface Symbol extends Writeable, Accountable {
     default Symbol cast(DataType<?> targetType, CastMode mode) {
         if (targetType.equals(UndefinedType.INSTANCE)) {
             return this;
-        } else if (targetType.equals(valueType())) {
+        } else if (mode != CastMode.IMPLICIT && targetType.equals(valueType())) {
+            return this;
+        } else if (mode == CastMode.IMPLICIT && valueType().equalsSignature(targetType)) {
             return this;
         } else {
             DataType<?> innerTargetType = ArrayType.unnest(targetType);

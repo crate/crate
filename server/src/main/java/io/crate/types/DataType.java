@@ -285,6 +285,14 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         return (id() == that.id());
     }
 
+    /// A more lenient variant of [#equals(Object)] specifically to check if a type
+    /// matches that of a function signature. Functions are registered to canonical
+    /// types (`text` instead of `varchar(n)` or `numeric` instead of
+    /// `numeric(x, y)`)
+    public boolean equalsSignature(DataType<?> other) {
+        return equals(other);
+    }
+
     @Override
     public int compareTo(DataType<?> o) {
         return Integer.compare(id(), o.id());
