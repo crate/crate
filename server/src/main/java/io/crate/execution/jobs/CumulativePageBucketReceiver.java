@@ -215,9 +215,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         try {
             buckets = getBuckets();
         } catch (Throwable t) {
-            kill(t);
-            // the iterator already returned it's loadNextBatch future, we must complete it exceptionally
-            currentPage.completeExceptionally(t);
+            kill(t); // Also takes care of completing currentPage.
             return;
         }
         if (allUpstreamsExhausted()) {
@@ -303,7 +301,6 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         boolean shouldTriggerConsumer = false;
         synchronized (lock) {
             lastThrowable = t;
-            currentPage.completeExceptionally(t);
             if (receivingFirstPage) {
                 // no active consumer - can "activate" it with a failure
                 receivingFirstPage = false;
@@ -311,6 +308,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
             }
         }
         batchPagingIterator.kill(t); // this causes a already active consumer to fail
+        currentPage.completeExceptionally(t);
         if (shouldTriggerConsumer) {
             consumer.accept(null, t);
         }
