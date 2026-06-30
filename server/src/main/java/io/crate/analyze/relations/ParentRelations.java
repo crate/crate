@@ -45,7 +45,8 @@ public class ParentRelations {
     }
 
     public ParentRelations newLevel(Map<RelationName, AnalyzedRelation> sources) {
-        ArrayList<Map<RelationName, AnalyzedRelation>> newSourcesTree = new ArrayList<>(sourcesTree);
+        ArrayList<Map<RelationName, AnalyzedRelation>> newSourcesTree = new ArrayList<>(sourcesTree.size() + 1);
+        newSourcesTree.addAll(sourcesTree);
         newSourcesTree.add(sources);
         return new ParentRelations(newSourcesTree);
     }

@@ -80,7 +80,7 @@ public class BoundVariables {
 
     @Override
     public int hashCode() {
-        return Objects.hash(typeVariables);
+        return typeVariables.hashCode();
     }
 
     @Override

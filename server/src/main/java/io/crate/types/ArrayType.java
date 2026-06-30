@@ -418,6 +418,12 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
+    public boolean equalsSignature(DataType<?> other) {
+        return other instanceof ArrayType<?> o
+            && innerType.equalsSignature(o.innerType);
+    }
+
+    @Override
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + innerType.hashCode();

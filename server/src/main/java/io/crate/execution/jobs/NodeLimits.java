@@ -41,7 +41,6 @@ public class NodeLimits {
 
     private volatile ConcurrencyLimit unknownNodelimit;
     private final Map<String, ConcurrencyLimit> limitsPerNode = new ConcurrentHashMap<>();
-    private final ClusterSettings clusterSettings;
 
     public static final Setting<Integer> INITIAL_CONCURRENCY =
         Setting.intSetting("overload_protection.dml.initial_concurrency", 5, Property.NodeScope, Property.Dynamic, Property.Exposed);
@@ -56,15 +55,36 @@ public class NodeLimits {
     private static final int LONG_WINDOW = 600;
     private static final double RTT_TOLERANCE = 1.5;
 
+    private volatile int initialConcurrency;
+    private volatile int minConcurrency;
+    private volatile int maxConcurrency;
+    private volatile int queueSize;
+
     @Inject
     public NodeLimits(ClusterSettings clusterSettings) {
-        this.clusterSettings = clusterSettings;
+        this.initialConcurrency = clusterSettings.get(INITIAL_CONCURRENCY);
+        this.minConcurrency = clusterSettings.get(MIN_CONCURRENCY);
+        this.maxConcurrency = clusterSettings.get(MAX_CONCURRENCY);
+        this.queueSize = clusterSettings.get(QUEUE_SIZE);
+
         // New settings are applied lazy on next access via #get(nodeId)
         // (And all earlier dynamic adjustments of the limit is reset)
-        clusterSettings.addSettingsUpdateConsumer(INITIAL_CONCURRENCY, ignored -> wipeLimits());
-        clusterSettings.addSettingsUpdateConsumer(MIN_CONCURRENCY, ignored -> wipeLimits());
-        clusterSettings.addSettingsUpdateConsumer(MAX_CONCURRENCY, ignored -> wipeLimits());
-        clusterSettings.addSettingsUpdateConsumer(QUEUE_SIZE, ignored -> wipeLimits());
+        clusterSettings.addSettingsUpdateConsumer(INITIAL_CONCURRENCY, value -> {
+            initialConcurrency = value;
+            wipeLimits();
+        });
+        clusterSettings.addSettingsUpdateConsumer(MIN_CONCURRENCY, value -> {
+            minConcurrency = value;
+            wipeLimits();
+        });
+        clusterSettings.addSettingsUpdateConsumer(MAX_CONCURRENCY, value -> {
+            maxConcurrency = value;
+            wipeLimits();
+        });
+        clusterSettings.addSettingsUpdateConsumer(QUEUE_SIZE, value -> {
+            queueSize = value;
+            wipeLimits();
+        });
     }
 
     private void wipeLimits() {
@@ -74,10 +94,10 @@ public class NodeLimits {
 
     private ConcurrencyLimit newLimit() {
         return new ConcurrencyLimit(
-            clusterSettings.get(INITIAL_CONCURRENCY),
-            clusterSettings.get(MIN_CONCURRENCY),
-            clusterSettings.get(MAX_CONCURRENCY),
-            ignored -> clusterSettings.get(QUEUE_SIZE),
+            initialConcurrency,
+            minConcurrency,
+            maxConcurrency,
+            queueSize,
             SMOOTHING,
             LONG_WINDOW,
             RTT_TOLERANCE
