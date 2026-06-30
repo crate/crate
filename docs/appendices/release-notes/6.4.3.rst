@@ -78,3 +78,5 @@ Fixes
       select null
     ) tbl (x);
 
+- Fixed an issue that could lead to a memory leak if nodes within the
+  cluster were temporarily not reachable.
