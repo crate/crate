@@ -366,11 +366,13 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     /**
      * The collection of index deletions in the cluster.
      */
+    @Nullable
     public IndexGraveyard indexGraveyard() {
         return custom(IndexGraveyard.TYPE);
     }
 
     @SuppressWarnings("unchecked")
+    @Nullable
     public <T extends Custom> T custom(String type) {
         return (T) customs.get(type);
     }
