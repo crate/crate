@@ -84,8 +84,7 @@ public class Natives {
             ValueLayout.ADDRESS
         );
 
-        private static final MemorySegment ADDR = LOOKUP.find("getrlimit")
-            .orElseThrow(() -> new UnsatisfiedLinkError("unresolved symbol: getrlimit"));
+        private static final MemorySegment ADDR = LOOKUP.findOrThrow("getrlimit");
 
         private static final MethodHandle HANDLE = LINKER.downcallHandle(ADDR, DESC, CCS);
         private static final StructLayout LAYOUT = MemoryLayout.structLayout(
@@ -122,8 +121,7 @@ public class Natives {
             ValueLayout.ADDRESS,
             ValueLayout.JAVA_INT
         );
-        private static final MemorySegment ADDR = LOOKUP.find("strerror")
-            .orElseThrow(() -> new UnsatisfiedLinkError("unresolved symbol: strerror"));
+        private static final MemorySegment ADDR = LOOKUP.findOrThrow("strerror");
         private static final MethodHandle HANDLE = LINKER.downcallHandle(ADDR, DESC);
 
         /// Binding for strerror from string.h:
@@ -149,8 +147,7 @@ public class Natives {
             ValueLayout.JAVA_INT,
             ValueLayout.JAVA_INT
         );
-        private static final MemorySegment ADDR = LOOKUP.find("mlockall")
-            .orElseThrow(() -> new UnsatisfiedLinkError("unresolved symbol: strerror"));
+        private static final MemorySegment ADDR = LOOKUP.findOrThrow("mlockall");
         private static final MethodHandle HANDLE = LINKER.downcallHandle(ADDR, DESC, CCS);
 
 
@@ -179,8 +176,7 @@ public class Natives {
         private static final FunctionDescriptor DESC = FunctionDescriptor.of(
             ValueLayout.JAVA_INT
         );
-        private static final MemorySegment ADDR = LOOKUP.find("geteuid")
-            .orElseThrow(() -> new UnsatisfiedLinkError("unresolved symbol: geteuid"));
+        private static final MemorySegment ADDR = LOOKUP.findOrThrow("geteuid");
         private static final MethodHandle HANDLE = LINKER.downcallHandle(ADDR, DESC);
 
         /// Binding for `geteuid` from unistd.h
