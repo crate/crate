@@ -74,6 +74,7 @@ import org.elasticsearch.cluster.SnapshotDeletionsInProgress;
 import org.elasticsearch.cluster.SnapshotsInProgress;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.Metadata.Builder;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -123,6 +124,7 @@ import org.elasticsearch.repositories.IndexMetaDataGenerations;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.RepositoryException;
+import org.elasticsearch.repositories.RepositoryMissingException;
 import org.elasticsearch.repositories.RepositoryOperation;
 import org.elasticsearch.repositories.RepositoryVerificationException;
 import org.elasticsearch.repositories.ShardGenerations;
@@ -1312,14 +1314,26 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 @Override
                 public ClusterState execute(ClusterState currentState) {
                     final RepositoriesMetadata state = currentState.metadata().custom(RepositoriesMetadata.TYPE);
-                    final RepositoryMetadata repoState = state.repository(metadata.name());
+                    String repoName = metadata.name();
+                    if (state == null) {
+                        throw new RepositoryMissingException(repoName);
+                    }
+                    final RepositoryMetadata repoState = state.repository(repoName);
                     if (repoState.generation() != corruptedGeneration) {
                         throw new IllegalStateException("Tried to mark repo generation [" + corruptedGeneration
                             + "] as corrupted but its state concurrently changed to [" + repoState + "]");
                     }
-                    return ClusterState.builder(currentState).metadata(Metadata.builder(currentState.metadata()).putCustom(
-                        RepositoriesMetadata.TYPE, state.withUpdatedGeneration(
-                            metadata.name(), RepositoryData.CORRUPTED_REPO_GEN, repoState.pendingGeneration())).build()).build();
+                    RepositoriesMetadata newRepoMetadata = state.withUpdatedGeneration(
+                        repoName,
+                        RepositoryData.CORRUPTED_REPO_GEN,
+                        repoState.pendingGeneration()
+                    );
+                    Metadata newMetadata = Metadata.builder(currentState.metadata())
+                        .putCustom(RepositoriesMetadata.TYPE, newRepoMetadata)
+                        .build();
+                    return ClusterState.builder(currentState)
+                        .metadata(newMetadata)
+                        .build();
                 }
 
                 @Override
@@ -1429,14 +1443,19 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                     newGen = uninitializedMeta ? Math.max(expectedGen + 1, nextPendingGen) : nextPendingGen;
                     assert newGen > latestKnownRepoGen.get() : "Attempted new generation [" + newGen +
                         "] must be larger than latest known generation [" + latestKnownRepoGen.get() + "]";
+                    Metadata currentMetadata = currentState.metadata();
+                    RepositoriesMetadata repoMetadata = currentMetadata.custom(RepositoriesMetadata.TYPE);
+                    if (repoMetadata == null) {
+                        throw new RepositoryMissingException(repoName);
+                    }
+                    Builder newMetadata = Metadata.builder(currentMetadata)
+                        .putCustom(
+                            RepositoriesMetadata.TYPE,
+                            repoMetadata.withUpdatedGeneration(repoName, safeGeneration, newGen)
+                        );
                     return ClusterState.builder(currentState)
-                        .metadata(
-                            Metadata.builder(currentState.metadata())
-                                .putCustom(
-                                    RepositoriesMetadata.TYPE, currentState.metadata().<RepositoriesMetadata>custom(RepositoriesMetadata.TYPE)
-                                        .withUpdatedGeneration(repoName, safeGeneration, newGen)
-                                ).build()
-                        ).build();
+                        .metadata(newMetadata)
+                        .build();
                 }
 
                 @Override
@@ -1534,10 +1553,20 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                                 "Tried to update from unexpected pending repo generation [" + meta.pendingGeneration() +
                                 "] after write to generation [" + newGen + "]");
                         }
-                        return updateRepositoryGenerationsIfNecessary(stateFilter.apply(ClusterState.builder(currentState)
-                                .metadata(Metadata.builder(currentState.metadata()).putCustom(RepositoriesMetadata.TYPE,
-                                        currentState.metadata().<RepositoriesMetadata>custom(RepositoriesMetadata.TYPE)
-                                                .withUpdatedGeneration(metadata.name(), newGen, newGen))).build()), expectedGen, newGen);
+                        RepositoriesMetadata repoMetadata = currentState.metadata().custom(RepositoriesMetadata.TYPE);
+                        String name = metadata.name();
+                        if (repoMetadata == null) {
+                            throw new RepositoryMissingException(name);
+                        }
+                        Builder newMetadata = Metadata.builder(currentState.metadata())
+                            .putCustom(
+                                RepositoriesMetadata.TYPE,
+                                repoMetadata.withUpdatedGeneration(name, newGen, newGen)
+                            );
+                        ClusterState newState = ClusterState.builder(currentState)
+                                .metadata(newMetadata)
+                                .build();
+                        return updateRepositoryGenerationsIfNecessary(stateFilter.apply(newState), expectedGen, newGen);
                     }
 
                     @Override

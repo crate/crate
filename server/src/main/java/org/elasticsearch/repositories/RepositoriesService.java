@@ -159,7 +159,7 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
         });
     }
 
-    private void ensureRepositoryDoesNotExist(RepositoriesMetadata repositories, String name) {
+    private void ensureRepositoryDoesNotExist(@Nullable RepositoriesMetadata repositories, String name) {
         if (repositories == null || repositories.repositories() == null) {
             return;
         }
@@ -197,19 +197,23 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
             @Override
             public ClusterState execute(ClusterState currentState) {
                 // check if repository exists and is not being used
-                var _ = repository(request.name());
-                ensureRepositoryNotInUse(currentState, request.name());
+                String repoName = request.name();
+                var _ = repository(repoName);
+                ensureRepositoryNotInUse(currentState, repoName);
 
                 // try updating metadata, fail if repository not found
                 RepositoriesMetadata repositories = currentState.metadata().custom(RepositoriesMetadata.TYPE);
-                var updatedRepos = updateRepository(repositories.repositories(), request.name(), request.settings());
+                if (repositories == null) {
+                    throw new RepositoryMissingException(repoName);
+                }
+                var updatedRepos = updateRepository(repositories.repositories(), repoName, request.settings());
                 if (repositories.repositories() == updatedRepos) {
-                    LOGGER.info("request to alter repository [{}] produced no change", request.name());
+                    LOGGER.info("request to alter repository [{}] produced no change", repoName);
                     return currentState;
                 }
 
                 // update and return cluster metadata
-                LOGGER.info("alter repository [{}]", request.name());
+                LOGGER.info("alter repository [{}]", repoName);
                 Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata())
                     .putCustom(RepositoriesMetadata.TYPE, new RepositoriesMetadata(updatedRepos));
                 return ClusterState.builder(currentState).metadata(mdBuilder).build();
