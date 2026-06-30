@@ -21,12 +21,13 @@
 
 package io.crate.metadata.shard.unassigned;
 
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.index.Index;
 
-import io.crate.metadata.IndexName;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.sys.SysSchemaInfo;
 
 /**
  * This class represents an unassigned shard
@@ -85,20 +86,26 @@ public final class UnassignedShard {
 
 
     public UnassignedShard(int shardId,
-                           Index index,
-                           ClusterService clusterService,
+                           IndexMetadata indexMetadata,
+                           Metadata metadata,
                            Boolean primary,
                            ShardRoutingState state) {
-        IndexParts indexParts = IndexName.decode(index.getName());
-        this.schemaName = indexParts.schema();
-        this.tableName = indexParts.table();
-        this.partitionIdent = indexParts.partitionIdent();
-        this.orphanedPartition = indexParts.isPartitioned()
-                                 && !clusterService.state().metadata().hasConcreteIndex(tableName);
+        String indexUUID = indexMetadata.getIndexUUID();
+        RelationMetadata relation = metadata.getRelation(indexUUID);
+        partitionIdent = PartitionName.encodeIdent(indexMetadata.partitionValues());
+        if (relation == null) {
+            orphanedPartition = true;
+            schemaName = SysSchemaInfo.NAME;
+            tableName = "orphan-" + indexUUID;
+        } else {
+            orphanedPartition = false;
+            schemaName = relation.name().schema();
+            tableName = relation.name().name();
+        }
         this.primary = primary;
         this.id = shardId;
         this.state = state == ShardRoutingState.UNASSIGNED ? UNASSIGNED : INITIALIZING;
-        this.partitionUUID = index.getUUID();
+        this.partitionUUID = indexUUID;
     }
 
     public String tableName() {

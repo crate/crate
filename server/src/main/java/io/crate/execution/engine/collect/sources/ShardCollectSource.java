@@ -454,7 +454,6 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
         Map<String, IntIndexedContainer> indexShardsMap = locations.get(localNodeId);
         Metadata metadata = clusterService.state().metadata();
 
-
         for (Map.Entry<String, IntIndexedContainer> indexShards : indexShardsMap.entrySet()) {
             String indexUUID = indexShards.getKey();
             IndexMetadata indexMetadata = metadata.index(indexUUID);
@@ -466,13 +465,13 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
             IndexService indexService = indicesService.indexService(index);
             if (indexService == null) {
                 for (IntCursor shard : shards) {
-                    unassignedShards.add(toUnassignedShard(index, UnassignedShard.markAssigned(shard.value)));
+                    unassignedShards.add(toUnassignedShard(metadata, indexMetadata, UnassignedShard.markAssigned(shard.value)));
                 }
                 continue;
             }
             for (IntCursor shard : shards) {
                 if (UnassignedShard.isUnassigned(shard.value)) {
-                    unassignedShards.add(toUnassignedShard(index, UnassignedShard.markAssigned(shard.value)));
+                    unassignedShards.add(toUnassignedShard(metadata, indexMetadata, UnassignedShard.markAssigned(shard.value)));
                     continue;
                 }
                 ShardId shardId = new ShardId(index, shard.value);
@@ -481,7 +480,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                     ShardRowContext shardRowContext = shardCollectorProvider.shardRowContext();
                     shardRowContexts.add(shardRowContext);
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
-                    unassignedShards.add(toUnassignedShard(index, shard.value));
+                    unassignedShards.add(toUnassignedShard(metadata, indexMetadata, shard.value));
                 }
             }
         }
@@ -504,7 +503,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
         return rows;
     }
 
-    private UnassignedShard toUnassignedShard(Index index, int shardId) {
-        return new UnassignedShard(shardId, index, clusterService, false, ShardRoutingState.UNASSIGNED);
+    private static UnassignedShard toUnassignedShard(Metadata metadata, IndexMetadata indexMetadata, int shardId) {
+        return new UnassignedShard(shardId, indexMetadata, metadata, false, ShardRoutingState.UNASSIGNED);
     }
 }
