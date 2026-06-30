@@ -134,6 +134,9 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Improved the performance of queries with aggregations on columns of type
+  ``varchar(n)`` - to match the performance of columns of type ``text``.
+
 - Improved the performance of ``SELECT strKeyColumn, count(*) FROM <tbl> GROUP
   BY 1`` queries if they don't contain any ``WHERE`` clause. In some of our
   benchmarks by up to 140%.
