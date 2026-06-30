@@ -135,6 +135,8 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
         for (var task : activeTasks.values()) {
             if (task.participatingNodes().contains(node.getId())) {
                 task.kill(JobKilledException.of("Participating node " + node.getId() + " disconnected"));
+            } else if (task.coordinatorNodeId().equals(node.getId())) {
+                task.kill(JobKilledException.of("Coordinator node " + node.getId() + " disconnected"));
             }
         }
     }
