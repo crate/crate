@@ -1404,7 +1404,13 @@ public final class SqlFormatter {
             if (node.dropIfExists()) {
                 builder.append("IF EXISTS ");
             }
-            node.table().accept(this, indent);
+            var tables = node.tables().iterator();
+            while (tables.hasNext()) {
+                tables.next().accept(this, indent);
+                if (tables.hasNext()) {
+                    builder.append(", ");
+                }
+            }
             return null;
         }
 

@@ -99,7 +99,7 @@ statement
 
 dropStmt
     : DROP BLOB TABLE (IF EXISTS)? table                                             #dropBlobTable
-    | DROP TABLE (IF EXISTS)? table                                                  #dropTable
+    | DROP TABLE (IF EXISTS)? table (',' table)*                                     #dropTable
     | DROP ALIAS qname                                                               #dropAlias
     | DROP REPOSITORY ident                                                          #dropRepository
     | DROP SNAPSHOT qname                                                            #dropSnapshot

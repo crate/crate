@@ -843,8 +843,15 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     @Override
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public Node visitDropTable(SqlBaseParser.DropTableContext context) {
-        return new DropTable<>((Table<?>) visit(context.table()), context.EXISTS() != null);
+
+        List<Table> tables = context.table().stream()
+            .map(t -> (Table) visit(t))
+            .toList();
+
+        return new DropTable<Object>((List<Table<Object>>) (List<?>) tables, context.EXISTS() != null
+        );
     }
 
     @Override
