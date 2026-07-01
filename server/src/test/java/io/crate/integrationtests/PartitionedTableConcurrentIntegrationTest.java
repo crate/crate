@@ -493,8 +493,8 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_concurrent_swaps() throws Exception {
-        execute("create table t1 (p int) partitioned by (p)");
-        execute("create table t2 (p2 int)");
+        execute("create table t1 (p int) partitioned by (p) clustered into 1 shards with (number_of_replicas = 0)");
+        execute("create table t2 (p2 int) clustered into 1 shards with (number_of_replicas = 0)");
 
         final AtomicReference<Throwable> error = new AtomicReference<>();
         final CyclicBarrier barrier = new CyclicBarrier(2);
@@ -544,8 +544,8 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_concurrent_table_swaps_with_insert_from_values() throws Exception {
-        execute("create table t1 (p int) partitioned by (p)");
-        execute("create table t2 (p2 int)");
+        execute("create table t1 (p int) partitioned by (p) clustered into 1 shards with (number_of_replicas = 0)");
+        execute("create table t2 (p2 int) clustered into 1 shards with (number_of_replicas = 0)");
 
         final AtomicReference<Throwable> error = new AtomicReference<>();
         final CyclicBarrier barrier = new CyclicBarrier(2);
