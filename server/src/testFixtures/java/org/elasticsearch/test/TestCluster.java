@@ -377,12 +377,12 @@ public final class TestCluster implements Closeable {
     /**
      * Wipes any data that a test can leave behind: indices, templates (except exclude templates) and repositories
      */
-    public void wipe() {
+    public void wipe() throws Exception {
         wipeAllTables();
         wipeRepositories();
     }
 
-    public void wipeAllTables() {
+    public void wipeAllTables() throws Exception {
         if (size() > 0) {
             InformationSchemaIterables infoSchema = getCurrentMasterNodeInstance(InformationSchemaIterables.class);
             List<CompletableFuture<AcknowledgedResponse>> futures = new ArrayList<>();
@@ -399,11 +399,13 @@ public final class TestCluster implements Closeable {
                 responses.forEach(r -> assertAcked(r));
             } catch (Exception ignore) {
             }
-            for (RelationName name : relationNames) {
-                assertThat(clusterService().state().metadata().contains(name))
-                    .as("wipeAllTables must remove " + name)
-                    .isFalse();
-            }
+            assertBusy(() -> {
+                for (RelationName name : relationNames) {
+                    assertThat(clusterService().state().metadata().contains(name))
+                        .as("wipeAllTables must remove " + name)
+                        .isFalse();
+                }
+            });
         }
     }
 
