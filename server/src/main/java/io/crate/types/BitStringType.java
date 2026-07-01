@@ -47,8 +47,8 @@ import io.crate.execution.dml.BitStringIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RelationLookup;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnDefinition;
@@ -276,6 +276,11 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     }
 
     @Override
+    public boolean equalsSignature(DataType<?> other) {
+        return ID == other.id();
+    }
+
+    @Override
     public ColumnType<Expression> toColumnType(@Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
         return new ColumnType<>(getName(), List.of(length));
     }
@@ -298,5 +303,10 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     @Override
     public Sort sortSupport() {
         return Sort.COMPARATOR;
+    }
+
+    @Override
+    public String toString() {
+        return NAME + "(" + length() + ")";
     }
 }

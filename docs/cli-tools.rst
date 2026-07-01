@@ -185,10 +185,6 @@ Commands
 |                           | to be able to force a node to startup even when the  |
 |                           | node version is not compatible with the meta data.   |
 +---------------------------+------------------------------------------------------+
-| ``fix-metadata``          | Fix corrupted metadata after running table swap      |
-|                           | like: ALTER CLUSTER SWAP TABLE "schema"."table" TO   |
-|                           | "schema.table";                                      |
-+---------------------------+------------------------------------------------------+
 | ``remove-corrupted-data`` | Remove corrupted parts of a shard which cannot be    |
 |                           | automatically recovered from a good copy (replica)   |
 |                           | or restored from a backup.                           |

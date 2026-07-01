@@ -134,6 +134,9 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Improved the performance of queries with aggregations on columns of type
+  ``varchar(n)`` - to match the performance of columns of type ``text``.
+
 - Improved the performance of ``SELECT strKeyColumn, count(*) FROM <tbl> GROUP
   BY 1`` queries if they don't contain any ``WHERE`` clause. In some of our
   benchmarks by up to 140%.
@@ -169,6 +172,12 @@ Performance and Resilience Improvements
 
 Administration and Operations
 -----------------------------
+
+- Removed the ``fix-metadata`` sub-command from the ``crate-node`` tool. It
+  should no longer be needed. The sub-command could be used to repair metadata
+  issues that could occur in 5.1. Users upgrading to 6.4 should already have
+  used the command while on 5.x if they experienced the issues from 5.1
+
 
 - Added ``session_id`` column to the :ref:`sys.jobs <sys-jobs>` and
   :ref:`sys.jobs_log <sys-logs>` tables.

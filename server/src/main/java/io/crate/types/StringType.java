@@ -57,8 +57,8 @@ import io.crate.execution.dml.StringIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RelationLookup;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnDefinition;
@@ -391,6 +391,11 @@ public class StringType extends DataType<String> implements Streamer<String> {
         }
         StringType that = (StringType) o;
         return lengthLimit() == that.lengthLimit();
+    }
+
+    @Override
+    public boolean equalsSignature(DataType<?> other) {
+        return id() == other.id();
     }
 
     @Override

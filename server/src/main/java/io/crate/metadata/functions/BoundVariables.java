@@ -28,6 +28,7 @@ import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.types.DataType;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
@@ -37,13 +38,14 @@ public class BoundVariables {
     private final Map<String, DataType<?>> typeVariables;
     private final IntObjectMap<DataType<?>> boundTypes;
 
-    public BoundVariables(Map<String, DataType<?>> typeVariables) {
-        this(typeVariables, new IntObjectHashMap<>(0));
+    @VisibleForTesting
+    BoundVariables(Map<String, DataType<?>> typeVariables) {
+        this(Map.copyOf(typeVariables), new IntObjectHashMap<>(0));
     }
 
-    public BoundVariables(Map<String, DataType<?>> typeVariables,
-                          IntObjectMap<DataType<?>> boundTypes) {
-        this.typeVariables = Map.copyOf(typeVariables);
+    private BoundVariables(Map<String, DataType<?>> typeVariables,
+                           IntObjectMap<DataType<?>> boundTypes) {
+        this.typeVariables = typeVariables;
         this.boundTypes = boundTypes;
     }
 
@@ -78,7 +80,7 @@ public class BoundVariables {
 
     @Override
     public int hashCode() {
-        return Objects.hash(typeVariables);
+        return typeVariables.hashCode();
     }
 
     @Override

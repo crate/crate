@@ -22,7 +22,6 @@
 package io.crate.execution.engine.collect.sources;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,10 +30,12 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.StreamSupport;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.index.Index;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -84,6 +85,15 @@ public class SystemCollectSourceTest extends IntegTestCase {
         );
         collectPhase.orderBy(new OrderBy(Collections.singletonList(shardId), new boolean[]{false}, new boolean[]{false}));
 
+        IndexMetadata indexMetadata = IndexMetadata.builder(UUIDs.randomBase64UUID())
+            .settings(
+                Settings.builder()
+                    .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+                    .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
+                    .build()
+                )
+            .build();
         Iterable<? extends Row> rows = systemCollectSource.toRowsIterableTransformation(
             collectPhase,
             CoordinatorTxnCtx.systemTransactionContext(),
@@ -91,8 +101,8 @@ public class SystemCollectSourceTest extends IntegTestCase {
             false
         ).apply(Collections.singletonList(new UnassignedShard(
             1,
-            new Index("foo", UUIDs.randomBase64UUID()),
-            mock(ClusterService.class),
+            indexMetadata,
+            Metadata.EMPTY_METADATA,
             true,
             ShardRoutingState.UNASSIGNED)));
         Row next = rows.iterator().next();

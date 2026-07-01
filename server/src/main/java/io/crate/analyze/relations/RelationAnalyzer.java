@@ -64,7 +64,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.GroupAndAggregateSemantics;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.expression.tablefunctions.TableFunctionFactory;
 import io.crate.expression.tablefunctions.ValuesFunction;
@@ -784,8 +783,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         // prevent normalization of the values array, otherwise the value literals are converted to an array literal
         // and a special per-value-literal casting logic won't be executed (e.g. FloatLiteral.cast())
         expressionAnalysisContext.allowEagerNormalize(false);
-        java.util.function.Function<Expression, Symbol> expressionToSymbol =
-            e -> expressionAnalyzer.convert(e, expressionAnalysisContext);
 
         // There is a first pass to convert expressions from row oriented format:
         // `[[1, a], [2, b]]` to columns `[[1, 2], [a, b]]`
@@ -833,7 +830,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                         cell = Literal.of(colSymbol.valueType(), null);
                     }
                 } else {
-                    cell = expressionToSymbol.apply(expr);
+                    cell = expressionAnalyzer.convert(expr, expressionAnalysisContext);
                 }
                 columnValues.add(cell);
 
@@ -875,18 +872,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             }
             arrays.add(new Function(ArrayFunction.SIGNATURE, columnValues, arrayType));
         }
-        FunctionImplementation implementation = nodeCtx.functions().getQualified(
-            ValuesFunction.SIGNATURE,
-            Symbols.typeView(arrays),
-            RowType.EMPTY
-        );
+        TableFunctionImplementation<List<Object>> valuesFunction = ValuesFunction.of(arrays);
         Function function = new Function(
-            implementation.signature(),
+            valuesFunction.signature(),
             arrays,
             RowType.EMPTY
         );
-        TableFunctionImplementation<?> tableFunc = TableFunctionFactory.from(implementation);
-        TableFunctionRelation relation = new TableFunctionRelation(tableFunc, function);
+        TableFunctionRelation relation = new TableFunctionRelation(valuesFunction, function);
         context.startRelation();
         context.currentRelationContext().addSourceRelation(relation);
         context.endRelation();
