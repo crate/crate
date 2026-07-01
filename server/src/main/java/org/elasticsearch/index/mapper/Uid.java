@@ -19,11 +19,11 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.UnicodeUtil;
-
 import java.util.Arrays;
 import java.util.Base64;
+
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.UnicodeUtil;
 
 public final class Uid {
 
@@ -171,7 +171,10 @@ public final class Uid {
 
     private static String decodeUtf8Id(byte[] idBytes, int offset, int length) {
         assert Byte.toUnsignedInt(idBytes[offset]) == UTF8;
-        return new BytesRef(idBytes, offset + 1, length - 1).utf8ToString();
+        // offset+1/length-1 is to skip magic char that identifies id as UTF encoded
+        char[] ref = new char[length - 1];
+        int len = UnicodeUtil.UTF8toUTF16(idBytes, offset + 1, length - 1, ref);
+        return new String(ref, 0, len);
     }
 
     private static String decodeBase64Id(byte[] idBytes, int offset, int length) {
