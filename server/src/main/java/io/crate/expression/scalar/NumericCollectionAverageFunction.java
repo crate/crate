@@ -38,17 +38,19 @@ import io.crate.types.DataTypes;
 
 public class NumericCollectionAverageFunction extends Scalar<BigDecimal, List<BigDecimal>> {
 
-    public static final String NAME = "collection_avg";
+    public static final String[] NAMES = new String[]{"collection_avg", "collection_mean"};
 
     public static void register(Functions.Builder builder) {
-        builder.add(
-            Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(new ArrayType<>(DataTypes.NUMERIC).getTypeSignature())
-                .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
-                .build(),
-            NumericCollectionAverageFunction::new
-        );
+        for (String functionName : NAMES) {
+            builder.add(
+                Signature.builder(functionName, FunctionType.SCALAR)
+                    .argumentTypes(new ArrayType<>(DataTypes.NUMERIC).getTypeSignature())
+                    .returnType(DataTypes.NUMERIC.getTypeSignature())
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
+                    .build(),
+                NumericCollectionAverageFunction::new
+            );
+        }
     }
 
     private NumericCollectionAverageFunction(Signature signature, BoundSignature boundSignature) {
