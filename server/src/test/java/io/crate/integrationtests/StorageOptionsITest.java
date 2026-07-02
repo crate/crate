@@ -115,4 +115,49 @@ public class StorageOptionsITest extends IntegTestCase {
         assertThat((long) response.rows()[0][0]).isGreaterThan(0L); // Rough check due to randomized tz
         assertThat((long) response.rows()[0][1]).isEqualTo(1751016153987L);
     }
+
+    @Test
+    public void test_date_column_round_trip_with_and_without_columnstore() throws Exception {
+        // End-to-end round-trip through the storage layer. Eq/range/IN/array query
+        // generation is covered by DateEqQueryTest as unit tests; this IT pins the
+        // pieces that need a real cluster: insert-then-select round-trip, ORDER BY
+        // with NULL positioning (LuceneSort + NullSentinelValues), and the
+        // columnstore=false read path (StorageSupport.decode(long)).
+        execute("""
+            create table tbl (
+                id int primary key,
+                d date,
+                d_no_cs date storage with (columnstore=false)
+            ) with (number_of_replicas = 0)
+            """);
+        execute("""
+            insert into tbl (id, d, d_no_cs) values
+                (1, '1815-12-10', '1815-12-10'),
+                (2, '1970-01-01', '1970-01-01'),
+                (3, '2026-06-08', '2026-06-08'),
+                (4, NULL,         NULL)
+            """);
+        execute("refresh table tbl");
+
+        // Equality round-trip through both default-storage and columnstore=false columns.
+        execute("select id from tbl where d = '1970-01-01' and d_no_cs = '1970-01-01'");
+        assertThat(response).hasRows("2");
+
+        // ORDER BY with NULLS positioning - covers both branches of NullSentinelValues.
+        execute("select id from tbl order by d asc nulls last");
+        assertThat(response).hasRows("1", "2", "3", "4");
+
+        execute("select id from tbl order by d desc nulls first");
+        assertThat(response).hasRows("4", "3", "2", "1");
+
+        // Same ORDER BY against the columnstore=false column — exercises the
+        // stored-field sort path, which differs from the doc-values sort path used
+        // for the default-storage column above.
+        execute("select id from tbl order by d_no_cs asc nulls last");
+        assertThat(response).hasRows("1", "2", "3", "4");
+
+        // NULL is preserved through the storage layer.
+        execute("select id from tbl where d is null");
+        assertThat(response).hasRows("4");
+    }
 }

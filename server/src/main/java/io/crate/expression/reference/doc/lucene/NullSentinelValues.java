@@ -28,6 +28,7 @@ import io.crate.execution.engine.sort.NullValueOrder;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
+import io.crate.types.DateType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
@@ -64,6 +65,7 @@ public class NullSentinelValues {
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
+            case DateType.ID:
                 return min ? Long.MIN_VALUE : Long.MAX_VALUE;
 
             case FloatType.ID:
@@ -100,6 +102,7 @@ public class NullSentinelValues {
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
+            case DateType.ID:
                 return min ? Long.MIN_VALUE : Long.MAX_VALUE;
 
             case FloatType.ID:

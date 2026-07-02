@@ -59,6 +59,7 @@ import io.crate.types.ByteType;
 import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DateType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.GeoPointType;
@@ -202,7 +203,7 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
                 );
                 return sortField;
             }
-            case BooleanType.ID, ByteType.ID, ShortType.ID, IntegerType.ID, LongType.ID, TimestampType.ID_WITHOUT_TZ, TimestampType.ID_WITH_TZ -> {
+            case BooleanType.ID, ByteType.ID, ShortType.ID, IntegerType.ID, LongType.ID, TimestampType.ID_WITHOUT_TZ, TimestampType.ID_WITH_TZ, DateType.ID -> {
                 var selectorType = reverse ? SortedNumericSelector.Type.MAX : SortedNumericSelector.Type.MIN;
                 var sortField = new SortedNumericSortField(fieldName, SortField.Type.LONG, reverse, selectorType);
 
