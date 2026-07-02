@@ -80,6 +80,7 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.ClusterBootstrapService;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -377,12 +378,12 @@ public final class TestCluster implements Closeable {
     /**
      * Wipes any data that a test can leave behind: indices, templates (except exclude templates) and repositories
      */
-    public void wipe() throws Exception {
+    public void wipe() {
         wipeAllTables();
         wipeRepositories();
     }
 
-    public void wipeAllTables() throws Exception {
+    public void wipeAllTables() {
         if (size() > 0) {
             InformationSchemaIterables infoSchema = getCurrentMasterNodeInstance(InformationSchemaIterables.class);
             List<CompletableFuture<AcknowledgedResponse>> futures = new ArrayList<>();
@@ -399,13 +400,12 @@ public final class TestCluster implements Closeable {
                 responses.forEach(r -> assertAcked(r));
             } catch (Exception ignore) {
             }
-            assertBusy(() -> {
-                for (RelationName name : relationNames) {
-                    assertThat(clusterService().state().metadata().contains(name))
-                        .as("wipeAllTables must remove " + name)
-                        .isFalse();
-                }
-            });
+            Metadata metadata = getCurrentMasterNodeInstance(ClusterService.class).state().metadata();
+            for (RelationName name : relationNames) {
+                assertThat(metadata.contains(name))
+                    .as("wipeAllTables must remove " + name)
+                    .isFalse();
+            }
         }
     }
 
