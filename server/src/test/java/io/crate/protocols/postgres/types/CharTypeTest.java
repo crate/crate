@@ -27,40 +27,25 @@ import java.nio.charset.StandardCharsets;
 
 import org.junit.Test;
 
-public class SmallIntTypeTest extends BasePGTypeTest<Number> {
+public class CharTypeTest extends BasePGTypeTest<Character> {
 
-    public SmallIntTypeTest() {
-        super(SmallIntType.INSTANCE);
+    public CharTypeTest() {
+        super(CharType.INSTANCE);
     }
 
     @Test
-    public void test_write_read_short_value() throws Exception {
-        assertBytesWritten(Short.MIN_VALUE, new byte[]{0, 0, 0, 2, -128, 0});
-        assertBytesReadBinary(new byte[]{-128, 0}, Short.MIN_VALUE);
+    public void test_write_binary_value() {
+        assertBytesWritten('A', new byte[]{0, 0, 0, 1, 65});
     }
 
     @Test
-    public void test_write_read_byte_value() {
-        byte[] expected = {0, 0, 0, 2, -1, -128};
-        assertBytesWritten((byte) -128, expected);
-        assertBytesReadBinary(new byte[]{-1, -128}, (short) -128);
+    public void test_read_binary_value() {
+        assertBytesReadBinary(new byte[]{65}, 'A');
     }
 
     @Test
-    public void test_encode_byte_value_as_text() {
-        byte[] textBytes = "42".getBytes(StandardCharsets.UTF_8);
-        assertThat(pgType.encodeAsUTF8Text((byte) 42)).isEqualTo(textBytes);
-        assertBytesReadText(textBytes, (short) 42);
-    }
-
-    @Test
-    public void testReadValueBinary() throws Exception {
-        assertBytesReadBinary(new byte[]{127, -1}, Short.MAX_VALUE);
-    }
-
-    @Test
-    public void testReadValueText() throws Exception {
-        byte[] bytesToRead = String.valueOf(Short.MAX_VALUE).getBytes(StandardCharsets.UTF_8);
-        assertBytesReadText(bytesToRead, Short.MAX_VALUE, bytesToRead.length);
+    public void test_read_write_text_value() {
+        assertThat(pgType.encodeAsUTF8Text('c')).isEqualTo("c".getBytes(StandardCharsets.UTF_8));
+        assertBytesReadText("c".getBytes(StandardCharsets.UTF_8), 'c', 1);
     }
 }

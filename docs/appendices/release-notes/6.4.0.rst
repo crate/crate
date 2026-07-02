@@ -48,6 +48,42 @@ Breaking Changes
   the setting is present in the ``crate.yml`` CrateDB will refuse to start.
   Please remove it before updating.
 
+- The PostgreSQL type mapping of CrateDB's ``byte`` type changed from ``"char"``
+  (OID 18) to ``int2`` (OID 21). Clients now receive ``byte`` columns as
+  ``int2`` in both text and binary formats.
+
+  Most clients reading data determine the type of a column dynamically, and are
+  largely unaffected. With ``pgjdbc``, ``ResultSet``'s ``getString()`` and
+  ``getByte()`` return the same results as before. ``getObject()`` now returns a
+  ``Short`` instead of a ``String``.
+
+  The CrateDB JDBC driver is unaffected: ``getObject()`` returns an ``Integer``
+  as it did before.
+
+- Changed the type mapping of PostgreSQL's ``"char"`` type from ``byte``
+  to :ref:`character(1) <data-type-character>`.
+
+  Before:
+
+    ``CREATE TABLE tbl (col "char");`` was equal to ``CREATE TABLE tbl (col byte);``
+
+  After:
+
+    ``CREATE TABLE tbl (col "char");`` is equal to ``CREATE TABLE tbl (col character(1));``
+
+  Existing tables are not affected.
+  For new tables the ``character(1)`` column will reject byte values, which are valid for a ``byte`` column:
+
+      INSERT INTO tbl (col) VALUES (65);
+      SQLParseException['65' is too long for the character type of length: 1]
+
+  This improves compatibility with PostgreSQL: In cases where a PostgreSQL
+  client sets the parameter type hint to OID 18 (``"char"``), and casts the
+  value to ``character`` or ``varchar``, the byte encoded ``"char"`` value is
+  now correctly interpreted as ASCII decimal 65, resulting in ``"A"``. Before
+  it interpreted ``65`` as a character sequence, resulting in a ``"65"``
+  string.
+
 - Changed type validation for ``INSERT INTO`` statements to be consistent
   regardless of the number of ``VALUES`` rows provided. Previously, implicit
   casts were permitted for single-row inserts but rejected for multi-row
@@ -148,7 +184,7 @@ Performance and Resilience Improvements
 - Added column pruning for scalar subqueries. This can help improve performance
   for sub-queries which intermediately selected columns not used in the results.
 
-- Improved the performance of the :ref:``to_char <scalar-to_char>`` scalar. In
+- Improved the performance of the :ref:`to_char <scalar-to_char>` scalar. In
   some of our benchmarks by up to ~25%.
 
 - Improved the performance of bulk insert operations against tables that use

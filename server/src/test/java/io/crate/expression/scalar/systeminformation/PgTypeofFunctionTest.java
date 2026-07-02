@@ -55,7 +55,9 @@ public class PgTypeofFunctionTest extends ScalarTestCase {
         assertEvaluate("pg_typeof(true)", DataTypes.BOOLEAN.getName());
         assertEvaluate("pg_typeof(is_awesome)", DataTypes.BOOLEAN.getName(), Literal.of(true));
 
-        assertEvaluate("pg_typeof(58::\"char\")", DataTypes.BYTE.getName());
+        assertEvaluate("pg_typeof('a'::\"char\")", DataTypes.CHARACTER.getName());
+
+        assertEvaluate("pg_typeof(58::byte)", DataTypes.BYTE.getName());
         assertEvaluate("pg_typeof(c)", DataTypes.BYTE.getName(), Literal.of(DataTypes.BYTE, (byte) 58));
 
         assertEvaluate("pg_typeof(10::smallint)", DataTypes.SHORT.getName());

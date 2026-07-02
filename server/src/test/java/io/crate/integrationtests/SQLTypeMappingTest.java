@@ -25,7 +25,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Locale;
@@ -93,12 +92,12 @@ public class SQLTypeMappingTest extends IntegTestCase {
         assertThat(response.rows()[0][0]).isEqualTo(1);
         assertThat(response.rows()[0][1]).isEqualTo("With");
         assertThat(response.rows()[0][2]).isEqualTo(0L);
-        assertThat(response.rows()[0][3]).isEqualTo((byte) 127);
+        assertThat(response.rows()[0][3]).isEqualTo((short) 127);
 
         assertThat(response.rows()[1][0]).isEqualTo(2);
         assertThat(response.rows()[1][1]).isEqualTo("Without");
         assertThat(response.rows()[1][2]).isEqualTo(3600000L);
-        assertThat(response.rows()[1][3]).isEqualTo((byte) -128);
+        assertThat(response.rows()[1][3]).isEqualTo((short) -128);
     }
 
     public void setUpObjectTable() throws Exception {
@@ -158,7 +157,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
         response = execute("select object_field['created'], object_field['size'], " +
                            "no_dynamic_field['dynamic_again']['field'] from test12");
         assertThat(response.rows()[0][0]).isEqualTo(1384819200000L);
-        assertThat(response.rows()[0][1]).isEqualTo((byte) 127);
+        assertThat(response.rows()[0][1]).isEqualTo((short) 127);
         assertThat(response.rows()[0][2]).isEqualTo(1384790145289L);
     }
 
@@ -229,7 +228,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
                                        "object_field, ip_field from t1 where id=0");
         assertThat(response.rowCount()).isEqualTo(1);
         assertThat(response.rows()[0][0]).isEqualTo(0);
-        assertThat(response.rows()[0][1]).isEqualTo((byte) 127);
+        assertThat(response.rows()[0][1]).isEqualTo((short) 127);
         assertThat(response.rows()[0][2]).isEqualTo((short) -32768);
         assertThat(response.rows()[0][3]).isEqualTo(0x7fffffff);
         assertThat(response.rows()[0][4]).isEqualTo(Long.MIN_VALUE + 1);

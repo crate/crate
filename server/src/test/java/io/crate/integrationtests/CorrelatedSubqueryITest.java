@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.DriverManager;
@@ -444,9 +443,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         assertThat(response).hasRowCount(26L);
     }
 
-    /**
-     * Tests a bug https://github.com/crate/crate/issues/15398.
-     */
+    /// Tests the following bug: [Couldn't resolve value for OuterColumn](https://github.com/crate/crate/issues/15398).
     @Test
     public void test_can_mix_correlated_subquery_and_sub_select() {
         execute("CREATE TABLE tbl(x int)");

@@ -25,40 +25,44 @@ import java.util.Arrays;
 
 import org.jspecify.annotations.Nullable;
 
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
-public final class SQLResponse {
+public record SQLResponse(String[] cols, Object[][] rows, DataType<?>[] columnTypes, long rowCount) {
 
-    private final String[] cols;
-    private final DataType<?>[] colTypes;
-    private final Object[][] rows;
-    private final long rowCount;
-
-    SQLResponse(String[] cols,
-                Object[][] rows,
-                DataType<?>[] colTypes,
-                long rowCount) {
-        assert cols.length == colTypes.length : "cols and colTypes differ";
-        this.cols = cols;
-        this.colTypes = colTypes;
-        this.rows = rows;
-        this.rowCount = rowCount;
+    public SQLResponse {
+        assert cols.length == columnTypes.length : "cols and colTypes differ";
+        // Convert byte->short to normalize result between Session/jdbc. In PGTypes byte is mapped to int2.
+        // Can't convert the PG version using `executeAndConvertResult` / `ResultSetParser`
+        // because from ResultSetMetadata alone it isn't known if the type was byte/int2.
+        for (int i = 0; i < columnTypes.length; i++) {
+            for (Object[] row : rows) {
+                row[i] = normalizeByteValue(row[i], columnTypes[i]);
+            }
+        }
     }
 
-    public String[] cols() {
-        return cols;
+    private static Object normalizeByteValue(Object val, DataType<?> type) {
+        if (val == null) {
+            return null;
+        }
+
+        var normalizedType = normalizeType(type);
+        if (type.equals(normalizedType)) {
+            return val;
+        }
+
+        return normalizedType.implicitCast(val);
     }
 
-    public DataType<?>[] columnTypes() {
-        return colTypes;
-    }
-
-    public Object[][] rows() {
-        return rows;
-    }
-
-    public long rowCount() {
-        return rowCount;
+    private static DataType<?> normalizeType(DataType<?> type) {
+        int dimensions = ArrayType.dimensions(type);
+        DataType<?> innerType = ArrayType.unnest(type);
+        if (innerType.id() == DataTypes.BYTE.id()) {
+            return ArrayType.makeArray(DataTypes.SHORT, dimensions);
+        }
+        return type;
     }
 
     private static String arrayToString(@Nullable Object[] array) {
@@ -68,10 +72,10 @@ public final class SQLResponse {
     @Override
     public String toString() {
         return "SQLResponse{" +
-               "cols=" + arrayToString(cols()) +
-               "colTypes=" + arrayToString(columnTypes()) +
-               ", rows=" + ((rows != null) ? rows.length : -1) +
-               ", rowCount=" + rowCount +
-               '}';
+                "cols=" + arrayToString(cols()) +
+                "colTypes=" + arrayToString(columnTypes()) +
+                ", rows=" + ((rows != null) ? rows.length : -1) +
+                ", rowCount=" + rowCount +
+                '}';
     }
 }

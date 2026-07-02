@@ -374,24 +374,74 @@ public class PostgresITest extends IntegTestCase {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.createStatement().executeUpdate(
                 "CREATE TABLE t (" +
-                "   chars array(byte)," +
+                "   bytes array(byte)," +
                 "   strings array(text)) " +
                 "WITH (number_of_replicas = 0)");
 
             PreparedStatement preparedStatement = conn.prepareStatement(
-                "INSERT INTO t (chars, strings) VALUES (?, ?)");
-            preparedStatement.setArray(1, conn.createArrayOf("char", new Byte[]{'c', '3'}));
+                "INSERT INTO t (bytes, strings) VALUES (?, ?)");
+            preparedStatement.setArray(1, conn.createArrayOf("int2", new Short[]{99, 51}));
             preparedStatement.setArray(2, conn.createArrayOf("varchar", new String[]{"fo,o", "bar"}));
             preparedStatement.executeUpdate();
             conn.createStatement().execute("REFRESH TABLE t");
 
-            ResultSet resultSet = conn.createStatement().executeQuery("SELECT chars, strings FROM t");
+            ResultSet resultSet = conn.createStatement().executeQuery("SELECT bytes, strings FROM t");
             assertThat(resultSet.next()).isTrue();
-            assertThat(resultSet.getArray(1).getArray()).isEqualTo(new String[]{"99", "51"});
+            assertThat(resultSet.getArray(1).getArray()).isEqualTo(new Short[]{99, 51});
             assertThat(resultSet.getArray(2).getArray()).isEqualTo(new String[]{"fo,o", "bar"});
             assertThat(resultSet.next()).isFalse();
         } catch (BatchUpdateException e) {
             throw e.getNextException();
+        }
+    }
+
+    @Test
+    public void test_byte_column_mapped_to_int2() throws Exception {
+        try (var conn = DriverManager.getConnection(url(RW), properties)) {
+            conn.createStatement().executeUpdate(
+                "CREATE TABLE t (b byte) WITH (number_of_replicas = 0)");
+
+            var stmt = conn.prepareStatement("INSERT INTO t (b) VALUES (?)");
+            stmt.setShort(1, (short) -128);
+            stmt.executeUpdate();
+            conn.createStatement().execute("REFRESH TABLE t");
+
+            var rs = conn.createStatement().executeQuery("SELECT b FROM t");
+            assertThat(rs.getMetaData().getColumnTypeName(1)).isEqualTo("int2");
+            assertThat(rs.next()).isTrue();
+            assertThat(rs.getByte(1)).isEqualTo((byte) -128);
+            assertThat(rs.getShort(1)).isEqualTo((short) -128);
+            assertThat(rs.next()).isFalse();
+
+            // int2 values exceeding the byte range must be rejected on bind
+            stmt.setShort(1, (short) 300);
+            assertThatThrownBy(stmt::executeUpdate)
+                .isInstanceOf(PSQLException.class)
+                .hasMessageContaining("Cannot cast value `300` to type `byte`");
+        }
+    }
+
+    @Test
+    public void test_quoted_char_column_roundtrips() throws Exception {
+        try (var conn = DriverManager.getConnection(url(RW), properties)) {
+            conn.createStatement().executeUpdate(
+                "CREATE TABLE t (c \"char\") WITH (number_of_replicas = 0)");
+
+            var stmt = conn.prepareStatement("INSERT INTO t (c) VALUES (?)");
+            stmt.setString(1, "a");
+            stmt.executeUpdate();
+            conn.createStatement().execute("REFRESH TABLE t");
+
+            // "char" is an alias of character(1); columns describe as bpchar
+            var rs = conn.createStatement().executeQuery("SELECT c FROM t");
+            assertThat(rs.getMetaData().getColumnTypeName(1)).isEqualTo("bpchar");
+            assertThat(rs.next()).isTrue();
+            assertThat(rs.getString(1)).isEqualTo("a");
+            assertThat(rs.next()).isFalse();
+
+            var castRs = conn.createStatement().executeQuery("SELECT 'x'::\"char\"");
+            assertThat(castRs.next()).isTrue();
+            assertThat(castRs.getString(1)).isEqualTo("x");
         }
     }
 

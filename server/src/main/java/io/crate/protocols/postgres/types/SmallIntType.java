@@ -27,7 +27,12 @@ import java.nio.charset.StandardCharsets;
 import io.crate.metadata.RelationLookup;
 import io.netty.buffer.ByteBuf;
 
-class SmallIntType extends PGType<Short> {
+/**
+ * Accepts any {@link Number} on the write paths because both CrateDB's
+ * {@code smallint} (Short) and {@code byte} (Byte) map to pg's int2.
+ * The read paths always produce {@link Short}.
+ */
+class SmallIntType extends PGType<Number> {
 
     public static final SmallIntType INSTANCE = new SmallIntType();
     static final int OID = 21;
@@ -55,15 +60,15 @@ class SmallIntType extends PGType<Short> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, Short value) {
+    public int writeAsBinary(ByteBuf buffer, Number value) {
         buffer.writeInt(TYPE_LEN);
-        buffer.writeShort(value);
+        buffer.writeShort(value.shortValue());
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(Short value) {
-        return Short.toString(value).getBytes(StandardCharsets.UTF_8);
+    protected byte[] encodeAsUTF8Text(Number value) {
+        return Short.toString(value.shortValue()).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override

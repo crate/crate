@@ -46,14 +46,22 @@ import io.crate.types.UUIDType;
 
 public class PGTypes {
 
+    /**
+     * Maps each CrateDB type to the Pg type clients see for it.
+     * <p>
+     * Several CrateDB types can map to the same pg type (e.g. string and ip -> varchar,
+     * short and byte -> int2). Insertion order then decides the reverse (pg -> CrateDB)
+     * mapping: {@link #PG_TYPES_TO_CRATE_TYPE} is built first-wins per oid, so the
+     * CrateDB type that should represent the pg type must be inserted first.
+     */
     private static final Map<DataType<?>, PGType<?>> CRATE_TO_PG_TYPES = MapBuilder.<DataType<?>, PGType<?>>newLinkedHashMapBuilder()
-        .put(DataTypes.BYTE, CharType.INSTANCE)
         .put(DataTypes.STRING, VarCharType.INSTANCE)
         .put(DataTypes.CHARACTER, CharacterType.INSTANCE)
         .put(DataTypes.BOOLEAN, BooleanType.INSTANCE)
         .put(DataTypes.UNTYPED_OBJECT, JsonType.INSTANCE)
         .put(RowType.EMPTY, RecordType.EMPTY_RECORD)
         .put(DataTypes.SHORT, SmallIntType.INSTANCE)
+        .put(DataTypes.BYTE, SmallIntType.INSTANCE)
         .put(DataTypes.INTEGER, IntegerType.INSTANCE)
         .put(DataTypes.LONG, BigIntType.INSTANCE)
         .put(DataTypes.FLOAT, RealType.INSTANCE)
@@ -74,8 +82,8 @@ public class PGTypes {
         .put(DataTypes.REGTYPE, RegtypeType.INSTANCE)
         .put(BitStringType.INSTANCE_ONE, BitType.INSTANCE)
         .put(UUIDType.INSTANCE, PgUUIDType.INSTANCE)
-        .put(new ArrayType<>(DataTypes.BYTE), PGArray.CHAR_ARRAY)
         .put(new ArrayType<>(DataTypes.SHORT), PGArray.INT2_ARRAY)
+        .put(new ArrayType<>(DataTypes.BYTE), PGArray.INT2_ARRAY)
         .put(new ArrayType<>(DataTypes.INTEGER), PGArray.INT4_ARRAY)
         .put(new ArrayType<>(DataTypes.LONG), PGArray.INT8_ARRAY)
         .put(new ArrayType<>(DataTypes.FLOAT), PGArray.FLOAT4_ARRAY)
@@ -123,6 +131,8 @@ public class PGTypes {
         PG_TYPES_TO_CRATE_TYPE.put(PGArray.ANY_ARRAY.oid(), new ArrayType<>(DataTypes.UNDEFINED));
         PG_TYPES_TO_CRATE_TYPE.put(VarCharType.NameType.OID, DataTypes.STRING);
         PG_TYPES_TO_CRATE_TYPE.put(OidType.OID, DataTypes.INTEGER);
+        PG_TYPES_TO_CRATE_TYPE.put(CharType.OID, DataTypes.CHARACTER);
+        PG_TYPES_TO_CRATE_TYPE.put(PGArray.CHAR_ARRAY.oid(), new ArrayType<>(DataTypes.CHARACTER));
         TYPES = new HashSet<>(CRATE_TO_PG_TYPES.values()); // some pgTypes are used multiple times, de-dup them
 
         // There is no entry in `CRATE_TO_PG_TYPES` for these because we have no 1:1 mapping from dataType to pgType
@@ -136,6 +146,10 @@ public class PGTypes {
         TYPES.add(VarCharType.TextType.INSTANCE);
         TYPES.add(PGArray.TEXT_ARRAY);
 
+        // DataTypes.CHARACTER maps to bpchar, but "char" (a 1-byte alias of character(1))
+        // is exposed additionally so that clients can bind parameters with oid 18/1002.
+        TYPES.add(CharType.INSTANCE);
+        TYPES.add(PGArray.CHAR_ARRAY);
         for (PGType<?> pgType: TYPES) {
             OID_TO_PG_TYPE.put(pgType.oid(), pgType);
             TYPNAME_TO_PG_TYPE.put(pgType.typName(), pgType);

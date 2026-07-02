@@ -76,7 +76,20 @@ public class PGTypesTest extends ESTestCase {
             .isExactlyInstanceOf(VarCharType.class);
         assertThat(PGTypes.get(DataTypes.NUMERIC)).isExactlyInstanceOf(NumericType.class);
         assertThat(PGTypes.get(io.crate.types.JsonType.INSTANCE)).isExactlyInstanceOf(JsonType.class);
+        assertThat(PGTypes.get(DataTypes.CHARACTER)).isExactlyInstanceOf(CharacterType.class);
 
+    }
+
+    @Test
+    public void test_byte_is_mapped_to_int2() {
+        assertThat(PGTypes.get(DataTypes.BYTE)).isExactlyInstanceOf(SmallIntType.class);
+        assertThat(PGTypes.get(new ArrayType<>(DataTypes.BYTE)).oid()).isEqualTo(PGArray.INT2_ARRAY.oid());
+    }
+
+    @Test
+    public void test_pg_int2_resolves_to_short() {
+        assertThat(PGTypes.fromOID(SmallIntType.OID)).isEqualTo(DataTypes.SHORT);
+        assertThat(PGTypes.fromOID(PGArray.INT2_ARRAY.oid())).isEqualTo(new ArrayType<>(DataTypes.SHORT));
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -88,6 +101,7 @@ public class PGTypesTest extends ESTestCase {
 
     @Test
     public void testPG2CrateType() {
+        assertThat(PGTypes.fromOID(CharType.OID)).isExactlyInstanceOf(io.crate.types.CharacterType.class);
         assertThat(PGTypes.fromOID(VarCharType.OID)).isExactlyInstanceOf(StringType.class);
         assertThat(PGTypes.fromOID(JsonType.OID)).isExactlyInstanceOf(ObjectType.class);
         assertThat(PGTypes.fromOID(BooleanType.OID)).isExactlyInstanceOf(io.crate.types.BooleanType.class);
@@ -117,7 +131,6 @@ public class PGTypesTest extends ESTestCase {
 
     @Test
     public void testPgArray2CrateType() {
-        assertThat(PGTypes.fromOID(PGArray.CHAR_ARRAY.oid())).isExactlyInstanceOf(ArrayType.class);
         assertThat(PGTypes.fromOID(PGArray.INT2_ARRAY.oid())).isExactlyInstanceOf(ArrayType.class);
         assertThat(PGTypes.fromOID(PGArray.INT4_ARRAY.oid())).isExactlyInstanceOf(ArrayType.class);
         assertThat(PGTypes.fromOID(PGArray.INT8_ARRAY.oid())).isExactlyInstanceOf(ArrayType.class);
@@ -130,6 +143,7 @@ public class PGTypesTest extends ESTestCase {
         assertThat(PGTypes.fromOID(PGArray.VARCHAR_ARRAY.oid())).isExactlyInstanceOf(ArrayType.class);
         assertThat(PGTypes.fromOID(PGArray.JSON_ARRAY.oid())).isExactlyInstanceOf(ArrayType.class);
         assertThat(PGTypes.fromOID(PGArray.UUID_ARRAY.oid())).isExactlyInstanceOf(ArrayType.class);
+        assertThat(PGTypes.fromOID(PGArray.CHAR_ARRAY.oid())).isEqualTo(new ArrayType<>(DataTypes.CHARACTER));
     }
 
     private static class Entry<T> {

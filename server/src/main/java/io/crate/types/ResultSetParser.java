@@ -61,17 +61,6 @@ public class ResultSetParser {
                 }
                 value = intValue.shortValue();
                 break;
-            case "_char": {
-                Array array = resultSet.getArray(columnIndex);
-                if (array == null) {
-                    return null;
-                }
-                ArrayList<Byte> elements = new ArrayList<>();
-                for (Object o : ((Object[]) array.getArray())) {
-                    elements.add(Byte.parseByte((String) o));
-                }
-                return elements;
-            }
             case "oidvector": {
                 String textval = resultSet.getString(columnIndex);
                 if (textval == null) {
