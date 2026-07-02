@@ -1026,7 +1026,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         ClusterState state = cluster().clusterService().state();
         assertThat(state.metadata().indices()).isEmpty();
-        assertThat(state.metadata().hasAlias("quotes")).isFalse();
         assertThat(state.metadata().templates()).isEmpty();
     }
 

@@ -171,7 +171,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     private final int totalOpenIndexShards;
     private final int numberOfShards;
 
-    private final SortedMap<String, AliasOrIndex> aliasAndIndexLookup;
+    private SortedMap<String, AliasOrIndex> aliasAndIndexLookup = null;
 
     Metadata(String clusterUUID,
              boolean clusterUUIDCommitted,
@@ -184,8 +184,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
              Map<String, IndexMetadata> indices,
              Map<String, IndexTemplateMetadata> templates,
              Map<String, Custom> customs,
-             Map<String, SchemaMetadata> schemas,
-             SortedMap<String, AliasOrIndex> aliasAndIndexLookup) {
+             Map<String, SchemaMetadata> schemas) {
         this.clusterUUID = clusterUUID;
         this.clusterUUIDCommitted = clusterUUIDCommitted;
         this.version = version;
@@ -276,16 +275,40 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return this.coordinationMetadata;
     }
 
-    public boolean hasAlias(String alias) {
-        AliasOrIndex aliasOrIndex = getAliasAndIndexLookup().get(alias);
-        if (aliasOrIndex != null) {
-            return aliasOrIndex.isAlias();
-        } else {
-            return false;
+    private SortedMap<String, AliasOrIndex> buildAliasAndIndexLookup() {
+        SortedMap<String, AliasOrIndex> aliasAndIndexLookup = new TreeMap<>();
+        for (IndexMetadata indexMetadata : indices.values()) {
+            if (indexMetadata.getUpgradedVersion().onOrAfter(Version.V_6_0_0)) {
+                // aliases are deprecated and only needed to be built for old indices, aliases will be removed once
+                // the metadata is fully migrated/upgraded to schemas/relations.
+                continue;
+            }
+
+            AliasOrIndex existing = aliasAndIndexLookup.put(indexMetadata.getIndex().getName(), new AliasOrIndex.Index(indexMetadata));
+            assert existing == null : "duplicate for " + indexMetadata.getIndex();
+
+            for (Map.Entry<String, AliasMetadata> aliasCursor : indexMetadata.getAliases().entrySet()) {
+                AliasMetadata aliasMetadata = aliasCursor.getValue();
+                aliasAndIndexLookup.compute(aliasMetadata.getAlias(), (aliasName, alias) -> {
+                    if (alias == null) {
+                        return new AliasOrIndex.Alias(aliasMetadata, indexMetadata);
+                    } else {
+                        assert alias instanceof AliasOrIndex.Alias : alias.getClass().getName();
+                        ((AliasOrIndex.Alias) alias).addIndex(indexMetadata);
+                        return alias;
+                    }
+                });
+            }
         }
+        return aliasAndIndexLookup;
     }
 
+    /// Replaced with [SchemaMetadata] and [RelationMetadata]
+    @Deprecated
     public SortedMap<String, AliasOrIndex> getAliasAndIndexLookup() {
+        if (aliasAndIndexLookup == null) {
+            aliasAndIndexLookup = Collections.unmodifiableSortedMap(buildAliasAndIndexLookup());
+        }
         return aliasAndIndexLookup;
     }
 
@@ -1176,11 +1199,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                     + String.join(", ", duplicates) + "]");
 
             }
-
-            SortedMap<String, AliasOrIndex> aliasAndIndexLookup = Collections.unmodifiableSortedMap(buildAliasAndIndexLookup());
-
             validateTableOIDs(tableOidSupplier.peek());
-
             return new Metadata(
                 clusterUUID,
                 clusterUUIDCommitted,
@@ -1193,8 +1212,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 indices.immutableMap(),
                 templates.immutableMap(),
                 customs.immutableMap(),
-                schemas.immutableMap(),
-                aliasAndIndexLookup
+                schemas.immutableMap()
             );
         }
 
@@ -1222,33 +1240,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             }
         }
 
-        private SortedMap<String, AliasOrIndex> buildAliasAndIndexLookup() {
-            SortedMap<String, AliasOrIndex> aliasAndIndexLookup = new TreeMap<>();
-            for (IndexMetadata indexMetadata : indices.values()) {
-                if (indexMetadata.getUpgradedVersion().onOrAfter(Version.V_6_0_0)) {
-                    // aliases are deprecated and only needed to be built for old indices, aliases will be removed once
-                    // the metadata is fully migrated/upgraded to schemas/relations.
-                    continue;
-                }
-
-                AliasOrIndex existing = aliasAndIndexLookup.put(indexMetadata.getIndex().getName(), new AliasOrIndex.Index(indexMetadata));
-                assert existing == null : "duplicate for " + indexMetadata.getIndex();
-
-                for (Map.Entry<String, AliasMetadata> aliasCursor : indexMetadata.getAliases().entrySet()) {
-                    AliasMetadata aliasMetadata = aliasCursor.getValue();
-                    aliasAndIndexLookup.compute(aliasMetadata.getAlias(), (aliasName, alias) -> {
-                        if (alias == null) {
-                            return new AliasOrIndex.Alias(aliasMetadata, indexMetadata);
-                        } else {
-                            assert alias instanceof AliasOrIndex.Alias : alias.getClass().getName();
-                            ((AliasOrIndex.Alias) alias).addIndex(indexMetadata);
-                            return alias;
-                        }
-                    });
-                }
-            }
-            return aliasAndIndexLookup;
-        }
 
         public static Metadata fromXContent(XContentParser parser, boolean preserveUnknownCustoms) throws IOException {
             Builder builder = Metadata.builder(OID_UNASSIGNED);
