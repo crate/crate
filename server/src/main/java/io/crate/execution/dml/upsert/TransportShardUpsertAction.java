@@ -410,6 +410,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     return update(onConflictIndexer, request, item, indexShard, tableInfo, partitionValues);
                 }
             } catch (VersionConflictEngineException e) {
+                e.setRelationName(tableInfo.ident());
                 lastException = e;
                 if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
                     // on conflict do nothing

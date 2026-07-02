@@ -44,7 +44,6 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.engine.EngineException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
@@ -198,7 +197,7 @@ public class SQLExceptions {
             return new UnsupportedFeatureException(unwrappedError.getMessage(), (Exception) unwrappedError);
         } else if (isDocumentAlreadyExistsException(unwrappedError)) {
             return new DuplicateKeyException(
-                ((EngineException) unwrappedError).getIndex().getName(),
+                ((VersionConflictEngineException) unwrappedError).relationName(),
                 "A document with the same primary key exists already", unwrappedError);
         } else if (unwrappedError instanceof InterruptedException) {
             return JobKilledException.of(unwrappedError.getMessage());
