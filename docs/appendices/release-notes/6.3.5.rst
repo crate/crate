@@ -53,3 +53,8 @@ Fixes
 - Fixed an issue causing ``KILL`` statement or
   :ref:`statement_timeout <conf-session-statement-timeout>` to not properly
   kill a query and leading to resources leak.
+
+- Fixed an issue that led to an error being thrown when using ``distinct`` with
+  the ``mean`` alias of the :ref:`avg() function <aggregation-avg>`. e.g.::
+
+      SELECT mean(DISTINCT <columnName>) FROM tbl
