@@ -342,6 +342,14 @@ within a resulting row of a ``GROUP BY`` clause.
   :ref:`evaluates <gloss-evaluation>` to a result of type boolean. Every row
   for which the condition is not satisfied will be eliminated from the output.
 
+For example, using the ``employees`` table above, only keep departments whose
+average salary exceeds 50000::
+
+    SELECT department, AVG(salary) as avg_salary
+    FROM employees
+    GROUP BY department
+    HAVING AVG(salary) > 50000;
+
 .. NOTE::
 
    When ``GROUP BY`` is present, it is not valid for the ``SELECT`` list

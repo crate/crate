@@ -37,18 +37,20 @@ import io.crate.types.TypeSignature;
 
 public class CollectionAverageFunction extends Scalar<Double, List<Object>> {
 
-    public static final String NAME = "collection_avg";
+    public static final String[] NAMES = new String[]{"collection_avg", "collection_mean"};
 
     public static void register(Functions.Builder builder) {
-        builder.add(
-                Signature.builder(NAME, FunctionType.SCALAR)
-                        .argumentTypes(TypeSignature.ARRAY_E)
-                        .returnType(DataTypes.DOUBLE.getTypeSignature())
-                        .typeVariableConstraints(TypeVariableConstraint.E)
-                        .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
-                        .build(),
+        for (var functionName : NAMES) {
+            builder.add(
+                Signature.builder(functionName, FunctionType.SCALAR)
+                    .argumentTypes(TypeSignature.ARRAY_E)
+                    .returnType(DataTypes.DOUBLE.getTypeSignature())
+                    .typeVariableConstraints(TypeVariableConstraint.E)
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
+                    .build(),
                 CollectionAverageFunction::new
-        );
+            );
+        }
     }
 
     private CollectionAverageFunction(Signature signature, BoundSignature boundSignature) {

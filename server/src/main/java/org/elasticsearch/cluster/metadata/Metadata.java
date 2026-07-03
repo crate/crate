@@ -297,10 +297,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return indices.containsKey(index.getUUID());
     }
 
-    public boolean hasConcreteIndex(String indexUUID) {
-        return getAliasAndIndexLookup().containsKey(indexUUID);
-    }
-
     @Nullable
     public IndexMetadata index(String indexUUID) {
         return indices.get(indexUUID);
@@ -366,11 +362,13 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     /**
      * The collection of index deletions in the cluster.
      */
+    @Nullable
     public IndexGraveyard indexGraveyard() {
         return custom(IndexGraveyard.TYPE);
     }
 
     @SuppressWarnings("unchecked")
+    @Nullable
     public <T extends Custom> T custom(String type) {
         return (T) customs.get(type);
     }
