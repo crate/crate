@@ -23,7 +23,6 @@ package io.crate.expression.symbol;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -52,26 +51,19 @@ import io.crate.types.UndefinedType;
 
 public interface Symbol extends Writeable, Accountable {
 
-    public static final Predicate<Symbol> IS_COLUMN = s -> s instanceof ScopedSymbol || s instanceof Reference;
-    public static final Predicate<Symbol> IS_CORRELATED_SUBQUERY = s -> s instanceof SelectSymbol selectSymbol && selectSymbol.isCorrelated();
+    Predicate<Symbol> IS_COLUMN = s -> s instanceof ScopedSymbol || s instanceof Reference;
+    Predicate<Symbol> IS_CORRELATED_SUBQUERY = s -> s instanceof SelectSymbol selectSymbol && selectSymbol.isCorrelated();
 
-    public static boolean isLiteral(Symbol symbol, DataType<?> expectedType) {
+    static boolean isLiteral(Symbol symbol, DataType<?> expectedType) {
         return symbol.symbolType() == SymbolType.LITERAL && symbol.valueType().equals(expectedType);
     }
 
-    public static boolean hasLiteralValue(Symbol symbol, Object value) {
-        while (symbol instanceof AliasSymbol alias) {
-            symbol = alias.symbol();
-        }
-        return symbol instanceof Literal<?> literal && Objects.equals(literal.value(), value);
-    }
-
     @Nullable
-    public static Symbol nullableFromStream(StreamInput in) throws IOException {
+    static Symbol nullableFromStream(StreamInput in) throws IOException {
         return in.readBoolean() ? fromStream(in) : null;
     }
 
-    public static void nullableToStream(@Nullable Symbol symbol, StreamOutput out) throws IOException {
+    static void nullableToStream(@Nullable Symbol symbol, StreamOutput out) throws IOException {
         if (symbol == null) {
             out.writeBoolean(false);
         } else {
@@ -80,13 +72,13 @@ public interface Symbol extends Writeable, Accountable {
         }
     }
 
-    public static void toStream(Symbol symbol, StreamOutput out) throws IOException {
+    static void toStream(Symbol symbol, StreamOutput out) throws IOException {
         int ordinal = symbol.symbolType().ordinal();
         out.writeVInt(ordinal);
         symbol.writeTo(out);
     }
 
-    public static Symbol fromStream(StreamInput in) throws IOException {
+    static Symbol fromStream(StreamInput in) throws IOException {
         return SymbolType.VALUES.get(in.readVInt()).newInstance(in);
     }
 
@@ -180,7 +172,7 @@ public interface Symbol extends Writeable, Accountable {
      * Casts this Symbol to a new {@link DataType} with the given {@link CastMode}
      *
      * @param targetType The resulting data type after applying the cast
-     * @param modes      {@link CastMode}
+     * @param mode      {@link CastMode}
      * @return Symbol itself if it already matches the targetType, otherwise a
      *         {@link Function} which casts this symbol.
      */
@@ -200,7 +192,7 @@ public interface Symbol extends Writeable, Accountable {
                 return this;
             } else if (innerTargetType.equals(DataTypes.NUMERIC) &&
                 valueType().id() == DataTypes.NUMERIC.id()) {
-                // Do not cast numerics to unscaled numerics because we do not want to loose precision + scale
+                // Do not cast numerics to unscaled numerics because we do not want to lose precision + scale
                 return this;
             }
         }
