@@ -99,4 +99,17 @@ public class AuthSettingsTest {
         assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP)).isEqualTo(ClientAuth.NONE);
         assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES)).isEqualTo(ClientAuth.NONE);
     }
+
+    /// See [Issue #19669](https://github.com/crate/crate/issues/19669)
+    @Test
+    public void test_cert_required_only_on_postgres_protocol() {
+        Settings settings = Settings.builder()
+            .put("auth.host_based.config.1.method", "cert")
+            .put("auth.host_based.config.1.protocol", "pg")
+            .build();
+
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.POSTGRES)).isEqualTo(ClientAuth.REQUIRE);
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.HTTP)).isEqualTo(ClientAuth.NONE);
+        assertThat(AuthSettings.resolveClientAuth(settings, Protocol.TRANSPORT)).isEqualTo(ClientAuth.NONE);
+    }
 }
