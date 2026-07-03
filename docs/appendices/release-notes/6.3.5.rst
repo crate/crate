@@ -46,6 +46,10 @@ series.
 Fixes
 =====
 
+- Fixed an issue that caused authentication to fail when requiring the `pg`
+  protocol in the :ref:`HBA <admin_hba>` configuration section while connecting
+  via the postgres protocol.
+
 - Fixed an issue that would throw a misleading ``NullPointerException`` when
   ``CREATE REPOSITORY`` failed during repository verification, by returning a
   user friendly error message.
