@@ -46,6 +46,9 @@ series.
 Fixes
 =====
 
+- Fixed an issue causing ``IllegalStateException`` errors on inserts into a
+  table with primary keys.
+
 - Fixed an issue with the JWT authentication method that caused authentication
   failures if the key resources endpoint included the optional ``alg`` field.
 
