@@ -81,7 +81,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     public LuceneCollectorExpression<?> getImplementation(final Reference ref) {
         final ColumnIdent column = ref.column();
         if (ref.valueType() instanceof StringType && isSingletonPrimaryKey.test(column)) {
-            return IdCollectorExpression.forVersion(shardVersion);
+            return new IdCollectorExpression();
         }
         switch (column.name()) {
             case SysColumns.Names.RAW:
@@ -92,7 +92,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
 
             case SysColumns.Names.UID:
             case SysColumns.Names.ID:
-                return IdCollectorExpression.forVersion(shardVersion);
+                return new IdCollectorExpression();
 
             case SysColumns.Names.FETCHID:
                 return new FetchIdCollectorExpression();

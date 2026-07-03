@@ -22,12 +22,20 @@
 package io.crate.expression.reference.doc.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.List;
 
+import org.apache.lucene.index.DocValuesType;
+import org.apache.lucene.index.LeafReader;
 import org.elasticsearch.Version;
 import org.junit.Test;
+import org.mockito.Answers;
 
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
@@ -39,6 +47,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -82,16 +91,23 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testGetPrimaryKey() {
+    public void testGetPrimaryKey() throws IOException {
         SimpleReference primaryKey = new SimpleReference(
             new ReferenceIdent(RELATION_NAME, "key"), RowGranularity.DOC, DataTypes.STRING, 0, null
         );
-        assertThat(LUCENE_REFERENCE_RESOLVER.getImplementation(primaryKey).getClass().toString())
-            .contains("BinaryIdCollectorExpression");
+        IdCollectorExpression expression = (IdCollectorExpression) LUCENE_REFERENCE_RESOLVER.getImplementation(primaryKey);
+        ReaderContext context = mock(ReaderContext.class);
+        LeafReader leafReader = mock(LeafReader.class, Answers.RETURNS_DEEP_STUBS);
+        when(context.reader()).thenReturn(leafReader);
+        when(leafReader.getFieldInfos().fieldInfo(eq(SysColumns.Names.ID)).getDocValuesType())
+            .thenReturn(DocValuesType.BINARY);
+
+        expression.setNextReader(context);
+        assertThat(expression.binaryValues()).isNotNull();
     }
 
     @Test
-    public void testGetPrimaryKeyIn5x() {
+    public void testGetPrimaryKeyIn5x() throws IOException {
         SimpleReference primaryKey = new SimpleReference(
             new ReferenceIdent(RELATION_NAME, "key"), RowGranularity.DOC, DataTypes.STRING, 0, null
         );
@@ -102,8 +118,15 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
             Version.V_5_10_0,
             (_) -> false
         );
-        assertThat(resolver.getImplementation(primaryKey).getClass().toString())
-            .contains("StoredIdCollectorExpression");
+        IdCollectorExpression expression = (IdCollectorExpression) resolver.getImplementation(primaryKey);
+        ReaderContext context = mock(ReaderContext.class);
+        LeafReader leafReader = mock(LeafReader.class, Answers.RETURNS_DEEP_STUBS);
+        when(context.reader()).thenReturn(leafReader);
+        when(leafReader.getFieldInfos().fieldInfo(eq(SysColumns.Names.ID)).getDocValuesType())
+            .thenReturn(DocValuesType.SORTED);
+
+        expression.setNextReader(context);
+        assertThat(expression.binaryValues()).isNull();
     }
 
     @Test
