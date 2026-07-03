@@ -47,27 +47,26 @@ import io.crate.planner.optimizer.costs.PlanStats;
 /**
  * LogicalPlan is a tree of "Operators"
  * This is a representation of the logical order of operators that need to be executed to produce a correct result.
- *
+ * <p>
  * {@link #build(DependencyCarrier, PlannerContext, Set, ProjectionBuilder, int, int, OrderBy, Integer, Row, SubQueryResults)}
  * is used to create the actual "physical" execution plan.
- *
- * A Operator is something like Limit, OrderBy, HashAggregate, Join, Union, Collect
+ * <p>
+ * An Operator is something like Limit, OrderBy, HashAggregate, Join, Union, Collect
  * <pre>
- *     select x, y, z from t1 where x = 10 order by x limit 10:
+ *     select x, y, z from t1 where x = 10 order by x limit 10;
  *
- *     Limit 10
- *        |
- *     Order By x
- *         |
- *     Collect [x, y, z]
+ *     Limit[10]
+ *       └ OrderBy[x ASC]
+ *         └ Filter[(x = 10)]
+ *           └ Collect[x, y, z]
  * </pre>
  *
  * {@link #build(DependencyCarrier, PlannerContext, Set, ProjectionBuilder, int, int, OrderBy, Integer, Row, SubQueryResults)}
  * is called on the "root" and flows down.
  * Each time each operator may provide "hints" to the children so that they can decide to eagerly apply parts of the
  * operations
- *
- * This allows us to create execution plans as follows::
+ * <p>
+ * This allows us to create execution plans as follows:
  *
  * <pre>
  *     select x, y, z from t1 where order by x limit 10;
@@ -87,7 +86,7 @@ public interface LogicalPlan extends Plan {
      * Uses the current shard allocation information to create a physical execution plan.
      * <br />
      * {@code limit}, {@code offset}, {@code order} can be passed from one operator to another. Depending on the
-     * operators implementation. Operator may choose to make use of this information, but can also ignore it.
+     * operators' implementation. Operator may choose to make use of this information, but can also ignore it.
      */
     ExecutionPlan build(DependencyCarrier dependencyCarrier,
                         PlannerContext plannerContext,
@@ -141,7 +140,7 @@ public interface LogicalPlan extends Plan {
      *   This must propagate down the tree:
      * </p>
      * <pre>
-     *      root       A call to `root.pruneOutputsExcept(..)` must result in calls on all: A, B and C
+     *      root       A call to `root.pruneOutputsExcept(...)` must result in calls on all: A, B and C
      *       / \
      *     A   C
      *     |
@@ -198,12 +197,12 @@ public interface LogicalPlan extends Plan {
 
     /**
      * SubQueries that this plan depends on to be able to execute it.
-     *
+     * <p>
      * valuesBySubQuery in {@link #executeOrFail(DependencyCarrier, PlannerContext, RowConsumer, Row, SubQueryResults)}
      * must receive 1 entry per selectSymbol contained in the dependencies here.
-     *
+     * <p>
      * Note that currently {@link MultiPhase} is injected into the operator-tree to declare the dependencies.
-     * It's not necessary for each operator to expose it's own SelectSymbols; propagation is usually sufficient.
+     * It's not necessary for each operator to expose its own SelectSymbols; propagation is usually sufficient.
      */
     Map<LogicalPlan, SelectSymbol> dependencies();
 
