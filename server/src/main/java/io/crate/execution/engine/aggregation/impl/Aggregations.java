@@ -61,5 +61,10 @@ public class Aggregations implements FunctionsProvider {
         StandardDeviationSampAggregation.register(builder);
         NumericStandardDeviationSampAggregation.register(builder);
         TopKAggregation.register(builder);
+
+        // DISTINCT aggregation support
+        CollectionSumAggregation.register(builder);
+        CollectionStringAggAggregation.register(builder);
+        CollectionArrayAggAggregation.register(builder);
     }
 }
