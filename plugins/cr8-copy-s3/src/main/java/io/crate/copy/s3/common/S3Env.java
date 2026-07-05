@@ -35,6 +35,9 @@ public final class S3Env {
         String protocol = S3Protocol.get(withClause);
         String endpoint = protocol + "://" + s3uri.endpoint();
         String region = S3.getRegion(endpoint, s3uri.bucket());
+        if (S3URI.DEFAULT_ENDPOINT.equals(s3uri.endpoint()) && region != null) {
+            endpoint = protocol + "://s3." + region + ".amazonaws.com";
+        }
         return ServiceConfig.S3.builder()
             .bucket(s3uri.bucket())
             .endpoint(endpoint)
