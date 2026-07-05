@@ -31,10 +31,11 @@ import io.crate.common.annotations.VisibleForTesting;
 public record S3URI(String bucket,
                     String path,
                     /* endpoint is without http[s]:// prefix */
-                    @Nullable String endpoint,
+                    String endpoint,
                     @Nullable String accessKey,
                     @Nullable String secretKey) {
 
+    static final String DEFAULT_ENDPOINT = "s3.amazonaws.com";
     private static final String INVALID_URI_MSG = "Invalid URI. Please make sure that given URI is encoded properly.";
 
     /// Parse a S3 URI as described in https://crate.io/docs/crate/reference/en/latest/sql/statements/copy-from.html#sql-copy-from-s3
@@ -51,6 +52,9 @@ public record S3URI(String bucket,
             ? -1
             : authority.indexOf("@");
         if (userInfo == null && atIdx >= 0) {
+            if (atIdx == authority.length() - 1) {
+                throw new IllegalArgumentException(INVALID_URI_MSG);
+            }
             userInfo = authority.substring(0, atIdx);
         }
         if (userInfo != null) {
@@ -60,7 +64,7 @@ public record S3URI(String bucket,
                 secretKey = parts[1];
             }
         }
-        boolean bucketInPath = host != null && port > -1 || atIdx > -1 || authority == null;
+        boolean bucketInPath = host != null && port > -1 || authority == null;
         String bucket;
         String path;
         String endpoint;
@@ -77,11 +81,11 @@ public record S3URI(String bucket,
                 bucket = uriPath.substring(0, bucketEnd);
                 path = uriPath.substring(bucketEnd + 1);
             }
-            endpoint = port == -1 ? host : host + ":" + Integer.toString(port);
+            endpoint = port == -1 ? DEFAULT_ENDPOINT : host + ":" + Integer.toString(port);
         } else {
-            bucket = authority;
+            bucket = atIdx == -1 ? authority : authority.substring(atIdx + 1);
             path = uriPath;
-            endpoint = null;
+            endpoint = DEFAULT_ENDPOINT;
         }
         return new S3URI(
             bucket,

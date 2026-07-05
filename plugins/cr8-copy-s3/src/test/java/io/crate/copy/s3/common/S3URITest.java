@@ -21,7 +21,9 @@
 
 package io.crate.copy.s3.common;
 
+import static io.crate.copy.s3.common.S3URI.DEFAULT_ENDPOINT;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.net.URI;
 
@@ -36,17 +38,17 @@ class S3URITest {
     @Test
     public void test_bucket_as_host() {
         assertThat(parse("s3://bucketname_not_host:9000/*/*/a"))
-            .isEqualTo(new S3URI("bucketname_not_host:9000", "*/*/a", null, null, null));
+            .isEqualTo(new S3URI("bucketname_not_host:9000", "*/*/a", DEFAULT_ENDPOINT, null, null));
         assertThat(parse("s3://b/prefix/"))
-            .isEqualTo(new S3URI("b", "prefix", null, null, null));
+            .isEqualTo(new S3URI("b", "prefix", DEFAULT_ENDPOINT, null, null));
     }
 
     @Test
     public void test_bucket_as_host_no_path() throws Exception {
         assertThat(parse("s3://bucket"))
-            .isEqualTo(new S3URI("bucket", "", null, null, null));
+            .isEqualTo(new S3URI("bucket", "", DEFAULT_ENDPOINT, null, null));
         assertThat(parse("s3:/bucket"))
-            .isEqualTo(new S3URI("bucket", "", null, null, null));
+            .isEqualTo(new S3URI("bucket", "", DEFAULT_ENDPOINT, null, null));
     }
 
     @Test
@@ -66,20 +68,26 @@ class S3URITest {
     }
 
     @Test
-    public void test_user_without_host_and_bucket_in_path() throws Exception {
-        assertThat(parse("s3://arthur:pw@/mj.myb/foo/bar/"))
-            .isEqualTo(new S3URI("mj.myb", "foo/bar", null, "arthur", "pw"));
+    public void test_user_with_bucket_as_host_uses_default_endpoint() throws Exception {
+        assertThat(parse("s3://arthur:pw@mj.myb/foo/bar/"))
+            .isEqualTo(new S3URI("mj.myb", "foo/bar", DEFAULT_ENDPOINT, "arthur", "pw"));
+    }
+
+    @Test
+    public void test_user_without_host_or_bucket_is_invalid() throws Exception {
+        assertThatThrownBy(() -> parse("s3://arthur:pw@/mj.myb/foo/bar/"))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void test_keys_are_decoded() throws Exception {
         assertThat(parse("s3://access%2F:secret%2F@a/b"))
-            .isEqualTo(new S3URI("b", "", "a", "access/", "secret/"));
+            .isEqualTo(new S3URI("a", "b", DEFAULT_ENDPOINT, "access/", "secret/"));
     }
 
     @Test
     public void test_empty() throws Exception {
         assertThat(parse("s3:///"))
-            .isEqualTo(new S3URI("", "", null, null, null));
+            .isEqualTo(new S3URI("", "", DEFAULT_ENDPOINT, null, null));
     }
 }
