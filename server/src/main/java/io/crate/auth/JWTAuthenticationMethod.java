@@ -156,8 +156,13 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
         }
 
         // Try to validate resolved info with token (if both JWK and token are not null).
-        if (decodedJWT.getAlgorithm() != null && decodedJWT.equals(jwk.getAlgorithm()) == false) {
-            throw new IllegalArgumentException("Jwt token has algorithm not matching with the algorithm of the public key.");
+        if (decodedJWT.getAlgorithm() != null && decodedJWT.getAlgorithm().equals(jwk.getAlgorithm()) == false) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "JWT algorithm %s doesn't match public key algorithm %s",
+                decodedJWT.getAlgorithm(),
+                jwk.getAlgorithm()
+            ));
         }
 
         return switch (jwk.getAlgorithm()) {

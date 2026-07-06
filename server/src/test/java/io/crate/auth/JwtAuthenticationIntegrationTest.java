@@ -105,6 +105,9 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
                 generator.writeStringField("e", BASE_64_URL_ENCODER.encodeToString(publicKey.getPublicExponent().toByteArray()));
                 generator.writeStringField("kid", KID);
                 generator.writeStringField("kty", "RSA");
+                if (randomBoolean()) {
+                    generator.writeStringField("alg", "RS256");
+                }
                 generator.writeStringField("n", BASE_64_URL_ENCODER.encodeToString(publicKey.getModulus().toByteArray()));
                 generator.writeEndObject();
                 generator.writeEndArray();
