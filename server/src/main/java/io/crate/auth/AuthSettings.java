@@ -74,7 +74,7 @@ public final class AuthSettings {
         for (var entry : hbaSettings.getAsGroups().entrySet()) {
             Settings entrySettings = entry.getValue();
             String protocolEntry = entrySettings.get("protocol");
-            if (protocolEntry != null && !protocol.name().equalsIgnoreCase(protocolEntry)) {
+            if (protocolEntry != null && !protocol.toString().equalsIgnoreCase(protocolEntry)) {
                 // We need null check for protocolEntry since we want entry without protocol be matched with any protocol
                 // Without it !equalsIgnoreCase returns true and HBA with only 'cert' entries but all without protocol
                 // might end up with NONE while correct value is 'REQUIRED'.

@@ -25,7 +25,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Before;
@@ -57,7 +56,8 @@ public class AggregateExpressionAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void test_distinct_aggregate_function_with_filter_expression() {
-        var symbol = e.asSymbol("avg(distinct t.x) filter (where t.x < 1)");
+        String functionName = randomBoolean() ? "avg" : "mean";
+        var symbol = e.asSymbol(functionName + "(distinct t.x) filter (where t.x < 1)");
         assertThat(symbol).isExactlyInstanceOf(Function.class);
 
         var outerFunc = (Function) symbol;

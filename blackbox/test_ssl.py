@@ -47,6 +47,7 @@ crate = CrateNode(
         'auth.host_based.config.0.method': 'trust',
         'auth.host_based.config.1.user': 'client1',
         'auth.host_based.config.1.method': 'cert',
+        'auth.host_based.config.1.protocol': 'pg',
         'auth.host_based.config.1.ssl': 'on',
     },
     env=env,

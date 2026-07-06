@@ -46,6 +46,10 @@ series.
 Fixes
 =====
 
+- Fixed an issue that caused authentication to fail when requiring the `pg`
+  protocol in the :ref:`HBA <admin_hba>` configuration section while connecting
+  via the postgres protocol.
+
 - Fixed an issue that would throw a misleading ``NullPointerException`` when
   ``CREATE REPOSITORY`` failed during repository verification, by returning a
   user friendly error message.
@@ -53,3 +57,8 @@ Fixes
 - Fixed an issue causing ``KILL`` statement or
   :ref:`statement_timeout <conf-session-statement-timeout>` to not properly
   kill a query and leading to resources leak.
+
+- Fixed an issue that led to an error being thrown when using ``distinct`` with
+  the ``mean`` alias of the :ref:`avg() function <aggregation-avg>`. e.g.::
+
+      SELECT mean(DISTINCT <columnName>) FROM tbl
