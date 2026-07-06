@@ -293,7 +293,23 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         assertThatThrownBy(
             () -> jwtAuth.authenticate(credentials, null))
             .isExactlyInstanceOf(RuntimeException.class)
-            .hasMessage("jwt authentication failed for user John. Reason: Jwt token has algorithm not matching with the algorithm of the public key.");
+            .hasMessage("jwt authentication failed for user John. Reason: JWT algorithm RS256 doesn't match public key algorithm RS384");
+    }
+
+    @Test
+    public void test_explicit_token_algo_with_match_succeeds() throws Exception {
+        Roles roles = () -> List.of(JWT_USER);
+        JWTAuthenticationMethod jwtAuth = new JWTAuthenticationMethod(
+            roles,
+            Settings.EMPTY,
+            () -> "dummy",
+            jwkProviderFunction("RS256")
+        );
+
+        Credentials credentials = new Credentials(JWT_TOKEN);
+        assertThat(credentials.username()).isNull();
+        credentials.setUsername(JWT_USER.name());
+        assertThat(jwtAuth.authenticate(credentials, null)).isEqualTo(JWT_USER);
     }
 
     @Test
