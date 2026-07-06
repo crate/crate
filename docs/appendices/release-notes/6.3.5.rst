@@ -46,6 +46,10 @@ series.
 Fixes
 =====
 
+- Fixed a regression introduced in 6.3.0 that caused a ``region is missing``
+  error when using a ``COPY <tbl> FROM 's3://...'`` statement where the endpoint
+  wasn't part of the URI.
+
 - Fixed an issue that caused authentication to fail when requiring the `pg`
   protocol in the :ref:`HBA <admin_hba>` configuration section while connecting
   via the postgres protocol.
