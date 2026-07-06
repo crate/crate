@@ -72,6 +72,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
     private final IntObjectHashMap<SortedNumericEntry> sortedNumerics;
     private final IntObjectHashMap<DocValuesSkipperEntry> skippers;
     private final IndexInput data;
+    private final IndexInput skipIndexData;
     private final int maxDoc;
     private int version = -1;
     private final boolean merging;
@@ -84,7 +85,9 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         String dataCodec,
         String dataExtension,
         String metaCodec,
-        String metaExtension)
+        String metaExtension,
+        String skipIndexCodec,
+        String skipIndexExtension)
         throws IOException {
         final String metaName = IndexFileNames.segmentFileName(state.segmentInfo.name, state.segmentSuffix, metaExtension);
         this.maxDoc = state.segmentInfo.maxDoc();
@@ -150,6 +153,35 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                 IOUtils.closeWhileHandlingException(this.data);
             }
         }
+
+        if (version >= CustomLucene90DocValuesFormat.VERSION_SKIPPER_SEPARATE_FILE) {
+            String skipIndexName =
+                IndexFileNames.segmentFileName(
+                    state.segmentInfo.name, state.segmentSuffix, skipIndexExtension);
+            this.skipIndexData =
+                state.directory.openInput(skipIndexName, state.context.withHints(FileTypeHint.INDEX));
+            try {
+                final int skipVersion =
+                    CodecUtil.checkIndexHeader(
+                        skipIndexData,
+                        skipIndexCodec,
+                        CustomLucene90DocValuesFormat.VERSION_SKIPPER_SEPARATE_FILE,
+                        CustomLucene90DocValuesFormat.VERSION_CURRENT,
+                        state.segmentInfo.getId(),
+                        state.segmentSuffix);
+                if (version != skipVersion) {
+                    throw new CorruptIndexException(
+                        "Format versions mismatch: meta=" + version + ", skipIndex=" + skipVersion,
+                        skipIndexData);
+                }
+                CodecUtil.retrieveChecksum(skipIndexData);
+            } catch (Throwable t) {
+                IOUtils.closeWhileSuppressingExceptions(t, data, skipIndexData);
+                throw t;
+            }
+        } else {
+            this.skipIndexData = null;
+        }
     }
 
     // Used for cloning
@@ -161,6 +193,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         IntObjectHashMap<SortedNumericEntry> sortedNumerics,
         IntObjectHashMap<DocValuesSkipperEntry> skippers,
         IndexInput data,
+        IndexInput skipIndexData,
         int maxDoc,
         int version,
         boolean merging) {
@@ -171,6 +204,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         this.sortedNumerics = sortedNumerics;
         this.skippers = skippers;
         this.data = data.clone();
+        this.skipIndexData = skipIndexData != null ? skipIndexData.clone() : null;
         this.maxDoc = maxDoc;
         this.version = version;
         this.merging = merging;
@@ -179,7 +213,17 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
     @Override
     public DocValuesProducer getMergeInstance() {
         return new CustomLucene90DocValuesProducer(
-            numerics, binaries, sorted, sortedSets, sortedNumerics, skippers, data, maxDoc, version, true);
+            numerics,
+            binaries,
+            sorted,
+            sortedSets,
+            sortedNumerics,
+            skippers,
+            data,
+            skipIndexData,
+            maxDoc,
+            version,
+            true);
     }
 
     private void readFields(IndexInput meta, FieldInfos infos) throws IOException {
@@ -364,7 +408,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
 
     @Override
     public void close() throws IOException {
-        data.close();
+        IOUtils.close(data, skipIndexData);
     }
 
     private static class NumericEntry {
@@ -1786,7 +1830,8 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
     public DocValuesSkipper getSkipper(FieldInfo field) throws IOException {
         final DocValuesSkipperEntry entry = skippers.get(field.number);
 
-        final IndexInput input = data.slice("doc value skipper", entry.offset, entry.length);
+        final IndexInput skipperSource = skipIndexData != null ? skipIndexData : data;
+        final IndexInput input = skipperSource.slice("doc value skipper", entry.offset, entry.length);
 
         return new DocValuesSkipper() {
             final int[] minDocID = new int[SKIP_INDEX_MAX_LEVEL];
@@ -1889,6 +1934,9 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
     @Override
     public void checkIntegrity() throws IOException {
         CodecUtil.checksumEntireFile(data);
+        if (skipIndexData != null) {
+            CodecUtil.checksumEntireFile(skipIndexData);
+        }
     }
 
     /**
