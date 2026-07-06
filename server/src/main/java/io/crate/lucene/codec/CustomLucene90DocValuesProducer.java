@@ -1787,11 +1787,6 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         final DocValuesSkipperEntry entry = skippers.get(field.number);
 
         final IndexInput input = data.slice("doc value skipper", entry.offset, entry.length);
-        // Prefetch the first page of data. Following pages are expected to get prefetched through
-        // read-ahead.
-        if (input.length() > 0) {
-            input.prefetch(0, 1);
-        }
 
         return new DocValuesSkipper() {
             final int[] minDocID = new int[SKIP_INDEX_MAX_LEVEL];
