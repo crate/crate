@@ -20,12 +20,21 @@ Versions
 6.x
 ---
 
+6.5.x
+......
+
+.. toctree::
+    :maxdepth: 1
+
+    6.5.0
+
 6.4.x
 ......
 
 .. toctree::
     :maxdepth: 1
 
+    6.4.1
     6.4.0
 
 
