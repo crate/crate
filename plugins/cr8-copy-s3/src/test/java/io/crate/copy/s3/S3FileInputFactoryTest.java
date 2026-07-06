@@ -40,12 +40,12 @@ public class S3FileInputFactoryTest {
             URI uri = URI.create("s3://arthur:pw@s3.eu-west-1.amazonaws.com/my-bucket/key/t1_0_.json");
             Settings withClauseOptions = Settings.EMPTY;
             try (OpenDALFileInput fileInput = factory.create(uri, withClauseOptions)) {
-                assertThat(fileInput.uri()).isEqualTo(URI.create("s3://my-bucket/key/t1_0_.json"));
+                assertThat(fileInput.uri()).isEqualTo(URI.create("s3://s3.eu-west-1.amazonaws.com/my-bucket/key/t1_0_.json"));
             }
 
             uri = URI.create("s3://arthur:pw@s3.eu-west-1.amazonaws.com/my-bucket/key/t1_*.json");
             try (OpenDALFileInput fileInput = factory.create(uri, withClauseOptions)) {
-                assertThat(fileInput.uri()).isEqualTo(URI.create("s3://my-bucket/"));
+                assertThat(fileInput.uri()).isEqualTo(URI.create("s3://s3.eu-west-1.amazonaws.com/"));
                 assertThat(fileInput.isGlobbed()).isTrue();
             }
         }
