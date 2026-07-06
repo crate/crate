@@ -22,6 +22,7 @@
 package io.crate.analyze.relations;
 
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -78,9 +79,11 @@ public class GroupByScalarAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     public void testValidGroupByAllClause() throws Exception {
         AnalyzedRelation relation = executor.analyze("select id, id + 10, sum(no_index) as sum_index, name from users group by All");
         List<Symbol> groupBySymbols = ((QueriedSelectRelation) relation).groupBy();
-        assertThat(groupBySymbols).hasSize(3);
-        assertThat(groupBySymbols.get(0).equals("id"));
-        assertThat(groupBySymbols.get(1).equals("name"));
+        assertThat(groupBySymbols).satisfiesExactly(
+            x -> assertThat(x).isReference().hasName("id"),
+            x -> assertThat(x).isFunction("add"),
+            x -> assertThat(x).isReference().hasName("name")
+        );
     }
 
 }
