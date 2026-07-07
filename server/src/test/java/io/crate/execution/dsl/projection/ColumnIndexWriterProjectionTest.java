@@ -22,6 +22,7 @@
 package io.crate.execution.dsl.projection;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -59,6 +60,7 @@ public class ColumnIndexWriterProjectionTest {
         }
         var projection = new ColumnIndexWriterProjection(
             relationName,
+            OID_UNASSIGNED,
             null,
             List.of(),
             targetColumns,

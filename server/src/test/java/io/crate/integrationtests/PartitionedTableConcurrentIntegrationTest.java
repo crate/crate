@@ -570,8 +570,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         Thread t2 = new Thread(() -> {
             try {
                 barrier.await();
-                for (int i = 0; i < 3; i++) {
-                    Thread.sleep(300); // to prevent swap queries to go through at once
+                for (int i = 0; i < 7; i++) {
                     execute("ALTER CLUSTER SWAP TABLE t1 TO t2");
                     if (t1.isAlive()) {
                         swapInterleaved[0] = true;
