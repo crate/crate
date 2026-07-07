@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -373,5 +375,17 @@ public class DataTypesTest extends ESTestCase {
         assertThat(DataTypes.innerType(arrayType, List.of("a"))).isEqualTo(new ArrayType<>(DataTypes.STRING));
         assertThat(DataTypes.innerType(arrayType, List.of("obj_array", "i"))).isEqualTo(new ArrayType<>(new ArrayType<>(DataTypes.INTEGER)));
         assertThat(DataTypes.innerType(arrayType, List.of("obj", "b"))).isEqualTo(new ArrayType<>(DataTypes.LONG));
+    }
+
+    @Test
+    public void test_from_stream_fails_with_nice_error_on_missing_id() throws Exception {
+        try (var out = new BytesStreamOutput()) {
+            out.writeVInt(999_999);
+
+            StreamInput in = out.bytes().streamInput();
+            assertThatThrownBy(() -> DataTypes.fromStream(in))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("DataType with id=999999 is missing in type registry. This can happen if using functions or types added in a newer CrateDB version while there is still a node with an older version present");
+        }
     }
 }
