@@ -3,7 +3,12 @@
 
 ## Checklist
 
- - [ ] Added an entry in the latest `docs/appendices/release-notes/<x.y.0>.rst` for user facing changes
+ - [ ] Added an entry in the latest `docs/appendices/release-notes/<x.y.0>.rst` for user facing changes.
+       If you're an external contributor you can give yourself attribution and include your name and Github handle.
+       e.g.:
+       ```
+       `John Doe <https://github.com/John_Doe>`_ added support for ...
+       ```
  - [ ] Updated documentation & `sql_features` table for user facing changes
  - [ ] Touched code is covered by tests
  - [ ] This does not contain breaking changes, or if it does:
