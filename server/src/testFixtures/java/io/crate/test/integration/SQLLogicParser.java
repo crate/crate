@@ -251,6 +251,18 @@ public final class SQLLogicParser {
                                        int lnum) {
 
             int colCount = response.cols().length;
+            if (colCount != resultFormats.size()) {
+                throw new IncorrectResultException(String.format(
+                    Locale.ENGLISH,
+                    "[%s:%d][%s] Expected noCols: %s. Got: %s running %s",
+                    filename,
+                    lnum,
+                    testname,
+                    resultFormats.size(),
+                    colCount,
+                    query
+                ));
+            }
             List<List<Object>> rows = new ArrayList<>();
             for (Object[] resultRow : response.rows()) {
                 List<Object> row = new ArrayList<>(colCount);
@@ -259,7 +271,7 @@ public final class SQLLogicParser {
                         row.add("NULL");
                     } else {
                         String raw = resultRow[c].toString();
-                        ColumnFormat fmt = resultFormats.get(c % resultFormats.size());
+                        ColumnFormat fmt = resultFormats.get(c);
                         row.add(fmt.format(raw));
                     }
                 }
@@ -311,7 +323,7 @@ public final class SQLLogicParser {
                         row.add("NULL");
                         continue;
                     }
-                    ColumnFormat fmt = resultFormats.get(j % resultFormats.size());
+                    ColumnFormat fmt = resultFormats.get(j);
                     row.add(fmt.format(cols[j]));
                 }
                 out.add(row);

@@ -105,7 +105,7 @@ select d, i from t order by abs(d)
 1.6| NULL
 2.2| NULL
 
-query RI rows select-orderby-ln
+query I rows select-orderby-ln
 select i from t order by ln(i)
 ----
 5
@@ -114,7 +114,7 @@ NULL
 NULL
 NULL
 
-query RI rows select-orderby-log
+query I rows select-orderby-log
 select i from t order by log(i, 100)
 ----
 5
@@ -155,7 +155,7 @@ insert into t (x, base) values (144, 12), (65536, 2), (9, 3)
 statement ok
 refresh table t;
 
-query II rows where-arithmetic-scalar-two-reference-args
+query III rows where-arithmetic-scalar-two-reference-args
 select x, base, round(log(x, base)) from t where round(log(x, base)) = 2 order by x
 ----
   9|  3| 2
@@ -197,7 +197,7 @@ insert into t (d) values (-7), (null), (5), (null)
 statement ok
 refresh table t;
 
-query RR rows order-by-arithmetic-with-nulls
+query R rows order-by-arithmetic-with-nulls
 select (d - 10) from t order by (d - 10) nulls first limit 2
 ----
 NULL
