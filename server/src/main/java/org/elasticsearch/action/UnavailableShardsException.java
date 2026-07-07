@@ -66,7 +66,7 @@ public class UnavailableShardsException extends ElasticsearchException implement
 
     public UnavailableShardsException(StreamInput in) throws IOException {
         super(in);
-        if (in.getVersion().onOrAfter(Version.V_6_4_0)) {
+        if (in.getVersion().onOrAfter(Version.V_6_3_6)) {
             this.relationName = in.readOptionalWriteable(RelationName::new);
         } else {
             RelationName name = null;
