@@ -46,6 +46,9 @@ series.
 Fixes
 =====
 
+- Fixed a rare issue where ``INSERT`` statements running concurrently with
+  ``SWAP TABLE`` could insert data into the wrong table.
+
 - Fixed an issue that could cause a :ref:`CREATE ANALYZER <ref-create-analyzer>`
   statement to not preserve the order of ``TOKEN_FILTERS`` and ``CHAR_FILTERS``.
   As the filters are applied as an ordered chain, this could silently change

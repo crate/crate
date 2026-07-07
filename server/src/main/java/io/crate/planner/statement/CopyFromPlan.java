@@ -262,6 +262,7 @@ public final class CopyFromPlan implements Plan {
 
             sourceIndexWriterProjection = new SourceIndexWriterReturnSummaryProjection(
                 table.ident(),
+                table.oid(),
                 partitionIdent,
                 table.getReference(SysColumns.RAW),
                 new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
@@ -282,6 +283,7 @@ public final class CopyFromPlan implements Plan {
         } else {
             sourceIndexWriterProjection = new SourceIndexWriterProjection(
                 table.ident(),
+                table.oid(),
                 partitionIdent,
                 table.getReference(SysColumns.RAW),
                 new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
