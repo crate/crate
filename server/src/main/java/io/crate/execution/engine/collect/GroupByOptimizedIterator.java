@@ -26,6 +26,7 @@ import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.for
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -113,22 +114,20 @@ final class GroupByOptimizedIterator {
 
     /**
      * This was chosen after benchmarking different ratios with this optimization always enabled:
-     *
+     * <p>
      * Q: select count(*) from (select distinct x from t) t
-     *
+     * <p>
      * cardinality-ratio | mean difference
      * ------------------+-----------------
      *              0.90 |      -5.65%
      *              0.75 |      -5.06%
      *              0.50 |      +1.51%
      *              0.25 |     +38.79%
-     *
+     * <p>
      * (+ being faster, - being slower)
      */
     private static final double CARDINALITY_RATIO_THRESHOLD = 0.5;
     private static final long HASH_MAP_ENTRY_OVERHEAD = 32; // see private RamUsageEstimator.shallowSizeOfInstance(HashMap.Node.class)
-
-
 
     /// Returns a batchIterator that uses termFrequences for queries like:
     ///
@@ -187,6 +186,122 @@ final class GroupByOptimizedIterator {
             () -> countsToRows(getCountsByKey(collectTask.getRamAccounting(), keyRef, searcher, killToken), mode),
             true
         );
+    }
+
+    /// Returns a BatchIterator that reads the term dictionary for keys-only group-by queries like:
+    ///
+    ///     `SELECT strKey GROUP BY strKey`
+    ///
+    /// Every term is checked for its live docs, to make sure it doesn't belong to a deleted document.
+    ///
+    ///  Only works if the group-by has no aggregates and there is no WHERE clause.
+    /// Returns null for other queries.
+    @Nullable
+    static BatchIterator<Row> tryUseTermsForDistinctKeys(IndexShard indexShard,
+                                                         RoutedCollectPhase collectPhase,
+                                                         CollectTask collectTask) {
+        GroupProjection groupProjection = getSingleStringKeyGroupProjection(collectPhase.projections());
+        if (groupProjection == null) {
+            return null;
+        }
+        assert groupProjection.keys().size() == 1
+            : "Must have 1 key if getSingleStringKeyGroupProjection returned a projection";
+
+        if (!groupProjection.values().isEmpty()) {
+            return null; // keys-only; group-by with aggregates not handled
+        }
+
+        Reference docKeyRef = getKeyRef(collectPhase.toCollect(), groupProjection.keys().get(0));
+        if (docKeyRef == null) {
+            return null; // group by on non-reference
+        }
+
+        Symbol where = collectPhase.where();
+        if (!where.equals(Literal.BOOLEAN_TRUE)) {
+            // The terms dictionary cannot enumerate terms with a filter.
+            return null;
+        }
+
+        final Reference keyRef = DocReferences.docRefToRegularRef(docKeyRef);
+        if (!hasTerms(() -> indexShard.acquireSearcher("terms-check"), keyRef.storageIdent())) {
+            return null;
+        }
+
+        SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(indexShard.shardId());
+        var searcherRef = sharedShardContext.acquireSearcher("group-by-distinct-keys:" + formatSource(collectPhase));
+        collectTask.addSearcher(sharedShardContext.readerId(), searcherRef);
+        IndexSearcher searcher = searcherRef.item();
+
+        Token killToken = new Killable.Token();
+        return CollectingBatchIterator.newInstance(
+            killToken,
+            () -> keysToRows(getDistinctKeys(collectTask.getRamAccounting(), keyRef, searcher, killToken)),
+            true
+        );
+    }
+
+    private static Iterable<Row> keysToRows(Collection<BytesRef> keys) {
+        final Object[] cells = new Object[1];
+        final Row row = new RowN(cells);
+        return () -> keys.stream()
+            .map(key -> {
+                cells[0] = key == null ? null : key.utf8ToString();
+                return row;
+            })
+            .iterator();
+    }
+
+    /// Collects the distinct live values of `keyRef` by iterating the term dictionary of each segment
+    /// instead of scanning documents. A NULL group is added when the (nullable) column has null docs,
+    /// matching the semantics of a keys-only GROUP BY.
+    static Collection<BytesRef> getDistinctKeys(RamAccounting ramAccounting,
+                                                Reference keyRef,
+                                                IndexSearcher searcher,
+                                                Token killToken) throws IOException {
+        HashSet<BytesRef> keys = new HashSet<>();
+        String keyStorageIdent = keyRef.storageIdent();
+        PostingsEnum postings = null;
+        for (var leaf : searcher.getLeafContexts()) {
+            LeafReader reader = leaf.reader();
+            Terms terms = reader.terms(keyStorageIdent);
+            if (terms == null) {
+                continue;
+            }
+            TermsEnum termsEnum = terms.iterator();
+            Bits liveDocs = reader.getLiveDocs();
+            BytesRef sharedKey;
+            while ((sharedKey = termsEnum.next()) != null) {
+                killToken.raiseIfKilled();
+                if (keys.contains(sharedKey)) {
+                    continue;
+                }
+                if (liveDocs != null) {
+                    // Terms of deleted documents stay in the dictionary until segments merge,
+                    // hence we need to check for terms without live docs.
+                    postings = termsEnum.postings(postings, PostingsEnum.NONE);
+                    if (!hasLiveDoc(postings, liveDocs)) {
+                        continue;
+                    }
+                }
+                ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + sharedKey.length + HASH_MAP_ENTRY_OVERHEAD);
+                keys.add(BytesRef.deepCopyOf(sharedKey));
+            }
+        }
+        if (keyRef.isNullable() && countNullValues(keyRef, searcher) > 0) {
+            ramAccounting.addBytes(HASH_MAP_ENTRY_OVERHEAD);
+            keys.add(null);
+        }
+        return keys;
+    }
+
+    private static boolean hasLiveDoc(PostingsEnum postings, Bits liveDocs) throws IOException {
+        int doc;
+        while ((doc = postings.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
+            if (liveDocs.get(doc)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Iterable<Row> countsToRows(ObjectLongHashMap<BytesRef> countsByKey, AggregateMode mode) {
@@ -248,19 +363,24 @@ final class GroupByOptimizedIterator {
             }
         }
         if (keyRef.isNullable()) {
-            Query existsQuery = keyRef.hasDocValues() || keyRef.indexType() == IndexType.FULLTEXT
-                ? new FieldExistsQuery(keyStorageIdent)
-                : new ConstantScoreQuery(new TermQuery(new Term(SysColumns.FieldNames.NAME, keyStorageIdent)));
-            Query notNull = Queries.not(existsQuery);
-
-            TotalHitCountCollectorManager topHitCounts = new TotalHitCountCollectorManager(searcher.getSlices());
-            Integer count = searcher.search(notNull, topHitCounts);
+            int count = countNullValues(keyRef, searcher);
             if (count > 0) {
                 ramAccounting.addBytes(HASH_MAP_ENTRY_OVERHEAD);
                 countsByKey.put(null, count);
             }
         }
         return countsByKey;
+    }
+
+    private static int countNullValues(Reference keyRef, IndexSearcher searcher) throws IOException {
+        String keyStorageIdent = keyRef.storageIdent();
+        Query existsQuery = keyRef.hasDocValues() || keyRef.indexType() == IndexType.FULLTEXT
+            ? new FieldExistsQuery(keyStorageIdent)
+            : new ConstantScoreQuery(new TermQuery(new Term(SysColumns.FieldNames.NAME, keyStorageIdent)));
+        Query notNull = Queries.not(existsQuery);
+
+        TotalHitCountCollectorManager topHitCounts = new TotalHitCountCollectorManager(searcher.getSlices());
+        return searcher.search(notNull, topHitCounts);
     }
 
     private static int countFromPostings(PostingsEnum postings, Bits liveDocs) throws IOException {
