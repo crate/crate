@@ -22,7 +22,6 @@
 package io.crate.expression.scalar.postgres;
 
 import io.crate.data.Input;
-import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
@@ -64,9 +63,9 @@ public class PgSleepFunction extends Scalar<Object, Double> {
             try {
                 Thread.sleep((long) (duration * 1000.0));
             } catch (InterruptedException e) {
-                return Literal.NULL;
+                return null;
             }
         }
-        return Literal.NULL;
+        return null;
     }
 }
