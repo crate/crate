@@ -57,12 +57,14 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 
+/// Represents an aggregate that is run on all rows resulting from a query,
+/// and  **not** on groups of rows.
 public class HashAggregate extends ForwardingLogicalPlan {
 
     private static final String MERGE_PHASE_NAME = "mergeOnHandler";
     final List<Function> aggregates;
 
-    HashAggregate(LogicalPlan source, List<Function> aggregates) {
+    public HashAggregate(LogicalPlan source, List<Function> aggregates) {
         super(source);
         this.aggregates = aggregates;
     }

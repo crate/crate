@@ -24,7 +24,6 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collection;
@@ -69,14 +68,11 @@ import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.AggregateMode;
-import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
@@ -99,7 +95,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testHandlerSideRouting() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService);
-        // just testing the dispatching here.. making sure it is not a ESSearchNode
+        // just testing the dispatching here, making sure it is not a ESSearchNode
         e.plan("select * from sys.cluster");
     }
 
@@ -391,29 +387,33 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Merge globalAggregate = e.plan("select count(distinct name) from users");
-        Collect collect = (Collect) globalAggregate.subPlan();
+        // RewriteCountDistinctToCountGroupByKeys inserts a keys-only GROUP BY that deduplicates `name`:
+        //   global aggregate[collect_set -> collection_count] -> group by name -> collect name
+        // Verified bottom-up.
+        Merge groupByThenCollect = (Merge) globalAggregate.subPlan();
+        Collect collect = (Collect) groupByThenCollect.subPlan();
+        RoutedCollectPhase collectPhase = (RoutedCollectPhase) collect.collectPhase();
 
-        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        Projection projection = collectPhase.projections().get(0);
-        assertThat(projection).isExactlyInstanceOf(AggregationProjection.class);
-        AggregationProjection aggregationProjection = (AggregationProjection) projection;
-        assertThat(aggregationProjection.aggregations()).hasSize(1);
-        assertThat(aggregationProjection.mode()).isEqualTo(AggregateMode.ITER_PARTIAL);
+        // per-shard: deduplicate `name`
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            p -> assertThat(p).isExactlyInstanceOf(GroupProjection.class));
+        assertThat(collectPhase.toCollect()).satisfiesExactly(isReference("name"));
 
-        Aggregation aggregation = aggregationProjection.aggregations().get(0);
-        Symbol aggregationInput = aggregation.inputs().get(0);
-        assertThat(aggregationInput.symbolType()).isEqualTo(SymbolType.INPUT_COLUMN);
+        // distributed reduce: merge the per-node dedup, then start collect_set (ITER_PARTIAL) over the distinct values
+        assertThat(groupByThenCollect.mergePhase().projections()).satisfiesExactly(
+            p -> assertThat(p).isExactlyInstanceOf(GroupProjection.class),
+            p -> {
+                assertThat(p).isExactlyInstanceOf(AggregationProjection.class);
+                AggregationProjection agg = (AggregationProjection) p;
+                assertThat(agg.mode()).isEqualTo(AggregateMode.ITER_PARTIAL);
+                assertThat(agg.outputs().get(0)).isAggregation("collect_set");
+                assertThat(agg.aggregations().get(0).inputs().get(0)).isInputColumn(0);
+            });
 
-        assertThat(collectPhase.toCollect().get(0)).isInstanceOf(Reference.class);
-        assertThat(((Reference) collectPhase.toCollect().get(0)).column().name()).isEqualTo("name");
-
-        MergePhase mergePhase = globalAggregate.mergePhase();
-        assertThat(mergePhase.projections()).hasSize(2);
-        Projection projection1 = mergePhase.projections().get(1);
-
-        assertThat(projection1).isExactlyInstanceOf(EvalProjection.class);
-        Symbol collection_count = projection1.outputs().get(0);
-        assertThat(collection_count).isExactlyInstanceOf(Function.class);
+        // handler: finalize collect_set, then collection_count
+        assertThat(globalAggregate.mergePhase().projections()).satisfiesExactly(
+            p -> assertThat(p.outputs().get(0)).isAggregation("collect_set"),
+            p -> assertThat(p.outputs().get(0)).isFunction("collection_count"));
     }
 
     @Test
