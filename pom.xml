@@ -313,7 +313,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.release>25</maven.compiler.release>
+        <maven.compiler.release>26</maven.compiler.release>
 
         <!-- see surefire plugin configuration for explanation -->
         <skipRunTests>false</skipRunTests>
@@ -324,8 +324,8 @@
       ./mvnw -P jmods -Dos.arch=aarch64 -Dos.name="Mac OS X" package -DskipTests=true
     To verify the version is available for both platforms
     -->
-        <versions.jdk>25.0.3</versions.jdk>
-        <versions.jdkbuild>25.0.3+9</versions.jdkbuild>
+        <versions.jdk>26.0.1</versions.jdk>
+        <versions.jdkbuild>26.0.1+8</versions.jdkbuild>
 
         <versions.jspecify>1.0.0</versions.jspecify>
         <versions.log4j>2.26.0</versions.log4j>
