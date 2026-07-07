@@ -44,6 +44,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.io.stream.Writeable.Reader;
 import org.jspecify.annotations.Nullable;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.locationtech.spatial4j.shape.jts.JtsPoint;
@@ -267,13 +268,16 @@ public final class DataTypes {
     }
 
     public static DataType<?> fromStream(StreamInput in) throws IOException {
-        int i = in.readVInt();
-        try {
-            return TYPE_REGISTRY.get(i).read(in);
-        } catch (NullPointerException e) {
-            Lazy.LOGGER.error(String.format(Locale.ENGLISH, "%d is missing in TYPE_REGISTRY", i), e);
-            throw e;
+        int typeId = in.readVInt();
+        Reader<DataType<?>> reader = TYPE_REGISTRY.get(typeId);
+        if (reader == null) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "DataType with id=%d is missing in type registry. This can happen if using functions or types added in a newer CrateDB version while there is still a node with an older version present",
+                typeId
+            ));
         }
+        return reader.read(in);
     }
 
     public static void toStream(Collection<? extends DataType<?>> types, StreamOutput out) throws IOException {
