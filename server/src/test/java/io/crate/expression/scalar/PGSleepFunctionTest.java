@@ -26,21 +26,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
-import io.crate.expression.symbol.Literal;
-
 public class PGSleepFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_pg_sleep() {
         long before = System.currentTimeMillis();
-        assertEvaluate("pg_catalog.pg_sleep(0.1)", Literal.NULL);
+        assertEvaluateNull("pg_catalog.pg_sleep(0.1)");
         long after = System.currentTimeMillis();
         assertThat(after - before >= 100).isTrue();
     }
 
     @Test
     public void test_pg_sleep_wrong_arguments() {
-        assertThatThrownBy(() -> assertEvaluate("pg_sleep(1, 1)", Literal.NULL))
+        assertThatThrownBy(() -> assertEvaluateNull("pg_sleep(1, 1)"))
             .hasMessageContaining("Invalid arguments in: pg_sleep(1, 1) with (integer, integer). Valid types: (double precision)");
     }
 }
