@@ -100,6 +100,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
@@ -345,10 +346,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     shards,
                     version
                 );
-                final List<SnapshotsInProgress.Entry> newEntries = new ArrayList<>(runningSnapshots);
-                newEntries.add(newEntry);
                 return ClusterState.builder(currentState)
-                    .putCustom(SnapshotsInProgress.TYPE, SnapshotsInProgress.of(new ArrayList<>(newEntries)))
+                    .putCustom(SnapshotsInProgress.TYPE, SnapshotsInProgress.of(Lists.concat(runningSnapshots, newEntry)))
                     .build();
             }
 
