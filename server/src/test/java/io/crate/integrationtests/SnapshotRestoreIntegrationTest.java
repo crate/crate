@@ -30,6 +30,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
@@ -278,18 +279,55 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testCreateSnapshotFromPartition() throws Exception {
+    public void test_create_snapshot_of_individual_partitions() throws Exception {
         createTable("custom.backmeup", true);
 
-        execute("CREATE SNAPSHOT " + snapshotName() +
-                " TABLE custom.backmeup PARTITION (date='1970-01-01')  WITH (wait_for_completion=true)");
+        boolean singlePartition = randomBoolean();
+        if (singlePartition) {
+            execute(
+                "CREATE SNAPSHOT " + snapshotName() +
+                " TABLE custom.backmeup PARTITION (date='1970-01-01') WITH (wait_for_completion=true)");
+        } else {
+            execute(
+                "CREATE SNAPSHOT " + snapshotName() +
+                " TABLE custom.backmeup PARTITION (date='1970-01-01'), custom.backmeup PARTITION (date = '1989-11-09')  WITH (wait_for_completion=true)");
+        }
         assertThat(response.rowCount()).isEqualTo(1L);
 
-        execute("select name, \"repository\", concrete_indices, tables, state from sys.snapshots order by 2");
+        execute("select unnest(concrete_indices) as idx, state from sys.snapshots order by 1, 2");
+
+        // Indices show up twice because the repos have the same fs path.
+        if (singlePartition) {
+            assertThat(response).hasRows(
+                "custom..partitioned.backmeup.04130| SUCCESS",
+                "custom..partitioned.backmeup.04130| SUCCESS"
+            );
+        } else {
+            assertThat(response).hasRows(
+                "custom..partitioned.backmeup.04130| SUCCESS",
+                "custom..partitioned.backmeup.04130| SUCCESS",
+                "custom..partitioned.backmeup.046jcchm6krj4e1g60o30c0| SUCCESS",
+                "custom..partitioned.backmeup.046jcchm6krj4e1g60o30c0| SUCCESS"
+            );
+        }
+    }
+
+    @Test
+    public void test_create_snapshot_with_table_duplicated_with_individual_partition() throws Exception {
+        createTable("custom.backmeup", true);
+        execute("CREATE SNAPSHOT " + snapshotName() +
+                " TABLE custom.backmeup PARTITION (date='1970-01-01'), custom.backmeup  WITH (wait_for_completion=true)");
+        assertThat(response.rowCount()).isEqualTo(1L);
+        execute("select unnest(concrete_indices) as idx, state from sys.snapshots order by 1");
+        // All indices show up twice because the repos have the same fs path.
         assertThat(response).hasRows(
-            "my_snapshot| my_repo| [custom..partitioned.backmeup.04130]| [custom.backmeup]| SUCCESS",
-            // shows up twice because the repos have the same fs path.
-            "my_snapshot| my_repo_ro| [custom..partitioned.backmeup.04130]| [custom.backmeup]| SUCCESS");
+            "custom..partitioned.backmeup.04130| SUCCESS",
+            "custom..partitioned.backmeup.04130| SUCCESS",
+            "custom..partitioned.backmeup.046jcchm6krj4e1g60o30c0| SUCCESS",
+            "custom..partitioned.backmeup.046jcchm6krj4e1g60o30c0| SUCCESS",
+            "custom..partitioned.backmeup.04732d1k6ksj8c9n6go30c1g| SUCCESS",
+            "custom..partitioned.backmeup.04732d1k6ksj8c9n6go30c1g| SUCCESS"
+        );
     }
 
     @Test
