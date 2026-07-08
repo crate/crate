@@ -1196,13 +1196,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         for (var check : checkConstraints) {
             checkConstraintMap.put(check.name(), check.expressionStr());
         }
-        String[] concreteIndices = concreteIndices(metadata);
-        ArrayList<String> indexUUIDs = new ArrayList<>(concreteIndices.length);
-        for (String indexUUID : concreteIndices) {
-            IndexMetadata indexMetadata = metadata.index(indexUUID);
-            if (indexMetadata == null) {
-                throw new UnsupportedOperationException("Cannot create index via DocTableInfo.writeTo");
-            }
+        List<IndexMetadata> indices = metadata.getIndices(ident, List.of(), !isPartitioned, imd -> imd);
+        ArrayList<String> indexUUIDs = new ArrayList<>(indices.size());
+        for (IndexMetadata indexMetadata : indices) {
             indexUUIDs.add(indexMetadata.getIndexUUID());
 
             final Settings indexSettings = indexMetadata.getSettings();

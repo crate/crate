@@ -211,7 +211,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         this.totalNumberOfShards = totalNumberOfShards;
         this.totalOpenIndexShards = totalOpenIndexShards;
         this.numberOfShards = numberOfShards;
-        this.aliasAndIndexLookup = aliasAndIndexLookup;
         HashMap<String, RelationMetadata> indexUUIDsRelationsBuilder = HashMap.newHashMap(indices.size());
         ImmutableOpenIntMap.Builder<RelationMetadata> oidsRelationsBuilder = ImmutableOpenIntMap.builder();
         for (var schema : schemas.values()) {
