@@ -255,12 +255,17 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 // Store newSnapshot here to be processed in clusterStateProcessed
 
                 HashSet<Index> indices = new HashSet<>();
-                HashSet<RelationName> relationNames = new HashSet<>(request.relationNames());
-
+                HashSet<RelationName> relationNames = new HashSet<>();
                 Iterable<RelationMetadata.Table> relationsMetadata;
                 Metadata metadata = currentState.metadata();
+
+                // Based on SQL statement we can either have:
+                // - ALL
+                // - List of tables, either with or without partition
+                //      CREATE SNAPSHOT repository_name.snapshot_name
+                //      { TABLE table_ident [ PARTITION (partition_column = value [, ...])] [, ...] | ALL }
                 if (request.relationNames().isEmpty() && request.partitionNames().isEmpty()) {
-                    // Resolve ALL tables
+                    // ALL
                     relationsMetadata = metadata.relations(RelationMetadata.Table.class);
                 } else {
                     relationsMetadata = () -> request.relationNames().stream()
@@ -292,6 +297,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     indices.addAll(partitionIndices);
                 }
 
+                assert indices.size() == indices.stream().map(Index::getName).distinct().count()
+                    : "indices must not have duplicate names: " + indices;
                 LOGGER.trace("[{}][{}] creating snapshot for indices [{}]", repositoryName, snapshotName, indices);
                 final List<IndexId> indexIds = repositoryData.resolveNewIndices(
                     indices,
