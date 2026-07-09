@@ -595,6 +595,16 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         public int docIDRunEnd() throws IOException {
             return maxDoc;
         }
+
+        @Override
+        public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+            assert offset <= doc;
+            upTo = Math.min(upTo, maxDoc);
+            if (upTo > doc) {
+                bitSet.set(doc - offset, upTo - offset);
+                advance(upTo);
+            }
+        }
     }
 
     private abstract static class SparseNumericDocValues extends NumericDocValues {
@@ -877,6 +887,16 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         public int docIDRunEnd() throws IOException {
             return maxDoc;
         }
+
+        @Override
+        public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+            assert offset <= doc;
+            upTo = Math.min(upTo, maxDoc);
+            if (upTo > doc) {
+                bitSet.set(doc - offset, upTo - offset);
+                advance(upTo);
+            }
+        }
     }
 
     private abstract static class SparseBinaryDocValues extends BinaryDocValues {
@@ -1086,6 +1106,16 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                     public int docIDRunEnd() throws IOException {
                         return maxDoc;
                     }
+
+                    @Override
+                    public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+                        assert offset <= doc;
+                        upTo = Math.min(upTo, maxDoc);
+                        if (upTo > doc) {
+                            bitSet.set(doc - offset, upTo - offset);
+                            advance(upTo);
+                        }
+                    }
                 };
             } else if (ordsEntry.docsWithFieldOffset >= 0) { // sparse but non-empty
                 final IndexedDISI disi = new IndexedDISI(
@@ -1177,6 +1207,11 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             @Override
             public int docIDRunEnd() throws IOException {
                 return ords.docIDRunEnd();
+            }
+
+            @Override
+            public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+                ords.intoBitSet(upTo, bitSet, offset);
             }
         };
     }
@@ -1602,6 +1637,16 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                 public int docIDRunEnd() throws IOException {
                     return maxDoc;
                 }
+
+                @Override
+                public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+                    assert offset <= doc;
+                    upTo = Math.min(upTo, maxDoc);
+                    if (upTo > doc) {
+                        bitSet.set(doc - offset, upTo - offset);
+                        advance(upTo);
+                    }
+                }
             };
         } else {
             // sparse
@@ -1768,6 +1813,16 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                     public int docIDRunEnd() throws IOException {
                         return maxDoc;
                     }
+
+                    @Override
+                    public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+                        assert offset <= doc;
+                        upTo = Math.min(upTo, maxDoc);
+                        if (upTo > doc) {
+                            bitSet.set(doc - offset, upTo - offset);
+                            advance(upTo);
+                        }
+                    }
                 };
             } else if (ordsEntry.docsWithFieldOffset >= 0) { // sparse but non-empty
                 final IndexedDISI disi = new IndexedDISI(
@@ -1889,6 +1944,11 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             @Override
             public int docIDRunEnd() throws IOException {
                 return ords.docIDRunEnd();
+            }
+
+            @Override
+            public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+                ords.intoBitSet(upTo, bitSet, offset);
             }
         };
     }
