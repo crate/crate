@@ -155,15 +155,16 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         }
 
         if (version >= CustomLucene90DocValuesFormat.VERSION_SKIPPER_SEPARATE_FILE) {
-            String skipIndexName =
-                IndexFileNames.segmentFileName(
-                    state.segmentInfo.name, state.segmentSuffix, skipIndexExtension);
-            this.skipIndexData =
-                state.directory.openInput(skipIndexName, state.context.withHints(FileTypeHint.INDEX));
+            IndexInput skipIn = null;
             try {
+                String skipIndexName =
+                    IndexFileNames.segmentFileName(
+                        state.segmentInfo.name, state.segmentSuffix, skipIndexExtension);
+                skipIn =
+                    state.directory.openInput(skipIndexName, state.context.withHints(FileTypeHint.INDEX));
                 final int skipVersion =
                     CodecUtil.checkIndexHeader(
-                        skipIndexData,
+                        skipIn,
                         skipIndexCodec,
                         CustomLucene90DocValuesFormat.VERSION_SKIPPER_SEPARATE_FILE,
                         CustomLucene90DocValuesFormat.VERSION_CURRENT,
@@ -171,14 +172,15 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                         state.segmentSuffix);
                 if (version != skipVersion) {
                     throw new CorruptIndexException(
-                        "Format versions mismatch: meta=" + version + ", skipIndex=" + skipVersion,
-                        skipIndexData);
+                        "Format versions mismatch: meta=" + version + ", skipIndex=" + skipVersion, skipIn);
+
                 }
-                CodecUtil.retrieveChecksum(skipIndexData);
+                CodecUtil.retrieveChecksum(skipIn);
             } catch (Throwable t) {
-                IOUtils.closeWhileSuppressingExceptions(t, data, skipIndexData);
+                IOUtils.closeWhileSuppressingExceptions(t, data, skipIn);
                 throw t;
             }
+            this.skipIndexData = skipIn;
         } else {
             this.skipIndexData = null;
         }
