@@ -53,6 +53,8 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
@@ -60,6 +62,7 @@ import io.crate.data.Row;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 
@@ -598,5 +601,47 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][0]).isEqualTo(50L);
         execute("select count(*) from information_schema.table_partitions where table_name = 't2'");
         assertThat(response.rows()[0][0]).isEqualTo(50L);
+    }
+
+    @Repeat(iterations = 30)
+    @Test
+    public void test_concurrent_table_swaps_with_delete() throws Exception {
+        execute("create table t1 (p int) partitioned by (p)");
+        execute("create table t2 (p2 int)");
+        execute("insert into t1 values (1), (2)");
+        execute("insert into t2 values (3), (4)");
+        execute("refresh table t1, t2");
+
+        final AtomicReference<Throwable> error = new AtomicReference<>();
+        final CyclicBarrier barrier = new CyclicBarrier(2);
+
+        Thread t1 = new Thread(() -> {
+            try {
+                barrier.await();
+                execute("delete from t1 where p=1");
+            } catch (Throwable e) {
+                error.set(e);
+            }
+        });
+
+        Thread t2 = new Thread(() -> {
+            try {
+                barrier.await();
+                for (int i = 0; i < 3; i++) {
+                    execute("ALTER CLUSTER SWAP TABLE t1 TO t2");
+                }
+            } catch (Throwable e) {
+                error.set(e);
+            }
+        });
+
+        t1.start();
+        t2.start();
+
+        t1.join();
+        t2.join();
+
+        execute("select * from t2 order by p");
+        Asserts.assertThat(response).hasRows("2");
     }
 }
