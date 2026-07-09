@@ -92,7 +92,8 @@ public final class CustomLucene90DocValuesFormat extends DocValuesFormat {
     static final String SKIP_INDEX_EXTENSION = "dvs";
     static final int VERSION_START = 0;
     static final int VERSION_SKIPPER_SEPARATE_FILE = 1;
-    static final int VERSION_CURRENT = VERSION_SKIPPER_SEPARATE_FILE;
+    static final int VERSION_SKIPPER_MAX_VALUE_COUNT = 2;
+    static final int VERSION_CURRENT = VERSION_SKIPPER_MAX_VALUE_COUNT;
 
     // indicates docvalues type
     static final byte NUMERIC = 0;
