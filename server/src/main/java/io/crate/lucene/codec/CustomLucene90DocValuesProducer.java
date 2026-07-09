@@ -1560,13 +1560,63 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         }
     }
 
+    private static int fixedCardinality(
+        SortedNumericEntry entry, DocValuesSkipperEntry skipperEntry) {
+        if (skipperEntry == null
+            || skipperEntry.maxValueCount <= 1
+            || entry.numDocsWithField == 0
+            || entry.numValues % entry.numDocsWithField != 0) {
+            return -1;
+        }
+        long cardinality = entry.numValues / entry.numDocsWithField;
+        if (cardinality > Integer.MAX_VALUE || cardinality != skipperEntry.maxValueCount) {
+            return -1;
+        }
+        return (int) cardinality;
+    }
+
+    private static void sortedNumericScalarRangeIntoBitSet(
+        LongValues values,
+        int fromDoc,
+        int toDoc,
+        int cardinality,
+        long minValue,
+        long maxValue,
+        FixedBitSet bitSet,
+        int offset) {
+        for (int doc = fromDoc; doc < toDoc; doc++) {
+            long valueOffset = (long) doc * cardinality;
+            for (int i = 0; i < cardinality; i++) {
+                long value = values.get(valueOffset + i);
+                if (value >= minValue) {
+                    if (value <= maxValue) {
+                        bitSet.set(doc - offset);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    private static boolean sortedNumericMatchesRange(
+        LongValues values, long start, long end, long minValue, long maxValue) {
+        for (long valueOffset = start; valueOffset < end; valueOffset++) {
+            long value = values.get(valueOffset);
+            if (value >= minValue) {
+                return value <= maxValue;
+            }
+        }
+        return false;
+    }
+
     @Override
     public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
         SortedNumericEntry entry = sortedNumerics.get(field.number);
-        return getSortedNumeric(entry);
+        return getSortedNumeric(entry, skippers.get(field.number));
     }
 
-    private SortedNumericDocValues getSortedNumeric(SortedNumericEntry entry) throws IOException {
+    private SortedNumericDocValues getSortedNumeric(
+        SortedNumericEntry entry, DocValuesSkipperEntry skipperEntry) throws IOException {
         if (entry.numValues == entry.numDocsWithField) {
             return DocValues.singleton(getNumeric(entry));
         }
@@ -1579,6 +1629,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         final LongValues addresses = DirectMonotonicReader.getInstance(entry.addressesMeta, addressesInput, merging);
 
         final LongValues values = getNumericValues(entry);
+        final int denseFixedCardinality = fixedCardinality(entry, skipperEntry);
 
         if (entry.docsWithFieldOffset == -1) {
             // dense
@@ -1631,6 +1682,34 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                 @Override
                 public int docValueCount() {
                     return count;
+                }
+
+                @Override
+                public void rangeIntoBitSet(
+                    int fromDoc, int toDoc, long minValue, long maxValue, FixedBitSet bitSet, int offset) {
+                    int endDoc = Math.min(toDoc, maxDoc);
+                    if (fromDoc >= endDoc) {
+                        return;
+                    }
+                    if (entry.bitsPerValue == 0) {
+                        if (entry.minValue >= minValue && entry.minValue <= maxValue) {
+                            bitSet.set(fromDoc - offset, endDoc - offset);
+                        }
+                        return;
+                    }
+                    int cardinality = denseFixedCardinality;
+                    if (cardinality > 1) {
+                        sortedNumericScalarRangeIntoBitSet(
+                            values, fromDoc, endDoc, cardinality, minValue, maxValue, bitSet, offset);
+                        return;
+                    }
+                    for (int currentDoc = fromDoc; currentDoc < endDoc; currentDoc++) {
+                        long startOffset = addresses.get(currentDoc);
+                        long endOffset = addresses.get(currentDoc + 1L);
+                        if (sortedNumericMatchesRange(values, startOffset, endOffset, minValue, maxValue)) {
+                            bitSet.set(currentDoc - offset);
+                        }
+                    }
                 }
 
                 @Override
@@ -1701,6 +1780,40 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                 public int docValueCount() {
                     set();
                     return count;
+                }
+
+                @Override
+                public void rangeIntoBitSet(
+                    int fromDoc, int toDoc, long minValue, long maxValue, FixedBitSet bitSet, int offset)
+                    throws IOException {
+                    set = false;
+                    int endDoc = Math.min(toDoc, maxDoc);
+                    if (fromDoc >= endDoc) {
+                        return;
+                    }
+                    int currentDoc = disi.docID();
+                    if (currentDoc < fromDoc) {
+                        currentDoc = disi.advance(fromDoc);
+                    }
+                    if (currentDoc >= endDoc) {
+                        return;
+                    }
+                    if (entry.bitsPerValue == 0) {
+                        if (entry.minValue >= minValue && entry.minValue <= maxValue) {
+                            disi.intoBitSet(endDoc, bitSet, offset);
+                        }
+                        set = false;
+                        return;
+                    }
+                    for (; currentDoc < endDoc; currentDoc = disi.nextDoc()) {
+                        int index = disi.index();
+                        long startOffset = addresses.get(index);
+                        long endOffset = addresses.get(index + 1L);
+                        if (sortedNumericMatchesRange(values, startOffset, endOffset, minValue, maxValue)) {
+                            bitSet.set(currentDoc - offset);
+                        }
+                    }
+                    set = false;
                 }
 
                 @Override
@@ -1903,7 +2016,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             }
         }
 
-        final SortedNumericDocValues ords = getSortedNumeric(entry.ordsEntry);
+        final SortedNumericDocValues ords = getSortedNumeric(entry.ordsEntry, null);
         return new BaseSortedSetDocValues(entry, data) {
 
             @Override
