@@ -214,7 +214,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         relationName.writeTo(out);
-        if (out.getVersion().onOrAfter(Version.V_6_4_0)) {
+        if (out.getVersion().onOrAfter(Version.V_6_3_6)) {
             out.writeInt(tableOid);
         }
         out.writeOptionalString(partitionIdent);
