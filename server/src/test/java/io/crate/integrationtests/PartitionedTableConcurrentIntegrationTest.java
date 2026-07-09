@@ -24,6 +24,8 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Fail.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -595,5 +597,67 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][0]).isEqualTo(50L);
         execute("select count(*) from information_schema.table_partitions where table_name = 't2'");
         assertThat(response.rows()[0][0]).isEqualTo(50L);
+    }
+
+    @Test
+    public void test_concurrent_table_swaps_with_delete() throws Exception {
+        for (int retry = 0; retry < 10; retry++) {
+            execute("drop table if exists t1");
+            execute("drop table if exists t2");
+            execute("create table t1 (p int) partitioned by (p)");
+            execute("create table t2 (p int)");
+            execute("insert into t1 values (1), (2)");
+            execute("insert into t2 values (3), (4)");
+            execute("refresh table t1, t2");
+
+            final AtomicReference<Throwable> error = new AtomicReference<>();
+            final CyclicBarrier barrier = new CyclicBarrier(2);
+            boolean[] swapInterleaved = {false};
+
+            Thread t1 = new Thread(() -> {
+                try {
+                    barrier.await();
+                    execute("delete from t1 where p=1");
+                } catch (Throwable e) {
+                    error.set(e);
+                }
+            });
+
+            Thread t2 = new Thread(() -> {
+                try {
+                    barrier.await();
+                    execute("ALTER CLUSTER SWAP TABLE t1 TO t2");
+                    if (t1.isAlive()) {
+                        swapInterleaved[0] = true;
+                    }
+                } catch (Throwable e) {
+                    error.set(e);
+                }
+            });
+
+            t1.start();
+            t2.start();
+
+            t1.join();
+            t2.join();
+
+            assertThat(error.get()).isNull();
+
+            if (swapInterleaved[0] == false) {
+                continue;
+            }
+
+            execute("select * from t1 order by p");
+            assertThat(response).hasRows("3", "4");
+
+            execute("select * from t2 order by p");
+            // DELETE was executed on t2 not t1 such that `1` is not deleted.
+            if (response.rowCount() == 2 && response.rows()[0][0].equals(1) && response.rows()[1][0].equals(2)) {
+                continue;
+            }
+            assertThat(response).hasRows("2");
+            return;
+        }
+        fail("The test failed to complete a successful interleaving of swap with delete");
     }
 }

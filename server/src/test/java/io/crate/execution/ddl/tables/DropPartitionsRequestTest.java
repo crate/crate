@@ -22,6 +22,7 @@
 package io.crate.execution.ddl.tables;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.Arrays;
 import java.util.List;
@@ -41,7 +42,7 @@ public class DropPartitionsRequestTest {
             new PartitionName(relationName, List.of("1", "2")),
             new PartitionName(relationName, Arrays.asList("1", null))
         );
-        var req = new DropPartitionsRequest(relationName, partitions);
+        var req = new DropPartitionsRequest(relationName, OID_UNASSIGNED, partitions);
         try (var out = new BytesStreamOutput()) {
             req.writeTo(out);
             try (var in = out.bytes().streamInput()) {

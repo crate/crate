@@ -21,10 +21,13 @@
 
 package io.crate.execution.ddl.tables;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,15 +38,21 @@ import io.crate.metadata.RelationName;
 public class DropPartitionsRequest extends AcknowledgedRequest<DropPartitionsRequest> {
 
     private final RelationName relationName;
+    private final int tableOid;
     private final List<PartitionName> partitions;
 
-    public DropPartitionsRequest(RelationName relationName, List<PartitionName> partitions) {
+    public DropPartitionsRequest(RelationName relationName, int tableOid, List<PartitionName> partitions) {
         this.relationName = relationName;
+        this.tableOid = tableOid;
         this.partitions = partitions;
     }
 
     public RelationName relationName() {
         return relationName;
+    }
+
+    public int tableOid() {
+        return tableOid;
     }
 
     public List<PartitionName> partitions() {
@@ -53,6 +62,11 @@ public class DropPartitionsRequest extends AcknowledgedRequest<DropPartitionsReq
     public DropPartitionsRequest(StreamInput in) throws IOException {
         super(in);
         relationName = new RelationName(in);
+        if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
+            tableOid = in.readVInt();
+        } else {
+            tableOid = OID_UNASSIGNED;
+        }
         int size = in.readVInt();
         partitions = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
@@ -69,6 +83,9 @@ public class DropPartitionsRequest extends AcknowledgedRequest<DropPartitionsReq
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         relationName.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
+            out.writeVInt(tableOid);
+        }
         out.writeVInt(partitions.size());
         for (PartitionName partition : partitions) {
             assert partition.relationName().equals(relationName)

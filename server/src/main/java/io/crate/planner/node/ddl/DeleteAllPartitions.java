@@ -38,9 +38,11 @@ import io.crate.planner.operators.SubQueryResults;
 public final class DeleteAllPartitions implements Plan {
 
     private final RelationName relationName;
+    private final int tableOid;
 
-    public DeleteAllPartitions(RelationName relationName) {
+    public DeleteAllPartitions(RelationName relationName, int tableOid) {
         this.relationName = relationName;
+        this.tableOid = tableOid;
     }
 
     @Override
@@ -57,7 +59,7 @@ public final class DeleteAllPartitions implements Plan {
         var listener = new OneRowActionListener<>(consumer, ignoredResponse -> Row1.ROW_COUNT_UNKNOWN);
         dependencies.client().execute(
             TransportDropPartitionsAction.ACTION,
-            new DropPartitionsRequest(relationName, List.of())
+            new DropPartitionsRequest(relationName, tableOid, List.of())
         ).whenComplete(listener);
     }
 }
