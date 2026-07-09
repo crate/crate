@@ -55,6 +55,7 @@ import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
+import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.LongsRef;
 import org.apache.lucene.util.MathUtil;
@@ -727,6 +728,17 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
                             public long cost() {
                                 return sorted.cost();
                             }
+
+                            @Override
+                            public void intoBitSet(int upTo, FixedBitSet bitSet, int offset)
+                                throws IOException {
+                                sorted.intoBitSet(upTo, bitSet, offset);
+                            }
+
+                            @Override
+                            public int docIDRunEnd() throws IOException {
+                                return sorted.docIDRunEnd();
+                            }
                         };
                         return DocValues.singleton(sortedOrds);
                     }
@@ -1042,6 +1054,16 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
                             @Override
                             public long cost() {
                                 return values.cost();
+                            }
+
+                            @Override
+                            public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+                                values.intoBitSet(upTo, bitSet, offset);
+                            }
+
+                            @Override
+                            public int docIDRunEnd() throws IOException {
+                                return values.docIDRunEnd();
                             }
                         };
                     }
