@@ -91,16 +91,22 @@ public class Function implements Symbol, Cloneable {
     protected final Signature signature;
     @Nullable
     protected final Symbol filter;
+    protected boolean distinct;
 
     public Function(Signature signature, List<Symbol> arguments, DataType<?> returnType) {
-        this(signature, arguments, returnType, null);
+        this(signature, arguments, returnType, null, false);
     }
 
     public Function(Signature signature, List<Symbol> arguments, DataType<?> returnType, @Nullable Symbol filter) {
+        this(signature, arguments, returnType, filter, false);
+    }
+
+    public Function(Signature signature, List<Symbol> arguments, DataType<?> returnType, @Nullable Symbol filter, boolean distinct) {
         this.signature = signature;
         this.arguments = List.copyOf(arguments);
         this.returnType = returnType;
         this.filter = filter;
+        this.distinct = distinct;
     }
 
     public Function(StreamInput in) throws IOException {
@@ -138,6 +144,10 @@ public class Function implements Symbol, Cloneable {
     @Override
     public DataType<?> valueType() {
         return returnType;
+    }
+
+    public boolean distinct() {
+        return distinct;
     }
 
     @Override
@@ -204,7 +214,7 @@ public class Function implements Symbol, Cloneable {
                 throw new ConversionException(returnType, targetType);
             }
         }
-        return new Function(signature, newArgs, targetType, null);
+        return new Function(signature, newArgs, targetType, null, false);
     }
 
     public boolean isCast() {
