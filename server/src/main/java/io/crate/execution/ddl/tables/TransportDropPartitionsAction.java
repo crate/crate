@@ -33,6 +33,7 @@ import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -45,6 +46,7 @@ import org.elasticsearch.transport.TransportService;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 
 @Singleton
@@ -80,7 +82,13 @@ public class TransportDropPartitionsAction extends AbstractDDLTransportAction<Dr
         executor = new DDLClusterStateTaskExecutor<>() {
             @Override
             protected ClusterState execute(ClusterState currentState, DropPartitionsRequest request) {
-                RelationMetadata.Table table = currentState.metadata().getRelation(request.relationName());
+                int tableOid = request.tableOid();
+                RelationMetadata.Table table;
+                if (tableOid == Metadata.OID_UNASSIGNED) {
+                    table = currentState.metadata().getRelation(request.relationName());
+                } else {
+                    table = currentState.metadata().getRelation(tableOid);
+                }
                 if (table == null) {
                     throw new RelationUnknown(request.relationName());
                 }
@@ -98,22 +106,43 @@ public class TransportDropPartitionsAction extends AbstractDDLTransportAction<Dr
     private static <T> Collection<T> getIndices(ClusterState currentState,
                                                 DropPartitionsRequest request,
                                                 Function<IndexMetadata, T> mapFunction) {
+        RelationName relationName = request.relationName();
+        int tableOid = request.tableOid();
         Collection<T> indices;
         if (request.partitions().isEmpty()) {
-            indices = currentState.metadata().getIndices(
-                request.relationName(),
-                List.of(),
-                false,
-                mapFunction);
+            if (tableOid == Metadata.OID_UNASSIGNED) {
+                indices = currentState.metadata().getIndices(
+                    relationName,
+                    List.of(),
+                    false,
+                    mapFunction);
+            } else {
+                indices = currentState.metadata().getIndices(
+                    tableOid,
+                    List.of(),
+                    false,
+                    mapFunction);
+            }
         } else {
             indices = new HashSet<>();
-            for (PartitionName partition : request.partitions()) {
-                indices.addAll(currentState.metadata().getIndices(
-                    request.relationName(),
-                    partition.values(),
-                    false,
-                    mapFunction)
-                );
+            if (tableOid == Metadata.OID_UNASSIGNED) {
+                for (PartitionName partition : request.partitions()) {
+                    indices.addAll(currentState.metadata().getIndices(
+                        relationName,
+                        partition.values(),
+                        false,
+                        mapFunction)
+                    );
+                }
+            } else {
+                for (PartitionName partition : request.partitions()) {
+                    indices.addAll(currentState.metadata().getIndices(
+                        tableOid,
+                        partition.values(),
+                        false,
+                        mapFunction)
+                    );
+                }
             }
         }
         return indices;

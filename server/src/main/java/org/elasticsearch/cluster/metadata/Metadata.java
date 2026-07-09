@@ -1733,6 +1733,34 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return result;
     }
 
+    public <T> List<T> getIndices(RelationName relationName,
+                                  List<String> partitionValues,
+                                  boolean strict,
+                                  Function<IndexMetadata, T> as) {
+        RelationMetadata relation = getRelation(relationName);
+        if (relation == null) {
+            if (strict) {
+                throw new RelationUnknown(relationName);
+            }
+            return List.of();
+        }
+        return getIndices(relation, partitionValues, strict, as);
+    }
+
+    public <T> List<T> getIndices(int tableOid,
+                                  List<String> partitionValues,
+                                  boolean strict,
+                                  Function<IndexMetadata, T> as) {
+        RelationMetadata relation = getRelation(tableOid);
+        if (relation == null) {
+            if (strict) {
+                throw new RelationUnknown(String.format(Locale.ENGLISH, "Relation not found for oid=%s", tableOid));
+            }
+            return List.of();
+        }
+        return getIndices(relation, partitionValues, strict, as);
+    }
+
     /**
      * <p>
      * Resolve the indices for a relation and return their data either as
@@ -1745,22 +1773,15 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
      *
      * @param partitionValues filter by a single partition. Use `List.of()` to include all partitions.
      **/
-    public <T> List<T> getIndices(RelationName relationName,
-                                  List<String> partitionValues,
-                                  boolean strict,
-                                  Function<IndexMetadata, T> as) {
-        RelationMetadata relation = getRelation(relationName);
-        switch (relation) {
-            case null -> {
-                if (strict) {
-                    throw new RelationUnknown(relationName);
-                }
-                return List.of();
-            }
+    private <T> List<T> getIndices(RelationMetadata relationMetadata,
+                                   List<String> partitionValues,
+                                   boolean strict,
+                                   Function<IndexMetadata, T> as) {
+        switch (relationMetadata) {
             case RelationMetadata.BlobTable blobTable -> {
                 IndexMetadata imd = index(blobTable.indexUUID());
                 if (imd == null) {
-                    throw new RelationUnknown(relationName);
+                    throw new RelationUnknown(blobTable.name());
                 }
                 T item = as.apply(imd);
                 if (item != null) {
@@ -1775,7 +1796,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                     IndexMetadata imd = index(indexUUID);
                     if (imd == null) {
                         if (strict) {
-                            throw new RelationUnknown(relationName);
+                            throw new RelationUnknown(table.name());
                         }
                         continue;
                     }
@@ -1799,7 +1820,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             }
         }
         // should be never reached
-        throw new UnsupportedOperationException("Unsupported relation type: " + relation.getClass().getName());
+        throw new UnsupportedOperationException("Unsupported relation type: " + relationMetadata.getClass().getName());
     }
 
     @Nullable
