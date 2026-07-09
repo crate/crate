@@ -114,6 +114,10 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
 
                 readFields(in, state.fieldInfos);
 
+                if (version < CustomLucene90DocValuesFormat.VERSION_SKIPPER_MAX_VALUE_COUNT) {
+                    inferMaxValueCounts(state.fieldInfos);
+                }
+
             } catch (Throwable exception) {
                 priorE = exception;
             } finally {
@@ -228,6 +232,55 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             true);
     }
 
+    private void inferMaxValueCounts(FieldInfos fieldInfos) {
+        for (var cursor : skippers) {
+            DocValuesSkipperEntry entry = cursor.value;
+            if (entry.maxValueCount == -1 && entry.docCount != 0) {
+                int fieldNumber = cursor.key;
+                FieldInfo info = fieldInfos.fieldInfo(fieldNumber);
+                int inferredMaxValueCount = -1;
+                if (info != null) {
+                    switch (info.getDocValuesType()) {
+                        case NUMERIC, SORTED -> inferredMaxValueCount = 1;
+                        case SORTED_NUMERIC -> {
+                            SortedNumericEntry sne = sortedNumerics.get(fieldNumber);
+                            if (sne != null && sne.numValues == sne.numDocsWithField) {
+                                inferredMaxValueCount = 1;
+                            }
+                        }
+                        case SORTED_SET -> {
+                            SortedSetEntry sse = sortedSets.get(fieldNumber);
+                            if (sse != null) {
+                                if (sse.singleValueEntry != null) {
+                                    inferredMaxValueCount = 1;
+                                } else if (sse.ordsEntry != null
+                                    && sse.ordsEntry.numValues == sse.ordsEntry.numDocsWithField) {
+                                    inferredMaxValueCount = 1;
+                                }
+                            }
+                        }
+                        // $CASES-OMITTED$
+                        default -> {
+                            // leave as -1
+                        }
+                    }
+                }
+                if (inferredMaxValueCount != -1) {
+                    skippers.put(
+                        fieldNumber,
+                        new DocValuesSkipperEntry(
+                            entry.offset,
+                            entry.length,
+                            entry.minValue,
+                            entry.maxValue,
+                            entry.docCount,
+                            entry.maxDocId,
+                            inferredMaxValueCount));
+                }
+            }
+        }
+    }
+
     private void readFields(IndexInput meta, FieldInfos infos) throws IOException {
         for (int fieldNumber = meta.readInt(); fieldNumber != -1; fieldNumber = meta.readInt()) {
             FieldInfo info = infos.fieldInfo(fieldNumber);
@@ -255,8 +308,13 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
     }
 
     private record DocValuesSkipperEntry(
-        long offset, long length, long minValue, long maxValue, int docCount, int maxDocId) {
-    }
+        long offset,
+        long length,
+        long minValue,
+        long maxValue,
+        int docCount,
+        int maxDocId,
+        int maxValueCount) {}
 
     private DocValuesSkipperEntry readDocValueSkipperMeta(IndexInput meta) throws IOException {
         long offset = meta.readLong();
@@ -265,8 +323,15 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         long minValue = meta.readLong();
         int docCount = meta.readInt();
         int maxDocID = meta.readInt();
+        final int maxValueCount;
+        if (version >= CustomLucene90DocValuesFormat.VERSION_SKIPPER_MAX_VALUE_COUNT) {
+            maxValueCount = meta.readInt();
+        } else {
+            maxValueCount = docCount == 0 ? 0 : -1;
+        }
 
-        return new DocValuesSkipperEntry(offset, length, minValue, maxValue, docCount, maxDocID);
+        return new DocValuesSkipperEntry(
+            offset, length, minValue, maxValue, docCount, maxDocID, maxValueCount);
     }
 
     private NumericEntry readNumeric(IndexInput meta) throws IOException {
@@ -1929,6 +1994,11 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             @Override
             public int docCount() {
                 return entry.docCount;
+            }
+
+            @Override
+            public int maxValueCount() {
+                return entry.maxValueCount;
             }
         };
     }
