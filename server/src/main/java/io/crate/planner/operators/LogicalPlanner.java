@@ -21,6 +21,9 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.analyze.expressions.ExpressionAnalyzer.allocateBuiltinOrUdfFunction;
+import static io.crate.analyze.expressions.ExpressionAnalyzer.allocateFunction;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -47,7 +50,8 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.RelationNames;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.WindowDefinition;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -76,6 +80,7 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.SelectSymbol.ResultType;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.WindowFunction;
 import io.crate.fdw.ForeignDataWrapper;
 import io.crate.fdw.ForeignDataWrappers;
 import io.crate.fdw.ForeignTableRelation;
@@ -522,7 +527,6 @@ public class LogicalPlanner {
         }
 
 
-
         @Override
         public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation relation, List<Symbol> outputs) {
             SplitPoints splitPoints = SplitPointsBuilder.create(relation);
@@ -641,30 +645,32 @@ public class LogicalPlanner {
     }
 
     private static Function wrapWithCollectSet(Function original, CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx) {
-//            if (arguments.size() > 1) {
-//                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-//                    "%s(DISTINCT x) does not accept more than one argument", node.getName()));
-//            }
-            Symbol collectSetFunction = ExpressionAnalyzer.allocateFunction(
-                CollectSetAggregation.NAME,
-                original.arguments(),
-                original.filter(),
-                //  ExpressionAnalysisContext  needed to indicate expression has aggregates.
-                // analysis done so we can ignore this.
-                null,
-                coordinatorTxnCtx,
-                nodeCtx
-            );
+        var arguments = original.arguments();
+        var filter = original.filter();
+        ExpressionAnalysisContext context = null;
+        String name = original.name();
+        WindowDefinition windowDefinition = (original instanceof WindowFunction wf) ? wf.windowDefinition() : null;
+        Boolean ignoreNulls = (original instanceof WindowFunction wf) ? wf.ignoreNulls() : null;
+        String schema = original.signature().getName().schema();
 
-            // define the outer function which contains the inner function as argument.
-            String nodeName = "collection_" + original.name();
+        Symbol collectSetFunction = allocateFunction(
+            CollectSetAggregation.NAME,
+            arguments,
+            filter,
+            context,
+            coordinatorTxnCtx,
+            nodeCtx);
 
-            return new Function(
-                original.signature(),
-                List.of(collectSetFunction),
-                original.valueType(),
-                null
-            );
+        // define the outer function which contains the inner function as argument.
+        String nodeName = "collection_" + name;
+        List<Symbol> outerArguments = List.of(collectSetFunction);
+        try {
+            return allocateBuiltinOrUdfFunction(
+                schema, nodeName, outerArguments, null, ignoreNulls, context, true, windowDefinition, coordinatorTxnCtx, nodeCtx);
+        } catch (UnsupportedOperationException ex) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
+        }
 
     }
 
