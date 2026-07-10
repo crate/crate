@@ -163,4 +163,29 @@ public class DeduplicateJoinConditionsTest extends CrateDummyClusterServiceUnitT
                 "  └ Collect[doc.t2 | [b] | true]");
     }
 
+    @Test
+    public void test_deduplicates_symmetrical_duplicate() {
+        Symbol joinCondition1 = e.asSymbol("doc.t1.a = doc.t2.b");
+        Symbol joinCondition2 = e.asSymbol("doc.t2.b = doc.t1.a");
+        JoinPlan plan = new JoinPlan(t1, t2, JoinType.INNER,
+                AndOperator.join(List.of(joinCondition1, joinCondition2)));
+
+        assertThat(plan).hasOperators(
+                "Join[INNER | ((a = b) AND (a = b))]",
+                "  ├ Collect[doc.t1 | [a] | true]",
+                "  └ Collect[doc.t2 | [b] | true]");
+
+        Rule<JoinPlan> rule = new DeduplicateJoinConditions();
+        Match<JoinPlan> match = rule.pattern().accept(plan, Captures.empty());
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isEqualTo(plan);
+
+        LogicalPlan result = rule.apply(plan, match.captures(), e.ruleContext());
+        assertThat(result).hasOperators(
+                "Join[INNER | (a = b)]",
+                "  ├ Collect[doc.t1 | [a] | true]",
+                "  └ Collect[doc.t2 | [b] | true]");
+
+    }
+
 }
