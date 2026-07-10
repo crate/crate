@@ -47,6 +47,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.RelationNames;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -66,6 +67,7 @@ import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.builder.SplitPoints;
 import io.crate.execution.dsl.projection.builder.SplitPointsBuilder;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
+import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Function;
@@ -268,7 +270,8 @@ public class LogicalPlanner {
             subqueryPlanner,
             foreignDataWrappers,
             plannerContext.clusterState(),
-            plannerContext.transactionContext()
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext()
         );
         LogicalPlan plan = relation.accept(planBuilder, relation.outputs());
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
@@ -358,7 +361,8 @@ public class LogicalPlanner {
             subqueryPlanner,
             foreignDataWrappers,
             plannerContext.clusterState(),
-            plannerContext.transactionContext()
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext()
         );
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
         return optimize(logicalPlan, relation, plannerContext, avoidTopLevelFetch);
@@ -370,15 +374,18 @@ public class LogicalPlanner {
         private final ForeignDataWrappers foreignDataWrappers;
         private final ClusterState clusterState;
         private final CoordinatorTxnCtx coordinatorTxnCtx;
+        private final NodeContext nodeCtx;
 
         private PlanBuilder(SubqueryPlanner subqueryPlanner,
                             ForeignDataWrappers foreignDataWrappers,
                             ClusterState clusterState,
-                            CoordinatorTxnCtx coordinatorTxnCtx) {
+                            CoordinatorTxnCtx coordinatorTxnCtx,
+                            NodeContext nodeCtx) {
             this.subqueryPlanner = subqueryPlanner;
             this.foreignDataWrappers = foreignDataWrappers;
             this.clusterState = clusterState;
             this.coordinatorTxnCtx = coordinatorTxnCtx;
+            this.nodeCtx = nodeCtx;
         }
 
         @Override
@@ -556,7 +563,9 @@ public class LogicalPlanner {
                                                     splitPoints.tableFunctionsBelowGroupBy()
                                                 ),
                                                 relation.groupBy(),
-                                                splitPoints.aggregates()
+                                                splitPoints.aggregates(),
+                                                coordinatorTxnCtx,
+                                                nodeCtx
                                             ),
                                             having
                                         ),
@@ -608,14 +617,55 @@ public class LogicalPlanner {
 
     private static LogicalPlan groupByOrAggregate(LogicalPlan source,
                                                   List<Symbol> groupKeys,
-                                                  List<Function> aggregates) {
+                                                  List<Function> aggregates,
+                                                  CoordinatorTxnCtx coordinatorTxnCtx,
+                                                  NodeContext nodeCtx) {
         if (!groupKeys.isEmpty()) {
             return new GroupHashAggregate(source, groupKeys, aggregates);
         }
         if (!aggregates.isEmpty()) {
-            return new HashAggregate(source, aggregates);
+            return new HashAggregate(source, handleDistinctFunctions(aggregates, coordinatorTxnCtx, nodeCtx));
         }
         return source;
+    }
+
+    private static List<Function> handleDistinctFunctions(List<Function> aggregates, CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx) {
+        return aggregates.stream()
+            .map(fn -> {
+                if (fn.distinct()) {
+                    return wrapWithCollectSet(fn, coordinatorTxnCtx, nodeCtx);
+                }
+                return fn;
+            })
+            .toList();
+    }
+
+    private static Function wrapWithCollectSet(Function original, CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx) {
+//            if (arguments.size() > 1) {
+//                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+//                    "%s(DISTINCT x) does not accept more than one argument", node.getName()));
+//            }
+            Symbol collectSetFunction = ExpressionAnalyzer.allocateFunction(
+                CollectSetAggregation.NAME,
+                original.arguments(),
+                original.filter(),
+                //  ExpressionAnalysisContext  needed to indicate expression has aggregates.
+                // analysis done so we can ignore this.
+                null,
+                coordinatorTxnCtx,
+                nodeCtx
+            );
+
+            // define the outer function which contains the inner function as argument.
+            String nodeName = "collection_" + original.name();
+
+            return new Function(
+                original.signature(),
+                List.of(collectSetFunction),
+                original.valueType(),
+                null
+            );
+
     }
 
     public static Set<Symbol> extractColumns(Symbol symbol) {

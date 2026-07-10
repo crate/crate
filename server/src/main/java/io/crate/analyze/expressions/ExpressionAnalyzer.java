@@ -1276,6 +1276,7 @@ public class ExpressionAnalyzer {
         return allocateFunction(functionName, arguments, null, context, coordinatorTxnCtx, nodeCtx);
     }
 
+    // needed for CollectSetAggregation
     public static Function allocateFunction(String functionName,
                                             List<Symbol> arguments,
                                             @Nullable Symbol filter,
@@ -1301,7 +1302,7 @@ public class ExpressionAnalyzer {
      * @param nodeCtx The {@link NodeContext} to normalize constant expressions.
      * @return The supplied {@link Function} or a {@link Literal} in case of constant folding.
      */
-    private static Function allocateBuiltinOrUdfFunction(@Nullable String schema,
+    public static Function allocateBuiltinOrUdfFunction(@Nullable String schema,
                                                          String functionName,
                                                          List<Symbol> arguments,
                                                          @Nullable Symbol filter,
@@ -1327,7 +1328,7 @@ public class ExpressionAnalyzer {
         List<Symbol> castArguments = cast(arguments, boundSignature.argTypes());
         Function newFunction;
         if (windowDefinition == null) {
-            if (signature.getType() == FunctionType.AGGREGATE) {
+            if (signature.getType() == FunctionType.AGGREGATE && context != null) {
                 context.indicateAggregates();
             } else if (filter != null) {
                 throw new UnsupportedOperationException(
