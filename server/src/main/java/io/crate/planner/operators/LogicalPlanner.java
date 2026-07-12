@@ -529,7 +529,10 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation relation, List<Symbol> outputs) {
-            SplitPoints splitPoints = SplitPointsBuilder.create(relation);
+            SplitPoints splitPoints = SplitPointsBuilder.create(
+                relation,
+                s -> wrapIfDistinctFunction(coordinatorTxnCtx, nodeCtx, s)
+            );
             SubQueries subQueries = subqueryPlanner.planSubQueries(relation);
             LogicalPlan source = buildImplicitJoins(
                 relation.from(),
@@ -629,11 +632,11 @@ public class LogicalPlanner {
         return source;
     }
 
-    private static Function wrapIfDistinct(CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx, Function fn) {
-        if (fn.distinct()) {
+    private static Symbol wrapIfDistinctFunction(CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx, Symbol symbol) {
+        if (symbol instanceof Function fn && fn.distinct()) {
             return wrapWithCollectSet(fn, coordinatorTxnCtx, nodeCtx);
         }
-        return fn;
+        return symbol;
     }
 
     private static Function wrapWithCollectSet(Function original, CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx) {

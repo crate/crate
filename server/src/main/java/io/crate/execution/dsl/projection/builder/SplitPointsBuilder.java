@@ -48,6 +48,8 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
     private static final SplitPointsBuilder INSTANCE = new SplitPointsBuilder();
 
     static class Context {
+        public java.util.function.Function<Symbol, Symbol> preprocessSymbol;
+
         private final ArrayList<Function> aggregates = new ArrayList<>();
         private final ArrayList<Function> tableFunctions = new ArrayList<>();
         private final ArrayList<Symbol> standalone = new ArrayList<>();
@@ -102,14 +104,22 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
 
     private void process(Symbol symbol, Context context) {
         context.foundAggregateOrTableFunction = false;
-        symbol.accept(this, context);
+
+        Symbol s = context.preprocessSymbol.apply(symbol);
+        s.accept(this, context);
         if (context.foundAggregateOrTableFunction == false) {
-            context.standalone.add(symbol);
+            context.standalone.add(s);
         }
     }
 
     public static SplitPoints create(QueriedSelectRelation relation) {
+        return create(relation, java.util.function.Function.identity());
+    }
+
+    public static SplitPoints create(QueriedSelectRelation relation, java.util.function.Function<Symbol, Symbol> preprocessSymbol) {
         Context context = new Context();
+        context.preprocessSymbol = preprocessSymbol;
+
         INSTANCE.process(relation.outputs(), context);
         OrderBy orderBy = relation.orderBy();
         if (orderBy != null) {
