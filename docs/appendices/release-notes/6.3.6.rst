@@ -48,6 +48,3 @@ Fixes
 
 - Fixed an issue that would throw an error when using :ref:`pg_sleep()
   <scalar-pg_sleep>` function in the ``SELECT`` clause.
-
-- Fixed a rare issue where ``INSERT`` statements running concurrently with
-  ``SWAP TABLE`` could insert data into the wrong table.

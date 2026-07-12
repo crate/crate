@@ -52,7 +52,6 @@ public final class InsertFromSubQueryPlanner {
 
         ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
             statement.tableInfo().ident(),
-            statement.tableInfo().oid(),
             null,
             statement.tableInfo().primaryKey(),
             statement.columns(),

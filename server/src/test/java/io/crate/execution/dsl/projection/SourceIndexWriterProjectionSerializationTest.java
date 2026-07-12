@@ -75,7 +75,6 @@ public class SourceIndexWriterProjectionSerializationTest {
         // fail_fast property set to true
         SourceIndexWriterProjection expected = new SourceIndexWriterProjection(
             relationName,
-            OID_UNASSIGNED,
             partitionIdent,
             reference,
             inputColumn,
