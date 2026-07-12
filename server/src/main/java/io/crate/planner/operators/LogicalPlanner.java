@@ -292,7 +292,18 @@ public class LogicalPlanner {
         var timeoutToken = plannerContext.timeoutToken();
         LogicalPlan optimizedPlan = optimizer.optimize(plan, plannerContext.planStats(), txnCtx, tracer, timeoutToken);
         optimizedPlan = joinImplementationOptimizer.optimize(optimizedPlan, plannerContext.planStats(), txnCtx, tracer, timeoutToken);
-        LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
+        // This is interesting when a function is in the output (e.g. select count(distinct x)).
+        // Functions are equal iff their arguments, signature, filter and return types are equal.
+        // (See: io.crate.expression.symbol.Function.equals).
+        // That limits us when optimizing plans. When we have count(distinct x), then we can't
+        // replace `distinct x` with something else.
+        // This currently work because the relation itself is rewritten in ExpressionAnalyzer.InnerExpressionAnalyzer.visitFunctionCall.
+        // IMHO, it would make sense that in this particular case, the equality conditions are relaxed
+        // and limited to checking the output (return types).
+
+        // todo temporary hack
+        // LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
+        LogicalPlan prunedPlan = optimizedPlan;
         assert prunedPlan.outputs().equals(optimizedPlan.outputs())
             : "Pruned plan must have the same outputs as original plan";
         LogicalPlan fetchOptimized = fetchOptimizer.optimize(
@@ -528,10 +539,17 @@ public class LogicalPlanner {
 
 
         @Override
-        public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation relation, List<Symbol> outputs) {
+        public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation relation, List<Symbol> _outputs) {
+            java.util.function.Function<Symbol, Symbol> preprocessSymbol =
+                s -> wrapIfDistinctFunction(coordinatorTxnCtx, nodeCtx, s);
+
+            List<Symbol> outputs = relation.outputs().stream()
+                .map(preprocessSymbol)
+                .toList();
+
             SplitPoints splitPoints = SplitPointsBuilder.create(
                 relation,
-                s -> wrapIfDistinctFunction(coordinatorTxnCtx, nodeCtx, s)
+                preprocessSymbol
             );
             SubQueries subQueries = subqueryPlanner.planSubQueries(relation);
             LogicalPlan source = buildImplicitJoins(
@@ -579,7 +597,7 @@ public class LogicalPlanner {
                                     splitPoints.tableFunctions()
                                 ),
                                 relation.isDistinct(),
-                                relation.outputs()
+                                outputs
                             ),
                             relation.orderBy()
                         ),
