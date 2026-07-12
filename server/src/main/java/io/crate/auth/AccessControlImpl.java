@@ -80,6 +80,7 @@ import io.crate.analyze.AnalyzedOptimizeTable;
 import io.crate.analyze.AnalyzedPrivileges;
 import io.crate.analyze.AnalyzedPromoteReplica;
 import io.crate.analyze.AnalyzedRefreshTable;
+import io.crate.analyze.AnalyzedRefreshMaterializedView;
 import io.crate.analyze.AnalyzedRerouteAllocatePrimaryShard;
 import io.crate.analyze.AnalyzedRerouteAllocateReplicaShard;
 import io.crate.analyze.AnalyzedRerouteCancelShard;
@@ -412,6 +413,19 @@ public final class AccessControlImpl implements AccessControl {
                 createTableAs.analyzedCreateTable().relationName().schema()
             );
             visitRelation(createTableAs.sourceRelation(), user, Permission.DQL);
+            return null;
+        }
+
+        @Override
+        public Void visitRefreshMaterializedView(AnalyzedRefreshMaterializedView refresh, Role user) {
+            Privileges.ensureUserHasPrivilege(
+                relationVisitor.roles,
+                user,
+                Permission.DDL,
+                Securable.TABLE,
+                refresh.target().ident().fqn()
+            );
+            visitRelation(refresh.replacement().sourceRelation(), user, Permission.DQL);
             return null;
         }
 

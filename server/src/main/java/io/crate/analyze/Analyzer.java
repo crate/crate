@@ -85,6 +85,7 @@ import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateTableAs;
+import io.crate.sql.tree.CreateMaterializedView;
 import io.crate.sql.tree.CreateTableLike;
 import io.crate.sql.tree.CreateUserMapping;
 import io.crate.sql.tree.CreateView;
@@ -109,6 +110,7 @@ import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUserMapping;
 import io.crate.sql.tree.DropView;
+import io.crate.sql.tree.DropMaterializedView;
 import io.crate.sql.tree.EmptyStatement;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
@@ -121,6 +123,7 @@ import io.crate.sql.tree.OptimizeStatement;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.RefreshStatement;
+import io.crate.sql.tree.RefreshMaterializedView;
 import io.crate.sql.tree.ResetStatement;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.RevokePrivilege;
@@ -147,6 +150,7 @@ public class Analyzer {
     private final DropCheckConstraintAnalyzer dropCheckConstraintAnalyzer;
     private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
     private final CreateTableAsAnalyzer createTableAsAnalyzer;
+    private final MaterializedViewAnalyzer materializedViewAnalyzer;
     private final CreateTableLikeAnalyzer createTableLikeAnalyzer;
     private final ExplainStatementAnalyzer explainStatementAnalyzer;
     private final ShowStatementAnalyzer showStatementAnalyzer;
@@ -219,6 +223,7 @@ public class Analyzer {
         this.deleteAnalyzer = new DeleteAnalyzer(nodeCtx, relationAnalyzer);
         this.insertAnalyzer = new InsertAnalyzer(nodeCtx, schemas, relationAnalyzer);
         this.createTableAsAnalyzer = new CreateTableAsAnalyzer(createTableStatementAnalyzer, insertAnalyzer, relationAnalyzer);
+        this.materializedViewAnalyzer = new MaterializedViewAnalyzer(createTableAsAnalyzer, schemas);
         this.createTableLikeAnalyzer = new CreateTableLikeAnalyzer(schemas, createTableStatementAnalyzer);
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas, nodeCtx);
         this.createRepositoryAnalyzer = new CreateRepositoryAnalyzer(repositoryService, nodeCtx);
@@ -477,6 +482,15 @@ public class Analyzer {
         }
 
         @Override
+        public AnalyzedStatement visitCreateMaterializedView(CreateMaterializedView node, Analysis analysis) {
+            return createTableAsAnalyzer.analyze(
+                node,
+                analysis.paramTypeHints(),
+                analysis.transactionContext()
+            );
+        }
+
+        @Override
         public AnalyzedStatement visitCreateTableLike(CreateTableLike<?> node, Analysis analysis) {
             return createTableLikeAnalyzer.analyze(
                 (CreateTableLike<Expression>) node,
@@ -564,6 +578,11 @@ public class Analyzer {
         }
 
         @Override
+        public AnalyzedStatement visitDropMaterializedView(DropMaterializedView node, Analysis context) {
+            return dropTableAnalyzer.analyze(node, context.sessionSettings());
+        }
+
+        @Override
         protected AnalyzedStatement visitExplain(Explain node, Analysis context) {
             return explainStatementAnalyzer.analyze(node, context);
         }
@@ -621,6 +640,11 @@ public class Analyzer {
                 context.paramTypeHints(),
                 context.transactionContext()
             );
+        }
+
+        @Override
+        public AnalyzedStatement visitRefreshMaterializedView(RefreshMaterializedView node, Analysis context) {
+            return materializedViewAnalyzer.analyze(node, context.transactionContext());
         }
 
         @Override

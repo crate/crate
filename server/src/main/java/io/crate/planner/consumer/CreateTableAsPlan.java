@@ -22,16 +22,24 @@
 package io.crate.planner.consumer;
 
 import java.util.function.Supplier;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
+import org.elasticsearch.action.admin.indices.refresh.TransportRefresh;
 
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateTableAs;
 import io.crate.analyze.BoundCreateTable;
 import io.crate.analyze.NumberOfShards;
 import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.CollectingRowConsumer;
+import io.crate.data.Row1;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.data.SentinelRow;
 import io.crate.execution.ddl.tables.CreateTableClient;
+import io.crate.metadata.PartitionName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -93,19 +101,68 @@ public final class CreateTableAsPlan implements Plan {
         createTableClient.create(boundCreateTable, plannerContext.clusterState().nodes().getMinNodeVersion())
             .whenComplete((rowCount, err) -> {
                 if (err == null) {
-                    Plan.execute(
-                        postponedInsertPlan.get(),
-                        dependencies,
-                        plannerContext,
-                        consumer,
-                        params,
-                        subQueryResults
-                    );
+                    if (analyzedCreateTable.materializedViewDefinition() == null) {
+                        Plan.execute(
+                            postponedInsertPlan.get(),
+                            dependencies,
+                            plannerContext,
+                            consumer,
+                            params,
+                            subQueryResults
+                        );
+                    } else {
+                        executeMaterializedViewInsert(
+                            dependencies,
+                            plannerContext,
+                            consumer,
+                            params,
+                            subQueryResults,
+                            boundCreateTable
+                        );
+                    }
                 } else if (boundCreateTable.ifNotExists() && CreateTableClient.isTableExistsError(err, boundCreateTable.templateName())) {
                     consumer.accept(InMemoryBatchIterator.empty(SentinelRow.SENTINEL), null);
                 } else {
                     consumer.accept(null, err);
                 }
             });
+    }
+
+    private void executeMaterializedViewInsert(DependencyCarrier dependencies,
+                                               PlannerContext plannerContext,
+                                               RowConsumer consumer,
+                                               Row params,
+                                               SubQueryResults subQueryResults,
+                                               BoundCreateTable boundCreateTable) {
+        CollectingRowConsumer<?, Long> insertConsumer = new CollectingRowConsumer<>(
+            Collectors.summingLong(row -> (long) row.get(0))
+        );
+        insertConsumer.completionFuture().whenComplete((rowCount, insertError) -> {
+            if (insertError != null) {
+                consumer.accept(null, insertError);
+                return;
+            }
+            RefreshRequest refreshRequest = new RefreshRequest(List.of(
+                new PartitionName(boundCreateTable.tableName(), List.of())
+            ));
+            dependencies.client().execute(TransportRefresh.ACTION, refreshRequest).whenComplete((_, refreshError) -> {
+                if (refreshError == null) {
+                    consumer.accept(
+                        InMemoryBatchIterator.of(new Row1(rowCount), SentinelRow.SENTINEL),
+                        null
+                    );
+                } else {
+                    consumer.accept(null, refreshError);
+                }
+            });
+        });
+        Plan.execute(
+            postponedInsertPlan.get(),
+            dependencies,
+            plannerContext,
+            insertConsumer,
+            params,
+            subQueryResults
+        );
     }
 }

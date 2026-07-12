@@ -640,8 +640,20 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(createView, context);
     }
 
+    public R visitCreateMaterializedView(CreateMaterializedView createMaterializedView, C context) {
+        return visitStatement(createMaterializedView, context);
+    }
+
     public R visitDropView(DropView dropView, C context) {
         return visitStatement(dropView, context);
+    }
+
+    public R visitDropMaterializedView(DropMaterializedView dropMaterializedView, C context) {
+        return visitStatement(dropMaterializedView, context);
+    }
+
+    public R visitRefreshMaterializedView(RefreshMaterializedView refreshMaterializedView, C context) {
+        return visitStatement(refreshMaterializedView, context);
     }
 
     public R visitSwapTable(SwapTable<?> swapTable, C context) {
