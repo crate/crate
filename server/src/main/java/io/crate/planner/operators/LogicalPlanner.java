@@ -299,7 +299,7 @@ public class LogicalPlanner {
         // replace `distinct x` with something else.
         // This currently work because the relation itself is rewritten in ExpressionAnalyzer.InnerExpressionAnalyzer.visitFunctionCall.
         // IMHO, it would make sense that in this particular case, the equality conditions are relaxed
-        // and limited to checking the output (return types).
+        // and limited to checking the return types.
 
         // todo temporary hack
         // LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
