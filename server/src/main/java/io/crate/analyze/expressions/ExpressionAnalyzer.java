@@ -58,6 +58,7 @@ import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
+import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
@@ -262,7 +263,69 @@ public class ExpressionAnalyzer {
         return whereExpression.map(expression -> convert(expression, context)).orElse(Literal.BOOLEAN_TRUE);
     }
 
-    private Symbol convertFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
+    private Symbol convertFunctionCallOld(FunctionCall node, ExpressionAnalysisContext context) {
+        List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
+        for (Expression expression : node.getArguments()) {
+            Symbol argSymbol = expression.accept(innerAnalyzer, context);
+            arguments.add(argSymbol);
+        }
+
+        List<String> parts = node.getName().getParts();
+        // We don't set a default schema here because no supplied schema
+        // means that we first try to lookup builtin functions, followed
+        // by a lookup in the default schema for UDFs.
+        String schema = null;
+        String name;
+        if (parts.size() == 1) {
+            name = parts.get(0);
+        } else {
+            schema = parts.get(0);
+            name = parts.get(1);
+        }
+
+        Symbol filter = node.filter()
+            .map(expression -> convert(expression, context))
+            .orElse(null);
+
+        WindowDefinition windowDefinition = getWindowDefinition(node.getWindow(), context);
+        if (node.isDistinct()) {
+            if (arguments.size() > 1) {
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                    "%s(DISTINCT x) does not accept more than one argument", node.getName()));
+            }
+            Symbol collectSetFunction = allocateFunction(
+                CollectSetAggregation.NAME,
+                arguments,
+                filter,
+                context,
+                coordinatorTxnCtx,
+                nodeCtx);
+
+            // define the outer function which contains the inner function as argument.
+            String nodeName = "collection_" + name;
+            List<Symbol> outerArguments = List.of(collectSetFunction);
+            try {
+                return allocateBuiltinOrUdfFunction(
+                    schema, nodeName, outerArguments, null, node.ignoreNulls(), false, windowDefinition, context);
+            } catch (UnsupportedOperationException ex) {
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                    "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
+            }
+        } else {
+            return allocateBuiltinOrUdfFunction(
+                schema,
+                name,
+                arguments,
+                filter,
+                node.ignoreNulls(),
+                node.isDistinct(),
+                windowDefinition,
+                context
+            );
+        }
+    }
+
+    private Symbol convertFunctionCallNew(FunctionCall node, ExpressionAnalysisContext context) {
         List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
         for (Expression expression : node.getArguments()) {
             Symbol argSymbol = expression.accept(innerAnalyzer, context);
@@ -520,7 +583,7 @@ public class ExpressionAnalyzer {
                 return visitSubscriptExpression(
                     new SubscriptExpression(node.getArguments().get(0), node.getArguments().get(1)), context);
             }
-            return convertFunctionCall(node, context);
+            return convertFunctionCallNew(node, context);
         }
 
         @Override
