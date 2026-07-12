@@ -67,7 +67,6 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
      * @param onDuplicateKeyAssignments reference to symbol map used for update on duplicate key
      */
     public ColumnIndexWriterProjection(RelationName relationName,
-                                       int tableOid,
                                        @Nullable String partitionIdent,
                                        List<ColumnIdent> primaryKeys,
                                        List<Reference> allTargetColumns,
@@ -83,7 +82,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        List<Symbol> returnValues,
                                        long fullDocSizeEstimate) {
 
-        super(relationName, tableOid, partitionIdent, primaryKeys, clusteredByColumn, settings, primaryKeySymbols, autoCreateIndices);
+        super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, primaryKeySymbols, autoCreateIndices);
         assert partitionedBySymbols.stream().noneMatch(s -> s.any(Symbol.IS_COLUMN))
             : "All references and fields in partitionedBySymbols must be resolved to inputColumns, got: " + partitionedBySymbols;
         this.allTargetColumns = allTargetColumns;
@@ -275,7 +274,6 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
         return new ColumnIndexWriterProjection(
             tableIdent(),
-            tableOid(),
             null,
             primaryKeys,
             allTargetColumns,
