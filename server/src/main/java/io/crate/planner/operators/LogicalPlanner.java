@@ -629,7 +629,7 @@ public class LogicalPlanner {
         return source;
     }
 
-    private static Function handleDistinctFunction(CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx, Function fn) {
+    private static Function wrapIfDistinct(CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx, Function fn) {
         if (fn.distinct()) {
             return wrapWithCollectSet(fn, coordinatorTxnCtx, nodeCtx);
         }
