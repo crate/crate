@@ -567,9 +567,7 @@ public class LogicalPlanner {
                                                     splitPoints.tableFunctionsBelowGroupBy()
                                                 ),
                                                 relation.groupBy(),
-                                                splitPoints.aggregates(),
-                                                coordinatorTxnCtx,
-                                                nodeCtx
+                                                splitPoints.aggregates()
                                             ),
                                             having
                                         ),
@@ -621,27 +619,21 @@ public class LogicalPlanner {
 
     private static LogicalPlan groupByOrAggregate(LogicalPlan source,
                                                   List<Symbol> groupKeys,
-                                                  List<Function> aggregates,
-                                                  CoordinatorTxnCtx coordinatorTxnCtx,
-                                                  NodeContext nodeCtx) {
+                                                  List<Function> aggregates) {
         if (!groupKeys.isEmpty()) {
             return new GroupHashAggregate(source, groupKeys, aggregates);
         }
         if (!aggregates.isEmpty()) {
-            return new HashAggregate(source, handleDistinctFunctions(aggregates, coordinatorTxnCtx, nodeCtx));
+            return new HashAggregate(source, aggregates);
         }
         return source;
     }
 
-    private static List<Function> handleDistinctFunctions(List<Function> aggregates, CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx) {
-        return aggregates.stream()
-            .map(fn -> {
-                if (fn.distinct()) {
-                    return wrapWithCollectSet(fn, coordinatorTxnCtx, nodeCtx);
-                }
-                return fn;
-            })
-            .toList();
+    private static Function handleDistinctFunction(CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx, Function fn) {
+        if (fn.distinct()) {
+            return wrapWithCollectSet(fn, coordinatorTxnCtx, nodeCtx);
+        }
+        return fn;
     }
 
     private static Function wrapWithCollectSet(Function original, CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx) {
