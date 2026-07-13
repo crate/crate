@@ -30,6 +30,7 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
@@ -59,6 +60,7 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.snapshots.IndexShardSnapshotStatus;
 import org.elasticsearch.index.store.Store;
@@ -89,6 +91,7 @@ import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.PublicationsStateAction.Response;
 import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
 import io.crate.replication.logical.metadata.ConnectionInfo;
+import io.crate.replication.logical.metadata.Subscription;
 
 /**
  * Derived from org.opensearch.replication.repository.RemoteClusterRepository
@@ -258,10 +261,11 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 var remoteClusterState = remoteStateResp.getState();
                 var remoteMetadata = remoteClusterState.metadata();
                 var shardGenerations = ShardGenerations.builder();
-                var it = remoteMetadata.indices().values().iterator();
+                Iterator<IndexMetadata> it = remoteMetadata.indices().values().iterator();
                 while (it.hasNext()) {
                     var indexMetadata = it.next();
-                    var indexId = new IndexId(indexMetadata.getIndex().name(), indexMetadata.getIndexUUID());
+                    Index index = indexMetadata.getIndex();
+                    var indexId = new IndexId(index.name(), index.uuid());
                     for (int i = 0; i < indexMetadata.getNumberOfShards(); i++) {
                         shardGenerations.put(indexId, i, "dummy");
                     }
@@ -499,16 +503,16 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     private CompletableFuture<Response> getPublicationsState() {
-        return getRemoteClient().execute(
-            PublicationsStateAction.INSTANCE,
-            new PublicationsStateAction.Request(
-                logicalReplicationService.subscriptions().get(subscriptionName).publications(),
-                logicalReplicationService.subscriptions().get(subscriptionName).connectionInfo().settings().get(ConnectionInfo.USERNAME.getKey())
-            )).thenApply(r ->
-                new Response(
-                    metadataUpgradeService.upgradeMetadata(r.metadata()),
-                    r.unknownPublications()
-                ));
+        Subscription subscription = logicalReplicationService.subscriptions().get(subscriptionName);
+        PublicationsStateAction.Request request = new PublicationsStateAction.Request(
+            subscription.publications(),
+            subscription.connectionInfo().settings().get(ConnectionInfo.USERNAME.getKey())
+        );
+        return getRemoteClient().execute(PublicationsStateAction.INSTANCE, request).thenApply(r ->
+            new Response(
+                metadataUpgradeService.upgradeMetadata(r.metadata()),
+                r.unknownPublications()
+            ));
     }
 
     private void releasePublisherResources(Client remoteClient,

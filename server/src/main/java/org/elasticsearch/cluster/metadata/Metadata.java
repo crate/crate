@@ -223,6 +223,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 }
             }
         }
+        // assert indices.values().stream().map(x -> x.getIndex().getName()).distinct().count() == indices.size()
+        //     : "Index names must be unique";
         oidsRelations = oidsRelationsBuilder.build();
         indexUUIDsRelations = Map.copyOf(indexUUIDsRelationsBuilder);
     }
