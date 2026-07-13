@@ -442,7 +442,7 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata>
 
         @Override
         public int oid() {
-            return Metadata.OID_UNASSIGNED;
+            return OidHash.relationOid(OidHash.Type.TABLE, name);
         }
 
         @Override
