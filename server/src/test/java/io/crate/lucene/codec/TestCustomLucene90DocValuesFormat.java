@@ -52,6 +52,7 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.DocValuesSkipper;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -70,6 +71,10 @@ import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.ByteBuffersDataInput;
 import org.apache.lucene.store.ByteBuffersDataOutput;
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FilterDirectory;
+import org.apache.lucene.store.FilterIndexInput;
+import org.apache.lucene.store.IOContext;
+import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.tests.analysis.MockAnalyzer;
 import org.apache.lucene.tests.codecs.asserting.AssertingCodec;
 import org.apache.lucene.tests.index.BaseDocValuesFormatTestCase;
@@ -78,6 +83,7 @@ import org.apache.lucene.tests.util.TestUtil;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.elasticsearch.index.codec.CrateCodec;
+import org.junit.Test;
 
 public class TestCustomLucene90DocValuesFormat extends BaseDocValuesFormatTestCase {
 
@@ -1021,5 +1027,54 @@ public class TestCustomLucene90DocValuesFormat extends BaseDocValuesFormatTestCa
         assertNull(termsEnum.next());
         reader.close();
         directory.close();
+    }
+
+    @Test
+    public void testSkipIndexStoredSeparately() throws IOException {
+        try (Directory dir = newDirectory()) {
+            IndexWriterConfig conf = newIndexWriterConfig();
+            conf.setCodec(getCodec());
+            conf.setUseCompoundFile(false);
+            try (IndexWriter writer = new IndexWriter(dir, conf)) {
+                for (int i = 0; i < 100; i++) {
+                    Document doc = new Document();
+                    doc.add(NumericDocValuesField.indexedField("dv", i));
+                    writer.addDocument(doc);
+                }
+                writer.forceMerge(1);
+            }
+
+            // Wrap the directory so that any attempt to slice() the .dvd file throws.
+            // The producer constructor opens .dvd for header/checksum validation (sequential reads),
+            // but getSkipper() should only slice the .dvs file, never the .dvd file.
+            Directory noDataSliceDir =
+                new FilterDirectory(dir) {
+                    @Override
+                    public IndexInput openInput(String name, IOContext context) throws IOException {
+                        IndexInput in = super.openInput(name, context);
+                        if (name.endsWith("." + CustomLucene90DocValuesFormat.DATA_EXTENSION)) {
+                            return new FilterIndexInput("no-slice-" + name, in) {
+                                @Override
+                                public IndexInput slice(String sliceDescription, long offset, long length) {
+                                    throw new AssertionError(
+                                        "should not slice .dvd file for skip index access: " + sliceDescription);
+                                }
+                            };
+                        }
+                        return in;
+                    }
+                };
+
+            try (DirectoryReader reader = DirectoryReader.open(noDataSliceDir)) {
+                LeafReader leaf = getOnlyLeafReader(reader);
+                DocValuesSkipper skipper = leaf.getDocValuesSkipper("dv");
+                assertNotNull(skipper);
+                assertEquals(100, skipper.docCount());
+                skipper.advance(0);
+                assertEquals(0, skipper.minDocID(0));
+                assertTrue(skipper.maxDocID(0) >= 0);
+                assertTrue(skipper.minValue() <= skipper.maxValue());
+            }
+        }
     }
 }
