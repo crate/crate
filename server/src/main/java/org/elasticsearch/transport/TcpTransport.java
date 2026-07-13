@@ -75,15 +75,16 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
-import io.crate.common.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Sets;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.CountDown;
+import io.crate.exceptions.TransportNotReady;
 import io.crate.protocols.ConnectionStats;
 import io.crate.rest.action.HttpErrorStatus;
 import io.netty.channel.ChannelFuture;
@@ -617,6 +618,9 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             }
         } else if (e instanceof StreamCorruptedException) {
             logger.warn(() -> new ParameterizedMessage("{}, [{}], closing connection", e.getMessage(), channel));
+            CloseableChannel.closeChannel(channel, false);
+        } else if (e instanceof TransportNotReady) {
+            logger.debug("{} [{}], closing connection", e.getMessage(), channel);
             CloseableChannel.closeChannel(channel, false);
         } else {
             logger.warn(() -> new ParameterizedMessage("exception caught on transport layer [{}], closing connection", channel), e);
