@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.InvalidRelationName;
 import org.jspecify.annotations.Nullable;
 import org.junit.Test;
@@ -34,6 +35,7 @@ import io.crate.metadata.RelationLookup;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;
+import io.crate.testing.SQLExecutor;
 
 public class RegclassTypeTest extends DataTypeTestCase<Regclass> {
 
@@ -121,5 +123,17 @@ public class RegclassTypeTest extends DataTypeTestCase<Regclass> {
         Assertions.assertThatThrownBy(() -> RegclassType.INSTANCE.explicitCast("\"\"myTable\"\"", SESSION_SETTINGS, null))
             .isExactlyInstanceOf(InvalidRelationName.class)
             .hasMessageContaining("Relation name '\"\"myTable\"\"' is invalid");
+    }
+
+    @Test
+    public void test_cast_foreign_table() throws Exception {
+        Settings options = Settings.builder()
+            .put("url", "jdbc:postgresql://localhost:5432/")
+            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addServer("pg", "jdbc", "crate", options)
+            .addForeignTable("create foreign table doc.tbl (x int) server pg options (schema_name 'doc')");
+        var regclass = RegclassType.INSTANCE.explicitCast("\"tbl\"", SESSION_SETTINGS, e.schemas());
+        assertThat(regclass.oid()).isEqualTo(-579575814);
     }
 }
