@@ -55,3 +55,6 @@ Fixes
 
 - Fixed an issue that would throw an error when using :ref:`pg_sleep()
   <scalar-pg_sleep>` function in the ``SELECT`` clause.
+
+- Fixed an issue that caused casts of foreign tables to ``REGCLASS`` to
+  incorrectly return ``0``.
