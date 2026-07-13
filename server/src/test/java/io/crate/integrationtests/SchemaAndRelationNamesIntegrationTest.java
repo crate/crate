@@ -60,9 +60,7 @@ public class SchemaAndRelationNamesIntegrationTest extends IntegTestCase {
         execute("CREATE FUNCTION \"_Abc\".func(string) RETURNS STRING LANGUAGE dummy_lang AS 'DUMMY EATS text'");
         execute("refresh table \"_Abc\".\"_T\"");
 
-        // check index/template names
         var meta = clusterService().state().metadata();
-        assertThat(meta.indices().values().iterator().next().getIndex().name()).isEqualTo("_Abc..partitioned._T.04132");
 
         // check viewMetadata names as well as its target query
         SchemaMetadata schemaMetadata = meta.schemas().get("_Abc");

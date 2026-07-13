@@ -118,6 +118,24 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[1][0]).isEqualTo("04732e1g60qj0dpl6csjicpo");
     }
 
+    /// See https://github.com/crate/crate/pull/19734
+    @Test
+    public void test_rename_partitioned_table_and_insert_doesnt_result_in_duplicate_index_names() throws Exception {
+        execute("create table tbl1 (x int, p int) partitioned by (p)");
+        execute("create table tbl2 (x int, p int) partitioned by (p)");
+
+        execute("insert into tbl1 (x, p) values (1, 1)");
+        execute("alter cluster swap table tbl1 to tbl2");
+        execute("insert into tbl1 (x, p) values (1, 1)");
+
+        ClusterState state = clusterService().state();
+        long numUniqueIndexNames = state.metadata().indices().values().stream()
+            .map(imd -> imd.getIndex().name())
+            .distinct()
+            .count();
+        assertThat(numUniqueIndexNames).isEqualTo(2);
+    }
+
     @Test
     public void testCopyFromIntoPartitionedTable() throws Exception {
         execute("create table quotes (" +
