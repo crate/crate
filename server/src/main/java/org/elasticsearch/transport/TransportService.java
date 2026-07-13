@@ -55,10 +55,11 @@ import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.TransportNotReady;
 import io.crate.protocols.ConnectionStats;
 
 public class TransportService extends AbstractLifecycleComponent implements TransportMessageListener, TransportConnectionListener {
@@ -682,7 +683,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     @Override
     public void onRequestReceived(long requestId, String action) {
         if (handleIncomingRequests.get() == false) {
-            throw new IllegalStateException("transport not ready yet to handle incoming requests");
+            throw new TransportNotReady();
         }
         if (tracerLog.isTraceEnabled()) {
             tracerLog.trace("[{}][{}] received request", requestId, action);

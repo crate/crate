@@ -72,6 +72,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
     private final IntObjectHashMap<SortedNumericEntry> sortedNumerics;
     private final IntObjectHashMap<DocValuesSkipperEntry> skippers;
     private final IndexInput data;
+    private final IndexInput skipIndexData;
     private final int maxDoc;
     private int version = -1;
     private final boolean merging;
@@ -84,7 +85,9 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         String dataCodec,
         String dataExtension,
         String metaCodec,
-        String metaExtension)
+        String metaExtension,
+        String skipIndexCodec,
+        String skipIndexExtension)
         throws IOException {
         final String metaName = IndexFileNames.segmentFileName(state.segmentInfo.name, state.segmentSuffix, metaExtension);
         this.maxDoc = state.segmentInfo.maxDoc();
@@ -110,6 +113,10 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                     state.segmentSuffix);
 
                 readFields(in, state.fieldInfos);
+
+                if (version < CustomLucene90DocValuesFormat.VERSION_SKIPPER_MAX_VALUE_COUNT) {
+                    inferMaxValueCounts(state.fieldInfos);
+                }
 
             } catch (Throwable exception) {
                 priorE = exception;
@@ -150,6 +157,37 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                 IOUtils.closeWhileHandlingException(this.data);
             }
         }
+
+        if (version >= CustomLucene90DocValuesFormat.VERSION_SKIPPER_SEPARATE_FILE) {
+            IndexInput skipIn = null;
+            try {
+                String skipIndexName =
+                    IndexFileNames.segmentFileName(
+                        state.segmentInfo.name, state.segmentSuffix, skipIndexExtension);
+                skipIn =
+                    state.directory.openInput(skipIndexName, state.context.withHints(FileTypeHint.INDEX));
+                final int skipVersion =
+                    CodecUtil.checkIndexHeader(
+                        skipIn,
+                        skipIndexCodec,
+                        CustomLucene90DocValuesFormat.VERSION_SKIPPER_SEPARATE_FILE,
+                        CustomLucene90DocValuesFormat.VERSION_CURRENT,
+                        state.segmentInfo.getId(),
+                        state.segmentSuffix);
+                if (version != skipVersion) {
+                    throw new CorruptIndexException(
+                        "Format versions mismatch: meta=" + version + ", skipIndex=" + skipVersion, skipIn);
+
+                }
+                CodecUtil.retrieveChecksum(skipIn);
+            } catch (Throwable t) {
+                IOUtils.closeWhileSuppressingExceptions(t, data, skipIn);
+                throw t;
+            }
+            this.skipIndexData = skipIn;
+        } else {
+            this.skipIndexData = null;
+        }
     }
 
     // Used for cloning
@@ -161,6 +199,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         IntObjectHashMap<SortedNumericEntry> sortedNumerics,
         IntObjectHashMap<DocValuesSkipperEntry> skippers,
         IndexInput data,
+        IndexInput skipIndexData,
         int maxDoc,
         int version,
         boolean merging) {
@@ -171,6 +210,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         this.sortedNumerics = sortedNumerics;
         this.skippers = skippers;
         this.data = data.clone();
+        this.skipIndexData = skipIndexData != null ? skipIndexData.clone() : null;
         this.maxDoc = maxDoc;
         this.version = version;
         this.merging = merging;
@@ -179,7 +219,66 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
     @Override
     public DocValuesProducer getMergeInstance() {
         return new CustomLucene90DocValuesProducer(
-            numerics, binaries, sorted, sortedSets, sortedNumerics, skippers, data, maxDoc, version, true);
+            numerics,
+            binaries,
+            sorted,
+            sortedSets,
+            sortedNumerics,
+            skippers,
+            data,
+            skipIndexData,
+            maxDoc,
+            version,
+            true);
+    }
+
+    private void inferMaxValueCounts(FieldInfos fieldInfos) {
+        for (var cursor : skippers) {
+            DocValuesSkipperEntry entry = cursor.value;
+            if (entry.maxValueCount == -1 && entry.docCount != 0) {
+                int fieldNumber = cursor.key;
+                FieldInfo info = fieldInfos.fieldInfo(fieldNumber);
+                int inferredMaxValueCount = -1;
+                if (info != null) {
+                    switch (info.getDocValuesType()) {
+                        case NUMERIC, SORTED -> inferredMaxValueCount = 1;
+                        case SORTED_NUMERIC -> {
+                            SortedNumericEntry sne = sortedNumerics.get(fieldNumber);
+                            if (sne != null && sne.numValues == sne.numDocsWithField) {
+                                inferredMaxValueCount = 1;
+                            }
+                        }
+                        case SORTED_SET -> {
+                            SortedSetEntry sse = sortedSets.get(fieldNumber);
+                            if (sse != null) {
+                                if (sse.singleValueEntry != null) {
+                                    inferredMaxValueCount = 1;
+                                } else if (sse.ordsEntry != null
+                                    && sse.ordsEntry.numValues == sse.ordsEntry.numDocsWithField) {
+                                    inferredMaxValueCount = 1;
+                                }
+                            }
+                        }
+                        // $CASES-OMITTED$
+                        default -> {
+                            // leave as -1
+                        }
+                    }
+                }
+                if (inferredMaxValueCount != -1) {
+                    skippers.put(
+                        fieldNumber,
+                        new DocValuesSkipperEntry(
+                            entry.offset,
+                            entry.length,
+                            entry.minValue,
+                            entry.maxValue,
+                            entry.docCount,
+                            entry.maxDocId,
+                            inferredMaxValueCount));
+                }
+            }
+        }
     }
 
     private void readFields(IndexInput meta, FieldInfos infos) throws IOException {
@@ -209,8 +308,13 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
     }
 
     private record DocValuesSkipperEntry(
-        long offset, long length, long minValue, long maxValue, int docCount, int maxDocId) {
-    }
+        long offset,
+        long length,
+        long minValue,
+        long maxValue,
+        int docCount,
+        int maxDocId,
+        int maxValueCount) {}
 
     private DocValuesSkipperEntry readDocValueSkipperMeta(IndexInput meta) throws IOException {
         long offset = meta.readLong();
@@ -219,8 +323,15 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         long minValue = meta.readLong();
         int docCount = meta.readInt();
         int maxDocID = meta.readInt();
+        final int maxValueCount;
+        if (version >= CustomLucene90DocValuesFormat.VERSION_SKIPPER_MAX_VALUE_COUNT) {
+            maxValueCount = meta.readInt();
+        } else {
+            maxValueCount = docCount == 0 ? 0 : -1;
+        }
 
-        return new DocValuesSkipperEntry(offset, length, minValue, maxValue, docCount, maxDocID);
+        return new DocValuesSkipperEntry(
+            offset, length, minValue, maxValue, docCount, maxDocID, maxValueCount);
     }
 
     private NumericEntry readNumeric(IndexInput meta) throws IOException {
@@ -364,7 +475,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
 
     @Override
     public void close() throws IOException {
-        data.close();
+        IOUtils.close(data, skipIndexData);
     }
 
     private static class NumericEntry {
@@ -483,6 +594,16 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         @Override
         public int docIDRunEnd() throws IOException {
             return maxDoc;
+        }
+
+        @Override
+        public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+            assert offset <= doc;
+            upTo = Math.min(upTo, maxDoc);
+            if (upTo > doc) {
+                bitSet.set(doc - offset, upTo - offset);
+                advance(upTo);
+            }
         }
     }
 
@@ -766,6 +887,16 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         public int docIDRunEnd() throws IOException {
             return maxDoc;
         }
+
+        @Override
+        public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+            assert offset <= doc;
+            upTo = Math.min(upTo, maxDoc);
+            if (upTo > doc) {
+                bitSet.set(doc - offset, upTo - offset);
+                advance(upTo);
+            }
+        }
     }
 
     private abstract static class SparseBinaryDocValues extends BinaryDocValues {
@@ -975,6 +1106,16 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                     public int docIDRunEnd() throws IOException {
                         return maxDoc;
                     }
+
+                    @Override
+                    public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+                        assert offset <= doc;
+                        upTo = Math.min(upTo, maxDoc);
+                        if (upTo > doc) {
+                            bitSet.set(doc - offset, upTo - offset);
+                            advance(upTo);
+                        }
+                    }
                 };
             } else if (ordsEntry.docsWithFieldOffset >= 0) { // sparse but non-empty
                 final IndexedDISI disi = new IndexedDISI(
@@ -1066,6 +1207,11 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             @Override
             public int docIDRunEnd() throws IOException {
                 return ords.docIDRunEnd();
+            }
+
+            @Override
+            public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+                ords.intoBitSet(upTo, bitSet, offset);
             }
         };
     }
@@ -1414,13 +1560,63 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         }
     }
 
+    private static int fixedCardinality(
+        SortedNumericEntry entry, DocValuesSkipperEntry skipperEntry) {
+        if (skipperEntry == null
+            || skipperEntry.maxValueCount <= 1
+            || entry.numDocsWithField == 0
+            || entry.numValues % entry.numDocsWithField != 0) {
+            return -1;
+        }
+        long cardinality = entry.numValues / entry.numDocsWithField;
+        if (cardinality > Integer.MAX_VALUE || cardinality != skipperEntry.maxValueCount) {
+            return -1;
+        }
+        return (int) cardinality;
+    }
+
+    private static void sortedNumericScalarRangeIntoBitSet(
+        LongValues values,
+        int fromDoc,
+        int toDoc,
+        int cardinality,
+        long minValue,
+        long maxValue,
+        FixedBitSet bitSet,
+        int offset) {
+        for (int doc = fromDoc; doc < toDoc; doc++) {
+            long valueOffset = (long) doc * cardinality;
+            for (int i = 0; i < cardinality; i++) {
+                long value = values.get(valueOffset + i);
+                if (value >= minValue) {
+                    if (value <= maxValue) {
+                        bitSet.set(doc - offset);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    private static boolean sortedNumericMatchesRange(
+        LongValues values, long start, long end, long minValue, long maxValue) {
+        for (long valueOffset = start; valueOffset < end; valueOffset++) {
+            long value = values.get(valueOffset);
+            if (value >= minValue) {
+                return value <= maxValue;
+            }
+        }
+        return false;
+    }
+
     @Override
     public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
         SortedNumericEntry entry = sortedNumerics.get(field.number);
-        return getSortedNumeric(entry);
+        return getSortedNumeric(entry, skippers.get(field.number));
     }
 
-    private SortedNumericDocValues getSortedNumeric(SortedNumericEntry entry) throws IOException {
+    private SortedNumericDocValues getSortedNumeric(
+        SortedNumericEntry entry, DocValuesSkipperEntry skipperEntry) throws IOException {
         if (entry.numValues == entry.numDocsWithField) {
             return DocValues.singleton(getNumeric(entry));
         }
@@ -1433,6 +1629,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         final LongValues addresses = DirectMonotonicReader.getInstance(entry.addressesMeta, addressesInput, merging);
 
         final LongValues values = getNumericValues(entry);
+        final int denseFixedCardinality = fixedCardinality(entry, skipperEntry);
 
         if (entry.docsWithFieldOffset == -1) {
             // dense
@@ -1488,8 +1685,46 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                 }
 
                 @Override
+                public void rangeIntoBitSet(
+                    int fromDoc, int toDoc, long minValue, long maxValue, FixedBitSet bitSet, int offset) {
+                    int endDoc = Math.min(toDoc, maxDoc);
+                    if (fromDoc >= endDoc) {
+                        return;
+                    }
+                    if (entry.bitsPerValue == 0) {
+                        if (entry.minValue >= minValue && entry.minValue <= maxValue) {
+                            bitSet.set(fromDoc - offset, endDoc - offset);
+                        }
+                        return;
+                    }
+                    int cardinality = denseFixedCardinality;
+                    if (cardinality > 1) {
+                        sortedNumericScalarRangeIntoBitSet(
+                            values, fromDoc, endDoc, cardinality, minValue, maxValue, bitSet, offset);
+                        return;
+                    }
+                    for (int currentDoc = fromDoc; currentDoc < endDoc; currentDoc++) {
+                        long startOffset = addresses.get(currentDoc);
+                        long endOffset = addresses.get(currentDoc + 1L);
+                        if (sortedNumericMatchesRange(values, startOffset, endOffset, minValue, maxValue)) {
+                            bitSet.set(currentDoc - offset);
+                        }
+                    }
+                }
+
+                @Override
                 public int docIDRunEnd() throws IOException {
                     return maxDoc;
+                }
+
+                @Override
+                public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+                    assert offset <= doc;
+                    upTo = Math.min(upTo, maxDoc);
+                    if (upTo > doc) {
+                        bitSet.set(doc - offset, upTo - offset);
+                        advance(upTo);
+                    }
                 }
             };
         } else {
@@ -1545,6 +1780,40 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                 public int docValueCount() {
                     set();
                     return count;
+                }
+
+                @Override
+                public void rangeIntoBitSet(
+                    int fromDoc, int toDoc, long minValue, long maxValue, FixedBitSet bitSet, int offset)
+                    throws IOException {
+                    set = false;
+                    int endDoc = Math.min(toDoc, maxDoc);
+                    if (fromDoc >= endDoc) {
+                        return;
+                    }
+                    int currentDoc = disi.docID();
+                    if (currentDoc < fromDoc) {
+                        currentDoc = disi.advance(fromDoc);
+                    }
+                    if (currentDoc >= endDoc) {
+                        return;
+                    }
+                    if (entry.bitsPerValue == 0) {
+                        if (entry.minValue >= minValue && entry.minValue <= maxValue) {
+                            disi.intoBitSet(endDoc, bitSet, offset);
+                        }
+                        set = false;
+                        return;
+                    }
+                    for (; currentDoc < endDoc; currentDoc = disi.nextDoc()) {
+                        int index = disi.index();
+                        long startOffset = addresses.get(index);
+                        long endOffset = addresses.get(index + 1L);
+                        if (sortedNumericMatchesRange(values, startOffset, endOffset, minValue, maxValue)) {
+                            bitSet.set(currentDoc - offset);
+                        }
+                    }
+                    set = false;
                 }
 
                 @Override
@@ -1657,6 +1926,16 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                     public int docIDRunEnd() throws IOException {
                         return maxDoc;
                     }
+
+                    @Override
+                    public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+                        assert offset <= doc;
+                        upTo = Math.min(upTo, maxDoc);
+                        if (upTo > doc) {
+                            bitSet.set(doc - offset, upTo - offset);
+                            advance(upTo);
+                        }
+                    }
                 };
             } else if (ordsEntry.docsWithFieldOffset >= 0) { // sparse but non-empty
                 final IndexedDISI disi = new IndexedDISI(
@@ -1737,7 +2016,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             }
         }
 
-        final SortedNumericDocValues ords = getSortedNumeric(entry.ordsEntry);
+        final SortedNumericDocValues ords = getSortedNumeric(entry.ordsEntry, null);
         return new BaseSortedSetDocValues(entry, data) {
 
             @Override
@@ -1779,6 +2058,11 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             public int docIDRunEnd() throws IOException {
                 return ords.docIDRunEnd();
             }
+
+            @Override
+            public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+                ords.intoBitSet(upTo, bitSet, offset);
+            }
         };
     }
 
@@ -1786,12 +2070,8 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
     public DocValuesSkipper getSkipper(FieldInfo field) throws IOException {
         final DocValuesSkipperEntry entry = skippers.get(field.number);
 
-        final IndexInput input = data.slice("doc value skipper", entry.offset, entry.length);
-        // Prefetch the first page of data. Following pages are expected to get prefetched through
-        // read-ahead.
-        if (input.length() > 0) {
-            input.prefetch(0, 1);
-        }
+        final IndexInput skipperSource = skipIndexData != null ? skipIndexData : data;
+        final IndexInput input = skipperSource.slice("doc value skipper", entry.offset, entry.length);
 
         return new DocValuesSkipper() {
             final int[] minDocID = new int[SKIP_INDEX_MAX_LEVEL];
@@ -1888,12 +2168,20 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             public int docCount() {
                 return entry.docCount;
             }
+
+            @Override
+            public int maxValueCount() {
+                return entry.maxValueCount;
+            }
         };
     }
 
     @Override
     public void checkIntegrity() throws IOException {
         CodecUtil.checksumEntireFile(data);
+        if (skipIndexData != null) {
+            CodecUtil.checksumEntireFile(skipIndexData);
+        }
     }
 
     /**

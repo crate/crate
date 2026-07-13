@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.test.IntegTestCase;
@@ -33,5 +34,14 @@ public class TablesNeedUpgradeSysCheckTest extends IntegTestCase {
     public void test_4x_indices_not_supported() throws Exception {
         assertThatThrownBy(() -> startUpNodeWithDataDir("/indices/data_home/cratedata-4.3.0.zip"))
             .hasMessageContaining("was created with version [4.3.0] but the minimum compatible version is [5.0.0]");
+    }
+
+    @Test
+    public void test_shows_5x_needs_upgrade() throws Exception {
+        startUpNodeWithDataDir("/indices/data_home/cratedata-5.0-bebe506.zip");
+        execute("select * from sys.checks where id = 3");
+        assertThat(response).hasRows(
+            "The following tables need to be recreated for compatibility with future major versions of CrateDB: [doc.partitioned, doc.testing] https://cr8.is/d-cluster-check-3| 3| false| 1"
+        );
     }
 }
