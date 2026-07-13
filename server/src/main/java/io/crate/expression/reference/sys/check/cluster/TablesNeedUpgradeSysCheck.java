@@ -21,11 +21,14 @@
 
 package io.crate.expression.reference.sys.check.cluster;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -41,7 +44,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
         "The following tables need to be recreated for compatibility with future major versions of CrateDB: ";
 
     private final ClusterService clusterService;
-    private volatile Collection<String> tablesNeedUpgrade;
+    private volatile Collection<RelationName> tablesNeedUpgrade;
 
     @Inject
     public TablesNeedUpgradeSysCheck(ClusterService clusterService) {
@@ -56,18 +59,24 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
 
     @Override
     public CompletableFuture<?> computeResult() {
-        HashSet<String> fqTables = new HashSet<>();
-        for (IndexMetadata cursor : clusterService.state()
-            .metadata()
-            .indices()
-            .values()) {
+        ArrayList<RelationName> tables = new ArrayList<>();
+        Metadata metadata = clusterService.state().metadata();
 
-            if (cursor.getCreationVersion().major < org.elasticsearch.Version.CURRENT.major) {
-                fqTables.add(RelationName.fqnFromIndexName(cursor.getIndex().getName()));
+        table_loop:
+        for (var table : metadata.relations(RelationMetadata.Table.class)) {
+            for (String indexUUID : table.indexUUIDs()) {
+                IndexMetadata index = metadata.index(indexUUID);
+                if (index == null) {
+                    continue;
+                }
+                if (index.getCreationVersion().major < Version.CURRENT.major) {
+                    tables.add(table.name());
+                    continue table_loop;
+                }
             }
         }
-        tablesNeedUpgrade = fqTables;
-        return CompletableFuture.completedFuture(fqTables);
+        tablesNeedUpgrade = tables;
+        return CompletableFuture.completedFuture(tables);
     }
 
     @Override
