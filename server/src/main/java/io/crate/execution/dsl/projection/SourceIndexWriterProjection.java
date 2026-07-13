@@ -58,6 +58,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     private final String[] excludes;
 
     public SourceIndexWriterProjection(RelationName relationName,
+                                       int tableOid,
                                        @Nullable String partitionIdent,
                                        Reference rawSourceReference,
                                        InputColumn rawSourcePtr,
@@ -70,7 +71,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                        @Nullable Symbol clusteredBySymbol,
                                        List<? extends Symbol> outputs,
                                        boolean autoCreateIndices) {
-        super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, idSymbols, autoCreateIndices);
+        super(relationName, tableOid, partitionIdent, primaryKeys, clusteredByColumn, settings, idSymbols, autoCreateIndices);
         this.rawSourceReference = rawSourceReference;
         this.excludes = excludes;
         this.partitionedBySymbols = partitionedBySymbols;

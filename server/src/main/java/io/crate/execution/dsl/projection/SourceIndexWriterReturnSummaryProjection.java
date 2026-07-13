@@ -44,6 +44,7 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
     private final InputColumn lineNumber;
 
     public SourceIndexWriterReturnSummaryProjection(RelationName relationName,
+                                                    int tableOid,
                                                     @Nullable String partitionIdent,
                                                     Reference rawSourceReference,
                                                     InputColumn rawSourcePtr,
@@ -60,7 +61,7 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
                                                     InputColumn sourceUriFailure,
                                                     InputColumn sourceParsingFailure,
                                                     InputColumn lineNumber) {
-        super(relationName,partitionIdent, rawSourceReference, rawSourcePtr, primaryKeys, partitionedBySymbols,
+        super(relationName, tableOid, partitionIdent, rawSourceReference, rawSourcePtr, primaryKeys, partitionedBySymbols,
             clusteredByColumn, settings, excludes, idSymbols, clusteredBySymbol, outputs, autoCreateIndices);
         this.sourceUri = sourceUri;
         this.sourceUriFailure = sourceUriFailure;

@@ -496,6 +496,28 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return null;
     }
 
+    @SuppressWarnings("unchecked")
+    public <T extends RelationInfo> T getRelationInfo(int oid) {
+        for (SchemaInfo schema : this) {
+            for (RelationInfo relation : schema.getTables()) {
+                if (oid == relation.oid()) {
+                    return (T) relation;
+                }
+            }
+            for (ViewInfo view : schema.getViews()) {
+                if (oid == view.oid()) {
+                    return (T) view;
+                }
+            }
+            for (RelationMetadata.ForeignTable foreignTable : schema.getForeignTables()) {
+                if (oid == foreignTable.oid()) {
+                    return (T) foreignTable;
+                }
+            }
+        }
+        throw new RelationUnknown(String.format(Locale.ENGLISH, "Relation not found for oid=%s", oid));
+    }
+
     public int getRelationOid(RelationName relationName) {
         RelationMetadata relationMetadata = clusterService.state().metadata().getRelation(relationName);
         return relationMetadata == null ? OidHash.relationOid(OidHash.Type.TABLE, relationName) : relationMetadata.oid();
