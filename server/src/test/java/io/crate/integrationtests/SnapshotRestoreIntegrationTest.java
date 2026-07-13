@@ -294,20 +294,17 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         }
         assertThat(response.rowCount()).isEqualTo(1L);
 
-        execute("select unnest(concrete_indices) as idx, state from sys.snapshots order by 1, 2");
+        execute("select array_length(concrete_indices, 1) as idx, state from sys.snapshots order by 1, 2");
 
-        // Indices show up twice because the repos have the same fs path.
         if (singlePartition) {
             assertThat(response).hasRows(
-                "custom..partitioned.backmeup.04130| SUCCESS",
-                "custom..partitioned.backmeup.04130| SUCCESS"
+                "1| SUCCESS",
+                "1| SUCCESS"
             );
         } else {
             assertThat(response).hasRows(
-                "custom..partitioned.backmeup.04130| SUCCESS",
-                "custom..partitioned.backmeup.04130| SUCCESS",
-                "custom..partitioned.backmeup.046jcchm6krj4e1g60o30c0| SUCCESS",
-                "custom..partitioned.backmeup.046jcchm6krj4e1g60o30c0| SUCCESS"
+                "2| SUCCESS",
+                "2| SUCCESS"
             );
         }
     }
@@ -320,14 +317,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(1L);
         execute("select unnest(concrete_indices) as idx, state from sys.snapshots order by 1");
         // All indices show up twice because the repos have the same fs path.
-        assertThat(response).hasRows(
-            "custom..partitioned.backmeup.04130| SUCCESS",
-            "custom..partitioned.backmeup.04130| SUCCESS",
-            "custom..partitioned.backmeup.046jcchm6krj4e1g60o30c0| SUCCESS",
-            "custom..partitioned.backmeup.046jcchm6krj4e1g60o30c0| SUCCESS",
-            "custom..partitioned.backmeup.04732d1k6ksj8c9n6go30c1g| SUCCESS",
-            "custom..partitioned.backmeup.04732d1k6ksj8c9n6go30c1g| SUCCESS"
-        );
+        assertThat(response).hasRowCount(6);
     }
 
     @Test

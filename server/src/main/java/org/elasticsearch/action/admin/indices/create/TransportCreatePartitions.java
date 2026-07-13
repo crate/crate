@@ -89,6 +89,7 @@ import io.crate.metadata.doc.DocTableInfoFactory;
  */
 public class TransportCreatePartitions extends TransportMasterNodeAction<CreatePartitionsRequest, AcknowledgedResponse> {
 
+    private static final String INDEX_NAME_PREFIX = "in_";
     public static final Action ACTION = new Action();
 
     public static class Action extends ActionType<AcknowledgedResponse> {
@@ -238,7 +239,7 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
             RoutingTable.Builder routingTableBuilder = RoutingTable.builder(currentState.routingTable());
             ArrayList<String> indexUUIDs = new ArrayList<>(partitions.size());
             for (PartitionName partition : partitions) {
-                String indexName = partition.asIndexName();
+                String indexName = INDEX_NAME_PREFIX + UUIDs.randomBase64UUID();
                 String indexUUID = UUIDs.randomBase64UUID();
                 final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexUUID)
                     .indexName(indexName)
