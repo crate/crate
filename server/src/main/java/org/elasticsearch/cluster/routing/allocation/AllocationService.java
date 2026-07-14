@@ -281,7 +281,7 @@ public class AllocationService {
             final Metadata.Builder metadataBuilder = Metadata.builder(clusterState.metadata());
             for (Map.Entry<Integer, List<String>> entry : autoExpandReplicaChanges.entrySet()) {
                 final int numberOfReplicas = entry.getKey();
-                final String[] indicesUUIDs = entry.getValue().toArray(new String[entry.getValue().size()]);
+                final List<String> indicesUUIDs = entry.getValue();
                 // we do *not* update the in sync allocation ids as they will be removed upon the first index
                 // operation which make these copies stale
                 routingTableBuilder.updateNumberOfReplicas(numberOfReplicas, indicesUUIDs);

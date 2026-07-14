@@ -1093,7 +1093,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
          * @param indicesUUIDs     the indices to update the number of replicas for
          * @return the builder
          */
-        public Builder updateNumberOfReplicas(final int numberOfReplicas, final String[] indicesUUIDs) {
+        public Builder updateNumberOfReplicas(final int numberOfReplicas, final Iterable<String> indicesUUIDs) {
             for (String indexUUID : indicesUUIDs) {
                 IndexMetadata indexMetadata = this.indices.get(indexUUID);
                 if (indexMetadata == null) {
