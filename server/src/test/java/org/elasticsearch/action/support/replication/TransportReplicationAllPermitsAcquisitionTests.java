@@ -137,7 +137,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
 
         Settings indexSettings = Settings.builder()
             .put(SETTING_VERSION_CREATED, Version.CURRENT)
-            .put(SETTING_INDEX_UUID, shardId.getIndex().getUUID())
+            .put(SETTING_INDEX_UUID, shardId.getIndex().uuid())
             .put(SETTING_NUMBER_OF_SHARDS, 1)
             .put(SETTING_NUMBER_OF_REPLICAS, 1)
             .put(SETTING_CREATION_DATE, System.currentTimeMillis())

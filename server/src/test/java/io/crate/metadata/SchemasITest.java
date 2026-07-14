@@ -86,7 +86,7 @@ public class SchemasITest extends IntegTestCase {
         );
 
         Set<String> nodes = routing.nodes();
-        String indexUUID = resolveIndex("t1").getUUID();
+        String indexUUID = resolveIndex("t1").uuid();
 
         assertThat(nodes.size()).isBetween(1, 2); // for the rare case
         // where all shards are on 1 node
@@ -125,7 +125,7 @@ public class SchemasITest extends IntegTestCase {
             clusterService.state(), routingProvider, null, null, CoordinatorSessionSettings.systemDefaults());
 
         Set<String> indexUUIDs = new HashSet<>();
-        Set<String> expectedIndexUUIDs = Set.of(resolveIndex("t2").getUUID(), resolveIndex("t3").getUUID());
+        Set<String> expectedIndexUUIDs = Set.of(resolveIndex("t2").uuid(), resolveIndex("t3").uuid());
         int numShards = 0;
         for (Map.Entry<String, Map<String, IntIndexedContainer>> nodeEntry : routing.locations().entrySet()) {
             for (Map.Entry<String, IntIndexedContainer> indexEntry : nodeEntry.getValue().entrySet()) {

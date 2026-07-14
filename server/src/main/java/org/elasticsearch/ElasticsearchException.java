@@ -813,8 +813,8 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
 
     public void setIndex(Index index) {
         if (index != null) {
-            addMetadata(INDEX_METADATA_KEY, index.getName());
-            addMetadata(INDEX_METADATA_KEY_UUID, index.getUUID());
+            addMetadata(INDEX_METADATA_KEY, index.name());
+            addMetadata(INDEX_METADATA_KEY_UUID, index.uuid());
         }
     }
 

@@ -21,7 +21,7 @@
 
 package org.elasticsearch.action.support.single.shard;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -47,8 +47,8 @@ public class SingleShardRequestTest extends ESTestCase {
             try (var in = out.bytes().streamInput()) {
                 SingleShardRequest shardRequest1 = new SingleShardRequest(in) {};
                 Index index1 = shardRequest1.index();
-                assertThat(index1.getName().equals(IndexMetadata.INDEX_NAME_NA_VALUE));
-                assertThat(index1.getUUID().equals(index.getUUID()));
+                assertThat(index1.name().equals(IndexMetadata.INDEX_NAME_NA_VALUE));
+                assertThat(index1.uuid().equals(index.uuid()));
                 assertThat(shardRequest1.internalShardId).isEqualTo(shardId);
             }
         }
@@ -63,14 +63,14 @@ public class SingleShardRequestTest extends ESTestCase {
             TaskId.EMPTY_TASK_ID.writeTo(out);
             out.writeBoolean(true);
             shardId.writeTo(out);
-            out.writeOptionalString(index.getName());
+            out.writeOptionalString(index.name());
 
             try (var in = out.bytes().streamInput()) {
                 in.setVersion(Version.V_6_0_0);
                 SingleShardRequest shardRequest1 = new SingleShardRequest(in) {};
                 Index index1 = shardRequest1.index();
-                assertThat(index1.getName().equals(index.getName()));
-                assertThat(index1.getUUID().equals(IndexMetadata.INDEX_UUID_NA_VALUE));
+                assertThat(index1.name().equals(index.name()));
+                assertThat(index1.uuid().equals(IndexMetadata.INDEX_UUID_NA_VALUE));
             }
         }
 
@@ -87,7 +87,7 @@ public class SingleShardRequestTest extends ESTestCase {
                 String indexName = in.readOptionalString();
 
                 assertThat(shardId1).isEqualTo(shardId);
-                assertThat(indexName).isEqualTo(index.getName());
+                assertThat(indexName).isEqualTo(index.name());
             }
         }
     }

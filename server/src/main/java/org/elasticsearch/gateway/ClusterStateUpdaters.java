@@ -123,7 +123,7 @@ public final class ClusterStateUpdaters {
             blocks.removeGlobalBlock(Metadata.CLUSTER_READ_ONLY_BLOCK);
             blocks.removeGlobalBlock(Metadata.CLUSTER_READ_ONLY_ALLOW_DELETE_BLOCK);
             for (IndexMetadata indexMetadata: state.metadata()) {
-                blocks.removeIndexBlocks(indexMetadata.getIndex().getUUID());
+                blocks.removeIndexBlocks(indexMetadata.getIndex().uuid());
             }
             final Metadata metadata = Metadata.builder(state.metadata().currentMaxTableOid())
                     .clusterUUID(state.metadata().clusterUUID())

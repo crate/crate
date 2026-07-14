@@ -83,7 +83,7 @@ public class TransportCreatePartitionsTest extends IntegTestCase {
         String tableTemplateName = PartitionName.templateName("doc", "test");
 
         for (IndexMetadata imd : updatedMetadata.indices().values()) {
-            String indexName = imd.getIndex().getName(); // Something like "partitioned.{table_name}.{part}
+            String indexName = imd.getIndex().name(); // Something like "partitioned.{table_name}.{part}
             assertThat(PartitionName.templateName(indexName)).isEqualTo(tableTemplateName);
         }
     }

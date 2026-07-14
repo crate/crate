@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -75,7 +76,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
 
     private ShardId resolveShardId(String index, String digest) {
         return clusterService().operationRouting()
-            .indexShards(clusterService().state(), resolveIndex(index).getUUID(), digest, null)
+            .indexShards(clusterService().state(), resolveIndex(index).uuid(), digest, null)
             .shardId();
     }
 
@@ -228,7 +229,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
 
         BlobIndicesService blobIndicesService = cluster().getInstance(BlobIndicesService.class, node2);
         for (String digest : uploadedDigests) {
-            BlobShard blobShard = blobIndicesService.localBlobShard(resolveIndex(BlobIndex.fullIndexName("test")).getUUID(), digest);
+            BlobShard blobShard = blobIndicesService.localBlobShard(resolveIndex(BlobIndex.fullIndexName("test")).uuid(), digest);
             assertThat(blobShard.blobContainer().getFile(digest).length()).isGreaterThanOrEqualTo(1);
         }
 

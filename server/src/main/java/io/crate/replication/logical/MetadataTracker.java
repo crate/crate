@@ -468,7 +468,7 @@ public final class MetadataTracker implements Closeable {
         for (RelationMetadata.Table table : publisherMetadata.relations(RelationMetadata.Table.class)) {
             RelationName relationName = table.name();
             for (IndexMetadata indexMetadata : publisherMetadata.getIndices(relationName, List.of(), false, x -> x)) {
-                String indexName = indexMetadata.getIndex().getName();
+                String indexName = indexMetadata.getIndex().name();
                 if (subscribedRelations.get(relationName) == null) {
                     relationNamesForStateUpdate.add(relationName);
                 }

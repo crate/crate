@@ -215,7 +215,7 @@ public class RestoreService implements ClusterStateApplier {
                     for (Map.Entry<RelationName, RestoreRelation> entry : restoreRelations.entrySet()) {
                         RestoreRelation restoreRelation = entry.getValue();
                         for (var restoreIndex : restoreRelation.restoreIndices()) {
-                            indexIdsInSnapshot.add(repositoryData.resolveIndexId(restoreIndex.index().getName()));
+                            indexIdsInSnapshot.add(repositoryData.resolveIndexId(restoreIndex.index().name()));
                         }
                     }
 
@@ -426,7 +426,7 @@ public class RestoreService implements ClusterStateApplier {
                 List<String> newIndexUUIDs = new ArrayList<>();
 
                 for (RestoreIndex restoreIndex : restoreRelation.restoreIndices()) {
-                    String sourceIndexName = restoreIndex.index().getName();
+                    String sourceIndexName = restoreIndex.index().name();
                     String targetIndexName = restoreIndex.partitionValues().isEmpty()
                         ? targetName.indexNameOrAlias()
                         : new PartitionName(targetName, restoreIndex.partitionValues()).asIndexName();
@@ -490,7 +490,7 @@ public class RestoreService implements ClusterStateApplier {
                             throw new PartitionAlreadyExistsException(new PartitionName(targetName, PartitionName.encodeIdent(currentIndexMetadata.partitionValues())));
                         }
                     }
-                    restoreIndexNames.add(renamedIndex.getName());
+                    restoreIndexNames.add(renamedIndex.name());
 
                     for (int shard = 0; shard < snapshotIndexMetadata.getNumberOfShards(); shard++) {
                         shardsBuilder.put(

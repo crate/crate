@@ -160,7 +160,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 List<String> indexUUIDs = new ArrayList<>();
                 for (IndexMetadata im : stateResponse.metadata().indices().values()) {
                     if (REPLICATION_INDEX_ROUTING_ACTIVE.get(im.getSettings())) {
-                        indexUUIDs.add(im.getIndex().getUUID());
+                        indexUUIDs.add(im.getIndex().uuid());
                     }
                 }
                 return new SnapshotInfo(
@@ -261,7 +261,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 var it = remoteMetadata.indices().values().iterator();
                 while (it.hasNext()) {
                     var indexMetadata = it.next();
-                    var indexId = new IndexId(indexMetadata.getIndex().getName(), indexMetadata.getIndexUUID());
+                    var indexId = new IndexId(indexMetadata.getIndex().name(), indexMetadata.getIndexUUID());
                     for (int i = 0; i < indexMetadata.getNumberOfShards(); i++) {
                         shardGenerations.put(indexId, i, "dummy");
                     }

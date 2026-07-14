@@ -105,7 +105,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         IndexMetadata indexMetadata = clusterService.state().metadata().getIndex(
             relationName, partitionValues, true, im -> im);
         indexUUID = indexMetadata.getIndexUUID();
-        prepare(indexUUID, indexMetadata.getIndex().getName());
+        prepare(indexUUID, indexMetadata.getIndex().name());
     }
 
     public void prepare(String indexUUID, String indexName) throws Exception {

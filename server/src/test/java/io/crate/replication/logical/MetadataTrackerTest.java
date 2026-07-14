@@ -148,7 +148,7 @@ public class MetadataTrackerTest extends ESTestCase {
                 .metadata(mdBuilder)
                 .routingTable(RoutingTable.builder(clusterState.routingTable())
                     .add(IndexRoutingTable.builder(indexMetadata.getIndex())
-                        .addShard(newShardRouting(indexMetadata.getIndex().getName(), 0, "dummy_node", true, ShardRoutingState.STARTED))
+                        .addShard(newShardRouting(indexMetadata.getIndex().name(), 0, "dummy_node", true, ShardRoutingState.STARTED))
                         .build())
                     .build())
                 .incrementVersion()

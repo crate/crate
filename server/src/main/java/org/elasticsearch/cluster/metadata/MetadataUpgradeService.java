@@ -171,7 +171,7 @@ public class MetadataUpgradeService {
 
         // upgrade index meta data
         for (IndexMetadata indexMetadata : metadata) {
-            String indexName = indexMetadata.getIndex().getName();
+            String indexName = indexMetadata.getIndex().name();
             IndexMetadata newIndexMetadata = upgradeIndexMetadata(
                 indexMetadata,
                 Version.CURRENT.minimumIndexCompatibilityVersion()

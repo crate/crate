@@ -51,7 +51,7 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
         ensureGreen();
 
         Index index = resolveIndex("doc.test");
-        String indexUUID = index.getUUID();
+        String indexUUID = index.uuid();
 
         assertIndexInMetaState(dataNode, indexUUID);
         assertIndexInMetaState(masterNode, indexUUID);
@@ -71,7 +71,7 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
 
 
         Index resolveIndex = resolveIndex("doc.test");
-        String indexUUID = resolveIndex.getUUID();
+        String indexUUID = resolveIndex.uuid();
         assertIndexInMetaState(node1, indexUUID);
         assertIndexDirectoryExists(node1, resolveIndex);
         assertIndexDirectoryDeleted(node2, resolveIndex);

@@ -81,7 +81,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             )
         """);
 
-        String indexUUID = resolveIndex("doc.test").getUUID();
+        String indexUUID = resolveIndex("doc.test").uuid();
 
         String nodeWithReplica = cluster().startDataOnlyNode();
         Settings nodeWithReplicaSettings = cluster().dataPathSettings(nodeWithReplica);
@@ -161,7 +161,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
         Settings nodeWithReplicaSettings = cluster().dataPathSettings(nodeWithReplica);
         ensureGreen();
 
-        String indexUUID = resolveIndex("doc.test").getUUID();
+        String indexUUID = resolveIndex("doc.test").uuid();
 
         execute("insert into doc.test (x) values (?)", new Object[][] {
             new Object[] { randomIntBetween(10, 100) },
@@ -268,7 +268,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
 
         ensureGreen();
 
-        String indexUUID = resolveIndex("doc.test").getUUID();
+        String indexUUID = resolveIndex("doc.test").uuid();
 
         execute("insert into doc.test (x) values (?)", new Object[]{randomIntBetween(200, 500)});
 

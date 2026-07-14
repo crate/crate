@@ -899,7 +899,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
                          */
                         if (decision != null && currentDecision.type() == decision.type()) {
                             final int repId = shard.id();
-                            final String indexUUID = shard.index().getUUID();
+                            final String indexUUID = shard.index().uuid();
                             final int nodeHigh = node.highestPrimary(indexUUID);
                             final int minNodeHigh = minNode.highestPrimary(indexUUID);
                             updateMinNode = ((((nodeHigh > repId && minNodeHigh > repId)
@@ -1035,7 +1035,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
         }
 
         public void addShard(ShardRouting shard) {
-            String indexUUID = shard.index().getUUID();
+            String indexUUID = shard.index().uuid();
             ModelIndex index = indices.get(indexUUID);
             if (index == null) {
                 index = new ModelIndex(indexUUID);
@@ -1046,7 +1046,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
         }
 
         public void removeShard(ShardRouting shard) {
-            String indexUUID = shard.index().getUUID();
+            String indexUUID = shard.index().uuid();
             ModelIndex index = indices.get(indexUUID);
             if (index != null) {
                 index.removeShard(shard);
@@ -1070,7 +1070,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
         }
 
         public boolean containsShard(ShardRouting shard) {
-            String indexUUID = shard.index().getUUID();
+            String indexUUID = shard.index().uuid();
             ModelIndex index = getIndex(indexUUID);
             return index == null ? false : index.containsShard(shard);
         }

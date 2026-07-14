@@ -380,27 +380,27 @@ public class NodeEnvironmentTests extends ESTestCase {
 
         assertThat(env.availableShardPaths(sid)).isEqualTo(env.availableShardPaths(sid));
         assertThat(env.resolveCustomLocation("/tmp/foo", sid).toAbsolutePath())
-            .isEqualTo(PathUtils.get("/tmp/foo/0/" + index.getUUID() + "/0").toAbsolutePath());
+            .isEqualTo(PathUtils.get("/tmp/foo/0/" + index.uuid() + "/0").toAbsolutePath());
 
         assertThat(env.availableShardPaths(sid))
             .as("shard paths with a custom data_path should contain only regular paths")
-            .isEqualTo(stringsToPaths(dataPaths, "nodes/0/indices/" + index.getUUID() + "/0"));
+            .isEqualTo(stringsToPaths(dataPaths, "nodes/0/indices/" + index.uuid() + "/0"));
 
         assertThat(env.indexPaths(index))
             .as("index paths uses the regular template")
-            .isEqualTo(stringsToPaths(dataPaths, "nodes/0/indices/" + index.getUUID()));
+            .isEqualTo(stringsToPaths(dataPaths, "nodes/0/indices/" + index.uuid()));
 
         assertThat(env.availableShardPaths(sid)).isEqualTo(env.availableShardPaths(sid));
         assertThat(env.resolveCustomLocation("/tmp/foo", sid).toAbsolutePath())
-            .isEqualTo(PathUtils.get("/tmp/foo/0/" + index.getUUID() + "/0").toAbsolutePath());
+            .isEqualTo(PathUtils.get("/tmp/foo/0/" + index.uuid() + "/0").toAbsolutePath());
 
         assertThat(env.availableShardPaths(sid))
             .as("shard paths with a custom data_path should contain only regular paths")
-            .isEqualTo(stringsToPaths(dataPaths, "nodes/0/indices/" + index.getUUID() + "/0"));
+            .isEqualTo(stringsToPaths(dataPaths, "nodes/0/indices/" + index.uuid() + "/0"));
 
         assertThat(env.indexPaths(index))
             .as("index paths uses the regular template")
-            .isEqualTo(stringsToPaths(dataPaths, "nodes/0/indices/" + index.getUUID()));
+            .isEqualTo(stringsToPaths(dataPaths, "nodes/0/indices/" + index.uuid()));
 
         env.close();
     }

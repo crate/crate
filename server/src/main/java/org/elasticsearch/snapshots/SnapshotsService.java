@@ -298,7 +298,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     indices.addAll(partitionIndices);
                 }
 
-                assert indices.size() == indices.stream().map(Index::getName).distinct().count()
+                assert indices.size() == indices.stream().map(Index::name).distinct().count()
                     : "indices must not have duplicate names: " + indices;
                 LOGGER.trace("[{}][{}] creating snapshot for indices [{}]", repositoryName, snapshotName, indices);
                 final List<IndexId> indexIds = repositoryData.resolveNewIndices(
@@ -326,7 +326,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                         ShardId shardId = entry.getKey();
                         ShardSnapshotStatus status = entry.getValue();
                         if (status.state() == ShardState.MISSING) {
-                            missing.add(shardId.getIndex().getUUID());
+                            missing.add(shardId.getIndex().uuid());
                         }
                     }
                     if (missing.isEmpty() == false) {

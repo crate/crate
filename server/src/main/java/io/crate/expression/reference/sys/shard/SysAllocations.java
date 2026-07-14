@@ -98,7 +98,7 @@ public class SysAllocations implements Iterable<SysAllocation> {
             partitionName = clusterService.state().metadata().getPartitionName(shardRouting.getIndexUUID());
         } catch (RelationUnknown | IndexNotFoundException e) {
             // Must be an orphaned partition
-            partitionName = IndexName.decode(shardRouting.index().getName()).toPartitionName();
+            partitionName = IndexName.decode(shardRouting.index().name()).toPartitionName();
         }
         return new SysAllocation(
             shardRouting.shardId(),

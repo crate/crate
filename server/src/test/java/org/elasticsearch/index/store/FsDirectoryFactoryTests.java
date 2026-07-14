@@ -47,7 +47,7 @@ public class FsDirectoryFactoryTests extends ESTestCase {
     @Test
     public void testStoreDirectory() throws IOException {
         Index index = new Index("foo", "fooUUID");
-        final Path tempDir = createTempDir().resolve(index.getUUID()).resolve("0");
+        final Path tempDir = createTempDir().resolve(index.uuid()).resolve("0");
         // default
         doTestStoreDirectory(tempDir, null, IndexModule.Type.FS);
         // explicit directory impls

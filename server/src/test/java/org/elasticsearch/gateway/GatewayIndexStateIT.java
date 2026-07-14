@@ -23,6 +23,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.indices.ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE;
@@ -98,7 +99,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         logger.info("--> waiting for green status");
         ensureGreen();
 
-        String indexUUID = resolveIndex("test").getUUID();
+        String indexUUID = resolveIndex("test").uuid();
 
         ClusterStateResponse stateResponse = client().state(new ClusterStateRequest()).get();
         assertThat(stateResponse.getState().metadata().index(indexUUID).getState()).isEqualTo(IndexMetadata.State.OPEN);
@@ -309,7 +310,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
 
         logger.info("--> waiting for green status");
         ensureGreen();
-        final String indexUUID = resolveIndex(tableName).getUUID();
+        final String indexUUID = resolveIndex(tableName).uuid();
 
         logger.info("--> restart a random date node, deleting the index in between stopping and restarting");
         cluster().restartRandomDataNode(new RestartCallback() {
@@ -399,7 +400,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
             .state(new ClusterStateRequest())
             .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS).getState();
 
-        String indexUUID = resolveIndex("test").getUUID();
+        String indexUUID = resolveIndex("test").uuid();
         final IndexMetadata metadata = state.metadata().index(indexUUID);
         final IndexMetadata.Builder brokenMeta = IndexMetadata.builder(metadata).settings(Settings.builder().put(metadata.getSettings())
             .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT.minimumIndexCompatibilityVersion().internalId)
@@ -434,7 +435,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("alter table test open"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
-                .hasMessageContaining("Failed to verify index " + metadata.getIndex().getUUID());
+                .hasMessageContaining("Failed to verify index " + metadata.getIndex().uuid());
     }
 
     @Test

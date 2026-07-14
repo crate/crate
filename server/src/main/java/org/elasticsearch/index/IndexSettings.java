@@ -395,7 +395,7 @@ public final class IndexSettings {
      * Returns the indexes UUID
      */
     public String getUUID() {
-        return getIndex().getUUID();
+        return getIndex().uuid();
     }
 
     /**

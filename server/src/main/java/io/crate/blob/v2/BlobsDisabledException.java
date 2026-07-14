@@ -29,7 +29,7 @@ import io.crate.rest.action.HttpErrorStatus;
 public class BlobsDisabledException extends ElasticsearchException {
 
     public BlobsDisabledException(Index index) {
-        super("[" + index.getName() + "] blobs not enabled on this index");
+        super("[" + index.name() + "] blobs not enabled on this index");
     }
 
     @Override

@@ -261,7 +261,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     /// @throws [RelationUnknown]
     public DocTableInfo getTableInfo(Index index) {
         Metadata metadata = clusterService.state().metadata();
-        RelationMetadata relation = metadata.getRelation(index.getUUID());
+        RelationMetadata relation = metadata.getRelation(index.uuid());
         if (relation == null) {
             throw new IndexNotFoundException(index);
         }

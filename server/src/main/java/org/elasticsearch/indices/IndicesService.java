@@ -300,7 +300,7 @@ public class IndicesService extends AbstractLifecycleComponent
     }
 
     public boolean hasIndex(Index index) {
-        return indices.containsKey(index.getUUID());
+        return indices.containsKey(index.uuid());
     }
 
     /**
@@ -308,7 +308,7 @@ public class IndicesService extends AbstractLifecycleComponent
      */
     @Nullable
     public IndexService indexService(Index index) {
-        return indices.get(index.getUUID());
+        return indices.get(index.uuid());
     }
 
     @Nullable
@@ -323,11 +323,11 @@ public class IndicesService extends AbstractLifecycleComponent
      * Returns an IndexService for the specified index if exists otherwise a {@link IndexNotFoundException} is thrown.
      */
     public IndexService indexServiceSafe(Index index) {
-        IndexService indexService = indices.get(index.getUUID());
+        IndexService indexService = indices.get(index.uuid());
         if (indexService == null) {
             throw new IndexNotFoundException(index);
         }
-        assert indexService.indexUUID().equals(index.getUUID()) : "uuid mismatch local: " + indexService.indexUUID() + " incoming: " + index.getUUID();
+        assert indexService.indexUUID().equals(index.uuid()) : "uuid mismatch local: " + indexService.indexUUID() + " incoming: " + index.uuid();
         return indexService;
     }
 
@@ -378,7 +378,7 @@ public class IndicesService extends AbstractLifecycleComponent
                 indexService.addMetadataListener(imd -> updateDanglingIndicesInfo(index));
             }
             indexService.getIndexEventListener().afterIndexCreated(indexService);
-            indices = newMapBuilder(indices).put(index.getUUID(), indexService).immutableMap();
+            indices = newMapBuilder(indices).put(index.uuid(), indexService).immutableMap();
             if (writeDanglingIndices) {
                 if (nodeWriteDanglingIndicesInfo) {
                     updateDanglingIndicesInfo(index);
@@ -635,7 +635,7 @@ public class IndicesService extends AbstractLifecycleComponent
 
                 LOGGER.debug("[{}] closing ... (reason [{}])", index, reason);
                 Map<String, IndexService> newIndices = new HashMap<>(indices);
-                indexService = newIndices.remove(index.getUUID());
+                indexService = newIndices.remove(index.uuid());
                 assert indexService != null : "IndexService is null for index: " + index;
                 indices = unmodifiableMap(newIndices);
                 listener = indexService.getIndexEventListener();
@@ -692,7 +692,7 @@ public class IndicesService extends AbstractLifecycleComponent
                 Index index = metadata.getIndex();
                 if (hasIndex(index)) {
                     String localUUid = indexService(index).indexUUID();
-                    throw new IllegalStateException("Can't delete index store for [" + index.getName() + "] - it's still part of the indices service [" + localUUid + "] [" + metadata.getIndexUUID() + "]");
+                    throw new IllegalStateException("Can't delete index store for [" + index.name() + "] - it's still part of the indices service [" + localUUid + "] [" + metadata.getIndexUUID() + "]");
                 }
             }
             final IndexSettings indexSettings = buildIndexSettings(metadata);
@@ -1099,7 +1099,7 @@ public class IndicesService extends AbstractLifecycleComponent
                     public void doRun() {
                         final boolean exists = danglingIndicesToWrite.remove(index);
                         assert exists : "removed non-existing item for " + index;
-                        final IndexService indexService = indices.get(index.getUUID());
+                        final IndexService indexService = indices.get(index.uuid());
                         if (indexService != null) {
                             final long executedTimeMillis = threadPool.relativeTimeInMillis();
                             LOGGER.trace("writing out dangling indices state for index {}, triggered {} ago", index,

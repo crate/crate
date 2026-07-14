@@ -198,7 +198,7 @@ public class SQLExceptions {
             return new UnsupportedFeatureException(unwrappedError.getMessage(), (Exception) unwrappedError);
         } else if (isDocumentAlreadyExistsException(unwrappedError)) {
             return new DuplicateKeyException(
-                ((EngineException) unwrappedError).getIndex().getName(),
+                ((EngineException) unwrappedError).getIndex().name(),
                 "A document with the same primary key exists already", unwrappedError);
         } else if (unwrappedError instanceof InterruptedException) {
             return JobKilledException.of(unwrappedError.getMessage());

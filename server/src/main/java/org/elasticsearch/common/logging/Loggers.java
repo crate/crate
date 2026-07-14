@@ -67,7 +67,7 @@ public final class Loggers {
     }
 
     public static Logger getLogger(Class<?> clazz, Index index, String... prefixes) {
-        return getLogger(clazz, Lists.concat(Loggers.SPACE, index.getName(), prefixes).toArray(new String[0]));
+        return getLogger(clazz, Lists.concat(Loggers.SPACE, index.name(), prefixes).toArray(new String[0]));
     }
 
     public static Logger getLogger(Class<?> clazz, String... prefixes) {

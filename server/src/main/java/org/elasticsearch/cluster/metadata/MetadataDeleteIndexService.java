@@ -92,7 +92,7 @@ public class MetadataDeleteIndexService {
         final int previousGraveyardSize = graveyardBuilder.tombstones().size();
         Map<RelationMetadata.Table, List<String>> relationIndexUUIDs = new HashMap<>();
         for (final Index index : indicesToDelete) {
-            String indexUUID = index.getUUID();
+            String indexUUID = index.uuid();
             LOGGER.info("{} deleting index", index);
             routingTableBuilder.remove(indexUUID);
             clusterBlocksBuilder.removeIndexBlocks(indexUUID);
@@ -101,7 +101,7 @@ public class MetadataDeleteIndexService {
             RelationMetadata relation = meta.getRelation(indexUUID);
             if (relation instanceof RelationMetadata.Table table) {
                 List<String> indexUUIDs = relationIndexUUIDs.computeIfAbsent(table, k -> new ArrayList<>());
-                indexUUIDs.add(index.getUUID());
+                indexUUIDs.add(index.uuid());
             } else {
                 LOGGER.debug("No table relation found for index [{}] while deleting it", index);
             }

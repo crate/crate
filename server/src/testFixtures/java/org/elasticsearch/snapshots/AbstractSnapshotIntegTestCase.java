@@ -144,7 +144,7 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
 
     public String blockNodeWithIndex(final String repositoryName, final String indexName) {
         Index index = resolveIndex(indexName);
-        String indexUUID = index.getUUID();
+        String indexUUID = index.uuid();
 
         for(String node : cluster().nodesInclude(indexUUID)) {
             mockRepo(repositoryName, node)

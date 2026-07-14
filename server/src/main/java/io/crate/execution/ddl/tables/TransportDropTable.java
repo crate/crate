@@ -83,7 +83,7 @@ public class TransportDropTable extends AbstractDDLTransportAction<DropTableRequ
             request.tableIdent(),
             List.of(),
             false,
-            imd -> imd.getIndex().getUUID()
+            imd -> imd.getIndex().uuid()
         ).toArray(String[]::new);
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexUUIDS);
     }

@@ -71,7 +71,7 @@ public class ShardUpsertRequestTest extends CrateDummyClusterServiceUnitTest {
         String indexUUID = relation.indexUUIDs().get(0);
         IndexMetadata index = metadata.index(indexUUID);
         assertThat(index).isNotNull();
-        shardId = new ShardId(index.getIndex().getName(), index.getIndexUUID(), 1);
+        shardId = new ShardId(index.getIndex().name(), index.getIndexUUID(), 1);
     }
 
     @Test

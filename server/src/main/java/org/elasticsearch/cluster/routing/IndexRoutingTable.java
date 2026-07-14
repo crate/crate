@@ -88,9 +88,9 @@ public class IndexRoutingTable implements Diffable<IndexRoutingTable>, Iterable<
         if (!metadata.hasIndex(index)) {
             throw new IllegalStateException(index + " exists in routing does not exists in metadata");
         }
-        IndexMetadata indexMetadata = metadata.index(index.getUUID());
-        if (indexMetadata.getIndexUUID().equals(index.getUUID()) == false) {
-            throw new IllegalStateException(index.getUUID() + " exists in routing does not exists in metadata with the same uuid");
+        IndexMetadata indexMetadata = metadata.index(index.uuid());
+        if (indexMetadata.getIndexUUID().equals(index.uuid()) == false) {
+            throw new IllegalStateException(index.uuid() + " exists in routing does not exists in metadata with the same uuid");
         }
 
         // check the number of shards
@@ -501,8 +501,8 @@ public class IndexRoutingTable implements Diffable<IndexRoutingTable>, Iterable<
         }
 
         CollectionUtil.timSort(ordered, (o1, o2) -> {
-            int v = o1.shardId().getIndex().getName().compareTo(
-                    o2.shardId().getIndex().getName());
+            int v = o1.shardId().getIndex().name().compareTo(
+                    o2.shardId().getIndex().name());
             if (v == 0) {
                 v = Integer.compare(o1.shardId().id(),
                                     o2.shardId().id());
@@ -511,7 +511,7 @@ public class IndexRoutingTable implements Diffable<IndexRoutingTable>, Iterable<
         });
 
         for (IndexShardRoutingTable indexShard : ordered) {
-            sb.append("----shard_id [").append(indexShard.shardId().getIndex().getName()).append("][").append(indexShard.shardId().id()).append("]\n");
+            sb.append("----shard_id [").append(indexShard.shardId().getIndex().name()).append("][").append(indexShard.shardId().id()).append("]\n");
             for (ShardRouting shard : indexShard) {
                 sb.append("--------").append(shard.shortSummary()).append("\n");
             }

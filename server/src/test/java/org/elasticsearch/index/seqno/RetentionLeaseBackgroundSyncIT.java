@@ -52,7 +52,7 @@ public class RetentionLeaseBackgroundSyncIT extends IntegTestCase {
         ensureGreen();
 
         Index index = resolveIndex("doc.tbl");
-        String indexUUID = index.getUUID();
+        String indexUUID = index.uuid();
 
         final String primaryShardNodeId = clusterService().state().routingTable().index(indexUUID).shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();

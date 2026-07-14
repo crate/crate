@@ -342,7 +342,7 @@ public class ClusterBlocks implements Diffable<ClusterBlocks> {
         }
 
         public Builder addBlocks(IndexMetadata indexMetadata) {
-            String indexUUID = indexMetadata.getIndex().getUUID();
+            String indexUUID = indexMetadata.getIndex().uuid();
             if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
                 addIndexBlock(indexUUID, IndexMetadata.INDEX_CLOSED_BLOCK);
             }
@@ -365,7 +365,7 @@ public class ClusterBlocks implements Diffable<ClusterBlocks> {
         }
 
         public Builder addBlocksWithIndexName(IndexMetadata indexMetadata) {
-            String indexName = indexMetadata.getIndex().getName();
+            String indexName = indexMetadata.getIndex().name();
             if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
                 addIndexBlock(indexName, IndexMetadata.INDEX_CLOSED_BLOCK);
             }
@@ -389,7 +389,7 @@ public class ClusterBlocks implements Diffable<ClusterBlocks> {
 
         public Builder updateBlocks(IndexMetadata indexMetadata) {
             // let's remove all blocks for this index and add them back -- no need to remove all individual blocks....
-            indices.remove(indexMetadata.getIndex().getUUID());
+            indices.remove(indexMetadata.getIndex().uuid());
             return addBlocks(indexMetadata);
         }
 

@@ -62,8 +62,8 @@ public class IndexSettingsModule extends AbstractModule {
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
             .put(indexSetting)
             .build();
-        IndexMetadata metadata = IndexMetadata.builder(index.getUUID())
-            .indexName(index.getName())
+        IndexMetadata metadata = IndexMetadata.builder(index.uuid())
+            .indexName(index.name())
             .settings(build)
             .build();
         Set<Setting<?>> settingSet = new HashSet<>(IndexScopedSettings.BUILT_IN_INDEX_SETTINGS);
@@ -79,8 +79,8 @@ public class IndexSettingsModule extends AbstractModule {
                 .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
                 .put(settings)
                 .build();
-        IndexMetadata metadata = IndexMetadata.builder(index.getUUID())
-            .indexName(index.getName())
+        IndexMetadata metadata = IndexMetadata.builder(index.uuid())
+            .indexName(index.name())
             .settings(build).build();
         return new IndexSettings(metadata, Settings.EMPTY, indexScopedSettings);
     }

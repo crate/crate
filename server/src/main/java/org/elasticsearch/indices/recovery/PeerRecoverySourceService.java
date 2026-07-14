@@ -163,7 +163,7 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
         RecoverySourceHandler handler = ongoingRecoveries.addNewRecovery(request, shard);
         LOGGER.trace(
             "[{}][{}] starting recovery to {}",
-            request.shardId().getIndex().getName(), request.shardId().id(), request.targetNode());
+            request.shardId().getIndex().name(), request.shardId().id(), request.targetNode());
         handler.recoverToTarget(listener.runAfter(() -> ongoingRecoveries.remove(shard, handler)));
     }
 
@@ -171,7 +171,7 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
         final IndexService indexService = indicesService.indexServiceSafe(request.shardId().getIndex());
         final IndexShard shard = indexService.getShard(request.shardId().id());
 
-        LOGGER.trace("[{}][{}] reestablishing recovery {}", request.shardId().getIndex().getName(), request.shardId().id(),
+        LOGGER.trace("[{}][{}] reestablishing recovery {}", request.shardId().getIndex().name(), request.shardId().id(),
             request.recoveryId());
         ongoingRecoveries.reestablishRecovery(request, shard, listener);
     }

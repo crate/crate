@@ -194,7 +194,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     @Override
     public String[] concreteIndices(Metadata metadata) {
         return metadata
-            .getIndices(ident, List.of(), true, imd -> imd.getIndex().getUUID())
+            .getIndices(ident, List.of(), true, imd -> imd.getIndex().uuid())
             .toArray(String[]::new);
     }
 

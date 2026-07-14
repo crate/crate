@@ -513,7 +513,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public String[] concreteIndices(Metadata metadata) {
         boolean strict = !isPartitioned;
         return metadata
-            .getIndices(ident, List.of(), strict, imd -> imd.getIndex().getUUID())
+            .getIndices(ident, List.of(), strict, imd -> imd.getIndex().uuid())
             .toArray(String[]::new);
     }
 
@@ -524,7 +524,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 ident,
                 List.of(),
                 strict,
-                imd -> imd.getState() == State.OPEN ? imd.getIndex().getUUID() : null
+                imd -> imd.getState() == State.OPEN ? imd.getIndex().uuid() : null
             )
             .toArray(String[]::new);
     }
@@ -540,7 +540,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 ident,
                 partitionValues,
                 false,
-                imd -> imd.getState() == State.OPEN ? imd.getIndex().getUUID() : null
+                imd -> imd.getState() == State.OPEN ? imd.getIndex().uuid() : null
             );
             if (!indexUUIDS.isEmpty()) {
                 uuids[i] = indexUUIDS.getFirst();

@@ -196,7 +196,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
     @Deprecated
     @Nullable
     public DocTableInfo create(IndexMetadata indexMetadata, @Nullable IndexTemplateMetadata template, int newTableOID) {
-        String indexName = indexMetadata.getIndex().getName();
+        String indexName = indexMetadata.getIndex().name();
         if (IndexName.isDangling(indexName)) {
             return null;
         }

@@ -181,7 +181,7 @@ public class NodeRepurposeCommand extends ElasticsearchNodeCommand {
         if (metadata != null) {
             for (IndexMetadata indexMetadata : metadata.indices().values()) {
                 if (indexMetadata.getIndexUUID().equals(uuid)) {
-                    return indexMetadata.getIndex().getName();
+                    return indexMetadata.getIndex().name();
                 }
             }
         }

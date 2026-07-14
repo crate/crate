@@ -33,7 +33,7 @@ public class DefaultShardOperationFailedException extends ShardOperationFailedEx
 
     public DefaultShardOperationFailedException(ElasticsearchException e) {
         super(
-            e.getIndex() == null ? null : e.getIndex().getName(),
+            e.getIndex() == null ? null : e.getIndex().name(),
             e.getShardId() == null ? -1 : e.getShardId().id(),
             Exceptions.stackTrace(e),
             e

@@ -98,7 +98,7 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
             request.table(),
             request.partitionValues(),
             false,
-            idxMd -> idxMd.getIndex().getUUID()
+            idxMd -> idxMd.getIndex().uuid()
         ).toArray(String[]::new);
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indices);
     }

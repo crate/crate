@@ -491,13 +491,13 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             final IndexMetadata newIndexMetadata = metadata.index(index);
             assert newIndexMetadata != null : "index " + index + " should have been removed by deleteIndices";
 
-            RelationMetadata relation = metadata.getRelation(index.getUUID());
-            if (relation == null && !IndexName.isDangling(index.getName())) {
+            RelationMetadata relation = metadata.getRelation(index.uuid());
+            if (relation == null && !IndexName.isDangling(index.name())) {
                 indicesService.removeIndex(indexService.index(), FAILURE, "removing index (RelationMetadata missing)");
                 failShards(state, index, "RelationMetadata missing", new IndexNotFoundException(index));
                 continue;
             }
-            RelationMetadata oldRelation = event.previousState().metadata().getRelation(index.getUUID());
+            RelationMetadata oldRelation = event.previousState().metadata().getRelation(index.uuid());
 
             boolean indexMetadataChanged = ClusterChangedEvent.indexMetadataChanged(currentIndexMetadata, newIndexMetadata);
             if (indexMetadataChanged || !Objects.equals(relation, oldRelation)) {
