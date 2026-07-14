@@ -31,9 +31,12 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.index.snapshots.IndexShardSnapshotStatus;
 import org.jspecify.annotations.Nullable;
 
-import org.elasticsearch.index.snapshots.IndexShardSnapshotStatus;
+import io.netty.util.collection.IntObjectHashMap;
+import io.netty.util.collection.IntObjectMap;
+import io.netty.util.collection.IntObjectMap.PrimitiveEntry;
 
 public final class ShardGenerations {
 
@@ -179,7 +182,7 @@ public final class ShardGenerations {
 
     public static final class Builder {
 
-        private final Map<IndexId, Map<Integer, String>> generations = new HashMap<>();
+        private final Map<IndexId, IntObjectMap<String>> generations = new HashMap<>();
 
         /**
          * Filters out all generations that don't belong to any of the supplied {@code indices} and prunes all {@link #DELETED_SHARD_GEN}
@@ -191,11 +194,14 @@ public final class ShardGenerations {
         public Builder retainIndicesAndPruneDeletes(Set<IndexId> indices) {
             generations.keySet().retainAll(indices);
             for (IndexId index : indices) {
-                final Map<Integer, String> shards = generations.getOrDefault(index, Collections.emptyMap());
-                final Iterator<Map.Entry<Integer, String>> iterator = shards.entrySet().iterator();
+                IntObjectMap<String> shards = generations.get(index);
+                if (shards == null) {
+                    shards = new IntObjectHashMap<>();
+                }
+                Iterator<PrimitiveEntry<String>> iterator = shards.entries().iterator();
                 while (iterator.hasNext()) {
-                    Map.Entry<Integer, String> entry = iterator.next();
-                    final String generation = entry.getValue();
+                    PrimitiveEntry<String> entry = iterator.next();
+                    final String generation = entry.value();
                     if (generation.equals(DELETED_SHARD_GEN)) {
                         iterator.remove();
                     }
@@ -220,7 +226,7 @@ public final class ShardGenerations {
         }
 
         public Builder put(IndexId indexId, int shardId, String generation) {
-            generations.computeIfAbsent(indexId, i -> new HashMap<>()).put(shardId, generation);
+            generations.computeIfAbsent(indexId, i -> new IntObjectHashMap<>()).put(shardId, generation);
             return this;
         }
 
@@ -228,13 +234,24 @@ public final class ShardGenerations {
             return new ShardGenerations(generations.entrySet().stream().collect(Collectors.toMap(
                 Map.Entry::getKey,
                 entry -> {
-                    final Set<Integer> shardIds = entry.getValue().keySet();
-                    assert shardIds.isEmpty() == false;
-                    final int size = shardIds.stream().mapToInt(i -> i).max().getAsInt() + 1;
+                    IntObjectMap<String> shards = entry.getValue();
+                    assert shards.isEmpty() == false;
+                    int max = 0;
+                    for (var shardEntry : shards.entries()) {
+                        int shardId = shardEntry.key();
+                        if (shardId > max) {
+                            max = shardId;
+                        }
+                    }
+                    int size = max + 1;
                     // Create a list that can hold the highest shard id as index and leave null values for shards that don't have
                     // a map entry.
                     final String[] gens = new String[size];
-                    entry.getValue().forEach((shardId, generation) -> gens[shardId] = generation);
+                    for (var shardEntry : shards.entries()) {
+                        int shardId = shardEntry.key();
+                        String generation = shardEntry.value();
+                        gens[shardId] = generation;
+                    }
                     return Arrays.asList(gens);
                 }
             )));
