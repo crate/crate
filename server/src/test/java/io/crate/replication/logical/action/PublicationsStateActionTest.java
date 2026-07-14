@@ -442,11 +442,11 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
                 assertThat(relationsInPublications.keySet()).contains(relationName1, relationName2);
 
                 RelationMetadata relationMetadataT1 = relationsInPublications.get(relationName1);
-                assertThat(relationMetadataT1.indices().stream().map(im -> im.getIndex().getName()).toList()).containsExactly(relationName1.indexNameOrAlias());
+                assertThat(relationMetadataT1.indices().stream().map(im -> im.getIndex().name()).toList()).containsExactly(relationName1.indexNameOrAlias());
                 assertThat(relationMetadataT1.template()).isNull();
 
                 RelationMetadata relationMetadataT2 = relationsInPublications.get(relationName2);
-                assertThat(relationMetadataT2.indices().stream().map(im -> im.getIndex().getName()).toList()).containsExactly(partitionName.asIndexName());
+                assertThat(relationMetadataT2.indices().stream().map(im -> im.getIndex().name()).toList()).containsExactly(partitionName.asIndexName());
                 assertThat(relationMetadataT2.template()).isNotNull();
             }
         }

@@ -20,7 +20,6 @@
 package org.elasticsearch.index;
 
 import java.io.IOException;
-import java.util.Objects;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -31,9 +30,9 @@ import org.elasticsearch.common.xcontent.ParseField;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 /**
- * A value class representing the basic required properties of an Elasticsearch index.
+ * Identifiers an Index/Partition
  */
-public class Index implements Writeable {
+public record Index(String name, String uuid) implements Writeable {
 
     public static final Index[] EMPTY_ARRAY = new Index[0];
     private static final String INDEX_UUID_KEY = "index_uuid";
@@ -45,28 +44,17 @@ public class Index implements Writeable {
         INDEX_PARSER.declareString(Builder::uuid, new ParseField(INDEX_UUID_KEY));
     }
 
-    private final String name;
-    private final String uuid;
-
-    public Index(String name, String uuid) {
-        this.name = Objects.requireNonNull(name);
-        this.uuid = Objects.requireNonNull(uuid);
-    }
-
     /**
      * Read from a stream.
      */
     public Index(StreamInput in) throws IOException {
-        this.name = in.readString();
-        this.uuid = in.readString();
+        this(in.readString(), in.readString());
     }
 
-    public String getName() {
-        return this.name;
-    }
-
-    public String getUUID() {
-        return uuid;
+    @Override
+    public void writeTo(final StreamOutput out) throws IOException {
+        out.writeString(name);
+        out.writeString(uuid);
     }
 
     @Override
@@ -79,31 +67,6 @@ public class Index implements Writeable {
             return "[" + name + "]";
         }
         return "[" + name + "/" + uuid + "]";
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Index index1 = (Index) o;
-        return uuid.equals(index1.uuid) && name.equals(index1.name); // allow for _na_ uuid
-    }
-
-    @Override
-    public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + uuid.hashCode();
-        return result;
-    }
-
-    @Override
-    public void writeTo(final StreamOutput out) throws IOException {
-        out.writeString(name);
-        out.writeString(uuid);
     }
 
     public static Index fromXContent(final XContentParser parser) throws IOException {

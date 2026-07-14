@@ -223,7 +223,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
     }
 
     private Set<ShardRouting> getShardRoutings(String nodeId, String indexName) {
-        String indexUUID = resolveIndex(indexName).getUUID();
+        String indexUUID = resolveIndex(indexName).uuid();
         final Set<ShardRouting> shardRoutings = new HashSet<>();
         ClusterStateResponse clusterStateResponse = FutureUtils.get(client().state(new ClusterStateRequest().routingTable(true)));
         for (IndexShardRoutingTable indexShardRoutingTable : clusterStateResponse.getState().routingTable().index(indexUUID)) {
@@ -253,7 +253,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
             execute("refresh table " + tableName);
 
             RelationName relationName = RelationName.fromIndexName(tableName);
-            String indexUUID = resolveIndex(tableName).getUUID();
+            String indexUUID = resolveIndex(tableName).uuid();
             var indicesStats = client().stats(new IndicesStatsRequest(relationName).store(true)).get();
             final List<ShardStats> shardStatses = indicesStats.getIndex(indexUUID).getShards();
 

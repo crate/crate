@@ -160,7 +160,7 @@ public class DiskThresholdMonitor {
 
                 if (routingNode != null) { // might be temporarily null if the ClusterInfoService and the ClusterService are out of step
                     for (ShardRouting routing : routingNode) {
-                        String indexUUID = routing.index().getUUID();
+                        String indexUUID = routing.index().uuid();
                         indicesToMarkReadOnly.add(indexUUID);
                         indicesNotToAutoRelease.add(indexUUID);
                     }
@@ -177,7 +177,7 @@ public class DiskThresholdMonitor {
 
                 if (routingNode != null) { // might be temporarily null if the ClusterInfoService and the ClusterService are out of step
                     for (ShardRouting routing : routingNode) {
-                        String indexUUID = routing.index().getUUID();
+                        String indexUUID = routing.index().uuid();
                         indicesNotToAutoRelease.add(indexUUID);
                     }
                 }
@@ -349,7 +349,7 @@ public class DiskThresholdMonitor {
             if (usages.containsKey(routingNode.nodeId()) == false) {
                 if (routingNode != null) {
                     for (ShardRouting routing : routingNode) {
-                        String indexUUID = routing.index().getUUID();
+                        String indexUUID = routing.index().uuid();
                         indicesToMarkIneligibleForAutoRelease.add(indexUUID);
                     }
                 }

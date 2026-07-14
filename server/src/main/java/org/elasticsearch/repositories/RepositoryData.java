@@ -447,12 +447,12 @@ public final class RepositoryData {
     public List<IndexId> resolveNewIndices(Iterable<Index> indicesToResolve, Map<String, IndexId> inFlightIds) {
         List<IndexId> snapshotIndices = new ArrayList<>();
         for (Index index : indicesToResolve) {
-            IndexId indexId = indices.get(index.getName());
+            IndexId indexId = indices.get(index.name());
             if (indexId == null) {
-                indexId = inFlightIds.get(index.getName());
+                indexId = inFlightIds.get(index.name());
             }
             if (indexId == null) {
-                indexId = new IndexId(index.getName(), UUIDs.randomBase64UUID());
+                indexId = new IndexId(index.name(), UUIDs.randomBase64UUID());
             }
             snapshotIndices.add(indexId);
         }

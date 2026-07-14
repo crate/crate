@@ -575,7 +575,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
             .put(IndexMetadata.builder(shard1.getIndexUUID())
                 .settings(settings(Version.CURRENT)
                     .put(AutoExpandReplicas.SETTING.getKey(), "false")
-                    .put(IndexMetadata.SETTING_INDEX_UUID, shard1.getIndex().getUUID())
+                    .put(IndexMetadata.SETTING_INDEX_UUID, shard1.getIndex().uuid())
                     .put(INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey(), 0))
                 .indexName("test1")
                 .numberOfShards(1)

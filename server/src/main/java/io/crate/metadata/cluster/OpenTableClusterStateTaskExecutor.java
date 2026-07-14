@@ -86,7 +86,7 @@ public class OpenTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
             .blocks(currentState.blocks());
         for (IndexMetadata closedMetadata : closedIndices) {
-            final String indexUUID = closedMetadata.getIndex().getUUID();
+            final String indexUUID = closedMetadata.getIndex().uuid();
             blocksBuilder.removeIndexBlockWithId(indexUUID, TransportCloseTable.INDEX_CLOSED_BLOCK_ID);
 
             if (closedMetadata.getState() == IndexMetadata.State.OPEN) {

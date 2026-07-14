@@ -76,7 +76,7 @@ public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAn
         blocksBuilder.removeIndexBlocks(originalIndex.getIndexUUID());
         IndexMetadata newIndexMetadata = IndexMetadata
             .builder(resizedIndex)
-            .indexName(originalIndex.getIndex().getName())
+            .indexName(originalIndex.getIndex().name())
             .build();
         mdBuilder.put(newIndexMetadata, true);
         routingBuilder.addAsFromCloseToOpen(newIndexMetadata);

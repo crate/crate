@@ -103,7 +103,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
     }
 
     public boolean hasIndex(Index index) {
-        IndexRoutingTable indexRouting = index(index.getUUID());
+        IndexRoutingTable indexRouting = index(index.uuid());
         return indexRouting != null && indexRouting.getIndex().equals(index);
     }
 
@@ -112,7 +112,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
     }
 
     public IndexRoutingTable index(Index index) {
-        return indicesRouting.get(index.getUUID());
+        return indicesRouting.get(index.uuid());
     }
 
     public Map<String, IndexRoutingTable> indicesRouting() {
@@ -405,7 +405,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
         public Builder(RoutingTable routingTable) {
             version = routingTable.version;
             for (IndexRoutingTable indexRoutingTable : routingTable) {
-                indicesRouting.put(indexRoutingTable.getIndex().getUUID(), indexRoutingTable);
+                indicesRouting.put(indexRoutingTable.getIndex().uuid(), indexRoutingTable);
             }
         }
 
@@ -439,16 +439,16 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
         private static void addShard(final Map<String, IndexRoutingTable.Builder> indexRoutingTableBuilders,
                 final ShardRouting shardRoutingEntry) {
             Index index = shardRoutingEntry.index();
-            IndexRoutingTable.Builder indexBuilder = indexRoutingTableBuilders.get(index.getUUID());
+            IndexRoutingTable.Builder indexBuilder = indexRoutingTableBuilders.get(index.uuid());
             if (indexBuilder == null) {
                 indexBuilder = new IndexRoutingTable.Builder(index);
-                indexRoutingTableBuilders.put(index.getUUID(), indexBuilder);
+                indexRoutingTableBuilders.put(index.uuid(), indexBuilder);
             }
             indexBuilder.addShard(shardRoutingEntry);
         }
 
         public void updateNumberOfReplicas(final int numberOfReplicas, final List<IndexMetadata> indexes) {
-            String[] indices = indexes.stream().map(im -> im.getIndex().getUUID()).toArray(String[]::new);
+            String[] indices = indexes.stream().map(im -> im.getIndex().uuid()).toArray(String[]::new);
             updateNumberOfReplicas(numberOfReplicas, indices);
         }
 
@@ -551,7 +551,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
             if (indicesRouting == null) {
                 throw new IllegalStateException("once build is called the builder cannot be reused");
             }
-            indicesRouting.put(indexRoutingTable.getIndex().getUUID(), indexRoutingTable);
+            indicesRouting.put(indexRoutingTable.getIndex().uuid(), indexRoutingTable);
             return this;
         }
 
@@ -565,7 +565,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
             if (indicesRouting == null) {
                 throw new IllegalStateException("once build is called the builder cannot be reused");
             }
-            indicesRouting.put(indexRoutingTable.getIndex().getName(), indexRoutingTable);
+            indicesRouting.put(indexRoutingTable.getIndex().name(), indexRoutingTable);
             return this;
         }
 

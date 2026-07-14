@@ -131,7 +131,7 @@ public final class NodeEnvironment implements Closeable {
          * ${data.paths}/nodes/{node.id}/indices/{index.uuid}
          */
         public Path resolve(Index index) {
-            return resolve(index.getUUID());
+            return resolve(index.uuid());
         }
 
         Path resolve(String uuid) {
@@ -568,7 +568,7 @@ public final class NodeEnvironment implements Closeable {
         logger.trace("deleting index {} directory, paths({}): [{}]", index, indexPaths.length, indexPaths);
         IOUtils.rm(indexPaths);
         if (indexSettings.hasCustomDataPath()) {
-            Path customLocation = resolveIndexCustomLocation(indexSettings.customDataPath(), index.getUUID());
+            Path customLocation = resolveIndexCustomLocation(indexSettings.customDataPath(), index.uuid());
             logger.trace("deleting custom index {} directory [{}]", index, customLocation);
             IOUtils.rm(customLocation);
         }
@@ -927,7 +927,7 @@ public final class NodeEnvironment implements Closeable {
         }
         assertEnvIsLocked();
         final Set<ShardId> shardIds = new HashSet<>();
-        final String indexUniquePathId = index.getUUID();
+        final String indexUniquePathId = index.uuid();
         for (final NodePath nodePath : nodePaths) {
             Path location = nodePath.indicesPath;
             if (Files.isDirectory(location)) {
@@ -956,7 +956,7 @@ public final class NodeEnvironment implements Closeable {
         }
         assertEnvIsLocked();
         final Map<NodePath, Long> shardCountPerPath = new HashMap<>();
-        final String indexUniquePathId = index.getUUID();
+        final String indexUniquePathId = index.uuid();
         for (final NodePath nodePath : nodePaths) {
             Path indexLocation = nodePath.indicesPath.resolve(indexUniquePathId);
             if (Files.isDirectory(indexLocation)) {
@@ -967,7 +967,7 @@ public final class NodeEnvironment implements Closeable {
     }
 
     private static Set<ShardId> findAllShardsForIndex(Path indexPath, Index index) throws IOException {
-        assert indexPath.getFileName().toString().equals(index.getUUID());
+        assert indexPath.getFileName().toString().equals(index.uuid());
         Set<ShardId> shardIds = new HashSet<>();
         if (Files.isDirectory(indexPath)) {
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(indexPath)) {
@@ -1156,7 +1156,7 @@ public final class NodeEnvironment implements Closeable {
     }
 
     public static Path resolveCustomLocation(String customDataPath, final ShardId shardId, Path sharedDataPath) {
-        return resolveIndexCustomLocation(customDataPath, shardId.getIndex().getUUID(),
+        return resolveIndexCustomLocation(customDataPath, shardId.getIndex().uuid(),
             sharedDataPath).resolve(Integer.toString(shardId.id()));
     }
 

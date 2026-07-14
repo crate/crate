@@ -63,9 +63,9 @@ public abstract class SingleShardRequest extends TransportRequest {
         super.writeTo(out);
         out.writeOptionalWriteable(internalShardId);
         if (out.getVersion().before(Version.V_6_1_0)) {
-            out.writeOptionalString(index.getName());
+            out.writeOptionalString(index.name());
         } else {
-            out.writeString(index.getUUID());
+            out.writeString(index.uuid());
         }
     }
 }

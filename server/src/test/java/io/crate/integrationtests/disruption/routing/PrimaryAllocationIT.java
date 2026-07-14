@@ -23,6 +23,7 @@ package io.crate.integrationtests.disruption.routing;
 
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -83,7 +84,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         execute("insert into t values ('value1')");
         execute("refresh table t");
 
-        String indexUUID = resolveIndex(indexName).getUUID();
+        String indexUUID = resolveIndex(indexName).uuid();
 
         ClusterState state = client().state(new ClusterStateRequest().all()).get().getState();
         List<ShardRouting> shards = state.routingTable().allShards(indexUUID);
@@ -163,7 +164,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         final Settings inSyncDataPathSettings = cluster().dataPathSettings(replicaNode);
         cluster().stopRandomNode(TestCluster.nameFilter(replicaNode));
         ensureYellow();
-        String indexUUID = resolveIndex(indexName).getUUID();
+        String indexUUID = resolveIndex(indexName).uuid();
         assertThat(client()
             .state(new ClusterStateRequest())
             .get().getState().metadata().index(indexUUID).inSyncAllocationIds(0)
@@ -196,7 +197,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         ensureGreen();
         cluster().stopRandomNode(TestCluster.nameFilter(replicaNode));
         ensureYellow();
-        String indexUUID = resolveIndex(indexName).getUUID();
+        String indexUUID = resolveIndex(indexName).uuid();
         assertThat(client().state(new ClusterStateRequest()).get().getState()
                             .metadata().index(indexUUID).inSyncAllocationIds(0)).hasSize(2);
         logger.info("--> inserting row...");
@@ -258,7 +259,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         cluster().fullRestart();
         logger.info("--> checking that the primary shard is force allocated to the data node despite being blocked by the exclude filter");
         ensureGreen();
-        String indexUUID = resolveIndex(indexName).getUUID();
+        String indexUUID = resolveIndex(indexName).uuid();
         assertThat(client()
             .state(new ClusterStateRequest())
             .get()
@@ -278,7 +279,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         final String oldPrimary = cluster().startDataOnlyNode();
         execute("create table t (x string) clustered into 1 shards " +
                 "with (number_of_replicas = " + numberOfReplicas + ", \"write.wait_for_active_shards\" = 1)");
-        String indexUUID = resolveIndex(indexName).getUUID();
+        String indexUUID = resolveIndex(indexName).uuid();
         final ShardId shardId = new ShardId(clusterService().state().metadata().index(indexUUID).getIndex(), 0);
         final Set<String> replicaNodes = new HashSet<>(cluster().startDataOnlyNodes(numberOfReplicas));
         ensureGreen();

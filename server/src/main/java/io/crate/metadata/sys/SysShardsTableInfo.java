@@ -236,7 +236,7 @@ public class SysShardsTableInfo {
                                             ShardId shardId) {
         String node;
         int id;
-        String index = shardId.getIndex().getUUID();
+        String index = shardId.getIndex().uuid();
 
         if (shardRouting == null) {
             node = localNodeId;

@@ -170,7 +170,7 @@ public final class IndexMetaDataGenerations {
      * @return identifier string
      */
     public static String buildUniqueIdentifier(IndexMetadata indexMetadata) {
-        return indexMetadata.getIndex().getName() +
+        return indexMetadata.getIndex().name() +
                 "-" + indexMetadata.getIndexUUID() +
                 "-" + indexMetadata.getSettings().get(IndexMetadata.SETTING_HISTORY_UUID, IndexMetadata.INDEX_UUID_NA_VALUE) +
                 "-" + indexMetadata.getSettingsVersion() +

@@ -100,7 +100,7 @@ public class MetaStateService {
         for (Map.Entry<Index, Long> entry : manifest.getIndexGenerations().entrySet()) {
             final Index index = entry.getKey();
             final long generation = entry.getValue();
-            final String indexFolderName = index.getUUID();
+            final String indexFolderName = index.uuid();
             final IndexMetadata indexMetadata = INDEX_METADATA_FORMAT.loadGeneration(
                 LOGGER,
                 namedWriteableRegistry,
@@ -110,7 +110,7 @@ public class MetaStateService {
             if (indexMetadata != null) {
                 metadataBuilder.put(indexMetadata, false);
             } else {
-                throw new IOException("failed to find metadata for existing index " + index.getName() + " [location: " + indexFolderName +
+                throw new IOException("failed to find metadata for existing index " + index.name() + " [location: " + indexFolderName +
                         ", generation: " + generation + "]");
             }
         }
@@ -177,7 +177,7 @@ public class MetaStateService {
             IndexMetadata indexMetadata = INDEX_METADATA_FORMAT.loadLatestState(LOGGER, namedWriteableRegistry, namedXContentRegistry,
                     nodeEnv.resolveIndexFolder(indexFolderName));
             if (indexMetadata != null) {
-                final String indexPathId = indexMetadata.getIndex().getUUID();
+                final String indexPathId = indexMetadata.getIndex().uuid();
                 if (indexFolderName.equals(indexPathId)) {
                     indexMetadataList.add(indexMetadata);
                 } else {

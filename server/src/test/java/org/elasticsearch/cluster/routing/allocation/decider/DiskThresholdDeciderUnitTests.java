@@ -422,11 +422,11 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         // Setting the creation date is important here as shards of newer indices are allocated first, see PriorityComparator
         // Shards of the source index must be allocated first, so set the highest creation date
         Metadata.Builder metaBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
-        metaBuilder.put(IndexMetadata.builder(index.getUUID())
+        metaBuilder.put(IndexMetadata.builder(index.uuid())
             .settings(settings(Version.CURRENT)
-                .put("index.uuid", index.getUUID())
+                .put("index.uuid", index.uuid())
                 .put(IndexMetadata.SETTING_CREATION_DATE, 3))
-            .indexName(index.getName())
+            .indexName(index.name())
             .numberOfShards(4)
             .numberOfReplicas(0));
         metaBuilder.put(IndexMetadata.builder("5678")
@@ -441,14 +441,14 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         metaBuilder.put(IndexMetadata.builder("9101112")
             .settings(settings(Version.CURRENT).put("index.uuid", "9101112")
                 .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME_KEY, "test")
-                .put(IndexMetadata.INDEX_RESIZE_SOURCE_UUID_KEY, index.getUUID())
+                .put(IndexMetadata.INDEX_RESIZE_SOURCE_UUID_KEY, index.uuid())
                 .put(IndexMetadata.SETTING_CREATION_DATE, 1))
             .indexName("target2")
             .numberOfShards(2)
             .numberOfReplicas(0));
         Metadata metadata = metaBuilder.build();
         RoutingTable.Builder routingTableBuilder = RoutingTable.builder();
-        routingTableBuilder.addAsNew(metadata.index(index.getUUID()));
+        routingTableBuilder.addAsNew(metadata.index(index.uuid()));
         routingTableBuilder.addAsNew(metadata.index("5678"));
         routingTableBuilder.addAsNew(metadata.index("9101112"));
         ClusterState clusterState = ClusterState.builder(org.elasticsearch.cluster.ClusterName.CLUSTER_NAME_SETTING
@@ -460,7 +460,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         clusterState = allocationService.reroute(clusterState, "foo");
 
         clusterState = startShardsAndReroute(allocationService, clusterState,
-            clusterState.routingTable().index(index.getUUID()).shardsWithState(ShardRoutingState.UNASSIGNED));
+            clusterState.routingTable().index(index.uuid()).shardsWithState(ShardRoutingState.UNASSIGNED));
 
         RoutingAllocation allocation = new RoutingAllocation(null, clusterState.getRoutingNodes(), clusterState, info, null,0);
 
@@ -500,8 +500,8 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
 
         // check that the DiskThresholdDecider still works even if the source index has been deleted
         ClusterState clusterStateWithMissingSourceIndex = ClusterState.builder(clusterState)
-            .metadata(Metadata.builder(metadata).remove(index.getUUID()))
-            .routingTable(RoutingTable.builder(clusterState.routingTable()).remove(index.getUUID()).build())
+            .metadata(Metadata.builder(metadata).remove(index.uuid()))
+            .routingTable(RoutingTable.builder(clusterState.routingTable()).remove(index.uuid()).build())
             .build();
 
         allocationService.reroute(clusterState, "foo");

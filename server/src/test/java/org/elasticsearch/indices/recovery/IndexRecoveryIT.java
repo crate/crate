@@ -295,7 +295,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         final int numOfDocs = scaledRandomIntBetween(1, 200);
         try (BackgroundIndexer indexer = new BackgroundIndexer(
             sqlExecutor.getCurrentSchema(),
-            RelationName.fqnFromIndexName(index.getName()),
+            RelationName.fqnFromIndexName(index.name()),
             "data",
             sqlExecutor.jdbcUrl(),
             numOfDocs,
@@ -596,14 +596,14 @@ public class IndexRecoveryIT extends IntegTestCase {
         RepositoryData repositoryData = repository.getRepositoryData().get(5, TimeUnit.SECONDS);
 
         Index index = resolveIndex(INDEX_NAME);
-        String indexUUID = index.getUUID();
+        String indexUUID = index.uuid();
         var indicesServiceA = cluster().getInstance(IndicesService.class, nodeA);
         var shardA = indicesServiceA.indexService(index).getShard(0);
         var recoveryState = shardA.recoveryState();
         RecoverySource.SnapshotRecoverySource recoverySource = new RecoverySource.SnapshotRecoverySource(
             ((RecoverySource.SnapshotRecoverySource)recoveryState.getRecoverySource()).restoreUUID(),
             new Snapshot(REPO_NAME, snapshotId),
-            Version.CURRENT, repositoryData.resolveIndexId(index.getName()));
+            Version.CURRENT, repositoryData.resolveIndexId(index.name()));
         assertRecoveryState(recoveryState, 0, recoverySource, true, RecoveryState.Stage.DONE, null, nodeA);
         validateIndexRecoveryState(recoveryState.getIndex());
     }
@@ -900,7 +900,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                 " \"routing.allocation.include.color\" = 'blue'" +
                 ")");
 
-        String indexUUID = resolveIndex("test").getUUID();
+        String indexUUID = resolveIndex("test").uuid();
         int numDocs = scaledRandomIntBetween(25, 250);
         var args = new Object[numDocs][];
         for (int i = 0; i < numDocs; i++) {

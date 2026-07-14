@@ -70,7 +70,7 @@ public class ClusterStateTest extends CrateDummyClusterServiceUnitTest {
         //noinspection unchecked
         MapBuilder<String, IndexRoutingTable> indicesRouting =
             (MapBuilder<String, IndexRoutingTable>) indicesRoutingField.get(routingTableBuilder);
-        indicesRouting.put(indexMetadata.getIndex().getName(), indexRouting);
+        indicesRouting.put(indexMetadata.getIndex().name(), indexRouting);
 
         ClusterState clusterState = ClusterState.builder(new ClusterName("test"))
             .metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED)
@@ -80,7 +80,7 @@ public class ClusterStateTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         // IndexRouting is registered by the index name.
-        assertThat(clusterState.routingTable().hasIndex(indexMetadata.getIndex().getName())).isTrue();
+        assertThat(clusterState.routingTable().hasIndex(indexMetadata.getIndex().name())).isTrue();
         assertThat(clusterState.routingTable().hasIndex(indexMetadata.getIndexUUID())).isFalse();
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -92,7 +92,7 @@ public class ClusterStateTest extends CrateDummyClusterServiceUnitTest {
         ClusterState recievedClusterState = ClusterState.readFrom(in, newNode("node1", "node1"));
 
         // IndexRouting is registered by the index UUID now.
-        assertThat(recievedClusterState.routingTable().hasIndex(indexMetadata.getIndex().getName())).isFalse();
+        assertThat(recievedClusterState.routingTable().hasIndex(indexMetadata.getIndex().name())).isFalse();
         assertThat(recievedClusterState.routingTable().hasIndex(indexMetadata.getIndexUUID())).isTrue();
     }
 }

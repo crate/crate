@@ -58,8 +58,8 @@ public class ClusterStateUpgraderTest extends CrateDummyClusterServiceUnitTest {
 
         ClusterState clusterState = clusterService.state();
         Index index = resolveIndex("doc.t", "doc", clusterState.metadata());
-        String indexUUID = index.getUUID();
-        String indexName = index.getName();
+        String indexUUID = index.uuid();
+        String indexName = index.name();
 
         assertThat(clusterState.routingTable().index(indexUUID)).isNotNull();
         assertThat(clusterState.routingTable().index(indexName)).isNull();
@@ -91,8 +91,8 @@ public class ClusterStateUpgraderTest extends CrateDummyClusterServiceUnitTest {
 
         ClusterState clusterState = clusterService.state();
         Index index = resolveIndex("doc.t", "doc", clusterState.metadata());
-        String indexUUID = index.getUUID();
-        String indexName = index.getName();
+        String indexUUID = index.uuid();
+        String indexName = index.name();
 
         clusterState = ClusterState.builder(clusterState)
             .blocks(ClusterBlocks.builder().addIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_BLOCK))

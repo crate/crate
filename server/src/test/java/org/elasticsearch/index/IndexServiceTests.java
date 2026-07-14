@@ -126,7 +126,7 @@ public class IndexServiceTests extends IntegTestCase {
         execute("alter table test close");
         final Index index = indexService.index();
         assertBusy(() -> assertThat(getIndicesService().hasIndex(index))
-            .as("Index not found: " + index.getName())
+            .as("Index not found: " + index.name())
             .isTrue());
         final IndexService closedIndexService = getIndicesService().indexServiceSafe(index);
         assertThat(closedIndexService).isNotSameAs(indexService);
@@ -142,7 +142,7 @@ public class IndexServiceTests extends IntegTestCase {
         // now reopen the index
         execute("alter table test open");
         assertBusy(() -> assertThat(getIndicesService().hasIndex(index))
-            .as("Index not found: " + index.getName())
+            .as("Index not found: " + index.name())
             .isTrue());
         indexService = getIndicesService().indexServiceSafe(index);
         assertThat(indexService).isNotSameAs(closedIndexService);
@@ -208,7 +208,7 @@ public class IndexServiceTests extends IntegTestCase {
         execute("alter table test close");
         final Index index = indexService.index();
         assertBusy(() -> assertThat(getIndicesService().hasIndex(index))
-            .as("Index not found: " + index.getName())
+            .as("Index not found: " + index.name())
             .isTrue());
 
         final IndexService closedIndexService = getIndicesService().indexServiceSafe(index);
@@ -221,7 +221,7 @@ public class IndexServiceTests extends IntegTestCase {
         // now reopen the index
         execute("alter table test open");
         assertBusy(() -> assertThat(getIndicesService().hasIndex(index))
-            .as("Index not found: " + index.getName())
+            .as("Index not found: " + index.name())
             .isTrue());
         indexService = getIndicesService().indexServiceSafe(index);
         assertThat(indexService).isNotSameAs(closedIndexService);
@@ -248,7 +248,7 @@ public class IndexServiceTests extends IntegTestCase {
         execute("alter table test close");
         final Index index = indexService.index();
         assertBusy(() -> assertThat(getIndicesService().hasIndex(index))
-            .as("Index not found: " + index.getName())
+            .as("Index not found: " + index.name())
             .isTrue());
 
         final IndexService closedIndexService = getIndicesService().indexServiceSafe(index);
@@ -261,7 +261,7 @@ public class IndexServiceTests extends IntegTestCase {
         // now reopen the index
         execute("alter table test open");
         assertBusy(() -> assertThat(getIndicesService().hasIndex(index))
-            .as("Index not found: " + index.getName())
+            .as("Index not found: " + index.name())
             .isTrue());
         indexService = getIndicesService().indexServiceSafe(index);
         assertThat(indexService).isNotSameAs(closedIndexService);
@@ -283,7 +283,7 @@ public class IndexServiceTests extends IntegTestCase {
     public void testRefreshActuallyWorks() throws Exception {
         execute("create table test (x int, data text) clustered into 1 shards");
         var indexService = getIndexService("test");
-        var indexName = indexService.index().getName();
+        var indexName = indexService.index().name();
         ensureGreen();
         IndexService.AsyncRefreshTask refreshTask = indexService.getRefreshTask();
         assertThat(refreshTask.getInterval().millis()).isEqualTo(1000);
@@ -381,7 +381,7 @@ public class IndexServiceTests extends IntegTestCase {
     public void testAsyncTranslogTrimTaskOnClosedIndex() throws Exception {
         execute ("create table test(x int) clustered into 1 shards");
         var indexService = getIndexService("test");
-        var indexName = indexService.index().getName();
+        var indexName = indexService.index().name();
         var partitionName = IndexName.decode(indexName).toPartitionName();
 
         // Setting not exposed via SQL
@@ -440,7 +440,7 @@ public class IndexServiceTests extends IntegTestCase {
     public void testUpdateSyncIntervalDynamically() throws Exception {
         execute("create table test (x int) clustered into 1 shards with (\"translog.sync_interval\" = '10s')");
         IndexService indexService = getIndexService("test");
-        var indexUUID = indexService.index().getUUID();
+        var indexUUID = indexService.index().uuid();
 
         ensureGreen();
         assertThat(indexService.getFsyncTask()).isNull();

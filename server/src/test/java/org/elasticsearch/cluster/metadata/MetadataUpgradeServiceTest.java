@@ -301,7 +301,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
         assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isFalse();
         for (IndexMetadata indexMetadata : upgrade) {
             assertThat(metadata.hasIndexMetadata(indexMetadata)).isTrue();
-            RelationName relationName = IndexName.decode(indexMetadata.getIndex().getName()).toRelationName();
+            RelationName relationName = IndexName.decode(indexMetadata.getIndex().name()).toRelationName();
             RelationMetadata.Table relationMetadata = upgrade.getRelation(relationName);
             assertThat(relationMetadata.settings()).isEqualTo(indexMetadata.getSettings());
         }
@@ -325,7 +325,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
         assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isFalse();
         for (IndexMetadata indexMetadata : upgrade) {
             assertThat(metadata.hasIndexMetadata(indexMetadata)).isTrue();
-            RelationName relationName = IndexName.decode(indexMetadata.getIndex().getName()).toRelationName();
+            RelationName relationName = IndexName.decode(indexMetadata.getIndex().name()).toRelationName();
             RelationMetadata.Table relationMetadata = upgrade.getRelation(relationName);
             assertThat(relationMetadata.settings()).isEqualTo(indexMetadata.getSettings());
         }
@@ -339,7 +339,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
         assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isTrue();
         for (IndexMetadata indexMetadata : upgrade) {
             assertThat(metadata.hasIndexMetadata(indexMetadata)).isTrue();
-            RelationName relationName = IndexName.decode(indexMetadata.getIndex().getName()).toRelationName();
+            RelationName relationName = IndexName.decode(indexMetadata.getIndex().name()).toRelationName();
             RelationMetadata.Table relationMetadata = upgrade.getRelation(relationName);
             assertThat(relationMetadata.settings()).isEqualTo(indexMetadata.getSettings());
         }

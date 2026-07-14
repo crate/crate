@@ -155,7 +155,7 @@ public final class AutoExpandReplicas {
                 AutoExpandReplicas autoExpandReplicas = SETTING.get(indexMetadata.getSettings());
                 autoExpandReplicas.getDesiredNumberOfReplicas(indexMetadata, allocation).ifPresent(numberOfReplicas -> {
                     if (numberOfReplicas != indexMetadata.getNumberOfReplicas()) {
-                        nrReplicasChanged.computeIfAbsent(numberOfReplicas, ArrayList::new).add(indexMetadata.getIndex().getUUID());
+                        nrReplicasChanged.computeIfAbsent(numberOfReplicas, ArrayList::new).add(indexMetadata.getIndex().uuid());
                     }
                 });
             }

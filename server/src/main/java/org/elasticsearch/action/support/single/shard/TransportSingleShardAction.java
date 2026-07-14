@@ -141,7 +141,7 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
             if (indexMetadata == null) {
                 throw new IndexNotFoundException(shardId.getIndex());
             }
-            indexUUID = indexMetadata.getIndex().getUUID();
+            indexUUID = indexMetadata.getIndex().uuid();
         }
 
         return state.routingTable().shardRoutingTable(indexUUID, shardId.id());
@@ -175,15 +175,15 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
 
             // Nodes <= 6.1.0 are sending the index name instead of the UUID while everything is based on UUID's
             // nowadays. This we try to resolve the actually UUID by the given name.
-            if (index.getUUID().equals(IndexMetadata.INDEX_UUID_NA_VALUE)) {
-                IndexMetadata indexMetadata = clusterState.metadata().getIndexByName(index.getName());
+            if (index.uuid().equals(IndexMetadata.INDEX_UUID_NA_VALUE)) {
+                IndexMetadata indexMetadata = clusterState.metadata().getIndexByName(index.name());
                 if (indexMetadata == null) {
                     throw new IndexNotFoundException(index);
                 }
                 index = indexMetadata.getIndex();
             }
 
-            blockException = blocks.indexBlockedException(ClusterBlockLevel.READ, index.getUUID());
+            blockException = blocks.indexBlockedException(ClusterBlockLevel.READ, index.uuid());
             if (blockException != null) {
                 throw blockException;
             }

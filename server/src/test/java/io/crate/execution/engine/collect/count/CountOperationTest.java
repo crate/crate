@@ -72,7 +72,7 @@ public class CountOperationTest extends IntegTestCase {
 
         IntArrayList shards = new IntArrayList(1);
         shards.add(0);
-        Map<String, IntIndexedContainer> indexShards = Map.of(index.getUUID(), shards);
+        Map<String, IntIndexedContainer> indexShards = Map.of(index.uuid(), shards);
 
         {
             CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, Literal.BOOLEAN_TRUE, false);
@@ -130,7 +130,7 @@ public class CountOperationTest extends IntegTestCase {
         // and can fail on prepareGetCount, we need to pass non-empty map
         IntArrayList shards = new IntArrayList(1);
         shards.add(-1); // Ensure that ShardNotFoundException will be thrown by providing invalid id (normally must be positive number).
-        Map<String, IntIndexedContainer> indexShards = Map.of(index.getUUID(), shards);
+        Map<String, IntIndexedContainer> indexShards = Map.of(index.uuid(), shards);
 
         CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, Literal.BOOLEAN_TRUE, true);
         assertThat(count.get(5, TimeUnit.SECONDS)).isEqualTo(0L);

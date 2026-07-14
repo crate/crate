@@ -28,8 +28,8 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.index.seqno.RetentionLeaseActions;
 import org.elasticsearch.index.seqno.RetentionLeaseAlreadyExistsException;
 import org.elasticsearch.index.shard.ShardId;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 
@@ -47,7 +47,7 @@ public class RetentionLeaseHelper {
     @VisibleForTesting
     static String retentionLeaseIdForShard(String subscriberClusterName, ShardId shardId) {
         var retentionLeaseSource = retentionLeaseSource(subscriberClusterName);
-        return retentionLeaseSource + ":" + "[" + shardId.getIndex().getName() + "][" + shardId.id() + "]";
+        return retentionLeaseSource + ":" + "[" + shardId.getIndex().name() + "][" + shardId.id() + "]";
     }
 
 

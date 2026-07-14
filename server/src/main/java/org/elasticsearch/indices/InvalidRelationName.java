@@ -45,7 +45,7 @@ public class InvalidRelationName extends ElasticsearchException implements Unsco
     }
 
     public String tableName() {
-        return getIndex().getName();
+        return getIndex().name();
     }
 
     @Override

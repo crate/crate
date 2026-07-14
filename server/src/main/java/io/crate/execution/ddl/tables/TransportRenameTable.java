@@ -112,7 +112,7 @@ public class TransportRenameTable extends TransportMasterNodeAction<RenameTableR
                         request.targetName(),
                         List.of(),
                         false,
-                        imd -> imd.getState() == State.OPEN ? imd.getIndex().getUUID() : null
+                        imd -> imd.getState() == State.OPEN ? imd.getIndex().uuid() : null
                     ).toArray(String[]::new));
                     return updatedState;
                 }
@@ -137,7 +137,7 @@ public class TransportRenameTable extends TransportMasterNodeAction<RenameTableR
                 request.sourceName(),
                 List.of(),
                 strict,
-                imd -> imd.getIndex().getName()
+                imd -> imd.getIndex().name()
             ).toArray(String[]::new)
         );
     }

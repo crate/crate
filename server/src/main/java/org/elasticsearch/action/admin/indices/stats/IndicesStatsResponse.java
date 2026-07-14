@@ -69,7 +69,7 @@ public class IndicesStatsResponse extends BroadcastResponse {
 
         for (Index index : indices) {
             List<ShardStats> shards = new ArrayList<>();
-            String indexUUID = index.getUUID();
+            String indexUUID = index.uuid();
             for (ShardStats shard : this.shards) {
                 if (shard.getShardRouting().getIndexUUID().equals(indexUUID)) {
                     shards.add(shard);

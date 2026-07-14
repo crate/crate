@@ -142,7 +142,7 @@ public class MetadataUpdateSettingsService {
 
         List<String> openIndices = indexes.stream()
             .filter(im -> im.getState() == IndexMetadata.State.OPEN)
-            .map(im -> im.getIndex().getUUID())
+            .map(im -> im.getIndex().uuid())
             .toList();
         if (!skippedSettings.isEmpty() && !openIndices.isEmpty()) {
             throw new IllegalArgumentException(String.format(Locale.ROOT,
@@ -192,7 +192,7 @@ public class MetadataUpdateSettingsService {
             Settings.Builder updates = Settings.builder();
             Settings.Builder indexSettings = Settings.builder().put(indexMetadata.getSettings());
             Settings toUpdate = indexMetadata.getState() == IndexMetadata.State.OPEN ? openSettings : closedSettings;
-            String indexName = indexMetadata.getIndex().getName();
+            String indexName = indexMetadata.getIndex().name();
             // TODO can we improve updateDynamicSettings so that it returns false if the update
             // doesn't actually change the value of the setting?  Then we can remove the `same` call
             boolean updated = indexMetadata.getState() == IndexMetadata.State.OPEN ?
@@ -247,7 +247,7 @@ public class MetadataUpdateSettingsService {
         if (setting.exists(openSettings)) {
             final boolean updateBlock = setting.get(openSettings);
             for (IndexMetadata im : indexes) {
-                String indexUUID = im.getIndex().getUUID();
+                String indexUUID = im.getIndex().uuid();
                 if (updateBlock) {
                     blocks.addIndexBlock(indexUUID, block);
                 } else {

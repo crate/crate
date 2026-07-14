@@ -215,7 +215,7 @@ public class IndicesStore implements ClusterStateListener, Closeable {
 
     private void deleteShardIfExistElseWhere(ClusterState state, IndexShardRoutingTable indexShardRoutingTable) {
         List<Tuple<DiscoveryNode, ShardActiveRequest>> requests = new ArrayList<>(indexShardRoutingTable.size());
-        String indexUUID = indexShardRoutingTable.shardId().getIndex().getUUID();
+        String indexUUID = indexShardRoutingTable.shardId().getIndex().uuid();
         ClusterName clusterName = state.getClusterName();
         for (ShardRouting shardRouting : indexShardRoutingTable) {
             assert shardRouting.started() : "expected started shard but was " + shardRouting;

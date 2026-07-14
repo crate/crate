@@ -22,6 +22,7 @@
 package io.crate.integrationtests.disruption.discovery;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -309,7 +310,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         ensureGreen();
         String nonMasterNodeId = cluster().clusterService(nonMasterNode).localNode().getId();
 
-        String indexUUUUD = resolveIndex("t").getUUID();
+        String indexUUUUD = resolveIndex("t").uuid();
 
         // fail a random shard
         ShardRouting failedShard =
@@ -398,7 +399,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         }
         ensureGreen();
 
-        String indexUUID = resolveIndex("t").getUUID();
+        String indexUUID = resolveIndex("t").uuid();
 
         assertBusy(() -> assertThat(docID.get()).isGreaterThanOrEqualTo(100));
         cluster().restartRandomDataNode(new TestCluster.RestartCallback());

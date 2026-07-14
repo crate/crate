@@ -64,7 +64,7 @@ public class MetadataIndexUpgrader {
         if (indexMetadata.partitionValues().isEmpty() == false) {
             return builder.build();
         }
-        IndexParts indexParts = IndexName.decode(indexMetadata.getIndex().getName());
+        IndexParts indexParts = IndexName.decode(indexMetadata.getIndex().name());
         if (indexParts.isPartitioned() == false) {
             return builder.build();
         }

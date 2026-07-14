@@ -312,7 +312,7 @@ public class PublicationTransportHandlerTests extends ESTestCase {
             .metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .put(indexMetadata, false)
                 .build())
-            .blocks(ClusterBlocks.builder().addIndexBlock(indexMetadata.getIndex().getName(), IndexMetadata.INDEX_READ_ONLY_BLOCK))
+            .blocks(ClusterBlocks.builder().addIndexBlock(indexMetadata.getIndex().name(), IndexMetadata.INDEX_READ_ONLY_BLOCK))
             .build();
 
         // Index block is registered by the index name.

@@ -870,7 +870,7 @@ public class SQLExecutor {
 
         for (IndexMetadata imd: indices) {
             mdBuilder.put(IndexMetadata.builder(imd).state(IndexMetadata.State.CLOSE));
-            blocksBuilder.addIndexBlock(imd.getIndex().getName(), INDEX_CLOSED_BLOCK);
+            blocksBuilder.addIndexBlock(imd.getIndex().name(), INDEX_CLOSED_BLOCK);
         }
 
         ClusterState updatedState = ClusterState.builder(prevState).metadata(mdBuilder).blocks(blocksBuilder).build();

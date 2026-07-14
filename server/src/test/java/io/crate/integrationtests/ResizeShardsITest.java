@@ -325,8 +325,8 @@ public class ResizeShardsITest extends IntegTestCase {
         Set<Index> resizeIndices = new HashSet<>();
         for (IndexMetadata indexMetadata : metadata.indices().values()) {
             Index index = indexMetadata.getIndex();
-            RelationMetadata relation = metadata.getRelation(index.getUUID());
-            if (relation == null && index.getName().startsWith(".resized")) {
+            RelationMetadata relation = metadata.getRelation(index.uuid());
+            if (relation == null && index.name().startsWith(".resized")) {
                 resizeIndices.add(index);
             }
         }

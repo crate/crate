@@ -603,7 +603,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
             onGoingRecoveries.markRecoveryAsDone(recoveryId);
             if (LOGGER.isTraceEnabled()) {
                 StringBuilder sb = new StringBuilder();
-                sb.append('[').append(request.shardId().getIndex().getName()).append(']')
+                sb.append('[').append(request.shardId().getIndex().name()).append(']')
                     .append('[').append(request.shardId().id()).append("] ");
                 sb.append("recovery completed from ").append(request.sourceNode()).append(", took[").append(recoveryTime)
                     .append("]\n");
@@ -634,7 +634,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
         private void onException(Exception e) {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace(() -> new ParameterizedMessage(
-                    "[{}][{}] Got exception on recovery", request.shardId().getIndex().getName(),
+                    "[{}][{}] Got exception on recovery", request.shardId().getIndex().name(),
                     request.shardId().id()), e);
             }
             Throwable cause = SQLExceptions.unwrap(e);

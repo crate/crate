@@ -57,8 +57,8 @@ public class NodeOperationsUpgraderTest extends CrateDummyClusterServiceUnitTest
 
         ClusterState clusterState = clusterService.state();
         Index index = resolveIndex("doc.t", "doc", clusterState.metadata());
-        String indexName = index.getName();
-        String indexUUID = index.getUUID();
+        String indexName = index.name();
+        String indexUUID = index.uuid();
 
         Collect collect = e.plan("select id from doc.t");
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) collect.collectPhase();
@@ -111,8 +111,8 @@ public class NodeOperationsUpgraderTest extends CrateDummyClusterServiceUnitTest
 
         ClusterState clusterState = clusterService.state();
         Index index = resolveIndex("doc.t", "doc", clusterState.metadata());
-        String indexName = index.getName();
-        String indexUUID = index.getUUID();
+        String indexName = index.name();
+        String indexUUID = index.uuid();
 
         CountPlan countPlan = e.plan("select count(*) from doc.t");
         CountPhase countPhase = (CountPhase) countPlan.countPhase();
@@ -158,8 +158,8 @@ public class NodeOperationsUpgraderTest extends CrateDummyClusterServiceUnitTest
         RelationName relationName = new RelationName("doc", "t");
         ClusterState clusterState = clusterService.state();
         Index index = resolveIndex("doc.t", "doc", clusterState.metadata());
-        String indexName = index.getName();
-        String indexUUID = index.getUUID();
+        String indexName = index.name();
+        String indexUUID = index.uuid();
 
         RootRelationBoundary root = e.logicalPlan("select id from doc.t where id > 1 limit 1");
         Fetch fetch = (Fetch) root.source();

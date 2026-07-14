@@ -78,7 +78,7 @@ public class TransportDeleteIndex extends TransportMasterNodeAction<DeleteIndexR
     @Override
     protected ClusterBlockException checkBlock(DeleteIndexRequest request, ClusterState state) {
         String[] indices = state.metadata()
-            .getIndices(request.partitions(), false, im -> im.getIndex().getUUID())
+            .getIndices(request.partitions(), false, im -> im.getIndex().uuid())
             .toArray(String[]::new);
         return state.blocks().indicesAllowReleaseResources(indices);
     }

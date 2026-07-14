@@ -82,7 +82,7 @@ public class TransportGCDanglingArtifacts extends AbstractDDLTransportAction<GCD
                 if (gcDanglingArtifactsRequest.indexUUIDs().isEmpty()) {
                     for (IndexMetadata indexMetadata : metadata.indices().values()) {
                         Index index = indexMetadata.getIndex();
-                        RelationMetadata relation = metadata.getRelation(index.getUUID());
+                        RelationMetadata relation = metadata.getRelation(index.uuid());
                         if (relation == null) {
                             danglingIndicesToDelete.add(index);
                         }

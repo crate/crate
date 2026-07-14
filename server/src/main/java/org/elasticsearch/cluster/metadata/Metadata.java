@@ -283,7 +283,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 continue;
             }
 
-            AliasOrIndex existing = aliasAndIndexLookup.put(indexMetadata.getIndex().getName(), new AliasOrIndex.Index(indexMetadata));
+            AliasOrIndex existing = aliasAndIndexLookup.put(indexMetadata.getIndex().name(), new AliasOrIndex.Index(indexMetadata));
             assert existing == null : "duplicate for " + indexMetadata.getIndex();
 
             for (Map.Entry<String, AliasMetadata> aliasCursor : indexMetadata.getAliases().entrySet()) {
@@ -316,7 +316,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     }
 
     public boolean hasIndex(Index index) {
-        return indices.containsKey(index.getUUID());
+        return indices.containsKey(index.uuid());
     }
 
     @Nullable
@@ -326,14 +326,14 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     @Nullable
     public IndexMetadata index(Index index) {
-        return indices.get(index.getUUID());
+        return indices.get(index.uuid());
     }
 
     /**
      * Returns true iff existing index has the same {@link IndexMetadata} instance
      */
     public boolean hasIndexMetadata(final IndexMetadata indexMetadata) {
-        return indices.get(indexMetadata.getIndex().getUUID()) == indexMetadata;
+        return indices.get(indexMetadata.getIndex().uuid()) == indexMetadata;
     }
 
     /**
@@ -354,7 +354,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     @Nullable
     public IndexMetadata getIndexByName(String indexName) {
         for (var indexMetadata : indices.values()) {
-            if (indexMetadata.getIndex().getName().equals(indexName)) {
+            if (indexMetadata.getIndex().name().equals(indexName)) {
                 return indexMetadata;
             }
         }
@@ -644,7 +644,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 try {
                     IndexMetadata indexMetadata = part.indices().get(key);
                     String indexUUID = indexMetadata.getIndexUUID(); // key is not always indexUUID if the Diff is streamed from a node < 6.0
-                    RelationName relationName = IndexName.decode(indexMetadata.getIndex().getName()).toRelationName();
+                    RelationName relationName = IndexName.decode(indexMetadata.getIndex().name()).toRelationName();
                     RelationMetadata relationMetadata = builder.getRelation(relationName);
                     if (relationMetadata != null
                         // Deletion of indexMetadata should trigger dropRelation only if it is a non-partitioned table.
@@ -911,24 +911,24 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             // we know its a new one, increment the version and store
             indexMetadataBuilder.version(indexMetadataBuilder.version() + 1);
             IndexMetadata indexMetadata = indexMetadataBuilder.build();
-            indices.put(indexMetadata.getIndex().getUUID(), indexMetadata);
+            indices.put(indexMetadata.getIndex().uuid(), indexMetadata);
             return this;
         }
 
         public Builder put(IndexMetadata indexMetadata, boolean incrementVersion) {
-            if (indices.get(indexMetadata.getIndex().getUUID()) == indexMetadata) {
+            if (indices.get(indexMetadata.getIndex().uuid()) == indexMetadata) {
                 return this;
             }
             // if we put a new index metadata, increment its version
             if (incrementVersion) {
                 indexMetadata = IndexMetadata.builder(indexMetadata).version(indexMetadata.getVersion() + 1).build();
             }
-            indices.put(indexMetadata.getIndex().getUUID(), indexMetadata);
+            indices.put(indexMetadata.getIndex().uuid(), indexMetadata);
             return this;
         }
 
         public Builder putWithIndexName(IndexMetadata indexMetadata) {
-            indices.put(indexMetadata.getIndex().getName(), indexMetadata);
+            indices.put(indexMetadata.getIndex().name(), indexMetadata);
             return this;
         }
 
@@ -937,7 +937,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
 
         public IndexMetadata getSafe(Index index) {
-            IndexMetadata indexMetadata = get(index.getUUID());
+            IndexMetadata indexMetadata = get(index.uuid());
             if (indexMetadata != null) {
                 return indexMetadata;
             }
@@ -1177,7 +1177,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 if (indexMetadata.getUpgradedVersion().onOrAfter(Version.V_6_0_0)) {
                     continue;
                 }
-                final String uuid = indexMetadata.getIndex().getUUID();
+                final String uuid = indexMetadata.getIndex().uuid();
                 boolean added = allIndices.add(uuid);
                 assert added : "double index named [" + uuid + "]";
                 duplicateAliasesIndices.addAll(indexMetadata.getAliases().keySet());

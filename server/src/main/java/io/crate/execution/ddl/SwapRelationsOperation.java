@@ -83,7 +83,7 @@ public class SwapRelationsOperation {
                 IndexMetadata::getIndex
             );
             for (Index index : indices) {
-                String indexUUID = index.getUUID();
+                String indexUUID = index.uuid();
                 updatedMetadata.remove(indexUUID);
                 routingBuilder.remove(indexUUID);
                 updatedState.newIndices.remove(indexUUID);
@@ -212,7 +212,7 @@ public class SwapRelationsOperation {
         Metadata metadata = state.metadata();
         List<Index> indices = metadata.getIndices(name, List.of(), false, IndexMetadata::getIndex);
         for (Index index : indices) {
-            String indexUUID = index.getUUID();
+            String indexUUID = index.uuid();
             routingBuilder.remove(indexUUID);
             updatedMetadata.remove(indexUUID);
             blocksBuilder.removeIndexBlocks(indexUUID);
@@ -240,7 +240,7 @@ public class SwapRelationsOperation {
                 .indexName(targetIndexName)
                 .incrementSettingsVersion()
                 .build();
-            onProcessedIndex.accept(sourceIndex.getUUID());
+            onProcessedIndex.accept(sourceIndex.uuid());
             updatedMetadata.put(targetMd, true);
             blocksBuilder.addBlocks(targetMd);
             routingBuilder.addAsFromCloseToOpen(targetMd);

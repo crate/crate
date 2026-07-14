@@ -90,8 +90,8 @@ public class BlobIndicesService implements IndexEventListener {
 
     @Override
     public void afterIndexCreated(IndexService indexService) {
-        String indexName = indexService.index().getName();
-        String indexUUID = indexService.index().getUUID();
+        String indexName = indexService.index().name();
+        String indexUUID = indexService.index().uuid();
         if (isBlobIndex(indexName)) {
             BlobIndex oldBlobIndex = indices.put(indexUUID, new BlobIndex(LOGGER, globalBlobPath));
             assert oldBlobIndex == null : "There must not be an index present if a new index is created";
@@ -102,8 +102,8 @@ public class BlobIndicesService implements IndexEventListener {
     public void afterIndexRemoved(Index index,
                                   IndexSettings indexSettings,
                                   IndicesClusterStateService.IndexRemovalReason reason) {
-        String indexName = index.getName();
-        String indexUUID = index.getUUID();
+        String indexName = index.name();
+        String indexUUID = index.uuid();
         if (isBlobIndex(indexName)) {
             BlobIndex blobIndex = indices.remove(indexUUID);
             assert blobIndex != null : "BlobIndex not found on afterIndexDeleted";

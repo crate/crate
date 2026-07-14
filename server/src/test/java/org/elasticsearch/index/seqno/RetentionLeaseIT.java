@@ -20,6 +20,7 @@
 package org.elasticsearch.index.seqno;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.io.Closeable;
@@ -87,7 +88,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
         ensureGreen();
 
         Index index = resolveIndex("doc.tbl");
-        String indexUUID = index.getUUID();
+        String indexUUID = index.uuid();
 
         final String primaryShardNodeId = clusterService().state().routingTable().index(indexUUID).shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
@@ -139,7 +140,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
         ensureGreen();
 
         Index index = resolveIndex("doc.tbl");
-        String indexUUID = index.getUUID();
+        String indexUUID = index.uuid();
 
         final String primaryShardNodeId = clusterService().state().routingTable().index(indexUUID).shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
@@ -211,7 +212,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
         ensureGreen();
 
         Index index = resolveIndex("doc.tbl");
-        String indexUUID = index.getUUID();
+        String indexUUID = index.uuid();
 
         final String primaryShardNodeId = clusterService().state().routingTable().index(indexUUID).shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
@@ -287,7 +288,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
             }
         );
         Index index = resolveIndex("doc.tbl");
-        String indexUUID = index.getUUID();
+        String indexUUID = index.uuid();
 
         ensureGreen();
         final String primaryShardNodeId = clusterService().state().routingTable().index(indexUUID).shard(0).primaryShard().currentNodeId();
@@ -355,7 +356,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
         execute("alter table doc.tbl set (number_of_replicas = ?)", new Object[] { numberOfReplicas });
 
         Index index = resolveIndex("doc.tbl");
-        String indexUUID = index.getUUID();
+        String indexUUID = index.uuid();
 
         final String primaryShardNodeId = clusterService().state().routingTable().index(indexUUID).shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
@@ -490,7 +491,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
         ensureGreen();
 
         Index index = resolveIndex("doc.tbl");
-        String indexUUID = index.getUUID();
+        String indexUUID = index.uuid();
 
         final String primaryShardNodeId = clusterService().state().routingTable().index(indexUUID).shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
@@ -617,7 +618,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
         });
 
         Index index = resolveIndex("doc.tbl");
-        String indexUUID = index.getUUID();
+        String indexUUID = index.uuid();
 
         final String primaryShardNodeId = clusterService().state().routingTable().index(indexUUID).shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();

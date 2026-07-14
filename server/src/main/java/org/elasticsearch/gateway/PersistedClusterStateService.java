@@ -548,7 +548,7 @@ public class PersistedClusterStateService {
 
         void updateIndexMetadataDocument(Document indexMetadataDocument, Index index) throws IOException {
             this.logger.trace("updating metadata for [{}]", index);
-            indexWriter.updateDocument(new Term(INDEX_UUID_FIELD_NAME, index.getUUID()), indexMetadataDocument);
+            indexWriter.updateDocument(new Term(INDEX_UUID_FIELD_NAME, index.uuid()), indexMetadataDocument);
         }
 
         void updateGlobalMetadata(Document globalMetadataDocument) throws IOException {

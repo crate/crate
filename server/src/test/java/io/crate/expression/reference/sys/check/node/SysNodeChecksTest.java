@@ -366,7 +366,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         for (int i = 1; i <= numberOfShards; i++) {
             indexRoutingTableBuilder.addShard(
                 TestShardRouting.newShardRouting(
-                    index.getUUID(),
+                    index.uuid(),
                     i,
                     nodeId,
                     true,
@@ -376,7 +376,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         }
 
         var routingTable = RoutingTable.builder().add(indexRoutingTableBuilder).build();
-        var meta = IndexMetadata.builder(index.getUUID()).settings(settings(Version.CURRENT)).numberOfShards(numberOfShards).numberOfReplicas(0);
+        var meta = IndexMetadata.builder(index.uuid()).settings(settings(Version.CURRENT)).numberOfShards(numberOfShards).numberOfReplicas(0);
         var clusterState = ClusterState.builder(new ClusterName("crate")).version(1L)
             .metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED).put(meta)).routingTable(routingTable).nodes(discoveryNodes).build();
 

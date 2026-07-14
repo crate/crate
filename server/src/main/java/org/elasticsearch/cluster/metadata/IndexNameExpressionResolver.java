@@ -184,7 +184,7 @@ public class IndexNameExpressionResolver {
             AliasOrIndex aliasOrIndex = entry.getValue();
             for (IndexMetadata meta : aliasOrIndex.getIndices()) {
                 if (meta.getState() != State.CLOSE) {
-                    expand.add(meta.getIndex().getName());
+                    expand.add(meta.getIndex().name());
                 }
             }
         }

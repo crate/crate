@@ -51,7 +51,7 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
     private final TranslogIndexer indexer;
 
     public TranslogHandler(IndexSettings indexSettings) {
-        this.indexName = indexSettings.getIndex().getName();
+        this.indexName = indexSettings.getIndex().name();
         this.indexer = translogIndexer(indexName, indexSettings);
     }
 

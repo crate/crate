@@ -379,7 +379,7 @@ public class MetadataCreateIndexService {
                 .put(SETTING_INDEX_UUID, resizedIndexUUID)
                 .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli())
                 .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), indexVersionCreated)
-                .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME.getKey(), sourceIndex.getIndex().getName())
+                .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME.getKey(), sourceIndex.getIndex().name())
                 .put(IndexMetadata.INDEX_RESIZE_SOURCE_UUID.getKey(), sourceIndex.getIndexUUID())
                 .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, newNumShards);
 
@@ -415,7 +415,7 @@ public class MetadataCreateIndexService {
                 }
             }
 
-            String resizedIndexName = IndexName.RESIZE_PREFIX + sourceIndex.getIndex().getName();
+            String resizedIndexName = IndexName.RESIZE_PREFIX + sourceIndex.getIndex().name();
             IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(resizedIndexUUID)
                 .indexName(resizedIndexName)
                 .settings(indexSettingsBuilder)
@@ -585,7 +585,7 @@ public class MetadataCreateIndexService {
         Metadata metadata = currentState.metadata();
         List<IndexMetadata> existingIndices = metadata.getIndices(tableName, partitionValues, false, im -> im);
         if (!existingIndices.isEmpty()) {
-            throw new ResourceAlreadyExistsException(existingIndices.getFirst().getIndex().getName());
+            throw new ResourceAlreadyExistsException(existingIndices.getFirst().getIndex().name());
         }
 
         validateIndexSettings(indexName, concreteIndexSettings, true);
@@ -649,7 +649,7 @@ public class MetadataCreateIndexService {
                                          IndexMetadata tmpImd,
                                          int routingNumShards) {
         final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexUUID)
-            .indexName(tmpImd.getIndex().getName())
+            .indexName(tmpImd.getIndex().name())
             .settings(tmpImd.getSettings())
             .setRoutingNumShards(routingNumShards)
             .partitionValues(tmpImd.partitionValues())
@@ -665,7 +665,7 @@ public class MetadataCreateIndexService {
         );
         LOGGER.info(
             "[{}/{}] creating index, cause [create-table], shards [{}]/[{}]",
-            indexMetadata.getIndex().getName(),
+            indexMetadata.getIndex().name(),
             indexUUID,
             indexMetadata.getNumberOfShards(),
             indexMetadata.getNumberOfReplicas());

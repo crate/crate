@@ -339,7 +339,7 @@ public abstract class TransportReplicationAction<
                 final ClusterState clusterState = clusterService.state();
                 final IndexMetadata indexMetadata = clusterState.metadata().getIndexSafe(primaryShardReference.routingEntry().index());
 
-                final ClusterBlockException blockException = blockExceptions(clusterState, indexMetadata.getIndex().getUUID());
+                final ClusterBlockException blockException = blockExceptions(clusterState, indexMetadata.getIndex().uuid());
                 if (blockException != null) {
                     logger.trace("cluster is blocked, action failed on primary", blockException);
                     throw blockException;

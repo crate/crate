@@ -194,7 +194,7 @@ public class IndexSettingsTests extends ESTestCase {
         );
         final IndexSettings settings = new IndexSettings(metaData, Settings.EMPTY);
         assertThat(settings.getIndexVersionCreated()).isEqualTo(version);
-        assertThat(settings.getIndex().getName()).isEqualTo("index");
+        assertThat(settings.getIndex().name()).isEqualTo("index");
 
         assertThatThrownBy(() -> settings.updateIndexMetadata(
             newIndexMeta(
@@ -217,7 +217,7 @@ public class IndexSettingsTests extends ESTestCase {
                 .build());
         IndexSettings settings2 = new IndexSettings(metaData, Settings.EMPTY);
         assertThat(settings2.getIndexVersionCreated()).isEqualTo(Version.fromId(unknownVersion));
-        assertThat(settings2.getIndex().getName()).isEqualTo("index");
+        assertThat(settings2.getIndex().name()).isEqualTo("index");
         settings2.updateIndexMetadata(
             newIndexMeta(
                 "index",

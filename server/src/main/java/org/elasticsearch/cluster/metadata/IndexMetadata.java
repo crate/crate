@@ -365,7 +365,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
     }
 
     public String getIndexUUID() {
-        return index.getUUID();
+        return index.uuid();
     }
 
     public long getVersion() {
@@ -565,7 +565,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         private final Diff<ImmutableOpenIntMap<Set<String>>> inSyncAllocationIds;
 
         IndexMetadataDiff(Version v, IndexMetadata before, IndexMetadata after) {
-            index = after.index.getName();
+            index = after.index.name();
             version = after.version;
             mappingVersion = after.mappingVersion;
             settingsVersion = after.settingsVersion;
@@ -739,7 +739,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(index.getName()); // uuid will come as part of settings
+        out.writeString(index.name()); // uuid will come as part of settings
         out.writeLong(version);
         out.writeVLong(mappingVersion);
         out.writeVLong(settingsVersion);
@@ -810,8 +810,8 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         }
 
         public Builder(IndexMetadata indexMetadata) {
-            this.indexUUID = indexMetadata.getIndex().getUUID();
-            this.indexName = indexMetadata.getIndex().getName();
+            this.indexUUID = indexMetadata.getIndex().uuid();
+            this.indexName = indexMetadata.getIndex().name();
             this.state = indexMetadata.state;
             this.version = indexMetadata.version;
             this.mappingVersion = indexMetadata.mappingVersion;
