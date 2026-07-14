@@ -342,7 +342,7 @@
         <versions.caffeine>3.2.4</versions.caffeine>
         <versions.jodatime>2.14.2</versions.jodatime>
         <versions.aws>1.12.797</versions.aws>
-        <versions.opendal>0.48.2</versions.opendal>
+        <versions.opendal>0.50.0</versions.opendal>
         <versions.commonsmath>3.6.1</versions.commonsmath>
         <versions.commonscodec>1.22.0</versions.commonscodec>
         <versions.bigmath>2.3.2</versions.bigmath>
