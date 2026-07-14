@@ -26,7 +26,6 @@ import java.util.Locale;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -110,37 +109,34 @@ public class RenameTableClusterStateExecutor {
                 table.oid()
             );
 
-        boolean needIndexAndRoutingUpdate = currentState.nodes().getSmallestNonClientNodeVersion().before(Version.V_6_1_0);
         RoutingTable.Builder newRoutingTable = null;
-        if (needIndexAndRoutingUpdate) {
-            newRoutingTable = RoutingTable.builder(currentState.routingTable());
-            List<IndexMetadata> sourceIndices = currentState.metadata().getIndices(source, List.of(), true, x -> x);
-            for (IndexMetadata sourceIndex : sourceIndices) {
-                String sourceIndexUUID = sourceIndex.getIndexUUID();
-                String targetIndexName;
-                if (sourceIndex.partitionValues().isEmpty()) {
-                    targetIndexName = target.indexNameOrAlias();
-                } else {
-                    PartitionName newPartitionName = new PartitionName(target, sourceIndex.partitionValues());
-                    targetIndexName = newPartitionName.asIndexName();
-                }
-
-                newMetadata.remove(sourceIndexUUID);
-                newRoutingTable.remove(sourceIndexUUID);
-                blocksBuilder.removeIndexBlocks(sourceIndexUUID);
-
-                IndexMetadata targetMd = IndexMetadata.builder(sourceIndex)
-                    .indexName(targetIndexName)
-                    .build();
-                newMetadata.put(targetMd, true);
-                newRoutingTable.addAsFromCloseToOpen(targetMd);
-                blocksBuilder.addBlocks(targetMd);
+        newRoutingTable = RoutingTable.builder(currentState.routingTable());
+        List<IndexMetadata> sourceIndices = currentState.metadata().getIndices(source, List.of(), true, x -> x);
+        for (IndexMetadata sourceIndex : sourceIndices) {
+            String sourceIndexUUID = sourceIndex.getIndexUUID();
+            String targetIndexName;
+            if (sourceIndex.partitionValues().isEmpty()) {
+                targetIndexName = target.indexNameOrAlias();
+            } else {
+                PartitionName newPartitionName = new PartitionName(target, sourceIndex.partitionValues());
+                targetIndexName = newPartitionName.asIndexName();
             }
+
+            newMetadata.remove(sourceIndexUUID);
+            newRoutingTable.remove(sourceIndexUUID);
+            blocksBuilder.removeIndexBlocks(sourceIndexUUID);
+
+            IndexMetadata targetMd = IndexMetadata.builder(sourceIndex)
+                .indexName(targetIndexName)
+                .build();
+            newMetadata.put(targetMd, true);
+            newRoutingTable.addAsFromCloseToOpen(targetMd);
+            blocksBuilder.addBlocks(targetMd);
         }
 
         ClusterState clusterStateAfterRename = ClusterState.builder(currentState)
             .metadata(newMetadata)
-            .routingTable(needIndexAndRoutingUpdate ? newRoutingTable.build() : currentState.routingTable())
+            .routingTable(newRoutingTable.build())
             .blocks(blocksBuilder)
             .build();
 

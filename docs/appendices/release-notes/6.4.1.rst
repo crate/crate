@@ -46,5 +46,12 @@ series.
 Fixes
 =====
 
+- Changed swap table and rename table operations to reallocate shards again -
+  reverting the change from 6.3.0. This will cause swap and rename operations to
+  interrupt in-progress snapshots again but solves an issue where creating
+  partitions on a previously swapped table could lead to duplicate index names
+  in the cluster, breaking snapshot functionality until a duplicate partition
+  was deleted again.
+
 - Fixed an issue that would throw an error when using :ref:`pg_sleep()
   <scalar-pg_sleep>` function in the ``SELECT`` clause.
