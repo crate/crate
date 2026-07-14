@@ -29,7 +29,6 @@ import org.jspecify.annotations.Nullable;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.DuplicateKeyException;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
@@ -97,8 +96,6 @@ public class PGError {
             throwable instanceof UnsupportedOperationException ||
             throwable instanceof UnsupportedFunctionException) {
             status = PGErrorStatus.FEATURE_NOT_SUPPORTED;
-        } else if (throwable instanceof DuplicateKeyException) {
-            status = PGErrorStatus.UNIQUE_VIOLATION;
         } else if (throwable instanceof RelationUnknown) {
             status = PGErrorStatus.UNDEFINED_TABLE;
         } else if (throwable instanceof ColumnUnknownException) {
