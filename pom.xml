@@ -348,8 +348,8 @@
         <versions.bigmath>2.3.2</versions.bigmath>
         <versions.jaxb_api>2.3.1</versions.jaxb_api>
         <versions.graalvm>25.1.3</versions.graalvm>
-        <versions.jwt>4.5.2</versions.jwt>
-        <versions.jwks-rsa>0.24.0</versions.jwks-rsa>
+        <versions.jwt>4.6.0</versions.jwt>
+        <versions.jwks-rsa>0.24.1</versions.jwks-rsa>
         <versions.bouncycastle-bcpkix-jdk18on>1.85</versions.bouncycastle-bcpkix-jdk18on>
 
         <versions.hamcrest>2.2</versions.hamcrest>
