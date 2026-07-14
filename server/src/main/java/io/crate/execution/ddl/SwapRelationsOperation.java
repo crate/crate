@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -170,22 +169,19 @@ public class SwapRelationsOperation {
                 );
         }
 
-        boolean needIndexAndRoutingUpdate = state.nodes().getSmallestNonClientNodeVersion().before(Version.V_6_1_0);
-        if (needIndexAndRoutingUpdate) {
-            // Remove all involved indices first so that rename operations are independent of each other
-            for (RelationNameSwap swapAction : swapRelationsRequest.swapActions()) {
-                removeOccurrences(state, blocksBuilder, routingBuilder, updatedMetadata, swapAction.source());
-                removeOccurrences(state, blocksBuilder, routingBuilder, updatedMetadata, swapAction.target());
-            }
+        // Remove all involved indices first so that rename operations are independent of each other
+        for (RelationNameSwap swapAction : swapRelationsRequest.swapActions()) {
+            removeOccurrences(state, blocksBuilder, routingBuilder, updatedMetadata, swapAction.source());
+            removeOccurrences(state, blocksBuilder, routingBuilder, updatedMetadata, swapAction.target());
+        }
 
-            for (RelationNameSwap relationNameSwap : swapRelationsRequest.swapActions()) {
-                RelationName source = relationNameSwap.source();
-                RelationName target = relationNameSwap.target();
-                addSourceIndicesRenamedToTargetName(
-                    metadata, updatedMetadata, blocksBuilder, routingBuilder, source, target, newIndexNames::add);
-                addSourceIndicesRenamedToTargetName(
-                    metadata, updatedMetadata, blocksBuilder, routingBuilder, target, source, newIndexNames::add);
-            }
+        for (RelationNameSwap relationNameSwap : swapRelationsRequest.swapActions()) {
+            RelationName source = relationNameSwap.source();
+            RelationName target = relationNameSwap.target();
+            addSourceIndicesRenamedToTargetName(
+                metadata, updatedMetadata, blocksBuilder, routingBuilder, source, target, newIndexNames::add);
+            addSourceIndicesRenamedToTargetName(
+                metadata, updatedMetadata, blocksBuilder, routingBuilder, target, source, newIndexNames::add);
         }
 
         ClusterState stateAfterSwap = applyClusterStateModifiers(
@@ -196,9 +192,7 @@ public class SwapRelationsOperation {
                 .build(),
             swapRelationsRequest.swapActions()
         );
-        ClusterState reroutedState = needIndexAndRoutingUpdate
-            ? allocationService.reroute(stateAfterSwap, "indices name switch")
-            : stateAfterSwap;
+        ClusterState reroutedState = allocationService.reroute(stateAfterSwap, "indices name switch");
         return new UpdatedState(reroutedState, newIndexNames);
     }
 
