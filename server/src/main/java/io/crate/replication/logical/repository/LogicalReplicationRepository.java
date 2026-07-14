@@ -373,8 +373,15 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                                                      RecoveryState recoveryState,
                                                      ActionListener<Void> listener) {
         // 1. Get all the files info from the publisher cluster for this shardId
-        RelationName relationName = IndexName.decode(indexId.getName()).toRelationName();
-        var remoteClusterState = getRemoteClusterState(true, true, List.of(relationName));
+        CompletableFuture<ClusterStateResponse> remoteClusterState = getPublicationsState().thenCompose(resp -> {
+            Metadata remoteMetadata = resp.metadata();
+            RelationMetadata relation = remoteMetadata.getRelation(snapshotShardId.getIndexUUID());
+
+            RelationName relationName = relation == null
+                ? IndexName.decode(indexId.getName()).toRelationName()
+                : relation.name();
+            return getRemoteClusterState(true, true, List.of(relationName));
+        });
         remoteClusterState.whenComplete((resp, err) -> {
             if (err != null) {
                 listener.onFailure(Exceptions.toException(err));
@@ -390,7 +397,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             var publisherShardNode = publisherClusterState.nodes().get(publisherShardRouting.currentNodeId());
             // Get the index UUID of the publisher cluster for the metadata request
             var shardId = new ShardId(
-                snapshotShardId.getIndexName(),
+                indexId.getName(),
                 indexId.getId(),
                 snapshotShardId.id()
             );
