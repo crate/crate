@@ -69,7 +69,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
     }
 
     /**
-     * Get's the {@link IndexShardRoutingTable} for the given shard id from the given {@link IndexRoutingTable}
+     * Gets the {@link IndexShardRoutingTable} for the given shard id from the given {@link IndexRoutingTable}
      * or throws a {@link ShardNotFoundException} if no shard by the given id is found in the IndexRoutingTable.
      *
      * @param indexRouting IndexRoutingTable
@@ -448,7 +448,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
         }
 
         public void updateNumberOfReplicas(final int numberOfReplicas, final List<IndexMetadata> indexes) {
-            String[] indices = indexes.stream().map(im -> im.getIndex().uuid()).toArray(String[]::new);
+            Iterable<String> indices = () -> indexes.stream().map(im -> im.getIndex().uuid()).iterator();
             updateNumberOfReplicas(numberOfReplicas, indices);
         }
 
@@ -459,7 +459,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
          * @param indicesUUIDs          the indices to update the number of replicas for
          * @return the builder
          */
-        public Builder updateNumberOfReplicas(final int numberOfReplicas, final String[] indicesUUIDs) {
+        public Builder updateNumberOfReplicas(final int numberOfReplicas, final Iterable<String> indicesUUIDs) {
             if (indicesRouting == null) {
                 throw new IllegalStateException("once build is called the builder cannot be reused");
             }
