@@ -580,7 +580,7 @@ public final class ShardRouting implements Writeable {
      */
     public String shortSummary() {
         StringBuilder sb = new StringBuilder();
-        sb.append('[').append(shardId.getIndexName()).append(']').append('[').append(shardId.id()).append(']');
+        sb.append('[').append(shardId.getIndexUUID()).append(']').append('[').append(shardId.id()).append(']');
         sb.append(", node[").append(currentNodeId).append("], ");
         if (relocatingNodeId != null) {
             sb.append("relocating [").append(relocatingNodeId).append("], ");
