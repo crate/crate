@@ -98,8 +98,8 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
-- `Varun Kulkarni <https://github.com/vvkulkarni360>`_ Added support for adding
-   or subtracting intervals to values of type :ref:`date<type-date>`.
+- `Varun Kulkarni <https://github.com/vvkulkarni360>`_ added support for adding
+  or subtracting intervals to values of type :ref:`date <type-date>`.
 
 - Added support for ``TH`` and ``th`` template patterns to the :ref:`to_char
   <scalar-to_char>` scalar function which can be used to add a ordinal suffix
@@ -113,17 +113,17 @@ Scalar and Aggregation Functions
   (e.g., ``\"`` for a literal ``"``, ``\\`` for a literal ``\``).
 
 - `Robert Palmer <https://github.com/robd003>`_ added the
-  :ref:`blake3 <scalar-blake3>` scalar function for computing BLAKE3 checksums of
-  strings.
+  :ref:`blake3 <scalar-blake3>` scalar function for computing BLAKE3 checksums
+  of strings.
 
 - `Bing O'Dowd <https://github.com/bodowd>`_ added the :ref:`largest triangle
   three buckets <aggregation-largest-triangle-three-buckets>` aggregation
   function for downsampling data using the Largest Triangle Three Buckets
   algorithm
 
-- Added the :ref:`pg_get_constraintdef() <scalar-pg_get_constraintdef>` scalar function to
-  improve PostgreSQL compatibility for ORM schema introspection (e.g. Prisma,
-  TypeORM).
+- Added the :ref:`pg_get_constraintdef() <scalar-pg_get_constraintdef>` scalar
+  function to improve PostgreSQL compatibility for ORM schema introspection
+  (e.g. Prisma, TypeORM).
 
 Performance and Resilience Improvements
 ---------------------------------------
@@ -148,7 +148,7 @@ Performance and Resilience Improvements
 - Improved the performance of bulk insert operations against tables that use
   user defined functions in a generated column which also has check constraints.
 
-- Increased the default queue size of the ``write`` search pool but lowered the
+- Increased the default queue size of the ``write`` thread pool but lowered the
   amount of internal retries for ``INSERT INTO <table> VALUES`` statements in
   exchange. This should lower the load for bulk inserts into tables with many
   shards at the expensive of potentially higher memory load before requests get
