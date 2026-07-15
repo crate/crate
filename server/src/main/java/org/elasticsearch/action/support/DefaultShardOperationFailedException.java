@@ -21,7 +21,6 @@ package org.elasticsearch.action.support;
 
 import java.io.IOException;
 
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -30,15 +29,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import io.crate.common.exceptions.Exceptions;
 
 public class DefaultShardOperationFailedException extends ShardOperationFailedException {
-
-    public DefaultShardOperationFailedException(ElasticsearchException e) {
-        super(
-            e.getIndex() == null ? null : e.getIndex().name(),
-            e.getShardId() == null ? -1 : e.getShardId().id(),
-            Exceptions.stackTrace(e),
-            e
-        );
-    }
 
     public DefaultShardOperationFailedException(String index, int shardId, Throwable cause) {
         super(index, shardId, Exceptions.stackTrace(cause), cause);
