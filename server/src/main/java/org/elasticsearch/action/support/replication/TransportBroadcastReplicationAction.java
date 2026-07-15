@@ -30,7 +30,6 @@ import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.action.support.broadcast.BroadcastRequest;
 import org.elasticsearch.action.support.broadcast.BroadcastResponse;
-import org.elasticsearch.action.support.broadcast.BroadcastShardOperationFailedException;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -139,7 +138,8 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
                     shardFailures = new ArrayList<>();
                 }
                 for (ReplicationResponse.ShardInfo.Failure failure : shardResponse.getShardInfo().getFailures()) {
-                    shardFailures.add(new DefaultShardOperationFailedException(new BroadcastShardOperationFailedException(failure.fullShardId(), failure.getCause())));
+                    var shardFailure = new DefaultShardOperationFailedException(failure.index(), failure.shardId(), failure.getCause());
+                    shardFailures.add(shardFailure);
                 }
             }
         }

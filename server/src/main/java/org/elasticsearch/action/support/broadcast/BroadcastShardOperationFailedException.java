@@ -19,12 +19,12 @@
 
 package org.elasticsearch.action.support.broadcast;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchWrapperException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
-
-import java.io.IOException;
 
 /**
  * An exception indicating that a failure occurred performing an operation on the shard.
@@ -32,14 +32,6 @@ import java.io.IOException;
  *
  */
 public class BroadcastShardOperationFailedException extends ElasticsearchException implements ElasticsearchWrapperException {
-
-    public BroadcastShardOperationFailedException(ShardId shardId, String msg) {
-        this(shardId, msg, null);
-    }
-
-    public BroadcastShardOperationFailedException(ShardId shardId, Throwable cause) {
-        this(shardId, "", cause);
-    }
 
     public BroadcastShardOperationFailedException(ShardId shardId, String msg, Throwable cause) {
         super(msg, cause);
