@@ -2044,7 +2044,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     final ShardId shardId = indexRoutingTable.shard(i).shardId();
                     final String shardRepoGeneration;
                     if (useShardGenerations) {
-                        final String inFlightGeneration = inFlightShardStates.generationForShard(index, shardId.id(), shardGenerations);
+                        final String inFlightGeneration = inFlightShardStates.generationForShard(index, indexUUID, shardId.id(), shardGenerations);
                         if (inFlightGeneration == null && isNewIndex) {
                             assert shardGenerations.getShardGen(index, shardId.id()) == null
                                 : "Found shard generation for new index [" + index + "]";
@@ -2057,7 +2057,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     }
                     final ShardSnapshotStatus shardSnapshotStatus;
                     ShardRouting primary = indexRoutingTable.shard(i).primaryShard();
-                    if (readyToExecute == false || inFlightShardStates.isActive(indexName, i)) {
+                    if (readyToExecute == false || inFlightShardStates.isActive(indexUUID, i)) {
                         shardSnapshotStatus = ShardSnapshotStatus.UNASSIGNED_QUEUED;
                     } else if (primary == null || !primary.assignedToNode()) {
                         shardSnapshotStatus = new ShardSnapshotStatus(null, ShardState.MISSING,
