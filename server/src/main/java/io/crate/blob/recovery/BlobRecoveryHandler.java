@@ -130,8 +130,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
 
     @Override
     protected void blobRecoveryHook() throws Exception {
-        LOGGER.debug("[{}][{}] recovery [phase1] to {}: start",
-                     request.shardId().getIndexName(), request.shardId().id(), request.targetNode().getName());
+        LOGGER.debug("[{}] recovery [phase1] to {}: start", request.shardId(), request.targetNode().getName());
         final StopWatch stopWatch = new StopWatch().start();
         blobTransferTarget.startRecovery();
         blobTransferTarget.createActiveTransfersSnapshot();
@@ -174,9 +173,12 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
 
         blobTransferTarget.stopRecovery();
         stopWatch.stop();
-        LOGGER.debug("[{}][{}] recovery [phase1] to {}: took [{}]",
-                     request.shardId().getIndexName(), request.shardId().id(), request.targetNode().getName(),
-                     stopWatch.totalTime());
+        LOGGER.debug(
+            "[{}] recovery [phase1] to {}: took [{}]",
+            request.shardId(),
+            request.targetNode().getName(),
+            stopWatch.totalTime()
+        );
     }
 
     private void syncVarFiles(AtomicReference<Exception> lastException) throws InterruptedException, IOException {
@@ -195,9 +197,12 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
             final CountDownLatch latch = new CountDownLatch(localButNotRemoteDigests.size());
             for (BytesArray digestBytes : localButNotRemoteDigests) {
                 final String digest = Hex.encodeHexString(BytesReference.toBytes(digestBytes));
-                LOGGER.trace("[{}][{}] start to transfer file var/{} to {}",
-                             request.shardId().getIndexName(), request.shardId().id(), digest,
-                             request.targetNode().getName());
+                LOGGER.trace(
+                    "[{}] start to transfer file var/{} to {}",
+                    request.shardId(),
+                    digest,
+                    request.targetNode().getName()
+                );
                 cancellableThreads.execute(
                     new TransferFileRunnable(blobShard.blobContainer().getFile(digest),
                         lastException, latch)
@@ -279,8 +284,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                 long fileSize = file.length();
 
                 if (fileSize == 0) {
-                    LOGGER.warn("[{}][{}] empty file: {}",
-                                request.shardId().getIndexName(), request.shardId().id(), file.getName());
+                    LOGGER.warn("[{}][{}] empty file: {}", request.shardId(), file.getName());
                 }
 
                 try (FileInputStream fileStream = new FileInputStream(file)) {
@@ -299,11 +303,12 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                     if (bytesRead > 0) {
                         bytesReadTotal += bytesRead;
 
-                        LOGGER.trace("[{}][{}] send BlobRecoveryStartTransferRequest to {} for file {} with size {}",
-                                     request.shardId().getIndexName(), request.shardId().id(),
-                                     request.targetNode().getName(),
-                                     relPath,
-                                     fileSize
+                        LOGGER.trace(
+                            "[{}] send BlobRecoveryStartTransferRequest to {} for file {} with size {}",
+                            request.shardId(),
+                            request.targetNode().getName(),
+                            relPath,
+                            fileSize
                         );
                         var listener = new PlainFuture<>();
                         transportService.sendRequest(
@@ -366,9 +371,11 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                         }
                     }
 
-                    LOGGER.trace("[{}][{}] completed to transfer file {} to {}",
-                                 request.shardId().getIndexName(), request.shardId().id(), file.getName(),
-                                 request.targetNode().getName());
+                    LOGGER.trace(
+                        "[{}] completed to transfer file {} to {}",
+                        request.shardId(),
+                        file.getName(),
+                        request.targetNode().getName());
                 }
             } catch (IOException ex) {
                 LOGGER.error("exception while file transfer", ex);

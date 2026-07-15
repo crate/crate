@@ -62,7 +62,7 @@ public final class Loggers {
      * Class and no extra prefixes.
      */
     public static Logger getLogger(String loggerName, ShardId shardId) {
-        String prefix = formatPrefix(shardId.getIndexName(), Integer.toString(shardId.id()));
+        String prefix = formatPrefix(shardId.getIndexUUID(), Integer.toString(shardId.id()));
         return new PrefixLogger(LogManager.getLogger(loggerName), prefix);
     }
 
