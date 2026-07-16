@@ -604,13 +604,13 @@ Routing allocation
 
   ``primaries`` only primaries can be moved or created. This includes existing
   primary shards.
+  Whenever you want to perform a zero-downtime upgrade of your cluster you need
+  to set this value before gracefully stopping the first node and reset it to
+  ``all`` after starting the last updated node.
 
   ``new_primaries`` allows allocations for new primary shards only. This means
   that for example a newly added node will not allocate any replicas. However
-  it is still possible to allocate new primary shards for new indices. Whenever
-  you want to perform a zero downtime upgrade of your cluster you need to set
-  this value before gracefully stopping the first node and reset it to ``all``
-  after starting the last updated node.
+  it is still possible to allocate new primary shards for new indices.
 
 .. NOTE::
 
