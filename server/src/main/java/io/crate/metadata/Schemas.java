@@ -497,8 +497,29 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return null;
     }
 
-    public int getRelationOid(RelationName relationName) {
-        RelationMetadata relationMetadata = clusterService.state().metadata().getRelation(relationName);
-        return relationMetadata == null ? OidHash.relationOid(OidHash.Type.TABLE, relationName) : relationMetadata.oid();
+    /**
+     * Returns the OID assigned to the given relation.
+     *
+     * WARNING: All tables created before 6.3 are assigned OID_UNASSIGNED internally, meaning that all execution paths
+     * must be aware of and properly handle duplicate assignments of OID_UNASSIGNED. When exposing OIDs, we must expose
+     * OidHash-based OIDs for backward compatibility.
+     */
+    public int getDisplayRelationOid(RelationName relationName) {
+        SchemaInfo schemaInfo = this.getSchemaInfo(relationName.schema());
+        if (schemaInfo != null) {
+            String name = relationName.name();
+            RelationInfo relationInfo = schemaInfo.getViewInfo(name);
+            if (relationInfo == null) {
+                relationInfo = schemaInfo.getForeignTableInfo(name);
+                if (relationInfo == null) {
+                    relationInfo = schemaInfo.getTableInfo(name);
+                }
+            }
+            if (relationInfo != null) {
+                int oid = relationInfo.oid();
+                return oid == Metadata.OID_UNASSIGNED ? OidHash.relationOid(relationInfo) : oid;
+            }
+        }
+        return OidHash.relationOid(OidHash.Type.TABLE, relationName);
     }
 }
