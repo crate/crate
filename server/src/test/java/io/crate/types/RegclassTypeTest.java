@@ -61,7 +61,7 @@ public class RegclassTypeTest extends DataTypeTestCase<Regclass> {
     public void test_cast_from_string_uses_current_schema() {
         RelationLookup relationLookup = new RelationLookup() {
             @Override
-            public int getRelationOid(RelationName relationName) {
+            public int getDisplayRelationOid(RelationName relationName) {
                 if (relationName.equals(new RelationName("my_schema", "my_table"))) {
                     return 123;
                 }
@@ -82,7 +82,7 @@ public class RegclassTypeTest extends DataTypeTestCase<Regclass> {
     public void test_cast_from_quoted_string_identifier() {
         RelationLookup relationLookup = new RelationLookup() {
             @Override
-            public int getRelationOid(RelationName relationName) {
+            public int getDisplayRelationOid(RelationName relationName) {
                 if (relationName.equals(new RelationName("doc", "my_table"))) {
                     return 123;
                 }
@@ -102,7 +102,7 @@ public class RegclassTypeTest extends DataTypeTestCase<Regclass> {
     public void test_cast_from_string_unquoted_ignores_capital_case() {
         RelationLookup relationLookup = new RelationLookup() {
             @Override
-            public int getRelationOid(RelationName relationName) {
+            public int getDisplayRelationOid(RelationName relationName) {
                 if (relationName.equals(new RelationName("doc", "my_table"))) {
                     return 123;
                 }

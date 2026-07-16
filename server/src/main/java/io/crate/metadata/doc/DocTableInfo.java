@@ -1418,6 +1418,12 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return Lists.concat(Lists.concat(allColumns.values(), droppedColumns), indexColumns.values());
     }
 
+    /**
+     * Returns the persisted table OID.
+     *
+     * Tables created before 6.3 are assigned OID_UNASSIGNED. Use RelationLookup#getDisplayRelationOid when exposing
+     * relation OIDs to users.
+     */
     @Override
     public int oid() {
         return tableOID;

@@ -83,7 +83,7 @@ public class RegclassType extends PGType<Regclass> {
         } catch (NumberFormatException e) {
             var indexParts = IndexName.decode(oidStr);
             RelationName relationName = indexParts.toRelationName();
-            int oid = relationLookup.getRelationOid(relationName);
+            int oid = relationLookup.getDisplayRelationOid(relationName);
             return new Regclass(oid, relationName.fqn());
         }
     }
