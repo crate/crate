@@ -68,7 +68,7 @@ public class PgTableIsVisibleFunctionTest extends ScalarTestCase {
         sqlExpressions = new SqlExpressions(tableSources, null, RolesHelper.userOf("dummy_user"), List.of(), schemas, searchPaths);
 
         final RelationName usersTable = new RelationName("my_schema", "my_table");
-        final int usersTableOid = schemas.getRelationOid(usersTable);
+        final int usersTableOid = schemas.getDisplayRelationOid(usersTable);
 
         assertEvaluate("pg_table_is_visible(" + usersTableOid + ")", false);
     }
@@ -92,7 +92,7 @@ public class PgTableIsVisibleFunctionTest extends ScalarTestCase {
             schemas,
             searchPaths);
         final RelationName usersTable = new RelationName("my_schema", "my_table");
-        final int usersTableOid = schemas.getRelationOid(usersTable);
+        final int usersTableOid = schemas.getDisplayRelationOid(usersTable);
         assertEvaluate("pg_table_is_visible(" + usersTableOid + ")", true);
 
         // DML
@@ -145,13 +145,13 @@ public class PgTableIsVisibleFunctionTest extends ScalarTestCase {
 
         // my_schema1.my_table is visible
         final RelationName mySchema1MyTable = new RelationName("my_schema1", "my_table");
-        final int mySchema1MyTableOid = schemas.getRelationOid(mySchema1MyTable);
+        final int mySchema1MyTableOid = schemas.getDisplayRelationOid(mySchema1MyTable);
         assertEvaluate("pg_table_is_visible(" + mySchema1MyTableOid + ")", true);
 
         // since my_schema1.my_table is visible(my_schema1 appears earlier in searchPaths),
         // my_schema2.my_table is not visible
         final RelationName mySchema2MyTable = new RelationName("my_schema2", "my_table");
-        final int mySchema2MyTableOid = schemas.getRelationOid(mySchema2MyTable);
+        final int mySchema2MyTableOid = schemas.getDisplayRelationOid(mySchema2MyTable);
         assertEvaluate("pg_table_is_visible(" + mySchema2MyTableOid + ")", false);
     }
 
@@ -177,12 +177,12 @@ public class PgTableIsVisibleFunctionTest extends ScalarTestCase {
 
         // my_schema1.my_table is NOT visible, user is missing privileges
         final RelationName mySchema1MyTable = new RelationName("my_schema1", "my_table");
-        final int mySchema1MyTableOid = schemas.getRelationOid(mySchema1MyTable);
+        final int mySchema1MyTableOid = schemas.getDisplayRelationOid(mySchema1MyTable);
         assertEvaluate("pg_table_is_visible(" + mySchema1MyTableOid + ")", false);
 
         // since my_schema1.my_table is NOT visible, my_schema2.my_table is visible
         final RelationName mySchema2MyTable = new RelationName("my_schema2", "my_table");
-        final int mySchema2MyTableOid = schemas.getRelationOid(mySchema2MyTable);
+        final int mySchema2MyTableOid = schemas.getDisplayRelationOid(mySchema2MyTable);
         assertEvaluate("pg_table_is_visible(" + mySchema2MyTableOid + ")", true);
     }
 }

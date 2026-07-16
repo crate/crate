@@ -48,3 +48,6 @@ Fixes
 
 - Fixed a rare issue that causes queries involving foreign tables to throw
   ``UnsupportedOperationException``.
+
+- Fixed an issue that caused casts of tables created before ``6.3`` to
+  ``REGCLASS`` to incorrectly return ``0``.
