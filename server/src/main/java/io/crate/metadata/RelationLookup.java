@@ -25,7 +25,14 @@ import org.jspecify.annotations.Nullable;
 
 public interface RelationLookup {
 
-    int getRelationOid(RelationName relationName);
+    /**
+     * Returns the OID assigned to the given relation.
+     *
+     * WARNING: All tables created before 6.3 are assigned OID_UNASSIGNED internally, meaning that all execution paths
+     * must be aware of and properly handle duplicate assignments of OID_UNASSIGNED. When exposing OIDs, we must expose
+     * OidHash-based OIDs for backward compatibility.
+     */
+    int getDisplayRelationOid(RelationName relationName);
 
     @Nullable
     RelationName getRelationName(int oid);
