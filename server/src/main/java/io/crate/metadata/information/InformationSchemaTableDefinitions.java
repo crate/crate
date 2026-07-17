@@ -123,6 +123,14 @@ public class InformationSchemaTableDefinitions {
                 )
             ),
             Map.entry(
+                InformationConstraintColumnUsageTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    informationSchemaIterables::constraintColumnUsage,
+                    (user, ccu) -> roles.hasAnyPrivilege(user, Securable.TABLE, ccu.relName().fqn()),
+                    InformationConstraintColumnUsageTableInfo.INSTANCE.expressions()
+                )
+            ),
+            Map.entry(
                 InformationReferentialConstraintsTableInfo.IDENT,
                 new StaticTableDefinition<>(
                     (_, _) -> completedFuture(informationSchemaIterables.referentialConstraintsInfos()),

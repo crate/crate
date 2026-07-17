@@ -186,7 +186,7 @@ public class PgCatalogITest extends IntegTestCase {
     @Test
     public void testPgIndexTable() {
         execute("select count(*) from pg_catalog.pg_index");
-        assertThat(response).hasRows("25");
+        assertThat(response).hasRows("26");
     }
 
     @Test

@@ -28,7 +28,9 @@ import static java.util.stream.Stream.concat;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.PrimitiveIterator;
@@ -61,7 +63,9 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutineInfo;
 import io.crate.metadata.RoutineInfos;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SystemTable;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.information.InformationSchemaViewColumnUsage.ViewColumn;
 import io.crate.metadata.information.UserMappingOptionsTableInfo;
@@ -609,5 +613,67 @@ public class InformationSchemaIterables {
                     .map(ref -> new ViewColumn(viewInfo.ident(), ref))
             )
             .iterator();
+    }
+
+    public record ConstraintColumnUsage(RelationName relName, String columnName, String constraintName) {}
+
+    public Iterable<ConstraintColumnUsage> constraintColumnUsage() {
+        LinkedHashSet<ConstraintColumnUsage> result = new LinkedHashSet<>();
+        for (var relation : relations()) {
+            if (relation instanceof DocTableInfo table) {
+                // 1. Primary Key Constraints
+                RelationName relName = table.ident();
+                if (!table.primaryKey().isEmpty()) {
+                    String pkName = relName.name() + "_pkey";
+                    for (ColumnIdent pk : table.primaryKey()) {
+                        result.add(new ConstraintColumnUsage(relName, pk.name(), pkName));
+                    }
+                }
+
+                // 2. Not Null Constraints (Includes explicit NOT NULL and implicit PK columns)
+                for (Reference ref : table) {
+                    if (!ref.isNullable() && !ref.column().isSystemColumn()) {
+                        String constraintName = relName.schema() + "_" + relName.name() + "_" + ref.column().name() + "_not_null";
+                        result.add(new ConstraintColumnUsage(relName, ref.column().name(), constraintName));
+                    }
+                }
+
+                // 3. Check Constraints
+                if (table.checkConstraints() != null) {
+                    for (var check : table.checkConstraints()) {
+                        Set<String> checkColumns = new HashSet<>();
+                        check.expression().visit(Reference.class, ref -> checkColumns.add(ref.column().name()));
+
+                        for (String colName : checkColumns) {
+                            result.add(new ConstraintColumnUsage(relName, colName, check.name()));
+                        }
+                    }
+                }
+            } else if (relation instanceof SystemTable<?> table) {
+                // information_schema tables are excluded
+                if (!InformationSchemaInfo.NAME.equals(table.ident().schema())) {
+                    RelationName relName = table.ident();
+                    // 1. Primary Key Constraints
+                    if (!table.primaryKey().isEmpty()) {
+                        String pkName = relName.name() + "_pkey";
+                        for (ColumnIdent pk : table.primaryKey()) {
+                            result.add(new ConstraintColumnUsage(relName, pk.name(), pkName));
+                            // sys & pg_catalog tables don't specify not null for pk cols
+                            String constraintName = relName.schema() + "_" + relName.name() + "_" + pk.name() + "_not_null";
+                            result.add(new ConstraintColumnUsage(relName, pk.name(), constraintName));
+                        }
+                    }
+
+                    // 2. Not Null Constraints (only explicit)
+                    for (Reference ref : table.rootColumns()) {
+                        if (!ref.isNullable() && !ref.column().isSystemColumn()) {
+                            String constraintName = relName.schema() + "_" + relName.name() + "_" + ref.column().name() + "_not_null";
+                            result.add(new ConstraintColumnUsage(relName, ref.column().name(), constraintName));
+                        }
+                    }
+                }
+            }
+        }
+        return result;
     }
 }
