@@ -306,9 +306,10 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         if (schemaInfo == null) {
             throw new SchemaUnknownException(schemaName);
         }
-        TableInfo info = schemaInfo.getTableInfo(ident.name());
+        String name = ident.name();
+        TableInfo info = schemaInfo.getForeignTableInfo(name);
         if (info == null) {
-            info = schemaInfo.getForeignTableInfo(ident.name());
+            info = schemaInfo.getTableInfo(name);
             if (info == null) {
                 throw new RelationUnknown(ident);
             }
