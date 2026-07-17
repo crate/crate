@@ -33,6 +33,7 @@ import java.util.Set;
 
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
@@ -174,5 +175,17 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         RelationName relation = tableInfo.ident();
         assertThat(relation.schema()).isEqualTo("schema");
         assertThat(relation.name()).isEqualTo("t");
+    }
+
+    @Test
+    public void test_getTableInfo_can_resolve_foreign_table() throws Exception {
+        Settings options = Settings.builder()
+            .put("url", "jdbc:postgresql://localhost:5432/")
+            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addServer("pg", "jdbc", "crate", options)
+            .addForeignTable("create foreign table tbl (x int) server pg options (schema_name 'doc')");
+        TableInfo tableInfo = e.schemas().getTableInfo(new RelationName("doc", "tbl"));
+        assertThat(tableInfo).isExactlyInstanceOf(RelationMetadata.ForeignTable.class);
     }
 }
