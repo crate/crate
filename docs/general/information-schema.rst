@@ -79,6 +79,7 @@ number of replicas.
     | information_schema | character_sets                    | BASE TABLE |             NULL | NULL               |
     | information_schema | collations                        | BASE TABLE |             NULL | NULL               |
     | information_schema | columns                           | BASE TABLE |             NULL | NULL               |
+    | information_schema | constraint_column_usage           | BASE TABLE |             NULL | NULL               |
     | information_schema | enabled_roles                     | BASE TABLE |             NULL | NULL               |
     | information_schema | foreign_server_options            | BASE TABLE |             NULL | NULL               |
     | information_schema | foreign_servers                   | BASE TABLE |             NULL | NULL               |
@@ -152,7 +153,7 @@ number of replicas.
     | sys                | summits                           | BASE TABLE |             NULL | NULL               |
     | sys                | users                             | BASE TABLE |             NULL | NULL               |
     +--------------------+-----------------------------------+------------+------------------+--------------------+
-    SELECT 81 rows in set (... sec)
+    SELECT 82 rows in set (... sec)
 
 
 The table also contains additional information such as the specified

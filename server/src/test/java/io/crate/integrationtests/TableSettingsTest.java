@@ -92,10 +92,10 @@ public class TableSettingsTest extends IntegTestCase {
     }
 
     @Test
-    public void testFilterOnNull() throws Exception {
+    public void testFilterOnNull() {
         execute("select * from information_schema.tables " +
                 "where settings IS NULL");
-        assertThat(response.rowCount()).isEqualTo(77L);
+        assertThat(response.rowCount()).isEqualTo(78L);
         execute("select * from information_schema.tables " +
                 "where table_name = 'settings_table' and settings['blocks']['read'] IS NULL");
         assertThat(response.rowCount()).isEqualTo(0);

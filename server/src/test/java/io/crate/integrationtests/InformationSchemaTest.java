@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.List;
@@ -65,6 +64,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| character_sets| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| collations| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| columns| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| constraint_column_usage| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| enabled_roles| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| foreign_server_options| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| foreign_servers| information_schema| BASE TABLE| NULL",
@@ -223,12 +223,12 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testSearchInformationSchemaTablesRefresh() {
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(77L);
+        assertThat(response.rowCount()).isEqualTo(78L);
 
         execute("create table t4 (col1 integer, col2 string) with(number_of_replicas=0)");
 
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(78L);
+        assertThat(response.rowCount()).isEqualTo(79L);
     }
 
     @Test
@@ -424,6 +424,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "information_schema_columns_table_catalog_not_null| CHECK| columns| information_schema",
             "information_schema_columns_table_name_not_null| CHECK| columns| information_schema",
             "information_schema_columns_table_schema_not_null| CHECK| columns| information_schema",
+            "constraint_column_usage_pkey| PRIMARY KEY| constraint_column_usage| information_schema",
             "key_column_usage_pkey| PRIMARY KEY| key_column_usage| information_schema",
             "referential_constraints_pkey| PRIMARY KEY| referential_constraints| information_schema",
             "schemata_pkey| PRIMARY KEY| schemata| information_schema",
@@ -582,7 +583,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(1110);
+        assertThat(response.rowCount()).isEqualTo(1117);
     }
 
     @Test
@@ -922,7 +923,7 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
         execute("select count(*) from information_schema.tables");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.rows()[0][0]).isEqualTo(80L);
+        assertThat(response.rows()[0][0]).isEqualTo(81L);
     }
 
     @Test
@@ -1459,6 +1460,25 @@ public class InformationSchemaTest extends IntegTestCase {
             "v2| t3| name",
             "v2| v1| x",
             "v2| v1| y"
+        );
+    }
+
+    @Test
+    public void testConstraintColumnUsage() {
+        execute("create table my_schema.tbl (a int, b int, c int not null, d int constraint tbl_d_check check (d > 0), primary key(a,b))");
+
+        execute("select * from information_schema.constraint_column_usage " +
+            "where table_name IN ('tbl', 'nodes') order by table_name, constraint_name, column_name");
+
+        assertThat(response).hasRows(
+            "id| crate| nodes_pkey| sys| crate| nodes| sys",
+            "id| crate| sys_nodes_id_not_null| sys| crate| nodes| sys",
+            "a| crate| my_schema_tbl_a_not_null| my_schema| crate| tbl| my_schema",
+            "b| crate| my_schema_tbl_b_not_null| my_schema| crate| tbl| my_schema",
+            "c| crate| my_schema_tbl_c_not_null| my_schema| crate| tbl| my_schema",
+            "d| crate| tbl_d_check| my_schema| crate| tbl| my_schema",
+            "a| crate| tbl_pkey| my_schema| crate| tbl| my_schema",
+            "b| crate| tbl_pkey| my_schema| crate| tbl| my_schema"
         );
     }
 }

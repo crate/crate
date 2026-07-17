@@ -127,3 +127,10 @@ Client interfaces
 -----------------
 
 None
+
+SQL Standard and PostgreSQL Compatibility
+-----------------------------------------
+
+- `Somil Jain <https://github.com/somiljain2006>`_ added the
+  ``information_schema.constraint_column_usage`` view to improve PostgreSQL
+  compatibility with tools that introspect database metadata.
