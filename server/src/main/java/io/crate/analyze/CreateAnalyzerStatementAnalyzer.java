@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
@@ -72,8 +73,10 @@ class CreateAnalyzerStatementAnalyzer {
                 NodeContext nodeCtx,
                 ParamTypeHints paramTypeHints) {
             this.genericAnalyzerProperties = new HashMap<>();
-            this.charFilters = new HashMap<>();
-            this.tokenFilters = new HashMap<>();
+            // Use insertion-ordered maps so that the order of char-filters / token-filters as
+            // specified by the user in the CREATE ANALYZER statement is preserved.
+            this.charFilters = new LinkedHashMap<>();
+            this.tokenFilters = new LinkedHashMap<>();
 
             this.exprContext = new ExpressionAnalysisContext(transactionContext.sessionSettings());
             this.exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
