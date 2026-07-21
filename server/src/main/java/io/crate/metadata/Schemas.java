@@ -475,21 +475,27 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return viewInfo;
     }
 
+    /**
+     * Returns the RelationName for the given display OID.
+     * <p>
+     * For relations whose persisted OID is OID_UNASSIGNED, the display OID is derived from OidHash.
+     * This is needed for tables created before 6.3.
+     */
     @Nullable
-    public RelationName getRelationName(int oid) {
+    public RelationName getRelationName(int displayOid) {
         for (SchemaInfo schema : this) {
             for (RelationInfo relation : schema.getTables()) {
-                if (oid == relation.oid()) {
+                if (displayOid == displayOid(relation)) {
                     return relation.ident();
                 }
             }
             for (ViewInfo view : schema.getViews()) {
-                if (oid == view.oid()) {
+                if (displayOid == displayOid(view)) {
                     return view.ident();
                 }
             }
             for (RelationMetadata.ForeignTable foreignTable : schema.getForeignTables()) {
-                if (oid == foreignTable.oid()) {
+                if (displayOid == displayOid(foreignTable)) {
                     return foreignTable.ident();
                 }
             }
@@ -516,10 +522,14 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 }
             }
             if (relationInfo != null) {
-                int oid = relationInfo.oid();
-                return oid == Metadata.OID_UNASSIGNED ? OidHash.relationOid(relationInfo) : oid;
+                return displayOid(relationInfo);
             }
         }
         return OidHash.relationOid(OidHash.Type.TABLE, relationName);
+    }
+
+    private static int displayOid(RelationInfo relationInfo) {
+        int oid = relationInfo.oid();
+        return oid == Metadata.OID_UNASSIGNED ? OidHash.relationOid(relationInfo) : oid;
     }
 }
