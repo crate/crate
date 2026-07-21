@@ -29,6 +29,8 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Locale;
 
+import org.elasticsearch.cluster.metadata.Metadata;
+
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
@@ -66,7 +68,7 @@ public class HasTablePrivilegeFunction {
                                           Functions functions,
                                           SearchPath searchPath) {
         int tableOid = (int) table;
-        RelationName relationName = schemas.getRelationName(tableOid);
+        RelationName relationName = tableOid == Metadata.OID_UNASSIGNED ? null : schemas.getRelationName(tableOid);
         String tableFqn;
         if (relationName == null) {
             // Proceed to checkPrivileges with tableFqn as 'null' which will return 'true' for a superuser or a

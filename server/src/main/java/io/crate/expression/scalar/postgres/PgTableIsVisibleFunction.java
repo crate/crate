@@ -23,6 +23,8 @@ package io.crate.expression.scalar.postgres;
 
 import static io.crate.role.Permission.READ_WRITE_DEFINE;
 
+import org.elasticsearch.cluster.metadata.Metadata;
+
 import io.crate.data.Input;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.expression.scalar.HasTablePrivilegeFunction;
@@ -73,7 +75,7 @@ public class PgTableIsVisibleFunction extends Scalar<Boolean, Integer> {
         }
 
         Schemas schemas = nodeContext.schemas();
-        RelationName relationName = schemas.getRelationName(tableOid);
+        RelationName relationName = tableOid == Metadata.OID_UNASSIGNED ? null : schemas.getRelationName(tableOid);
         if (relationName == null) {
             return false;
         }
