@@ -35,5 +35,5 @@ public interface RelationLookup {
     int getDisplayRelationOid(RelationName relationName);
 
     @Nullable
-    RelationName getRelationName(int oid);
+    RelationName getRelationName(int displayOid);
 }
