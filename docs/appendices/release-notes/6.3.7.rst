@@ -62,3 +62,10 @@ Fixes
 
 - Fixed an issue that caused casts of tables created before ``6.3`` to
   ``REGCLASS`` to incorrectly return ``0``.
+
+- Bumped the PostgreSQL JDBC driver used by the
+  :ref:`JDBC foreign data wrapper <administration-fdw-jdbc>` to ``42.7.13``
+  because of `CVE-2026-54291 <https://nvd.nist.gov/vuln/detail/CVE-2026-54291>`_,
+  a SCRAM channel-binding downgrade in the driver. CrateDB isn't affected by
+  default, since a foreign server only uses channel binding if a user
+  explicitly sets ``channelBinding=require`` on its JDBC URL.
