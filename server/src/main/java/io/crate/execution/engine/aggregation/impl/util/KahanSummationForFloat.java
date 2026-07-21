@@ -28,7 +28,13 @@ public class KahanSummationForFloat {
     public float sum(float sum, float value) {
         var correctedValue = value - error;
         var newSum = sum + correctedValue;
-        error = (newSum - sum) - correctedValue;
+        var newError = (newSum - sum) - correctedValue;
+        // Guard against a non-finite error. When the running sum overflows to
+        // (+/-)Infinity, or a value/sum is NaN, `newError` becomes Infinity or NaN
+        // (e.g. Infinity - Infinity => NaN). A non-finite error is meaningless and,
+        // if kept, it affects every subsequent addition made, as a single instance
+        // is reused across all GROUP BY keys.
+        error = Float.isFinite(newError) ? newError : 0.0f;
         return newSum;
     }
 }
