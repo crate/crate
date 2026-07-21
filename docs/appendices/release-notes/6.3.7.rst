@@ -69,3 +69,9 @@ Fixes
   a SCRAM channel-binding downgrade in the driver. CrateDB isn't affected by
   default, since a foreign server only uses channel binding if a user
   explicitly sets ``channelBinding=require`` on its JDBC URL.
+
+- Fixed an issue that caused
+  :ref:`pg_table_is_visible <scalar-pg_table_is_visible>` and
+  :ref:`has_table_privilege <scalar-has-table-priv>` to return incorrect
+  results for OID ``0`` and for OIDs of tables created before
+  :ref:`version_6.3.0`.
