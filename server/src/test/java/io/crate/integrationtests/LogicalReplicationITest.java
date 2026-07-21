@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 
@@ -463,21 +464,26 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
         createPublication("pub1", false, List.of("doc.t1", "my_schema.t2"));
 
-        createSubscription("sub1", "pub1");
+        logger.error("creating subscription");
+        try {
+            createSubscription("sub1", "pub1");
 
-        executeOnSubscriber("REFRESH TABLE doc.t1");
-        var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
-        assertThat(response).hasRows(
-            "1| 1",
-            "2| 2"
-        );
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
+            assertThat(response).hasRows(
+                "1| 1",
+                "2| 2"
+            );
 
-        executeOnSubscriber("REFRESH TABLE my_schema.t2");
-        response = executeOnSubscriber("SELECT * FROM my_schema.t2 ORDER BY id");
-        assertThat(response).hasRows(
-            "1",
-            "2"
-        );
+            executeOnSubscriber("REFRESH TABLE my_schema.t2");
+            response = executeOnSubscriber("SELECT * FROM my_schema.t2 ORDER BY id");
+            assertThat(response).hasRows(
+                "1",
+                "2"
+            );
+        } finally {
+            logger.error("end of test case");
+        }
     }
 
     @Test

@@ -119,6 +119,16 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    public void test_dup_partitions() throws Exception {
+        execute("create table tbl1 (x int, p int) partitioned by (p)");
+        execute("create table tbl2 (x int, p int) partitioned by (p)");
+
+        execute("insert into tbl1 (x, p) values (1, 1)");
+        execute("alter cluster swap table tbl1 to tbl2");
+        execute("insert into tbl1 (x, p) values (1, 1)");
+    }
+
+    @Test
     public void testCopyFromIntoPartitionedTable() throws Exception {
         execute("create table quotes (" +
                 "  id integer primary key, " +

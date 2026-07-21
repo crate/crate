@@ -238,7 +238,7 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
             RoutingTable.Builder routingTableBuilder = RoutingTable.builder(currentState.routingTable());
             ArrayList<String> indexUUIDs = new ArrayList<>(partitions.size());
             for (PartitionName partition : partitions) {
-                String indexName = partition.asIndexName();
+                String indexName = "in_" + UUIDs.randomBase64UUID();
                 String indexUUID = UUIDs.randomBase64UUID();
                 final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexUUID)
                     .indexName(indexName)

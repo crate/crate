@@ -582,7 +582,8 @@ public class RestoreService implements ClusterStateApplier {
 
             if (completed(shards)) {
                 // We don't have any indices to restore - we are done
-                restoreInfo = new RestoreInfo(snapshotId.getName(), restoreIndexNames.stream().toList(), shards.size(), shards.size() - failedShards(shards));
+                int failedShards = failedShards(shards);
+                restoreInfo = new RestoreInfo(snapshotId.getName(), restoreIndexNames.stream().toList(), shards.size(), shards.size() - failedShards);
             }
 
             RoutingTable rt = rtBuilder.build();
