@@ -48,4 +48,41 @@ public class KahanSummationForDoubleTest extends AggregationTestCase {
         // The same operations using '+' returns 1.9999999999999998
         assertThat(total).isEqualTo(2.0d);
     }
+
+    // See https://github.com/crate/crate/issues/19761
+    @Test
+    public void test_infinite_compensation_does_not_leak_into_next_summation() {
+        // A single instance is reused across all GROUP BY keys. An overflow in one summation
+        // must not contaminate a consequent, independent, non-overflowing summation.
+        var kahanSummation = new KahanSummationForDouble();
+
+        double overflowed = 0;
+        overflowed = kahanSummation.sum(overflowed, Double.MAX_VALUE);
+        overflowed = kahanSummation.sum(overflowed, Double.MAX_VALUE);
+        assertThat(overflowed).isEqualTo(Double.POSITIVE_INFINITY);
+
+        double clean = 0;
+        clean = kahanSummation.sum(clean, 0.1d);
+        clean = kahanSummation.sum(clean, 0.2d);
+        clean = kahanSummation.sum(clean, 0.3d);
+        assertThat(clean).isEqualTo(0.6d);
+    }
+
+    // See https://github.com/crate/crate/issues/19761
+    @Test
+    public void test_nan_value_does_not_leak_into_next_summation() {
+        // A single instance is reused across all GROUP BY keys. An NaN error
+        // must not contaminate a consequent, independent, non-overflowing summation.
+        var kahanSummation = new KahanSummationForDouble();
+
+        double withNaN = 0;
+        withNaN = kahanSummation.sum(withNaN, 1.0d);
+        withNaN = kahanSummation.sum(withNaN, Double.NaN);
+        assertThat(withNaN).isNaN();
+
+        double clean = 0;
+        clean = kahanSummation.sum(clean, 0.7d);
+        clean = kahanSummation.sum(clean, 0.3d);
+        assertThat(clean).isEqualTo(1.0d);
+    }
 }
