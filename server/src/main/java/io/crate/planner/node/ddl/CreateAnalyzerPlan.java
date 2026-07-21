@@ -27,7 +27,7 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
 import static io.crate.metadata.FulltextAnalyzerResolver.encodeSettings;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -217,7 +217,8 @@ public class CreateAnalyzerPlan implements Plan {
                                                           String analyzerIdent,
                                                           Function<? super Symbol, Object> eval,
                                                           FulltextAnalyzerResolver ftResolver) {
-        HashMap<String, Settings> boundTokenFilters = HashMap.newHashMap(tokenFilters.size());
+        // Keep the user-specified order of token-filters
+        LinkedHashMap<String, Settings> boundTokenFilters = LinkedHashMap.newLinkedHashMap(tokenFilters.size());
 
         for (Map.Entry<String, GenericProperties<Symbol>> tokenFilter : tokenFilters.entrySet()) {
             var name = tokenFilter.getKey();
@@ -268,7 +269,8 @@ public class CreateAnalyzerPlan implements Plan {
                                                          String analyzerIdent,
                                                          Function<? super Symbol, Object> eval,
                                                          FulltextAnalyzerResolver ftResolver) {
-        HashMap<String, Settings> boundedCharFilters = HashMap.newHashMap(charFilters.size());
+        // Keep the user-specified order of char-filters
+        LinkedHashMap<String, Settings> boundedCharFilters = LinkedHashMap.newLinkedHashMap(charFilters.size());
 
         for (Map.Entry<String, GenericProperties<Symbol>> charFilter : charFilters.entrySet()) {
             var name = charFilter.getKey();

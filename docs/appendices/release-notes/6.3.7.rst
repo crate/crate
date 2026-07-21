@@ -46,6 +46,11 @@ series.
 Fixes
 =====
 
+- Fixed an issue that could cause a :ref:`CREATE ANALYZER <ref-create-analyzer>`
+  statement to not preserve the order of ``TOKEN_FILTERS`` and ``CHAR_FILTERS``.
+  As the filters are applied as an ordered chain, this could silently change
+  analysis results.
+
 - Fixed an issue that could cause ``SUM`` over ``DOUBLE PRECISION`` or ``FLOAT``
   values to return ``NaN`` instead of ``Infinity`` for a grouped result, when a
   different group in the same query overflowed the floating point range. The

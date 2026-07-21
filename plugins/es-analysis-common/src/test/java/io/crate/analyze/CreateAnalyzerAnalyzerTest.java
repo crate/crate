@@ -150,6 +150,52 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
             .hasEntry("index.analysis.filter.a11_mystop.stopword", "[the, over]");
     }
 
+    // See https://github.com/crate/crate/issues/19757
+    @Test
+    public void test_token_filter_order_is_preserved() throws Exception {
+        ClusterUpdateSettingsRequest request = analyze(
+            "CREATE ANALYZER my_analyzer (" +
+            "  TOKENIZER whitespace," +
+            "  TOKEN_FILTERS (" +
+            "    function_filter WITH (" +
+            "      type='word_delimiter'," +
+            "      split_on_case_change=true," +
+            "      preserve_original=true" +
+            "    )," +
+            "    lowercase" +
+            "  )" +
+            ")");
+
+        assertThat(extractAnalyzerSettings("my_analyzer", request.persistentSettings()))
+            .hasEntry("index.analysis.analyzer.my_analyzer.tokenizer", "whitespace")
+            .hasEntry("index.analysis.analyzer.my_analyzer.filter", "[my_analyzer_function_filter, lowercase]");
+
+        var tokenFiltersSettings = FulltextAnalyzerResolver.decodeSettings(
+            request.persistentSettings().get(TOKEN_FILTER.buildSettingName("my_analyzer_function_filter")));
+        assertThat(tokenFiltersSettings)
+            .hasEntry("index.analysis.filter.my_analyzer_function_filter.type", "word_delimiter")
+            .hasEntry("index.analysis.filter.my_analyzer_function_filter.split_on_case_change", "true");
+    }
+
+    // See https://github.com/crate/crate/issues/19757
+    @Test
+    public void test_char_filter_order_is_preserved() throws Exception {
+        ClusterUpdateSettingsRequest request = analyze(
+            "CREATE ANALYZER my_analyzer (" +
+            "   TOKENIZER whitespace," +
+            "   CHAR_FILTERS (" +
+            "       my_mapping WITH (" +
+            "           type='mapping'," +
+            "           mappings=['a=>b']" +
+            "       )," +
+            "       \"html_strip\"" +
+            "   )" +
+            ")");
+
+        assertThat(extractAnalyzerSettings("my_analyzer", request.persistentSettings()))
+            .hasEntry("index.analysis.analyzer.my_analyzer.char_filter", "[my_analyzer_my_mapping, html_strip]");
+    }
+
     @Test
     public void testCreateAnalyzerExtendingBuiltin() throws Exception {
         ClusterUpdateSettingsRequest request = analyze(
