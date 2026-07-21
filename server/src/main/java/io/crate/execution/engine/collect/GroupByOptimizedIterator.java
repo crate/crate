@@ -129,17 +129,19 @@ final class GroupByOptimizedIterator {
     private static final double CARDINALITY_RATIO_THRESHOLD = 0.5;
     private static final long HASH_MAP_ENTRY_OVERHEAD = 32; // see private RamUsageEstimator.shallowSizeOfInstance(HashMap.Node.class)
 
-    /// Returns a batchIterator that uses termFrequences for queries like:
+    /// Returns a BatchIterator that reads the term dictionary of a single string key column instead
+    /// of scanning documents, for group-by queries without a WHERE clause:
     ///
-    ///     SELECT strKey, count(*) GROUP BY strKey`
+    ///     `SELECT strKey GROUP BY strKey`            (keys only)
+    ///     `SELECT strKey, count(*) GROUP BY strKey`  (with an unfiltered count(*))
     ///
-    /// Only works if the key is not nullable and if there is no WHERE clause
-    /// and no aggregate filter.
-    /// Returns null for other queries.
+    /// Terms of deleted documents linger in the dictionary until segments merge, so each term is
+    /// checked against live docs. A NULL group is added for nullable columns that have null docs.
+    /// Returns null for queries that don't match this shape.
     @Nullable
-    static BatchIterator<Row> tryUseTermFrequencies(IndexShard indexShard,
-                                                    RoutedCollectPhase collectPhase,
-                                                    CollectTask collectTask) {
+    static BatchIterator<Row> tryUseTermDictionary(IndexShard indexShard,
+                                                   RoutedCollectPhase collectPhase,
+                                                   CollectTask collectTask) {
         GroupProjection groupProjection = getSingleStringKeyGroupProjection(collectPhase.projections());
         if (groupProjection == null) {
             return null;
@@ -153,13 +155,16 @@ final class GroupByOptimizedIterator {
         }
 
         List<Aggregation> values = groupProjection.values();
-        if (values.size() != 1 || !values.getFirst().signature().equals(CountAggregation.COUNT_STAR_SIGNATURE)) {
-            return null;
-        }
-
-        Symbol aggregateFilter = values.getFirst().filter();
-        if (!aggregateFilter.equals(Literal.BOOLEAN_TRUE)) {
-            return null;
+        boolean keysOnly = values.isEmpty();
+        if (!keysOnly) {
+            // The only aggregate we can serve straight from the term dictionary is an unfiltered count(*).
+            if (values.size() != 1 || !values.getFirst().signature().equals(CountAggregation.COUNT_STAR_SIGNATURE)) {
+                return null;
+            }
+            Symbol aggregateFilter = values.getFirst().filter();
+            if (!aggregateFilter.equals(Literal.BOOLEAN_TRUE)) {
+                return null;
+            }
         }
 
         Symbol where = collectPhase.where();
@@ -180,62 +185,18 @@ final class GroupByOptimizedIterator {
         IndexSearcher searcher = searcherRef.item();
 
         Token killToken = new Killable.Token();
+        RamAccounting ramAccounting = collectTask.getRamAccounting();
+        if (keysOnly) {
+            return CollectingBatchIterator.newInstance(
+                killToken,
+                () -> keysToRows(getDistinctKeys(ramAccounting, keyRef, searcher, killToken)),
+                true
+            );
+        }
         AggregateMode mode = groupProjection.mode();
         return CollectingBatchIterator.newInstance(
             killToken,
-            () -> countsToRows(getCountsByKey(collectTask.getRamAccounting(), keyRef, searcher, killToken), mode),
-            true
-        );
-    }
-
-    /// Returns a BatchIterator that reads the term dictionary for keys-only group-by queries like:
-    ///
-    ///     `SELECT strKey GROUP BY strKey`
-    ///
-    /// Every term is checked for its live docs, to make sure it doesn't belong to a deleted document.
-    ///
-    ///  Only works if the group-by has no aggregates and there is no WHERE clause.
-    /// Returns null for other queries.
-    @Nullable
-    static BatchIterator<Row> tryUseTermsForDistinctKeys(IndexShard indexShard,
-                                                         RoutedCollectPhase collectPhase,
-                                                         CollectTask collectTask) {
-        GroupProjection groupProjection = getSingleStringKeyGroupProjection(collectPhase.projections());
-        if (groupProjection == null) {
-            return null;
-        }
-        assert groupProjection.keys().size() == 1
-            : "Must have 1 key if getSingleStringKeyGroupProjection returned a projection";
-
-        if (!groupProjection.values().isEmpty()) {
-            return null; // keys-only; group-by with aggregates not handled
-        }
-
-        Reference docKeyRef = getKeyRef(collectPhase.toCollect(), groupProjection.keys().get(0));
-        if (docKeyRef == null) {
-            return null; // group by on non-reference
-        }
-
-        Symbol where = collectPhase.where();
-        if (!where.equals(Literal.BOOLEAN_TRUE)) {
-            // The terms dictionary cannot enumerate terms with a filter.
-            return null;
-        }
-
-        final Reference keyRef = DocReferences.docRefToRegularRef(docKeyRef);
-        if (!hasTerms(() -> indexShard.acquireSearcher("terms-check"), keyRef.storageIdent())) {
-            return null;
-        }
-
-        SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(indexShard.shardId());
-        var searcherRef = sharedShardContext.acquireSearcher("group-by-distinct-keys:" + formatSource(collectPhase));
-        collectTask.addSearcher(sharedShardContext.readerId(), searcherRef);
-        IndexSearcher searcher = searcherRef.item();
-
-        Token killToken = new Killable.Token();
-        return CollectingBatchIterator.newInstance(
-            killToken,
-            () -> keysToRows(getDistinctKeys(collectTask.getRamAccounting(), keyRef, searcher, killToken)),
+            () -> countsToRows(getCountsByKey(ramAccounting, keyRef, searcher, killToken), mode),
             true
         );
     }

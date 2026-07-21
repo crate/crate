@@ -287,9 +287,8 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         var collectPhase = createCollectPhase(List.of(reference), List.of(groupProjection));
         var collectTask = createCollectTask(shard, collectPhase, Version.CURRENT);
 
-        // keys-only is handled by the term-dictionary distinct-keys path, not the count(*) term-freq path
-        assertThat(GroupByOptimizedIterator.tryUseTermFrequencies(shard, collectPhase, collectTask)).isNull();
-        assertThat(GroupByOptimizedIterator.tryUseTermsForDistinctKeys(shard, collectPhase, collectTask)).isNotNull();
+        // keys-only group-by is served from the term dictionary
+        assertThat(GroupByOptimizedIterator.tryUseTermDictionary(shard, collectPhase, collectTask)).isNotNull();
 
         collectTask.kill(JobKilledException.of(null));
         closeShard(shard);
