@@ -46,6 +46,12 @@ series.
 Fixes
 =====
 
+- Fixed an issue that could cause ``SUM`` over ``DOUBLE PRECISION`` or ``FLOAT``
+  values to return ``NaN`` instead of ``Infinity`` for a grouped result, when a
+  different group in the same query overflowed the floating point range. The
+  result of ``SUM`` no longer depends on the order in which groups are
+  processed.
+
 - Fixed a rare issue that causes queries involving foreign tables to throw
   ``UnsupportedOperationException``.
 
