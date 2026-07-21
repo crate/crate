@@ -1624,6 +1624,11 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return getRelation(tableName) != null;
     }
 
+    /**
+     * Resolves a relation name by table OID.
+     *
+     * WARNING: All tables created before 6.3 are assigned OID_UNASSIGNED, and cannot be resolved by OID.
+     */
     public RelationName getRelationName(int tableOID) {
         RelationMetadata relationMetadata = getRelation(tableOID);
         if (relationMetadata == null) {
@@ -1643,10 +1648,14 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return indexUUIDsRelations.get(indexUUID);
     }
 
+    /**
+     * Resolves relation metadata by table OID.
+     *
+     * WARNING: All tables created before 6.3 are assigned OID_UNASSIGNED, and cannot be resolved by OID.
+     */
     @Nullable
     @SuppressWarnings("unchecked")
     public <T extends RelationMetadata> T getRelation(int tableOID) {
-        assert tableOID > Metadata.OID_UNASSIGNED : "Invalid tableOID: " + tableOID;
         return (T) oidsRelations.get(tableOID);
     }
 

@@ -475,6 +475,11 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return viewInfo;
     }
 
+    /**
+     * Resolves a relation name by table OID.
+     *
+     * WARNING: All tables created before 6.3 are assigned OID_UNASSIGNED, and cannot be resolved by OID.
+     */
     @Nullable
     public RelationName getRelationName(int oid) {
         for (SchemaInfo schema : this) {
