@@ -62,3 +62,8 @@ Fixes
 
 - Fixed an issue that caused casts of tables created before ``6.3`` to
   ``REGCLASS`` to incorrectly return ``0``.
+
+- Fixed an issue that caused
+  :ref:`pg_table_is_visible <scalar-pg_table_is_visible>` and
+  :ref:`has_table_privilege <scalar-has-table-priv>` to return incorrect
+  results for the table OID `0`.
