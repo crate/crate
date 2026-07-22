@@ -268,7 +268,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         var join = new JoinPlan(firstJoin, c, JoinType.INNER, joinCondition);
 
         assertThat(join).hasOperators(
-            "Join[INNER | ((z = x) AND (z = y))]",
+            "Join[INNER | ((x = z) AND (y = z))]",
             "  ├ Join[CROSS]",
             "  │  ├ Collect[doc.a | [x] | true]",
             "  │  └ Collect[doc.b | [y] | true]",
@@ -293,8 +293,8 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(result).hasOperators(
             "Eval[x, y, z]",
-            "  └ Join[INNER | (z = y)]",
-            "    ├ Join[INNER | (z = x)]",
+            "  └ Join[INNER | (y = z)]",
+            "    ├ Join[INNER | (x = z)]",
             "    │  ├ Collect[doc.a | [x] | true]",
             "    │  └ Collect[doc.c | [z] | true]",
             "    └ Collect[doc.b | [y] | true]"
@@ -307,7 +307,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         var join = new JoinPlan(firstJoin, b, JoinType.INNER, joinCondition);
 
         assertThat(join).hasOperators(
-            "Join[INNER | ((z = x) AND (z = y))]",
+            "Join[INNER | ((x = z) AND (y = z))]",
             "  ├ Join[CROSS]",
             "  │  ├ Collect[doc.a | [x] | true]",
             "  │  └ Collect[doc.c | [z] | true]",
@@ -330,8 +330,8 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             e.ruleContext());
 
         assertThat(result).hasOperators(
-            "Join[INNER | (z = y)]",
-            "  ├ Join[INNER | (z = x)]",
+            "Join[INNER | (y = z)]",
+            "  ├ Join[INNER | (x = z)]",
             "  │  ├ Collect[doc.a | [x] | true]",
             "  │  └ Collect[doc.c | [z] | true]",
             "  └ Collect[doc.b | [y] | true]"
@@ -344,7 +344,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         var join = new JoinPlan(firstJoin, c, JoinType.LEFT, joinCondition);
 
         assertThat(join).hasOperators(
-            "Join[LEFT | ((z = x) AND (z = y))]",
+            "Join[LEFT | ((x = z) AND (y = z))]",
             "  ├ Join[CROSS]",
             "  │  ├ Collect[doc.a | [x] | true]",
             "  │  └ Collect[doc.b | [y] | true]",
