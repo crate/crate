@@ -43,9 +43,11 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.SortedSetDocValuesField;
+import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.store.ByteBuffersDirectory;
@@ -61,6 +63,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.common.concurrent.Killable;
 import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dml.StringIndexer;
@@ -253,6 +256,85 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
 
         collectTask.kill(JobKilledException.of(null));
         closeShard(shard);
+    }
+
+    @Test
+    public void test_create_terms_distinct_keys_iterator_for_keys_only_group_by() throws Exception {
+        GroupProjection groupProjection = new GroupProjection(
+            List.of(new InputColumn(0, DataTypes.STRING)),
+            List.of(),
+            AggregateMode.ITER_PARTIAL,
+            RowGranularity.SHARD
+        );
+        var reference = new SimpleReference(
+            new RelationName("doc", "test"),
+            ColumnIdent.of("x"),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            IndexType.PLAIN,
+            true,
+            true,
+            0,
+            111,
+            false,
+            null
+        );
+        IndexShard shard = newStartedPrimaryShard(
+            TestingHelpers.createNodeContext(),
+            List.of(reference),
+            THREAD_POOL
+        );
+        var collectPhase = createCollectPhase(List.of(reference), List.of(groupProjection));
+        var collectTask = createCollectTask(shard, collectPhase, Version.CURRENT);
+
+        // keys-only group-by is served from the term dictionary
+        assertThat(GroupByOptimizedIterator.tryUseTermDictionary(shard, collectPhase, collectTask)).isNotNull();
+
+        collectTask.kill(JobKilledException.of(null));
+        closeShard(shard);
+    }
+
+    @Test
+    public void test_getDistinctKeys_skips_terms_without_live_documents() throws Exception {
+        SimpleReference keyRef = new SimpleReference(
+            new RelationName("doc", "test"),
+            ColumnIdent.of("x"),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            IndexType.PLAIN,
+            false,   // not nullable -> skip the null-group handling
+            true,
+            0,
+            111,
+            false,
+            null
+        );
+        String field = keyRef.storageIdent();
+
+        IndexWriter iw = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
+        // (id, x): (0,a) (1,a) (2,b) (3,c) (4,c)
+        String[] values = { "a", "a", "b", "c", "c" };
+        for (int i = 0; i < values.length; i++) {
+            Document doc = new Document();
+            doc.add(new StringField("id", Integer.toString(i), Field.Store.NO));
+            doc.add(new Field(field, new BytesRef(values[i]), StringIndexer.FIELD_TYPE));
+            iw.addDocument(doc);
+        }
+        iw.commit();
+        // delete both "c" docs -> the term "c" lingers in the dictionary with no live document
+        iw.deleteDocuments(new Term(field, "c"));
+        // delete one of the two "a" docs -> the term "a" still has a live document
+        iw.deleteDocuments(new Term("id", "1"));
+        iw.commit();
+
+        IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(iw));
+
+        var keys = GroupByOptimizedIterator.getDistinctKeys(
+            RamAccounting.NO_ACCOUNTING, keyRef, searcher, new Killable.Token());
+
+        // "c" is excluded (all its documents are deleted); "a" survives via its remaining live document.
+        assertThat(keys).containsExactlyInAnyOrder(new BytesRef("a"), new BytesRef("b"));
+        iw.close();
     }
 
     @Test

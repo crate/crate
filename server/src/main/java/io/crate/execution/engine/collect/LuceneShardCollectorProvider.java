@@ -165,7 +165,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     protected BatchIterator<Row> getProjectionFusedIterator(RoutedCollectPhase normalizedPhase, CollectTask collectTask) {
         PartitionName partitionName = clusterService.state().metadata().getPartitionName(indexShard.shardId().getIndexUUID());
         DocTableInfo table = nodeCtx.schemas().getTableInfo(partitionName.relationName());
-        var it = GroupByOptimizedIterator.tryUseTermFrequencies(
+        var it = GroupByOptimizedIterator.tryUseTermDictionary(
             indexShard,
             normalizedPhase,
             collectTask
