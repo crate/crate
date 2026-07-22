@@ -131,7 +131,9 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
 
     @Test
     public void testVarianceOverUnboundedFollowingFrames() throws Throwable {
-        Object[] expected = new Object[]{0.22222222222222202, 0.0, 0.0, 0.6666666666666666, 0.25, 0.0, null};
+        // First element is the correctly-rounded double of 2/9; the numerically stable accumulator
+        // (crate/crate#19760) rounds it more accurately than the previous 0.22222222222222202.
+        Object[] expected = new Object[]{0.2222222222222222, 0.0, 0.0, 0.6666666666666666, 0.25, 0.0, null};
         assertEvaluate(
             "variance(x) OVER(" +
             "   PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
@@ -143,7 +145,9 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
 
     @Test
     public void testStdDevPopOverUnboundedFollowingFrames() throws Throwable {
-        Object[] expected = new Object[]{0.47140452079103146, 0.0, 0.0, 0.816496580927726, 0.5, 0.0, null};
+        // First element is rounded more accurately by the numerically stable accumulator
+        // (crate/crate#19760) than the previous 0.47140452079103146.
+        Object[] expected = new Object[]{0.4714045207910317, 0.0, 0.0, 0.816496580927726, 0.5, 0.0, null};
         assertEvaluate(
             "stddev_pop(x) OVER(" +
             "   PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
