@@ -63,6 +63,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
@@ -192,10 +193,10 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOrdersReferencesOnBothSidesLexicographically() throws Exception {
-        Function cmp = (Function) expressions.normalize(executor.asSymbol("t2.b > t1.a"));
+        Function cmp = (Function) expressions.normalize(executor.asSymbol("t2.i > t1.i"));
         assertThat(cmp.name()).isEqualTo("op_<");
-        assertThat(cmp.arguments().get(0)).isReference().hasName("a");
-        assertThat(cmp.arguments().get(1)).isReference().hasName("b");
+        assertThat(cmp.arguments().get(0).toString(Style.QUALIFIED)).isEqualTo("doc.t1.i");
+        assertThat(cmp.arguments().get(1).toString(Style.QUALIFIED)).isEqualTo("doc.t2.i");
     }
 
     @Test
