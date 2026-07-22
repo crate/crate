@@ -269,6 +269,7 @@ public class MetadataCreateIndexService {
                 .put(request.settings())
                 .put(SETTING_INDEX_UUID, indexUUID)
                 .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli())
+                // blob table + new index, unrelated to mutation of existing
                 .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), versionCreated)
                 .build();
             int numShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(settings);
@@ -378,6 +379,7 @@ public class MetadataCreateIndexService {
             indexSettingsBuilder
                 .put(SETTING_INDEX_UUID, resizedIndexUUID)
                 .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli())
+                // this is new (resized) index, no mutation of existing metadata -> unrelated to https://github.com/crate/support/issues/893
                 .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), indexVersionCreated)
                 .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME.getKey(), sourceIndex.getIndex().name())
                 .put(IndexMetadata.INDEX_RESIZE_SOURCE_UUID.getKey(), sourceIndex.getIndexUUID())

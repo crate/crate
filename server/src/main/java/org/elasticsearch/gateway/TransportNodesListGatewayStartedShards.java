@@ -133,6 +133,7 @@ public class TransportNodesListGatewayStartedShards extends
                         // TODO: Fallback for BWC with older ES versions. Remove once request.getCustomDataPath() always returns non-null
                         final IndexMetadata metadata = clusterService.state().metadata().index(shardId.getIndex());
                         if (metadata != null) {
+                            // no version_created mutations, all fine for 893
                             customDataPath = new IndexSettings(metadata, settings).customDataPath();
                         } else {
                             logger.trace("{} node doesn't have meta data for the requests index", shardId);

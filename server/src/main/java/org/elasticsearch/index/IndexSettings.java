@@ -279,6 +279,9 @@ public final class IndexSettings {
         this.nodeSettings = nodeSettings;
         this.settings = Settings.builder().put(nodeSettings).put(indexMetadata.getSettings()).build();
         this.index = indexMetadata.getIndex();
+        // version is not mutated in this class.
+        // Callers seem to be fine as well, they don't mutate it before passing here.
+        // See also getIndexVersionCreated comments.
         version = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings);
         logger = Loggers.getLogger(getClass(), index);
         nodeName = Node.NODE_NAME_SETTING.get(settings);
@@ -417,6 +420,9 @@ public final class IndexSettings {
      * @see Version#indexCreated(Settings)
      */
     public Version getIndexVersionCreated() {
+        // suspect: callers don't have a check like in updateIndexMetadata.
+        // and IndexShard.getIndexVersionCreated uses this in the ingestion path.
+        // but so far ctor usages look fine.
         return version;
     }
 
@@ -464,6 +470,7 @@ public final class IndexSettings {
     public synchronized boolean updateIndexMetadata(IndexMetadata indexMetadata) {
         final Settings newSettings = indexMetadata.getSettings();
         if (version.equals(Version.indexCreated(newSettings)) == false) {
+            // this check protects from mutations of version_created -> unrelated to https://github.com/crate/support/issues/893
             throw new IllegalArgumentException("version mismatch on settings update expected: " + version + " but was: " + Version.indexCreated(newSettings));
         }
         final String newUUID = newSettings.get(IndexMetadata.SETTING_INDEX_UUID, IndexMetadata.INDEX_UUID_NA_VALUE);

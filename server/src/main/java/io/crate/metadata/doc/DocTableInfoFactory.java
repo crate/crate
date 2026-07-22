@@ -150,6 +150,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
         );
         var expressionAnalysisContext = new ExpressionAnalysisContext(systemTransactionContext.sessionSettings());
 
+        // callers don't mutate version_created
         Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(table.settings());
         Version versionUpgraded = table.settings().getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
         ColumnIdent routingColumn = table.routingColumnOrDefault();
@@ -211,6 +212,8 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
         );
         RelationName relationName = RelationName.fromIndexName(indexName);
         Settings tableParameters = indexMetadata.getSettings();
+        // no mutation, taking version as is during upgrade
+
         Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableParameters);
         Version versionUpgraded = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
         Map<String, Object> mappingSource = updatedIndexMetadata == null ? Map.of() : updatedIndexMetadata.sourceAsMap();
@@ -248,6 +251,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
             relationName,
             mappingSource,
             tableParameters,
+            // THIS CAN SET CURRENT if tableParameters doesn't contain version_created!!!!
             tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT),
             versionUpgraded,
             state,

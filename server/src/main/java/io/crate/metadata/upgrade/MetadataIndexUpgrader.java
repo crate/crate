@@ -56,6 +56,7 @@ public class MetadataIndexUpgrader {
     /// - Remove mapping (must be using [org.elasticsearch.cluster.metadata.RelationMetadata])
     /// - Add partitionValues
     public static IndexMetadata upgrade(IndexMetadata indexMetadata) {
+        //version_created is not mutated here, all fine for 893
         if (indexMetadata.mapping() == null && !indexMetadata.partitionValues().isEmpty()) {
             return indexMetadata;
         }

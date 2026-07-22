@@ -410,6 +410,12 @@ public abstract class AbstractScopedSettings {
                     " or check the breaking changes documentation for removed settings";
             }
             Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings);
+            // settings can have version_created < current, judging by the comment below.
+            // relates to https://github.com/crate/crate/commit/6366f2283f7459da0c934929b48b43435b66202f
+            // callers look fine - don't override versionCreated of the passed here settings.
+
+            // https://github.com/crate/crate/commit/6366f2283f7459da0c934929b48b43435b66202f was about inserts during upgrades
+            // so again -> no mutation of existing -> unrelated to 893
             if (versionCreated.before(Version.CURRENT) && this instanceof IndexScopedSettings) {
                 // Index creation can happen when applying a cluster state from a gateway node.
                 // On a mixed cluster, we can get an old setting, non-existent on the current version.

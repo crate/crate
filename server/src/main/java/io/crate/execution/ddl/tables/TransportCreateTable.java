@@ -122,6 +122,7 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
         Settings.Builder settingsBuilder = Settings.builder()
             .put(request.settings())
             .put(
+                // new table -> no mutation -> unrelated to 893
                 IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(),
                 state.nodes().getSmallestNonClientNodeVersion())
             .normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX);
