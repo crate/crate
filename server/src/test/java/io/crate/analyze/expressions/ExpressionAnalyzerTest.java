@@ -191,6 +191,22 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testOrdersReferencesOnBothSidesLexicographically() throws Exception {
+        Function cmp = (Function) expressions.normalize(executor.asSymbol("t2.b > t1.a"));
+        assertThat(cmp.name()).isEqualTo("op_<");
+        assertThat(cmp.arguments().get(0)).isReference().hasName("a");
+        assertThat(cmp.arguments().get(1)).isReference().hasName("b");
+    }
+
+    @Test
+    public void testDoesNotSwapExpressionIfNotSwappable() throws Exception {
+        Function cmp = (Function) expressions.normalize(executor.asSymbol("t2.b ~ t1.a"));
+        assertThat(cmp.name()).isEqualTo("op_~");
+        assertThat(cmp.arguments().get(0)).isReference().hasName("b");
+        assertThat(cmp.arguments().get(1)).isReference().hasName("a");
+    }
+
+    @Test
     public void testBetweenIsRewrittenToLteAndGte() throws Exception {
         Symbol symbol = executor.asSymbol("2 between t1.x and 20");
         assertThat(symbol).isSQL("(doc.t1.x <= 2)");

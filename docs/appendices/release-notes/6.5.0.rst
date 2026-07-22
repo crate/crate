@@ -80,6 +80,12 @@ Breaking Changes
   it interpreted ``65`` as a character sequence, resulting in a ``"65"``
   string.
 
+- The query plan that :ref:`EXPLAIN <ref-explain>` displays no longer shows
+  operands in the order as written in the query. This is because operands are
+  now normalized to be in lexicographic order. This enables deduplication of
+  symmetrical join conditions (i.e. ``a = b`` is identical to ``b = a``).
+  Query results are not affected.
+
 Deprecations
 ============
 
