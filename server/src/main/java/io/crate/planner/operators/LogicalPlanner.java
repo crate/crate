@@ -127,6 +127,7 @@ import io.crate.planner.optimizer.rule.RemoveOrderBeneathInsert;
 import io.crate.planner.optimizer.rule.RemoveRedundantEval;
 import io.crate.planner.optimizer.rule.ReorderHashJoin;
 import io.crate.planner.optimizer.rule.ReorderNestedLoopJoin;
+import io.crate.planner.optimizer.rule.RewriteCountDistinctToCountGroupByKeys;
 import io.crate.planner.optimizer.rule.RewriteFilterOnCrossJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
@@ -145,7 +146,7 @@ import io.crate.types.DataTypes;
 public class LogicalPlanner {
     private final IterativeOptimizer optimizer;
     // Join implementations optimization rules have their own optimizer, because these rules have
-    // little interaction with the other rules and we want to avoid unnecessary pattern matches on them.
+    // little interaction with the other rules, and we want to avoid unnecessary pattern matches on them.
     private final IterativeOptimizer joinImplementationOptimizer;
     private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
@@ -181,6 +182,7 @@ public class LogicalPlanner {
         new DeduplicateOrder(),
         new OptimizeCollectWhereClauseAccess(),
         new RewriteGroupByKeysLimitToLimitDistinct(),
+        new RewriteCountDistinctToCountGroupByKeys(),
         new MoveConstantJoinConditionsBeneathJoin(),
         new EliminateCrossJoin(),
         new EquiJoinToLookupJoin(),

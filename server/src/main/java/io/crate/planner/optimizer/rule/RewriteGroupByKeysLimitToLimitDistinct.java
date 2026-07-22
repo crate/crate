@@ -41,7 +41,7 @@ import io.crate.types.DataTypes;
 
 
 /**
- * A rule to rewrite a `SELECT DISTINCT [...] LIMIT n` to use a special LimitDistinct operator.
+ * A rule to rewrite a {@code SELECT DISTINCT [...] LIMIT n} to use a special LimitDistinct operator.
  *
  * <p>
  * The {@link LimitDistinct} operator support early termination, reducing the amount of keys that have to be
@@ -51,8 +51,8 @@ import io.crate.types.DataTypes;
  * <p>
  * This optimization is more efficient the lower the limit and the higher the cardinality ratio. (E.g. a unique column).
  * On a ENUM style column that only has like 5 distinct values in a large table, this {@link LimitDistinct}
- * operator could cause a slow down:
- *
+ * operator could cause a slow-down:
+ * <p>
  * The "early terminate" case wouldn't happen; It would process almost all rows.
  * In that case our "optimized group by iterator" is more efficient as it contains a ordinal optimization.
  * (It already knows which values are unique and skips everything else)

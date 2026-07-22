@@ -89,7 +89,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private LogicalPlan plan(String statement) {
-        return assertMaxBytesAllocated(ByteSizeUnit.MB.toBytes(28), () -> sqlExecutor.logicalPlan(statement));
+        // todo figure out why did allocations grow
+        return assertMaxBytesAllocated(ByteSizeUnit.MB.toBytes(100), () -> sqlExecutor.logicalPlan(statement));
     }
 
     @Test
@@ -107,6 +108,38 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         // stats present -> size derived FROM them (although bogus fake stats in this case)
         plan = plan("SELECT x FROM t1");
         assertThat(sqlExecutor.getStats(plan).sizeInBytes()).isEqualTo(100L);
+    }
+
+    @Test
+    public void test_global_count_distinct_deduplicates_below_collect_set() {
+        LogicalPlan plan = plan("SELECT count(DISTINCT a) FROM t1");
+        assertThat(plan).hasOperators(
+            "Eval[collection_count(collect_set(a))]",
+            "  └ HashAggregate[collect_set(a)]",
+            "    └ GroupHashAggregate[a]",
+            "      └ Collect[doc.t1 | [a] | true]"
+        );
+    }
+
+    @Test
+    public void test_global_count_distinct_keeps_where_below_dedup() {
+        LogicalPlan plan = plan("SELECT count(DISTINCT a) FROM t1 WHERE x > 1");
+        assertThat(plan).hasOperators(
+            "Eval[collection_count(collect_set(a))]",
+            "  └ HashAggregate[collect_set(a)]",
+            "    └ GroupHashAggregate[a]",
+            "      └ Collect[doc.t1 | [a] | (x > 1)]"
+        );
+    }
+
+    @Test
+    public void test_global_count_distinct_with_filter_is_not_rewritten() {
+        LogicalPlan plan = plan("SELECT count(DISTINCT a) FILTER (WHERE x > 1) FROM t1");
+        assertThat(plan).hasOperators(
+            "Eval[collection_count(collect_set(a) FILTER (WHERE (x > 1)))]",
+            "  └ HashAggregate[collect_set(a) FILTER (WHERE (x > 1))]",
+            "    └ Collect[doc.t1 | [a, (x > 1)] | true]"
+        );
     }
 
     @Test

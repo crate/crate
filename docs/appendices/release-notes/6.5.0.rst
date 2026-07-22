@@ -118,6 +118,11 @@ Performance and Resilience Improvements
 - `Bing O'Dowd <https://github.com/bodowd>`_ improved query planning by
   deduplicating identical join conditions joined by the ``AND`` operator.
 
+- Added an optimization rule for queries like ``SELECT COUNT(DISTINCT col) FROM TABLE t``.
+  If desired, this rule can be disabled via a session setting::
+
+     SET optimizer_rewrite_count_distinct_to_count_group_by_keys = false
+
 Administration and Operations
 -----------------------------
 
