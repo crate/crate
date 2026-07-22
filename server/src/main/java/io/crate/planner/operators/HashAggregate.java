@@ -21,6 +21,8 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.analyze.expressions.ExpressionAnalyzer.allocateBuiltinOrUdfFunction;
+import static io.crate.analyze.expressions.ExpressionAnalyzer.allocateFunction;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 
 import java.util.ArrayList;
@@ -29,25 +31,32 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.WindowDefinition;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.WindowFunction;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.IndexType;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.DependencyCarrier;
@@ -87,7 +96,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
         ExecutionPlan executionPlan = source.build(
             executor, plannerContext, planHints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
 
-        AggregationOutputValidator.validateOutputs(aggregates);
+        var aggregatesRewritten = rewriteDistinct(plannerContext, aggregates);
+        AggregationOutputValidator.validateOutputs(aggregatesRewritten);
         var paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
         var sourceOutputs = source.outputs();
@@ -99,7 +109,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
                 executionPlan.addProjection(
                     projectionBuilder.aggregationProjection(
                         sourceOutputs,
-                        aggregates,
+                        aggregatesRewritten,
                         paramBinder,
                         AggregateMode.ITER_PARTIAL,
                         RowGranularity.SHARD
@@ -107,28 +117,33 @@ public class HashAggregate extends ForwardingLogicalPlan {
                 );
                 executionPlan.addProjection(
                     projectionBuilder.aggregationProjection(
-                        aggregates,
-                        aggregates,
+                        aggregatesRewritten,
+                        aggregatesRewritten,
                         paramBinder,
                         AggregateMode.PARTIAL_FINAL,
                         RowGranularity.CLUSTER
                     )
                 );
+
+                executionPlan = handleDistinctFunctions(plannerContext, params, subQueryResults, executionPlan, aggregatesRewritten);
                 return executionPlan;
             }
+
             AggregationProjection fullAggregation = projectionBuilder.aggregationProjection(
                 sourceOutputs,
-                aggregates,
+                aggregatesRewritten,
                 paramBinder,
                 AggregateMode.ITER_FINAL,
                 RowGranularity.CLUSTER
             );
             executionPlan.addProjection(fullAggregation);
+
+            executionPlan = handleDistinctFunctions(plannerContext, params, subQueryResults, executionPlan, aggregatesRewritten);
             return executionPlan;
         }
         AggregationProjection toPartial = projectionBuilder.aggregationProjection(
             sourceOutputs,
-            aggregates,
+            aggregatesRewritten,
             paramBinder,
             AggregateMode.ITER_PARTIAL,
             source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
@@ -136,13 +151,16 @@ public class HashAggregate extends ForwardingLogicalPlan {
         executionPlan.addProjection(toPartial);
 
         AggregationProjection toFinal = projectionBuilder.aggregationProjection(
-            aggregates,
-            aggregates,
+            aggregatesRewritten,
+            aggregatesRewritten,
             paramBinder,
             AggregateMode.PARTIAL_FINAL,
             RowGranularity.CLUSTER
         );
         ResultDescription resultDescription = executionPlan.resultDescription();
+
+        executionPlan = handleDistinctFunctions(plannerContext, params, subQueryResults, executionPlan, aggregatesRewritten);
+
         return new Merge(
             executionPlan,
             new MergePhase(
@@ -160,10 +178,78 @@ public class HashAggregate extends ForwardingLogicalPlan {
             ),
             NO_LIMIT,
             0,
-            aggregates.size(),
+            aggregatesRewritten.size(),
             1,
             null
         );
+    }
+
+    private ExecutionPlan handleDistinctFunctions(PlannerContext plannerContext,
+                                                  Row params,
+                                                  SubQueryResults subQueryResults,
+                                                  ExecutionPlan executionPlan,
+                                                  List<Function> aggregatesRewritten) {
+        if (Eval.hasDistinctFunctions(this)) {
+            executionPlan = Eval.addEvalProjection(
+                plannerContext,
+                executionPlan,
+                params,
+                subQueryResults,
+                new ArrayList<>(outputs()),
+                new ArrayList<>(aggregatesRewritten)
+            );
+        }
+        return executionPlan;
+    }
+
+    private List<Function> rewriteDistinct(PlannerContext plannerContext, List<Function> functions) {
+        return functions.stream()
+            .map((Function fn) -> rewriteDistinctFunction(plannerContext.transactionContext(), plannerContext.nodeContext(), fn))
+            .toList();
+    }
+
+
+    private static Function rewriteDistinctFunction(CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx, Function fn) {
+        if (fn.distinct()) {
+            return wrapWithCollectSet(fn, coordinatorTxnCtx, nodeCtx);
+        }
+
+        return fn;
+    }
+
+    private static Function wrapWithCollectSet(Function original, CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx) {
+        var arguments = original.arguments();
+        var filter = original.filter();
+        ExpressionAnalysisContext context = null;
+        String name = original.name();
+        WindowDefinition windowDefinition = (original instanceof WindowFunction wf) ? wf.windowDefinition() : null;
+        Boolean ignoreNulls = (original instanceof WindowFunction wf) ? wf.ignoreNulls() : null;
+        String schema = original.signature().getName().schema();
+
+        Function collectSetFunction = allocateFunction(
+            CollectSetAggregation.NAME,
+            arguments,
+            filter,
+            context,
+            coordinatorTxnCtx,
+            nodeCtx
+        );
+
+        if (true) {
+            return collectSetFunction;
+        }
+
+        // define the outer function which contains the inner function as argument.
+        String nodeName = "collection_" + name;
+        List<Symbol> outerArguments = List.of(collectSetFunction);
+        try {
+            return allocateBuiltinOrUdfFunction(
+                schema, nodeName, outerArguments, null, ignoreNulls, context, true, windowDefinition, coordinatorTxnCtx, nodeCtx);
+        } catch (UnsupportedOperationException ex) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
+        }
+
     }
 
     public List<Function> aggregates() {

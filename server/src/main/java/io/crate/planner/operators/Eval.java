@@ -21,11 +21,14 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.analyze.expressions.ExpressionAnalyzer.allocateBuiltinOrUdfFunction;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.SequencedCollection;
 import java.util.Set;
 import java.util.function.UnaryOperator;
@@ -33,13 +36,17 @@ import java.util.function.UnaryOperator;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.WindowDefinition;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FetchMarker;
+import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.WindowFunction;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -65,6 +72,13 @@ public final class Eval extends ForwardingLogicalPlan {
         return new Eval(source, outputs);
     }
 
+    public static boolean hasDistinctFunctions(LogicalPlan source) {
+        return source.outputs().stream()
+            .filter(Function.class::isInstance)
+            .map(Function.class::cast)
+            .anyMatch(Function::distinct);
+    }
+
     Eval(LogicalPlan source, List<Symbol> outputs) {
         super(source);
         this.outputs = outputs;
@@ -86,7 +100,7 @@ public final class Eval extends ForwardingLogicalPlan {
         if (outputs.equals(source.outputs())) {
             return executionPlan;
         }
-        return addEvalProjection(plannerContext, executionPlan, params, subQueryResults);
+        return addEvalProjection(plannerContext, executionPlan, params, subQueryResults, outputs, source.outputs());
     }
 
     @Override
@@ -140,21 +154,26 @@ public final class Eval extends ForwardingLogicalPlan {
             retainedOutputs > 0 ? Eval.create(newSource, newOutputs) : newSource);
     }
 
-    private ExecutionPlan addEvalProjection(PlannerContext plannerContext,
-                                            ExecutionPlan executionPlan,
-                                            Row params,
-                                            SubQueryResults subQueryResults) {
+    public static ExecutionPlan addEvalProjection(PlannerContext plannerContext,
+                                                  ExecutionPlan executionPlan,
+                                                  Row params,
+                                                  SubQueryResults subQueryResults,
+                                                  List<Symbol> outputs,
+                                                  List<Symbol> sourceOutputs) {
+
+        var outputsRewritten = rewriteDistinct(plannerContext, outputs, sourceOutputs);
+
         PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
         PositionalOrderBy newOrderBy = null;
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
-        List<Symbol> boundOutputs = Lists.map(outputs, binder);
+        List<Symbol> boundOutputs = Lists.map(outputsRewritten, binder);
         if (orderBy != null) {
-            newOrderBy = orderBy.tryMapToNewOutputs(source.outputs(), boundOutputs);
+            newOrderBy = orderBy.tryMapToNewOutputs(sourceOutputs, boundOutputs);
             if (newOrderBy == null) {
                 executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
             }
         }
-        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists.map(source.outputs(), binder));
+        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists.map(sourceOutputs, binder));
         EvalProjection projection = new EvalProjection(InputColumns.create(boundOutputs, ctx));
         executionPlan.addProjection(
             projection,
@@ -163,6 +182,48 @@ public final class Eval extends ForwardingLogicalPlan {
             newOrderBy
         );
         return executionPlan;
+    }
+
+    private static List<Symbol> rewriteDistinct(PlannerContext plannerContext, List<Symbol> outputs, List<Symbol> sourceOutputs) {
+        List<Symbol> list = new ArrayList<>();
+        for (int i = 0; i < outputs.size(); i++) {
+            Symbol output = outputs.get(i);
+            if (output instanceof Function original) {
+                Symbol symbol = wrapWithCollectionCount(plannerContext, original, (Function) sourceOutputs.get(i));
+                list.add(symbol);
+            }
+        }
+        return list;
+    }
+
+    private static Symbol wrapWithCollectionCount(PlannerContext plannerContext, Function original, Function wrappedOriginal) {
+        var arguments = original.arguments();
+        ExpressionAnalysisContext context = null;
+        String name = original.name();
+        WindowDefinition windowDefinition = (original instanceof WindowFunction wf) ? wf.windowDefinition() : null;
+        Boolean ignoreNulls = (original instanceof WindowFunction wf) ? wf.ignoreNulls() : null;
+        String schema = original.signature().getName().schema();
+
+        // define the outer function which contains the inner function as argument.
+        String nodeName = "collection_" + name;
+        List<Symbol> outerArguments = List.of(wrappedOriginal);
+        try {
+            return allocateBuiltinOrUdfFunction(
+                schema,
+                nodeName,
+                outerArguments,
+                null,
+                ignoreNulls,
+                context,
+                true,
+                windowDefinition,
+                plannerContext.transactionContext(),
+                plannerContext.nodeContext()
+            );
+        } catch (UnsupportedOperationException ex) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
+        }
     }
 
     @Override
