@@ -62,8 +62,8 @@ public class MoveEquiJoinFilterIntoInnerJoinTest extends CrateDummyClusterServic
         var filter = new Filter(join2, e.asSymbol("doc.t3.c = doc.t2.b"));
 
         assertThat(filter).hasOperators(
-            "Filter[(c = b)]",
-            "  └ Join[INNER | (c = a)]",
+            "Filter[(b = c)]",
+            "  └ Join[INNER | (a = c)]",
             "    ├ Collect[doc.t3 | [c] | true]",
             "    └ Join[INNER | (a = b)]",
             "      ├ Collect[doc.t1 | [a] | true]",
@@ -81,7 +81,7 @@ public class MoveEquiJoinFilterIntoInnerJoinTest extends CrateDummyClusterServic
             e.ruleContext());
 
         assertThat(result).hasOperators(
-            "Join[INNER | ((c = a) AND (c = b))]",
+            "Join[INNER | ((a = c) AND (b = c))]",
             "  ├ Collect[doc.t3 | [c] | true]",
             "  └ Join[INNER | (a = b)]",
             "    ├ Collect[doc.t1 | [a] | true]",
@@ -97,7 +97,7 @@ public class MoveEquiJoinFilterIntoInnerJoinTest extends CrateDummyClusterServic
 
         assertThat(filter).hasOperators(
             "Filter[(c = 1)]",
-            "  └ Join[INNER | (c = a)]",
+            "  └ Join[INNER | (a = c)]",
             "    ├ Collect[doc.t3 | [c] | true]",
             "    └ Join[INNER | (a = b)]",
             "      ├ Collect[doc.t1 | [a] | true]",
@@ -117,8 +117,8 @@ public class MoveEquiJoinFilterIntoInnerJoinTest extends CrateDummyClusterServic
         var filter = new Filter(join2, e.asSymbol("doc.t3.c = doc.t2.b AND doc.t3.c = 1"));
 
         assertThat(filter).hasOperators(
-            "Filter[((c = b) AND (c = 1))]",
-            "  └ Join[INNER | (c = a)]",
+            "Filter[((b = c) AND (c = 1))]",
+            "  └ Join[INNER | (a = c)]",
             "    ├ Collect[doc.t3 | [c] | true]",
             "    └ Join[INNER | (a = b)]",
             "      ├ Collect[doc.t1 | [a] | true]",
@@ -137,7 +137,7 @@ public class MoveEquiJoinFilterIntoInnerJoinTest extends CrateDummyClusterServic
 
         assertThat(result).hasOperators(
             "Filter[(c = 1)]",
-            "  └ Join[INNER | ((c = a) AND (c = b))]",
+            "  └ Join[INNER | ((a = c) AND (b = c))]",
             "    ├ Collect[doc.t3 | [c] | true]",
             "    └ Join[INNER | (a = b)]",
             "      ├ Collect[doc.t1 | [a] | true]",

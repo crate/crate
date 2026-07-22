@@ -63,6 +63,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
@@ -188,6 +189,22 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         // the comparison was swapped so the field is on the left side
         assertThat(cmp.name()).isEqualTo("op_<");
         assertThat(cmp.arguments().get(0)).isReference().hasName("x");
+    }
+
+    @Test
+    public void testOrdersReferencesOnBothSidesLexicographically() throws Exception {
+        Function cmp = (Function) expressions.normalize(executor.asSymbol("t2.i > t1.i"));
+        assertThat(cmp.name()).isEqualTo("op_<");
+        assertThat(cmp.arguments().get(0).toString(Style.QUALIFIED)).isEqualTo("doc.t1.i");
+        assertThat(cmp.arguments().get(1).toString(Style.QUALIFIED)).isEqualTo("doc.t2.i");
+    }
+
+    @Test
+    public void testDoesNotSwapExpressionIfNotSwappable() throws Exception {
+        Function cmp = (Function) expressions.normalize(executor.asSymbol("t2.b ~ t1.a"));
+        assertThat(cmp.name()).isEqualTo("op_~");
+        assertThat(cmp.arguments().get(0)).isReference().hasName("b");
+        assertThat(cmp.arguments().get(1)).isReference().hasName("a");
     }
 
     @Test

@@ -1330,8 +1330,8 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(response).hasLines(
             "Eval[id, reference]",
-            "  └ HashJoin[LEFT | (cluster_id = id)]",
-            "    ├ HashJoin[INNER | (cluster_id = id)]",
+            "  └ HashJoin[LEFT | (id = cluster_id)]",
+            "    ├ HashJoin[INNER | (id = cluster_id)]",
             "    │  ├ HashJoin[INNER | (subscription_id = id)]",
             "    │  │  ├ Collect[doc.t3 | [id, reference] | (reference = 'bazinga')]",
             "    │  │  └ Collect[doc.t1 | [id, subscription_id] | true]",
@@ -1384,7 +1384,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(response).hasLines(
                    "OrderBy[z ASC x ASC]",
-                   "  └ NestedLoopJoin[LEFT | (z = x)]",
+                   "  └ NestedLoopJoin[LEFT | (x = z)]",
                    "    ├ Rename[z] AS d",
                    "    │  └ Rename[z] AS generated",
                    "    │    └ Rename[z] AS z",
@@ -1566,7 +1566,7 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         assertThat(response).hasLines(
             "Eval[x, y, z]",
-            "  └ HashJoin[INNER | (z = y)]",
+            "  └ HashJoin[INNER | (y = z)]",
             "    ├ HashJoin[INNER | (x = z)]",
             "    │  ├ Collect[doc.t1 | [x] | true]",
             "    │  └ Collect[doc.t3 | [z] | true]",
@@ -1588,7 +1588,7 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         assertThat(response).hasLines(
             "Eval[x, y, z]",
-            "  └ HashJoin[INNER | (z = y)]",
+            "  └ HashJoin[INNER | (y = z)]",
             "    ├ HashJoin[INNER | (x = z)]",
             "    │  ├ Collect[doc.t1 | [x] | (x > 1)]",
             "    │  └ Collect[doc.t3 | [z] | true]",
@@ -1617,7 +1617,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("explain (costs false) " + stmt);
 
         assertThat(response).hasLines(
-            "HashJoin[INNER | ((c = a) AND (c = b))]",
+            "HashJoin[INNER | ((a = c) AND (b = c))]",
             "  ├ HashJoin[INNER | ((a = b) AND (x = y))]",
             "  │  ├ Collect[doc.t1 | [a, x] | true]",
             "  │  └ Collect[doc.t2 | [b, y] | true]",

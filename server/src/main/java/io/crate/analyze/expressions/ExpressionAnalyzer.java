@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.joda.time.Period;
 import org.jspecify.annotations.Nullable;
@@ -87,6 +88,7 @@ import io.crate.expression.scalar.timestamp.CurrentTimeFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.ScopedColumn;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -190,6 +192,15 @@ public class ExpressionAnalyzer {
         ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, ComparisonExpression.Type.LESS_THAN_OR_EQUAL,
         ComparisonExpression.Type.LESS_THAN_OR_EQUAL, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL
     );
+
+    private static final Set<ComparisonExpression.Type> SWAPPABLE_EXPRESSIONS = Set
+            .of(ComparisonExpression.Type.EQUAL,
+                ComparisonExpression.Type.NOT_EQUAL,
+                ComparisonExpression.Type.LESS_THAN,
+                ComparisonExpression.Type.LESS_THAN_OR_EQUAL,
+                ComparisonExpression.Type.IS_DISTINCT_FROM,
+                ComparisonExpression.Type.GREATER_THAN,
+                ComparisonExpression.Type.GREATER_THAN_OR_EQUAL);
 
     private final CoordinatorTxnCtx coordinatorTxnCtx;
     private final ParamTypeHints paramTypeHints;
@@ -1438,14 +1449,29 @@ public class ExpressionAnalyzer {
         }
 
         /**
-         * swaps the comparison so that references and fields are on the left side.
+         * Canonicalizes the order of references and fields.
+         * Ensures that references and fields are on the left side.
          * e.g.:
          * eq(2, name)  becomes  eq(name, 2)
+         *
+         * If both sides are references, ensures they are in lexicographic order.
+         * e.g.: eq(y, x) becomes eq(x, y)
          */
         private void swapIfNecessary() {
-            if ((!(right instanceof Reference || right instanceof ScopedSymbol)
-                || left instanceof Reference || left instanceof ScopedSymbol)
-                && left.valueType().id() != DataTypes.UNDEFINED.id()) {
+            if (!SWAPPABLE_EXPRESSIONS.contains(comparisonExpressionType)) {
+                return;
+            }
+
+            boolean rightIsReference = right instanceof Reference || right instanceof ScopedSymbol;
+            boolean leftIsReference = left instanceof Reference || left instanceof ScopedSymbol;
+
+            if (rightIsReference && leftIsReference) {
+                ScopedColumn lhs = (ScopedColumn) left;
+                ScopedColumn rhs = (ScopedColumn) right;
+                if (lhs.compareTo(rhs) <= 0) {
+                    return;
+                }
+            } else if ((!rightIsReference || leftIsReference) && left.valueType().id() != DataTypes.UNDEFINED.id()) {
                 return;
             }
             ComparisonExpression.Type type = SWAP_OPERATOR_TABLE.get(comparisonExpressionType);
