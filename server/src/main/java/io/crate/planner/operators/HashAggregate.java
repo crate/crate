@@ -36,7 +36,6 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.WindowDefinition;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
@@ -123,7 +122,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
                     )
                 );
 
-                executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregatesRewritten);
+                executionPlan = addEvalProj(plannerContext, this, params, subQueryResults, executionPlan, aggregatesRewritten);
                 return executionPlan;
             }
 
@@ -136,7 +135,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
             );
             executionPlan.addProjection(fullAggregation);
 
-            executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregatesRewritten);
+            executionPlan = addEvalProj(plannerContext, this, params, subQueryResults, executionPlan, aggregatesRewritten);
             return executionPlan;
         }
         AggregationProjection toPartial = projectionBuilder.aggregationProjection(
@@ -157,7 +156,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         );
         ResultDescription resultDescription = executionPlan.resultDescription();
 
-        executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregatesRewritten);
+        executionPlan = addEvalProj(plannerContext, this, params, subQueryResults, executionPlan, aggregatesRewritten);
 
         return new Merge(
             executionPlan,
@@ -182,25 +181,26 @@ public class HashAggregate extends ForwardingLogicalPlan {
         );
     }
 
-    private ExecutionPlan addEvalProj(PlannerContext plannerContext,
+    public static ExecutionPlan addEvalProj(PlannerContext plannerContext,
+                                      LogicalPlan plan,
                                       Row params,
                                       SubQueryResults subQueryResults,
                                       ExecutionPlan executionPlan,
                                       List<Function> aggregatesRewritten) {
-        if (Eval.hasDistinctFunctions(this)) {
+        if (Eval.hasDistinctFunctions(plan)) {
             executionPlan = Eval.addEvalProjection(
                 plannerContext,
                 executionPlan,
                 params,
                 subQueryResults,
-                new ArrayList<>(outputs()),
+                new ArrayList<>(plan.outputs()),
                 new ArrayList<>(aggregatesRewritten)
             );
         }
         return executionPlan;
     }
 
-    private List<Function> rewriteDistinct(PlannerContext plannerContext, List<Function> functions) {
+    public static List<Function> rewriteDistinct(PlannerContext plannerContext, List<Function> functions) {
         return functions.stream()
             .map((Function fn) -> rewriteDistinctFunction(plannerContext.transactionContext(), plannerContext.nodeContext(), fn))
             .toList();
@@ -209,20 +209,17 @@ public class HashAggregate extends ForwardingLogicalPlan {
 
     private static Function rewriteDistinctFunction(CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx, Function fn) {
         if (fn.distinct()) {
-            return wrapWithCollectSet(fn, coordinatorTxnCtx, nodeCtx);
+            return makeCollectSetFunction(fn, coordinatorTxnCtx, nodeCtx);
         }
 
         return fn;
     }
 
-    public static Function wrapWithCollectSet(Function original, CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx) {
+    public static Function makeCollectSetFunction(Function original, CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx) {
         var arguments = original.arguments();
         var filter = original.filter();
         ExpressionAnalysisContext context = null;
-        String name = original.name();
-        WindowDefinition windowDefinition = (original instanceof WindowFunction wf) ? wf.windowDefinition() : null;
         Boolean ignoreNulls = (original instanceof WindowFunction wf) ? wf.ignoreNulls() : null;
-        String schema = original.signature().getName().schema();
 
         return allocateFunction(
             CollectSetAggregation.NAME,

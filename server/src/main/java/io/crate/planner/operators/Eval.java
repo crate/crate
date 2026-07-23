@@ -161,7 +161,7 @@ public final class Eval extends ForwardingLogicalPlan {
                                                   List<Symbol> outputs,
                                                   List<Symbol> sourceOutputs) {
 
-        var outputsRewritten = rewriteDistinct(plannerContext, outputs, sourceOutputs);
+        var outputsRewritten = rewriteDistinct(plannerContext, outputs);
 
         PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
         PositionalOrderBy newOrderBy = null;
@@ -184,12 +184,12 @@ public final class Eval extends ForwardingLogicalPlan {
         return executionPlan;
     }
 
-    private static List<Symbol> rewriteDistinct(PlannerContext plannerContext, List<Symbol> outputs, List<Symbol> sourceOutputs) {
+    private static List<Symbol> rewriteDistinct(PlannerContext plannerContext, List<Symbol> outputs) {
         List<Symbol> list = new ArrayList<>();
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);
             if (output instanceof Function original && original.distinct()) {
-                Symbol collectionCountWrap = wrapWithCollectionCount(plannerContext, original, (Function) sourceOutputs.get(i));
+                Symbol collectionCountWrap = wrapWithCollectionCount(plannerContext, original);
                 list.add(collectionCountWrap);
             } else {
                 list.add(output);
@@ -198,7 +198,7 @@ public final class Eval extends ForwardingLogicalPlan {
         return list;
     }
 
-    private static Symbol wrapWithCollectionCount(PlannerContext plannerContext, Function original, Function wrappedOriginal) {
+    private static Symbol wrapWithCollectionCount(PlannerContext plannerCtx, Function original) {
         var arguments = original.arguments();
         ExpressionAnalysisContext context = null;
         String name = original.name();
@@ -208,7 +208,8 @@ public final class Eval extends ForwardingLogicalPlan {
 
         // define the outer function which contains the inner function as argument.
         String nodeName = "collection_" + name;
-        List<Symbol> outerArguments = List.of(wrappedOriginal);
+        var collectSetFn = HashAggregate.makeCollectSetFunction(original, plannerCtx.transactionContext(), plannerCtx.nodeContext());
+        List<Symbol> outerArguments = List.of(collectSetFn);
         try {
             return allocateBuiltinOrUdfFunction(
                 schema,
@@ -219,8 +220,8 @@ public final class Eval extends ForwardingLogicalPlan {
                 context,
                 true,
                 windowDefinition,
-                plannerContext.transactionContext(),
-                plannerContext.nodeContext()
+                plannerCtx.transactionContext(),
+                plannerCtx.nodeContext()
             );
         } catch (UnsupportedOperationException ex) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
