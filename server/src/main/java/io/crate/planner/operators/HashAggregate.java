@@ -21,7 +21,6 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.analyze.expressions.ExpressionAnalyzer.allocateBuiltinOrUdfFunction;
 import static io.crate.analyze.expressions.ExpressionAnalyzer.allocateFunction;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 
@@ -31,7 +30,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.SequencedCollection;
 import java.util.Set;
 
@@ -217,7 +215,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         return fn;
     }
 
-    private static Function wrapWithCollectSet(Function original, CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx) {
+    public static Function wrapWithCollectSet(Function original, CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx) {
         var arguments = original.arguments();
         var filter = original.filter();
         ExpressionAnalysisContext context = null;
@@ -226,7 +224,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         Boolean ignoreNulls = (original instanceof WindowFunction wf) ? wf.ignoreNulls() : null;
         String schema = original.signature().getName().schema();
 
-        Function collectSetFunction = allocateFunction(
+        return allocateFunction(
             CollectSetAggregation.NAME,
             arguments,
             filter,
@@ -234,21 +232,16 @@ public class HashAggregate extends ForwardingLogicalPlan {
             coordinatorTxnCtx,
             nodeCtx
         );
-
-        if (true) {
-            return collectSetFunction;
-        }
-
-        // define the outer function which contains the inner function as argument.
-        String nodeName = "collection_" + name;
-        List<Symbol> outerArguments = List.of(collectSetFunction);
-        try {
-            return allocateBuiltinOrUdfFunction(
-                schema, nodeName, outerArguments, null, ignoreNulls, context, true, windowDefinition, coordinatorTxnCtx, nodeCtx);
-        } catch (UnsupportedOperationException ex) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
-        }
+//        // define the outer function which contains the inner function as argument.
+//        String nodeName = "collection_" + name;
+//        List<Symbol> outerArguments = List.of(collectSetFunction);
+//        try {
+//            return allocateBuiltinOrUdfFunction(
+//                schema, nodeName, outerArguments, null, ignoreNulls, context, true, windowDefinition, coordinatorTxnCtx, nodeCtx);
+//        } catch (UnsupportedOperationException ex) {
+//            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+//                "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
+//        }
 
     }
 
