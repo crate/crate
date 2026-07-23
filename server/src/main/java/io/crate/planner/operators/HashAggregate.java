@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import static io.crate.analyze.expressions.ExpressionAnalyzer.allocateFunction;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
+import static io.crate.planner.operators.Eval.addEvalProj;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -179,25 +180,6 @@ public class HashAggregate extends ForwardingLogicalPlan {
             1,
             null
         );
-    }
-
-    public static <S extends Symbol> ExecutionPlan addEvalProj(PlannerContext plannerContext,
-                                      Row params,
-                                      SubQueryResults subQueryResults,
-                                      ExecutionPlan executionPlan,
-                                      List<S> outputs,
-                                      List<S> sourceOutputs) {
-        if (Eval.hasDistinctFunctions(outputs)) {
-            executionPlan = Eval.addEvalProjection(
-                plannerContext,
-                executionPlan,
-                params,
-                subQueryResults,
-                new ArrayList<>(outputs),
-                new ArrayList<>(sourceOutputs)
-            );
-        }
-        return executionPlan;
     }
 
     public static <S extends Symbol> List<S> distinctToCollectSet(PlannerContext plannerContext, List<S> functions) {

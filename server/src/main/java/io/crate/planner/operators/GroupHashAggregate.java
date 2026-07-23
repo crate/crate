@@ -23,7 +23,6 @@ package io.crate.planner.operators;
 
 
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
-import static io.crate.planner.operators.HashAggregate.addEvalProj;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -193,15 +192,6 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                     NO_LIMIT,
                     0,
                     null
-                );
-
-                executionPlan = addEvalProj(
-                    plannerContext,
-                    params,
-                    subQueryResults,
-                    executionPlan,
-                    aggregates(),
-                    aggregatesRewritten
                 );
                 return executionPlan;
             } else {
