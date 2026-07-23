@@ -264,7 +264,8 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 (_, values, state) -> {
                     state.update(values.nextValue(), type);
                     return state;
-                }
+                },
+                this::reduce
             );
         } else if (type.id() == StringType.ID) {
             return new BinaryDocValueAggregator<>(
@@ -275,7 +276,8 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                     BytesRef value = values.lookupOrd(ord);
                     state.update(value.utf8ToString(), type);
                     return state;
-                });
+                },
+                this::reduce);
         } else if (type.id() == IpType.ID) {
             return new BinaryDocValueAggregator<>(
                 ref.storageIdent(),
@@ -285,7 +287,8 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                     BytesRef value = values.lookupOrd(ord);
                     state.update(NetworkUtils.formatIPBytes(value), type);
                     return state;
-                });
+                },
+                this::reduce);
         }
         return null;
     }
