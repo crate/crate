@@ -191,6 +191,7 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
                 state.sum = newValue;
                 state.count++;
                 return state;
-            });
+            },
+            this::reduce);
     }
 }

@@ -182,7 +182,9 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             nodeCtx,
             docInputFactory,
             normalizedPhase,
-            collectTask
+            collectTask,
+            nodeCtx.functions(),
+            referenceResolver
         );
         if (it != null) {
             return it;
