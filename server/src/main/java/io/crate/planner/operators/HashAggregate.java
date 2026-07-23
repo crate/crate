@@ -125,7 +125,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
                     )
                 );
 
-                executionPlan = handleDistinctFunctions(plannerContext, params, subQueryResults, executionPlan, aggregatesRewritten);
+                executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregatesRewritten);
                 return executionPlan;
             }
 
@@ -138,7 +138,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
             );
             executionPlan.addProjection(fullAggregation);
 
-            executionPlan = handleDistinctFunctions(plannerContext, params, subQueryResults, executionPlan, aggregatesRewritten);
+            executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregatesRewritten);
             return executionPlan;
         }
         AggregationProjection toPartial = projectionBuilder.aggregationProjection(
@@ -159,7 +159,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         );
         ResultDescription resultDescription = executionPlan.resultDescription();
 
-        executionPlan = handleDistinctFunctions(plannerContext, params, subQueryResults, executionPlan, aggregatesRewritten);
+        executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregatesRewritten);
 
         return new Merge(
             executionPlan,
@@ -184,11 +184,11 @@ public class HashAggregate extends ForwardingLogicalPlan {
         );
     }
 
-    private ExecutionPlan handleDistinctFunctions(PlannerContext plannerContext,
-                                                  Row params,
-                                                  SubQueryResults subQueryResults,
-                                                  ExecutionPlan executionPlan,
-                                                  List<Function> aggregatesRewritten) {
+    private ExecutionPlan addEvalProj(PlannerContext plannerContext,
+                                      Row params,
+                                      SubQueryResults subQueryResults,
+                                      ExecutionPlan executionPlan,
+                                      List<Function> aggregatesRewritten) {
         if (Eval.hasDistinctFunctions(this)) {
             executionPlan = Eval.addEvalProjection(
                 plannerContext,
