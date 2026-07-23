@@ -188,7 +188,7 @@ public final class Eval extends ForwardingLogicalPlan {
         List<Symbol> list = new ArrayList<>();
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);
-            if (output instanceof Function original) {
+            if (output instanceof Function original && original.distinct()) {
                 Symbol symbol = wrapWithCollectionCount(plannerContext, original, (Function) sourceOutputs.get(i));
                 list.add(symbol);
             }
