@@ -56,7 +56,7 @@ import io.crate.planner.PositionalOrderBy;
  */
 public final class Eval extends ForwardingLogicalPlan {
 
-    private final List<Symbol> outputs;
+    private List<Symbol> outputs;
 
     public static LogicalPlan create(LogicalPlan source, List<Symbol> outputs) {
         if (source.outputs().equals(outputs)) {
@@ -83,6 +83,10 @@ public final class Eval extends ForwardingLogicalPlan {
                                SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
             executor, plannerContext, planHints, projectionBuilder, limit, offset, null, pageSizeHint, params, subQueryResults);
+
+        outputs = new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext())
+            .rewrite(outputs);
+
         if (outputs.equals(source.outputs())) {
             return executionPlan;
         }
