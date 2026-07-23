@@ -72,8 +72,8 @@ public final class Eval extends ForwardingLogicalPlan {
         return new Eval(source, outputs);
     }
 
-    public static boolean hasDistinctFunctions(LogicalPlan source) {
-        return source.outputs().stream()
+    public static <S extends Symbol> boolean hasDistinctFunctions(List<S> outputs) {
+        return outputs.stream()
             .filter(Function.class::isInstance)
             .map(Function.class::cast)
             .anyMatch(Function::distinct);
@@ -161,7 +161,7 @@ public final class Eval extends ForwardingLogicalPlan {
                                                   List<Symbol> outputs,
                                                   List<Symbol> sourceOutputs) {
 
-        var outputsRewritten = rewriteDistinct(plannerContext, outputs);
+        var outputsRewritten = wrapDistinctWithCollectionCount(plannerContext, outputs);
 
         PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
         PositionalOrderBy newOrderBy = null;
@@ -184,7 +184,7 @@ public final class Eval extends ForwardingLogicalPlan {
         return executionPlan;
     }
 
-    private static List<Symbol> rewriteDistinct(PlannerContext plannerContext, List<Symbol> outputs) {
+    private static List<Symbol> wrapDistinctWithCollectionCount(PlannerContext plannerContext, List<Symbol> outputs) {
         List<Symbol> list = new ArrayList<>();
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);

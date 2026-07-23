@@ -93,7 +93,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         ExecutionPlan executionPlan = source.build(
             executor, plannerContext, planHints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
 
-        var aggregatesRewritten = rewriteDistinct(plannerContext, aggregates);
+        var aggregatesRewritten = distinctToCollectSet(plannerContext, aggregates);
         AggregationOutputValidator.validateOutputs(aggregatesRewritten);
         var paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
@@ -122,7 +122,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
                     )
                 );
 
-                executionPlan = addEvalProj(plannerContext, this, params, subQueryResults, executionPlan, aggregatesRewritten);
+                executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregates(), aggregatesRewritten);
                 return executionPlan;
             }
 
@@ -135,7 +135,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
             );
             executionPlan.addProjection(fullAggregation);
 
-            executionPlan = addEvalProj(plannerContext, this, params, subQueryResults, executionPlan, aggregatesRewritten);
+            executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregates(), aggregatesRewritten);
             return executionPlan;
         }
         AggregationProjection toPartial = projectionBuilder.aggregationProjection(
@@ -156,7 +156,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         );
         ResultDescription resultDescription = executionPlan.resultDescription();
 
-        executionPlan = addEvalProj(plannerContext, this, params, subQueryResults, executionPlan, aggregatesRewritten);
+        executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregates(), aggregatesRewritten);
 
         return new Merge(
             executionPlan,
@@ -181,38 +181,38 @@ public class HashAggregate extends ForwardingLogicalPlan {
         );
     }
 
-    public static ExecutionPlan addEvalProj(PlannerContext plannerContext,
-                                      LogicalPlan plan,
+    public static <S extends Symbol> ExecutionPlan addEvalProj(PlannerContext plannerContext,
                                       Row params,
                                       SubQueryResults subQueryResults,
                                       ExecutionPlan executionPlan,
-                                      List<Function> aggregatesRewritten) {
-        if (Eval.hasDistinctFunctions(plan)) {
+                                      List<S> outputs,
+                                      List<S> sourceOutputs) {
+        if (Eval.hasDistinctFunctions(outputs)) {
             executionPlan = Eval.addEvalProjection(
                 plannerContext,
                 executionPlan,
                 params,
                 subQueryResults,
-                new ArrayList<>(plan.outputs()),
-                new ArrayList<>(aggregatesRewritten)
+                new ArrayList<>(outputs),
+                new ArrayList<>(sourceOutputs)
             );
         }
         return executionPlan;
     }
 
-    public static List<Function> rewriteDistinct(PlannerContext plannerContext, List<Function> functions) {
+    public static <S extends Symbol> List<S> distinctToCollectSet(PlannerContext plannerContext, List<S> functions) {
         return functions.stream()
-            .map((Function fn) -> rewriteDistinctFunction(plannerContext.transactionContext(), plannerContext.nodeContext(), fn))
+            .map((S s) -> distinctToCollectSet(plannerContext.transactionContext(), plannerContext.nodeContext(), s))
             .toList();
     }
 
 
-    private static Function rewriteDistinctFunction(CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx, Function fn) {
-        if (fn.distinct()) {
-            return makeCollectSetFunction(fn, coordinatorTxnCtx, nodeCtx);
+    private static <S extends Symbol> S distinctToCollectSet(CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx, S s) {
+        if (s instanceof Function fn && fn.distinct()) {
+            return (S) makeCollectSetFunction(fn, coordinatorTxnCtx, nodeCtx);
         }
 
-        return fn;
+        return s;
     }
 
     public static Function makeCollectSetFunction(Function original, CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx) {
