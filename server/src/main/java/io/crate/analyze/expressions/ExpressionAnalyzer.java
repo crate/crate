@@ -311,16 +311,16 @@ public class ExpressionAnalyzer {
 //                    "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
 //            }
 //        } else {
-            return allocateBuiltinOrUdfFunction(
-                schema,
-                name,
-                arguments,
-                filter,
-                node.ignoreNulls(),
-                node.isDistinct(),
-                windowDefinition,
-                context
-            );
+        return allocateBuiltinOrUdfFunction(
+            schema,
+            name,
+            arguments,
+            filter,
+            node.ignoreNulls(),
+            node.isDistinct(),
+            windowDefinition,
+            context
+        );
 //        }
     }
 
@@ -1015,10 +1015,10 @@ public class ExpressionAnalyzer {
             if (subscriptFunction == null) {
                 throw new UnsupportedOperationException(
                     "Unsupported expression `"
-                    + ExpressionFormatter.formatStandaloneExpression(recordSubscript)
-                    + "`, `"
-                    + ExpressionFormatter.formatStandaloneExpression(base)
-                    + "` should have type `object` or `record` but was `" + baseSymbol.valueType().getName() + '`');
+                        + ExpressionFormatter.formatStandaloneExpression(recordSubscript)
+                        + "`, `"
+                        + ExpressionFormatter.formatStandaloneExpression(base)
+                        + "` should have type `object` or `record` but was `" + baseSymbol.valueType().getName() + '`');
             } else {
                 return subscriptFunction;
             }
@@ -1271,8 +1271,8 @@ public class ExpressionAnalyzer {
     }
 
     public Symbol allocateFunction(String functionName,
-                                    List<Symbol> arguments,
-                                    ExpressionAnalysisContext context) {
+                                   List<Symbol> arguments,
+                                   ExpressionAnalysisContext context) {
         return allocateFunction(functionName, arguments, null, context, coordinatorTxnCtx, nodeCtx);
     }
 
@@ -1301,16 +1301,16 @@ public class ExpressionAnalyzer {
      * @param nodeCtx The {@link NodeContext} to normalize constant expressions.
      * @return The supplied {@link Function} or a {@link Literal} in case of constant folding.
      */
-    private static Function allocateBuiltinOrUdfFunction(@Nullable String schema,
-                                                         String functionName,
-                                                         List<Symbol> arguments,
-                                                         @Nullable Symbol filter,
-                                                         @Nullable Boolean ignoreNulls,
-                                                         ExpressionAnalysisContext context,
-                                                         boolean distinct,
-                                                         @Nullable WindowDefinition windowDefinition,
-                                                         TransactionContext txnCtx,
-                                                         NodeContext nodeCtx) {
+    public static Function allocateBuiltinOrUdfFunction(@Nullable String schema,
+                                                        String functionName,
+                                                        List<Symbol> arguments,
+                                                        @Nullable Symbol filter,
+                                                        @Nullable Boolean ignoreNulls,
+                                                        ExpressionAnalysisContext context,
+                                                        boolean distinct,
+                                                        @Nullable WindowDefinition windowDefinition,
+                                                        TransactionContext txnCtx,
+                                                        NodeContext nodeCtx) {
         FunctionImplementation funcImpl = nodeCtx.functions().get(
             schema,
             functionName,
@@ -1327,7 +1327,7 @@ public class ExpressionAnalyzer {
         List<Symbol> castArguments = cast(arguments, boundSignature.argTypes());
         Function newFunction;
         if (windowDefinition == null) {
-            if (signature.getType() == FunctionType.AGGREGATE) {
+            if (signature.getType() == FunctionType.AGGREGATE && context != null) {
                 context.indicateAggregates();
             } else if (filter != null) {
                 throw new UnsupportedOperationException(
@@ -1410,7 +1410,7 @@ public class ExpressionAnalyzer {
             }
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "Data types of all result expressions of a CASE statement must be equal, found: %s",
-                                                                  errorMessage));
+                errorMessage));
         }
     }
 
@@ -1419,7 +1419,7 @@ public class ExpressionAnalyzer {
         var openSubscriptPos = columnName.indexOf("[");
         if (openSubscriptPos > -1) {
             var sanitizedName = Identifiers.quote(columnName.substring(0, openSubscriptPos)) +
-                                columnName.substring(openSubscriptPos);
+                columnName.substring(openSubscriptPos);
             try {
                 return (SubscriptExpression) SqlParser.createExpression(sanitizedName);
             } catch (ParsingException ignored) {

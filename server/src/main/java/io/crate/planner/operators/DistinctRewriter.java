@@ -21,21 +21,26 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.analyze.expressions.ExpressionAnalyzer.allocateBuiltinOrUdfFunction;
 import static io.crate.analyze.expressions.ExpressionAnalyzer.allocateFunction;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
+import io.crate.analyze.WindowDefinition;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
+import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.planner.PlannerContext;
+import io.crate.metadata.Reference;
 
-public class DistinctRewriter {
+public class DistinctRewriter extends DefaultTraversalSymbolVisitor<Object, Symbol> {
     private final CoordinatorTxnCtx txnCtx;
     private final NodeContext nodeCtx;
 
@@ -45,7 +50,83 @@ public class DistinctRewriter {
     }
 
     public List<Symbol> rewrite(List<Symbol> outputs) {
-        return null;
+        return outputs.stream()
+            .map((Symbol symbol) -> symbol.accept(DistinctRewriter.this, null))
+            .toList();
+    }
+
+    public List<Function> rewriteFunctions(List<Function> outputs) {
+        return outputs.stream()
+            .map((Function fn) -> visitFunction(fn, null))
+            .map(Function.class::cast)
+            .toList();
+    }
+
+    @Override
+    public Symbol visitAlias(AliasSymbol aliasSymbol, Object context) {
+        return new AliasSymbol(
+            aliasSymbol.alias(), aliasSymbol.symbol().accept(this, context)
+        );
+    }
+
+    @Override
+    public Symbol visitReference(Reference symbol, Object context) {
+        return symbol;
+    }
+
+    @Override
+    public Symbol visitFunction(Function fn, Object context) {
+        List<Symbol> arguments = new ArrayList<>(fn.arguments().size());
+        for (Symbol arg : fn.arguments()) {
+            Symbol rewritten = arg.accept(this, context);
+            arguments.add(rewritten);
+        }
+
+        Function fnNewArgs = new Function(
+            fn.signature(),
+            arguments,
+            fn.valueType(),
+            fn.filter(),
+            // we'll un-distinct it anyway below
+            false
+        );
+
+        if (fn.distinct()) {
+            return wrapWithCollectionCount(fnNewArgs);
+        } else {
+            return fnNewArgs;
+        }
+    }
+
+    private Symbol wrapWithCollectionCount(Function original) {
+        var arguments = original.arguments();
+        ExpressionAnalysisContext context = null;
+        String name = original.name();
+        WindowDefinition windowDefinition = (original instanceof WindowFunction wf) ? wf.windowDefinition() : null;
+        Boolean ignoreNulls = (original instanceof WindowFunction wf) ? wf.ignoreNulls() : null;
+        String schema = original.signature().getName().schema();
+
+        // define the outer function which contains the inner function as argument.
+        String nodeName = "collection_" + name;
+        var collectSetFn = makeCollectSetFunction(original, txnCtx, nodeCtx);
+        List<Symbol> outerArguments = List.of(collectSetFn);
+        try {
+            return allocateBuiltinOrUdfFunction(
+                schema,
+                nodeName,
+                outerArguments,
+                null,
+                ignoreNulls,
+                context,
+                false,
+                windowDefinition,
+                txnCtx,
+                nodeCtx
+            );
+        } catch (UnsupportedOperationException ex) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
+        }
     }
 
     public static Function makeCollectSetFunction(Function original, CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx) {
@@ -62,26 +143,14 @@ public class DistinctRewriter {
             coordinatorTxnCtx,
             nodeCtx
         );
-//        // define the outer function which contains the inner function as argument.
-//        String nodeName = "collection_" + name;
-//        List<Symbol> outerArguments = List.of(collectSetFunction);
-//        try {
-//            return allocateBuiltinOrUdfFunction(
-//                schema, nodeName, outerArguments, null, ignoreNulls, context, true, windowDefinition, coordinatorTxnCtx, nodeCtx);
-//        } catch (UnsupportedOperationException ex) {
-//            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-//                "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
-//        }
-
     }
 
-
-    private static List<Symbol> wrapDistinctWithCollectionCount(PlannerContext plannerContext, List<Symbol> outputs) {
+    private List<Symbol> wrapDistinctWithCollectionCount(List<Symbol> outputs) {
         List<Symbol> list = new ArrayList<>();
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);
             if (output instanceof Function original && original.distinct()) {
-                Symbol collectionCountWrap = wrapWithCollectionCount(plannerContext, original);
+                Symbol collectionCountWrap = wrapWithCollectionCount(original);
                 list.add(collectionCountWrap);
             } else {
                 list.add(output);

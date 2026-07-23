@@ -60,7 +60,7 @@ import io.crate.planner.distribution.DistributionInfo;
 public class HashAggregate extends ForwardingLogicalPlan {
 
     private static final String MERGE_PHASE_NAME = "mergeOnHandler";
-    final List<Function> aggregates;
+    List<Function> aggregates;
 
     HashAggregate(LogicalPlan source, List<Function> aggregates) {
         super(source);
@@ -86,6 +86,9 @@ public class HashAggregate extends ForwardingLogicalPlan {
         }
         ExecutionPlan executionPlan = source.build(
             executor, plannerContext, planHints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
+
+        aggregates = new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext())
+            .rewriteFunctions(aggregates);
 
         AggregationOutputValidator.validateOutputs(aggregates);
         var paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
