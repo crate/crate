@@ -40,6 +40,7 @@ import java.util.stream.Collector;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.lucene.uid.Versions;
@@ -411,7 +412,13 @@ public class ProjectionToProjectorVisitor
         }
         Input<?> sourceInput = ctx.add(projection.rawSource());
         ClusterState state = clusterService.state();
-        DocTableInfo tableInfo = nodeCtx.schemas().getTableInfo(projection.tableIdent());
+        int tableOid = projection.tableOid();
+        DocTableInfo tableInfo;
+        if (tableOid == Metadata.OID_UNASSIGNED) {
+            tableInfo = nodeCtx.schemas().getTableInfo(projection.tableIdent());
+        } else {
+            tableInfo = nodeCtx.schemas().getRelationInfo(tableOid);
+        }
 
         int targetTableNumShards = tableInfo.numberOfShards();
         int targetTableNumReplicas = NumberOfReplicas.effectiveNumReplicas(tableInfo.parameters(), state.nodes());
@@ -477,21 +484,35 @@ public class ProjectionToProjectorVisitor
             insertInputs.add(ctx.add(symbol));
         }
         ClusterState state = clusterService.state();
-        DocTableInfo tableInfo = nodeCtx.schemas().getTableInfo(projection.tableIdent());
+        int tableOid = projection.tableOid();
+        DocTableInfo tableInfo;
+        if (tableOid == Metadata.OID_UNASSIGNED) {
+            tableInfo = nodeCtx.schemas().getTableInfo(projection.tableIdent());
+        } else {
+            tableInfo = nodeCtx.schemas().getRelationInfo(tableOid);
+        }
 
         int targetTableNumShards = tableInfo.numberOfShards();
         int targetTableNumReplicas = NumberOfReplicas.effectiveNumReplicas(tableInfo.parameters(), state.nodes());
 
         final Map<PartitionName, Consumer<IndexItem>> validatorsCache = new HashMap<>();
-        BiConsumer<PartitionName, IndexItem> constraintsChecker = (partition, indexItem) -> checkConstraints(
-            indexItem,
-            partition,
-            nodeCtx.schemas().getTableInfo(projection.tableIdent()),
-            context.txnCtx,
-            nodeCtx,
-            validatorsCache,
-            projection.allTargetColumns()
-        );
+        BiConsumer<PartitionName, IndexItem> constraintsChecker = (partition, indexItem) -> {
+            DocTableInfo t;
+            if (tableOid == Metadata.OID_UNASSIGNED) {
+                t = nodeCtx.schemas().getTableInfo(projection.tableIdent());
+            } else {
+                t = nodeCtx.schemas().getRelationInfo(tableOid);
+            }
+            checkConstraints(
+                indexItem,
+                partition,
+                t,
+                context.txnCtx,
+                nodeCtx,
+                validatorsCache,
+                projection.allTargetColumns()
+            );
+        };
         return new ColumnIndexWriterProjector(
             clusterService,
             constraintsChecker,
