@@ -50,8 +50,8 @@ import io.crate.planner.PositionalOrderBy;
 
 public class Order extends ForwardingLogicalPlan {
 
-    final OrderBy orderBy;
-    private final List<Symbol> outputs;
+    OrderBy orderBy;
+    private List<Symbol> outputs;
 
     static LogicalPlan create(LogicalPlan source, @Nullable OrderBy orderBy) {
         if (orderBy == null) {
@@ -137,6 +137,14 @@ public class Order extends ForwardingLogicalPlan {
         if (plan.resultDescription().hasRemainingLimitOrOffset()) {
             plan = Merge.ensureOnHandler(plan, plannerContext);
         }
+
+        this.outputs = HashAggregate.distinctToCollectSet(plannerContext, this.outputs);
+        this.orderBy = new OrderBy(
+            HashAggregate.distinctToCollectSet(plannerContext, this.orderBy.orderBySymbols()),
+            this.orderBy.reverseFlags(),
+            this.orderBy.nullsFirst()
+        );
+
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         List<Symbol> boundOutputs = Lists.map(outputs, binder);
         InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists.map(source.outputs(), binder));
