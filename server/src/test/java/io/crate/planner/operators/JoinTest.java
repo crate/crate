@@ -724,8 +724,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             """);
         assertThat(logicalPlan).hasOperators(
             "Eval[a, x, i, b, y, i, c, z]",
-            "  └ HashJoin[INNER | (z = y)]",
-            "    ├ HashJoin[INNER | (z = x)]",
+            "  └ HashJoin[INNER | (y = z)]",
+            "    ├ HashJoin[INNER | (x = z)]",
             "    │  ├ Collect[doc.t1 | [a, x, i] | true]",
             "    │  └ Collect[doc.t3 | [c, z] | true]",
             "    └ Collect[doc.t2 | [b, y, i] | true]"
@@ -884,7 +884,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                   """);
 
         assertThat(logicalPlan).hasOperators(
-            "HashJoin[INNER | ((foo = i) AND (i = foo))]",
+            "HashJoin[INNER | ((i = foo) AND (i = foo))]",
             "  ├ HashJoin[INNER | (i = i)]",
             "  │  ├ Collect[doc.t1 | [a, x, i] | true]",
             "  │  └ Collect[doc.t2 | [b, y, i] | true]",
@@ -937,9 +937,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(logicalPlan).hasOperators(
             "Eval[oid, attnum, attname, relname, nspname, (attnotnull OR ((typtype = 'd') AND typnotnull)), ((NOT (attidentity = '')) OR (pg_catalog.pg_get_expr(adbin, adrelid) LIKE '%nextval(%'))]",
             "  └ HashJoin[INNER | ((oid = cast(oid AS REGCLASS)) AND (attnum = attnum))]",
-            "    ├ HashJoin[LEFT | ((adrelid = attrelid) AND (adnum = attnum))]",
+            "    ├ HashJoin[LEFT | ((attrelid = adrelid) AND (attnum = adnum))]",
             "    │  ├ HashJoin[INNER | (atttypid = oid)]",
-            "    │  │  ├ HashJoin[INNER | (oid = attrelid)]",
+            "    │  │  ├ HashJoin[INNER | (attrelid = oid)]",
             "    │  │  │  ├ HashJoin[INNER | (relnamespace = oid)]",
             "    │  │  │  │  ├ Rename[oid, relname, relnamespace] AS c",
             "    │  │  │  │  │  └ Collect[pg_catalog.pg_class | [oid, relname, relnamespace] | true]",
@@ -991,7 +991,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "      └ HashJoin[INNER | (y = x)]",
             "        ├ Collect[doc.b | [y] | true]",
             "        └ Rename[z, x] AS temp1",
-            "          └ HashJoin[INNER | (z = x)]",
+            "          └ HashJoin[INNER | (x = z)]",
             "            ├ Collect[doc.c | [z] | true]",
             "            └ Collect[doc.a | [x] | true]"
         );

@@ -114,7 +114,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             """);
         assertThat(plan).isEqualTo(
             """
-            NestedLoopJoin[INNER | (a = b)]
+            NestedLoopJoin[INNER | (b = a)]
               ├ NestedLoopJoin[INNER | (a = b)]
               │  ├ OrderBy[a ASC]
               │  │  └ Collect[doc.t1 | [a] | true]
