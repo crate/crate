@@ -441,6 +441,9 @@ public class IndicesService extends AbstractLifecycleComponent
         indexScopedSettings.validate(indexMetadata.getSettings(), true, true, true);
 
         IndexMetadata safeMetadata = indexMetadata;
+        // version_created can't be mutated here.
+        // removeUnknownSettings -> isPrivateSetting: version_created is not private anymore since https://github.com/crate/crate/pull/17178 (another version created fix)
+        // but removeUnknownSettings -> setting.isPrivateIndex() is true, so all fine here, we take it as is.
         Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(indexMetadata.getSettings());
         if (versionCreated.before(Version.CURRENT)) {
             Settings safeSettings = indexScopedSettings.removeUnknownSettings(indexMetadata.getSettings());
@@ -885,6 +888,8 @@ public class IndicesService extends AbstractLifecycleComponent
         // play safe here and make sure that we take node level settings into account.
         // we might run on nodes where we use shard FS and then in the future don't delete
         // actual content.
+        // no version_created mutations.
+        // Moreover, buildIndexSettings is called only on delete, should be fine for 893
         return new IndexSettings(metadata, settings);
     }
 

@@ -284,6 +284,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             } else if (previousState.metadata().hasIndex(index)) {
                 // The deleted index was part of the previous cluster state, but not loaded on the local node
                 final IndexMetadata metadata = previousState.metadata().index(index);
+                // no version_created mutation + deletion path, unrelated to 693
                 indexSettings = new IndexSettings(metadata, settings);
                 indicesService.deleteUnassignedIndex("deleted index was not assigned to local node", metadata, state);
             } else {

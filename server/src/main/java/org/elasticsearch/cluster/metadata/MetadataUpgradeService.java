@@ -139,10 +139,24 @@ public class MetadataUpgradeService {
                 : "If there is still a template present there shouldn't be any RelationMetadata";
 
             DocTableInfo docTable = tableInfoFactory.create(template, OID_UNASSIGNED);
+            // mutation - but it's fine for 893,
+            // getFixedVersionCreated never sets newer version to an existing index, can only go lower
+            // but if template got wrong version somehow in its settings, then it gets propagated further here.
             Version versionCreated = getFixedVersionCreated(metadata, docTable);
 
             // versionCreated could be missing from the template settings and "calculated" afterwards
             // in DocTableInfo, so put it back to RelationMetadata#parameters
+            // Suspect: if it can be missing in the template,
+            // how it plays with BWC code in  DocTableInfoFactory:
+            /*
+            @Deprecated
+            public DocTableInfo create(IndexTemplateMetadata template, int newTableOID) {
+                ...
+                Settings tableParameters = template.settings();
+                tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT),
+            }
+
+            */
             Settings settings = Settings.builder()
                 // If RelationMetadata exist in the cluster state, make sure to override them with
                 // the upgraded settings which currently takes place on IndexTemplateMetadata
@@ -172,6 +186,7 @@ public class MetadataUpgradeService {
         // upgrade index meta data
         for (IndexMetadata indexMetadata : metadata) {
             String indexName = indexMetadata.getIndex().name();
+            // version_created is not mutated in upgradeIndexMetadata
             IndexMetadata newIndexMetadata = upgradeIndexMetadata(
                 indexMetadata,
                 Version.CURRENT.minimumIndexCompatibilityVersion()
@@ -297,6 +312,7 @@ public class MetadataUpgradeService {
         return versionCreated;
     }
 
+    // doesn't seem to mutated version_created
     private IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata, Version minimumIndexCompatibilityVersion) {
         if (isUpgraded(indexMetadata)) {
             return indexMetadata;

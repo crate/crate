@@ -44,10 +44,11 @@ public final class Templates {
         String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
         String templatePrefix = PartitionName.templatePrefix(relationName.schema(), relationName.name());
         return IndexTemplateMetadata.builder(templateName)
-            .version(null)
+            .version(null) // should be fine for version_created issue (?)
             .patterns(List.of(templatePrefix))
             .putAlias(new AliasMetadata(relationName.indexNameOrAlias()))
-            .settings(table.settings())
+            .settings(table.settings()) // no version here can be a problem for
+            //   see comment in DocTableInfoFactory.create(IndexTemplateMetadata template, int newTableOID) {
             .putMapping(new CompressedXContent(Map.of(
                 Constants.DEFAULT_MAPPING_TYPE,
                 MappingUtil.createMapping(

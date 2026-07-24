@@ -608,6 +608,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 partitionName,
                 indexMetadata.getNumberOfShards(),
                 NumberOfReplicas.getVirtualValue(settings),
+                // no mutation and used only in DQL
                 IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings),
                 settings.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null),
                 indexMetadata.getState() == State.CLOSE,

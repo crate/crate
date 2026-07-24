@@ -71,6 +71,7 @@ public final class AnalysisModule {
         IndexMetadata metadata = IndexMetadata.builder(UUIDs.randomBase64UUID())
             .indexName("_na_")
             .settings(Settings.builder()
+                // used for new indices -> no existing indices logic -> unrelated to 893
                 .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                 .put(IndexMetadata .SETTING_NUMBER_OF_REPLICAS, 1)
                 .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)

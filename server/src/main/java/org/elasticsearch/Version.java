@@ -352,6 +352,7 @@ public class Version implements Comparable<Version> {
      *         {@value IndexMetadata#SETTING_VERSION_CREATED}
      */
     public static Version indexCreated(Settings indexSettings) {
+        // no mutations
         final Version indexVersion = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(indexSettings);
         if (indexVersion == V_EMPTY) {
             final String message = String.format(

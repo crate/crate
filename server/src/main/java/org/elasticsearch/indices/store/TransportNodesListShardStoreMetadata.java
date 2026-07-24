@@ -148,6 +148,7 @@ public class TransportNodesListShardStoreMetadata extends TransportNodesAction<T
                 } else {
                     IndexMetadata metadata = clusterService.state().metadata().index(shardId.getIndex());
                     if (metadata != null) {
+                        // no version_created mutations
                         customDataPath = new IndexSettings(metadata, settings).customDataPath();
                     } else {
                         logger.trace("{} node doesn't have meta data for the requests index", shardId);

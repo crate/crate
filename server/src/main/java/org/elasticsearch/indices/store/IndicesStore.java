@@ -162,6 +162,7 @@ public class IndicesStore implements ClusterStateListener, Closeable {
                     IndexService indexService = indicesService.indexService(indexRoutingTable.getIndex());
                     final IndexSettings indexSettings;
                     if (indexService == null) {
+                        // no version_created mutations
                         IndexMetadata indexMetadata = event.state().metadata().getIndexSafe(indexRoutingTable.getIndex());
                         indexSettings = new IndexSettings(indexMetadata, settings);
                     } else {

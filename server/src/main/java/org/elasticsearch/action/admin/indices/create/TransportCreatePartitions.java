@@ -360,6 +360,7 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
         indexSettingsBuilder.put(tableSettings);
 
         Version minVersion = currentState.nodes().getSmallestNonClientNodeVersion();
+        // this is for new partitions -> nothing to do with existing, unrelated to 893
         indexSettingsBuilder.put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), minVersion);
 
         if (indexSettingsBuilder.get(IndexMetadata.SETTING_CREATION_DATE) == null) {
