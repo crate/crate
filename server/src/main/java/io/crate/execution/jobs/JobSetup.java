@@ -850,7 +850,7 @@ public class JobSetup {
                 localNodeId,
                 context.sharedShardContexts,
                 clusterService.state().metadata(),
-                relationName -> schemas.getTableInfo(relationName),
+                schemas::getTableInfo,
                 routings));
             return null;
         }
