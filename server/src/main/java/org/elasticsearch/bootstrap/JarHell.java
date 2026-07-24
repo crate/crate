@@ -272,6 +272,11 @@ public class JarHell {
                 if (clazz.startsWith("org.apache.lucene.index.AssertingLeafReader")) {
                     return; // overwritten to disable thread-change assertion
                 }
+                if (clazz.startsWith("org.apache.opendal.OperatorOutputStream")) {
+                    // patched copy in crate-libs-opendal fixes a JNI signature
+                    // mismatch in the opendal binding, see https://github.com/crate/crate/issues/19723
+                    return;
+                }
                 throw new IllegalStateException("jar hell!" + System.lineSeparator() +
                         "class: " + clazz + System.lineSeparator() +
                         "jar1: " + previous + System.lineSeparator() +

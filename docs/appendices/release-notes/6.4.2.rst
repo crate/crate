@@ -78,3 +78,9 @@ Fixes
   :ref:`has_table_privilege <scalar-has-table-priv>` to return incorrect
   results for OID ``0`` and for OIDs of tables created before
   :ref:`version_6.3.0`.
+
+- Fixed an issue that caused a ``NullPointerException`` on aarch64 Linux when
+  writing to ``s3``, ``azure`` or ``gcs`` snapshot repositories or when using
+  ``COPY TO`` with S3 or Azure targets. The error was caused by a native method
+  signature mismatch in the OpenDAL Java binding and made ``CREATE REPOSITORY``
+  fail with ``Unable to verify the repository``.
