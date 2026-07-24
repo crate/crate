@@ -139,9 +139,13 @@ public class InsertFromValues implements LogicalPlan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        DocTableInfo tableInfo = dependencies
-            .schemas()
-            .getTableInfo(writerProjection.tableIdent());
+        int tableOid = writerProjection.tableOid();
+        DocTableInfo tableInfo;
+        if (tableOid == Metadata.OID_UNASSIGNED) {
+            tableInfo = dependencies.schemas().getTableInfo(writerProjection.tableIdent());
+        } else {
+            tableInfo = dependencies.schemas().getRelationInfo(writerProjection.tableOid());
+        }
 
         // For instance, the target table of the insert from values
         // statement is the table with the following schema:
@@ -284,7 +288,7 @@ public class InsertFromValues implements LogicalPlan {
             var shardUpsertRequests = resolveAndGroupShardRequests(
                 shardedRequests,
                 dependencies.clusterService(),
-                tableInfo.oid()
+                writerProjection.tableOid()
             ).values();
             return execute(
                 dependencies.nodeLimits(),
@@ -312,9 +316,13 @@ public class InsertFromValues implements LogicalPlan {
                                                        PlannerContext plannerContext,
                                                        List<Row> bulkParams,
                                                        SubQueryResults subQueryResults) {
-        final DocTableInfo tableInfo = dependencies
-            .schemas()
-            .getTableInfo(writerProjection.tableIdent());
+        int tableOid = writerProjection.tableOid();
+        DocTableInfo tableInfo;
+        if (tableOid == Metadata.OID_UNASSIGNED) {
+            tableInfo = dependencies.schemas().getTableInfo(writerProjection.tableIdent());
+        } else {
+            tableInfo = dependencies.schemas().getRelationInfo(writerProjection.tableOid());
+        }
 
         String[] updateColumnNames;
         Assignments assignments;
@@ -753,9 +761,10 @@ public class InsertFromValues implements LogicalPlan {
                                                                             Set<PartitionName> partitions,
                                                                             ClusterService clusterService) {
         List<PartitionName> partitionsToCreate = new ArrayList<>();
+        Metadata metadata = clusterService.state().metadata();
         for (var partition : partitions) {
-            String indexUUID = clusterService.state().metadata()
-                .getIndex(tableInfo.ident(), partition.values(), true, IndexMetadata::getIndexUUID);
+            String indexUUID =
+                metadata.getIndex(tableInfo.ident(), partition.values(), true, IndexMetadata::getIndexUUID);
             if (indexUUID == null) {
                 partitionsToCreate.add(partition);
             }
