@@ -103,10 +103,10 @@ public final class Eval extends ForwardingLogicalPlan {
                                SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
             executor, plannerContext, planHints, projectionBuilder, limit, offset, null, pageSizeHint, params, subQueryResults);
-        if (areEvalSymbolsEqual(outputs, source.outputs())) {
+        if (outputs.equals(source.outputs())) {
             return executionPlan;
         }
-        return addEvalProjection(plannerContext, executionPlan, params, subQueryResults, outputs, source.outputs());
+        return addEvalProjection(plannerContext, executionPlan, params, subQueryResults);
     }
 
     @Override
@@ -160,26 +160,25 @@ public final class Eval extends ForwardingLogicalPlan {
             retainedOutputs > 0 ? Eval.create(newSource, newOutputs) : newSource);
     }
 
-    public static ExecutionPlan addEvalProjection(PlannerContext plannerContext,
-                                                  ExecutionPlan executionPlan,
-                                                  Row params,
-                                                  SubQueryResults subQueryResults,
-                                                  List<Symbol> outputs,
-                                                  List<Symbol> sourceOutputs) {
+    private ExecutionPlan addEvalProjection(PlannerContext plannerContext,
+                                            ExecutionPlan executionPlan,
+                                            Row params,
+                                            SubQueryResults subQueryResults) {
 
-        var outputsRewritten = wrapDistinctWithCollectionCount(plannerContext, outputs);
+        var outputsRewritten = new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext())
+            .rewrite(outputs);
 
         PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
         PositionalOrderBy newOrderBy = null;
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         List<Symbol> boundOutputs = Lists.map(outputsRewritten, binder);
         if (orderBy != null) {
-            newOrderBy = orderBy.tryMapToNewOutputs(sourceOutputs, boundOutputs);
+            newOrderBy = orderBy.tryMapToNewOutputs(source.outputs(), boundOutputs);
             if (newOrderBy == null) {
                 executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
             }
         }
-        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists.map(sourceOutputs, binder));
+        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists.map(source.outputs(), binder));
         EvalProjection projection = new EvalProjection(InputColumns.create(boundOutputs, ctx));
         executionPlan.addProjection(
             projection,
@@ -188,11 +187,6 @@ public final class Eval extends ForwardingLogicalPlan {
             newOrderBy
         );
         return executionPlan;
-    }
-
-    private static List<Symbol> wrapDistinctWithCollectionCount(PlannerContext plannerContext, List<Symbol> outputs) {
-        return new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext())
-            .rewrite(outputs);
     }
 
     @Override
