@@ -21,14 +21,11 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.analyze.expressions.ExpressionAnalyzer.allocateBuiltinOrUdfFunction;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.SequencedCollection;
 import java.util.Set;
 import java.util.function.UnaryOperator;
@@ -36,18 +33,14 @@ import java.util.function.UnaryOperator;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.WindowDefinition;
-import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.WindowFunction;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -198,56 +191,8 @@ public final class Eval extends ForwardingLogicalPlan {
     }
 
     private static List<Symbol> wrapDistinctWithCollectionCount(PlannerContext plannerContext, List<Symbol> outputs) {
-        List<Symbol> list = new ArrayList<>();
-        for (int i = 0; i < outputs.size(); i++) {
-            Symbol output = outputs.get(i);
-            Function original = null;
-            if (output instanceof Function) {
-                original = (Function) output;
-            } else if (output instanceof AliasSymbol alias && alias.symbol() instanceof Function) {
-                original = (Function) alias.symbol();
-            }
-
-            if (original != null && original.distinct()) {
-                Symbol collectionCountWrap = wrapWithCollectionCount(plannerContext, original);
-                list.add(collectionCountWrap);
-            } else {
-                list.add(output);
-            }
-        }
-
-        return list;
-    }
-
-    private static Symbol wrapWithCollectionCount(PlannerContext plannerCtx, Function original) {
-        var arguments = original.arguments();
-        ExpressionAnalysisContext context = null;
-        String name = original.name();
-        WindowDefinition windowDefinition = (original instanceof WindowFunction wf) ? wf.windowDefinition() : null;
-        Boolean ignoreNulls = (original instanceof WindowFunction wf) ? wf.ignoreNulls() : null;
-        String schema = original.signature().getName().schema();
-
-        // define the outer function which contains the inner function as argument.
-        String nodeName = "collection_" + name;
-        var collectSetFn = HashAggregate.makeCollectSetFunction(original, plannerCtx.transactionContext(), plannerCtx.nodeContext());
-        List<Symbol> outerArguments = List.of(collectSetFn);
-        try {
-            return allocateBuiltinOrUdfFunction(
-                schema,
-                nodeName,
-                outerArguments,
-                null,
-                ignoreNulls,
-                context,
-                true,
-                windowDefinition,
-                plannerCtx.transactionContext(),
-                plannerCtx.nodeContext()
-            );
-        } catch (UnsupportedOperationException ex) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
-        }
+        return new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext())
+            .rewrite(outputs);
     }
 
     @Override
