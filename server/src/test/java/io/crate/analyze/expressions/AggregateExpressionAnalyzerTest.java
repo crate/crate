@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.SelectSymbol;
+import io.crate.metadata.SimpleReference;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -60,10 +61,12 @@ public class AggregateExpressionAnalyzerTest extends CrateDummyClusterServiceUni
         var symbol = e.asSymbol(functionName + "(distinct t.x) filter (where t.x < 1)");
         assertThat(symbol).isExactlyInstanceOf(Function.class);
 
-        var outerFunc = (Function) symbol;
-        assertThat(outerFunc.arguments()).hasSize(1);
-        var innerFunc = (Function) outerFunc.arguments().get(0);
-        assertThat(innerFunc.filter()).isFunction("op_<", isReference("x"), isLiteral(1));
+        var func = (Function) symbol;
+        assertThat(func.arguments()).hasSize(1);
+        assertThat(func.filter()).isFunction("op_<", isReference("x"), isLiteral(1));
+
+        var arg = (SimpleReference) func.arguments().get(0);
+        assertThat(arg).hasName("x");
     }
 
     @Test

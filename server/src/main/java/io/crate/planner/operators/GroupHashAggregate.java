@@ -65,9 +65,10 @@ import io.crate.statistics.Stats;
 public class GroupHashAggregate extends ForwardingLogicalPlan {
 
     private static final String DISTRIBUTED_MERGE_PHASE_NAME = "distributed merge";
-    final List<Function> aggregates;
+    final List<Function> aggregatesOriginal;
+    List<Function> aggregates;
     final List<Symbol> groupKeys;
-    private final List<Symbol> outputs;
+    private List<Symbol> outputs;
 
 
     public static long approximateDistinctValues(Stats stats, List<Symbol> groupKeys) {
@@ -110,6 +111,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
 
     public GroupHashAggregate(LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates) {
         super(source);
+        this.aggregatesOriginal = List.copyOf(new LinkedHashSet<>(aggregates));
         this.aggregates = List.copyOf(new LinkedHashSet<>(aggregates));
         this.outputs = Lists.concat(groupKeys, this.aggregates);
         this.groupKeys = groupKeys;
@@ -150,6 +152,9 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
             executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         }
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
+
+        this.outputs = HashAggregate.distinctToCollectSet(plannerContext, this.outputs);
+        this.aggregates = HashAggregate.distinctToCollectSet(plannerContext, this.aggregates);
 
         List<Symbol> sourceOutputs = source.outputs();
         if (shardsContainAllGroupKeyValues()) {

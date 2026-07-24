@@ -39,6 +39,7 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FetchMarker;
+import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -58,11 +59,30 @@ public final class Eval extends ForwardingLogicalPlan {
 
     private final List<Symbol> outputs;
 
+    // source.outputs() and Eval.outputs() may have distinct functions
+    // that are rewritten when building the execution plan.
     public static LogicalPlan create(LogicalPlan source, List<Symbol> outputs) {
-        if (source.outputs().equals(outputs)) {
+        if (areEvalSymbolsEqual(outputs, source.outputs())) {
             return source;
         }
         return new Eval(source, outputs);
+    }
+
+    public static boolean areEvalSymbolsEqual(List<Symbol> evalOutput, List<Symbol> sourceOutput) {
+        if (evalOutput.size() != sourceOutput.size()) {
+            return false;
+        }
+        for (int i = 0; i < evalOutput.size(); i++) {
+            Symbol aSym = evalOutput.get(i);
+            Symbol bSym = sourceOutput.get(i);
+            if (aSym instanceof Function aFn && bSym instanceof Function bFn && aFn.distinct() && bFn.distinct()) {
+                return false;
+            }
+            if (!aSym.equals(bSym)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     Eval(LogicalPlan source, List<Symbol> outputs) {
@@ -144,10 +164,14 @@ public final class Eval extends ForwardingLogicalPlan {
                                             ExecutionPlan executionPlan,
                                             Row params,
                                             SubQueryResults subQueryResults) {
+
+        var outputsRewritten = new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext())
+            .rewrite(outputs);
+
         PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
         PositionalOrderBy newOrderBy = null;
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
-        List<Symbol> boundOutputs = Lists.map(outputs, binder);
+        List<Symbol> boundOutputs = Lists.map(outputsRewritten, binder);
         if (orderBy != null) {
             newOrderBy = orderBy.tryMapToNewOutputs(source.outputs(), boundOutputs);
             if (newOrderBy == null) {
