@@ -287,41 +287,16 @@ public class ExpressionAnalyzer {
             .orElse(null);
 
         WindowDefinition windowDefinition = getWindowDefinition(node.getWindow(), context);
-//        if (node.isDistinct()) {
-//            if (arguments.size() > 1) {
-//                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-//                    "%s(DISTINCT x) does not accept more than one argument", node.getName()));
-//            }
-//            Symbol collectSetFunction = allocateFunction(
-//                CollectSetAggregation.NAME,
-//                arguments,
-//                filter,
-//                context,
-//                coordinatorTxnCtx,
-//                nodeCtx);
-//
-//            // define the outer function which contains the inner function as argument.
-//            String nodeName = "collection_" + name;
-//            List<Symbol> outerArguments = List.of(collectSetFunction);
-//            try {
-//                return allocateBuiltinOrUdfFunction(
-//                    schema, nodeName, outerArguments, null, node.ignoreNulls(), windowDefinition, context);
-//            } catch (UnsupportedOperationException ex) {
-//                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-//                    "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
-//            }
-//        } else {
-            return allocateBuiltinOrUdfFunction(
-                schema,
-                name,
-                arguments,
-                filter,
-                node.ignoreNulls(),
-                node.isDistinct(),
-                windowDefinition,
-                context
-            );
-//        }
+        return allocateBuiltinOrUdfFunction(
+            schema,
+            name,
+            arguments,
+            filter,
+            node.ignoreNulls(),
+            node.isDistinct(),
+            windowDefinition,
+            context
+        );
     }
 
     @Nullable
