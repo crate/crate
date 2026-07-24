@@ -129,6 +129,20 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
                 return null;
             }
         }
+
+        @Override
+        public MutableLong reduce(RamAccounting ramAccounting, MutableLong state1, MutableLong state2) {
+            if (state2.hasValue() == false) {
+                return state1;
+            }
+            if (state1.hasValue() == false) {
+                return state2;
+            }
+            if (state2.value() < state1.value()) {
+                return state2;
+            }
+            return state1;
+        }
     }
 
 
@@ -171,6 +185,20 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
                 return null;
             }
         }
+
+        @Override
+        public MutableDouble reduce(RamAccounting ramAccounting, MutableDouble state1, MutableDouble state2) {
+            if (state2.hasValue() == false) {
+                return state1;
+            }
+            if (state1.hasValue() == false) {
+                return state2;
+            }
+            if (state2.value() < state1.value()) {
+                return state2;
+            }
+            return state1;
+        }
     }
 
     private static class FloatMin implements DocValueAggregator<MutableFloat> {
@@ -211,6 +239,20 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
             } else {
                 return null;
             }
+        }
+
+        @Override
+        public MutableFloat reduce(RamAccounting ramAccounting, MutableFloat state1, MutableFloat state2) {
+            if (state2.hasValue() == false) {
+                return state1;
+            }
+            if (state1.hasValue() == false) {
+                return state2;
+            }
+            if (state2.value() < state1.value()) {
+                return state2;
+            }
+            return state1;
         }
     }
 
@@ -261,7 +303,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
             }
             DataType<?> valueType = reference.valueType();
             if (valueType instanceof NumericType) {
-                return getNumericDocValueAggregator(aggregationReferences, this::reduce);
+                return getNumericDocValueAggregator(aggregationReferences, this::reduce, this::reduce);
             }
             return null;
         }

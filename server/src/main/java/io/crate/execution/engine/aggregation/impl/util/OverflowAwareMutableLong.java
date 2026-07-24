@@ -21,10 +21,11 @@
 
 package io.crate.execution.engine.aggregation.impl.util;
 
-import io.crate.common.annotations.VisibleForTesting;
+import java.math.BigDecimal;
 
 import org.jspecify.annotations.Nullable;
-import java.math.BigDecimal;
+
+import io.crate.common.annotations.VisibleForTesting;
 
 public class OverflowAwareMutableLong implements NumericValueHolder {
 
@@ -75,5 +76,19 @@ public class OverflowAwareMutableLong implements NumericValueHolder {
     @Override
     public void setValue(BigDecimal value) {
         throw new UnsupportedOperationException("setValue() is not supported");
+    }
+
+    public OverflowAwareMutableLong merge(@Nullable OverflowAwareMutableLong other) {
+        if (other == null) {
+            return this;
+        }
+        if (other.hasValue()) {
+            if (other.primitiveSum != 0) {
+                add(other.primitiveSum());
+            } else {
+                bigDecimalSum = bigDecimalSum.add(other.bigDecimalSum());
+            }
+        }
+        return this;
     }
 }

@@ -40,17 +40,20 @@ public class SortedNumericDocValueAggregator<T> implements DocValueAggregator<T>
     private final String columnName;
     private final TriFunction<RamAccounting, MemoryManager, Version, T> newState;
     private final CheckedTriFunction<RamAccounting, SortedNumericDocValues, T, T, IOException> onValue;
+    private final TriFunction<RamAccounting, T, T, T> reducer;
 
     private SortedNumericDocValues values;
 
     public SortedNumericDocValueAggregator(
         String columnName,
         TriFunction<RamAccounting, MemoryManager,Version, T> newState,
-        CheckedTriFunction<RamAccounting, SortedNumericDocValues, T, T, IOException> onValue) {
+        CheckedTriFunction<RamAccounting, SortedNumericDocValues, T, T, IOException> onValue,
+        TriFunction<RamAccounting, T, T, T> reducer) {
 
         this.columnName = columnName;
         this.newState = newState;
         this.onValue = onValue;
+        this.reducer = reducer;
     }
 
     @Override
@@ -75,5 +78,10 @@ public class SortedNumericDocValueAggregator<T> implements DocValueAggregator<T>
     @Override
     public Object partialResult(RamAccounting ramAccounting, T state) {
         return state;
+    }
+
+    @Override
+    public T reduce(RamAccounting ramAccounting, T state1, T state2) {
+        return reducer.apply(ramAccounting, state1, state2);
     }
 }

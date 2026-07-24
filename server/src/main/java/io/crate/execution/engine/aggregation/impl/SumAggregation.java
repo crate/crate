@@ -280,6 +280,17 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         public Long partialResult(RamAccounting ramAccounting, MutableLong state) {
             return state.hasValue() ? state.value() : null;
         }
+
+        @Override
+        public MutableLong reduce(RamAccounting ramAccounting, MutableLong state1, MutableLong state2) {
+            if (state1 == null || state1.hasValue() == false) {
+                return state2;
+            } else if (state2 == null || state2.hasValue() == false) {
+                return state1;
+            }
+            state1.setValue(Math.addExact(state1.value(), state2.value()));
+            return state1;
+        }
     }
 
     static class SumDouble implements DocValueAggregator<MutableDouble> {
@@ -319,6 +330,17 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         public Object partialResult(RamAccounting ramAccounting, MutableDouble state) {
             return state.hasValue() ? state.value() : null;
         }
+
+        @Override
+        public MutableDouble reduce(RamAccounting ramAccounting, MutableDouble state1, MutableDouble state2) {
+            if (state1 == null || state1.hasValue() == false) {
+                return state2;
+            } else if (state2 == null || state2.hasValue() == false) {
+                return state1;
+            }
+            state1.setValue(kahanSummation.sum(state1.value(), state2.value()));
+            return state1;
+        }
     }
 
     static class SumFloat implements DocValueAggregator<MutableFloat> {
@@ -357,6 +379,17 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         @Override
         public Object partialResult(RamAccounting ramAccounting, MutableFloat state) {
             return state.hasValue() ? state.value() : null;
+        }
+
+        @Override
+        public MutableFloat reduce(RamAccounting ramAccounting, MutableFloat state1, MutableFloat state2) {
+            if (state1 == null || state1.hasValue() == false) {
+                return state2;
+            } else if (state2 == null || state2.hasValue() == false) {
+                return state1;
+            }
+            state1.setValue(kahanSummation.sum(state1.value(), state2.value()));
+            return state1;
         }
     }
 }

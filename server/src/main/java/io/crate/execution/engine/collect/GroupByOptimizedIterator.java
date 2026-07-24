@@ -80,6 +80,7 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.execution.jobs.SharedShardContext;
@@ -88,6 +89,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
@@ -98,6 +100,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.DocReferences;
+import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -275,6 +278,7 @@ final class GroupByOptimizedIterator {
     }
 
     @Nullable
+    @SuppressWarnings("rawtypes")
     static BatchIterator<Row> tryOptimizeSingleStringKey(IndexShard indexShard,
                                                          DocTableInfo table,
                                                          List<String> partitionValues,
@@ -283,7 +287,9 @@ final class GroupByOptimizedIterator {
                                                          NodeContext nodeCtx,
                                                          DocInputFactory docInputFactory,
                                                          RoutedCollectPhase collectPhase,
-                                                         CollectTask collectTask) {
+                                                         CollectTask collectTask,
+                                                         Functions functions,
+                                                         LuceneReferenceResolver referenceResolver) {
         GroupProjection groupProjection = getSingleStringKeyGroupProjection(collectPhase.projections());
         if (groupProjection == null) {
             return null;
@@ -323,6 +329,24 @@ final class GroupByOptimizedIterator {
         final List<CollectExpression<Row, ?>> aggExpressions = ctxForAggregations.expressions();
 
         List<AggregationContext> aggregations = ctxForAggregations.aggregations();
+
+        // Doc-value based aggregators can only produce partial states, so they cannot
+        // be used if this shard-level iterator must produce final results directly.
+        List<DocValueAggregator> aggregators = groupProjection.mode() == AggregateMode.ITER_FINAL
+            ? null
+            : DocValuesAggregates.createAggregators(
+                functions,
+                referenceResolver,
+                groupProjection.values(),
+                collectPhase.toCollect(),
+                table,
+                indexShard.getVersionCreated()
+            );
+        if (aggregators != null && aggregators.isEmpty()) {
+            // No aggregations; nothing to gain from the doc-value aggregator path
+            aggregators = null;
+        }
+
         List<? extends LuceneCollectorExpression<?>> expressions = docCtx.expressions();
 
         RamAccounting ramAccounting = collectTask.getRamAccounting();
@@ -348,6 +372,7 @@ final class GroupByOptimizedIterator {
             searcher.item(),
             keyRef.storageIdent(),
             aggregations,
+            aggregators,
             expressions,
             aggExpressions,
             ramAccounting,
@@ -359,10 +384,12 @@ final class GroupByOptimizedIterator {
             groupProjection.mode());
     }
 
+    @SuppressWarnings("rawtypes")
     static BatchIterator<Row> getIterator(BigArrays bigArrays,
                                           IndexSearcher indexSearcher,
                                           String keyColumnName,
                                           List<AggregationContext> aggregations,
+                                          @Nullable List<DocValueAggregator> aggregators,
                                           List<? extends LuceneCollectorExpression<?>> expressions,
                                           List<CollectExpression<Row, ?>> aggExpressions,
                                           RamAccounting ramAccounting,
@@ -385,6 +412,7 @@ final class GroupByOptimizedIterator {
                         indexSearcher,
                         keyColumnName,
                         aggregations,
+                        aggregators,
                         expressions,
                         aggExpressions,
                         ramAccounting,
@@ -396,10 +424,29 @@ final class GroupByOptimizedIterator {
                     ),
                 ramAccounting,
                 aggregations,
+                aggregators,
                 aggregateMode
             ),
             true
         );
+    }
+
+    @SuppressWarnings("rawtypes")
+    private static Iterable<Row> getRows(Map<BytesRef, Object[]> groupedStates,
+                                         RamAccounting ramAccounting,
+                                         List<AggregationContext> aggregations,
+                                         @Nullable List<DocValueAggregator> aggregators,
+                                         AggregateMode mode) {
+        if (aggregators != null) {
+            return DocValuesGroupByOptimizedIterator.GroupByIterator.getRows(
+                groupedStates,
+                1,
+                (key, cells) -> cells[0] = BytesRefs.toString(key),
+                aggregators,
+                ramAccounting
+            );
+        }
+        return getRows(groupedStates, ramAccounting, aggregations, mode);
     }
 
     private static Iterable<Row> getRows(Map<BytesRef, Object[]> groupedStates,
@@ -426,10 +473,12 @@ final class GroupByOptimizedIterator {
             .iterator();
     }
 
+    @SuppressWarnings("rawtypes")
     private static Map<BytesRef, Object[]> applyAggregatesGroupedByKey(BigArrays bigArrays,
                                                                        IndexSearcher indexSearcher,
                                                                        String keyColumnName,
                                                                        List<AggregationContext> aggregations,
+                                                                       @Nullable List<DocValueAggregator> aggregators,
                                                                        List<? extends LuceneCollectorExpression<?>> expressions,
                                                                        List<CollectExpression<Row, ?>> aggExpressions,
                                                                        RamAccounting ramAccounting,
@@ -454,6 +503,11 @@ final class GroupByOptimizedIterator {
             for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
                 expressions.get(i).setNextReader(readerContext);
             }
+            if (aggregators != null) {
+                for (int i = 0; i < aggregators.size(); i++) {
+                    aggregators.get(i).loadDocValues(leaf);
+                }
+            }
             SortedSetDocValues values = DocValues.getSortedSet(leaf.reader(), keyColumnName);
             DocIdSetIterator docs = scorer.iterator();
             Bits liveDocs = leaf.reader().getLiveDocs();
@@ -465,25 +519,36 @@ final class GroupByOptimizedIterator {
                 for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
                     expressions.get(i).setNextDocId(doc);
                 }
-                for (int i = 0, expressionsSize = aggExpressions.size(); i < expressionsSize; i++) {
-                    aggExpressions.get(i).setNextRow(inputRow);
+                if (aggregators == null) {
+                    for (int i = 0, expressionsSize = aggExpressions.size(); i < expressionsSize; i++) {
+                        aggExpressions.get(i).setNextRow(inputRow);
+                    }
                 }
                 if (values.advanceExact(doc)) {
                     long ord = values.nextOrd();
                     Object[] states = statesByOrd.get(ord);
                     if (states == null) {
-                        statesByOrd.put(ord, initStates(aggregations, ramAccounting, memoryManager, minNodeVersion));
-                    } else {
+                        states = aggregators == null
+                            ? initStates(aggregations, ramAccounting, memoryManager, minNodeVersion)
+                            : initStates(aggregators, doc, ramAccounting, memoryManager, minNodeVersion);
+                        statesByOrd.put(ord, states);
+                    } else if (aggregators == null) {
                         aggregateValues(aggregations, ramAccounting, memoryManager, states);
+                    } else {
+                        applyDocValueAggregators(aggregators, doc, ramAccounting, states);
                     }
                     if (values.docValueCount() > 1) {
                         throw new ArrayViaDocValuesUnsupportedException(keyColumnName);
                     }
                 } else {
                     if (nullStates == null) {
-                        nullStates = initStates(aggregations, ramAccounting, memoryManager, minNodeVersion);
-                    } else {
+                        nullStates = aggregators == null
+                            ? initStates(aggregations, ramAccounting, memoryManager, minNodeVersion)
+                            : initStates(aggregators, doc, ramAccounting, memoryManager, minNodeVersion);
+                    } else if (aggregators == null) {
                         aggregateValues(aggregations, ramAccounting, memoryManager, nullStates);
+                    } else {
+                        applyDocValueAggregators(aggregators, doc, ramAccounting, nullStates);
                     }
                 }
             }
@@ -501,13 +566,18 @@ final class GroupByOptimizedIterator {
                     statesByKey.put(BytesRef.deepCopyOf(sharedKey), states);
                 } else {
                     for (int i = 0; i < aggregations.size(); i++) {
-                        AggregationContext aggregation = aggregations.get(i);
-                        //noinspection unchecked
-                        prevStates[i] = aggregation.function().reduce(
-                            ramAccounting,
-                            prevStates[i],
-                            states[i]
-                        );
+                        if (aggregators != null) {
+                            //noinspection unchecked
+                            prevStates[i] = aggregators.get(i).reduce(ramAccounting, prevStates[i], states[i]);
+                        } else {
+                            AggregationContext aggregation = aggregations.get(i);
+                            //noinspection unchecked
+                            prevStates[i] = aggregation.function().reduce(
+                                ramAccounting,
+                                prevStates[i],
+                                states[i]
+                            );
+                        }
                     }
                 }
             }
@@ -595,6 +665,31 @@ final class GroupByOptimizedIterator {
             } else {
                 states[i] = newState;
             }
+        }
+        return states;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static void applyDocValueAggregators(List<DocValueAggregator> aggregators,
+                                                 int doc,
+                                                 RamAccounting ramAccounting,
+                                                 Object[] states) throws IOException {
+        for (int i = 0; i < aggregators.size(); i++) {
+            states[i] = aggregators.get(i).apply(ramAccounting, doc, states[i]);
+        }
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static Object[] initStates(List<DocValueAggregator> aggregators,
+                                       int doc,
+                                       RamAccounting ramAccounting,
+                                       MemoryManager memoryManager,
+                                       Version minNodeVersion) throws IOException {
+        Object[] states = new Object[aggregators.size()];
+        for (int i = 0; i < aggregators.size(); i++) {
+            var aggregator = aggregators.get(i);
+            Object state = aggregator.initialState(ramAccounting, memoryManager, minNodeVersion);
+            states[i] = aggregator.apply(ramAccounting, doc, state);
         }
         return states;
     }
