@@ -67,22 +67,26 @@ import io.crate.execution.dml.StringIndexer;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
+import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
@@ -234,18 +238,91 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         var collectPhase = createCollectPhase(List.of(reference), List.of(groupProjection));
         var collectTask = createCollectTask(shard, collectPhase, Version.CURRENT);
         var nodeCtx = createNodeContext();
+        var referenceResolver = new LuceneReferenceResolver(PARTITION_NAME.values(), List.of(), List.of(), Version.CURRENT, (_) -> false);
 
         var it = GroupByOptimizedIterator.tryOptimizeSingleStringKey(
+            nodeCtx.functions(),
+            referenceResolver,
             shard,
             mock(DocTableInfo.class),
             PARTITION_NAME.values(),
             new LuceneQueryBuilder(nodeCtx),
             mock(BigArrays.class),
             nodeCtx,
-            new DocInputFactory(
-                nodeCtx,
-                new LuceneReferenceResolver(PARTITION_NAME.values(), List.of(), List.of(), Version.CURRENT, (_) -> false)
-            ),
+            new DocInputFactory(nodeCtx, referenceResolver),
+            collectPhase,
+            collectTask
+        );
+        assertThat(it).isNotNull();
+
+        collectTask.kill(JobKilledException.of(null));
+        closeShard(shard);
+    }
+
+    @Test
+    public void test_create_optimized_iterator_for_single_string_key_using_doc_value_agg() throws Exception {
+        List<Aggregation> aggregations = List.of(
+            new Aggregation(
+                Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(DataTypes.LONG.getTypeSignature())
+                    .returnType(DataTypes.LONG.getTypeSignature())
+                    .build(),
+                DataTypes.LONG,
+                Collections.singletonList(new InputColumn(1)))
+        );
+
+        GroupProjection groupProjection = new GroupProjection(
+            List.of(new InputColumn(0, DataTypes.STRING)),
+            aggregations,
+            AggregateMode.ITER_PARTIAL,
+            RowGranularity.SHARD
+        );
+        var groupRef = new SimpleReference(
+            new RelationName("doc", "test"),
+            ColumnIdent.of("x"),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            IndexType.PLAIN,
+            true,
+            true,
+            0,
+            111,
+            false,
+            null
+        );
+        var aggRef = new SimpleReference(
+            new RelationName("doc", "test"),
+            ColumnIdent.of("y"),
+            RowGranularity.DOC,
+            DataTypes.LONG,
+            IndexType.PLAIN,
+            true,
+            true,
+            1,
+            112,
+            false,
+            null
+        );
+        IndexShard shard = newStartedPrimaryShard(
+            TestingHelpers.createNodeContext(),
+            List.of(groupRef, aggRef),
+            THREAD_POOL
+        );
+        var collectPhase = createCollectPhase(List.of(groupRef, aggRef), List.of(groupProjection));
+        var collectTask = createCollectTask(shard, collectPhase, Version.CURRENT);
+        var nodeCtx = createNodeContext();
+
+        var referenceResolver = new LuceneReferenceResolver(PARTITION_NAME.values(), List.of(), List.of(), Version.CURRENT, (_) -> false);
+        var it = GroupByOptimizedIterator.tryOptimizeSingleStringKey(
+            nodeCtx.functions(),
+            referenceResolver,
+            shard,
+            mock(DocTableInfo.class),
+            PARTITION_NAME.values(),
+            new LuceneQueryBuilder(nodeCtx),
+            mock(BigArrays.class),
+            nodeCtx,
+            new DocInputFactory(nodeCtx, referenceResolver),
             collectPhase,
             collectTask
         );

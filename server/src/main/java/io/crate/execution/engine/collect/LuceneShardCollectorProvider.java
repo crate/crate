@@ -174,6 +174,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             return it;
         }
         it = GroupByOptimizedIterator.tryOptimizeSingleStringKey(
+            nodeCtx.functions(),
+            referenceResolver,
             indexShard,
             table,
             partitionName.values(),
