@@ -131,6 +131,10 @@ Performance and Resilience Improvements
 - `Bing O'Dowd <https://github.com/bodowd>`_ improved query planning by
   deduplicating identical join conditions joined by the ``AND`` operator.
 
+- Improved the performance of ``GROUP BY`` queries on a single ``STRING`` column
+  with doc values enabled: aggregation values are now read directly from doc
+  values where possible.
+
 Administration and Operations
 -----------------------------
 

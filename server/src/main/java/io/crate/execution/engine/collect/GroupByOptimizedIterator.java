@@ -24,6 +24,7 @@ package io.crate.execution.engine.collect;
 import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.formatSource;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -80,6 +81,7 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.execution.jobs.SharedShardContext;
@@ -88,6 +90,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
@@ -98,6 +101,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.DocReferences;
+import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -274,8 +278,11 @@ final class GroupByOptimizedIterator {
         return numDocs;
     }
 
+    @SuppressWarnings("rawtypes")
     @Nullable
-    static BatchIterator<Row> tryOptimizeSingleStringKey(IndexShard indexShard,
+    static BatchIterator<Row> tryOptimizeSingleStringKey(Functions functions,
+                                                         LuceneReferenceResolver referenceResolver,
+                                                         IndexShard indexShard,
                                                          DocTableInfo table,
                                                          List<String> partitionValues,
                                                          LuceneQueryBuilder luceneQueryBuilder,
@@ -313,6 +320,45 @@ final class GroupByOptimizedIterator {
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
 
         IndexService indexService = sharedShardContext.indexService();
+        Version shardCreatedVersion = indexShard.getVersionCreated();
+        RamAccounting ramAccounting = collectTask.getRamAccounting();
+
+        LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
+            collectPhase.where(),
+            collectTask.txnCtx(),
+            partitionValues,
+            indexService.indexAnalyzers(),
+            table,
+            shardCreatedVersion,
+            indexService.cache(),
+            collectTask.killToken()::raiseIfKilled
+        );
+
+        // Combine the 2-phase ordinal key optimization with doc-value based aggregation, same as
+        // DocValuesGroupByOptimizedIterator does for the generic single/many key case. A DocValueAggregator
+        // always yields a partial result; for ITER_FINAL the partial results are finished here via
+        // AggregateMode#finishCollect (terminatePartial), same as the generic group-by path in getRows().
+        List<DocValueAggregator> docValueAggregators = DocValuesAggregates.createAggregators(
+            functions,
+            referenceResolver,
+            groupProjection.values(),
+            collectPhase.toCollect(),
+            table,
+            shardCreatedVersion
+        );
+        if (docValueAggregators != null) {
+            return getIteratorWithDocValueAggregators(
+                searcher.item(),
+                keyRef.storageIdent(),
+                docValueAggregators,
+                aggregationFunctions(functions, groupProjection.values()),
+                groupProjection.mode(),
+                ramAccounting,
+                collectTask.memoryManager(),
+                collectTask.minNodeVersion(),
+                queryContext.query()
+            );
+        }
 
         InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx = docInputFactory.getCtx(collectTask.txnCtx());
         docCtx.add(collectPhase.toCollect().stream()::iterator);
@@ -325,23 +371,9 @@ final class GroupByOptimizedIterator {
         List<AggregationContext> aggregations = ctxForAggregations.aggregations();
         List<? extends LuceneCollectorExpression<?>> expressions = docCtx.expressions();
 
-        RamAccounting ramAccounting = collectTask.getRamAccounting();
-
-        Version shardCreatedVersion = indexShard.getVersionCreated();
         CollectorContext collectorContext
             = new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, partitionValues));
         InputRow inputRow = new InputRow(docCtx.topLevelInputs());
-
-        LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
-            collectPhase.where(),
-            collectTask.txnCtx(),
-            partitionValues,
-            indexService.indexAnalyzers(),
-            table,
-            shardCreatedVersion,
-            indexService.cache(),
-            collectTask.killToken()::raiseIfKilled
-        );
 
         return getIterator(
             bigArrays,
@@ -357,6 +389,183 @@ final class GroupByOptimizedIterator {
             queryContext.query(),
             collectorContext,
             groupProjection.mode());
+    }
+
+    /// Combines the 2-phase ordinal-value lookup (see {@link #applyAggregatesGroupedByKey}) with the
+    /// doc-value-aggregators optimization (see {@link DocValuesGroupByOptimizedIterator}): the group key is
+    /// still resolved from Lucene ordinals in 2 phases (cheap long-keyed grouping first, resolving to the
+    /// actual term value only once per distinct term per segment), but the aggregation values are computed
+    /// directly from doc values via {@link DocValueAggregator}.
+    @SuppressWarnings("rawtypes")
+    private static BatchIterator<Row> getIteratorWithDocValueAggregators(IndexSearcher indexSearcher,
+                                                                         String keyColumnName,
+                                                                         List<DocValueAggregator> aggregators,
+                                                                         List<AggregationFunction> aggregationFunctions,
+                                                                         AggregateMode mode,
+                                                                         RamAccounting ramAccounting,
+                                                                         MemoryManager memoryManager,
+                                                                         Version minNodeVersion,
+                                                                         Query query) {
+        Killable.Token killToken = new Token();
+        return CollectingBatchIterator.newInstance(
+            killToken,
+            () -> getRowsFromDocValueAggregatorStates(
+                applyDocValueAggregatorsGroupedByKey(
+                    indexSearcher,
+                    keyColumnName,
+                    aggregators,
+                    ramAccounting,
+                    memoryManager,
+                    minNodeVersion,
+                    query,
+                    killToken
+                ),
+                aggregators,
+                aggregationFunctions,
+                mode,
+                ramAccounting
+            ),
+            true
+        );
+    }
+
+    @SuppressWarnings("rawtypes")
+    private static List<AggregationFunction> aggregationFunctions(Functions functions, List<Aggregation> aggregations) {
+        List<AggregationFunction> aggregationFunctions = new ArrayList<>(aggregations.size());
+        for (int i = 0; i < aggregations.size(); i++) {
+            aggregationFunctions.add((AggregationFunction<?, ?>) functions.getQualified(aggregations.get(i)));
+        }
+        return aggregationFunctions;
+    }
+
+    @SuppressWarnings("rawtypes")
+    private static Iterable<Row> getRowsFromDocValueAggregatorStates(Map<BytesRef, Object[]> groupedStates,
+                                                                     List<DocValueAggregator> aggregators,
+                                                                     List<AggregationFunction> aggregationFunctions,
+                                                                     AggregateMode mode,
+                                                                     RamAccounting ramAccounting) {
+        return () -> groupedStates.entrySet().stream()
+            .map(new Function<Map.Entry<BytesRef, Object[]>, Row>() {
+
+                final Object[] cells = new Object[1 + aggregators.size()];
+                final RowN row = new RowN(cells);
+
+                @SuppressWarnings("unchecked")
+                @Override
+                public Row apply(Map.Entry<BytesRef, Object[]> entry) {
+                    cells[0] = BytesRefs.toString(entry.getKey());
+                    Object[] states = entry.getValue();
+                    for (int i = 0, c = 1; i < states.length; i++, c++) {
+                        // A DocValueAggregator always yields a partial result; finishCollect returns it
+                        // as-is for ITER_PARTIAL and finishes it (terminatePartial) for ITER_FINAL.
+                        Object partial = aggregators.get(i).partialResult(ramAccounting, states[i]);
+                        cells[c] = mode.finishCollect(ramAccounting, aggregationFunctions.get(i), partial);
+                    }
+                    return row;
+                }
+            })
+            .iterator();
+    }
+
+    /// Groups docs matching `query` by the ordinal of `keyColumnName`'s `SortedSetDocValues` (phase 1) and
+    /// aggregates them using `aggregators`. The ordinal is only resolved to the actual term value (phase 2)
+    /// the first time it is encountered within a segment; the resulting state is then cached (by ordinal) for
+    /// the remainder of that segment and shared with the global, cross-segment map keyed by the resolved term,
+    /// so that further docs matching the same term - whether in this segment or another one - keep mutating the
+    /// same aggregation state directly, without a separate merge/reduce step.
+    @SuppressWarnings("rawtypes")
+    private static Map<BytesRef, Object[]> applyDocValueAggregatorsGroupedByKey(IndexSearcher indexSearcher,
+                                                                                String keyColumnName,
+                                                                                List<DocValueAggregator> aggregators,
+                                                                                RamAccounting ramAccounting,
+                                                                                MemoryManager memoryManager,
+                                                                                Version minNodeVersion,
+                                                                                Query query,
+                                                                                Token killToken) throws IOException {
+        final HashMap<BytesRef, Object[]> statesByKey = new HashMap<>();
+        final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1f);
+        final List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
+        Object[] nullStates = null;
+
+        LongObjectHashMap<Object[]> stateByOrdInLeaf = new LongObjectHashMap<>();
+        for (LeafReaderContext leaf : leaves) {
+            killToken.raiseIfKilled();
+            Scorer scorer = weight.scorer(leaf);
+            if (scorer == null) {
+                continue;
+            }
+            for (int i = 0, aggregatorsSize = aggregators.size(); i < aggregatorsSize; i++) {
+                aggregators.get(i).loadDocValues(leaf);
+            }
+            SortedSetDocValues values = DocValues.getSortedSet(leaf.reader(), keyColumnName);
+            DocIdSetIterator docs = scorer.iterator();
+            Bits liveDocs = leaf.reader().getLiveDocs();
+            stateByOrdInLeaf.clear();
+            for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
+                killToken.raiseIfKilled();
+                if (docDeleted(liveDocs, doc)) {
+                    continue;
+                }
+                if (values.advanceExact(doc)) {
+                    long ord = values.nextOrd();
+                    Object[] states = stateByOrdInLeaf.get(ord);
+                    if (states == null) {
+                        BytesRef sharedKey = values.lookupOrd(ord);
+                        states = statesByKey.get(sharedKey);
+                        if (states == null) {
+                            states = initDocValueAggregatorStates(aggregators, ramAccounting, memoryManager, minNodeVersion, doc);
+                            BytesRef key = BytesRef.deepCopyOf(sharedKey);
+                            ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + key.length + HASH_MAP_ENTRY_OVERHEAD);
+                            statesByKey.put(key, states);
+                        } else {
+                            applyDocValueAggregators(aggregators, ramAccounting, doc, states);
+                        }
+                        stateByOrdInLeaf.put(ord, states);
+                    } else {
+                        applyDocValueAggregators(aggregators, ramAccounting, doc, states);
+                    }
+                    if (values.docValueCount() > 1) {
+                        throw new ArrayViaDocValuesUnsupportedException(keyColumnName);
+                    }
+                } else {
+                    if (nullStates == null) {
+                        nullStates = initDocValueAggregatorStates(aggregators, ramAccounting, memoryManager, minNodeVersion, doc);
+                    } else {
+                        applyDocValueAggregators(aggregators, ramAccounting, doc, nullStates);
+                    }
+                }
+            }
+        }
+        if (nullStates != null) {
+            statesByKey.put(null, nullStates);
+        }
+        return statesByKey;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static Object[] initDocValueAggregatorStates(List<DocValueAggregator> aggregators,
+                                                         RamAccounting ramAccounting,
+                                                         MemoryManager memoryManager,
+                                                         Version minNodeVersion,
+                                                         int doc) throws IOException {
+        Object[] states = new Object[aggregators.size()];
+        for (int i = 0; i < aggregators.size(); i++) {
+            var aggregator = aggregators.get(i);
+            Object state = aggregator.initialState(ramAccounting, memoryManager, minNodeVersion);
+            state = aggregator.apply(ramAccounting, doc, state);
+            states[i] = state;
+        }
+        return states;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static void applyDocValueAggregators(List<DocValueAggregator> aggregators,
+                                                 RamAccounting ramAccounting,
+                                                 int doc,
+                                                 Object[] states) throws IOException {
+        for (int i = 0; i < aggregators.size(); i++) {
+            states[i] = aggregators.get(i).apply(ramAccounting, doc, states[i]);
+        }
     }
 
     static BatchIterator<Row> getIterator(BigArrays bigArrays,
