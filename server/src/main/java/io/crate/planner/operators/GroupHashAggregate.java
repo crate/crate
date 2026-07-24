@@ -195,6 +195,14 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                     0,
                     null
                 );
+                executionPlan = Eval.addEvalProj(
+                    plannerContext,
+                    params,
+                    subQueryResults,
+                    executionPlan,
+                    new ArrayList<>(aggregatesOriginal), // eval outputs
+                    outputs // source outputs
+                );
                 return executionPlan;
             } else {
                 executionPlan.addProjection(
