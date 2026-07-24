@@ -97,7 +97,7 @@ public final class TransportAnalyzeAction {
 
                     if (previous == null) {
                         newSamples.completeAsync(
-                            () -> reservoirSampler.getSamples(req.relation(), req.columns()),
+                            () -> reservoirSampler.getSamples(req.relation(), req.tableOid(), req.columns()),
                             executor
                         );
                         return newSamples
@@ -140,7 +140,11 @@ public final class TransportAnalyzeAction {
                     .toList();
 
                 currentFetch = currentFetch
-                    .thenCompose(ignored -> fetchSamples(table.ident(), primitiveColumns))
+                    .thenCompose(ignored -> fetchSamples(
+                        table.ident(),
+                        table.oid(),
+                        primitiveColumns
+                    ))
                     .thenAccept(samples -> {
                         entries.put(table.ident(), samples.createTableStats(primitiveColumns));
                     });
@@ -174,7 +178,9 @@ public final class TransportAnalyzeAction {
         return listener;
     }
 
-    private CompletableFuture<Samples> fetchSamples(RelationName relationName, List<Reference> columns) {
+    private CompletableFuture<Samples> fetchSamples(RelationName relationName,
+                                                    int tableOid,
+                                                    List<Reference> columns) {
         FutureActionListener<FetchSampleResponse> listener = new FutureActionListener<>();
         DiscoveryNodes discoveryNodes = clusterService.state().nodes();
         MultiActionListener<FetchSampleResponse, ?, FetchSampleResponse> multiListener = new MultiActionListener<>(
@@ -194,7 +200,7 @@ public final class TransportAnalyzeAction {
             transportService.sendRequest(
                 node,
                 FETCH_SAMPLES,
-                new FetchSampleRequest(relationName, columns, node.getVersion()),
+                new FetchSampleRequest(relationName, tableOid, columns, node.getVersion()),
                 responseHandler
             );
         }

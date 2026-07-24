@@ -138,7 +138,7 @@ class ShowStatementAnalyzer {
     /// ```
     QueriedSelectRelation analyzeShowSetting(ShowSessionParameter node) {
         QualifiedName parameter = node.parameter();
-        TableInfo tableInfo = schemas.getTableInfo(PgSettingsTable.IDENT);
+        TableInfo tableInfo = PgSettingsTable.INSTANCE;
         TableRelation tableRelation = new TableRelation(tableInfo);
         List<Symbol> outputs;
         List<String> outputNames;
