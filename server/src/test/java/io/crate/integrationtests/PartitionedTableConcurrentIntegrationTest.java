@@ -53,6 +53,8 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
@@ -491,10 +493,11 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         ensureGreen();
     }
 
+    @Repeat(iterations = 100)
     @Test
     public void test_concurrent_swaps() throws Exception {
-        execute("create table t1 (p int) partitioned by (p)");
-        execute("create table t2 (p2 int)");
+        execute("create table t1 (p int) partitioned by (p) clustered into 2 shards with (number_of_replicas = 0)");
+        execute("create table t2 (p2 int) clustered into 1 shards with (number_of_replicas = 0)");
 
         final AtomicReference<Throwable> error = new AtomicReference<>();
         final CyclicBarrier barrier = new CyclicBarrier(2);
@@ -542,10 +545,11 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][0]).isEqualTo(50L);
     }
 
+    @Repeat(iterations = 100)
     @Test
     public void test_concurrent_table_swaps_with_insert_from_values() throws Exception {
-        execute("create table t1 (p int) partitioned by (p)");
-        execute("create table t2 (p2 int)");
+        execute("create table t1 (p int) partitioned by (p) clustered into 2 shards with (number_of_replicas = 0)");
+        execute("create table t2 (p2 int) clustered into 1 shards with (number_of_replicas = 0)");
 
         final AtomicReference<Throwable> error = new AtomicReference<>();
         final CyclicBarrier barrier = new CyclicBarrier(2);
