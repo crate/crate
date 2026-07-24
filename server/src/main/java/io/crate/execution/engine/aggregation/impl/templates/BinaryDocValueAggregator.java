@@ -40,17 +40,20 @@ public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
     private final String columnName;
     private final TriFunction<RamAccounting, MemoryManager, Version, T> newState;
     private final CheckedTriFunction<RamAccounting, SortedSetDocValues, T, T, IOException> onValue;
+    private final TriFunction<RamAccounting, T, T, T> reducer;
 
     protected SortedSetDocValues values;
 
     public BinaryDocValueAggregator(
         String columnName,
         TriFunction<RamAccounting, MemoryManager, Version, T> newState,
-        CheckedTriFunction<RamAccounting, SortedSetDocValues, T, T, IOException> onValue) {
+        CheckedTriFunction<RamAccounting, SortedSetDocValues, T, T, IOException> onValue,
+        TriFunction<RamAccounting, T, T, T> reducer) {
 
         this.columnName = columnName;
         this.newState = newState;
         this.onValue = onValue;
+        this.reducer = reducer;
     }
 
     @Override
@@ -75,5 +78,10 @@ public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
     @Override
     public Object partialResult(RamAccounting ramAccounting, T state) {
         return state;
+    }
+
+    @Override
+    public T reduce(RamAccounting ramAccounting, T state1, T state2) {
+        return reducer.apply(ramAccounting, state1, state2);
     }
 }

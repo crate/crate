@@ -169,6 +169,7 @@ public abstract class NumericStandardDeviationAggregation<V extends NumericVaria
                 long sizeAfter = state.size();
                 ramAccounting.addBytes(sizeBefore - sizeAfter);
                 return state;
-            });
+            },
+            this::reduce);
     }
 }
