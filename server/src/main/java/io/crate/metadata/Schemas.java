@@ -504,6 +504,36 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     }
 
     /**
+     * Returns the RelationInfo for the given persisted OID.
+     * <p>
+     * Persisted relation OIDs were introduced in 6.3. Callers must handle
+     * relations created before 6.3 separately.
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends RelationInfo> T getRelationInfo(int persistedOid) {
+        assert persistedOid > Metadata.OID_UNASSIGNED && persistedOid <= clusterService.state().metadata().currentMaxTableOid() :
+            "persisted table OID must be > OID_UNASSIGNED and <= currentMaxTableOid";
+        for (SchemaInfo schema : this) {
+            for (RelationInfo relation : schema.getTables()) {
+                if (persistedOid == relation.oid()) {
+                    return (T) relation;
+                }
+            }
+            for (ViewInfo view : schema.getViews()) {
+                if (persistedOid == view.oid()) {
+                    return (T) view;
+                }
+            }
+            for (RelationMetadata.ForeignTable foreignTable : schema.getForeignTables()) {
+                if (persistedOid == foreignTable.oid()) {
+                    return (T) foreignTable;
+                }
+            }
+        }
+        throw new RelationUnknown(String.format(Locale.ENGLISH, "Relation not found for oid=%s", persistedOid));
+    }
+
+    /**
      * Returns the OID assigned to the given relation.
      *
      * WARNING: All tables created before 6.3 are assigned OID_UNASSIGNED internally, meaning that all execution paths
