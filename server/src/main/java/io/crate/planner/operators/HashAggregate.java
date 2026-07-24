@@ -121,8 +121,6 @@ public class HashAggregate extends ForwardingLogicalPlan {
                         RowGranularity.CLUSTER
                     )
                 );
-
-                // executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregates(), aggregatesRewritten);
                 return executionPlan;
             }
 
@@ -134,8 +132,6 @@ public class HashAggregate extends ForwardingLogicalPlan {
                 RowGranularity.CLUSTER
             );
             executionPlan.addProjection(fullAggregation);
-
-            // executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregates(), aggregatesRewritten);
             return executionPlan;
         }
         AggregationProjection toPartial = projectionBuilder.aggregationProjection(
@@ -155,8 +151,6 @@ public class HashAggregate extends ForwardingLogicalPlan {
             RowGranularity.CLUSTER
         );
         ResultDescription resultDescription = executionPlan.resultDescription();
-
-        // executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregates(), aggregatesRewritten);
 
         return new Merge(
             executionPlan,
@@ -210,17 +204,6 @@ public class HashAggregate extends ForwardingLogicalPlan {
             coordinatorTxnCtx,
             nodeCtx
         );
-//        // define the outer function which contains the inner function as argument.
-//        String nodeName = "collection_" + name;
-//        List<Symbol> outerArguments = List.of(collectSetFunction);
-//        try {
-//            return allocateBuiltinOrUdfFunction(
-//                schema, nodeName, outerArguments, null, ignoreNulls, context, true, windowDefinition, coordinatorTxnCtx, nodeCtx);
-//        } catch (UnsupportedOperationException ex) {
-//            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-//                "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
-//        }
-
     }
 
     public List<Function> aggregates() {

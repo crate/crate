@@ -92,32 +92,6 @@ public final class Eval extends ForwardingLogicalPlan {
         return true;
     }
 
-    public static <S extends Symbol> ExecutionPlan addEvalProj(PlannerContext plannerContext,
-                                                               Row params,
-                                                               SubQueryResults subQueryResults,
-                                                               ExecutionPlan executionPlan,
-                                                               List<S> outputs,
-                                                               List<S> sourceOutputs) {
-        if (hasDistinctFunctions(outputs)) {
-            executionPlan = Eval.addEvalProjection(
-                plannerContext,
-                executionPlan,
-                params,
-                subQueryResults,
-                new ArrayList<>(outputs),
-                new ArrayList<>(sourceOutputs)
-            );
-        }
-        return executionPlan;
-    }
-
-    private static <S extends Symbol> boolean hasDistinctFunctions(List<S> outputs) {
-        return outputs.stream()
-            .filter(Function.class::isInstance)
-            .map(Function.class::cast)
-            .anyMatch(Function::distinct);
-    }
-
     Eval(LogicalPlan source, List<Symbol> outputs) {
         super(source);
         this.outputs = outputs;
