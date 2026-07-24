@@ -123,7 +123,6 @@ public class HashAggregate extends ForwardingLogicalPlan {
                 );
                 return executionPlan;
             }
-
             AggregationProjection fullAggregation = projectionBuilder.aggregationProjection(
                 sourceOutputs,
                 aggregates,
@@ -151,7 +150,6 @@ public class HashAggregate extends ForwardingLogicalPlan {
             RowGranularity.CLUSTER
         );
         ResultDescription resultDescription = executionPlan.resultDescription();
-
         return new Merge(
             executionPlan,
             new MergePhase(
@@ -175,12 +173,15 @@ public class HashAggregate extends ForwardingLogicalPlan {
         );
     }
 
+    /// Replaces distinct functions with collect_set().
+    /// An outer function is added in `Eval` to complement the behavior.
+    /// For example, `avg(distinct x)` will be replaced with `collect_set(x)` here,
+    /// and in `Eval` we'll have `collection_avg(collect_set(x))`.
     public static <S extends Symbol> List<S> distinctToCollectSet(PlannerContext plannerContext, List<S> functions) {
         return functions.stream()
             .map((S s) -> distinctToCollectSet(plannerContext.transactionContext(), plannerContext.nodeContext(), s))
             .toList();
     }
-
 
     private static <S extends Symbol> S distinctToCollectSet(CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx, S s) {
         if (s instanceof Function fn && fn.distinct()) {

@@ -39,6 +39,9 @@ import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 
+/// Rewrites functions and their arguments (recursively) by replacing
+/// distinct functions with collection_func_name(collect_set(col)).
+/// For example count(distinct x) is replaced with collection_count(collect_set(x)).
 public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
     private final CoordinatorTxnCtx txnCtx;
     private final NodeContext nodeCtx;

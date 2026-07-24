@@ -57,10 +57,8 @@ import io.crate.planner.PositionalOrderBy;
  */
 public final class Eval extends ForwardingLogicalPlan {
 
-    private final List<Symbol> outputs;
+    private List<Symbol> outputs;
 
-    // source.outputs() and Eval.outputs() may have distinct functions
-    // that are rewritten when building the execution plan.
     public static LogicalPlan create(LogicalPlan source, List<Symbol> outputs) {
         if (areEvalSymbolsEqual(outputs, source.outputs())) {
             return source;
@@ -68,11 +66,16 @@ public final class Eval extends ForwardingLogicalPlan {
         return new Eval(source, outputs);
     }
 
+    /// Used to handle distinct functions that look the same in a logical plan (e.g., `count(distinct x)`),
+    /// but are represented differently in `Eval` and `HashAggregate` for example.
+    /// This keeps the current behavior, where we have different functions in `Eval` and `HashAggregate`:
+    /// `collection_count(collect_set(x))` and `collect_set(x)` respectively.
     public static boolean areEvalSymbolsEqual(List<Symbol> evalOutput, List<Symbol> sourceOutput) {
         if (evalOutput.size() != sourceOutput.size()) {
             return false;
         }
         for (int i = 0; i < evalOutput.size(); i++) {
+            // todo check if order matters, and if we should use a set.
             Symbol aSym = evalOutput.get(i);
             Symbol bSym = sourceOutput.get(i);
             if (aSym instanceof Function aFn && bSym instanceof Function bFn && aFn.distinct() && bFn.distinct()) {
@@ -165,13 +168,13 @@ public final class Eval extends ForwardingLogicalPlan {
                                             Row params,
                                             SubQueryResults subQueryResults) {
 
-        var outputsRewritten = new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext())
+        this.outputs = new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext())
             .rewrite(outputs);
 
         PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
         PositionalOrderBy newOrderBy = null;
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
-        List<Symbol> boundOutputs = Lists.map(outputsRewritten, binder);
+        List<Symbol> boundOutputs = Lists.map(outputs, binder);
         if (orderBy != null) {
             newOrderBy = orderBy.tryMapToNewOutputs(source.outputs(), boundOutputs);
             if (newOrderBy == null) {
