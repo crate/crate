@@ -43,6 +43,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
@@ -65,6 +66,8 @@ public final class Eval extends ForwardingLogicalPlan {
 
     private final List<Symbol> outputs;
 
+    // source.outputs() and Eval.outputs() may have distinct functions
+    // that are rewritten when building the execution plan.
     public static LogicalPlan create(LogicalPlan source, List<Symbol> outputs) {
         if (source.outputs().equals(outputs)) {
             return source;
@@ -207,13 +210,21 @@ public final class Eval extends ForwardingLogicalPlan {
         List<Symbol> list = new ArrayList<>();
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);
-            if (output instanceof Function original && original.distinct()) {
+            Function original = null;
+            if (output instanceof Function) {
+                original = (Function) output;
+            } else if (output instanceof AliasSymbol alias && alias.symbol() instanceof Function) {
+                original = (Function) alias.symbol();
+            }
+
+            if (original != null && original.distinct()) {
                 Symbol collectionCountWrap = wrapWithCollectionCount(plannerContext, original);
                 list.add(collectionCountWrap);
             } else {
                 list.add(output);
             }
         }
+
         return list;
     }
 
