@@ -76,7 +76,7 @@ public class FetchTask implements Task {
     private final List<? extends Routing> routings;
     private final Map<RelationName, Collection<Reference>> toFetch;
     private final UUID jobId;
-    private final Function<RelationName, DocTableInfo> getTableInfo;
+    private final Function<Index, DocTableInfo> getTableInfo;
     private final CompletableFuture<Void> result = new CompletableFuture<>();
 
 
@@ -92,7 +92,7 @@ public class FetchTask implements Task {
                      String localNodeId,
                      SharedShardContexts sharedShardContexts,
                      Metadata metadata,
-                     Function<RelationName, DocTableInfo> getTableInfo,
+                     Function<Index, DocTableInfo> getTableInfo,
                      List<? extends Routing> routings) {
         this.jobId = jobId;
         this.phase = phase;
@@ -143,11 +143,13 @@ public class FetchTask implements Task {
     }
 
     public DocTableInfo table(int readerId) {
-        var partitionName = tableIdent(readerId);
-        var relationName = partitionName.relationName();
-        var table = getTableInfo.apply(relationName);
+        SharedShardContext sharedShardContext = shardContexts.get(readerId);
+        if (sharedShardContext == null) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Reader with id %d not found", readerId));
+        }
+        var table = getTableInfo.apply(sharedShardContext.indexShard().shardId().getIndex());
         if (table == null) {
-            throw new IllegalStateException("TableInfo missing for relation " + relationName);
+            throw new IllegalStateException("TableInfo missing for readerId=" + readerId);
         }
         return table;
     }

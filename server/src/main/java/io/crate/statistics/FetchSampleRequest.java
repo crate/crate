@@ -21,6 +21,8 @@
 
 package io.crate.statistics;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
@@ -37,10 +39,15 @@ import java.util.Objects;
 public final class FetchSampleRequest extends TransportRequest {
 
     private final RelationName relationName;
+    private final int tableOid;
     private final List<Reference> columns;
 
-    public FetchSampleRequest(RelationName relationName, List<Reference> columns, Version nodeVersion) {
+    public FetchSampleRequest(RelationName relationName,
+                              int tableOid,
+                              List<Reference> columns,
+                              Version nodeVersion) {
         this.relationName = relationName;
+        this.tableOid = tableOid;
         this.columns = columns;
         if (nodeVersion.before(Version.V_5_7_0)) {
             throw new UnsupportedOperationException("Cannot run ANALYZE request in a mixed cluster with nodes older than 5.7.0");
@@ -52,6 +59,12 @@ public final class FetchSampleRequest extends TransportRequest {
             throw new UnsupportedOperationException("Cannot run ANALYZE request in a mixed cluster with nodes older than 5.7.0");
         }
         this.relationName = new RelationName(in);
+        if ((in.getVersion().before(Version.V_6_4_0) && in.getVersion().onOrAfter(Version.V_6_3_7))
+            || in.getVersion().onOrAfter(Version.V_6_4_2)) {
+            this.tableOid = in.readInt();
+        } else {
+            this.tableOid = OID_UNASSIGNED;
+        }
         if (in.getVersion().before(Version.V_5_7_0)) {
             in.readVInt();  // Old max samples value
         }
@@ -65,6 +78,10 @@ public final class FetchSampleRequest extends TransportRequest {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         relationName.writeTo(out);
+        if ((out.getVersion().before(Version.V_6_4_0) && out.getVersion().onOrAfter(Version.V_6_3_7))
+            || out.getVersion().onOrAfter(Version.V_6_4_2)) {
+            out.writeInt(tableOid);
+        }
         if (out.getVersion().before(Version.V_5_7_0)) {
             out.writeVInt(30_000);  // Old max samples value
         }
@@ -78,13 +95,17 @@ public final class FetchSampleRequest extends TransportRequest {
         return relationName;
     }
 
+    public int tableOid() {
+        return tableOid;
+    }
+
     public List<Reference> columns() {
         return columns;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(relationName, columns);
+        return Objects.hash(relationName, tableOid, columns);
     }
 
     @Override
@@ -98,6 +119,8 @@ public final class FetchSampleRequest extends TransportRequest {
         if (!(obj instanceof FetchSampleRequest other)) {
             return false;
         }
-        return relationName.equals(other.relation()) && columns.equals(other.columns());
+        return relationName.equals(other.relation()) &&
+               tableOid == other.tableOid() &&
+               columns.equals(other.columns());
     }
 }

@@ -161,7 +161,7 @@ public class CountOperation {
         };
         try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
             PartitionName partitionName = clusterService.state().metadata().getPartitionName(indexShard.shardId().getIndexUUID());
-            DocTableInfo table = schemas.getTableInfo(partitionName.relationName());
+            DocTableInfo table = schemas.getTableInfo(indexShard.shardId().getIndex());
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
                 filter,
                 txnCtx,

@@ -106,7 +106,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         // As this instance is cached but the relation name or table schema may change for the same index UUID,
         // we must not store the partition name or table info inside the instance but resolve on the fly instead.
         PartitionName partitionName = clusterService.state().metadata().getPartitionName(indexShard.shardId().getIndexUUID());
-        DocTableInfo table = nodeCtx.schemas().getTableInfo(partitionName.relationName());
+        DocTableInfo table = nodeCtx.schemas().getTableInfo(indexShard.shardId().getIndex());
         this.referenceResolver = new LuceneReferenceResolver(
             partitionName.values(),
             table.partitionedByColumns(),
@@ -134,7 +134,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         }
         IndexService indexService = sharedShardContext.indexService();
         PartitionName partitionName = clusterService.state().metadata().getPartitionName(indexShard.shardId().getIndexUUID());
-        DocTableInfo table = nodeCtx.schemas().getTableInfo(partitionName.relationName());
+        DocTableInfo table = nodeCtx.schemas().getTableInfo(indexShard.shardId().getIndex());
         Version shardCreatedVersion = indexShard.getVersionCreated();
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
@@ -164,7 +164,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     @Override
     protected BatchIterator<Row> getProjectionFusedIterator(RoutedCollectPhase normalizedPhase, CollectTask collectTask) {
         PartitionName partitionName = clusterService.state().metadata().getPartitionName(indexShard.shardId().getIndexUUID());
-        DocTableInfo table = nodeCtx.schemas().getTableInfo(partitionName.relationName());
+        DocTableInfo table = nodeCtx.schemas().getTableInfo(indexShard.shardId().getIndex());
         var it = GroupByOptimizedIterator.tryOptimizeSingleStringKey(
             indexShard,
             table,
@@ -216,7 +216,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
         IndexService indexService = sharedShardContext.indexService();
         PartitionName partitionName = clusterService.state().metadata().getPartitionName(indexShard.shardId().getIndexUUID());
-        DocTableInfo table = nodeCtx.schemas().getTableInfo(partitionName.relationName());
+        DocTableInfo table = nodeCtx.schemas().getTableInfo(indexShard.shardId().getIndex());
         Version shardCreatedVersion = indexShard.getVersionCreated();
         final var queryContext = luceneQueryBuilder.convert(
             phase.where(),
