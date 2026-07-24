@@ -30,6 +30,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.data.BatchIterator;
@@ -48,7 +49,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.PKAndVersion;
@@ -70,7 +70,7 @@ public final class PKLookupTask extends AbstractTask {
     private final Function<RamAccounting, MemoryManager> memoryManagerFactory;
     private final int ramAccountingBlockSizeInBytes;
     private final ArrayList<MemoryManager> memoryManagers = new ArrayList<>();
-    private final Function<RelationName, DocTableInfo> getTableInfo;
+    private final Function<Index, DocTableInfo> getTableInfo;
     private final Function<String, PartitionName> getPartitionName;
     private long totalBytes = -1;
 
@@ -81,7 +81,7 @@ public final class PKLookupTask extends AbstractTask {
                  Function<RamAccounting, MemoryManager> memoryManagerFactory,
                  int ramAccountingBlockSizeInBytes,
                  TransactionContext txnCtx,
-                 Function<RelationName, DocTableInfo> getTableInfo,
+                 Function<Index, DocTableInfo> getTableInfo,
                  Function<String, PartitionName> getPartitionName,
                  InputFactory inputFactory,
                  PKLookupOperation pkLookupOperation,

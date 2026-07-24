@@ -132,10 +132,11 @@ public final class ReservoirSampler {
         rateLimiter.setMBPerSec(newReadLimit.getMbFrac()); // mbPerSec is volatile in SimpleRateLimiter, one volatile write
     }
 
-    Samples getSamples(RelationName relationName, List<Reference> columns) {
+    Samples getSamples(RelationName relationName, int tableOid, List<Reference> columns) {
         TableInfo table;
         try {
-            table = schemas.getTableInfo(relationName);
+            table = tableOid == Metadata.OID_UNASSIGNED ?
+                schemas.getTableInfo(relationName) : schemas.getRelationInfo(tableOid);
         } catch (RelationUnknown e) {
             return Samples.EMPTY;
         }
