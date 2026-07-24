@@ -23,7 +23,6 @@ package io.crate.planner.operators;
 
 import static io.crate.analyze.expressions.ExpressionAnalyzer.allocateFunction;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
-import static io.crate.planner.operators.Eval.addEvalProj;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -67,7 +66,7 @@ import io.crate.planner.distribution.DistributionInfo;
 public class HashAggregate extends ForwardingLogicalPlan {
 
     private static final String MERGE_PHASE_NAME = "mergeOnHandler";
-    final List<Function> aggregates;
+    List<Function> aggregates;
 
     HashAggregate(LogicalPlan source, List<Function> aggregates) {
         super(source);
@@ -94,8 +93,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
         ExecutionPlan executionPlan = source.build(
             executor, plannerContext, planHints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
 
-        var aggregatesRewritten = distinctToCollectSet(plannerContext, aggregates);
-        AggregationOutputValidator.validateOutputs(aggregatesRewritten);
+        this.aggregates = distinctToCollectSet(plannerContext, this.aggregates);
+        AggregationOutputValidator.validateOutputs(aggregates);
         var paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
         var sourceOutputs = source.outputs();
@@ -107,7 +106,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
                 executionPlan.addProjection(
                     projectionBuilder.aggregationProjection(
                         sourceOutputs,
-                        aggregatesRewritten,
+                        aggregates,
                         paramBinder,
                         AggregateMode.ITER_PARTIAL,
                         RowGranularity.SHARD
@@ -115,33 +114,33 @@ public class HashAggregate extends ForwardingLogicalPlan {
                 );
                 executionPlan.addProjection(
                     projectionBuilder.aggregationProjection(
-                        aggregatesRewritten,
-                        aggregatesRewritten,
+                        aggregates,
+                        aggregates,
                         paramBinder,
                         AggregateMode.PARTIAL_FINAL,
                         RowGranularity.CLUSTER
                     )
                 );
 
-                executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregates(), aggregatesRewritten);
+                // executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregates(), aggregatesRewritten);
                 return executionPlan;
             }
 
             AggregationProjection fullAggregation = projectionBuilder.aggregationProjection(
                 sourceOutputs,
-                aggregatesRewritten,
+                aggregates,
                 paramBinder,
                 AggregateMode.ITER_FINAL,
                 RowGranularity.CLUSTER
             );
             executionPlan.addProjection(fullAggregation);
 
-            executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregates(), aggregatesRewritten);
+            // executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregates(), aggregatesRewritten);
             return executionPlan;
         }
         AggregationProjection toPartial = projectionBuilder.aggregationProjection(
             sourceOutputs,
-            aggregatesRewritten,
+            aggregates,
             paramBinder,
             AggregateMode.ITER_PARTIAL,
             source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
@@ -149,15 +148,15 @@ public class HashAggregate extends ForwardingLogicalPlan {
         executionPlan.addProjection(toPartial);
 
         AggregationProjection toFinal = projectionBuilder.aggregationProjection(
-            aggregatesRewritten,
-            aggregatesRewritten,
+            aggregates,
+            aggregates,
             paramBinder,
             AggregateMode.PARTIAL_FINAL,
             RowGranularity.CLUSTER
         );
         ResultDescription resultDescription = executionPlan.resultDescription();
 
-        executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregates(), aggregatesRewritten);
+        // executionPlan = addEvalProj(plannerContext, params, subQueryResults, executionPlan, aggregates(), aggregatesRewritten);
 
         return new Merge(
             executionPlan,
@@ -176,7 +175,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
             ),
             NO_LIMIT,
             0,
-            aggregatesRewritten.size(),
+            aggregates.size(),
             1,
             null
         );

@@ -69,10 +69,27 @@ public final class Eval extends ForwardingLogicalPlan {
     // source.outputs() and Eval.outputs() may have distinct functions
     // that are rewritten when building the execution plan.
     public static LogicalPlan create(LogicalPlan source, List<Symbol> outputs) {
-        if (source.outputs().equals(outputs)) {
+        if (areEvalSymbolsEqual(outputs, source.outputs())) {
             return source;
         }
         return new Eval(source, outputs);
+    }
+
+    public static boolean areEvalSymbolsEqual(List<Symbol> evalOutput, List<Symbol> sourceOutput) {
+        if (evalOutput.size() != sourceOutput.size()) {
+            return false;
+        }
+        for (int i = 0; i < evalOutput.size(); i++) {
+            Symbol aSym = evalOutput.get(i);
+            Symbol bSym = sourceOutput.get(i);
+            if (aSym instanceof Function aFn && bSym instanceof Function bFn && aFn.distinct() && bFn.distinct()) {
+                return false;
+            }
+            if (!aSym.equals(bSym)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static <S extends Symbol> ExecutionPlan addEvalProj(PlannerContext plannerContext,
@@ -119,7 +136,7 @@ public final class Eval extends ForwardingLogicalPlan {
                                SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
             executor, plannerContext, planHints, projectionBuilder, limit, offset, null, pageSizeHint, params, subQueryResults);
-        if (outputs.equals(source.outputs())) {
+        if (areEvalSymbolsEqual(outputs, source.outputs())) {
             return executionPlan;
         }
         return addEvalProjection(plannerContext, executionPlan, params, subQueryResults, outputs, source.outputs());
