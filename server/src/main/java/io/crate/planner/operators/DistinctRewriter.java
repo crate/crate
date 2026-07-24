@@ -32,14 +32,14 @@ import io.crate.analyze.WindowDefinition;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.expression.symbol.AliasSymbol;
-import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 
-public class DistinctRewriter extends DefaultTraversalSymbolVisitor<Object, Symbol> {
+public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
     private final CoordinatorTxnCtx txnCtx;
     private final NodeContext nodeCtx;
 
