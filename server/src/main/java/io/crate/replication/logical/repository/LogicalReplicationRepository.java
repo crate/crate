@@ -89,6 +89,7 @@ import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.PublicationsStateAction.Response;
 import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
 import io.crate.replication.logical.metadata.ConnectionInfo;
+import io.crate.replication.logical.metadata.Subscription;
 
 /**
  * Derived from org.opensearch.replication.repository.RemoteClusterRepository
@@ -499,16 +500,19 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     private CompletableFuture<Response> getPublicationsState() {
-        return getRemoteClient().execute(
-            PublicationsStateAction.INSTANCE,
-            new PublicationsStateAction.Request(
-                logicalReplicationService.subscriptions().get(subscriptionName).publications(),
-                logicalReplicationService.subscriptions().get(subscriptionName).connectionInfo().settings().get(ConnectionInfo.USERNAME.getKey())
-            )).thenApply(r ->
-                new Response(
-                    metadataUpgradeService.upgradeMetadata(r.metadata()),
-                    r.unknownPublications()
-                ));
+        Subscription subscription = logicalReplicationService.subscriptions().get(subscriptionName);
+        if (subscription == null) {
+            return CompletableFuture.failedFuture(new NullPointerException("Subscription disappeared: " + subscriptionName));
+        }
+        PublicationsStateAction.Request request = new PublicationsStateAction.Request(
+            subscription.publications(),
+            subscription.connectionInfo().settings().get(ConnectionInfo.USERNAME.getKey())
+        );
+        return getRemoteClient().execute(PublicationsStateAction.INSTANCE, request).thenApply(r ->
+            new Response(
+                metadataUpgradeService.upgradeMetadata(r.metadata()),
+                r.unknownPublications()
+            ));
     }
 
     private void releasePublisherResources(Client remoteClient,
