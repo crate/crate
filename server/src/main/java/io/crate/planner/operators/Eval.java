@@ -60,7 +60,7 @@ public final class Eval extends ForwardingLogicalPlan {
     private final List<Symbol> outputs;
 
     public static LogicalPlan create(LogicalPlan source, List<Symbol> outputs) {
-        if (areEvalSymbolsEqual(outputs, source.outputs())) {
+        if (isRedundant(outputs, source.outputs())) {
             return source;
         }
         return new Eval(source, outputs);
@@ -70,7 +70,7 @@ public final class Eval extends ForwardingLogicalPlan {
     /// but are represented differently in `Eval` and `HashAggregate` for example.
     /// This keeps the current behavior, where we have different functions in `Eval` and `HashAggregate`:
     /// `collection_count(collect_set(x))` and `collect_set(x)` respectively.
-    public static boolean areEvalSymbolsEqual(List<Symbol> evalOutput, List<Symbol> sourceOutput) {
+    public static boolean isRedundant(List<Symbol> evalOutput, List<Symbol> sourceOutput) {
         if (evalOutput.size() != sourceOutput.size()) {
             return false;
         }
@@ -106,7 +106,7 @@ public final class Eval extends ForwardingLogicalPlan {
                                SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
             executor, plannerContext, planHints, projectionBuilder, limit, offset, null, pageSizeHint, params, subQueryResults);
-        if (areEvalSymbolsEqual(outputs, source.outputs())) {
+        if (isRedundant(outputs, source.outputs())) {
             return executionPlan;
         }
         return addEvalProjection(plannerContext, executionPlan, params, subQueryResults);

@@ -281,6 +281,7 @@ public class Function implements Symbol, Cloneable {
         result = 31 * result + signature.hashCode();
         result = 31 * result + (filter == null ? 0 : filter.hashCode());
         result = 31 * result + returnType.hashCode();
+        result = 31 * result + Boolean.hashCode(distinct);
         return result;
     }
 

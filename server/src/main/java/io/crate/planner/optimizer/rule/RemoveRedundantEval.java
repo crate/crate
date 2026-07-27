@@ -39,7 +39,7 @@ public final class RemoveRedundantEval implements Rule<Eval> {
     public RemoveRedundantEval() {
         this.pattern = typeOf(Eval.class)
             // See comment on Eval.areEvalSymbolsEqual for the reason of the special comparison.
-            .with(eval -> Eval.areEvalSymbolsEqual(eval.outputs(), eval.source().outputs()));
+            .with(eval -> Eval.isRedundant(eval.outputs(), eval.source().outputs()));
     }
 
     @Override
