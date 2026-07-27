@@ -21,8 +21,6 @@
 
 package io.crate.blob.v2;
 
-import static io.crate.blob.v2.BlobIndex.isBlobIndex;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -90,9 +88,9 @@ public class BlobIndicesService implements IndexEventListener {
 
     @Override
     public void afterIndexCreated(IndexService indexService) {
-        String indexName = indexService.index().name();
         String indexUUID = indexService.index().uuid();
-        if (isBlobIndex(indexName)) {
+        Settings settings = indexService.getIndexSettings().getSettings();
+        if (SETTING_INDEX_BLOBS_ENABLED.get(settings)) {
             BlobIndex oldBlobIndex = indices.put(indexUUID, new BlobIndex(LOGGER, globalBlobPath));
             assert oldBlobIndex == null : "There must not be an index present if a new index is created";
         }
@@ -102,9 +100,9 @@ public class BlobIndicesService implements IndexEventListener {
     public void afterIndexRemoved(Index index,
                                   IndexSettings indexSettings,
                                   IndicesClusterStateService.IndexRemovalReason reason) {
-        String indexName = index.name();
         String indexUUID = index.uuid();
-        if (isBlobIndex(indexName)) {
+        Settings settings = indexSettings.getSettings();
+        if (SETTING_INDEX_BLOBS_ENABLED.get(settings)) {
             BlobIndex blobIndex = indices.remove(indexUUID);
             assert blobIndex != null : "BlobIndex not found on afterIndexDeleted";
         }
@@ -112,11 +110,9 @@ public class BlobIndicesService implements IndexEventListener {
 
     @Override
     public void afterIndexShardCreated(IndexShard indexShard) {
-        String indexName = indexShard.shardId().getIndexName();
         String indexUUID = indexShard.shardId().getIndexUUID();
-        if (isBlobIndex(indexName)) {
-            BlobIndex blobIndex = indices.get(indexUUID);
-            assert blobIndex != null : "blobIndex must exists if a shard is created in it";
+        BlobIndex blobIndex = indices.get(indexUUID);
+        if (blobIndex != null) {
             blobIndex.createShard(indexShard);
         }
     }
@@ -127,10 +123,9 @@ public class BlobIndicesService implements IndexEventListener {
                                        IndexShardState currentState,
                                        @Nullable String reason) {
         if (currentState == IndexShardState.POST_RECOVERY) {
-            String indexName = indexShard.shardId().getIndexName();
             String indexUUID = indexShard.shardId().getIndexUUID();
-            if (isBlobIndex(indexName)) {
-                BlobIndex blobIndex = indices.get(indexUUID);
+            BlobIndex blobIndex = indices.get(indexUUID);
+            if (blobIndex != null) {
                 blobIndex.initializeShard(indexShard);
             }
         }
@@ -138,9 +133,8 @@ public class BlobIndicesService implements IndexEventListener {
 
     @Override
     public void afterIndexShardDeleted(ShardId shardId, Settings indexSettings) {
-        String index = shardId.getIndexName();
         String indexUUID = shardId.getIndexUUID();
-        if (isBlobIndex(index)) {
+        if (SETTING_INDEX_BLOBS_ENABLED.get(indexSettings)) {
             BlobIndex blobIndex = indices.get(indexUUID);
             if (blobIndex != null) {
                 blobIndex.removeShard(shardId);
@@ -158,15 +152,11 @@ public class BlobIndicesService implements IndexEventListener {
     }
 
     public BlobShard blobShardSafe(ShardId shardId) {
-        String index = shardId.getIndexName();
-        if (isBlobIndex(index)) {
-            BlobShard blobShard = blobShard(shardId);
-            if (blobShard == null) {
-                throw new ShardNotFoundException(shardId);
-            }
-            return blobShard;
+        BlobShard blobShard = blobShard(shardId);
+        if (blobShard == null) {
+            throw new ShardNotFoundException(shardId);
         }
-        throw new BlobsDisabledException(shardId.getIndex());
+        return blobShard;
     }
 
     public BlobShard localBlobShard(String index, String digest) {

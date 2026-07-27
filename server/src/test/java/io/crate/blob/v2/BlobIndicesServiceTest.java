@@ -21,18 +21,21 @@
 
 package io.crate.blob.v2;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.TimeUnit;
 
 import org.apache.lucene.util.IOUtils;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ClusterServiceUtils;
@@ -65,6 +68,14 @@ public class BlobIndicesServiceTest extends ESTestCase {
     @Test
     public void testBlobComponentsAreNotCreatedForNonBlobIndex() throws Exception {
         IndexService indexService = mock(IndexService.class);
+        IndexMetadata indexMetadata = new IndexMetadata.Builder()
+            .settings(Settings.builder()
+                .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+            )
+            .numberOfShards(1)
+            .numberOfReplicas(0)
+            .build();
+        when(indexService.getIndexSettings()).thenReturn(new IndexSettings(indexMetadata, Settings.EMPTY));
         Index index = new Index("dummy", UUIDs.randomBase64UUID());
         when(indexService.index()).thenReturn(index);
         blobIndicesService.afterIndexCreated(indexService);
