@@ -315,9 +315,12 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("CREATE SNAPSHOT " + snapshotName() +
                 " TABLE custom.backmeup PARTITION (date='1970-01-01'), custom.backmeup  WITH (wait_for_completion=true)");
         assertThat(response.rowCount()).isEqualTo(1L);
-        execute("select unnest(concrete_indices) as idx, state from sys.snapshots order by 1");
-        // All indices show up twice because the repos have the same fs path.
-        assertThat(response).hasRowCount(6);
+        execute("select name, array_length(concrete_indices, 1) as idx, state from sys.snapshots order by 1");
+        // Shows up twice because the repos have the same fs path.
+        assertThat(response).hasRows(
+            "my_snapshot| 3| SUCCESS",
+            "my_snapshot| 3| SUCCESS"
+        );
     }
 
     @Test
