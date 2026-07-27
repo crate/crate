@@ -91,7 +91,7 @@ public class Function implements Symbol, Cloneable {
     protected final Signature signature;
     @Nullable
     protected final Symbol filter;
-    protected boolean distinct;
+    protected final boolean distinct;
 
     public Function(Signature signature, List<Symbol> arguments, DataType<?> returnType) {
         this(signature, arguments, returnType, null, false);
