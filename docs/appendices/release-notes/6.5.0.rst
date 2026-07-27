@@ -135,6 +135,10 @@ Performance and Resilience Improvements
   with doc values enabled: aggregation values are now read directly from doc
   values where possible.
 
+- `Somil Jain <https://github.com/somiljain2006>`_ improved metadata query
+  performance by caching analyzed ``ViewInfo`` instances, reducing repeated
+  analysis of view definitions when accessing ``information_schema`` views.
+
 Administration and Operations
 -----------------------------
 
