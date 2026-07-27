@@ -77,6 +77,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.stats.CommonStats;
+import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
 import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.ClusterState;
@@ -488,15 +489,14 @@ public class IndexShardTests extends IndexShardTestCase {
     @Test
     public void testShardStats() throws Exception {
         IndexShard shard = newStartedShard();
+        CommonStats commonStats = new CommonStats(CommonStatsFlags.ALL);
+        commonStats.docs.add(new DocsStats(10, 2, 400));
         ShardStats stats = new ShardStats(
             shard.routingEntry(),
             shard.shardPath(),
-            new CommonStats(),
-            shard.seqNoStats(),
-            shard.getRetentionLeaseStats()
+            commonStats
         );
         assertThat(shard.shardPath().getRootDataPath().toString()).isEqualTo(stats.getDataPath());
-        assertThat(shard.getRetentionLeaseStats()).isEqualTo(stats.getRetentionLeaseStats());
 
         try (var out = new BytesStreamOutput()) {
             stats.writeTo(out);
@@ -504,7 +504,7 @@ public class IndexShardTests extends IndexShardTestCase {
             stats = new ShardStats(in);
 
             assertThat(shard.shardPath().getRootDataPath().toString()).isEqualTo(stats.getDataPath());
-            assertThat(shard.getRetentionLeaseStats()).isEqualTo(stats.getRetentionLeaseStats());
+            assertThat(commonStats.getDocs()).isEqualTo(stats.getStats().getDocs());
         }
 
         try (var out = new BytesStreamOutput()) {
@@ -515,7 +515,7 @@ public class IndexShardTests extends IndexShardTestCase {
             stats = new ShardStats(in);
 
             assertThat(shard.shardPath().getRootDataPath().toString()).isEqualTo(stats.getDataPath());
-            assertThat(shard.getRetentionLeaseStats()).isEqualTo(stats.getRetentionLeaseStats());
+            assertThat(commonStats.getDocs()).isEqualTo(stats.getStats().getDocs());
         }
 
         closeShards(shard);

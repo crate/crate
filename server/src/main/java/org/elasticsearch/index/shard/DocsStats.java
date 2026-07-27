@@ -19,11 +19,12 @@
 
 package org.elasticsearch.index.shard;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-
-import java.io.IOException;
+import org.elasticsearch.index.store.StoreStats;
 
 public final class DocsStats implements Writeable {
 
@@ -89,5 +90,23 @@ public final class DocsStats implements Writeable {
     public long getAverageSizeInBytes() {
         long totalDocs = count + deleted;
         return totalDocs == 0 ? 0 : totalSizeInBytes / totalDocs;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + (int) (count ^ (count >>> 32));
+        result = prime * result + (int) (deleted ^ (deleted >>> 32));
+        result = prime * result + (int) (totalSizeInBytes ^ (totalSizeInBytes >>> 32));
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof DocsStats other
+            && count == other.count
+            && deleted == other.deleted
+            && totalSizeInBytes == other.totalSizeInBytes;
     }
 }

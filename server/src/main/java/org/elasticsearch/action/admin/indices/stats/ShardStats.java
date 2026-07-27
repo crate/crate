@@ -30,41 +30,20 @@ import org.elasticsearch.index.engine.CommitStats;
 import org.elasticsearch.index.seqno.RetentionLeaseStats;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.shard.ShardPath;
-import org.jspecify.annotations.Nullable;
 
 public class ShardStats implements Writeable {
 
     private final ShardRouting shardRouting;
     private final CommonStats commonStats;
-
-    @Nullable
-    private final SeqNoStats seqNoStats;
-
-    @Nullable
-    private RetentionLeaseStats retentionLeaseStats;
-
-    /**
-     * Gets the current retention lease stats.
-     *
-     * @return the current retention lease stats
-     */
-    public RetentionLeaseStats getRetentionLeaseStats() {
-        return retentionLeaseStats;
-    }
-
     private final String dataPath;
 
     public ShardStats(
             ShardRouting routing,
             ShardPath shardPath,
-            CommonStats commonStats,
-            SeqNoStats seqNoStats,
-            RetentionLeaseStats retentionLeaseStats) {
+            CommonStats commonStats) {
         this.shardRouting = routing;
         this.dataPath = shardPath.getRootDataPath().toString();
         this.commonStats = commonStats;
-        this.seqNoStats = seqNoStats;
-        this.retentionLeaseStats = retentionLeaseStats;
     }
 
     /**
@@ -76,11 +55,6 @@ public class ShardStats implements Writeable {
 
     public CommonStats getStats() {
         return this.commonStats;
-    }
-
-    @Nullable
-    public SeqNoStats getSeqNoStats() {
-        return this.seqNoStats;
     }
 
     public String getDataPath() {
@@ -98,9 +72,9 @@ public class ShardStats implements Writeable {
         dataPath = in.readString();
         if (before650) {
             in.readBoolean(); // isCustomDataPath
+            in.readOptionalWriteable(SeqNoStats::new);
+            in.readOptionalWriteable(RetentionLeaseStats::new);
         }
-        seqNoStats = in.readOptionalWriteable(SeqNoStats::new);
-        retentionLeaseStats = in.readOptionalWriteable(RetentionLeaseStats::new);
     }
 
     @Override
@@ -109,15 +83,15 @@ public class ShardStats implements Writeable {
         commonStats.writeTo(out);
         boolean before650 = out.getVersion().before(Version.V_6_5_0);
         if (before650) {
-            out.writeOptionalWriteable(null);
+            out.writeOptionalWriteable(null); // commitStats
             // Was statePath, use dataPath instead as dummy - it was unused anyway
             out.writeString(dataPath);
         }
         out.writeString(dataPath);
         if (before650) {
             out.writeBoolean(false); // isCustomDataPath - was unused, use false dummy value
+            out.writeOptionalWriteable(null); // seqNoStats
+            out.writeOptionalWriteable(null); // retentionLeaseStats
         }
-        out.writeOptionalWriteable(seqNoStats);
-        out.writeOptionalWriteable(retentionLeaseStats);
     }
 }

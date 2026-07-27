@@ -22,7 +22,6 @@ package org.elasticsearch.action.admin.indices.stats;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
@@ -36,8 +35,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.seqno.RetentionLeaseStats;
-import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
@@ -127,30 +124,16 @@ public class TransportIndicesStats extends TransportBroadcastByNodeAction<Indice
         }
 
         CommonStatsFlags flags = new CommonStatsFlags().clear();
-
         if (request.docs()) {
             flags.set(CommonStatsFlags.Flag.Docs);
         }
         if (request.store()) {
             flags.set(CommonStatsFlags.Flag.Store);
         }
-
-        SeqNoStats seqNoStats;
-        RetentionLeaseStats retentionLeaseStats;
-        try {
-            seqNoStats = indexShard.seqNoStats();
-            retentionLeaseStats = indexShard.getRetentionLeaseStats();
-        } catch (AlreadyClosedException e) {
-            // shard is closed - no stats is fine
-            seqNoStats = null;
-            retentionLeaseStats = null;
-        }
         listener.onResponse(new ShardStats(
             indexShard.routingEntry(),
             indexShard.shardPath(),
-            new CommonStats(indexShard, flags),
-            seqNoStats,
-            retentionLeaseStats
+            new CommonStats(indexShard, flags)
         ));
     }
 }

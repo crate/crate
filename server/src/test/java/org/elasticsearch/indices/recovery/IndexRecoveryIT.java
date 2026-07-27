@@ -1398,11 +1398,15 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("OPTIMIZE TABLE doc.test");
         // wait for all history to be discarded
         assertBusy(() -> {
-            var indicesStats = client().stats(new IndicesStatsRequest(relationName)).get();
-            for (ShardStats shardStats : indicesStats.getShards()) {
-                final long maxSeqNo = shardStats.getSeqNoStats().getMaxSeqNo();
-                assertThat(shardStats.getRetentionLeaseStats().leases().leases().stream().allMatch(
-                               l -> l.retainingSequenceNumber() == maxSeqNo + 1)).as(shardStats.getRetentionLeaseStats().leases() + " should discard history up to " + maxSeqNo).isTrue();
+            execute("select seq_no_stats['max_seq_no'], retention_leases['leases']['retaining_seq_no'] from sys.shards where table_name = 'test'");
+            for (Object[] row : response.rows()) {
+                long maxSeqNo = (long) row[0];
+                List<Long> retainingSequenceNumbers = (List<Long>) row[1];
+                for (Long retainingSeqNo : retainingSequenceNumbers) {
+                    assertThat(retainingSeqNo)
+                        .as("Should discard history up to maxSeqNo")
+                        .isEqualTo(maxSeqNo + 1);
+                }
             }
         });
         execute("OPTIMIZE TABLE doc.test"); // ensure that all operations are in the safe commit
@@ -1411,16 +1415,19 @@ public class IndexRecoveryIT extends IntegTestCase {
         final ShardStats shardStats = indicesStats.getShards()[0];
         final long docCount = shardStats.getStats().docs.getCount();
         assertThat(shardStats.getStats().docs.getDeleted()).isEqualTo(0L);
-        assertThat(shardStats.getSeqNoStats().getMaxSeqNo() + 1).isEqualTo(docCount);
+
+        execute("select seq_no_stats['max_seq_no'], retention_leases['leases']['retaining_seq_no'] from sys.shards where table_name = 'test'");
+        assertThat(response.rows()[0][0]).isEqualTo(docCount - 1);
 
         final ShardId shardId = new ShardId(index, 0);
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
         final IndexShardRoutingTable indexShardRoutingTable = clusterService().state().routingTable().shardRoutingTable(shardId);
 
         final ShardRouting replicaShardRouting = indexShardRoutingTable.replicaShards().get(0);
-        indicesStats = client().stats(new IndicesStatsRequest(relationName)).get();
-        assertThat(indicesStats.getShards()[0].getRetentionLeaseStats()
-                       .leases().contains(ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting))).as("should have lease for " + replicaShardRouting).isTrue();
+        String peerRecoveryRetentionLeaseId = ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting);
+        execute("select retention_leases['leases']['id'] from sys.shards where table_name = 'test'");
+        List<String> retentionLeaseIds = (List<String>) response.rows()[0][0];
+        assertThat(retentionLeaseIds).contains(peerRecoveryRetentionLeaseId);
         cluster().restartNode(discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
                                       new TestCluster.RestartCallback() {
                                           @Override
@@ -1463,10 +1470,9 @@ public class IndexRecoveryIT extends IntegTestCase {
                                               execute("OPTIMIZE TABLE doc.test");
 
                                               assertBusy(() -> {
-                                                  var indicesStats = client().stats(new IndicesStatsRequest(relationName)).get();
-                                                  assertThat(indicesStats.getShards()[0].getRetentionLeaseStats().leases().contains(
-                                                            ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting))).as(
-                                                        "should no longer have lease for " + replicaShardRouting).isFalse();
+                                                    execute("select retention_leases['leases']['id'] from sys.shards where table_name = 'test'");
+                                                    List<String> retentionLeaseIds = (List<String>) response.rows()[0][0];
+                                                    assertThat(retentionLeaseIds).doesNotContain(peerRecoveryRetentionLeaseId);
                                               });
                                               return super.onNodeStopped(nodeName);
                                           }
