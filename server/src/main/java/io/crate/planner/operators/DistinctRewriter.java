@@ -28,14 +28,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import io.crate.analyze.WindowDefinition;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 
@@ -124,8 +122,6 @@ public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
     /// `count(distinct x)` -> `collection_count(collect_set(x))`
     private Function toCollectionFunction(Function original) {
         String name = original.name();
-        WindowDefinition windowDefinition = (original instanceof WindowFunction wf) ? wf.windowDefinition() : null;
-        Boolean ignoreNulls = (original instanceof WindowFunction wf) ? wf.ignoreNulls() : null;
         String schema = original.signature().getName().schema();
 
         // define the outer function which contains the inner function as argument.
@@ -133,15 +129,17 @@ public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
         var collectSetFn = toCollectSet(original);
         List<Symbol> outerArguments = List.of(collectSetFn);
         try {
+            // No window definition or ignore-nulls flag is passed on, because a `WindowFunction` is
+            // always built with `distinct = false` and therefore never reaches this method.
             return allocateBuiltinOrUdfFunction(
                 schema,
                 nodeName,
                 outerArguments,
                 null,
-                ignoreNulls,
+                null,
                 null,
                 false,
-                windowDefinition,
+                null,
                 txnCtx,
                 nodeCtx
             );
