@@ -110,10 +110,10 @@ public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
             newArgs.add(rewritten);
         }
 
-        // Return `fn` untouched when nothing was rewritten. Callers such as `Order` and `Eval`
-        // rewrite their own outputs and `source.outputs()` separately, and those lists share
-        // instances. `InputColumns` resolves non-deterministic functions through an
-        // IdentityHashMap, so handing out fresh copies would break the lookup.
+        // Return `fn` untouched when nothing was rewritten.
+        // Callers such as `Order` and `Eval` rewrite their own outputs and `source.outputs()` separately,
+        // and those lists share instances.
+        // Returning copies might break lookups between the different collections.
         if (!fn.distinct()) {
             return changed
                 ? new Function(fn.signature(), newArgs, fn.valueType(), fn.filter(), false)
