@@ -168,10 +168,10 @@ public final class Eval extends ForwardingLogicalPlan {
                                             Row params,
                                             SubQueryResults subQueryResults) {
 
-        var outputsRewritten = new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext(), false)
-            .rewrite(outputs);
-        List<Symbol> sourceOutputsRewritten = new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext(), true)
-            .rewrite(source.outputs());
+        var txnCtx = plannerContext.transactionContext();
+        var nodeCtx = plannerContext.nodeContext();
+        var outputsRewritten = DistinctRewriter.toCollectionFunctions(outputs, txnCtx, nodeCtx);
+        List<Symbol> sourceOutputsRewritten = DistinctRewriter.toCollectSet(source.outputs(), txnCtx, nodeCtx);
 
         PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
         PositionalOrderBy newOrderBy = null;

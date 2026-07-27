@@ -87,8 +87,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
         ExecutionPlan executionPlan = source.build(
             executor, plannerContext, planHints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
 
-        var aggregatesRewritten = new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext(), true)
-            .rewriteFunctions(aggregates);
+        var aggregatesRewritten = DistinctRewriter.toCollectSet(
+            aggregates, plannerContext.transactionContext(), plannerContext.nodeContext());
 
         AggregationOutputValidator.validateOutputs(aggregatesRewritten);
         var paramBinder = new SubQueryAndParamBinder(params, subQueryResults);

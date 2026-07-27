@@ -38,26 +38,44 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 
 public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
+
     private final CoordinatorTxnCtx txnCtx;
     private final NodeContext nodeCtx;
     private final boolean collectionSetOnly;
 
-    public DistinctRewriter(CoordinatorTxnCtx txnCtx, NodeContext nodeCtx, boolean collectionSetOnly) {
+    private DistinctRewriter(CoordinatorTxnCtx txnCtx, NodeContext nodeCtx, boolean collectionSetOnly) {
         this.txnCtx = txnCtx;
         this.nodeCtx = nodeCtx;
         this.collectionSetOnly = collectionSetOnly;
     }
 
-    public List<Symbol> rewrite(List<Symbol> outputs) {
-        return outputs.stream()
-            .map((Symbol symbol) -> symbol.accept(DistinctRewriter.this, null))
-            .toList();
+    /// Replaces distinct functions with the aggregate that collects their values.
+    /// `count(distinct x)` -> `collect_set(x)`
+    ///
+    /// This is the form the aggregation projections consume, so it is used by the aggregate
+    /// operators and by consumers that need to match against what those operators emit.
+    public static <T extends Symbol> List<T> toCollectSet(List<T> symbols,
+                                                          CoordinatorTxnCtx txnCtx,
+                                                          NodeContext nodeCtx) {
+        return new DistinctRewriter(txnCtx, nodeCtx, true).rewrite(symbols);
     }
 
-    public List<Function> rewriteFunctions(List<Function> outputs) {
-        return outputs.stream()
-            .map((Function fn) -> fn.accept(DistinctRewriter.this, null))
-            .map(Function.class::cast)
+    /// Replaces distinct functions with the scalar applied over the collected values.
+    /// `count(distinct x)` -> `collection_count(collect_set(x))`
+    ///
+    /// This is the finalized form, evaluated on top of what [#toCollectSet] produced.
+    public static <T extends Symbol> List<T> toCollectionFunctions(List<T> symbols,
+                                                                   CoordinatorTxnCtx txnCtx,
+                                                                   NodeContext nodeCtx) {
+        return new DistinctRewriter(txnCtx, nodeCtx, false).rewrite(symbols);
+    }
+
+    /// Safe because every branch of [#visitFunction] returns a [Function], and any symbol the
+    /// visitor does not handle is returned unchanged.
+    @SuppressWarnings("unchecked")
+    private <T extends Symbol> List<T> rewrite(List<T> symbols) {
+        return symbols.stream()
+            .map(symbol -> (T) symbol.accept(this, null))
             .toList();
     }
 
@@ -84,11 +102,6 @@ public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
 
     @Override
     public Symbol visitFunction(Function fn, Object context) {
-        if (fn.distinct() && fn.arguments().size() > 1) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "%s(DISTINCT x) does not accept more than one argument", fn.name()));
-        }
-
         boolean changed = false;
         List<Symbol> newArgs = new ArrayList<>(fn.arguments().size());
         for (Symbol arg : fn.arguments()) {
@@ -97,6 +110,10 @@ public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
             newArgs.add(rewritten);
         }
 
+        // Return `fn` untouched when nothing was rewritten. Callers such as `Order` and `Eval`
+        // rewrite their own outputs and `source.outputs()` separately, and those lists share
+        // instances. `InputColumns` resolves non-deterministic functions through an
+        // IdentityHashMap, so handing out fresh copies would break the lookup.
         if (!fn.distinct()) {
             return changed
                 ? new Function(fn.signature(), newArgs, fn.valueType(), fn.filter(), false)
@@ -153,14 +170,11 @@ public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
     }
 
     /// `count(distinct x)` -> `collect_set(x)`
-    public Function toCollectSet(Function original) {
-        var arguments = original.arguments();
-        var filter = original.filter();
-
+    private Function toCollectSet(Function original) {
         return allocateFunction(
             CollectSetAggregation.NAME,
-            arguments,
-            filter,
+            original.arguments(),
+            original.filter(),
             null,
             txnCtx,
             nodeCtx

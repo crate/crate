@@ -138,14 +138,15 @@ public class Order extends ForwardingLogicalPlan {
             plan = Merge.ensureOnHandler(plan, plannerContext);
         }
 
-        DistinctRewriter dw = new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext(), true);
-        var outputsRewritten = dw.rewrite(outputs);
+        var txnCtx = plannerContext.transactionContext();
+        var nodeCtx = plannerContext.nodeContext();
+        var outputsRewritten = DistinctRewriter.toCollectSet(outputs, txnCtx, nodeCtx);
         var orderByRewritten = new OrderBy(
-            dw.rewrite(orderBy.orderBySymbols()),
+            DistinctRewriter.toCollectSet(orderBy.orderBySymbols(), txnCtx, nodeCtx),
             this.orderBy.reverseFlags(),
             this.orderBy.nullsFirst()
         );
-        List<Symbol> sourceOutputs = dw.rewrite(source.outputs());
+        List<Symbol> sourceOutputs = DistinctRewriter.toCollectSet(source.outputs(), txnCtx, nodeCtx);
 
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         List<Symbol> boundOutputs = Lists.map(outputsRewritten, binder);

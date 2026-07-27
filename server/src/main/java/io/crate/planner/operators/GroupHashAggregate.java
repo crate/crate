@@ -151,9 +151,10 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         }
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
-        DistinctRewriter dw = new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext(), true);
-        var outputsRewritten = dw.rewrite(outputs);
-        var aggregatesRewritten = dw.rewriteFunctions(aggregates);
+        var txnCtx = plannerContext.transactionContext();
+        var nodeCtx = plannerContext.nodeContext();
+        var outputsRewritten = DistinctRewriter.toCollectSet(outputs, txnCtx, nodeCtx);
+        var aggregatesRewritten = DistinctRewriter.toCollectSet(aggregates, txnCtx, nodeCtx);
 
         List<Symbol> sourceOutputs = source.outputs();
         if (shardsContainAllGroupKeyValues()) {
