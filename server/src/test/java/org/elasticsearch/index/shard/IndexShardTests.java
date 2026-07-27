@@ -492,7 +492,6 @@ public class IndexShardTests extends IndexShardTestCase {
             shard.routingEntry(),
             shard.shardPath(),
             new CommonStats(),
-            shard.commitStats(),
             shard.seqNoStats(),
             shard.getRetentionLeaseStats()
         );

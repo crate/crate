@@ -36,7 +36,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.engine.CommitStats;
 import org.elasticsearch.index.seqno.RetentionLeaseStats;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.shard.IndexShard;
@@ -136,16 +135,13 @@ public class TransportIndicesStats extends TransportBroadcastByNodeAction<Indice
             flags.set(CommonStatsFlags.Flag.Store);
         }
 
-        CommitStats commitStats;
         SeqNoStats seqNoStats;
         RetentionLeaseStats retentionLeaseStats;
         try {
-            commitStats = indexShard.commitStats();
             seqNoStats = indexShard.seqNoStats();
             retentionLeaseStats = indexShard.getRetentionLeaseStats();
         } catch (AlreadyClosedException e) {
             // shard is closed - no stats is fine
-            commitStats = null;
             seqNoStats = null;
             retentionLeaseStats = null;
         }
@@ -153,7 +149,6 @@ public class TransportIndicesStats extends TransportBroadcastByNodeAction<Indice
             indexShard.routingEntry(),
             indexShard.shardPath(),
             new CommonStats(indexShard, flags),
-            commitStats,
             seqNoStats,
             retentionLeaseStats
         ));
