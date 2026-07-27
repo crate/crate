@@ -496,20 +496,27 @@ public class IndexShardTests extends IndexShardTestCase {
             shard.getRetentionLeaseStats()
         );
         assertThat(shard.shardPath().getRootDataPath().toString()).isEqualTo(stats.getDataPath());
-        assertThat(shard.shardPath().getRootStatePath().toString()).isEqualTo(stats.getStatePath());
-        assertThat(shard.shardPath().isCustomDataPath()).isEqualTo(stats.isCustomDataPath());
         assertThat(shard.getRetentionLeaseStats()).isEqualTo(stats.getRetentionLeaseStats());
 
-        // try to serialize it to ensure values survive the serialization
-        BytesStreamOutput out = new BytesStreamOutput();
-        stats.writeTo(out);
-        StreamInput in = out.bytes().streamInput();
-        stats = new ShardStats(in);
+        try (var out = new BytesStreamOutput()) {
+            stats.writeTo(out);
+            StreamInput in = out.bytes().streamInput();
+            stats = new ShardStats(in);
 
-        assertThat(shard.shardPath().getRootDataPath().toString()).isEqualTo(stats.getDataPath());
-        assertThat(shard.shardPath().getRootStatePath().toString()).isEqualTo(stats.getStatePath());
-        assertThat(shard.shardPath().isCustomDataPath()).isEqualTo(stats.isCustomDataPath());
-        assertThat(shard.getRetentionLeaseStats()).isEqualTo(stats.getRetentionLeaseStats());
+            assertThat(shard.shardPath().getRootDataPath().toString()).isEqualTo(stats.getDataPath());
+            assertThat(shard.getRetentionLeaseStats()).isEqualTo(stats.getRetentionLeaseStats());
+        }
+
+        try (var out = new BytesStreamOutput()) {
+            out.setVersion(Version.V_6_4_1);
+            stats.writeTo(out);
+            StreamInput in = out.bytes().streamInput();
+            in.setVersion(Version.V_6_4_1);
+            stats = new ShardStats(in);
+
+            assertThat(shard.shardPath().getRootDataPath().toString()).isEqualTo(stats.getDataPath());
+            assertThat(shard.getRetentionLeaseStats()).isEqualTo(stats.getRetentionLeaseStats());
+        }
 
         closeShards(shard);
     }

@@ -53,8 +53,6 @@ public class ShardStats implements Writeable {
     }
 
     private final String dataPath;
-    private final String statePath;
-    private final boolean isCustomDataPath;
 
     public ShardStats(
             ShardRouting routing,
@@ -64,8 +62,6 @@ public class ShardStats implements Writeable {
             RetentionLeaseStats retentionLeaseStats) {
         this.shardRouting = routing;
         this.dataPath = shardPath.getRootDataPath().toString();
-        this.statePath = shardPath.getRootStatePath().toString();
-        this.isCustomDataPath = shardPath.isCustomDataPath();
         this.commonStats = commonStats;
         this.seqNoStats = seqNoStats;
         this.retentionLeaseStats = retentionLeaseStats;
@@ -91,23 +87,18 @@ public class ShardStats implements Writeable {
         return dataPath;
     }
 
-    public boolean isCustomDataPath() {
-        return isCustomDataPath;
-    }
-
-    public String getStatePath() {
-        return statePath;
-    }
-
     public ShardStats(StreamInput in) throws IOException {
         shardRouting = new ShardRouting(in);
         commonStats = new CommonStats(in);
-        if (in.getVersion().before(Version.V_6_5_0)) {
+        boolean before650 = in.getVersion().before(Version.V_6_5_0);
+        if (before650) {
             in.readOptionalWriteable(CommitStats::new);
+            in.readString(); // statePath
         }
-        statePath = in.readString();
         dataPath = in.readString();
-        isCustomDataPath = in.readBoolean();
+        if (before650) {
+            in.readBoolean(); // isCustomDataPath
+        }
         seqNoStats = in.readOptionalWriteable(SeqNoStats::new);
         retentionLeaseStats = in.readOptionalWriteable(RetentionLeaseStats::new);
     }
@@ -116,12 +107,16 @@ public class ShardStats implements Writeable {
     public void writeTo(StreamOutput out) throws IOException {
         shardRouting.writeTo(out);
         commonStats.writeTo(out);
-        if (out.getVersion().before(Version.V_6_5_0)) {
+        boolean before650 = out.getVersion().before(Version.V_6_5_0);
+        if (before650) {
             out.writeOptionalWriteable(null);
+            // Was statePath, use dataPath instead as dummy - it was unused anyway
+            out.writeString(dataPath);
         }
-        out.writeString(statePath);
         out.writeString(dataPath);
-        out.writeBoolean(isCustomDataPath);
+        if (before650) {
+            out.writeBoolean(false); // isCustomDataPath - was unused, use false dummy value
+        }
         out.writeOptionalWriteable(seqNoStats);
         out.writeOptionalWriteable(retentionLeaseStats);
     }
