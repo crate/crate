@@ -21,7 +21,6 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.analyze.expressions.ExpressionAnalyzer.allocateFunction;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 
 import java.util.ArrayList;
@@ -36,24 +35,19 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
-import io.crate.expression.symbol.WindowFunction;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.DependencyCarrier;
@@ -172,40 +166,6 @@ public class HashAggregate extends ForwardingLogicalPlan {
             aggregatesRewritten.size(),
             1,
             null
-        );
-    }
-
-    /// Replaces distinct functions with collect_set().
-    /// An outer function is added in `Eval` to complement the behavior.
-    /// For example, `avg(distinct x)` will be replaced with `collect_set(x)` here,
-    /// and in `Eval` we'll have `collection_avg(collect_set(x))`.
-    public static <S extends Symbol> List<S> distinctToCollectSet(PlannerContext plannerContext, List<S> functions) {
-        return functions.stream()
-            .map((S s) -> distinctToCollectSet(plannerContext.transactionContext(), plannerContext.nodeContext(), s))
-            .toList();
-    }
-
-    private static <S extends Symbol> S distinctToCollectSet(CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx, S s) {
-        if (s instanceof Function fn && fn.distinct()) {
-            return (S) makeCollectSetFunction(fn, coordinatorTxnCtx, nodeCtx);
-        }
-
-        return s;
-    }
-
-    public static Function makeCollectSetFunction(Function original, CoordinatorTxnCtx coordinatorTxnCtx, NodeContext nodeCtx) {
-        var arguments = original.arguments();
-        var filter = original.filter();
-        ExpressionAnalysisContext context = null;
-        Boolean ignoreNulls = (original instanceof WindowFunction wf) ? wf.ignoreNulls() : null;
-
-        return allocateFunction(
-            CollectSetAggregation.NAME,
-            arguments,
-            filter,
-            context,
-            coordinatorTxnCtx,
-            nodeCtx
         );
     }
 
