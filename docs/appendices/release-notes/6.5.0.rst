@@ -115,6 +115,13 @@ None
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Re-added the change to :ref:`swapping <alter_cluster_swap_table>` and
+  :ref:`renaming <sql-alter-table-rename-to>` of tables to no longer re-allocate
+  the shards of the swapped/renamed table, so that in-progress snapshots can
+  finish successfully. Previously, the in-progress snapshots would fail and
+  remain in ``PARTIAL`` state, with an ``ABORTED`` failure message showing in
+  the :ref:`sys.snapshots <sys-snapshots>` system table.
+
 - `Bing O'Dowd <https://github.com/bodowd>`_ improved query planning by
   deduplicating identical join conditions joined by the ``AND`` operator.
 
