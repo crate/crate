@@ -107,7 +107,7 @@ public class FunctionTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         in.setVersion(Version.V_6_4_0);
 
-        Function expected = new Function(signature, fn.arguments(), returnType, fn.filter(), false);
+        Function expected = new Function(fn.signature(), fn.arguments(), fn.valueType(), fn.filter(), false);
         assertThat(Symbol.fromStream(in)).isEqualTo(expected);
 
         // read current version
@@ -122,7 +122,6 @@ public class FunctionTest extends ESTestCase {
         in = out.bytes().streamInput();
         in.setVersion(Version.V_6_4_0);
 
-        expected = new Function(signature, fn.arguments(), returnType, fn.filter(), false);
         assertThat(Symbol.fromStream(in)).isEqualTo(expected);
     }
 
