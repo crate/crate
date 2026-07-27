@@ -30,13 +30,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
-import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
-import org.elasticsearch.action.admin.indices.stats.ShardStats;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.NoMasterBlockService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.disruption.BlockMasterServiceOnMaster;
@@ -47,7 +43,6 @@ import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.metadata.RelationName;
 
 /**
  * Tests relating to the loss of the master.
@@ -240,11 +235,13 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
 
         disruption.stopDisrupting();
 
-        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), "t");
         assertBusy(() -> {
-            IndicesStatsResponse stats = FutureUtils.get(client().stats(new IndicesStatsRequest(relationName).clear()));
-            for (ShardStats shardStats : stats.getShards()) {
-                assertThat(shardStats.getSeqNoStats().getGlobalCheckpoint()).as(shardStats.getShardRouting().toString()).isEqualTo(shardStats.getSeqNoStats().getLocalCheckpoint());
+            execute(
+                "select seq_no_stats['global_checkpoint'], seq_no_stats['local_checkpoint'] from sys.shards where schema_name = ? and table_name = ?",
+                new Object[] { sqlExecutor.getCurrentSchema(), "t" }
+            );
+            for (Object[] row : response.rows()) {
+                assertThat(row[0]).isEqualTo(row[1]);
             }
         }, 1, TimeUnit.MINUTES);
     }
