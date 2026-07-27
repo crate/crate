@@ -43,14 +43,6 @@ public class IndicesStatsRequest extends BroadcastRequest {
     private CommonStatsFlags flags = new CommonStatsFlags();
 
     /**
-     * Sets all flags to return all stats.
-     */
-    public IndicesStatsRequest all() {
-        flags.all();
-        return this;
-    }
-
-    /**
      * Clears all stats.
      */
     public IndicesStatsRequest clear() {

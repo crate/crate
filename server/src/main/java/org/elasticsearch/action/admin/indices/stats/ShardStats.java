@@ -21,6 +21,7 @@ package org.elasticsearch.action.admin.indices.stats;
 
 import java.io.IOException;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,8 +36,7 @@ public class ShardStats implements Writeable {
 
     private final ShardRouting shardRouting;
     private final CommonStats commonStats;
-    @Nullable
-    private final CommitStats commitStats;
+
     @Nullable
     private final SeqNoStats seqNoStats;
 
@@ -60,14 +60,12 @@ public class ShardStats implements Writeable {
             ShardRouting routing,
             ShardPath shardPath,
             CommonStats commonStats,
-            CommitStats commitStats,
             SeqNoStats seqNoStats,
             RetentionLeaseStats retentionLeaseStats) {
         this.shardRouting = routing;
         this.dataPath = shardPath.getRootDataPath().toString();
         this.statePath = shardPath.getRootStatePath().toString();
         this.isCustomDataPath = shardPath.isCustomDataPath();
-        this.commitStats = commitStats;
         this.commonStats = commonStats;
         this.seqNoStats = seqNoStats;
         this.retentionLeaseStats = retentionLeaseStats;
@@ -82,11 +80,6 @@ public class ShardStats implements Writeable {
 
     public CommonStats getStats() {
         return this.commonStats;
-    }
-
-    @Nullable
-    public CommitStats getCommitStats() {
-        return this.commitStats;
     }
 
     @Nullable
@@ -109,7 +102,9 @@ public class ShardStats implements Writeable {
     public ShardStats(StreamInput in) throws IOException {
         shardRouting = new ShardRouting(in);
         commonStats = new CommonStats(in);
-        commitStats = in.readOptionalWriteable(CommitStats::new);
+        if (in.getVersion().before(Version.V_6_5_0)) {
+            in.readOptionalWriteable(CommitStats::new);
+        }
         statePath = in.readString();
         dataPath = in.readString();
         isCustomDataPath = in.readBoolean();
@@ -121,7 +116,9 @@ public class ShardStats implements Writeable {
     public void writeTo(StreamOutput out) throws IOException {
         shardRouting.writeTo(out);
         commonStats.writeTo(out);
-        out.writeOptionalWriteable(commitStats);
+        if (out.getVersion().before(Version.V_6_5_0)) {
+            out.writeOptionalWriteable(null);
+        }
         out.writeString(statePath);
         out.writeString(dataPath);
         out.writeBoolean(isCustomDataPath);
