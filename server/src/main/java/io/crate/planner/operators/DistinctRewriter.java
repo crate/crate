@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Locale;
 
 import io.crate.analyze.WindowDefinition;
-import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
@@ -39,9 +38,6 @@ import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 
-/// Rewrites functions and their arguments (recursively) by replacing
-/// distinct functions with collection_func_name(collect_set(col)).
-/// For example count(distinct x) is replaced with collection_count(collect_set(x)).
 public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
     private final CoordinatorTxnCtx txnCtx;
     private final NodeContext nodeCtx;
@@ -61,7 +57,7 @@ public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
 
     public List<Function> rewriteFunctions(List<Function> outputs) {
         return outputs.stream()
-            .map((Function fn) -> visitFunction(fn, null))
+            .map((Function fn) -> fn.accept(DistinctRewriter.this, null))
             .map(Function.class::cast)
             .toList();
     }
@@ -80,35 +76,39 @@ public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
 
     @Override
     public Symbol visitFunction(Function fn, Object context) {
-        List<Symbol> arguments = new ArrayList<>(fn.arguments().size());
-        for (Symbol arg : fn.arguments()) {
-            Symbol rewritten = arg.accept(this, context);
-            arguments.add(rewritten);
+        if (fn.distinct() && fn.arguments().size() > 1) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                "%s(DISTINCT x) does not accept more than one argument", fn.name()));
         }
 
-        Function fnNewArgs = new Function(
+        List<Symbol> newArgs = new ArrayList<>(fn.arguments().size());
+        for (Symbol arg : fn.arguments()) {
+            Symbol rewritten = arg.accept(this, context);
+            newArgs.add(rewritten);
+        }
+
+        Function newFn = new Function(
             fn.signature(),
-            arguments,
+            newArgs,
             fn.valueType(),
             fn.filter(),
             // we'll un-distinct it anyway below
             false
         );
 
-        if (fn.distinct()) {
-            if (collectionSetOnly) {
-                return makeCollectSetFunction(fnNewArgs);
-            } else {
-                return wrapWithCollectionCount(fnNewArgs);
-            }
+        if (!fn.distinct()) {
+            return newFn;
+        }
+
+        if (collectionSetOnly) {
+            return toCollectSet(newFn);
         } else {
-            return fnNewArgs;
+            return toCollectionFunction(newFn);
         }
     }
 
-    private Symbol wrapWithCollectionCount(Function original) {
-        var arguments = original.arguments();
-        ExpressionAnalysisContext context = null;
+    /// `count(distinct x)` -> `collection_count(collect_set(x))`
+    private Function toCollectionFunction(Function original) {
         String name = original.name();
         WindowDefinition windowDefinition = (original instanceof WindowFunction wf) ? wf.windowDefinition() : null;
         Boolean ignoreNulls = (original instanceof WindowFunction wf) ? wf.ignoreNulls() : null;
@@ -116,7 +116,7 @@ public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
 
         // define the outer function which contains the inner function as argument.
         String nodeName = "collection_" + name;
-        var collectSetFn = makeCollectSetFunction(original);
+        var collectSetFn = toCollectSet(original);
         List<Symbol> outerArguments = List.of(collectSetFn);
         try {
             return allocateBuiltinOrUdfFunction(
@@ -125,7 +125,7 @@ public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
                 outerArguments,
                 null,
                 ignoreNulls,
-                context,
+                null,
                 false,
                 windowDefinition,
                 txnCtx,
@@ -133,21 +133,23 @@ public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
             );
         } catch (UnsupportedOperationException ex) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
+                "unknown function %s(DISTINCT %s)",
+                name,
+                original.arguments().get(0).valueType()), ex
+            );
         }
     }
 
-    public Function makeCollectSetFunction(Function original) {
+    /// `count(distinct x)` -> `collect_set(x)`
+    public Function toCollectSet(Function original) {
         var arguments = original.arguments();
         var filter = original.filter();
-        ExpressionAnalysisContext context = null;
-        Boolean ignoreNulls = (original instanceof WindowFunction wf) ? wf.ignoreNulls() : null;
 
         return allocateFunction(
             CollectSetAggregation.NAME,
             arguments,
             filter,
-            context,
+            null,
             txnCtx,
             nodeCtx
         );
