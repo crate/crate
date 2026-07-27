@@ -31,6 +31,7 @@ import java.util.Locale;
 import io.crate.analyze.WindowDefinition;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -64,14 +65,23 @@ public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
 
     @Override
     public Symbol visitAlias(AliasSymbol aliasSymbol, Object context) {
-        return new AliasSymbol(
-            aliasSymbol.alias(), aliasSymbol.symbol().accept(this, context)
-        );
+        Symbol rewritten = aliasSymbol.symbol().accept(this, context);
+        return rewritten == aliasSymbol.symbol()
+            ? aliasSymbol
+            : new AliasSymbol(aliasSymbol.alias(), rewritten);
     }
 
     @Override
     protected Symbol visitSymbol(Symbol symbol, Object context) {
         return symbol;
+    }
+
+    /// The default implementation unwraps the marker into its `_fetchid` reference.
+    /// Two relations of a self-join share the same `_fetchid`, so unwrapping makes them
+    /// compare equal and collide as `InputColumns.SourceSymbols` keys.
+    @Override
+    public Symbol visitFetchMarker(FetchMarker fetchMarker, Object context) {
+        return fetchMarker;
     }
 
     @Override
@@ -81,10 +91,18 @@ public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
                 "%s(DISTINCT x) does not accept more than one argument", fn.name()));
         }
 
+        boolean changed = false;
         List<Symbol> newArgs = new ArrayList<>(fn.arguments().size());
         for (Symbol arg : fn.arguments()) {
             Symbol rewritten = arg.accept(this, context);
+            changed |= rewritten != arg;
             newArgs.add(rewritten);
+        }
+
+        if (!fn.distinct()) {
+            return changed
+                ? new Function(fn.signature(), newArgs, fn.valueType(), fn.filter(), false)
+                : fn;
         }
 
         Function newFn = new Function(
@@ -95,10 +113,6 @@ public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
             // we'll un-distinct it anyway below
             false
         );
-
-        if (!fn.distinct()) {
-            return newFn;
-        }
 
         if (collectionSetOnly) {
             return toCollectSet(newFn);
