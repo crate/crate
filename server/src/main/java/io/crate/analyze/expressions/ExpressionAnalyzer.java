@@ -1322,6 +1322,10 @@ public class ExpressionAnalyzer {
                 distinct
             );
         } else {
+            if (distinct) {
+                throw new UnsupportedOperationException(
+                    "DISTINCT is not implemented for window functions");
+            }
             if (signature.getType() != FunctionType.WINDOW) {
                 if (signature.getType() != FunctionType.AGGREGATE) {
                     throw new IllegalArgumentException(String.format(
