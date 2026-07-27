@@ -25,10 +25,12 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLette
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
@@ -86,6 +88,42 @@ public class FunctionTest extends ESTestCase {
 
         assertThat(fn2.filter()).isNotNull();
         assertThat(fn).isEqualTo(fn2);
+    }
+
+    @Test
+    public void test_serialization_distinct_field() throws IOException {
+        Function fn = new Function(
+            signature,
+            List.of(createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN)),
+            returnType,
+            Literal.of(true),
+            true
+        );
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        Symbol.toStream(fn, out);
+
+        // read in older version, distinct defaults to false
+        StreamInput in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_4_0);
+
+        Function expected = new Function(signature, fn.arguments(), returnType, fn.filter(), false);
+        assertThat(Symbol.fromStream(in)).isEqualTo(expected);
+
+        // read current version
+        in = out.bytes().streamInput();
+        assertThat(Symbol.fromStream(in)).isEqualTo(fn);
+
+        // write to older version
+        out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_4_0);
+        Symbol.toStream(fn, out);
+
+        in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_4_0);
+
+        expected = new Function(signature, fn.arguments(), returnType, fn.filter(), false);
+        assertThat(Symbol.fromStream(in)).isEqualTo(expected);
     }
 
     private static Set<Scalar.Feature> randomFeatures() {

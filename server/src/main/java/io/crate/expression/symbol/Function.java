@@ -30,6 +30,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jspecify.annotations.Nullable;
@@ -114,8 +115,11 @@ public class Function implements Symbol, Cloneable {
         arguments = List.copyOf(Symbols.fromStream(in));
         signature = new Signature(in);
         returnType = DataTypes.fromStream(in);
-        // todo handle previous versions where field wasn't present
-        distinct = in.readBoolean();
+        if (in.getVersion().before(Version.V_6_5_0)) {
+            distinct = false;
+        } else {
+            distinct = in.readBoolean();
+        }
     }
 
     @Override
@@ -124,7 +128,9 @@ public class Function implements Symbol, Cloneable {
         Symbols.toStream(arguments, out);
         signature.writeTo(out);
         DataTypes.toStream(returnType, out);
-        out.writeBoolean(distinct());
+        if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
+            out.writeBoolean(distinct());
+        }
     }
 
     public List<Symbol> arguments() {
@@ -265,7 +271,8 @@ public class Function implements Symbol, Cloneable {
         return Objects.equals(arguments, function.arguments) &&
                Objects.equals(signature, function.signature) &&
                Objects.equals(filter, function.filter) &&
-               Objects.equals(returnType, function.returnType);
+               Objects.equals(returnType, function.returnType) &&
+               Objects.equals(distinct, function.distinct);
     }
 
     @Override
