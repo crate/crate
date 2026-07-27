@@ -50,8 +50,8 @@ import io.crate.planner.PositionalOrderBy;
 
 public class Order extends ForwardingLogicalPlan {
 
-    OrderBy orderBy;
-    private List<Symbol> outputs;
+    private final OrderBy orderBy;
+    private final List<Symbol> outputs;
 
     static LogicalPlan create(LogicalPlan source, @Nullable OrderBy orderBy) {
         if (orderBy == null) {
@@ -138,19 +138,20 @@ public class Order extends ForwardingLogicalPlan {
             plan = Merge.ensureOnHandler(plan, plannerContext);
         }
 
-        this.outputs = HashAggregate.distinctToCollectSet(plannerContext, this.outputs);
-        this.orderBy = new OrderBy(
+        var outputsRewritten = HashAggregate.distinctToCollectSet(plannerContext, this.outputs);
+        var orderByRewritten = new OrderBy(
             HashAggregate.distinctToCollectSet(plannerContext, this.orderBy.orderBySymbols()),
             this.orderBy.reverseFlags(),
             this.orderBy.nullsFirst()
         );
+        List<Symbol> sourceOutputs = HashAggregate.distinctToCollectSet(plannerContext, source.outputs());
 
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
-        List<Symbol> boundOutputs = Lists.map(outputs, binder);
-        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists.map(source.outputs(), binder));
-        List<Symbol> boundOrderBySymbols = Lists.map(this.orderBy.orderBySymbols(), binder);
+        List<Symbol> boundOutputs = Lists.map(outputsRewritten, binder);
+        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists.map(sourceOutputs, binder));
+        List<Symbol> boundOrderBySymbols = Lists.map(orderByRewritten.orderBySymbols(), binder);
         List<Symbol> orderByInputColumns = InputColumns.create(boundOrderBySymbols, ctx);
-        OrderBy boundOrderBy = new OrderBy(boundOrderBySymbols, orderBy.reverseFlags(), orderBy.nullsFirst());
+        OrderBy boundOrderBy = new OrderBy(boundOrderBySymbols, orderByRewritten.reverseFlags(), orderByRewritten.nullsFirst());
         ensureOrderByColumnsArePresentInOutputs(orderByInputColumns);
         OrderedLimitAndOffsetProjection orderedLimitAndOffsetProjection = new OrderedLimitAndOffsetProjection(
             Limit.limitAndOffset(limit, offset),

@@ -57,7 +57,7 @@ import io.crate.planner.PositionalOrderBy;
  */
 public final class Eval extends ForwardingLogicalPlan {
 
-    private List<Symbol> outputs;
+    private final List<Symbol> outputs;
 
     public static LogicalPlan create(LogicalPlan source, List<Symbol> outputs) {
         if (areEvalSymbolsEqual(outputs, source.outputs())) {
@@ -106,7 +106,7 @@ public final class Eval extends ForwardingLogicalPlan {
                                SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
             executor, plannerContext, planHints, projectionBuilder, limit, offset, null, pageSizeHint, params, subQueryResults);
-        if (outputs.equals(source.outputs())) {
+        if (areEvalSymbolsEqual(outputs, source.outputs())) {
             return executionPlan;
         }
         return addEvalProjection(plannerContext, executionPlan, params, subQueryResults);
@@ -168,20 +168,22 @@ public final class Eval extends ForwardingLogicalPlan {
                                             Row params,
                                             SubQueryResults subQueryResults) {
 
-        this.outputs = new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext())
+        var outputsRewritten = new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext(), false)
             .rewrite(outputs);
+        List<Symbol> sourceOutputsRewritten = new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext(), true)
+            .rewrite(source.outputs());
 
         PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
         PositionalOrderBy newOrderBy = null;
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
-        List<Symbol> boundOutputs = Lists.map(outputs, binder);
+        List<Symbol> boundOutputs = Lists.map(outputsRewritten, binder);
         if (orderBy != null) {
-            newOrderBy = orderBy.tryMapToNewOutputs(source.outputs(), boundOutputs);
+            newOrderBy = orderBy.tryMapToNewOutputs(sourceOutputsRewritten, boundOutputs);
             if (newOrderBy == null) {
                 executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
             }
         }
-        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists.map(source.outputs(), binder));
+        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists.map(sourceOutputsRewritten, binder));
         EvalProjection projection = new EvalProjection(InputColumns.create(boundOutputs, ctx));
         executionPlan.addProjection(
             projection,

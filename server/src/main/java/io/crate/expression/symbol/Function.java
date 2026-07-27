@@ -114,6 +114,8 @@ public class Function implements Symbol, Cloneable {
         arguments = List.copyOf(Symbols.fromStream(in));
         signature = new Signature(in);
         returnType = DataTypes.fromStream(in);
+        // todo handle previous versions where field wasn't present
+        distinct = in.readBoolean();
     }
 
     @Override
@@ -122,6 +124,7 @@ public class Function implements Symbol, Cloneable {
         Symbols.toStream(arguments, out);
         signature.writeTo(out);
         DataTypes.toStream(returnType, out);
+        out.writeBoolean(distinct());
     }
 
     public List<Symbol> arguments() {

@@ -65,10 +65,9 @@ import io.crate.statistics.Stats;
 public class GroupHashAggregate extends ForwardingLogicalPlan {
 
     private static final String DISTRIBUTED_MERGE_PHASE_NAME = "distributed merge";
-    final List<Function> aggregatesOriginal;
-    List<Function> aggregates;
-    final List<Symbol> groupKeys;
-    private List<Symbol> outputs;
+    private final List<Function> aggregates;
+    private final List<Symbol> groupKeys;
+    private final List<Symbol> outputs;
 
 
     public static long approximateDistinctValues(Stats stats, List<Symbol> groupKeys) {
@@ -111,7 +110,6 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
 
     public GroupHashAggregate(LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates) {
         super(source);
-        this.aggregatesOriginal = List.copyOf(new LinkedHashSet<>(aggregates));
         this.aggregates = List.copyOf(new LinkedHashSet<>(aggregates));
         this.outputs = Lists.concat(groupKeys, this.aggregates);
         this.groupKeys = groupKeys;
@@ -153,15 +151,15 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         }
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
-        this.outputs = HashAggregate.distinctToCollectSet(plannerContext, this.outputs);
-        this.aggregates = HashAggregate.distinctToCollectSet(plannerContext, this.aggregates);
+        var outputsRewritten = HashAggregate.distinctToCollectSet(plannerContext, this.outputs);
+        var aggregatesRewritten = HashAggregate.distinctToCollectSet(plannerContext, this.aggregates);
 
         List<Symbol> sourceOutputs = source.outputs();
         if (shardsContainAllGroupKeyValues()) {
             GroupProjection groupProjection = projectionBuilder.groupProjection(
                 sourceOutputs,
                 groupKeys,
-                aggregates,
+                aggregatesRewritten,
                 paramBinder,
                 AggregateMode.ITER_FINAL,
                 source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.CLUSTER
@@ -176,7 +174,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                     projectionBuilder.groupProjection(
                         sourceOutputs,
                         groupKeys,
-                        aggregates,
+                        aggregatesRewritten,
                         paramBinder,
                         AggregateMode.ITER_PARTIAL,
                         RowGranularity.SHARD
@@ -184,9 +182,9 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                 );
                 executionPlan.addProjection(
                     projectionBuilder.groupProjection(
-                        outputs,
+                        outputsRewritten,
                         groupKeys,
-                        aggregates,
+                        aggregatesRewritten,
                         paramBinder,
                         AggregateMode.PARTIAL_FINAL,
                         RowGranularity.NODE
@@ -201,7 +199,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                     projectionBuilder.groupProjection(
                         sourceOutputs,
                         groupKeys,
-                        aggregates,
+                        aggregatesRewritten,
                         paramBinder,
                         AggregateMode.ITER_FINAL,
                         RowGranularity.NODE
@@ -217,7 +215,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         GroupProjection toPartial = projectionBuilder.groupProjection(
             sourceOutputs,
             groupKeys,
-            aggregates,
+            aggregatesRewritten,
             paramBinder,
             AggregateMode.ITER_PARTIAL,
             source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
@@ -226,9 +224,9 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         executionPlan.setDistributionInfo(DistributionInfo.DEFAULT_MODULO);
 
         GroupProjection toFinal = projectionBuilder.groupProjection(
-            outputs,
+            outputsRewritten,
             groupKeys,
-            aggregates,
+            aggregatesRewritten,
             paramBinder,
             AggregateMode.PARTIAL_FINAL,
             RowGranularity.CLUSTER

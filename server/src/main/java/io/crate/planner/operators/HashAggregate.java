@@ -66,7 +66,7 @@ import io.crate.planner.distribution.DistributionInfo;
 public class HashAggregate extends ForwardingLogicalPlan {
 
     private static final String MERGE_PHASE_NAME = "mergeOnHandler";
-    List<Function> aggregates;
+    private final List<Function> aggregates;
 
     HashAggregate(LogicalPlan source, List<Function> aggregates) {
         super(source);
@@ -93,8 +93,10 @@ public class HashAggregate extends ForwardingLogicalPlan {
         ExecutionPlan executionPlan = source.build(
             executor, plannerContext, planHints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
 
-        this.aggregates = distinctToCollectSet(plannerContext, this.aggregates);
-        AggregationOutputValidator.validateOutputs(aggregates);
+        var aggregatesRewritten = new DistinctRewriter(plannerContext.transactionContext(), plannerContext.nodeContext(), true)
+            .rewriteFunctions(aggregates);
+
+        AggregationOutputValidator.validateOutputs(aggregatesRewritten);
         var paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
         var sourceOutputs = source.outputs();
@@ -106,7 +108,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
                 executionPlan.addProjection(
                     projectionBuilder.aggregationProjection(
                         sourceOutputs,
-                        aggregates,
+                        aggregatesRewritten,
                         paramBinder,
                         AggregateMode.ITER_PARTIAL,
                         RowGranularity.SHARD
@@ -114,8 +116,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
                 );
                 executionPlan.addProjection(
                     projectionBuilder.aggregationProjection(
-                        aggregates,
-                        aggregates,
+                        aggregatesRewritten,
+                        aggregatesRewritten,
                         paramBinder,
                         AggregateMode.PARTIAL_FINAL,
                         RowGranularity.CLUSTER
@@ -125,7 +127,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
             }
             AggregationProjection fullAggregation = projectionBuilder.aggregationProjection(
                 sourceOutputs,
-                aggregates,
+                aggregatesRewritten,
                 paramBinder,
                 AggregateMode.ITER_FINAL,
                 RowGranularity.CLUSTER
@@ -135,7 +137,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         }
         AggregationProjection toPartial = projectionBuilder.aggregationProjection(
             sourceOutputs,
-            aggregates,
+            aggregatesRewritten,
             paramBinder,
             AggregateMode.ITER_PARTIAL,
             source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
@@ -143,8 +145,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
         executionPlan.addProjection(toPartial);
 
         AggregationProjection toFinal = projectionBuilder.aggregationProjection(
-            aggregates,
-            aggregates,
+            aggregatesRewritten,
+            aggregatesRewritten,
             paramBinder,
             AggregateMode.PARTIAL_FINAL,
             RowGranularity.CLUSTER
@@ -167,7 +169,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
             ),
             NO_LIMIT,
             0,
-            aggregates.size(),
+            aggregatesRewritten.size(),
             1,
             null
         );

@@ -45,10 +45,12 @@ import io.crate.metadata.NodeContext;
 public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
     private final CoordinatorTxnCtx txnCtx;
     private final NodeContext nodeCtx;
+    private final boolean collectionSetOnly;
 
-    public DistinctRewriter(CoordinatorTxnCtx txnCtx, NodeContext nodeCtx) {
+    public DistinctRewriter(CoordinatorTxnCtx txnCtx, NodeContext nodeCtx, boolean collectionSetOnly) {
         this.txnCtx = txnCtx;
         this.nodeCtx = nodeCtx;
+        this.collectionSetOnly = collectionSetOnly;
     }
 
     public List<Symbol> rewrite(List<Symbol> outputs) {
@@ -94,7 +96,11 @@ public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
         );
 
         if (fn.distinct()) {
-            return wrapWithCollectionCount(fnNewArgs);
+            if (collectionSetOnly) {
+                return makeCollectSetFunction(fnNewArgs);
+            } else {
+                return wrapWithCollectionCount(fnNewArgs);
+            }
         } else {
             return fnNewArgs;
         }
