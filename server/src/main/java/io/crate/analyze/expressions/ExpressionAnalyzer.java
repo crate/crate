@@ -286,8 +286,6 @@ public class ExpressionAnalyzer {
             .map(expression -> convert(expression, context))
             .orElse(null);
 
-        // Checked before resolving the function so that the specific message wins over a
-        // generic unknown-function error for signatures that don't accept multiple arguments.
         if (node.isDistinct() && arguments.size() > 1) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "%s(DISTINCT x) does not accept more than one argument", name));

@@ -93,8 +93,6 @@ public class DistinctRewriter extends SymbolVisitor<Object, Symbol> {
     }
 
     /// The default implementation unwraps the marker into its `_fetchid` reference.
-    /// Two relations of a self-join share the same `_fetchid`, so unwrapping makes them
-    /// compare equal and collide as `InputColumns.SourceSymbols` keys.
     @Override
     public Symbol visitFetchMarker(FetchMarker fetchMarker, Object context) {
         return fetchMarker;
