@@ -315,14 +315,14 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
                 assertThat(capturedRequest.request).isExactlyInstanceOf(ShardStateAction.FailedShardEntry.class);
                 String allocationId = ((ShardStateAction.FailedShardEntry) capturedRequest.request).getAllocationId();
                 assertThat(unavailableShards.stream()
-                               .anyMatch(shardRouting -> shardRouting.allocationId().getId().equals(allocationId))).isTrue();
+                               .anyMatch(shardRouting -> shardRouting.allocationId().id().equals(allocationId))).isTrue();
                 transport.handleResponse(capturedRequest.requestId, TransportResponse.Empty.INSTANCE);
 
             } else if (actionName.startsWith(TransportVerifyShardBeforeCloseAction.NAME)) {
                 assertThat(capturedRequest.request).isInstanceOf(ConcreteShardRequest.class);
                 String allocationId = ((ConcreteShardRequest<?>) capturedRequest.request).getTargetAllocationID();
                 assertThat(unavailableShards.stream()
-                                .anyMatch(shardRouting -> shardRouting.allocationId().getId().equals(allocationId))).isFalse();
+                                .anyMatch(shardRouting -> shardRouting.allocationId().id().equals(allocationId))).isFalse();
                 assertThat(inSyncAllocationIds.stream()
                                .anyMatch(inSyncAllocationId -> inSyncAllocationId.equals(allocationId))).isTrue();
                 transport.handleResponse(

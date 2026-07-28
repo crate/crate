@@ -399,7 +399,7 @@ public final class ShardRouting implements Writeable {
     public ShardRouting moveToStarted() {
         assert state == ShardRoutingState.INITIALIZING : "expected an initializing shard " + this;
         AllocationId allocationId = this.allocationId;
-        if (allocationId.getRelocationId() != null) {
+        if (allocationId.relocationId() != null) {
             // relocation target
             allocationId = AllocationId.finishRelocation(allocationId);
         }
@@ -442,7 +442,7 @@ public final class ShardRouting implements Writeable {
      * no allocation at all..
      **/
     public boolean isSameAllocation(ShardRouting other) {
-        boolean b = this.allocationId != null && other.allocationId != null && this.allocationId.getId().equals(other.allocationId.getId());
+        boolean b = this.allocationId != null && other.allocationId != null && this.allocationId.id().equals(other.allocationId.id());
         assert b == false || this.currentNodeId.equals(other.currentNodeId) : "ShardRoutings have the same allocation id but not the same node. This [" + this + "], other [" + other + "]";
         return b;
     }
@@ -457,13 +457,13 @@ public final class ShardRouting implements Writeable {
     /** returns true if the routing is the relocation target of the given routing */
     public boolean isRelocationTargetOf(ShardRouting other) {
         boolean b = this.allocationId != null && other.allocationId != null && this.state == ShardRoutingState.INITIALIZING &&
-            this.allocationId.getId().equals(other.allocationId.getRelocationId());
+            this.allocationId.id().equals(other.allocationId.relocationId());
 
         assert b == false || other.state == ShardRoutingState.RELOCATING :
             "ShardRouting is a relocation target but the source shard state isn't relocating. This [" + this + "], other [" + other + "]";
 
 
-        assert b == false || other.allocationId.getId().equals(this.allocationId.getRelocationId()) :
+        assert b == false || other.allocationId.id().equals(this.allocationId.relocationId()) :
             "ShardRouting is a relocation target but the source id isn't equal to source's allocationId.getRelocationId. This [" + this + "], other [" + other + "]";
 
         assert b == false || other.currentNodeId().equals(this.relocatingNodeId) :
@@ -484,13 +484,13 @@ public final class ShardRouting implements Writeable {
     /** returns true if the routing is the relocation source for the given routing */
     public boolean isRelocationSourceOf(ShardRouting other) {
         boolean b = this.allocationId != null && other.allocationId != null && other.state == ShardRoutingState.INITIALIZING &&
-            other.allocationId.getId().equals(this.allocationId.getRelocationId());
+            other.allocationId.id().equals(this.allocationId.relocationId());
 
         assert b == false || this.state == ShardRoutingState.RELOCATING :
             "ShardRouting is a relocation source but shard state isn't relocating. This [" + this + "], other [" + other + "]";
 
 
-        assert b == false || this.allocationId.getId().equals(other.allocationId.getRelocationId()) :
+        assert b == false || this.allocationId.id().equals(other.allocationId.relocationId()) :
             "ShardRouting is a relocation source but the allocation id isn't equal to other.allocationId.getRelocationId. This [" + this + "], other [" + other + "]";
 
         assert b == false || this.currentNodeId().equals(other.relocatingNodeId) :

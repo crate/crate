@@ -312,7 +312,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
         LOGGER.trace("{} local file count [{}]", recoveryTarget.shardId(), metadataSnapshot.size());
         request = new StartRecoveryRequest(
             recoveryTarget.shardId(),
-            recoveryTarget.indexShard().routingEntry().allocationId().getId(),
+            recoveryTarget.indexShard().routingEntry().allocationId().id(),
             recoveryTarget.sourceNode(),
             localNode,
             metadataSnapshot,

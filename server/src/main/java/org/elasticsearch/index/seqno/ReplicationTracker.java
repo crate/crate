@@ -571,11 +571,11 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
                      * If this shard copy is tracked then we got here here via a rolling upgrade from an older version that doesn't
                      * create peer recovery retention leases for every shard copy.
                      */
-                    assert checkpoints.get(shardRouting.allocationId().getId()).tracked == false;
+                    assert checkpoints.get(shardRouting.allocationId().id()).tracked == false;
                     return false;
                 }
                 return retentionLease.timestamp() <= renewalTimeMillis
-                    || retentionLease.retainingSequenceNumber() <= checkpoints.get(shardRouting.allocationId().getId()).globalCheckpoint;
+                    || retentionLease.retainingSequenceNumber() <= checkpoints.get(shardRouting.allocationId().id()).globalCheckpoint;
             });
 
         if (renewalNeeded) {
@@ -583,7 +583,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
                 if (shardRouting.assignedToNode()) {
                     final RetentionLease retentionLease = retentionLeases.get(getPeerRecoveryRetentionLeaseId(shardRouting));
                     if (retentionLease != null) {
-                        final CheckpointState checkpointState = checkpoints.get(shardRouting.allocationId().getId());
+                        final CheckpointState checkpointState = checkpoints.get(shardRouting.allocationId().id());
                         final long newRetainedSequenceNumber = Math.max(0L, checkpointState.globalCheckpoint + 1L);
                         if (retentionLease.retainingSequenceNumber() <= newRetainedSequenceNumber) {
                             renewRetentionLease(getPeerRecoveryRetentionLeaseId(shardRouting), newRetainedSequenceNumber,
@@ -772,8 +772,8 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
 
         // when in primary mode, the current allocation ID is the allocation ID of the primary or the relocation allocation ID
         assert !primaryMode
-                || (routingTable.primaryShard().allocationId().getId().equals(shardAllocationId)
-                || routingTable.primaryShard().allocationId().getRelocationId().equals(shardAllocationId));
+                || (routingTable.primaryShard().allocationId().id().equals(shardAllocationId)
+                || routingTable.primaryShard().allocationId().relocationId().equals(shardAllocationId));
 
         // during relocation handoff there are no entries blocking global checkpoint advancement
         assert !handoffInProgress || pendingInSync.isEmpty() :
@@ -823,7 +823,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
         if (primaryMode) {
             // all tracked shard copies have a corresponding peer-recovery retention lease
             for (final ShardRouting shardRouting : routingTable.assignedShards()) {
-                if (checkpoints.get(shardRouting.allocationId().getId()).tracked) {
+                if (checkpoints.get(shardRouting.allocationId().id()).tracked) {
                     assert retentionLeases.contains(getPeerRecoveryRetentionLeaseId(shardRouting))
                         : "no retention lease for tracked shard [" + shardRouting + "] in " + retentionLeases;
                     assert PEER_RECOVERY_RETENTION_LEASE_SOURCE.equals(
@@ -1041,7 +1041,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
         final String leaseId = getPeerRecoveryRetentionLeaseId(primaryShard);
         if (retentionLeases.get(leaseId) == null) {
             if (replicationGroup.getReplicationTargets().equals(Collections.singletonList(primaryShard))) {
-                assert primaryShard.allocationId().getId().equals(shardAllocationId)
+                assert primaryShard.allocationId().id().equals(shardAllocationId)
                     : routingTable.assignedShards() + " vs " + shardAllocationId;
                 // Safe to call innerAddRetentionLease() without a subsequent sync since there are no other members of this replication
                 // group.
@@ -1078,7 +1078,9 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
                     " that have no matching entries in " + checkpoints;
             // remove entries which don't exist on master
             Set<String> initializingAllocationIds = routingTable.getAllInitializingShards().stream()
-                .map(ShardRouting::allocationId).map(AllocationId::getId).collect(Collectors.toSet());
+                .map(ShardRouting::allocationId)
+                .map(AllocationId::id)
+                .collect(Collectors.toSet());
             boolean removedEntries = checkpoints.keySet().removeIf(
                 aid -> !inSyncAllocationIds.contains(aid) && !initializingAllocationIds.contains(aid));
 

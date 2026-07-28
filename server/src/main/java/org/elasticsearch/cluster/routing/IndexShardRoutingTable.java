@@ -100,7 +100,7 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
             if (shard.relocating()) {
                 // create the target initializing shard routing on the node the shard is relocating to
                 allInitializingShards.add(shard.getTargetRelocatingShard());
-                allAllocationIds.add(shard.getTargetRelocatingShard().allocationId().getId());
+                allAllocationIds.add(shard.getTargetRelocatingShard().allocationId().id());
 
                 assert shard.assignedToNode() : "relocating from unassigned " + shard;
                 assert shard.getTargetRelocatingShard().assignedToNode() : "relocating to unassigned " + shard.getTargetRelocatingShard();
@@ -108,7 +108,7 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
             }
             if (shard.assignedToNode()) {
                 assignedShards.add(shard);
-                allAllocationIds.add(shard.allocationId().getId());
+                allAllocationIds.add(shard.allocationId().id());
             }
             if (shard.state() != ShardRoutingState.STARTED) {
                 allShardsStarted = false;
@@ -335,7 +335,7 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
     @Nullable
     public ShardRouting getByAllocationId(String allocationId) {
         for (ShardRouting shardRouting : assignedShards()) {
-            if (shardRouting.allocationId().getId().equals(allocationId)) {
+            if (shardRouting.allocationId().id().equals(allocationId)) {
                 return shardRouting;
             }
         }

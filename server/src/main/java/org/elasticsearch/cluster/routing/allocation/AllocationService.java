@@ -203,7 +203,7 @@ public class AllocationService {
             IndexMetadata indexMetadata = allocation.metadata().getIndexSafe(shardToFail.shardId().getIndex());
             allocation.addIgnoreShardForNode(shardToFail.shardId(), shardToFail.currentNodeId());
             // failing a primary also fails initializing replica shards, re-resolve ShardRouting
-            ShardRouting failedShard = routingNodes.getByAllocationId(shardToFail.shardId(), shardToFail.allocationId().getId());
+            ShardRouting failedShard = routingNodes.getByAllocationId(shardToFail.shardId(), shardToFail.allocationId().id());
             if (failedShard != null) {
                 if (failedShard != shardToFail) {
                     LOGGER.trace("{} shard routing modified in an earlier iteration (previous: {}, current: {})",
@@ -491,9 +491,9 @@ public class AllocationService {
             assert startedShard.initializing() : "only initializing shards can be started";
             assert routingAllocation.metadata().index(startedShard.shardId().getIndex()) != null :
                 "shard started for unknown index (shard entry: " + startedShard + ")";
-            assert startedShard == routingNodes.getByAllocationId(startedShard.shardId(), startedShard.allocationId().getId()) :
+            assert startedShard == routingNodes.getByAllocationId(startedShard.shardId(), startedShard.allocationId().id()) :
                 "shard routing to start does not exist in routing table, expected: " + startedShard + " but was: " +
-                    routingNodes.getByAllocationId(startedShard.shardId(), startedShard.allocationId().getId());
+                    routingNodes.getByAllocationId(startedShard.shardId(), startedShard.allocationId().id());
 
             routingNodes.startShard(LOGGER, startedShard, routingAllocation.changes());
         }

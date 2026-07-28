@@ -908,7 +908,7 @@ public class IndexShardTests extends IndexShardTestCase {
             targetShard,
             ShardRoutingHelper.moveToStarted(targetShard.routingEntry()));
         assertThat(targetShard.getReplicationTracker().getTrackedLocalCheckpointForShard(
-            targetShard.routingEntry().allocationId().getId()).getLocalCheckpoint()).isEqualTo(1L);
+            targetShard.routingEntry().allocationId().id()).getLocalCheckpoint()).isEqualTo(1L);
         assertDocCount(targetShard, 2);
         // now check that it's persistent ie. that the added shards are committed
         final IndexShard newShard = reinitShard(targetShard);
@@ -972,10 +972,10 @@ public class IndexShardTests extends IndexShardTestCase {
             final long newGlobalCheckpoint = indexShard.getLocalCheckpoint();
             if (indexShard.routingEntry().primary()) {
                 indexShard.updateLocalCheckpointForShard(
-                    indexShard.routingEntry().allocationId().getId(),
+                    indexShard.routingEntry().allocationId().id(),
                     indexShard.getLocalCheckpoint());
                 indexShard.updateGlobalCheckpointForShard(
-                    indexShard.routingEntry().allocationId().getId(),
+                    indexShard.routingEntry().allocationId().id(),
                     indexShard.getLocalCheckpoint());
                 indexShard.syncRetentionLeases(false, ActionListener.wrap(() -> {}));
             } else {
@@ -1479,7 +1479,7 @@ public class IndexShardTests extends IndexShardTestCase {
         ShardRouting replicaRouting = indexShard.routingEntry();
         promoteReplica(
             indexShard,
-            Collections.singleton(replicaRouting.allocationId().getId()),
+            Collections.singleton(replicaRouting.allocationId().id()),
             new IndexShardRoutingTable.Builder(replicaRouting.shardId()).addShard(replicaRouting).build());
 
 
@@ -1569,7 +1569,7 @@ public class IndexShardTests extends IndexShardTestCase {
         final ShardRouting replicaRouting = indexShard.routingEntry();
         promoteReplica(
             indexShard,
-            Collections.singleton(replicaRouting.allocationId().getId()),
+            Collections.singleton(replicaRouting.allocationId().id()),
             new IndexShardRoutingTable.Builder(replicaRouting.shardId()).addShard(replicaRouting).build());
 
         stop.set(true);
@@ -1595,7 +1595,7 @@ public class IndexShardTests extends IndexShardTestCase {
         ShardRouting replicaRouting = indexShard.routingEntry();
         promoteReplica(
             indexShard,
-            Collections.singleton(replicaRouting.allocationId().getId()),
+            Collections.singleton(replicaRouting.allocationId().id()),
             new IndexShardRoutingTable.Builder(replicaRouting.shardId()).addShard(replicaRouting).build());
 
         /*
@@ -1646,7 +1646,7 @@ public class IndexShardTests extends IndexShardTestCase {
             newPrimaryTerm,
             (shard, listener) -> { },
             0L,
-            Collections.singleton(primaryRouting.allocationId().getId()),
+            Collections.singleton(primaryRouting.allocationId().id()),
             new IndexShardRoutingTable.Builder(primaryRouting.shardId()).addShard(primaryRouting).build());
 
         /*
@@ -1718,7 +1718,7 @@ public class IndexShardTests extends IndexShardTestCase {
                     latch.countDown();
                 },
                 0L,
-                Collections.singleton(indexShard.routingEntry().allocationId().getId()),
+                Collections.singleton(indexShard.routingEntry().allocationId().id()),
                 new IndexShardRoutingTable.Builder(indexShard.shardId()).addShard(primaryRouting).build());
             latch.await();
             assertThat(indexShard.getActiveOperationsCount()).isIn(0, IndexShard.OPERATIONS_BLOCKED);
@@ -1875,7 +1875,7 @@ public class IndexShardTests extends IndexShardTestCase {
             indexDoc(shard, "_doc", Integer.toString(i));
         }
         if (randomBoolean()) {
-            shard.updateLocalCheckpointForShard(shard.shardRouting.allocationId().getId(), totalOps - 1);
+            shard.updateLocalCheckpointForShard(shard.shardRouting.allocationId().id(), totalOps - 1);
             flushShard(shard);
         }
 
@@ -2187,9 +2187,9 @@ public class IndexShardTests extends IndexShardTestCase {
         long checkpoint = rarely() ? maxSeqNo - scaledRandomIntBetween(0, maxSeqNo) : maxSeqNo;
 
         // set up local checkpoints on the shard copies
-        primaryShard.updateLocalCheckpointForShard(shardRouting.allocationId().getId(), checkpoint);
+        primaryShard.updateLocalCheckpointForShard(shardRouting.allocationId().id(), checkpoint);
         int replicaLocalCheckpoint = randomIntBetween(0, Math.toIntExact(checkpoint));
-        String replicaAllocationId = replicaShard.routingEntry().allocationId().getId();
+        String replicaAllocationId = replicaShard.routingEntry().allocationId().id();
         primaryShard.updateLocalCheckpointForShard(replicaAllocationId, replicaLocalCheckpoint);
 
         // initialize the local knowledge on the primary of the persisted global
@@ -2201,7 +2201,7 @@ public class IndexShardTests extends IndexShardTestCase {
 
         // initialize the local knowledge on the primary of the persisted global checkpoint on the primary
         primaryShard.updateGlobalCheckpointForShard(
-            shardRouting.allocationId().getId(),
+            shardRouting.allocationId().id(),
             primaryShard.getLastKnownGlobalCheckpoint());
 
         // simulate a background maybe sync; it should only run if the knowledge on the replica
@@ -2274,7 +2274,7 @@ public class IndexShardTests extends IndexShardTestCase {
             indexShard.getPendingPrimaryTerm() + 1,
             (s, r) -> resyncLatch.countDown(),
             1L,
-            Collections.singleton(newRouting.allocationId().getId()),
+            Collections.singleton(newRouting.allocationId().id()),
             new IndexShardRoutingTable.Builder(newRouting.shardId()).addShard(newRouting).build());
         resyncLatch.await();
         assertThat(indexShard.getLocalCheckpoint()).isEqualTo(maxSeqNo);
@@ -2639,7 +2639,7 @@ public class IndexShardTests extends IndexShardTestCase {
         updateMappings(shard, IndexMetadata.builder(shard.indexSettings.getIndexMetadata())
             .putMapping("{ \"properties\": { \"foo\":  { \"type\": \"text\", \"position\": 1}}}").build());
         indexDoc(shard, "0", "{\"foo\" : \"bar\"}");
-        shard.updateLocalCheckpointForShard(shard.shardRouting.allocationId().getId(), 0);
+        shard.updateLocalCheckpointForShard(shard.shardRouting.allocationId().id(), 0);
         AtomicInteger preIndex = new AtomicInteger();
         AtomicInteger postIndexCreate = new AtomicInteger();
         AtomicInteger postIndexUpdate = new AtomicInteger();
@@ -2810,7 +2810,7 @@ public class IndexShardTests extends IndexShardTestCase {
             try {
                 startRecovery.await();
                 shard.relocated(
-                    routing.getTargetRelocatingShard().allocationId().getId(),
+                    routing.getTargetRelocatingShard().allocationId().id(),
                     (primaryContext, listener) -> {
                         relocationStarted.countDown();
                         listener.onResponse(null);
@@ -3315,7 +3315,7 @@ public class IndexShardTests extends IndexShardTestCase {
             target
                 .getReplicationTracker()
                 .getTrackedLocalCheckpointForShard(
-                    target.routingEntry().allocationId().getId()
+                    target.routingEntry().allocationId().id()
                 ).getLocalCheckpoint())
             .isEqualTo(2L);
         assertThat(target.seqNoStats().getGlobalCheckpoint()).isEqualTo(2L);
@@ -3669,7 +3669,7 @@ public class IndexShardTests extends IndexShardTestCase {
         assertThatThrownBy(() -> blockingCallRelocated(shard, toNode1, (ctx, listener) -> relocated.set(true)))
             .isExactlyInstanceOf(IllegalStateException.class)
             .hasMessage(
-                "relocation target [" + toNode1.getTargetRelocatingShard().allocationId().getId()
+                "relocation target [" + toNode1.getTargetRelocatingShard().allocationId().id()
                 + "] is no longer part of the replication group");
         assertThat(relocated.get()).isFalse();
         blockingCallRelocated(shard, toNode2, (_, listener) -> {
@@ -3923,7 +3923,7 @@ public class IndexShardTests extends IndexShardTestCase {
     private static void blockingCallRelocated(IndexShard indexShard, ShardRouting routing,
                                               BiConsumer<ReplicationTracker.PrimaryContext, ActionListener<Void>> consumer) {
         var future = new PlainFuture<Void>();
-        indexShard.relocated(routing.getTargetRelocatingShard().allocationId().getId(), consumer, future);
+        indexShard.relocated(routing.getTargetRelocatingShard().allocationId().id(), consumer, future);
         FutureUtils.get(future);
     }
 }

@@ -120,7 +120,7 @@ public class IndexRoutingTable implements Diffable<IndexRoutingTable>, Iterable<
                 }
                 final Set<String> inSyncAllocationIds = indexMetadata.inSyncAllocationIds(shardRouting.id());
                 if (shardRouting.active() &&
-                    inSyncAllocationIds.contains(shardRouting.allocationId().getId()) == false) {
+                    inSyncAllocationIds.contains(shardRouting.allocationId().id()) == false) {
                     throw new IllegalStateException("active shard routing " + shardRouting + " has no corresponding entry in the in-sync " +
                         "allocation set " + inSyncAllocationIds);
                 }
@@ -133,7 +133,7 @@ public class IndexRoutingTable implements Diffable<IndexRoutingTable>, Iterable<
                                                             + " is a primary that is recovering from a stale primary has unexpected allocation ids in in-sync " +
                                                             "allocation set " + inSyncAllocationIds);
                         }
-                    } else if (inSyncAllocationIds.contains(shardRouting.allocationId().getId()) == false) {
+                    } else if (inSyncAllocationIds.contains(shardRouting.allocationId().id()) == false) {
                         throw new IllegalStateException("a primary shard routing " + shardRouting
                                                         + " is a primary that is recovering from a known allocation id but has no corresponding entry in the in-sync " +
                                                         "allocation set " + inSyncAllocationIds);

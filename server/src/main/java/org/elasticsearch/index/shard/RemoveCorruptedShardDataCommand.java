@@ -478,8 +478,8 @@ public class RemoveCorruptedShardDataCommand extends ElasticsearchNodeCommand {
         }
         final AllocationId newAllocationId = AllocationId.newInitializing();
 
-        terminal.println("Changing allocation id " + shardStateMetadata.allocationId.getId()
-            + " to " + newAllocationId.getId());
+        terminal.println("Changing allocation id " + shardStateMetadata.allocationId.id()
+            + " to " + newAllocationId.id());
 
         final ShardStateMetadata newShardStateMetadata =
             new ShardStateMetadata(shardStateMetadata.primary, shardStateMetadata.indexUUID, newAllocationId);

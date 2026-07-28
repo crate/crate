@@ -128,7 +128,7 @@ public class PrimaryReplicaSyncer {
             // We must capture the timestamp after snapshotting a snapshot of operations to make sure
             // that the auto_id_timestamp of every operation in the snapshot is at most this value.
             final long maxSeenAutoIdTimestamp = indexShard.getMaxSeenAutoIdTimestamp();
-            resync(shardId, indexShard.routingEntry().allocationId().getId(), indexShard.getPendingPrimaryTerm(), wrappedSnapshot,
+            resync(shardId, indexShard.routingEntry().allocationId().id(), indexShard.getPendingPrimaryTerm(), wrappedSnapshot,
                 startingSeqNo, maxSeqNo, maxSeenAutoIdTimestamp, resyncListener);
         } catch (Exception e) {
             try {

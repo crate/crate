@@ -246,7 +246,7 @@ public class ReplicationOperation<
             }
         };
 
-        final String allocationId = shard.allocationId().getId();
+        final String allocationId = shard.allocationId().id();
         final RetryableAction<ReplicaResponse> replicationAction = new RetryableAction<ReplicaResponse>(
                 logger,
                 threadPool.scheduler(),
@@ -279,8 +279,8 @@ public class ReplicationOperation<
 
     private void updateCheckPoints(ShardRouting shard, LongSupplier localCheckpointSupplier, LongSupplier globalCheckpointSupplier) {
         try {
-            primary.updateLocalCheckpointForShard(shard.allocationId().getId(), localCheckpointSupplier.getAsLong());
-            primary.updateGlobalCheckpointForShard(shard.allocationId().getId(), globalCheckpointSupplier.getAsLong());
+            primary.updateLocalCheckpointForShard(shard.allocationId().id(), localCheckpointSupplier.getAsLong());
+            primary.updateGlobalCheckpointForShard(shard.allocationId().id(), globalCheckpointSupplier.getAsLong());
         } catch (final AlreadyClosedException e) {
             // the index was deleted or this shard was never activated after a relocation; fall through and finish normally
         } catch (final Exception e) {

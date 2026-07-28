@@ -19,13 +19,14 @@
 
 package org.elasticsearch.index.shard;
 
-import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import io.crate.common.collections.Sets;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
+import org.elasticsearch.cluster.routing.ShardRouting;
+
+import io.crate.common.collections.Sets;
 
 /**
  * Replication group for a shard. Used by a primary shard to coordinate replication and recoveries.
@@ -55,20 +56,20 @@ public class ReplicationGroup {
                 assert shard.primary() == false : "primary shard should not be unassigned in a replication group: " + shard;
                 skippedShards.add(shard);
             } else {
-                if (trackedAllocationIds.contains(shard.allocationId().getId())) {
+                if (trackedAllocationIds.contains(shard.allocationId().id())) {
                     replicationTargets.add(shard);
                 } else {
-                    assert inSyncAllocationIds.contains(shard.allocationId().getId()) == false :
+                    assert inSyncAllocationIds.contains(shard.allocationId().id()) == false :
                         "in-sync shard copy but not tracked: " + shard;
                     skippedShards.add(shard);
                 }
                 if (shard.relocating()) {
                     ShardRouting relocationTarget = shard.getTargetRelocatingShard();
-                    if (trackedAllocationIds.contains(relocationTarget.allocationId().getId())) {
+                    if (trackedAllocationIds.contains(relocationTarget.allocationId().id())) {
                         replicationTargets.add(relocationTarget);
                     } else {
                         skippedShards.add(relocationTarget);
-                        assert inSyncAllocationIds.contains(relocationTarget.allocationId().getId()) == false :
+                        assert inSyncAllocationIds.contains(relocationTarget.allocationId().id()) == false :
                             "in-sync shard copy but not tracked: " + shard;
                     }
                 }

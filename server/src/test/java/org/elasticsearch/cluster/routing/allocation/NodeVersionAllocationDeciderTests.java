@@ -321,9 +321,9 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         AllocationId allocationId2R = AllocationId.newInitializing();
         Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder(shard1.getIndexUUID()).settings(settings(Version.CURRENT).put(Settings.EMPTY)).numberOfShards(1)
-                     .numberOfReplicas(1).putInSyncAllocationIds(0, Set.of(allocationId1P.getId(), allocationId1R.getId())))
+                     .numberOfReplicas(1).putInSyncAllocationIds(0, Set.of(allocationId1P.id(), allocationId1R.id())))
             .put(IndexMetadata.builder(shard2.getIndexUUID()).settings(settings(Version.CURRENT).put(Settings.EMPTY)).numberOfShards(1)
-                     .numberOfReplicas(1).putInSyncAllocationIds(0, Set.of(allocationId2P.getId(), allocationId2R.getId())))
+                     .numberOfReplicas(1).putInSyncAllocationIds(0, Set.of(allocationId2P.id(), allocationId2R.id())))
             .build();
         RoutingTable routingTable = RoutingTable.builder()
             .add(IndexRoutingTable.builder(shard1.getIndex())
@@ -580,7 +580,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
                 .indexName("test1")
                 .numberOfShards(1)
                 .numberOfReplicas(1)
-                .putInSyncAllocationIds(0, Set.of(allocationId1P.getId(), allocationId1R.getId())))
+                .putInSyncAllocationIds(0, Set.of(allocationId1P.id(), allocationId1R.id())))
             .build();
         RoutingTable routingTable = RoutingTable.builder()
             .add(IndexRoutingTable.builder(shard1.getIndex())

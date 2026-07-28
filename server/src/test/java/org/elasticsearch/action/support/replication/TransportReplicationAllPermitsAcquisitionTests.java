@@ -408,7 +408,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
     }
 
     private String allocationId() {
-        return primary.routingEntry().allocationId().getId();
+        return primary.routingEntry().allocationId().id();
     }
 
     private Request request() {

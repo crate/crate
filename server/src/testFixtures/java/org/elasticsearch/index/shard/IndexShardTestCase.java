@@ -230,7 +230,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 false);
             assert result.getResultType() != Engine.Result.Type.MAPPING_UPDATE_REQUIRED;
             shard.sync(); // advance local checkpoint
-            shard.updateLocalCheckpointForShard(shard.routingEntry().allocationId().getId(),
+            shard.updateLocalCheckpointForShard(shard.routingEntry().allocationId().id(),
                                                 shard.getLocalCheckpoint());
         } else {
             final long seqNo = shard.seqNoStats().getMaxSeqNo() + 1;
@@ -274,7 +274,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 Versions.MATCH_ANY, id, SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
             shard.sync(); // advance local checkpoint
             shard.updateLocalCheckpointForShard(
-                shard.routingEntry().allocationId().getId(),
+                shard.routingEntry().allocationId().id(),
                 shard.getLocalCheckpoint()
             );
         } else {
@@ -730,7 +730,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
 
     public static void updateRoutingEntry(IndexShard shard, ShardRouting shardRouting) throws IOException {
         Set<String> inSyncIds =
-            shardRouting.active() ? Collections.singleton(shardRouting.allocationId().getId()) : Collections.emptySet();
+            shardRouting.active() ? Collections.singleton(shardRouting.allocationId().id()) : Collections.emptySet();
         IndexShardRoutingTable newRoutingTable = new IndexShardRoutingTable.Builder(shardRouting.shardId())
             .addShard(shardRouting)
             .build();
@@ -779,7 +779,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         if (replica.routingEntry().isRelocationTarget() == false) {
             newRoutingTable.addShard(replica.routingEntry());
         }
-        final Set<String> inSyncIds = Collections.singleton(primary.routingEntry().allocationId().getId());
+        final Set<String> inSyncIds = Collections.singleton(primary.routingEntry().allocationId().id());
         final IndexShardRoutingTable routingTable = newRoutingTable.build();
         recoverUnstartedReplica(replica, primary, targetSupplier, markAsRecovering, inSyncIds, routingTable);
         if (markAsStarted) {
@@ -859,7 +859,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 .addShard(replica.routingEntry())
                 .build();
         Set<String> inSyncIdsWithReplica = new HashSet<>(inSyncIds);
-        inSyncIdsWithReplica.add(replica.routingEntry().allocationId().getId());
+        inSyncIdsWithReplica.add(replica.routingEntry().allocationId().id());
         // update both primary and replica shard state
         primary.updateShardState(
             primary.routingEntry(),
@@ -884,7 +884,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
      * promotes a replica to primary, incrementing it's term and starting it if needed
      */
     protected void promoteReplica(IndexShard replica, Set<String> inSyncIds, IndexShardRoutingTable routingTable) throws IOException {
-        assertThat(inSyncIds).containsExactly(replica.routingEntry().allocationId().getId());
+        assertThat(inSyncIds).containsExactly(replica.routingEntry().allocationId().id());
         final ShardRouting routingEntry = newShardRouting(
             replica.routingEntry().shardId(),
             replica.routingEntry().currentNodeId(),

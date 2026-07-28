@@ -72,7 +72,7 @@ public class PeerRecoveryRetentionLeaseExpiryTests extends ReplicationTrackerTes
         final long primaryTerm = randomLongBetween(1, Long.MAX_VALUE);
         replicationTracker = new ReplicationTracker(
             new ShardId("test", "_na", 0),
-            primaryAllocationId.getId(),
+            primaryAllocationId.id(),
             IndexSettingsModule.newIndexSettings("test", settings),
             primaryTerm,
             UNASSIGNED_SEQ_NO,
@@ -80,20 +80,20 @@ public class PeerRecoveryRetentionLeaseExpiryTests extends ReplicationTrackerTes
             currentTimeMillis::get,
             (leases, listener) -> { },
             () -> safeCommitInfo);
-        replicationTracker.updateFromMaster(1L, Collections.singleton(primaryAllocationId.getId()),
+        replicationTracker.updateFromMaster(1L, Collections.singleton(primaryAllocationId.id()),
             routingTable(Collections.emptySet(), primaryAllocationId));
         replicationTracker.activatePrimaryMode(SequenceNumbers.NO_OPS_PERFORMED);
 
         final AllocationId replicaAllocationId = AllocationId.newInitializing();
         final IndexShardRoutingTable routingTableWithReplica
             = routingTable(Collections.singleton(replicaAllocationId), primaryAllocationId);
-        replicationTracker.updateFromMaster(2L, Collections.singleton(primaryAllocationId.getId()), routingTableWithReplica);
+        replicationTracker.updateFromMaster(2L, Collections.singleton(primaryAllocationId.id()), routingTableWithReplica);
         replicationTracker.addPeerRecoveryRetentionLease(
-            routingTableWithReplica.getByAllocationId(replicaAllocationId.getId()).currentNodeId(), randomCheckpoint(),
+            routingTableWithReplica.getByAllocationId(replicaAllocationId.id()).currentNodeId(), randomCheckpoint(),
             EMPTY_LISTENER);
 
-        replicationTracker.initiateTracking(replicaAllocationId.getId());
-        replicationTracker.markAllocationIdAsInSync(replicaAllocationId.getId(), randomCheckpoint());
+        replicationTracker.initiateTracking(replicaAllocationId.id());
+        replicationTracker.markAllocationIdAsInSync(replicaAllocationId.id(), randomCheckpoint());
     }
 
     private long randomCheckpoint() {
@@ -106,7 +106,7 @@ public class PeerRecoveryRetentionLeaseExpiryTests extends ReplicationTrackerTes
         builder.removeShard(replicaShardRouting);
         builder.addShard(replicaShardRouting.moveToStarted());
         replicationTracker.updateFromMaster(replicationTracker.appliedClusterStateVersion + 1,
-            replicationTracker.routingTable.shards().stream().map(sr -> sr.allocationId().getId()).collect(Collectors.toSet()),
+            replicationTracker.routingTable.shards().stream().map(sr -> sr.allocationId().id()).collect(Collectors.toSet()),
             builder.build());
     }
 
