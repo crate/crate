@@ -176,7 +176,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
 
         assertThat(filter).hasOperators(
             "Filter[(a > 1)]",
-            "  └ Join[INNER | (b = a)]",
+            "  └ Join[INNER | (a = b)]",
             "    ├ Join[INNER | (a = b)]",
             "    │  ├ Collect[doc.t1 | [a] | true]",
             "    │  └ Collect[doc.t2 | [b] | true]",
@@ -212,7 +212,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
 
         assertThat(filter).hasOperators(
             "Filter[(((a > 1) AND (b < 10)) AND (c = 1))]",
-            "  └ Join[INNER | (b = a)]",
+            "  └ Join[INNER | (a = b)]",
             "    ├ Join[INNER | (a = b)]",
             "    │  ├ Collect[doc.t1 | [a] | true]",
             "    │  └ Collect[doc.t2 | [b] | true]",
@@ -233,7 +233,7 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
 
         assertThat(result).hasOperators(
             "Filter[(a > 1)]",
-            "  └ Join[INNER | (b = a)]",
+            "  └ Join[INNER | (a = b)]",
             "    ├ Filter[(b < 10)]",
             "    │  └ Join[INNER | (a = b)]",
             "    │    ├ Collect[doc.t1 | [a] | true]",

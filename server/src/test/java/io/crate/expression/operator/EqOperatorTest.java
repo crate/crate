@@ -182,8 +182,8 @@ public class EqOperatorTest extends ScalarTestCase {
         assertEvaluate("numeric_4_2 = 100", false, Literal.of(new BigDecimal("100.01")));
         assertEvaluate("numeric_4_2 = 100", true, Literal.of(new BigDecimal("100.00")));
         assertEvaluate(
-            "numeric_4_2 = double_val",
+            "double_val = numeric_4_2",
             false,
-            Literal.of(new BigDecimal("1.11")), Literal.of(1.111));
+            Literal.of(1.111), Literal.of(new BigDecimal("1.11")));
     }
 }

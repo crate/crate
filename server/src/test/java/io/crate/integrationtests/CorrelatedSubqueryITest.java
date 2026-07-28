@@ -311,14 +311,14 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "    └ OrderBy[table_name ASC column_name DESC]\n" +
             "      └ Filter[(attrelid = (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace)))]\n" +
             "        └ CorrelatedJoin[table_name, column_name, table_schema, attname, attrelid, (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))]\n" +
-            "          └ NestedLoopJoin[LEFT | (attname = column_name)]\n" +
+            "          └ NestedLoopJoin[LEFT | (column_name = attname)]\n" +
             "            ├ Collect[information_schema.columns | [table_name, column_name, table_schema] | true]\n" +
             "            └ Rename[attname, attrelid] AS col_attr\n" +
             "              └ Collect[pg_catalog.pg_attribute | [attname, attrelid] | true]\n" +
             "          └ SubPlan\n" +
             "            └ Eval[oid]\n" +
             "              └ Limit[2::bigint;0::bigint]\n" +
-            "                └ NestedLoopJoin[INNER | (oid = relnamespace)]\n" +
+            "                └ NestedLoopJoin[INNER | (relnamespace = oid)]\n" +
             "                  ├ Collect[pg_catalog.pg_class | [oid, relnamespace] | (relname = table_name)]\n" +
             "                  └ Collect[pg_catalog.pg_namespace | [oid] | (nspname = table_schema)]\n"
         );
@@ -365,14 +365,14 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "      └ Filter[((attrelid = (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))) AND (attrelid = (SELECT attrelid FROM (empty_row))))]\n" +
             "        └ CorrelatedJoin[table_name, column_name, table_schema, attname, attrelid, (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace)), (SELECT attrelid FROM (empty_row))]\n" +
             "          └ CorrelatedJoin[table_name, column_name, table_schema, attname, attrelid, (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))]\n" +
-            "            └ NestedLoopJoin[LEFT | (attname = column_name)]\n" +
+            "            └ NestedLoopJoin[LEFT | (column_name = attname)]\n" +
             "              ├ Collect[information_schema.columns | [table_name, column_name, table_schema] | true]\n" +
             "              └ Rename[attname, attrelid] AS col_attr\n" +
             "                └ Collect[pg_catalog.pg_attribute | [attname, attrelid] | true]\n" +
             "            └ SubPlan\n" +
             "              └ Eval[oid]\n" +
             "                └ Limit[2::bigint;0::bigint]\n" +
-            "                  └ NestedLoopJoin[INNER | (oid = relnamespace)]\n" +
+            "                  └ NestedLoopJoin[INNER | (relnamespace = oid)]\n" +
             "                    ├ Collect[pg_catalog.pg_class | [oid, relnamespace] | (relname = table_name)]\n" +
             "                    └ Collect[pg_catalog.pg_namespace | [oid] | (nspname = table_schema)]\n" +
             "          └ SubPlan\n" +

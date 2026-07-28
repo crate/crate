@@ -43,7 +43,7 @@ import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
 
-public final class RelationName implements Writeable, Accountable {
+public final class RelationName implements Writeable, Accountable, Comparable<RelationName> {
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(RelationName.class);
 
@@ -228,6 +228,24 @@ public final class RelationName implements Writeable, Accountable {
         int result = schema != null ? schema.hashCode() : 0;
         result = 31 * result + name.hashCode();
         return result;
+    }
+
+    @Override
+    public int compareTo(RelationName o) {
+        if (schema == null && o.schema == null) {
+            return name.compareTo(o.name());
+        }
+        if (schema == null) {
+            return 1;
+        }
+        if (o.schema == null) {
+            return -1;
+        }
+        int schemaComparison = schema.compareTo(o.schema);
+        if (schemaComparison == 0) {
+            return name.compareTo(o.name());
+        }
+        return schemaComparison;
     }
 
     @Override

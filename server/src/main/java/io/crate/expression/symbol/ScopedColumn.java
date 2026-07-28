@@ -25,9 +25,18 @@ package io.crate.expression.symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 
-public interface ScopedColumn {
+public interface ScopedColumn extends Comparable<ScopedColumn> {
 
     RelationName relation();
 
     ColumnIdent column();
+
+    @Override
+    default int compareTo(ScopedColumn o) {
+        int relationComparison = relation().compareTo(o.relation());
+        if (relationComparison == 0) {
+            return column().compareTo(o.column());
+        }
+        return relationComparison;
+    }
 }
