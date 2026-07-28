@@ -103,4 +103,25 @@ public class AggregateExpressionAnalyzerTest extends CrateDummyClusterServiceUni
             .hasMessage("Only aggregate functions allow a FILTER clause");
 
     }
+
+    @Test
+    public void test_distinct_cannot_be_used_with_scalar_function() {
+        assertThatThrownBy(() -> e.asSymbol("ln(distinct t.x)"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("DISTINCT is not supported for non-aggregate function ln");
+    }
+
+    @Test
+    public void test_distinct_cannot_be_used_with_table_function() {
+        assertThatThrownBy(() -> e.asSymbol("unnest(distinct [1, 2])"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("DISTINCT is not supported for non-aggregate function unnest");
+    }
+
+    @Test
+    public void test_distinct_does_not_accept_more_than_one_argument() {
+        assertThatThrownBy(() -> e.asSymbol("count(distinct t.x, t.x)"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("count(DISTINCT x) does not accept more than one argument");
+    }
 }

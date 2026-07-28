@@ -1307,11 +1307,22 @@ public class ExpressionAnalyzer {
         List<Symbol> castArguments = cast(arguments, boundSignature.argTypes());
         Function newFunction;
         if (windowDefinition == null) {
-            if (signature.getType() == FunctionType.AGGREGATE && context != null) {
-                context.indicateAggregates();
-            } else if (filter != null) {
-                throw new UnsupportedOperationException(
-                    "Only aggregate functions allow a FILTER clause");
+            if (signature.getType() == FunctionType.AGGREGATE) {
+                // There is no context when a function is allocated while building an execution plan.
+                if (context != null) {
+                    context.indicateAggregates();
+                }
+            } else {
+                if (filter != null) {
+                    throw new UnsupportedOperationException(
+                        "Only aggregate functions allow a FILTER clause");
+                }
+                if (distinct) {
+                    throw new UnsupportedOperationException(String.format(
+                        Locale.ENGLISH,
+                        "DISTINCT is not supported for non-aggregate function %s",
+                        functionName));
+                }
             }
             if (ignoreNulls != null) {
                 throw new IllegalArgumentException(String.format(
