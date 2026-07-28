@@ -223,7 +223,7 @@ public class Function implements Symbol, Cloneable {
                 throw new ConversionException(returnType, targetType);
             }
         }
-        return new Function(signature, newArgs, targetType, null, false);
+        return new Function(signature, newArgs, targetType, null, distinct);
     }
 
     public boolean isCast() {

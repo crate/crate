@@ -113,6 +113,7 @@ public class FunctionTest extends ESTestCase {
         // read current version
         in = out.bytes().streamInput();
         assertThat(Symbol.fromStream(in)).isEqualTo(fn);
+        assertThat(in.available()).isZero();
 
         // write to older version
         out = new BytesStreamOutput();
@@ -123,6 +124,9 @@ public class FunctionTest extends ESTestCase {
         in.setVersion(Version.V_6_4_0);
 
         assertThat(Symbol.fromStream(in)).isEqualTo(expected);
+        // The flag must not be written for older versions, otherwise the leftover byte
+        // shifts everything that is read from the stream after this symbol.
+        assertThat(in.available()).isZero();
     }
 
     private static Set<Scalar.Feature> randomFeatures() {

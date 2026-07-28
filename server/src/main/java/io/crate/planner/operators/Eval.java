@@ -66,10 +66,11 @@ public final class Eval extends ForwardingLogicalPlan {
         return new Eval(source, outputs);
     }
 
-    /// Used to handle distinct functions that look the same in a logical plan (e.g., `count(distinct x)`),
-    /// but are represented differently in `Eval` and `HashAggregate` for example.
-    /// This keeps the current behavior, where we have different functions in `Eval` and `HashAggregate`:
-    /// `collection_count(collect_set(x))` and `collect_set(x)` respectively.
+    /// Returns true if an `Eval` on top of `sourceOutput` would be a no-op.
+    ///
+    /// A distinct function is not considered equal to itself here. `count(distinct x)` becomes
+    /// `collect_set(x)` in the aggregate operators and `collection_count(collect_set(x))` in `Eval`,
+    /// so the `Eval` has to survive in order to apply the outer function.
     public static boolean isRedundant(List<Symbol> evalOutput, List<Symbol> sourceOutput) {
         if (evalOutput.size() != sourceOutput.size()) {
             return false;
