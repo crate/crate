@@ -293,8 +293,12 @@ public class FetchTask implements Task {
 
                 IndexMetadata indexMetadata = metadata.index(indexUUID);
                 if (indexMetadata == null) {
-                    RelationMetadata.Table tableMetadata = metadata.getRelation(ident);
-                    if (tableMetadata != null && tableMetadata.partitionedBy().isEmpty() == false) {
+                    RelationMetadata relationMetadata = metadata.getRelation(indexUUID);
+                    if (relationMetadata == null) {
+                        relationMetadata = metadata.getRelation(ident);
+                    }
+                    if (relationMetadata instanceof RelationMetadata.Table tableMetadata
+                        && tableMetadata.partitionedBy().isEmpty() == false) {
                         continue;
                     }
                     throw new IndexNotFoundException(indexUUID);

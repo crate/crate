@@ -440,10 +440,11 @@ public class MetadataCreateIndexService {
             }
 
             Builder metadataBuilder = Metadata.builder(metadata);
-            RelationMetadata.Table table = metadata.getRelation(request.table());
-            if (table == null) {
+            RelationMetadata relation = metadata.getRelation(sourceIndexUUID);
+            if (relation instanceof RelationMetadata.Table == false) {
                 throw new IllegalArgumentException("Cannot resize index for missing table: " + request.table());
             }
+            RelationMetadata.Table table = (RelationMetadata.Table) relation;
 
             if (request.partitionValues().isEmpty()) {
                 metadataBuilder.setTable(

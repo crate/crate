@@ -155,7 +155,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
         ClusterState updatedState = currentState;
 
-        RelationMetadata.Table table = updatedState.metadata().getRelation(target.table());
+        RelationMetadata.Table table = updatedState.metadata().getRelation(target.indices());
         List<String> partitionValues = target.partitionValues();
         final Metadata.Builder metadata;
         if (partitionValues.isEmpty()) {
