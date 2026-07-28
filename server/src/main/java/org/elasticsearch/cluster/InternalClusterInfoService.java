@@ -19,6 +19,7 @@
 
 package org.elasticsearch.cluster;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -257,20 +258,7 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
 
         try {
             IndicesStatsResponse indicesStats = indicesStatsResponse.get(fetchTimeout.millis(), TimeUnit.MILLISECONDS);
-            final ShardStats[] stats = indicesStats.getShards();
-            final MapBuilder<String, Long> shardSizeByIdentifierBuilder = MapBuilder.newMapBuilder();
-            final MapBuilder<ShardRouting, String> dataPathByShardRoutingBuilder = MapBuilder.newMapBuilder();
-            final Map<ClusterInfo.NodeAndPath, ClusterInfo.ReservedSpace.Builder> reservedSpaceBuilders = new HashMap<>();
-            buildShardLevelInfo(LOGGER, stats, shardSizeByIdentifierBuilder, dataPathByShardRoutingBuilder, reservedSpaceBuilders);
-
-            final MapBuilder<ClusterInfo.NodeAndPath, ClusterInfo.ReservedSpace> rsrvdSpace = MapBuilder.newMapBuilder();
-            reservedSpaceBuilders.forEach((nodeAndPath, builder) -> rsrvdSpace.put(nodeAndPath, builder.build()));
-
-            indicesStatsSummary = new IndicesStatsSummary(
-                shardSizeByIdentifierBuilder.immutableMap(),
-                dataPathByShardRoutingBuilder.immutableMap(),
-                rsrvdSpace.immutableMap()
-            );
+            indicesStatsSummary = buildStatsSummary(indicesStats.getShards());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // restore interrupt status
             LOGGER.warn("Failed to update shard information for ClusterInfoUpdateJob within {} timeout", fetchTimeout);
@@ -310,14 +298,13 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
         listeners.add(clusterInfoConsumer);
     }
 
-    static void buildShardLevelInfo(Logger logger,
-                                    ShardStats[] stats,
-                                    MapBuilder<String, Long> shardSizes,
-                                    MapBuilder<ShardRouting, String> newShardRoutingToDataPath,
-                                    Map<ClusterInfo.NodeAndPath, ClusterInfo.ReservedSpace.Builder> reservedSpaceByShard) {
+    static IndicesStatsSummary buildStatsSummary(ShardStats[] stats) {
+        final HashMap<String, Long> shardSizeByIdentifier = new HashMap<>();
+        final HashMap<ShardRouting, String> dataPathByShardRouting = new HashMap<>();
+        final HashMap<ClusterInfo.NodeAndPath, ClusterInfo.ReservedSpace.Builder> reservedSpaceBuilders = new HashMap<>();
         for (ShardStats s : stats) {
             final ShardRouting shardRouting = s.getShardRouting();
-            newShardRoutingToDataPath.put(shardRouting, s.getDataPath());
+            dataPathByShardRouting.put(shardRouting, s.getDataPath());
 
             final StoreStats storeStats = s.getStats().getStore();
             if (storeStats == null) {
@@ -327,16 +314,25 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
             final long reserved = storeStats.getReservedSize().getBytes();
 
             final String shardIdentifier = ClusterInfo.shardIdentifierFromRouting(shardRouting);
-            logger.trace("shard: {} size: {} reserved: {}", shardIdentifier, size, reserved);
-            shardSizes.put(shardIdentifier, size);
+            LOGGER.trace("shard: {} size: {} reserved: {}", shardIdentifier, size, reserved);
+            shardSizeByIdentifier.put(shardIdentifier, size);
 
             if (reserved != StoreStats.UNKNOWN_RESERVED_BYTES) {
-                final ClusterInfo.ReservedSpace.Builder reservedSpaceBuilder = reservedSpaceByShard.computeIfAbsent(
+                final ClusterInfo.ReservedSpace.Builder reservedSpaceBuilder = reservedSpaceBuilders.computeIfAbsent(
                     new ClusterInfo.NodeAndPath(shardRouting.currentNodeId(), s.getDataPath()),
                     t -> new ClusterInfo.ReservedSpace.Builder());
                 reservedSpaceBuilder.add(shardRouting.shardId(), reserved);
             }
         }
+
+        final HashMap<ClusterInfo.NodeAndPath, ClusterInfo.ReservedSpace> rsrvdSpace = new HashMap<>();
+        reservedSpaceBuilders.forEach((nodeAndPath, builder) -> rsrvdSpace.put(nodeAndPath, builder.build()));
+
+        return new IndicesStatsSummary(
+            Collections.unmodifiableMap(shardSizeByIdentifier),
+            Collections.unmodifiableMap(dataPathByShardRouting),
+            Collections.unmodifiableMap(rsrvdSpace)
+        );
     }
 
     static void fillDiskUsagePerNode(Logger logger,
@@ -403,20 +399,11 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
         }
     }
 
-    private static class IndicesStatsSummary {
+    private record IndicesStatsSummary(Map<String, Long> shardSizes,
+                                       Map<ShardRouting, String> shardRoutingToDataPath,
+                                       Map<ClusterInfo.NodeAndPath, ClusterInfo.ReservedSpace> reservedSpace) {
+
         static final IndicesStatsSummary EMPTY = new IndicesStatsSummary(Map.of(), Map.of(), Map.of());
-
-        final Map<String, Long> shardSizes;
-        final Map<ShardRouting, String> shardRoutingToDataPath;
-        final Map<ClusterInfo.NodeAndPath, ClusterInfo.ReservedSpace> reservedSpace;
-
-        IndicesStatsSummary(Map<String, Long> shardSizes,
-                            Map<ShardRouting, String> shardRoutingToDataPath,
-                            Map<ClusterInfo.NodeAndPath, ClusterInfo.ReservedSpace> reservedSpace) {
-            this.shardSizes = shardSizes;
-            this.shardRoutingToDataPath = shardRoutingToDataPath;
-            this.reservedSpace = reservedSpace;
-        }
     }
 
     /**
