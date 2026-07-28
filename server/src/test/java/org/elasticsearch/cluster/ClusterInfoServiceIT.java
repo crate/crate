@@ -22,6 +22,7 @@ package org.elasticsearch.cluster;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -63,7 +64,7 @@ public class ClusterInfoServiceIT extends IntegTestCase {
         final InternalClusterInfoService infoService = (InternalClusterInfoService) internalTestCluster
             .getInstance(ClusterInfoService.class, internalTestCluster.getMasterName());
         infoService.setUpdateFrequency(TimeValue.timeValueMillis(200));
-        ClusterInfo info = infoService.refresh();
+        ClusterInfo info = infoService.refresh().get(5, TimeUnit.SECONDS);
         assertThat(info).as("info should not be null").isNotNull();
         Map<String, DiskUsage> leastUsages = info.getNodeLeastAvailableDiskUsages();
         Map<String, DiskUsage> mostUsages = info.getNodeMostAvailableDiskUsages();

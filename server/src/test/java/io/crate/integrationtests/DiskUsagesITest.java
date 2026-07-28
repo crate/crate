@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.as;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING;
 
@@ -33,6 +34,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -105,7 +107,7 @@ public class DiskUsagesITest extends IntegTestCase {
         clusterInfoService.setDiskUsageFunctionAndRefresh((discoveryNode, fsInfoPath) ->
             setDiskUsage(fsInfoPath, 100, between(10, 100)));
 
-        clusterInfoService.refresh();
+        clusterInfoService.refresh().get(5, TimeUnit.SECONDS);
 
         execute("SET GLOBAL TRANSIENT" +
                 "   cluster.routing.allocation.disk.watermark.low='90%'," +
@@ -163,7 +165,7 @@ public class DiskUsagesITest extends IntegTestCase {
         AtomicReference<ClusterState> masterAppliedClusterState = new AtomicReference<>();
         cluster().getCurrentMasterNodeInstance(ClusterService.class).addListener(event -> {
             masterAppliedClusterState.set(event.state());
-            clusterInfoService.refresh(); // so subsequent reroute sees disk usage according to the current state
+            FutureUtils.get(clusterInfoService.refresh(), 5, TimeUnit.SECONDS); // so subsequent reroute sees disk usage according to the current state
         });
 
         // shards are 1 byte large
@@ -197,7 +199,7 @@ public class DiskUsagesITest extends IntegTestCase {
                 ? 101L - masterAppliedClusterState.get().getRoutingNodes().node(nodeIds.get(2)).numberOfOwningShards()
                 : 1000L));
 
-        clusterInfoService.refresh();
+        FutureUtils.get(clusterInfoService.refresh(), 5, TimeUnit.SECONDS);
 
         logger.info("waiting for shards to relocate off node [{}]", nodeIds.get(2));
 
@@ -225,7 +227,7 @@ public class DiskUsagesITest extends IntegTestCase {
         AtomicReference<ClusterState> masterAppliedClusterState = new AtomicReference<>();
         cluster().getCurrentMasterNodeInstance(ClusterService.class).addListener(event -> {
             masterAppliedClusterState.set(event.state());
-            clusterInfoService.refresh(); // so a subsequent reroute sees disk usage according to the current state
+            FutureUtils.get(clusterInfoService.refresh(), 5, TimeUnit.SECONDS); // so a subsequent reroute sees disk usage according to the current state
         });
 
         execute("SET GLOBAL TRANSIENT" +

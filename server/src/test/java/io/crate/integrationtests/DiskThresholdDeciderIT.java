@@ -40,8 +40,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.lucene.tests.mockfile.FilterFileStore;
@@ -144,7 +146,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
 
         final InternalClusterInfoService clusterInfoService
                 = (InternalClusterInfoService) cluster().getCurrentMasterNodeInstance(ClusterInfoService.class);
-        cluster().getCurrentMasterNodeInstance(ClusterService.class).addListener(event -> clusterInfoService.refresh());
+        cluster().getCurrentMasterNodeInstance(ClusterService.class).addListener(event -> FutureUtils.get(clusterInfoService.refresh(), 5, TimeUnit.SECONDS));
 
         final String dataNode0Id = cluster().getInstance(NodeEnvironment.class, dataNodeName).nodeId();
         final Path dataNode0Path = cluster().getInstance(Environment.class, dataNodeName).dataFiles()[0];
@@ -190,7 +192,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
 
         final InternalClusterInfoService clusterInfoService
             = (InternalClusterInfoService) cluster().getCurrentMasterNodeInstance(ClusterInfoService.class);
-        cluster().getCurrentMasterNodeInstance(ClusterService.class).addListener(event -> clusterInfoService.refresh());
+        cluster().getCurrentMasterNodeInstance(ClusterService.class).addListener(event -> FutureUtils.get(clusterInfoService.refresh(), 5, TimeUnit.SECONDS));
 
         final String dataNode0Id = cluster().getInstance(NodeEnvironment.class, dataNodeName).nodeId();
         final Path dataNode0Path = cluster().getInstance(Environment.class, dataNodeName).dataFiles()[0];
@@ -270,10 +272,10 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
     }
 
     private void refreshDiskUsage() throws ExecutionException, InterruptedException {
-        ((InternalClusterInfoService) cluster().getCurrentMasterNodeInstance(ClusterInfoService.class)).refresh();
+        CompletableFuture<ClusterInfo> refresh = ((InternalClusterInfoService) cluster().getCurrentMasterNodeInstance(ClusterInfoService.class)).refresh();
+        ClusterInfo clusterInfo = FutureUtils.get(refresh, 5, TimeUnit.SECONDS);
         // if the nodes were all under the low watermark already (but unbalanced) then a change in the disk usage doesn't trigger a reroute
         // even though it's now possible to achieve better balance, so we have to do an explicit reroute. TODO fix this?
-        final ClusterInfo clusterInfo = cluster().getMasterNodeInstance(ClusterInfoService.class).getClusterInfo();
         if (clusterInfo.getNodeMostAvailableDiskUsages().values().stream()
             .allMatch(cur -> cur.freeBytes() > WATERMARK_BYTES)) {
 
