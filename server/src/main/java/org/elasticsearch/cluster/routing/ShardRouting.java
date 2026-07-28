@@ -20,7 +20,6 @@
 package org.elasticsearch.cluster.routing;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 
 import org.elasticsearch.cluster.routing.RecoverySource.ExistingStoreRecoverySource;
@@ -52,7 +51,6 @@ public final class ShardRouting implements Writeable {
     private final RecoverySource recoverySource;
     private final UnassignedInfo unassignedInfo;
     private final AllocationId allocationId;
-    private final transient List<ShardRouting> asList;
     private final long expectedShardSize;
     @Nullable
     private final ShardRouting targetRelocatingShard;
@@ -61,9 +59,15 @@ public final class ShardRouting implements Writeable {
      * A constructor to internally create shard routing instances, note, the internal flag should only be set to true
      * by either this class or tests. Visible for testing.
      */
-    ShardRouting(ShardId shardId, String currentNodeId,
-                 String relocatingNodeId, boolean primary, ShardRoutingState state, RecoverySource recoverySource,
-                 UnassignedInfo unassignedInfo, AllocationId allocationId, long expectedShardSize) {
+    ShardRouting(ShardId shardId,
+                 String currentNodeId,
+                 String relocatingNodeId,
+                 boolean primary,
+                 ShardRoutingState state,
+                 RecoverySource recoverySource,
+                 UnassignedInfo unassignedInfo,
+                 AllocationId allocationId,
+                 long expectedShardSize) {
         this.shardId = shardId;
         this.currentNodeId = currentNodeId;
         this.relocatingNodeId = relocatingNodeId;
@@ -74,7 +78,6 @@ public final class ShardRouting implements Writeable {
         this.allocationId = allocationId;
         this.expectedShardSize = expectedShardSize;
         this.targetRelocatingShard = initializeTargetRelocatingShard();
-        this.asList = Collections.singletonList(this);
         assert expectedShardSize == UNAVAILABLE_EXPECTED_SHARD_SIZE || state == ShardRoutingState.INITIALIZING || state == ShardRoutingState.RELOCATING : expectedShardSize + " state: " + state;
         assert expectedShardSize >= 0 || state != ShardRoutingState.INITIALIZING || state != ShardRoutingState.RELOCATING : expectedShardSize + " state: " + state;
         assert !(state == ShardRoutingState.UNASSIGNED && unassignedInfo == null) : "unassigned shard must be created with meta";
@@ -239,7 +242,7 @@ public final class ShardRouting implements Writeable {
      * A shard iterator with just this shard in it.
      */
     public ShardIterator shardsIt() {
-        return new PlainShardIterator(shardId, asList);
+        return new PlainShardIterator(shardId, List.of(this));
     }
 
     public ShardRouting(ShardId shardId, StreamInput in) throws IOException {
@@ -262,7 +265,6 @@ public final class ShardRouting implements Writeable {
             shardSize = UNAVAILABLE_EXPECTED_SHARD_SIZE;
         }
         expectedShardSize = shardSize;
-        asList = Collections.singletonList(this);
         targetRelocatingShard = initializeTargetRelocatingShard();
     }
 
