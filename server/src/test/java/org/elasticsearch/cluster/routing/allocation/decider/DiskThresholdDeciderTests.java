@@ -65,6 +65,9 @@ import org.elasticsearch.snapshots.EmptySnapshotsInfoService;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
 import org.junit.Test;
 
+import com.carrotsearch.hppc.ObjectLongHashMap;
+import com.carrotsearch.hppc.ObjectLongMap;
+
 public class DiskThresholdDeciderTests extends ESAllocationTestCase {
 
     private DiskThresholdDecider makeDecider(Settings settings) {
@@ -85,7 +88,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         usages.put("node3", new DiskUsage("node3", "node3", "/dev/null", 100, 60)); // 40% used
         usages.put("node4", new DiskUsage("node4", "node4", "/dev/null", 100, 80)); // 20% used
 
-        HashMap<String, Long> shardSizes = new HashMap<>();
+        ObjectLongMap<String> shardSizes = new ObjectLongHashMap<>();
         shardSizes.put("[test][0][p]", 10L); // 10 bytes
         shardSizes.put("[test][0][r]", 10L);
         final ClusterInfo clusterInfo = new DevNullClusterInfo(usages, usages, shardSizes);
@@ -267,7 +270,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         usages.put("node4", new DiskUsage("node4", "n4", "/dev/null", 100, 80)); // 20% used
         usages.put("node5", new DiskUsage("node5", "n5", "/dev/null", 100, 85)); // 15% used
 
-        HashMap<String, Long> shardSizes = new HashMap<>();
+        ObjectLongMap<String> shardSizes = new ObjectLongHashMap<>();
         shardSizes.put("[test][0][p]", 10L); // 10 bytes
         shardSizes.put("[test][0][r]", 10L);
         final ClusterInfo clusterInfo = new DevNullClusterInfo(usages, usages, shardSizes);
@@ -508,7 +511,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         usages.put("node1", new DiskUsage("node1", "n1", "/dev/null", 100, 31)); // 69% used
         usages.put("node2", new DiskUsage("node2", "n2", "/dev/null", 100, 1));  // 99% used
 
-        HashMap<String, Long> shardSizes = new HashMap<>();
+        ObjectLongMap<String> shardSizes = new ObjectLongHashMap<>();
         shardSizes.put("[test/test][0][p]", 10L); // 10 bytes
         final ClusterInfo clusterInfo = new DevNullClusterInfo(usages, usages, shardSizes);
 
@@ -574,7 +577,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         usages.put("node2", new DiskUsage("node2", "node2", "/dev/null", 100, 50)); // 50% used
         usages.put("node3", new DiskUsage("node3", "node3", "/dev/null", 100, 0));  // 100% used
 
-        HashMap<String, Long> shardSizes = new HashMap<>();
+        ObjectLongMap<String> shardSizes = new ObjectLongHashMap<>();
         shardSizes.put("[test][0][p]", 10L); // 10 bytes
         shardSizes.put("[test][0][r]", 10L); // 10 bytes
         final ClusterInfo clusterInfo = new DevNullClusterInfo(usages, usages, shardSizes);
@@ -677,7 +680,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         usages.put("node1", new DiskUsage("node1", "n1", "/dev/null", 100, 20)); // 80% used
         usages.put("node2", new DiskUsage("node2", "n2", "/dev/null", 100, 100)); // 0% used
 
-        HashMap<String, Long> shardSizes = new HashMap<>();
+        ObjectLongMap<String> shardSizes = new ObjectLongHashMap<>();
         shardSizes.put("[_na_/test][0][p]", 40L);
         shardSizes.put("[_na_/test][1][p]", 40L);
         shardSizes.put("[_na_/foo][0][p]", 10L);
@@ -813,7 +816,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         usages.put("data", new DiskUsage("data", "data", "/dev/null", 100, 20));  // 80% used
 
         // We have an index with 1 primary shard, taking 40 bytes. The single data node has only 20 bytes free.
-        HashMap<String, Long> shardSizes = new HashMap<>();
+        ObjectLongMap<String> shardSizes = new ObjectLongHashMap<>();
         shardSizes.put("[test][0][p]", 40L);
         final ClusterInfo clusterInfo = new DevNullClusterInfo(usages, usages, shardSizes);
 
@@ -929,13 +932,13 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
     static class DevNullClusterInfo extends ClusterInfo {
         DevNullClusterInfo(Map<String, DiskUsage> leastAvailableSpaceUsage,
                            Map<String, DiskUsage> mostAvailableSpaceUsage,
-                           Map<String, Long> shardSizes) {
+                           ObjectLongMap<String> shardSizes) {
             this(leastAvailableSpaceUsage, mostAvailableSpaceUsage, shardSizes, Map.of());
         }
 
         DevNullClusterInfo(Map<String, DiskUsage> leastAvailableSpaceUsage,
                            Map<String, DiskUsage> mostAvailableSpaceUsage,
-                           Map<String, Long> shardSizes,
+                           ObjectLongMap<String> shardSizes,
                            Map<NodeAndPath, ReservedSpace> reservedSpace) {
             super(leastAvailableSpaceUsage, mostAvailableSpaceUsage, shardSizes, null, reservedSpace);
         }

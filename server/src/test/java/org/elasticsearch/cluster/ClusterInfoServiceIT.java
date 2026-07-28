@@ -34,6 +34,8 @@ import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
 import org.junit.Test;
 
+import com.carrotsearch.hppc.ObjectLongMap;
+
 import io.crate.common.unit.TimeValue;
 import io.crate.testing.UseRandomizedSchema;
 
@@ -68,7 +70,7 @@ public class ClusterInfoServiceIT extends IntegTestCase {
         assertThat(info).as("info should not be null").isNotNull();
         Map<String, DiskUsage> leastUsages = info.getNodeLeastAvailableDiskUsages();
         Map<String, DiskUsage> mostUsages = info.getNodeMostAvailableDiskUsages();
-        Map<String, Long> shardSizes = info.shardSizes;
+        ObjectLongMap<String> shardSizes = info.shardSizes;
         assertThat(leastUsages).isNotNull();
         assertThat(shardSizes).isNotNull();
         assertThat(leastUsages.values())
@@ -83,7 +85,8 @@ public class ClusterInfoServiceIT extends IntegTestCase {
             logger.info("--> usage: {}", usage);
             assertThat(usage.freeBytes()).as("usage has be retrieved").isGreaterThan(0L);
         }
-        for (Long size : shardSizes.values()) {
+        for (var cursor : shardSizes.values()) {
+            long size = cursor.value;
             logger.info("--> shard size: {}", size);
             assertThat(size).as("shard size is greater than 0:").isGreaterThanOrEqualTo(0L);
         }

@@ -31,6 +31,9 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.StoreStats;
 
+import com.carrotsearch.hppc.ObjectLongHashMap;
+import com.carrotsearch.hppc.ObjectLongMap;
+
 /**
  * ClusterInfo is an object representing a map of nodes to {@link DiskUsage}
  * and a map of shard ids to shard sizes, see
@@ -41,7 +44,7 @@ public class ClusterInfo implements Writeable {
 
     private final Map<String, DiskUsage> leastAvailableSpaceUsage;
     private final Map<String, DiskUsage> mostAvailableSpaceUsage;
-    final Map<String, Long> shardSizes;
+    final ObjectLongMap<String> shardSizes;
     public static final ClusterInfo EMPTY = new ClusterInfo();
     final Map<ShardRouting, String> routingToDataPath;
     final Map<NodeAndPath, ReservedSpace> reservedSpace;
@@ -50,7 +53,7 @@ public class ClusterInfo implements Writeable {
         this(
             Map.of(),
             Map.of(),
-            Map.of(),
+            new ObjectLongHashMap<>(0),
             Map.of(),
             Map.of());
     }
@@ -67,7 +70,7 @@ public class ClusterInfo implements Writeable {
      */
     public ClusterInfo(Map<String, DiskUsage> leastAvailableSpaceUsage,
                        Map<String, DiskUsage> mostAvailableSpaceUsage,
-                       Map<String, Long> shardSizes,
+                       ObjectLongMap<String> shardSizes,
                        Map<ShardRouting, String> routingToDataPath,
                        Map<NodeAndPath, ReservedSpace> reservedSpace) {
         this.leastAvailableSpaceUsage = leastAvailableSpaceUsage;
@@ -80,7 +83,13 @@ public class ClusterInfo implements Writeable {
     public ClusterInfo(StreamInput in) throws IOException {
         final Map<String, DiskUsage> leastMap = in.readMap(StreamInput::readString, DiskUsage::of);
         final Map<String, DiskUsage> mostMap = in.readMap(StreamInput::readString, DiskUsage::of);
-        final Map<String, Long> sizeMap = in.readMap(StreamInput::readString, StreamInput::readLong);
+        int numShardSizes = in.readVInt();
+        this.shardSizes = new ObjectLongHashMap<>(numShardSizes);
+        for (int i = 0; i < numShardSizes; i++) {
+            String key = in.readString();
+            long size = in.readLong();
+            shardSizes.put(key, size);
+        }
         final Map<ShardRouting, String> routingMap = in.readMap(ShardRouting::new, StreamInput::readString);
         Map<NodeAndPath, ReservedSpace> reservedSpaceMap;
         if (in.getVersion().onOrAfter(StoreStats.RESERVED_BYTES_VERSION)) {
@@ -91,7 +100,6 @@ public class ClusterInfo implements Writeable {
 
         this.leastAvailableSpaceUsage = Collections.unmodifiableMap(leastMap);
         this.mostAvailableSpaceUsage = Collections.unmodifiableMap(mostMap);
-        this.shardSizes = Collections.unmodifiableMap(sizeMap);
         this.routingToDataPath = Collections.unmodifiableMap(routingMap);
         this.reservedSpace = Collections.unmodifiableMap(reservedSpaceMap);
     }
@@ -104,7 +112,13 @@ public class ClusterInfo implements Writeable {
             c.getValue().writeTo(out);
         }
         out.writeMap(this.mostAvailableSpaceUsage, StreamOutput::writeString, (o, v) -> v.writeTo(o));
-        out.writeMap(this.shardSizes, StreamOutput::writeString, (o, v) -> out.writeLong(v == null ? -1 : v));
+        out.writeVInt(this.shardSizes.size());
+        for (var cursor : shardSizes) {
+            String key = cursor.key;
+            long size = cursor.value;
+            out.writeString(key);
+            out.writeLong(size);
+        }
         out.writeMap(this.routingToDataPath, (o, k) -> k.writeTo(o), StreamOutput::writeString);
         if (out.getVersion().onOrAfter(StoreStats.RESERVED_BYTES_VERSION)) {
             out.writeWritableMap(this.reservedSpace);
@@ -129,10 +143,17 @@ public class ClusterInfo implements Writeable {
     }
 
     /**
-     * Returns the shard size for the given shard routing or <code>null</code> it that metric is not available.
+     * Returns the shard size for the given shard routing or <code>0</code> it that metric is not available.
      */
-    public Long getShardSize(ShardRouting shardRouting) {
+    public long getShardSize(ShardRouting shardRouting) {
         return shardSizes.get(shardIdentifierFromRouting(shardRouting));
+    }
+
+    /**
+     * Returns the shard size for the given shard routing or <code>defaultValue</code> it that metric is not available.
+     */
+    public long getShardSize(ShardRouting shardRouting, long defaultValue) {
+        return shardSizes.getOrDefault(shardIdentifierFromRouting(shardRouting), defaultValue);
     }
 
     /**
@@ -140,14 +161,6 @@ public class ClusterInfo implements Writeable {
      */
     public String getDataPath(ShardRouting shardRouting) {
         return routingToDataPath.get(shardRouting);
-    }
-
-    /**
-     * Returns the shard size for the given shard routing or <code>defaultValue</code> it that metric is not available.
-     */
-    public long getShardSize(ShardRouting shardRouting, long defaultValue) {
-        Long shardSize = getShardSize(shardRouting);
-        return shardSize == null ? defaultValue : shardSize;
     }
 
     /**
