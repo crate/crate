@@ -22,7 +22,6 @@ package org.elasticsearch.cluster;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -176,31 +175,10 @@ public class ClusterInfo implements Writeable {
     /**
      * Represents a data path on a node
      */
-    public static class NodeAndPath implements Writeable {
-        public final String nodeId;
-        public final String path;
-
-        public NodeAndPath(String nodeId, String path) {
-            this.nodeId = Objects.requireNonNull(nodeId);
-            this.path = Objects.requireNonNull(path);
-        }
+    public record NodeAndPath(String nodeId, String path) implements Writeable {
 
         public NodeAndPath(StreamInput in) throws IOException {
-            this.nodeId = in.readString();
-            this.path = in.readString();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            NodeAndPath that = (NodeAndPath) o;
-            return nodeId.equals(that.nodeId) && path.equals(that.path);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(nodeId, path);
+            this(in.readString(), in.readString());
         }
 
         @Override
