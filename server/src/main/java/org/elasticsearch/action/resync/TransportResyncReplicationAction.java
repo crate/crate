@@ -182,7 +182,7 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
         public void failShardIfNeeded(ShardRouting replica, long primaryTerm, String message, Exception exception,
                                       ActionListener<Void> listener) {
             shardStateAction.remoteShardFailed(
-                replica.shardId(), replica.allocationId().getId(), primaryTerm, false, message, exception, listener);
+                replica.shardId(), replica.allocationId().id(), primaryTerm, false, message, exception, listener);
         }
     }
 }

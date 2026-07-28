@@ -156,7 +156,7 @@ public class TransportNodesListGatewayStartedShards extends
                                 (finalShardPath != null) ? finalShardPath.resolveIndex() : ""),
                             exception);
                         String allocationId = shardStateMetadata.allocationId != null ?
-                            shardStateMetadata.allocationId.getId() : null;
+                            shardStateMetadata.allocationId.id() : null;
                         return new NodeGatewayStartedShards(clusterService.localNode(), allocationId, shardStateMetadata.primary,
                             exception);
                     }
@@ -164,7 +164,7 @@ public class TransportNodesListGatewayStartedShards extends
 
                 logger.debug("{} shard state info found: [{}]", shardId, shardStateMetadata);
                 String allocationId = shardStateMetadata.allocationId != null ?
-                    shardStateMetadata.allocationId.getId() : null;
+                    shardStateMetadata.allocationId.id() : null;
                 return new NodeGatewayStartedShards(clusterService.localNode(), allocationId, shardStateMetadata.primary);
             }
             logger.trace("{} no local shard info found", shardId);

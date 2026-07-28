@@ -95,7 +95,7 @@ public class RoutingNodesChangedObserver implements RoutingChangesObserver {
             "expected initializing replica shard " + oldReplica;
         assert reinitializedReplica.initializing() && reinitializedReplica.primary() == false :
             "expected reinitialized replica shard " + reinitializedReplica;
-        assert oldReplica.allocationId().getId().equals(reinitializedReplica.allocationId().getId()) == false :
+        assert oldReplica.allocationId().id().equals(reinitializedReplica.allocationId().id()) == false :
             "expected allocation id to change for reinitialized replica shard (old: " + oldReplica + " new: " + reinitializedReplica + ")";
         setChanged();
     }

@@ -245,7 +245,7 @@ public abstract class TransportWriteAction<
             }
             shardStateAction.remoteShardFailed(
                 replica.shardId(),
-                replica.allocationId().getId(),
+                replica.allocationId().id(),
                 primaryTerm,
                 true,
                 message,

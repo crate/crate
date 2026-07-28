@@ -19,6 +19,13 @@
 
 package org.elasticsearch.test.gateway;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -31,13 +38,6 @@ import org.elasticsearch.gateway.ReplicaShardAllocator;
 import org.elasticsearch.gateway.TransportNodesListGatewayStartedShards.NodeGatewayStartedShards;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.store.TransportNodesListShardStoreMetadata.NodeStoreFilesMetadata;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * A gateway allocator implementation that keeps an in memory list of started shard allocation
@@ -74,7 +74,7 @@ public class TestGatewayAllocator extends GatewayAllocator {
                     routing -> currentNodes.get(routing.currentNodeId()),
                     routing ->
                         new NodeGatewayStartedShards(
-                            currentNodes.get(routing.currentNodeId()), routing.allocationId().getId(), routing.primary())));
+                            currentNodes.get(routing.currentNodeId()), routing.allocationId().id(), routing.primary())));
 
             return new AsyncShardFetch.FetchResult<>(shardId, foundShards, ignoreNodes);
         }

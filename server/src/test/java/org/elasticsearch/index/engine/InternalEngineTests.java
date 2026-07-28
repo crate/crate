@@ -2085,19 +2085,19 @@ public class InternalEngineTests extends EngineTestCase {
             final ShardRouting initializingReplica =
                 TestShardRouting.newShardRouting(shardId, "node2", false, ShardRoutingState.INITIALIZING);
             ReplicationTracker gcpTracker = (ReplicationTracker) initialEngine.config().getGlobalCheckpointSupplier();
-            gcpTracker.updateFromMaster(1L, new HashSet<>(Collections.singletonList(primary.allocationId().getId())),
+            gcpTracker.updateFromMaster(1L, new HashSet<>(Collections.singletonList(primary.allocationId().id())),
                 new IndexShardRoutingTable.Builder(shardId).addShard(primary).build());
             gcpTracker.activatePrimaryMode(primarySeqNo);
             final CountDownLatch countDownLatch = new CountDownLatch(1);
             gcpTracker.addPeerRecoveryRetentionLease(initializingReplica.currentNodeId(),
                 SequenceNumbers.NO_OPS_PERFORMED, ActionListener.wrap(countDownLatch::countDown));
             countDownLatch.await(5, TimeUnit.SECONDS);
-            gcpTracker.updateFromMaster(2L, new HashSet<>(Collections.singletonList(primary.allocationId().getId())),
+            gcpTracker.updateFromMaster(2L, new HashSet<>(Collections.singletonList(primary.allocationId().id())),
                 new IndexShardRoutingTable.Builder(shardId).addShard(primary).addShard(initializingReplica).build());
-            gcpTracker.initiateTracking(initializingReplica.allocationId().getId());
-            gcpTracker.markAllocationIdAsInSync(initializingReplica.allocationId().getId(), replicaLocalCheckpoint);
+            gcpTracker.initiateTracking(initializingReplica.allocationId().id());
+            gcpTracker.markAllocationIdAsInSync(initializingReplica.allocationId().id(), replicaLocalCheckpoint);
             final ShardRouting replica = initializingReplica.moveToStarted();
-            gcpTracker.updateFromMaster(3L, new HashSet<>(Arrays.asList(primary.allocationId().getId(), replica.allocationId().getId())),
+            gcpTracker.updateFromMaster(3L, new HashSet<>(Arrays.asList(primary.allocationId().id(), replica.allocationId().id())),
                 new IndexShardRoutingTable.Builder(shardId).addShard(primary).addShard(replica).build());
 
             for (int op = 0; op < opCount; op++) {
@@ -2154,9 +2154,9 @@ public class InternalEngineTests extends EngineTestCase {
                     // only update rarely as we do it every doc
                     replicaLocalCheckpoint = randomIntBetween(Math.toIntExact(replicaLocalCheckpoint), Math.toIntExact(primarySeqNo));
                 }
-                gcpTracker.updateLocalCheckpoint(primary.allocationId().getId(),
+                gcpTracker.updateLocalCheckpoint(primary.allocationId().id(),
                     initialEngine.getPersistedLocalCheckpoint());
-                gcpTracker.updateLocalCheckpoint(initializingReplica.allocationId().getId(), replicaLocalCheckpoint);
+                gcpTracker.updateLocalCheckpoint(initializingReplica.allocationId().id(), replicaLocalCheckpoint);
 
                 if (rarely()) {
                     localCheckpoint = primarySeqNo;

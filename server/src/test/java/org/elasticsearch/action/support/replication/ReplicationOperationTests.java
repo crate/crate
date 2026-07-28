@@ -171,9 +171,9 @@ public class ReplicationOperationTests extends ESTestCase {
         final int totalShards = 1 + expectedReplicas.size() + unassignedShards.size() + untrackedShards.size();
         assertThat(shardInfo.getTotal()).as(replicationGroup.toString()).isEqualTo(totalShards);
 
-        assertThat(primary.knownLocalCheckpoints.remove(primaryShard.allocationId().getId())).isEqualTo(primary.localCheckpoint);
+        assertThat(primary.knownLocalCheckpoints.remove(primaryShard.allocationId().id())).isEqualTo(primary.localCheckpoint);
         assertThat(primary.knownLocalCheckpoints).isEqualTo(replicasProxy.generatedLocalCheckpoints);
-        assertThat(primary.knownGlobalCheckpoints.remove(primaryShard.allocationId().getId())).isEqualTo(primary.globalCheckpoint);
+        assertThat(primary.knownGlobalCheckpoints.remove(primaryShard.allocationId().id())).isEqualTo(primary.globalCheckpoint);
         assertThat(primary.knownGlobalCheckpoints).isEqualTo(replicasProxy.generatedGlobalCheckpoints);
     }
 
@@ -246,9 +246,9 @@ public class ReplicationOperationTests extends ESTestCase {
         final int totalShards = 1 + expectedReplicas.size() + unassignedShards.size() + untrackedShards.size();
         assertThat(shardInfo.getTotal()).as(replicationGroup.toString()).isEqualTo(totalShards);
 
-        assertThat(primary.knownLocalCheckpoints.remove(primaryShard.allocationId().getId())).isEqualTo(primary.localCheckpoint);
+        assertThat(primary.knownLocalCheckpoints.remove(primaryShard.allocationId().id())).isEqualTo(primary.localCheckpoint);
         assertThat(primary.knownLocalCheckpoints).isEqualTo(replicasProxy.generatedLocalCheckpoints);
-        assertThat(primary.knownGlobalCheckpoints.remove(primaryShard.allocationId().getId())).isEqualTo(primary.globalCheckpoint);
+        assertThat(primary.knownGlobalCheckpoints.remove(primaryShard.allocationId().id())).isEqualTo(primary.globalCheckpoint);
         assertThat(primary.knownGlobalCheckpoints).isEqualTo(replicasProxy.generatedGlobalCheckpoints);
     }
 
@@ -258,17 +258,17 @@ public class ReplicationOperationTests extends ESTestCase {
             if (shr.unassigned() == false) {
                 if (shr.initializing()) {
                     if (randomBoolean()) {
-                        trackedShards.add(shr.allocationId().getId());
+                        trackedShards.add(shr.allocationId().id());
                     } else {
-                        untrackedShards.add(shr.allocationId().getId());
+                        untrackedShards.add(shr.allocationId().id());
                     }
                 } else {
-                    trackedShards.add(shr.allocationId().getId());
+                    trackedShards.add(shr.allocationId().id());
                     if (shr.relocating()) {
                         if (primaryShard == shr.getTargetRelocatingShard() || randomBoolean()) {
-                            trackedShards.add(shr.getTargetRelocatingShard().allocationId().getId());
+                            trackedShards.add(shr.getTargetRelocatingShard().allocationId().id());
                         } else {
-                            untrackedShards.add(shr.getTargetRelocatingShard().allocationId().getId());
+                            untrackedShards.add(shr.getTargetRelocatingShard().allocationId().id());
                         }
                     }
                 }
@@ -512,7 +512,7 @@ public class ReplicationOperationTests extends ESTestCase {
 
                 @Override
                 public void updateLocalCheckpointForShard(String allocationId, long checkpoint) {
-                    if (primaryRouting.allocationId().getId().equals(allocationId)) {
+                    if (primaryRouting.allocationId().id().equals(allocationId)) {
                         super.updateLocalCheckpointForShard(allocationId, checkpoint);
                     } else {
                         if (fatal) {
@@ -547,13 +547,13 @@ public class ReplicationOperationTests extends ESTestCase {
                     continue;
                 }
                 if (localNodeId.equals(shardRouting.currentNodeId()) == false) {
-                    if (trackedShards.contains(shardRouting.allocationId().getId())) {
+                    if (trackedShards.contains(shardRouting.allocationId().id())) {
                         expectedReplicas.add(shardRouting);
                     }
                 }
 
                 if (shardRouting.relocating() && localNodeId.equals(shardRouting.relocatingNodeId()) == false) {
-                    if (trackedShards.contains(shardRouting.getTargetRelocatingShard().allocationId().getId())) {
+                    if (trackedShards.contains(shardRouting.getTargetRelocatingShard().allocationId().id())) {
                         expectedReplicas.add(shardRouting.getTargetRelocatingShard());
                     }
                 }
@@ -770,7 +770,7 @@ public class ReplicationOperationTests extends ESTestCase {
             } else {
                 final long generatedLocalCheckpoint = random().nextLong();
                 final long generatedGlobalCheckpoint = random().nextLong();
-                final String allocationId = replica.allocationId().getId();
+                final String allocationId = replica.allocationId().id();
                 assertThat(generatedLocalCheckpoints.put(allocationId, generatedLocalCheckpoint)).isNull();
                 assertThat(generatedGlobalCheckpoints.put(allocationId, generatedGlobalCheckpoint)).isNull();
                 listener.onResponse(new ReplicaResponse(generatedLocalCheckpoint, generatedGlobalCheckpoint));

@@ -300,7 +300,7 @@ public class RoutingNodes implements Iterable<RoutingNode> {
             return null;
         }
         for (ShardRouting shardRouting : replicaSet) {
-            if (shardRouting.allocationId().getId().equals(allocationId)) {
+            if (shardRouting.allocationId().id().equals(allocationId)) {
                 return shardRouting;
             }
         }
@@ -493,7 +493,7 @@ public class RoutingNodes implements Iterable<RoutingNode> {
                     if (routing.initializing() && routing.primary() == false) {
                         if (routing.isRelocationTarget()) {
                             // find the relocation source
-                            ShardRouting sourceShard = getByAllocationId(routing.shardId(), routing.allocationId().getRelocationId());
+                            ShardRouting sourceShard = getByAllocationId(routing.shardId(), routing.allocationId().relocationId());
                             // cancel relocation and start relocation to same node again
                             ShardRouting startedReplica = cancelRelocation(sourceShard);
                             remove(routing);
@@ -531,9 +531,9 @@ public class RoutingNodes implements Iterable<RoutingNode> {
         assert failedShard.assignedToNode() : "only assigned shards can be failed";
         assert indexMetadata.getIndex().equals(failedShard.index()) :
             "shard failed for unknown index (shard entry: " + failedShard + ")";
-        assert getByAllocationId(failedShard.shardId(), failedShard.allocationId().getId()) == failedShard :
+        assert getByAllocationId(failedShard.shardId(), failedShard.allocationId().id()) == failedShard :
             "shard routing to fail does not exist in routing table, expected: " + failedShard + " but was: " +
-                getByAllocationId(failedShard.shardId(), failedShard.allocationId().getId());
+                getByAllocationId(failedShard.shardId(), failedShard.allocationId().id());
 
         if (logger.isDebugEnabled()) {
             logger.debug("{} failing shard {} with unassigned info ({})", failedShard.shardId(), failedShard, unassignedInfo.shortSummary());
@@ -547,7 +547,7 @@ public class RoutingNodes implements Iterable<RoutingNode> {
                 for (ShardRouting routing : new ArrayList<>(assignedShards)) {
                     if (!routing.primary() && routing.initializing()) {
                         // re-resolve replica as earlier iteration could have changed source/target of replica relocation
-                        ShardRouting replicaShard = getByAllocationId(routing.shardId(), routing.allocationId().getId());
+                        ShardRouting replicaShard = getByAllocationId(routing.shardId(), routing.allocationId().id());
                         assert replicaShard != null : "failed to re-resolve " + routing + " when failing replicas";
                         UnassignedInfo primaryFailedUnassignedInfo = new UnassignedInfo(UnassignedInfo.Reason.PRIMARY_FAILED,
                             "primary failed while replica initializing", null, 0, unassignedInfo.getUnassignedTimeInNanos(),
@@ -560,7 +560,7 @@ public class RoutingNodes implements Iterable<RoutingNode> {
 
         if (failedShard.relocating()) {
             // find the shard that is initializing on the target node
-            ShardRouting targetShard = getByAllocationId(failedShard.shardId(), failedShard.allocationId().getRelocationId());
+            ShardRouting targetShard = getByAllocationId(failedShard.shardId(), failedShard.allocationId().relocationId());
             assert targetShard.isRelocationTargetOf(failedShard);
             if (failedShard.primary()) {
                 logger.trace("{} is removed due to the failure/cancellation of the source shard", targetShard);
@@ -599,7 +599,7 @@ public class RoutingNodes implements Iterable<RoutingNode> {
                 }
                 ShardRouting sourceShard = getByAllocationId(
                     failedShard.shardId(),
-                    failedShard.allocationId().getRelocationId()
+                    failedShard.allocationId().relocationId()
                 );
                 assert sourceShard.isRelocationSourceOf(failedShard);
                 if (traceEnabled) {

@@ -20,7 +20,6 @@
 package org.elasticsearch.cluster.routing;
 
 import java.io.IOException;
-import java.util.Objects;
 
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -40,7 +39,15 @@ import org.jspecify.annotations.Nullable;
  * relocationId. Once relocation is done, the new allocation id is set to the relocationId. This is similar
  * behavior to how ShardRouting#currentNodeId is used.
  */
-public class AllocationId implements Writeable {
+public record AllocationId(
+        /// The allocation id uniquely identifying an allocation, note, if it
+        /// is a relocation the [#relocationId()] need to be taken into account
+        /// as well.
+        String id,
+
+        /// The transient relocation id holding the unique id that is used for relocation.
+        @Nullable String relocationId) implements Writeable {
+
     private static final String ID_KEY = "id";
     private static final String RELOCATION_ID_KEY = "relocation_id";
 
@@ -69,25 +76,14 @@ public class AllocationId implements Writeable {
         }
     }
 
-    private final String id;
-    @Nullable
-    private final String relocationId;
-
     public AllocationId(StreamInput in) throws IOException {
-        this.id = in.readString();
-        this.relocationId = in.readOptionalString();
+        this(in.readString(), in.readOptionalString());
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(this.id);
         out.writeOptionalString(this.relocationId);
-    }
-
-    private AllocationId(String id, String relocationId) {
-        Objects.requireNonNull(id, "Argument [id] must be non-null");
-        this.id = id;
-        this.relocationId = relocationId;
     }
 
     /**
@@ -109,8 +105,8 @@ public class AllocationId implements Writeable {
      * of a relocation.
      */
     public static AllocationId newTargetRelocation(AllocationId allocationId) {
-        assert allocationId.getRelocationId() != null;
-        return new AllocationId(allocationId.getRelocationId(), allocationId.getId());
+        assert allocationId.relocationId() != null;
+        return new AllocationId(allocationId.relocationId(), allocationId.id());
     }
 
     /**
@@ -118,8 +114,8 @@ public class AllocationId implements Writeable {
      * the transient holder for relocationId.
      */
     public static AllocationId newRelocation(AllocationId allocationId) {
-        assert allocationId.getRelocationId() == null;
-        return new AllocationId(allocationId.getId(), UUIDs.randomBase64UUID());
+        assert allocationId.relocationId() == null;
+        return new AllocationId(allocationId.id(), UUIDs.randomBase64UUID());
     }
 
     /**
@@ -129,8 +125,8 @@ public class AllocationId implements Writeable {
      * of the *source* shard
      */
     public static AllocationId cancelRelocation(AllocationId allocationId) {
-        assert allocationId.getRelocationId() != null;
-        return new AllocationId(allocationId.getId(), null);
+        assert allocationId.relocationId() != null;
+        return new AllocationId(allocationId.id(), null);
     }
 
     /**
@@ -140,46 +136,8 @@ public class AllocationId implements Writeable {
      * of the *target* shard and thus it only needs to clear the relocating id.
      */
     public static AllocationId finishRelocation(AllocationId allocationId) {
-        assert allocationId.getRelocationId() != null;
-        return new AllocationId(allocationId.getId(), null);
-    }
-
-    /**
-     * The allocation id uniquely identifying an allocation, note, if it is relocation
-     * the {@link #getRelocationId()} need to be taken into account as well.
-     */
-    public String getId() {
-        return id;
-    }
-
-    /**
-     * The transient relocation id holding the unique id that is used for relocation.
-     */
-    public String getRelocationId() {
-        return relocationId;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        AllocationId that = (AllocationId) o;
-        if (!id.equals(that.id)) {
-            return false;
-        }
-        return !(relocationId != null ? !relocationId.equals(that.relocationId) : that.relocationId != null);
-
-    }
-
-    @Override
-    public int hashCode() {
-        int result = id.hashCode();
-        result = 31 * result + (relocationId != null ? relocationId.hashCode() : 0);
-        return result;
+        assert allocationId.relocationId() != null;
+        return new AllocationId(allocationId.id(), null);
     }
 
     @Override

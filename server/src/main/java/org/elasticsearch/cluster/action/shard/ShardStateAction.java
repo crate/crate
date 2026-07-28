@@ -203,7 +203,7 @@ public class ShardStateAction {
                                  @Nullable final Exception failure,
                                  ActionListener<Void> listener,
                                  final ClusterState currentState) {
-        FailedShardEntry shardEntry = new FailedShardEntry(shardRouting.shardId(), shardRouting.allocationId().getId(), 0L, message, failure, true);
+        FailedShardEntry shardEntry = new FailedShardEntry(shardRouting.shardId(), shardRouting.allocationId().id(), 0L, message, failure, true);
         sendShardAction(SHARD_FAILED_ACTION_NAME, currentState, shardEntry, listener);
     }
 
@@ -489,7 +489,7 @@ public class ShardStateAction {
                              final String message,
                              final ActionListener<Void> listener,
                              final ClusterState currentState) {
-        StartedShardEntry entry = new StartedShardEntry(shardRouting.shardId(), shardRouting.allocationId().getId(), primaryTerm, message);
+        StartedShardEntry entry = new StartedShardEntry(shardRouting.shardId(), shardRouting.allocationId().id(), primaryTerm, message);
         sendShardAction(SHARD_STARTED_ACTION_NAME, currentState, entry, listener);
     }
 

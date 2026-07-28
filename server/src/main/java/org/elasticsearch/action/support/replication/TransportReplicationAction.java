@@ -307,7 +307,7 @@ public abstract class TransportReplicationAction<
             if (shardRouting.primary() == false) {
                 throw new ReplicationOperation.RetryOnPrimaryException(shardId, "actual shard is not a primary " + shardRouting);
             }
-            final String actualAllocationId = shardRouting.allocationId().getId();
+            final String actualAllocationId = shardRouting.allocationId().id();
             if (actualAllocationId.equals(primaryRequest.getTargetAllocationID()) == false) {
                 throw new ShardNotFoundException(shardId, "expected allocation id [{}] but found [{}]",
                     primaryRequest.getTargetAllocationID(), actualAllocationId);
@@ -358,7 +358,7 @@ public abstract class TransportReplicationAction<
                         transportPrimaryAction,
                         new ConcreteShardRequest<>(
                             primaryRequest.getRequest(),
-                            primary.allocationId().getRelocationId(),
+                            primary.allocationId().relocationId(),
                             primaryRequest.getPrimaryTerm()
                         ),
                         new ActionListenerResponseHandler<>(
@@ -569,7 +569,7 @@ public abstract class TransportReplicationAction<
 
         @Override
         public void doRun() throws Exception {
-            final String actualAllocationId = this.replica.routingEntry().allocationId().getId();
+            final String actualAllocationId = this.replica.routingEntry().allocationId().id();
             if (actualAllocationId.equals(replicaRequest.getTargetAllocationID()) == false) {
                 throw new ShardNotFoundException(
                     this.replica.shardId(),
@@ -688,7 +688,7 @@ public abstract class TransportReplicationAction<
                     transportPrimaryAction, request.shardId(), request, state.version(), primary.currentNodeId());
             }
             performAction(node, transportPrimaryAction, true,
-                new ConcreteShardRequest<>(request, primary.allocationId().getId(), indexMetadata.primaryTerm(primary.id())));
+                new ConcreteShardRequest<>(request, primary.allocationId().id(), indexMetadata.primaryTerm(primary.id())));
         }
 
         private void performRemoteAction(ClusterState state, ShardRouting primary, DiscoveryNode node) {
@@ -998,7 +998,7 @@ public abstract class TransportReplicationAction<
                 return;
             }
             final ConcreteReplicaRequest<ReplicaRequest> replicaRequest = new ConcreteReplicaRequest<>(
-                request, replica.allocationId().getId(), primaryTerm, globalCheckpoint, maxSeqNoOfUpdatesOrDeletes);
+                request, replica.allocationId().id(), primaryTerm, globalCheckpoint, maxSeqNoOfUpdatesOrDeletes);
             var handler = new ActionListenerResponseHandler<>(transportReplicaAction, listener, ReplicaResponse::new);
             transportService.sendRequest(node, transportReplicaAction, replicaRequest, handler);
         }

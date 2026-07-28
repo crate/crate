@@ -84,7 +84,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         long globalCheckPoint = numDocs > 0 ? randomIntBetween(0, numDocs - 1) : 0;
         boolean syncNeeded = numDocs > 0;
 
-        String allocationId = shard.routingEntry().allocationId().getId();
+        String allocationId = shard.routingEntry().allocationId().id();
         shard.updateShardState(
             shard.routingEntry(),
             shard.getPendingPrimaryTerm(),
@@ -156,7 +156,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
             );
         }
 
-        String allocationId = shard.routingEntry().allocationId().getId();
+        String allocationId = shard.routingEntry().allocationId().id();
         shard.updateShardState(
             shard.routingEntry(),
             shard.getPendingPrimaryTerm(),

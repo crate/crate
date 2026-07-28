@@ -83,12 +83,12 @@ public class NoOpEngineTests extends EngineTestCase {
         ShardRouting routing = TestShardRouting.newShardRouting("test", shardId.id(), "node",
             null, true, ShardRoutingState.STARTED, allocationId);
         IndexShardRoutingTable table = new IndexShardRoutingTable.Builder(shardId).addShard(routing).build();
-        tracker.updateFromMaster(1L, Collections.singleton(allocationId.getId()), table);
+        tracker.updateFromMaster(1L, Collections.singleton(allocationId.id()), table);
         tracker.activatePrimaryMode(SequenceNumbers.NO_OPS_PERFORMED);
         for (int i = 0; i < docs; i++) {
             ParsedDocument doc = testParsedDocument("" + i, testDocumentWithTextField(), B_1);
             engine.index(indexForDoc(doc));
-            tracker.updateLocalCheckpoint(allocationId.getId(), i);
+            tracker.updateLocalCheckpoint(allocationId.id(), i);
         }
 
         engine.flush(true, true);
@@ -170,7 +170,7 @@ public class NoOpEngineTests extends EngineTestCase {
         ShardRouting routing = TestShardRouting.newShardRouting("test", shardId.id(), "node",
             null, true, ShardRoutingState.STARTED, allocationId);
         IndexShardRoutingTable table = new IndexShardRoutingTable.Builder(shardId).addShard(routing).build();
-        tracker.updateFromMaster(1L, Collections.singleton(allocationId.getId()), table);
+        tracker.updateFromMaster(1L, Collections.singleton(allocationId.id()), table);
         tracker.activatePrimaryMode(SequenceNumbers.NO_OPS_PERFORMED);
         engine.onSettingsChanged(TimeValue.MINUS_ONE, ByteSizeValue.ZERO, randomNonNegativeLong());
         final int numDocs = scaledRandomIntBetween(10, 3000);
@@ -178,7 +178,7 @@ public class NoOpEngineTests extends EngineTestCase {
         for (int i = 0; i < numDocs; i++) {
             totalTranslogOps++;
             engine.index(indexForDoc(createParsedDoc(Integer.toString(i))));
-            tracker.updateLocalCheckpoint(allocationId.getId(), i);
+            tracker.updateLocalCheckpoint(allocationId.id(), i);
             if (rarely()) {
                 totalTranslogOps = 0;
                 engine.flush();

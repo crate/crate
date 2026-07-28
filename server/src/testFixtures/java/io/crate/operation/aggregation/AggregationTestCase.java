@@ -491,7 +491,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             shard.getPendingPrimaryTerm(),
             null,
             0,
-            Set.of(newRouting.allocationId().getId()),
+            Set.of(newRouting.allocationId().id()),
             newRoutingTable
         );
         return shard;

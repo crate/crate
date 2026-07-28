@@ -270,7 +270,7 @@ public class IndexShard extends AbstractIndexShardComponent {
         logger.debug("state: [CREATED]");
 
         this.translogConfig = new TranslogConfig(shardId, shardPath().resolveTranslog(), indexSettings, bigArrays);
-        final String aId = shardRouting.allocationId().getId();
+        final String aId = shardRouting.allocationId().id();
         final long primaryTerm = indexSettings.getIndexMetadata().primaryTerm(shardId.id());
         this.pendingPrimaryTerm = primaryTerm;
         this.globalCheckpointListeners = new GlobalCheckpointListeners(
@@ -461,7 +461,7 @@ public class IndexShard extends AbstractIndexShardComponent {
                                  */
                                 engine.rollTranslogGeneration();
                                 engine.fillSeqNoGaps(newPrimaryTerm);
-                                replicationTracker.updateLocalCheckpoint(currentRouting.allocationId().getId(), getLocalCheckpoint());
+                                replicationTracker.updateLocalCheckpoint(currentRouting.allocationId().id(), getLocalCheckpoint());
                                 primaryReplicaSyncer.accept(this, new ActionListener<ResyncTask>() {
                                     @Override
                                     public void onResponse(ResyncTask resyncTask) {
@@ -2145,7 +2145,7 @@ public class IndexShard extends AbstractIndexShardComponent {
             logger.trace("syncing retention leases [{}] after expiration check", retentionLeases.v2());
             retentionLeaseSyncer.sync(
                 shardId,
-                shardRouting.allocationId().getId(),
+                shardRouting.allocationId().id(),
                 getPendingPrimaryTerm(),
                 retentionLeases.v2(),
                 listener
@@ -2156,7 +2156,7 @@ public class IndexShard extends AbstractIndexShardComponent {
             if (wasntPending) {
                 var syncFuture = retentionLeaseSyncer.backgroundSync(
                     shardId,
-                    shardRouting.allocationId().getId(),
+                    shardRouting.allocationId().id(),
                     getPendingPrimaryTerm(),
                     retentionLeases.v2()
                 );
@@ -2326,9 +2326,9 @@ public class IndexShard extends AbstractIndexShardComponent {
     public void activateWithPrimaryContext(final ReplicationTracker.PrimaryContext primaryContext) {
         assert shardRouting.primary() && shardRouting.isRelocationTarget() :
             "only primary relocation target can update allocation IDs from primary context: " + shardRouting;
-        assert primaryContext.getCheckpointStates().containsKey(routingEntry().allocationId().getId()) :
+        assert primaryContext.getCheckpointStates().containsKey(routingEntry().allocationId().id()) :
             "primary context [" + primaryContext + "] does not contain relocation target [" + routingEntry() + "]";
-        assert getLocalCheckpoint() == primaryContext.getCheckpointStates().get(routingEntry().allocationId().getId())
+        assert getLocalCheckpoint() == primaryContext.getCheckpointStates().get(routingEntry().allocationId().id())
             .getLocalCheckpoint() || indexSettings().getTranslogDurability() == Translog.Durability.ASYNC :
             "local checkpoint [" + getLocalCheckpoint() + "] does not match checkpoint from primary context [" + primaryContext + "]";
         synchronized (mutex) {

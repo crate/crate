@@ -401,7 +401,7 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
                 .put(SETTING_CREATION_DATE, System.currentTimeMillis()));
 
         for (int i = 0; i < numberOfShards; i++) {
-            indexMetadataBuilder.putInSyncAllocationIds(i, Collections.singleton(AllocationId.newInitializing().getId()));
+            indexMetadataBuilder.putInSyncAllocationIds(i, Collections.singleton(AllocationId.newInitializing().id()));
         }
 
         final Metadata.Builder metadata = Metadata.builder(currentState.metadata())

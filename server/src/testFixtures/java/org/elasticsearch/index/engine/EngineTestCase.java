@@ -668,7 +668,7 @@ public abstract class EngineTestCase extends ESTestCase {
             assert maybeRetentionLeasesSupplier == null;
             final ReplicationTracker replicationTracker = new ReplicationTracker(
                 shardId,
-                allocationId.getId(),
+                allocationId.id(),
                 indexSettings,
                 randomNonNegativeLong(),
                 SequenceNumbers.NO_OPS_PERFORMED,

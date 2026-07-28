@@ -146,9 +146,12 @@ public class ClusterStateCreationUtils {
         final IndexShardRoutingTable indexShardRoutingTable = indexShardRoutingBuilder.build();
 
         IndexMetadata.Builder indexMetadataBuilder = new IndexMetadata.Builder(indexMetadata);
-        indexMetadataBuilder.putInSyncAllocationIds(0,
-                                                    indexShardRoutingTable.activeShards().stream().map(ShardRouting::allocationId).map(AllocationId::getId)
-                                                        .collect(Collectors.toSet())
+        indexMetadataBuilder.putInSyncAllocationIds(
+          0,
+          indexShardRoutingTable.activeShards().stream()
+            .map(ShardRouting::allocationId)
+            .map(AllocationId::id)
+            .collect(Collectors.toSet())
         );
 
         ClusterState.Builder state = ClusterState.builder(new ClusterName("test"));

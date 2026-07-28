@@ -1361,7 +1361,7 @@ public final class TestCluster implements Closeable {
                         // the local knowledge on the primary of the global checkpoint equals the global checkpoint on the shard
                         assertThat(seqNoStats.getGlobalCheckpoint())
                             .as(replicaShardRouting + " global checkpoint syncs mismatch")
-                            .isEqualTo(syncGlobalCheckpoints.get(replicaShardRouting.allocationId().getId()));
+                            .isEqualTo(syncGlobalCheckpoints.get(replicaShardRouting.allocationId().id()));
                     }
                 }
             }

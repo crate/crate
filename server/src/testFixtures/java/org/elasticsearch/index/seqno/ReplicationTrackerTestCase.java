@@ -19,6 +19,13 @@
 
 package org.elasticsearch.index.seqno;
 
+import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
+
+import java.util.Set;
+import java.util.function.LongConsumer;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+
 import org.elasticsearch.cluster.routing.AllocationId;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -30,13 +37,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IndexSettingsModule;
 
-import java.util.Set;
-import java.util.function.LongConsumer;
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
-
-import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
-
 public abstract class ReplicationTrackerTestCase extends ESTestCase  {
 
     ReplicationTracker newTracker(final AllocationId allocationId,
@@ -44,7 +44,7 @@ public abstract class ReplicationTrackerTestCase extends ESTestCase  {
                                   final LongSupplier currentTimeMillisSupplier) {
         return new ReplicationTracker(
             new ShardId("test", "_na_", 0),
-            allocationId.getId(),
+            allocationId.id(),
             IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
             randomNonNegativeLong(),
             UNASSIGNED_SEQ_NO,
@@ -58,7 +58,7 @@ public abstract class ReplicationTrackerTestCase extends ESTestCase  {
     static final Supplier<SafeCommitInfo> OPS_BASED_RECOVERY_ALWAYS_REASONABLE = () -> SafeCommitInfo.EMPTY;
 
     static String nodeIdFromAllocationId(final AllocationId allocationId) {
-        return "n-" + allocationId.getId().substring(0, 8);
+        return "n-" + allocationId.id().substring(0, 8);
     }
 
     static IndexShardRoutingTable routingTable(final Set<AllocationId> initializingIds, final AllocationId primaryId) {
