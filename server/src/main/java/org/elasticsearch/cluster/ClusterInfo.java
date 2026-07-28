@@ -20,6 +20,7 @@
 package org.elasticsearch.cluster;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 
@@ -29,8 +30,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.StoreStats;
-
-import io.crate.common.collections.MapBuilder;
 
 /**
  * ClusterInfo is an object representing a map of nodes to {@link DiskUsage}
@@ -90,16 +89,11 @@ public class ClusterInfo implements Writeable {
             reservedSpaceMap = Map.of();
         }
 
-        MapBuilder<String, DiskUsage> leastBuilder = MapBuilder.newMapBuilder();
-        this.leastAvailableSpaceUsage = leastBuilder.putAll(leastMap).immutableMap();
-        MapBuilder<String, DiskUsage> mostBuilder = MapBuilder.newMapBuilder();
-        this.mostAvailableSpaceUsage = mostBuilder.putAll(mostMap).immutableMap();
-        MapBuilder<String, Long> sizeBuilder = MapBuilder.newMapBuilder();
-        this.shardSizes = sizeBuilder.putAll(sizeMap).immutableMap();
-        MapBuilder<ShardRouting, String> routingBuilder = MapBuilder.newMapBuilder();
-        this.routingToDataPath = routingBuilder.putAll(routingMap).immutableMap();
-        MapBuilder<NodeAndPath, ReservedSpace> reservedSpaceBuilder = MapBuilder.newMapBuilder();
-        this.reservedSpace = reservedSpaceBuilder.putAll(reservedSpaceMap).immutableMap();
+        this.leastAvailableSpaceUsage = Collections.unmodifiableMap(leastMap);
+        this.mostAvailableSpaceUsage = Collections.unmodifiableMap(mostMap);
+        this.shardSizes = Collections.unmodifiableMap(sizeMap);
+        this.routingToDataPath = Collections.unmodifiableMap(routingMap);
+        this.reservedSpace = Collections.unmodifiableMap(reservedSpaceMap);
     }
 
     @Override
