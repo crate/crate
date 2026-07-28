@@ -52,3 +52,10 @@ Fixes
 
 - Fixed an issue that caused casts of foreign tables to ``REGCLASS`` to
   incorrectly return ``0``.
+
+- Fixed an issue that caused :ref:`stddev_pop() <aggregation-stddev-pop>`,
+  :ref:`stddev_samp() <aggregation-stddev-samp>`, :ref:`stddev()
+  <aggregation-stddev>` and :ref:`variance() <aggregation-variance>` to return
+  ``NULL`` (or, for ``variance``, a negative number) instead of ``0`` when
+  aggregating large-magnitude values with little or no spread, such as a
+  constant ``DATE`` or ``TIMESTAMP``.

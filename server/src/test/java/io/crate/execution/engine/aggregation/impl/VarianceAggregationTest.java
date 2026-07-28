@@ -122,6 +122,17 @@ public class VarianceAggregationTest extends AggregationTestCase {
     }
 
     @Test
+    public void test_repeated_large_values_return_zero() throws Exception {
+        // https://github.com/crate/crate/issues/19760
+        // Repeated large-magnitude values (e.g. a constant DATE/TIMESTAMP as epoch millis) used to
+        // trigger catastrophic cancellation, producing a negative variance instead of 0.
+        long epochMillis = 1783468800000L; // DATE '2026-07-08'
+        Object result = executeAggregation(DataTypes.LONG, new Object[][]{
+            {epochMillis}, {epochMillis}, {epochMillis}, {epochMillis}, {epochMillis}});
+        assertThat(result).isEqualTo(0.0d);
+    }
+
+    @Test
     public void testUnsupportedType() throws Exception {
         assertThatThrownBy(() -> executeAggregation(DataTypes.GEO_POINT, new Object[][] {}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
