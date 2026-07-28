@@ -1458,14 +1458,12 @@ public class ExpressionAnalyzer {
          * e.g.: eq(y, x) becomes eq(x, y)
          */
         private void swapIfNecessary() {
-            if (!SWAPPABLE_EXPRESSIONS.contains(comparisonExpressionType)) {
-                return;
-            }
-
-            boolean rightIsReference = right instanceof Reference || right instanceof ScopedSymbol;
-            boolean leftIsReference = left instanceof Reference || left instanceof ScopedSymbol;
-
+            boolean rightIsReference = right instanceof ScopedColumn;
+            boolean leftIsReference = left instanceof ScopedColumn;
             if (rightIsReference && leftIsReference) {
+                if (!SWAPPABLE_EXPRESSIONS.contains(comparisonExpressionType)) {
+                    return;
+                }
                 ScopedColumn lhs = (ScopedColumn) left;
                 ScopedColumn rhs = (ScopedColumn) right;
                 if (lhs.compareTo(rhs) <= 0) {
