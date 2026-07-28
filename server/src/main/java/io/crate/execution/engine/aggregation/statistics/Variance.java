@@ -79,7 +79,12 @@ public class Variance implements Writeable, Comparable<Variance> {
         if (count == 0) {
             return Double.NaN;
         }
-        return (sumOfSqrs - ((sum * sum) / count)) / count;
+        double variance = (sumOfSqrs - ((sum * sum) / count)) / count;
+        // The naive sum-of-squares formula can produce a small negative result for
+        // large-magnitude inputs with little spread (e.g. a constant DATE/TIMESTAMP) due to
+        // floating point cancellation. A variance is never negative, so clamp it; otherwise
+        // sqrt() in the stddev variants would yield NaN (returned to the user as NULL).
+        return variance < 0 ? 0 : variance;
     }
 
     public void merge(Variance other) {
