@@ -41,6 +41,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.common.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.InputColumns;
@@ -192,7 +193,7 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
                                                          RelationMetadata.ForeignTable foreignTable,
                                                          TransactionContext txnCtx,
                                                          List<Reference> columns) {
-        return CompletableFuture.supplyAsync(() -> {
+        return CompletableFutures.supplyAsync(() -> {
             var properties = getConnectionProperties(currentUser, server, txnCtx);
 
             Settings options = server.options();
