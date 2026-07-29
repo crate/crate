@@ -27,6 +27,7 @@ import static io.crate.planner.operators.Limit.limitAndOffset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -125,12 +126,20 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             ? limitAndOffset(limit, offset)
             : null;
 
-        ExecutionPlan left = lhs.build(
-            executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
-        ExecutionPlan right = rhs.build(
-            executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
+        // A nested join must not be executed distributed, otherwise its output would have to be
+        // re-shuffled for this join, which can deadlock. See PlanHint#AVOID_DISTRIBUTED_JOIN.
+        Set<PlanHint> sourceHints = EnumSet.of(PlanHint.AVOID_DISTRIBUTED_JOIN);
+        sourceHints.addAll(hints);
 
-        boolean isDistributed = supportsDistributedReads() && isFiltered && !joinType.isOuter();
+        ExecutionPlan left = lhs.build(
+            executor, plannerContext, sourceHints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
+        ExecutionPlan right = rhs.build(
+            executor, plannerContext, sourceHints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
+
+        boolean isDistributed = supportsDistributedReads()
+                                && isFiltered
+                                && !joinType.isOuter()
+                                && hints.contains(PlanHint.AVOID_DISTRIBUTED_JOIN) == false;
 
         LogicalPlan leftLogicalPlan = lhs;
         LogicalPlan rightLogicalPlan = rhs;
