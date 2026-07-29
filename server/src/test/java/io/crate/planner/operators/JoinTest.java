@@ -92,7 +92,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     private LogicalPlan buildLogicalPlan(QueriedSelectRelation mss, PlannerContext plannerCtx) {
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx, mock(org.elasticsearch.threadpool.ThreadPool.class)),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, plannerCtx));
@@ -476,7 +476,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation mss = e.analyze("select * from t1, t4 order by t1.x");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx, mock(org.elasticsearch.threadpool.ThreadPool.class)),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan operator = logicalPlanner.plan(mss, plannerCtx);
@@ -558,7 +558,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                               "JOIN t3 t3 on t3.c = t2.b");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx, mock(org.elasticsearch.threadpool.ThreadPool.class)),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
 

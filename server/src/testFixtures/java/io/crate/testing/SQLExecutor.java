@@ -371,7 +371,7 @@ public class SQLExecutor {
                 logicalReplicationSettings
             );
             logicalReplicationService.repositoriesService(mock(RepositoriesService.class));
-            var foreignDataWrappers = new ForeignDataWrappers(settings, clusterService, nodeCtx);
+            var foreignDataWrappers = new ForeignDataWrappers(settings, clusterService, nodeCtx, threadPool);
 
             publishInitialClusterState(clusterService);
             return new SQLExecutor(

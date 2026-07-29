@@ -139,6 +139,11 @@ Performance and Resilience Improvements
   performance by caching analyzed ``ViewInfo`` instances, reducing repeated
   analysis of view definitions when accessing ``information_schema`` views.
 
+- `Somil Jain <https://github.com/somiljain2006>`_ added support for collecting
+  table-level statistics for foreign tables during ``ANALYZE``, enabling the
+  query planner to make better decisions based on estimated row counts and table
+  sizes.
+
 Administration and Operations
 -----------------------------
 
