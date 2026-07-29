@@ -36,6 +36,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -47,13 +48,18 @@ import org.elasticsearch.transport.TransportService;
 import io.crate.concurrent.FutureActionListener;
 import io.crate.concurrent.MultiActionListener;
 import io.crate.execution.support.NodeActionRequestHandler;
+import io.crate.fdw.ForeignDataWrapper;
+import io.crate.fdw.ForeignDataWrappers;
+import io.crate.fdw.ServersMetadata;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.role.Role;
 import io.crate.types.DataTypes;
 
 @Singleton
@@ -68,6 +74,7 @@ public final class TransportAnalyzeAction {
     private final ClusterService clusterService;
     private final ConcurrentHashMap<FetchSampleRequest, CompletableFuture<Samples>> analysisByRequest = new ConcurrentHashMap<>();
     private final Executor executor;
+    private final ForeignDataWrappers foreignDataWrappers;
 
     @Inject
     public TransportAnalyzeAction(TransportService transportService,
@@ -75,11 +82,13 @@ public final class TransportAnalyzeAction {
                                   NodeContext nodeContext,
                                   ClusterService clusterService,
                                   TableStatsService tableStatsService,
-                                  ThreadPool threadPool) {
+                                  ThreadPool threadPool,
+                                  ForeignDataWrappers foreignDataWrappers) {
         this.transportService = transportService;
         this.schemas = nodeContext.schemas();
         this.clusterService = clusterService;
         this.executor = threadPool.executor(ThreadPool.Names.SEARCH);
+        this.foreignDataWrappers = foreignDataWrappers;
 
         transportService.registerRequestHandler(
             FETCH_SAMPLES,
@@ -128,26 +137,47 @@ public final class TransportAnalyzeAction {
         LOGGER.info("ANALYZE: Start collecting samples to update table statistics");
         HashMap<RelationName, Stats> entries = new HashMap<>();
         CompletableFuture<Void> currentFetch = CompletableFuture.completedFuture(null);
+        ServersMetadata servers = clusterService.state().metadata().custom(ServersMetadata.TYPE);
         for (SchemaInfo schema : schemas) {
-            if (!(schema instanceof DocSchemaInfo)) {
-                continue;
-            }
             for (TableInfo table : schema.getTables()) {
-                List<Reference> primitiveColumns = StreamSupport.stream(table.spliterator(), false)
-                    .filter(x -> !x.column().isSystemColumn())
-                    .filter(x -> DataTypes.isPrimitive(x.valueType()))
-                    .map(x -> table.getReadReference(x.column()))
-                    .toList();
+                if (table instanceof RelationMetadata.ForeignTable foreignTable) {
+                    if (servers == null) continue;
 
-                currentFetch = currentFetch
-                    .thenCompose(ignored -> fetchSamples(
-                        table.ident(),
-                        table.oid(),
-                        primitiveColumns
-                    ))
-                    .thenAccept(samples -> {
-                        entries.put(table.ident(), samples.createTableStats(primitiveColumns));
-                    });
+                    ServersMetadata.Server server = servers.get(foreignTable.server());
+
+                    ForeignDataWrapper fdw = foreignDataWrappers.get(server.fdw());
+                    if (fdw == null) continue;
+
+                    TransactionContext systemTxnCtx = TransactionContext.of(CoordinatorSessionSettings.systemDefaults());
+
+                    currentFetch = currentFetch
+                        .thenCompose(ignored -> fdw.getStats(
+                            Role.CRATE_USER,
+                            server,
+                            foreignTable,
+                            systemTxnCtx,
+                            List.of()
+                        ))
+                        .thenAccept(foreignStats -> {
+                            if (foreignStats != null && !foreignStats.isUnknown()) {
+                                entries.put(table.ident(), foreignStats.toStats());
+                            }
+                        });
+                } else {
+                    List<Reference> primitiveColumns = StreamSupport.stream(table.spliterator(), false)
+                        .filter(x -> !x.column().isSystemColumn())
+                        .filter(x -> DataTypes.isPrimitive(x.valueType()))
+                        .map(x -> table.getReadReference(x.column()))
+                        .toList();
+
+                    currentFetch = currentFetch
+                        .thenCompose(ignored -> fetchSamples(
+                            table.ident(),
+                            table.oid(),
+                            primitiveColumns
+                        ))
+                        .thenAccept(samples -> entries.put(table.ident(), samples.createTableStats(primitiveColumns)));
+                }
             }
         }
         return currentFetch.thenCompose(ignored -> publishTableStats(entries));
