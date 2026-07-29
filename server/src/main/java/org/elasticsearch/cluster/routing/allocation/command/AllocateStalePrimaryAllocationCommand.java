@@ -116,7 +116,7 @@ public class AllocateStalePrimaryAllocationCommand extends BasePrimaryAllocation
 
         ShardRouting shardRouting = null;
         for (ShardRouting shard : allocation.routingNodes().unassigned()) {
-            if (shard.getIndexUUID().equals(index) && shard.getId() == shardId && shard.primary()) {
+            if (shard.getIndexUUID().equals(index) && shard.id() == shardId && shard.primary()) {
                 shardRouting = shard;
                 break;
             }

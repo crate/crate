@@ -62,7 +62,9 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
         if (signature.equals(CountAggregation.COUNT_STAR_SIGNATURE)) {
             return true;
         }
+        // `count(distinct x)` counts distinct values, so it cannot be replaced with a row count.
         return signature.getName().equals(CountAggregation.SIGNATURE.getName())
+            && aggregate.distinct() == false
             && aggregate.arguments().get(0) instanceof Reference ref
             && !ref.isNullable();
     }

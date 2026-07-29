@@ -353,6 +353,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         MergePhase mergePhase = reducerMerge.mergePhase();
         assertThat(mergePhase.projections()).satisfiesExactly(
             p -> assertThat(p).isExactlyInstanceOf(GroupProjection.class),
+            // Turns the `collect_set(id)` of the group projection into `collection_count(collect_set(id))`
+            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class),
             p -> assertThat(p).isExactlyInstanceOf(OrderedLimitAndOffsetProjection.class),
             p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class));
 
@@ -363,8 +365,13 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(groupProjection.mode()).isEqualTo(AggregateMode.PARTIAL_FINAL);
         assertThat(groupProjection.values().getFirst()).isExactlyInstanceOf(Aggregation.class);
 
+        EvalProjection distinctFinalizer = (EvalProjection) mergePhase.projections().get(1);
+        Asserts.assertThat(distinctFinalizer.outputs()).satisfiesExactly(
+            s -> Asserts.assertThat(s).isInputColumn(0),
+            s -> Asserts.assertThat(s).isFunction("collection_count"));
+
         OrderedLimitAndOffsetProjection limitAndOffsetProjection =
-            (OrderedLimitAndOffsetProjection) mergePhase.projections().get(1);
+            (OrderedLimitAndOffsetProjection) mergePhase.projections().get(2);
         Symbol collection_count = limitAndOffsetProjection.outputs().getFirst();
         Asserts.assertThat(collection_count).isInputColumn(0);
 

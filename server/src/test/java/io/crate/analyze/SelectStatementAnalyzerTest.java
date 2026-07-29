@@ -34,7 +34,6 @@ import static io.crate.testing.Asserts.isScopedSymbol;
 import static io.crate.testing.Asserts.toCondition;
 import static io.crate.types.ArrayType.makeArray;
 import static org.assertj.core.api.Assertions.anyOf;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -536,18 +535,12 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         AnalyzedRelation relation = executor.analyze("select count(distinct load['1']) from sys.nodes");
 
         Symbol output = relation.outputs().getFirst();
-        assertThat(output).isFunction("collection_count");
+        assertThat(output).isFunction("count");
 
-        Function collectionCount = (Function) output;
-        assertThat(collectionCount.arguments()).hasSize(1);
-        Symbol symbol = collectionCount.arguments().getFirst();
-        assertThat(symbol).isFunction("collect_set");
-
-        Function collectSet = (Function) symbol;
-        assertThat(collectSet.signature().getType()).isEqualTo(FunctionType.AGGREGATE);
-
-        assertThat(collectSet.arguments()).hasSize(1);
-        assertThat(collectSet.arguments().getFirst()).isReference().hasName("load['1']");
+        Function countFn = (Function) output;
+        assertThat(countFn.arguments()).hasSize(1);
+        Symbol symbol = countFn.arguments().getFirst();
+        assertThat(symbol).isReference().hasName("load['1']");
     }
 
     @Test
@@ -556,7 +549,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable("create table tbl (name varchar(10))");
 
         Symbol symbol = executor.asSymbol("count(distinct name)");
-        assertThat(symbol).isFunction("collection_count", List.of(new ArrayType<>(StringType.of(10))));
+        assertThat(symbol).isFunction("count", List.of(StringType.of(10)));
     }
 
     @Test

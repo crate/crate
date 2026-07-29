@@ -19,22 +19,17 @@
 
 package org.elasticsearch.cluster.routing;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.jspecify.annotations.Nullable;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.allocation.decider.AwarenessAllocationDecider;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.jspecify.annotations.Nullable;
 
 public class OperationRouting {
 
@@ -58,80 +53,21 @@ public class OperationRouting {
                                    String indexUUID,
                                    String id,
                                    @Nullable String routing,
-                                   @Nullable String preference) {
+                                   @Nullable Preference preference) {
         return preferenceActiveShardIterator(shards(clusterState, indexUUID, id, routing), clusterState.nodes().getLocalNodeId(), clusterState.nodes(), preference);
     }
 
     private ShardIterator preferenceActiveShardIterator(IndexShardRoutingTable indexShard,
                                                         String localNodeId,
                                                         DiscoveryNodes nodes,
-                                                        @Nullable String preference) {
-        if (preference == null || preference.isEmpty()) {
+                                                        @Nullable Preference preference) {
+        if (preference == null) {
             return shardRoutings(indexShard, nodes);
         }
-        if (preference.charAt(0) == '_') {
-            Preference preferenceType = Preference.parse(preference);
-            if (preferenceType == Preference.SHARDS) {
-                // starts with _shards, so execute on specific ones
-                int index = preference.indexOf('|');
-
-                String shards;
-                if (index == -1) {
-                    shards = preference.substring(Preference.SHARDS.type().length() + 1);
-                } else {
-                    shards = preference.substring(Preference.SHARDS.type().length() + 1, index);
-                }
-                String[] ids = Strings.splitStringByCommaToArray(shards);
-                boolean found = false;
-                for (String id : ids) {
-                    if (Integer.parseInt(id) == indexShard.shardId().id()) {
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    return null;
-                }
-                // no more preference
-                if (index == -1 || index == preference.length() - 1) {
-                    return shardRoutings(indexShard, nodes);
-                } else {
-                    // update the preference and continue
-                    preference = preference.substring(index + 1);
-                }
-            }
-            preferenceType = Preference.parse(preference);
-            switch (preferenceType) {
-                case PREFER_NODES:
-                    final Set<String> nodesIds =
-                            Arrays.stream(
-                                    preference.substring(Preference.PREFER_NODES.type().length() + 1).split(",")
-                            ).collect(Collectors.toSet());
-                    return indexShard.preferNodeActiveInitializingShardsIt(nodesIds);
-                case LOCAL:
-                    return indexShard.preferNodeActiveInitializingShardsIt(Collections.singleton(localNodeId));
-                case ONLY_LOCAL:
-                    return indexShard.onlyNodeActiveInitializingShardsIt(localNodeId);
-                case ONLY_NODES:
-                    String nodeAttributes = preference.substring(Preference.ONLY_NODES.type().length() + 1);
-                    return indexShard.onlyNodeSelectorActiveInitializingShardsIt(nodeAttributes.split(","), nodes);
-                default:
-                    throw new IllegalArgumentException("unknown preference [" + preferenceType + "]");
-            }
-        }
-        // if not, then use it as the index
-        // The AllocationService lists shards in a fixed order based on nodes
-        // so earlier versions of this class would have a tendency to
-        // select the same node across different shardIds.
-        // Better overall balancing can be achieved if each shardId opts
-        // for a different element in the list by also incorporating the
-        // shard ID into the hash of the user-supplied preference key.
-        int routingHash = 31 * Murmur3HashFunction.hash(preference) + indexShard.shardId.hashCode();
-        if (awarenessAttributes.isEmpty()) {
-            return indexShard.activeInitializingShardsIt(routingHash);
-        } else {
-            return indexShard.preferAttributesActiveInitializingShardsIt(awarenessAttributes, nodes, routingHash);
-        }
+        return switch (preference) {
+            case LOCAL -> indexShard.preferNodeActiveInitializingShardsIt(Collections.singleton(localNodeId));
+            case ONLY_LOCAL -> indexShard.onlyNodeActiveInitializingShardsIt(localNodeId);
+        };
     }
 
     private ShardIterator shardRoutings(IndexShardRoutingTable indexShard, DiscoveryNodes nodes) {
