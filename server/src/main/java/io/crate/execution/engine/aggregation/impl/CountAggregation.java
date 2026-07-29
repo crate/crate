@@ -149,7 +149,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     public Symbol normalizeSymbol(Function function, TransactionContext txnCtx, NodeContext nodeCtx) {
         assert function.arguments().size() <= 1 : "function's number of arguments must be 0 or 1";
 
-        if (function.arguments().size() == 1) {
+        if (function.arguments().size() == 1 && !function.distinct()) {
             Symbol arg = function.arguments().get(0);
             if (arg instanceof Input<?> input) {
                 if (input.value() == null) {

@@ -82,7 +82,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         if (changed) {
             var signature = func.signature();
             assert signature != null : "Expecting signature not to be null";
-            return new Function(signature, newArgs, func.valueType(), newFilter);
+            return new Function(signature, newArgs, func.valueType(), newFilter, func.distinct());
         }
         return func;
     }
@@ -105,7 +105,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         }
         var signature = func.signature();
         assert signature != null : "Expecting signature not to be null";
-        return new Function(signature, List.of(newArg1, newArg2), func.valueType(), newFilter);
+        return new Function(signature, List.of(newArg1, newArg2), func.valueType(), newFilter, func.distinct());
     }
 
     private Function zeroArg(Function func, C context) {
@@ -122,7 +122,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         }
         var signature = func.signature();
         assert signature != null : "Expecting signature not to be null";
-        return new Function(signature, List.of(), func.valueType(), newFilter);
+        return new Function(signature, List.of(), func.valueType(), newFilter, func.distinct());
     }
 
     private Function oneArg(Function func, C context) {
@@ -138,7 +138,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         }
         var signature = func.signature();
         assert signature != null : "Expecting signature not to be null";
-        return new Function(signature, List.of(newArg), func.valueType(), newFilter);
+        return new Function(signature, List.of(newArg), func.valueType(), newFilter, func.distinct());
     }
 
     @Nullable
