@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -60,7 +59,6 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
     final List<ShardRouting> activeShards;
     final List<ShardRouting> assignedShards;
     final Set<String> allAllocationIds;
-    static final List<ShardRouting> NO_SHARDS = Collections.emptyList();
     final boolean allShardsStarted;
 
     private volatile Map<AttributesKey, AttributesRoutings> activeShardsByAttributes = emptyMap();
@@ -132,15 +130,6 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
         return shardId;
     }
 
-    /**
-     * Returns the shards id
-     *
-     * @return id of the shard
-     */
-    public ShardId getShardId() {
-        return shardId();
-    }
-
     @Override
     public Iterator<ShardRouting> iterator() {
         return shards.iterator();
@@ -154,28 +143,12 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
     }
 
     /**
-     * Returns the number of this shards instances.
-     */
-    public int getSize() {
-        return size();
-    }
-
-    /**
      * Returns a {@link List} of shards
      *
      * @return a {@link List} of shards
      */
     public List<ShardRouting> shards() {
         return this.shards;
-    }
-
-    /**
-     * Returns a {@link List} of shards
-     *
-     * @return a {@link List} of shards
-     */
-    public List<ShardRouting> getShards() {
-        return shards();
     }
 
     /**
@@ -253,36 +226,6 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
             if (nodeId.equals(shardRouting.currentNodeId())) {
                 ordered.add(shardRouting);
             }
-        }
-        return new PlainShardIterator(shardId, ordered);
-    }
-
-    /**
-     * Returns shards based on nodeAttributes given  such as node name , node attribute, node IP
-     * Supports node specifications in cluster API
-     */
-    public ShardIterator onlyNodeSelectorActiveInitializingShardsIt(String[] nodeAttributes, DiscoveryNodes discoveryNodes) {
-        ArrayList<ShardRouting> ordered = new ArrayList<>(activeShards.size() + allInitializingShards.size());
-        Set<String> selectedNodes = Set.of(discoveryNodes.resolveNodes(nodeAttributes));
-        int seed = shuffler.nextSeed();
-        for (ShardRouting shardRouting : shuffler.shuffle(activeShards, seed)) {
-            if (selectedNodes.contains(shardRouting.currentNodeId())) {
-                ordered.add(shardRouting);
-            }
-        }
-        for (ShardRouting shardRouting : shuffler.shuffle(allInitializingShards, seed)) {
-            if (selectedNodes.contains(shardRouting.currentNodeId())) {
-                ordered.add(shardRouting);
-            }
-        }
-        if (ordered.isEmpty()) {
-            final String message = String.format(
-                    Locale.ROOT,
-                    "no data nodes with %s [%s] found for shard: %s",
-                    nodeAttributes.length == 1 ? "criteria" : "criterion",
-                    String.join(",", nodeAttributes),
-                    shardId());
-            throw new IllegalArgumentException(message);
         }
         return new PlainShardIterator(shardId, ordered);
     }
