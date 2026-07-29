@@ -56,6 +56,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -163,20 +164,20 @@ public final class TransportAnalyzeAction {
                                 entries.put(table.ident(), foreignStats.toStats());
                             }
                         });
-                } else {
-                    List<Reference> primitiveColumns = StreamSupport.stream(table.spliterator(), false)
+                } else if (table instanceof DocTableInfo docTable && !docTable.isClosed()) {
+                    List<Reference> primitiveColumns = StreamSupport.stream(docTable.spliterator(), false)
                         .filter(x -> !x.column().isSystemColumn())
                         .filter(x -> DataTypes.isPrimitive(x.valueType()))
-                        .map(x -> table.getReadReference(x.column()))
+                        .map(x -> docTable.getReadReference(x.column()))
                         .toList();
 
                     currentFetch = currentFetch
                         .thenCompose(ignored -> fetchSamples(
-                            table.ident(),
-                            table.oid(),
+                            docTable.ident(),
+                            docTable.oid(),
                             primitiveColumns
                         ))
-                        .thenAccept(samples -> entries.put(table.ident(), samples.createTableStats(primitiveColumns)));
+                        .thenAccept(samples -> entries.put(docTable.ident(), samples.createTableStats(primitiveColumns)));
                 }
             }
         }
