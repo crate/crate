@@ -59,7 +59,6 @@ import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
-import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
@@ -298,33 +297,21 @@ public class ExpressionAnalyzer {
             .map(expression -> convert(expression, context))
             .orElse(null);
 
-        WindowDefinition windowDefinition = getWindowDefinition(node.getWindow(), context);
-        if (node.isDistinct()) {
-            if (arguments.size() > 1) {
-                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "%s(DISTINCT x) does not accept more than one argument", node.getName()));
-            }
-            Symbol collectSetFunction = allocateFunction(
-                CollectSetAggregation.NAME,
-                arguments,
-                filter,
-                context,
-                coordinatorTxnCtx,
-                nodeCtx);
-
-            // define the outer function which contains the inner function as argument.
-            String nodeName = "collection_" + name;
-            List<Symbol> outerArguments = List.of(collectSetFunction);
-            try {
-                return allocateBuiltinOrUdfFunction(
-                    schema, nodeName, outerArguments, null, node.ignoreNulls(), windowDefinition, context);
-            } catch (UnsupportedOperationException ex) {
-                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
-            }
-        } else {
-            return allocateBuiltinOrUdfFunction(schema, name, arguments, filter, node.ignoreNulls(), windowDefinition, context);
+        if (node.isDistinct() && arguments.size() > 1) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                "%s(DISTINCT x) does not accept more than one argument", name));
         }
+
+        return allocateBuiltinOrUdfFunction(
+            schema,
+            name,
+            arguments,
+            filter,
+            node.ignoreNulls(),
+            node.isDistinct(),
+            getWindowDefinition(node.getWindow(), context),
+            context
+        );
     }
 
     @Nullable
@@ -1265,10 +1252,12 @@ public class ExpressionAnalyzer {
                                                 List<Symbol> arguments,
                                                 Symbol filter,
                                                 @Nullable Boolean ignoreNulls,
+                                                boolean distinct,
                                                 WindowDefinition windowDefinition,
                                                 ExpressionAnalysisContext context) {
         return allocateBuiltinOrUdfFunction(
-            schema, functionName, arguments, filter, ignoreNulls, context, windowDefinition, coordinatorTxnCtx, nodeCtx);
+            schema, functionName, arguments, filter, ignoreNulls, context, distinct, windowDefinition, coordinatorTxnCtx, nodeCtx
+        );
     }
 
     public Symbol allocateFunction(String functionName,
@@ -1284,7 +1273,8 @@ public class ExpressionAnalyzer {
                                             TransactionContext txnCtx,
                                             NodeContext nodeCtx) {
         return allocateBuiltinOrUdfFunction(
-            null, functionName, arguments, filter, null, context, null, txnCtx, nodeCtx);
+            null, functionName, arguments, filter, null, context, false, null, txnCtx, nodeCtx
+        );
     }
 
     /**
@@ -1301,12 +1291,13 @@ public class ExpressionAnalyzer {
      * @param nodeCtx The {@link NodeContext} to normalize constant expressions.
      * @return The supplied {@link Function} or a {@link Literal} in case of constant folding.
      */
-    private static Function allocateBuiltinOrUdfFunction(@Nullable String schema,
+    public static Function allocateBuiltinOrUdfFunction(@Nullable String schema,
                                                          String functionName,
                                                          List<Symbol> arguments,
                                                          @Nullable Symbol filter,
                                                          @Nullable Boolean ignoreNulls,
                                                          ExpressionAnalysisContext context,
+                                                         boolean distinct,
                                                          @Nullable WindowDefinition windowDefinition,
                                                          TransactionContext txnCtx,
                                                          NodeContext nodeCtx) {
@@ -1327,10 +1318,21 @@ public class ExpressionAnalyzer {
         Function newFunction;
         if (windowDefinition == null) {
             if (signature.getType() == FunctionType.AGGREGATE) {
-                context.indicateAggregates();
-            } else if (filter != null) {
-                throw new UnsupportedOperationException(
-                    "Only aggregate functions allow a FILTER clause");
+                // There is no context when a function is allocated while building an execution plan.
+                if (context != null) {
+                    context.indicateAggregates();
+                }
+            } else {
+                if (filter != null) {
+                    throw new UnsupportedOperationException(
+                        "Only aggregate functions allow a FILTER clause");
+                }
+                if (distinct) {
+                    throw new UnsupportedOperationException(String.format(
+                        Locale.ENGLISH,
+                        "DISTINCT is not supported for non-aggregate function %s",
+                        functionName));
+                }
             }
             if (ignoreNulls != null) {
                 throw new IllegalArgumentException(String.format(
@@ -1338,8 +1340,18 @@ public class ExpressionAnalyzer {
                     "%s cannot accept RESPECT or IGNORE NULLS flag.",
                     functionName));
             }
-            newFunction = new Function(signature, castArguments, boundSignature.returnType(), filter);
+            newFunction = new Function(
+                signature,
+                castArguments,
+                boundSignature.returnType(),
+                filter,
+                distinct
+            );
         } else {
+            if (distinct) {
+                throw new UnsupportedOperationException(
+                    "DISTINCT is not implemented for window functions");
+            }
             if (signature.getType() != FunctionType.WINDOW) {
                 if (signature.getType() != FunctionType.AGGREGATE) {
                     throw new IllegalArgumentException(String.format(
@@ -1364,7 +1376,8 @@ public class ExpressionAnalyzer {
                 boundSignature.returnType(),
                 filter,
                 windowDefinition,
-                ignoreNulls);
+                ignoreNulls
+            );
         }
         return newFunction;
     }

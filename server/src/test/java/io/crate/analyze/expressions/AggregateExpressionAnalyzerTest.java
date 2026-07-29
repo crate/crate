@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.SelectSymbol;
+import io.crate.metadata.SimpleReference;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -60,10 +61,12 @@ public class AggregateExpressionAnalyzerTest extends CrateDummyClusterServiceUni
         var symbol = e.asSymbol(functionName + "(distinct t.x) filter (where t.x < 1)");
         assertThat(symbol).isExactlyInstanceOf(Function.class);
 
-        var outerFunc = (Function) symbol;
-        assertThat(outerFunc.arguments()).hasSize(1);
-        var innerFunc = (Function) outerFunc.arguments().get(0);
-        assertThat(innerFunc.filter()).isFunction("op_<", isReference("x"), isLiteral(1));
+        var func = (Function) symbol;
+        assertThat(func.arguments()).hasSize(1);
+        assertThat(func.filter()).isFunction("op_<", isReference("x"), isLiteral(1));
+
+        var arg = (SimpleReference) func.arguments().get(0);
+        assertThat(arg).hasName("x");
     }
 
     @Test
@@ -99,5 +102,26 @@ public class AggregateExpressionAnalyzerTest extends CrateDummyClusterServiceUni
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Only aggregate functions allow a FILTER clause");
 
+    }
+
+    @Test
+    public void test_distinct_cannot_be_used_with_scalar_function() {
+        assertThatThrownBy(() -> e.asSymbol("ln(distinct t.x)"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("DISTINCT is not supported for non-aggregate function ln");
+    }
+
+    @Test
+    public void test_distinct_cannot_be_used_with_table_function() {
+        assertThatThrownBy(() -> e.asSymbol("unnest(distinct [1, 2])"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("DISTINCT is not supported for non-aggregate function unnest");
+    }
+
+    @Test
+    public void test_distinct_does_not_accept_more_than_one_argument() {
+        assertThatThrownBy(() -> e.asSymbol("count(distinct t.x, t.x)"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("count(DISTINCT x) does not accept more than one argument");
     }
 }

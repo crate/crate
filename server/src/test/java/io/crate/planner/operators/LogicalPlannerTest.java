@@ -248,6 +248,20 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_select_count_distinct_on_non_nullable_column_is_not_optimized_to_count() {
+        // `MergeAggregateAndCollectToCount` turns `count(ref)` into a `Count` operator if `ref` is not nullable,
+        // because counting non-null values is then the same as counting rows. That does not hold for
+        // `count(distinct ref)`, which counts distinct values.
+        LogicalPlan plan = plan("SELECT count(distinct id) FROM users");
+        assertThat(plan).isEqualTo(
+            """
+            HashAggregate[count(DISTINCT id)]
+              └ Collect[doc.users | [id] | true]
+            """
+        );
+    }
+
+    @Test
     public void test_select_count_star_is_optimized_if_there_is_a_single_agg_in_select_list() {
         LogicalPlan plan = plan("SELECT COUNT(*), COUNT(x) FROM t1 WHERE x > 10");
         assertThat(plan).isEqualTo(

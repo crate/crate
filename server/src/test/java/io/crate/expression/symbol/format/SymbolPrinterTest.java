@@ -22,7 +22,6 @@
 package io.crate.expression.symbol.format;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -102,7 +101,6 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     private void assertPrintingRoundTrip(String sql, String expected) {
         Symbol sym = sqlExpressions.asSymbol(sql);
         assertPrint(sym, expected);
-        assertPrint(sym, expected);
         assertPrintIsParseable(sql);
     }
 
@@ -134,6 +132,11 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testWindowFunction() {
         Symbol f = sqlExpressions.asSymbol("avg(idx) over (partition by idx order by foo)");
         assertPrint(f, "avg(doc.formatter.idx) OVER (PARTITION BY doc.formatter.idx ORDER BY doc.formatter.foo ASC)");
+    }
+
+    @Test
+    public void testDistinctAggregation() {
+        assertPrintingRoundTrip("count(distinct idx)", "count(DISTINCT doc.formatter.idx)");
     }
 
     @Test

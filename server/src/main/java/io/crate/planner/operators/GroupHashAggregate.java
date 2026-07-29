@@ -26,7 +26,6 @@ import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -151,17 +150,28 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         }
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
+        DistinctRewriter.Result rewritten = DistinctRewriter.rewrite(
+            aggregates,
+            outputs,
+            paramBinder,
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext()
+        );
+
         List<Symbol> sourceOutputs = source.outputs();
         if (shardsContainAllGroupKeyValues()) {
             GroupProjection groupProjection = projectionBuilder.groupProjection(
                 sourceOutputs,
                 groupKeys,
-                aggregates,
+                rewritten.aggregates(),
                 paramBinder,
                 AggregateMode.ITER_FINAL,
                 source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.CLUSTER
             );
             executionPlan.addProjection(groupProjection, NO_LIMIT, 0, null);
+            if (rewritten.evalProjection() != null) {
+                executionPlan.addProjection(rewritten.evalProjection());
+            }
             return executionPlan;
         }
 
@@ -171,7 +181,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                     projectionBuilder.groupProjection(
                         sourceOutputs,
                         groupKeys,
-                        aggregates,
+                        rewritten.aggregates(),
                         paramBinder,
                         AggregateMode.ITER_PARTIAL,
                         RowGranularity.SHARD
@@ -179,9 +189,9 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                 );
                 executionPlan.addProjection(
                     projectionBuilder.groupProjection(
-                        outputs,
+                        rewritten.outputs(),
                         groupKeys,
-                        aggregates,
+                        rewritten.aggregates(),
                         paramBinder,
                         AggregateMode.PARTIAL_FINAL,
                         RowGranularity.NODE
@@ -190,13 +200,16 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                     0,
                     null
                 );
+                if (rewritten.evalProjection() != null) {
+                    executionPlan.addProjection(rewritten.evalProjection());
+                }
                 return executionPlan;
             } else {
                 executionPlan.addProjection(
                     projectionBuilder.groupProjection(
                         sourceOutputs,
                         groupKeys,
-                        aggregates,
+                        rewritten.aggregates(),
                         paramBinder,
                         AggregateMode.ITER_FINAL,
                         RowGranularity.NODE
@@ -205,6 +218,9 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                     0,
                     null
                 );
+                if (rewritten.evalProjection() != null) {
+                    executionPlan.addProjection(rewritten.evalProjection());
+                }
                 return executionPlan;
             }
         }
@@ -212,7 +228,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         GroupProjection toPartial = projectionBuilder.groupProjection(
             sourceOutputs,
             groupKeys,
-            aggregates,
+            rewritten.aggregates(),
             paramBinder,
             AggregateMode.ITER_PARTIAL,
             source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
@@ -221,9 +237,9 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         executionPlan.setDistributionInfo(DistributionInfo.DEFAULT_MODULO);
 
         GroupProjection toFinal = projectionBuilder.groupProjection(
-            outputs,
+            rewritten.outputs(),
             groupKeys,
-            aggregates,
+            rewritten.aggregates(),
             paramBinder,
             AggregateMode.PARTIAL_FINAL,
             RowGranularity.CLUSTER
@@ -231,7 +247,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         return createMerge(
             plannerContext,
             executionPlan,
-            Collections.singletonList(toFinal),
+            rewritten.evalProjection() == null ? List.of(toFinal) : List.of(toFinal, rewritten.evalProjection()),
             executionPlan.resultDescription().nodeIds()
         );
     }

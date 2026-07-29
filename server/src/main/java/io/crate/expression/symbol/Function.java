@@ -30,6 +30,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jspecify.annotations.Nullable;
@@ -91,16 +92,22 @@ public class Function implements Symbol, Cloneable {
     protected final Signature signature;
     @Nullable
     protected final Symbol filter;
+    protected final boolean distinct;
 
     public Function(Signature signature, List<Symbol> arguments, DataType<?> returnType) {
-        this(signature, arguments, returnType, null);
+        this(signature, arguments, returnType, null, false);
     }
 
     public Function(Signature signature, List<Symbol> arguments, DataType<?> returnType, @Nullable Symbol filter) {
+        this(signature, arguments, returnType, filter, false);
+    }
+
+    public Function(Signature signature, List<Symbol> arguments, DataType<?> returnType, @Nullable Symbol filter, boolean distinct) {
         this.signature = signature;
         this.arguments = List.copyOf(arguments);
         this.returnType = returnType;
         this.filter = filter;
+        this.distinct = distinct;
     }
 
     public Function(StreamInput in) throws IOException {
@@ -108,6 +115,11 @@ public class Function implements Symbol, Cloneable {
         arguments = List.copyOf(Symbols.fromStream(in));
         signature = new Signature(in);
         returnType = DataTypes.fromStream(in);
+        if (in.getVersion().before(Version.V_6_5_0)) {
+            distinct = false;
+        } else {
+            distinct = in.readBoolean();
+        }
     }
 
     @Override
@@ -116,6 +128,9 @@ public class Function implements Symbol, Cloneable {
         Symbols.toStream(arguments, out);
         signature.writeTo(out);
         DataTypes.toStream(returnType, out);
+        if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
+            out.writeBoolean(distinct());
+        }
     }
 
     public List<Symbol> arguments() {
@@ -138,6 +153,10 @@ public class Function implements Symbol, Cloneable {
     @Override
     public DataType<?> valueType() {
         return returnType;
+    }
+
+    public boolean distinct() {
+        return distinct;
     }
 
     @Override
@@ -204,7 +223,7 @@ public class Function implements Symbol, Cloneable {
                 throw new ConversionException(returnType, targetType);
             }
         }
-        return new Function(signature, newArgs, targetType, null);
+        return new Function(signature, newArgs, targetType, null, distinct);
     }
 
     public boolean isCast() {
@@ -252,7 +271,8 @@ public class Function implements Symbol, Cloneable {
         return Objects.equals(arguments, function.arguments) &&
                Objects.equals(signature, function.signature) &&
                Objects.equals(filter, function.filter) &&
-               Objects.equals(returnType, function.returnType);
+               Objects.equals(returnType, function.returnType) &&
+               Objects.equals(distinct, function.distinct);
     }
 
     @Override
@@ -261,6 +281,7 @@ public class Function implements Symbol, Cloneable {
         result = 31 * result + signature.hashCode();
         result = 31 * result + (filter == null ? 0 : filter.hashCode());
         result = 31 * result + returnType.hashCode();
+        result = 31 * result + Boolean.hashCode(distinct);
         return result;
     }
 
@@ -537,6 +558,9 @@ public class Function implements Symbol, Cloneable {
         FunctionName functionName = signature.getName();
         builder.append(functionName.displayName());
         builder.append("(");
+        if (distinct) {
+            builder.append("DISTINCT ");
+        }
         for (int i = 0; i < arguments.size(); i++) {
             Symbol argument = arguments.get(i);
             builder.append(argument.toString(style));

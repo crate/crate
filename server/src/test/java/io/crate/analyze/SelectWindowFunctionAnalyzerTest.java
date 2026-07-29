@@ -93,6 +93,13 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
     }
 
     @Test
+    public void test_distinct_is_not_supported_with_over() {
+        assertThatThrownBy(() -> e.analyze("select count(distinct x) OVER() from t"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("DISTINCT is not implemented for window functions");
+    }
+
+    @Test
     public void testOnlyAggregatesAndWindowFunctionsAreAllowedWithOver() {
         assertThatThrownBy(() -> e.analyze("select abs(x) OVER() from t"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
