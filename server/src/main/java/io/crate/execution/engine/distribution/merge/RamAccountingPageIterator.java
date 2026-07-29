@@ -50,6 +50,11 @@ public class RamAccountingPageIterator<TKey> implements PagingIterator<TKey, Row
     }
 
     @Override
+    public boolean requiresAllBucketsPerPage() {
+        return delegatePagingIterator.requiresAllBucketsPerPage();
+    }
+
+    @Override
     public void finish() {
         delegatePagingIterator.finish();
     }

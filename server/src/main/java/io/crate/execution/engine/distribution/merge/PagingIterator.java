@@ -48,6 +48,17 @@ public interface PagingIterator<TKey, TRow> extends Iterator<TRow> {
      */
     void finish();
 
+    /**
+     * Whether a page must contain the bucket of every upstream before it can be merged.
+     * <p>
+     * True for implementations that establish an order across buckets: they cannot emit a row before
+     * the head of every bucket is known. False for implementations that only concatenate, which can
+     * be handed the buckets of one upstream at a time. Receivers use this to decide whether they have
+     * to wait for all upstreams of a page, so returning false when ordering *is* required would
+     * produce wrongly ordered results.
+     */
+    boolean requiresAllBucketsPerPage();
+
     TKey exhaustedIterable();
 
     /**

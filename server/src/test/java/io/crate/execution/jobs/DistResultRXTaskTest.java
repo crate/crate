@@ -83,10 +83,19 @@ public class DistResultRXTaskTest extends ESTestCase {
     public void testCantSetSameBucketTwiceWithoutReceivingFullPage() throws Throwable {
         TestingRowConsumer batchConsumer = new TestingRowConsumer();
 
-        DistResultRXTask ctx = getPageDownstreamContext(batchConsumer, PassThroughPagingIterator.oneShot(), 3);
+        // Uses a sorted iterator on purpose: "same bucket of a page" only has a meaning where a page
+        // is assembled from the buckets of all upstreams, i.e. where the merge requires an order
+        // across buckets. A pass-through merge hands each bucket on as it arrives and acknowledges
+        // its upstream immediately, so a second page for the same bucket is a legitimate response to
+        // that acknowledgement rather than a protocol violation.
+        DistResultRXTask ctx = getPageDownstreamContext(
+            batchConsumer,
+            PagingIterator.createSorted(Comparator.comparingInt(r -> (int) r.get(0)), false),
+            3
+        );
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
-        Bucket bucket = new CollectionBucket(Collections.singletonList(new Object[] { "foo" }));
+        Bucket bucket = new CollectionBucket(Collections.singletonList(new Object[] { 1 }));
         PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
         assertThat(bucketReceiver).isNotNull();
         bucketReceiver.setBucket(1, bucket, false, pageResultListener);
@@ -161,13 +170,20 @@ public class DistResultRXTaskTest extends ESTestCase {
         TestingRowConsumer consumer = new TestingRowConsumer();
         DistResultRXTask ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
 
-        PageResultListener listener = mock(PageResultListener.class);
         PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
         assertThat(bucketReceiver).isNotNull();
-        bucketReceiver.setBucket(0, Bucket.EMPTY, false, listener);
+        bucketReceiver.setBucket(0, Bucket.EMPTY, false, mock(PageResultListener.class));
         bucketReceiver.kill(new Exception("dummy"));
 
-        verify(listener, times(1)).needMore(false);
+        // A pass-through merge processes each bucket independently, so the listener of the bucket
+        // above may already have been answered with needMore(true) by the consumer draining it before
+        // the failure arrived. Asserting on it would be racy. What has to hold is that an upstream
+        // which sends a page after the failure is told to stop, rather than being left to discover
+        // the dead receiver through the retry/broadcast-kill path.
+        PageResultListener lateListener = mock(PageResultListener.class);
+        bucketReceiver.setBucket(1, Bucket.EMPTY, false, lateListener);
+
+        verify(lateListener, times(1)).needMore(false);
     }
 
     @Test
@@ -317,6 +333,11 @@ public class DistResultRXTaskTest extends ESTestCase {
 
         @Override
         public void finish() {}
+
+        @Override
+        public boolean requiresAllBucketsPerPage() {
+            return true;
+        }
 
         @Override
         public TKey exhaustedIterable() {

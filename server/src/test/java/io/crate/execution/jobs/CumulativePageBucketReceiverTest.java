@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -33,13 +34,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.Streamer;
 import io.crate.data.ArrayBucket;
+import io.crate.data.Bucket;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.types.DataTypes;
 
+@Repeat(iterations = 50)
 public class CumulativePageBucketReceiverTest extends ESTestCase {
 
     @Test
@@ -123,6 +128,72 @@ public class CumulativePageBucketReceiverTest extends ESTestCase {
             );
             bucketReceiver.consumeRows();
             assertThat(rowConsumer.completionFuture()).isDone();
+        }
+    }
+
+    /**
+     * A pass-through merge must hand a bucket on and acknowledge its upstream without waiting for the
+     * other upstreams of the same page.
+     * <p>
+     * Withholding the acknowledgement until every upstream of a page delivered can deadlock a chain of
+     * distributed joins. An upstream that filled its own output page stops consuming its input until
+     * all of its downstreams acknowledge
+     * ({@code DistributingConsumer#countdownAndMaybeContinue} resumes only once every response
+     * arrived). So if this receiver holds back the acknowledgement until a sibling upstream delivers,
+     * and that sibling cannot produce because it is starved of input by the very upstream being held
+     * back, no node can make progress. Nothing on that path times out, so the query hangs indefinitely
+     * without consuming CPU.
+     * <p>
+     * Reintroducing the all-buckets barrier for an unordered merge makes this test time out.
+     */
+    @Test
+    public void test_unordered_merge_acknowledges_upstream_without_waiting_for_the_others() throws Exception {
+        TestingRowConsumer rowConsumer = new TestingRowConsumer();
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            CumulativePageBucketReceiver bucketReceiver = new CumulativePageBucketReceiver(
+                "n1",
+                1,
+                executor,
+                new Streamer[] { DataTypes.INTEGER.streamer() },
+                rowConsumer,
+                PassThroughPagingIterator.oneShot(),
+                2
+            );
+            bucketReceiver.consumeRows();
+
+            CountDownLatch askedForMore = new CountDownLatch(1);
+            PageResultListener firstUpstream = needMore -> {
+                if (needMore) {
+                    askedForMore.countDown();
+                }
+            };
+
+            // Only upstream 0 delivers. Upstream 1 stays silent, standing in for a sibling instance
+            // that cannot produce anything until upstream 0 has been acknowledged.
+            bucketReceiver.setBucket(
+                0,
+                new ArrayBucket(new Object[][] { new Object[] { 1 } }),
+                false,
+                firstUpstream
+            );
+
+            assertThat(askedForMore.await(10, TimeUnit.SECONDS))
+                .as("upstream 0 is asked for more data although upstream 1 delivered nothing")
+                .isTrue();
+
+            // Let both upstreams finish, to also cover that nothing got dropped along the way.
+            bucketReceiver.setBucket(0, Bucket.EMPTY, true, needMore -> {});
+            bucketReceiver.setBucket(
+                1,
+                new ArrayBucket(new Object[][] { new Object[] { 2 } }),
+                true,
+                needMore -> {}
+            );
+
+            assertThat(rowConsumer.completionFuture()).succeedsWithin(10, TimeUnit.SECONDS);
+            assertThat(rowConsumer.getResult())
+                .as("Receives the row of each upstream")
+                .hasSize(2);
         }
     }
 

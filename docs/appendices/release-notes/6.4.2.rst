@@ -86,3 +86,8 @@ Fixes
   ``variance``, a negative number) instead of ``0`` when aggregating
   large-magnitude values with little or no spread, such as a constant ``DATE``
   or ``TIMESTAMP``.
+
+- Fixed an issue that could cause a query containing two or more :ref:`joins
+  <sql_joins>` to hang indefinitely on a multi-node cluster. This happened when
+  both hash joins (outer and inner) were executed distributed, and their inputs
+  were large enough to be transferred in more than one page between the nodes.

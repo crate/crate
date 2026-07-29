@@ -160,6 +160,11 @@ public class BatchPagingIteratorTest {
         }
 
         @Override
+        public boolean requiresAllBucketsPerPage() {
+            return true;
+        }
+
+        @Override
         public Integer exhaustedIterable() {
             return null;
         }

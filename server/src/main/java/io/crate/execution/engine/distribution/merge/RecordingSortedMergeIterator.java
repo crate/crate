@@ -62,6 +62,12 @@ final class RecordingSortedMergeIterator<TKey, TRow> implements PagingIterator<T
     }
 
     @Override
+    public boolean requiresAllBucketsPerPage() {
+        // Orders across buckets, so no row can be emitted before the head of every bucket is known.
+        return true;
+    }
+
+    @Override
     public void finish() {
         ignoreLeastExhausted = true;
     }
