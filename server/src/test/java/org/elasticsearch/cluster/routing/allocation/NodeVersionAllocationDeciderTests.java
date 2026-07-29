@@ -489,7 +489,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         ClusterState clusterState = ClusterState.builder(clusterName).metadata(metadata).routingTable(initialRoutingTable)
             .nodes(DiscoveryNodes.builder().add(newNode.node()).add(oldNode.node())).build();
 
-        final ShardId shardId = clusterState.routingTable().index("test").shard(0).getShardId();
+        final ShardId shardId = clusterState.routingTable().index("test").shard(0).shardId();
         final ShardRouting primaryShard = clusterState.routingTable().shardRoutingTable(shardId).primaryShard();
         final ShardRouting replicaShard = clusterState.routingTable().shardRoutingTable(shardId).replicaShards().get(0);
 
