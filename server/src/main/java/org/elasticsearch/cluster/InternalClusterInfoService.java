@@ -52,6 +52,9 @@ import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import com.carrotsearch.hppc.ObjectLongHashMap;
+import com.carrotsearch.hppc.ObjectLongMap;
+
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
@@ -295,7 +298,7 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
     }
 
     static IndicesStatsSummary buildStatsSummary(ShardStats[] stats) {
-        final HashMap<String, Long> shardSizeByIdentifier = new HashMap<>();
+        final ObjectLongHashMap<String> shardSizeByIdentifier = new ObjectLongHashMap<>();
         final HashMap<ShardRouting, String> dataPathByShardRouting = new HashMap<>();
         final HashMap<ClusterInfo.NodeAndPath, ClusterInfo.ReservedSpace.Builder> reservedSpaceBuilders = new HashMap<>();
         for (ShardStats s : stats) {
@@ -325,7 +328,7 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
         reservedSpaceBuilders.forEach((nodeAndPath, builder) -> rsrvdSpace.put(nodeAndPath, builder.build()));
 
         return new IndicesStatsSummary(
-            Collections.unmodifiableMap(shardSizeByIdentifier),
+            shardSizeByIdentifier,
             Collections.unmodifiableMap(dataPathByShardRouting),
             Collections.unmodifiableMap(rsrvdSpace)
         );
@@ -395,11 +398,11 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
         }
     }
 
-    private record IndicesStatsSummary(Map<String, Long> shardSizes,
+    private record IndicesStatsSummary(ObjectLongMap<String> shardSizes,
                                        Map<ShardRouting, String> shardRoutingToDataPath,
                                        Map<ClusterInfo.NodeAndPath, ClusterInfo.ReservedSpace> reservedSpace) {
 
-        static final IndicesStatsSummary EMPTY = new IndicesStatsSummary(Map.of(), Map.of(), Map.of());
+        static final IndicesStatsSummary EMPTY = new IndicesStatsSummary(new ObjectLongHashMap<>(), Map.of(), Map.of());
     }
 
 

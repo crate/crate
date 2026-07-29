@@ -27,7 +27,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
@@ -59,6 +58,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
+
+import com.carrotsearch.hppc.ObjectLongHashMap;
+import com.carrotsearch.hppc.ObjectLongMap;
 
 import io.crate.common.collections.MapBuilder;
 
@@ -105,12 +107,12 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         // this is weird and smells like a bug! it should be up to 20%?
         mostAvailableUsage.put("node_1", new DiskUsage("node_1", "node_1", "_na_", 100, randomIntBetween(0, 10)));
 
-        MapBuilder<String, Long> shardSizes = MapBuilder.newMapBuilder();
+        ObjectLongMap<String> shardSizes = new ObjectLongHashMap<>();
         shardSizes.put("[_na_/test][0][p]", 10L); // 10 bytes
         final ClusterInfo clusterInfo = new ClusterInfo(
             leastAvailableUsages.immutableMap(),
             mostAvailableUsage.immutableMap(),
-            shardSizes.immutableMap(),
+            shardSizes,
             Map.of(),
             Map.of()
         );
@@ -166,14 +168,14 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         final int freeBytes = randomIntBetween(20, 100);
         mostAvailableUsage.put("node_0", new DiskUsage("node_0", "node_0", "_na_", 100, freeBytes));
 
-        MapBuilder<String, Long> shardSizes = MapBuilder.newMapBuilder();
+        ObjectLongMap<String> shardSizes = new ObjectLongHashMap<>();
         // way bigger than available space
         final long shardSize = randomIntBetween(110, 1000);
         shardSizes.put("[test/test][0][p]", shardSize);
         ClusterInfo clusterInfo = new ClusterInfo(
             leastAvailableUsages.immutableMap(),
             mostAvailableUsage.immutableMap(),
-            shardSizes.immutableMap(),
+            shardSizes,
             Map.of(),
             Map.of());
         RoutingAllocation allocation = new RoutingAllocation(new AllocationDeciders(Collections.singleton(decider)),
@@ -251,7 +253,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         mostAvailableUsage.put("node_0", new DiskUsage("node_0", "node_0", "/node0/most", 100, 90)); // 10% used
         mostAvailableUsage.put("node_1", new DiskUsage("node_1", "node_1", "/node1/most", 100, 90)); // 10% used
 
-        MapBuilder<String, Long> shardSizes = MapBuilder.newMapBuilder();
+        ObjectLongMap<String> shardSizes = new ObjectLongHashMap<>();
         shardSizes.put("[_na_/test][0][p]", 10L); // 10 bytes
         shardSizes.put("[_na_/test][1][p]", 10L);
         shardSizes.put("[_na_/test][2][p]", 10L);
@@ -259,7 +261,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         final ClusterInfo clusterInfo = new ClusterInfo(
             leastAvailableUsages.immutableMap(),
             mostAvailableUsage.immutableMap(),
-            shardSizes.immutableMap(),
+            shardSizes,
             shardRoutingMap.immutableMap(),
             Map.of()
         );
@@ -302,7 +304,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
 
     @Test
     public void testShardSizeAndRelocatingSize() {
-        HashMap<String, Long> shardSizes = new HashMap<>();
+        ObjectLongMap<String> shardSizes = new ObjectLongHashMap<>();
         shardSizes.put("[test/1234][0][r]", 10L);
         shardSizes.put("[test/1234][1][r]", 100L);
         shardSizes.put("[test/1234][2][r]", 1000L);
@@ -409,7 +411,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
 
     @Test
     public void testSizeShrinkIndex() {
-        Map<String, Long> shardSizes = new HashMap<>();
+        ObjectLongMap<String> shardSizes = new ObjectLongHashMap<>();
         shardSizes.put("[test/1234][0][p]", 10L);
         shardSizes.put("[test/1234][1][p]", 100L);
         shardSizes.put("[test/1234][2][p]", 500L);

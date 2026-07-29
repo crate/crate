@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.routing.Preference;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
@@ -165,7 +166,7 @@ public class BlobIndicesService implements IndexEventListener {
 
     private ShardId localShardId(String index, String digest) {
         ShardIterator si = clusterService.operationRouting().getShards(
-            clusterService.state(), index, null, digest, "_only_local");
+            clusterService.state(), index, null, digest, Preference.ONLY_LOCAL);
         return si.shardId();
     }
 

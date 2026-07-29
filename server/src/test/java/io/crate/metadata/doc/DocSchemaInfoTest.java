@@ -31,6 +31,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
@@ -43,11 +45,13 @@ import io.crate.common.collections.Lists;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
+import io.crate.metadata.view.ViewInfo;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
@@ -158,6 +162,34 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state)).isEmpty();
         assertThat(getTablesAffectedByPublicationsChange(null, null, state)).isEmpty();
+    }
+
+    @Test
+    public void test_getViewInfo_caching() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService);
+        RelationName v1 = new RelationName("doc", "v1");
+        e.addView(v1, "select 1");
+        ViewInfo first = docSchemaInfo.getViewInfo("v1");
+        ViewInfo second = docSchemaInfo.getViewInfo("v1");
+        assertThat(first).isSameAs(second);
+        ClusterState state1 = clusterService.state();
+        e.addTable("create table other.t1 (x int)");
+        ClusterState state2 = clusterService.state();
+        // noop update doesn't clear cache
+        docSchemaInfo.update(new ClusterChangedEvent("dummy", state2, state1));
+        ViewInfo third = docSchemaInfo.getViewInfo("v1");
+        assertThat(third).isSameAs(first);
+        ClusterState state3 = ClusterState.builder(state1)
+            .metadata(
+                Metadata.builder(state1.metadata())
+                    .dropRelation(v1)
+            )
+            .build();
+        docSchemaInfo.update(new ClusterChangedEvent("dummy", state3, state1));
+        // still returns a view because the newState with the dropped relation wasn't published
+        // but a new instance, because docSchemaInfo.update cleared the cache
+        ViewInfo fourth = docSchemaInfo.getViewInfo("v1");
+        assertThat(fourth).isNotSameAs(first);
     }
 
     private PublicationsMetadata publicationsMetadata(String name, boolean allTables, List<String> tables) {

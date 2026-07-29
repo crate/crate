@@ -113,7 +113,7 @@ public class DocSchemaInfo implements SchemaInfo {
     private final ViewInfoFactory viewInfoFactory;
 
     private final ConcurrentHashMap<String, DocTableInfo> docTableByName = new ConcurrentHashMap<>();
-
+    private final ConcurrentHashMap<String, ViewInfo> viewByName = new ConcurrentHashMap<>();
     public static final Predicate<String> NO_BLOB_NOR_DANGLING =
         index -> ! (BlobIndex.isBlobIndex(index) || IndexName.isDangling(index));
 
@@ -174,7 +174,19 @@ public class DocSchemaInfo implements SchemaInfo {
     @Nullable
     @Override
     public ViewInfo getViewInfo(String name) {
-        return viewInfoFactory.create(new RelationName(schemaName, name), clusterService.state());
+        ViewInfo cachedView = viewByName.get(name);
+        if (cachedView != null) {
+            return cachedView;
+        }
+        RelationName ident = new RelationName(schemaName, name);
+        ViewInfo newView = viewInfoFactory.create(ident, clusterService.state());
+        if (newView == null) {
+            return null;
+        }
+        if (newView.relation() != null) {
+            viewByName.put(name, newView);
+        }
+        return newView;
     }
 
     @Override
@@ -201,8 +213,11 @@ public class DocSchemaInfo implements SchemaInfo {
         // search indices with changed relations
         SchemaMetadata newSchemaMetadata = newMetadata.schemas().get(schemaName);
         SchemaMetadata prevSchemaMetadata = prevMetadata.schemas().get(schemaName);
+
+        boolean schemaChanged = false;
         if (newSchemaMetadata == null || prevSchemaMetadata == null) {
             docTableByName.clear();
+            schemaChanged = true;
         } else {
             Iterator<String> cachedTablesIt = docTableByName.keySet().iterator();
             while (cachedTablesIt.hasNext()) {
@@ -217,6 +232,13 @@ public class DocSchemaInfo implements SchemaInfo {
                     }
                 }
             }
+            if (!newSchemaMetadata.equals(prevSchemaMetadata)) {
+                schemaChanged = true;
+            }
+        }
+
+        if (schemaChanged) {
+            viewByName.clear();
         }
 
         PublicationsMetadata prevPublicationsMetadata = prevMetadata.custom(PublicationsMetadata.TYPE);

@@ -119,14 +119,6 @@ public final class ShardRouting implements Writeable {
     }
 
     /**
-     * The shard id.
-     */
-    public int getId() {
-        return id();
-    }
-
-
-    /**
      * The shard is unassigned (not allocated to any node).
      */
     public boolean unassigned() {

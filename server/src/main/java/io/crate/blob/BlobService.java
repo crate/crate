@@ -28,6 +28,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.Preference;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -98,7 +99,7 @@ public class BlobService extends AbstractLifecycleComponent {
             throw new IndexNotFoundException(index);
         }
         ShardIterator shards = clusterService.operationRouting().getShards(
-            clusterService.state(), indexUUID, null, digest, "_local");
+            clusterService.state(), indexUUID, null, digest, Preference.LOCAL);
 
         String localNodeId = clusterService.localNode().getId();
         DiscoveryNodes nodes = clusterService.state().nodes();

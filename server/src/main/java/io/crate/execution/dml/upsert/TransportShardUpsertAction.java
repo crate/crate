@@ -40,6 +40,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.Engine;
@@ -460,7 +461,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 boolean isRetry = retryCount > 0 || request.isRetry();
                 AtomicLong version = new AtomicLong();
                 // Get most-recent table info, could have changed (new columns, dropped columns)
-                DocTableInfo actual = isRetry ? schemas.getTableInfo(tableInfo.ident()) : tableInfo;
+                DocTableInfo actual = isRetry ? schemas.getTableInfo(indexShard.shardId().getIndex()) : tableInfo;
                 String id = item.id();
                 Object[] excluded = item.insertValues();
                 final long startTime = System.nanoTime();
@@ -484,7 +485,11 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 );
                 List<Reference> newColumns = indexer.collectSchemaUpdates(newIndexItem);
                 if (newColumns.isEmpty() == false) {
-                    DocTableInfo actualTable = updateSchema(tableInfo.ident(), newColumns);
+                    DocTableInfo actualTable = updateSchema(
+                        tableInfo.ident(),
+                        indexShard.shardId().getIndex(),
+                        newColumns
+                    );
                     indexer.updateTargets(actualTable);
                 }
                 ParsedDocument parsedDoc = indexer.index(newIndexItem);
@@ -541,7 +546,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
             ? indexer.collectSchemaUpdates(item)
             : rawIndexer.collectSchemaUpdates(item);
         if (newColumns.isEmpty() == false) {
-            DocTableInfo actualTable = updateSchema(tableName, newColumns);
+            DocTableInfo actualTable = updateSchema(tableName, indexShard.shardId().getIndex(), newColumns);
             if (rawIndexer == null) {
                 indexer.updateTargets(actualTable);
             } else {
@@ -558,6 +563,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
 
 
     private DocTableInfo updateSchema(RelationName tableName,
+                                      Index index,
                                       List<Reference> newColumns) throws InterruptedException, ExecutionException {
         var addColumnRequest = new AddColumnRequest(
             tableName,
@@ -566,7 +572,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
             new IntArrayList(0)
         );
         addColumnAction.execute(addColumnRequest).get();
-        return schemas.getTableInfo(tableName);
+        return schemas.getTableInfo(index);
     }
 
     private IndexItemResult indexParsedDoc(ParsedDocument parsedDocument,

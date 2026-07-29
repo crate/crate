@@ -199,16 +199,22 @@ public class InformationSchemaTest extends IntegTestCase {
                 "FROM information_schema.views " +
                 "WHERE table_name LIKE 't1%' " +
                 "ORDER BY 1, 2");
+
+        rows = response.rows();
         assertThat(rows[0][0]).isEqualTo("t1_view1");
         assertThat(rows[0][1]).isEqualTo(
+            "/* Corrupted view, needs fix */\n" +
             "SELECT *\n" +
             "FROM \"t1\"\n" +
-            "WHERE \"name\" = 'foo'\n");
+            "WHERE \"name\" = 'foo'\n"
+        );
         assertThat(rows[1][0]).isEqualTo("t1_view2");
         assertThat(rows[1][1]).isEqualTo(
+            "/* Corrupted view, needs fix */\n" +
             "SELECT \"id\"\n" +
             "FROM \"t1\"\n" +
-            "WHERE \"name\" = 'foo'\n");
+            "WHERE \"name\" = 'foo'\n"
+        );
 
         execute("SELECT table_name, column_name " +
                 "FROM information_schema.columns " +

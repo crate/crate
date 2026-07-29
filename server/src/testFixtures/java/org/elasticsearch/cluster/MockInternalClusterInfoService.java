@@ -22,7 +22,7 @@ package org.elasticsearch.cluster;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -53,7 +53,7 @@ public class MockInternalClusterInfoService extends InternalClusterInfoService {
     public static class TestPlugin extends Plugin {}
 
     @Nullable // if no fakery should take place
-    private volatile Function<ShardRouting, Long> shardSizeFunction;
+    private volatile ToLongFunction<ShardRouting> shardSizeFunction;
 
     @Nullable // if no fakery should take place
     private volatile BiFunction<DiscoveryNode, FsInfo.Path, FsInfo.Path> diskUsageFunction;
@@ -70,7 +70,7 @@ public class MockInternalClusterInfoService extends InternalClusterInfoService {
         refresh();
     }
 
-    public void setShardSizeFunctionAndRefresh(Function<ShardRouting, Long> shardSizeFunction) {
+    public void setShardSizeFunctionAndRefresh(ToLongFunction<ShardRouting> shardSizeFunction) {
         this.shardSizeFunction = shardSizeFunction;
         refresh();
     }
@@ -127,13 +127,18 @@ public class MockInternalClusterInfoService extends InternalClusterInfoService {
         }
 
         @Override
-        public Long getShardSize(ShardRouting shardRouting) {
-            final Function<ShardRouting, Long> shardSizeFunction = MockInternalClusterInfoService.this.shardSizeFunction;
+        public long getShardSize(ShardRouting shardRouting, long defaultValue) {
+            long size = this.getShardSize(shardRouting);
+            return size == 0 ? defaultValue : size;
+        }
+
+        @Override
+        public long getShardSize(ShardRouting shardRouting) {
+            final ToLongFunction<ShardRouting> shardSizeFunction = MockInternalClusterInfoService.this.shardSizeFunction;
             if (shardSizeFunction == null) {
                 return super.getShardSize(shardRouting);
             }
-
-            return shardSizeFunction.apply(shardRouting);
+            return shardSizeFunction.applyAsLong(shardRouting);
         }
     }
 

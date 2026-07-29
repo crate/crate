@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
@@ -67,7 +68,6 @@ import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.PKAndVersion;
@@ -150,7 +150,7 @@ public final class PKLookupOperation {
                                      Collection<? extends Projection> projections,
                                      boolean requiresScroll,
                                      Function<Doc, Row> resultToRow,
-                                     Function<RelationName, DocTableInfo> getTableInfo,
+                                     Function<Index, DocTableInfo> getTableInfo,
                                      Function<String, PartitionName> getPartitionName,
                                      List<Symbol> columns) {
         ArrayList<BatchIterator<Row>> iterators = new ArrayList<>(idsByShard.size());
@@ -173,7 +173,7 @@ public final class PKLookupOperation {
 
             String indexUUID = shardId.getIndexUUID();
             PartitionName partitionName = getPartitionName.apply(indexUUID);
-            DocTableInfo table = getTableInfo.apply(partitionName.relationName());
+            DocTableInfo table = getTableInfo.apply(shardId.getIndex());
 
             Stream<Row> rowStream = idsByShardEntry.getValue().stream()
                 .map(pkAndVersion -> withDoc(

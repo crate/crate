@@ -743,7 +743,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
                     return o1.primary() ? -1 : 1;
                 }
                 if (o1.getIndexUUID().compareTo(o2.getIndexUUID()) == 0) {
-                    return o1.getId() - o2.getId();
+                    return o1.id() - o2.id();
                 }
                 // this comparator is more expensive than all the others up there
                 // that's why it's added last even though it could be easier to read

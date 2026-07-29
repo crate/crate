@@ -59,7 +59,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
     private static ReferenceResolver<NestableInput<?>> createPartitionColumnResolver(Index index, RelationName name, List<String> partitionValues, Schemas schemas) {
         DocTableInfo info;
         try {
-            info = schemas.getTableInfo(name);
+            info = schemas.getTableInfo(index);
         } catch (Exception e) {
             if (e instanceof ResourceUnknownException) {
                 LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, name);
