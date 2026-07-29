@@ -31,12 +31,13 @@ public final class AnalyzedDropTable<T extends TableInfo> implements DDLStatemen
 
     private final boolean dropIfExists;
     private final RelationName tableName;
+    private final int tableOid;
 
-    AnalyzedDropTable(boolean dropIfExists, RelationName tableName) {
+    AnalyzedDropTable(boolean dropIfExists, RelationName tableName, int tableOid) {
         this.dropIfExists = dropIfExists;
         this.tableName = tableName;
+        this.tableOid = tableOid;
     }
-
 
     public boolean dropIfExists() {
         return dropIfExists;
@@ -44,6 +45,10 @@ public final class AnalyzedDropTable<T extends TableInfo> implements DDLStatemen
 
     public RelationName tableName() {
         return tableName;
+    }
+
+    public int tableOid() {
+        return tableOid;
     }
 
     @Override

@@ -21,8 +21,11 @@
 
 package io.crate.execution.ddl.tables;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -32,17 +35,23 @@ import io.crate.metadata.RelationName;
 public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> {
 
     private final RelationName sourceName;
+    private final int sourceOid;
     private final RelationName targetName;
     private final boolean isPartitioned;
 
-    public RenameTableRequest(RelationName sourceName, RelationName targetName, boolean isPartitioned) {
+    public RenameTableRequest(RelationName sourceName, int sourceOid, RelationName targetName, boolean isPartitioned) {
         this.sourceName = sourceName;
+        this.sourceOid = sourceOid;
         this.targetName = targetName;
         this.isPartitioned = isPartitioned;
     }
 
     public RelationName sourceName() {
         return sourceName;
+    }
+
+    public int sourceOid() {
+        return sourceOid;
     }
 
     public RelationName targetName() {
@@ -56,6 +65,12 @@ public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> 
     public RenameTableRequest(StreamInput in) throws IOException {
         super(in);
         sourceName = new RelationName(in);
+        if ((in.getVersion().before(Version.V_6_4_0) && in.getVersion().onOrAfter(Version.V_6_3_7))
+            || in.getVersion().onOrAfter(Version.V_6_4_2)) {
+            sourceOid = in.readVInt();
+        } else {
+            sourceOid = OID_UNASSIGNED;
+        }
         targetName = new RelationName(in);
         isPartitioned = in.readBoolean();
     }
@@ -64,6 +79,10 @@ public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> 
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         sourceName.writeTo(out);
+        if ((out.getVersion().before(Version.V_6_4_0) && out.getVersion().onOrAfter(Version.V_6_3_7))
+            || out.getVersion().onOrAfter(Version.V_6_4_2)) {
+            out.writeVInt(sourceOid);
+        }
         targetName.writeTo(out);
         out.writeBoolean(isPartitioned);
     }

@@ -22,9 +22,11 @@
 package org.elasticsearch.action.admin.indices.shrink;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -37,8 +39,8 @@ public class ResizeRequestTest {
     public void test_streaming() throws Exception {
         RelationName table = new RelationName("foo", "bar");
         List<ResizeRequest> requests = List.of(
-            new ResizeRequest(table, List.of(), 4),
-            new ResizeRequest(table, List.of("2", "3"), 10)
+            new ResizeRequest(table, OID_UNASSIGNED, List.of(), 4),
+            new ResizeRequest(table, OID_UNASSIGNED, List.of("2", "3"), 10)
         );
         for (var originalReq : requests) {
             try (var out = new BytesStreamOutput()) {
@@ -52,6 +54,42 @@ public class ResizeRequestTest {
                     assertThat(request.ackTimeout()).isEqualTo(TimeValue.timeValueSeconds(60));
                 }
             }
+        }
+    }
+
+    @Test
+    public void test_streaming_table_oids() throws Exception {
+        // streaming to nodes with supported versions
+        for (Version version : List.of(Version.V_6_3_7, Version.V_6_4_2, Version.CURRENT)) {
+            RelationName relation = new RelationName("doc", "tbl");
+            int tableOid = 1234;
+            ResizeRequest request = new ResizeRequest(relation, tableOid, List.of(), 4);
+
+            var out = new BytesStreamOutput();
+            out.setVersion(version);
+            request.writeTo(out);
+
+            var in = out.bytes().streamInput();
+            in.setVersion(version);
+            ResizeRequest streamed = new ResizeRequest(in);
+
+            assertThat(streamed.tableOid()).isEqualTo(tableOid);
+        }
+
+        // streaming to nodes with unsupported versions
+        for (Version version : List.of(Version.V_6_3_6, Version.V_6_4_0, Version.V_6_4_1)) {
+            RelationName relation = new RelationName("doc", "tbl");
+            ResizeRequest request = new ResizeRequest(relation, 1234, List.of(), 4);
+
+            var out = new BytesStreamOutput();
+            out.setVersion(version);
+            request.writeTo(out);
+
+            var in = out.bytes().streamInput();
+            in.setVersion(version);
+            ResizeRequest streamed = new ResizeRequest(in);
+
+            assertThat(streamed.tableOid()).isEqualTo(OID_UNASSIGNED);
         }
     }
 }

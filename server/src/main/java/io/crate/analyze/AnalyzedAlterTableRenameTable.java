@@ -29,17 +29,23 @@ import io.crate.metadata.RelationName;
 public class AnalyzedAlterTableRenameTable implements DDLStatement {
 
     private final RelationName sourceName;
+    private final int sourceOid;
     private final RelationName targetName;
     private final boolean isPartitioned;
 
-    AnalyzedAlterTableRenameTable(RelationName sourceName, RelationName targetName, boolean isPartitioned) {
+    AnalyzedAlterTableRenameTable(RelationName sourceName, int sourceOid, RelationName targetName, boolean isPartitioned) {
         this.sourceName = sourceName;
+        this.sourceOid = sourceOid;
         this.targetName = targetName;
         this.isPartitioned = isPartitioned;
     }
 
     public RelationName sourceName() {
         return sourceName;
+    }
+
+    public int sourceOid() {
+        return sourceOid;
     }
 
     public RelationName targetName() {

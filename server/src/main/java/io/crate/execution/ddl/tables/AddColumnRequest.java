@@ -21,11 +21,14 @@
 
 package io.crate.execution.ddl.tables;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -38,6 +41,7 @@ import io.crate.metadata.RelationName;
 public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
 
     private final RelationName relationName;
+    private final int tableOid;
     private final List<Reference> colsToAdd;
     private final IntArrayList pKeyIndices;
     private final Map<String, String> checkConstraints;
@@ -46,10 +50,12 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
      * @param checkConstraints must be accumulated map of all columns' constraints in case of adding multiple columns.
      */
     public AddColumnRequest(RelationName relationName,
+                            int tableOid,
                             List<Reference> colsToAdd,
                             Map<String, String> checkConstraints,
                             IntArrayList pKeyIndices) {
         this.relationName = relationName;
+        this.tableOid = tableOid;
         this.colsToAdd = colsToAdd;
         this.checkConstraints = checkConstraints;
         this.pKeyIndices = pKeyIndices;
@@ -59,6 +65,12 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
     public AddColumnRequest(StreamInput in) throws IOException {
         super(in);
         this.relationName = new RelationName(in);
+        if ((in.getVersion().before(Version.V_6_4_0) && in.getVersion().onOrAfter(Version.V_6_3_7))
+            || in.getVersion().onOrAfter(Version.V_6_4_2)) {
+            this.tableOid = in.readVInt();
+        } else {
+            this.tableOid = OID_UNASSIGNED;
+        }
         this.checkConstraints = in.readMap(
             LinkedHashMap::new, StreamInput::readString, StreamInput::readString);
         this.colsToAdd = in.readList(Reference::fromStream);
@@ -73,6 +85,10 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         relationName.writeTo(out);
+        if ((out.getVersion().before(Version.V_6_4_0) && out.getVersion().onOrAfter(Version.V_6_3_7))
+            || out.getVersion().onOrAfter(Version.V_6_4_2)) {
+            out.writeVInt(tableOid);
+        }
         out.writeMap(checkConstraints, StreamOutput::writeString, StreamOutput::writeString);
         out.writeCollection(colsToAdd, Reference::toStream);
         out.writeVInt(pKeyIndices.size());
@@ -83,6 +99,10 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
 
     public RelationName relationName() {
         return this.relationName;
+    }
+
+    public int tableOid() {
+        return tableOid;
     }
 
     public Map<String, String> checkConstraints() {

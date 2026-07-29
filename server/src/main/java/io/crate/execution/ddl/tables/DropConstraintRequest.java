@@ -21,8 +21,11 @@
 
 package io.crate.execution.ddl.tables;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -32,23 +35,36 @@ import io.crate.metadata.RelationName;
 public class DropConstraintRequest extends AcknowledgedRequest<DropConstraintRequest> {
 
     private final RelationName relationName;
+    private final int tableOid;
     private final String constraintName;
 
     public DropConstraintRequest(RelationName relationName,
+                                 int tableOid,
                                  String constraintName) {
         this.relationName = relationName;
+        this.tableOid = tableOid;
         this.constraintName = constraintName;
     }
 
     public DropConstraintRequest(StreamInput in) throws IOException {
         super(in);
         relationName = new RelationName(in);
+        if ((in.getVersion().before(Version.V_6_4_0) && in.getVersion().onOrAfter(Version.V_6_3_7))
+            || in.getVersion().onOrAfter(Version.V_6_4_2)) {
+            tableOid = in.readVInt();
+        } else {
+            tableOid = OID_UNASSIGNED;
+        }
         constraintName = in.readString();
     }
 
 
     public RelationName relationName() {
         return relationName;
+    }
+
+    public int tableOid() {
+        return tableOid;
     }
 
     public String constraintName() {
@@ -59,6 +75,10 @@ public class DropConstraintRequest extends AcknowledgedRequest<DropConstraintReq
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         relationName.writeTo(out);
+        if ((out.getVersion().before(Version.V_6_4_0) && out.getVersion().onOrAfter(Version.V_6_3_7))
+            || out.getVersion().onOrAfter(Version.V_6_4_2)) {
+            out.writeVInt(tableOid);
+        }
         out.writeString(constraintName);
     }
 }

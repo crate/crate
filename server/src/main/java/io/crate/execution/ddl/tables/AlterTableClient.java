@@ -156,15 +156,16 @@ public class AlterTableClient {
     }
 
     public CompletableFuture<Long> closeOrOpen(RelationName relationName,
+                                               int tableOid,
                                                boolean openTable,
                                                @Nullable PartitionName partitionName) {
         if (openTable) {
             OpenTableRequest request = new OpenTableRequest(
-                relationName, partitionName == null ? List.of() : partitionName.values());
+                relationName, tableOid, partitionName == null ? List.of() : partitionName.values());
             return client.execute(TransportOpenTable.ACTION, request).thenApply(_ -> -1L);
         } else {
             CloseTableRequest request = new CloseTableRequest(
-                relationName, partitionName == null ? List.of() : partitionName.values());
+                relationName, tableOid, partitionName == null ? List.of() : partitionName.values());
             return client.execute(TransportCloseTable.ACTION, request).thenApply(_ -> -1L);
         }
     }
@@ -194,6 +195,7 @@ public class AlterTableClient {
             PartitionName partitionName = analysis.partitionName();
             AlterTableRequest request = new AlterTableRequest(
                 analysis.table().ident(),
+                analysis.table().oid(),
                 partitionName == null ? List.of() : partitionName.values(),
                 analysis.isPartitioned(),
                 analysis.excludePartitions(),
@@ -246,6 +248,7 @@ public class AlterTableClient {
 
             final ResizeRequest request = new ResizeRequest(
                 table.ident(),
+                table.oid(),
                 partitionName == null ? List.of() : partitionName.values(),
                 targetNumberOfShards
             );

@@ -24,6 +24,7 @@ package io.crate.execution.ddl.tables;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.List;
 
@@ -59,7 +60,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var renameColumnTask = buildRenameColumnTask(e, tbl.ident());
         Reference refToRename = tbl.getReference(ColumnIdent.of("x"));
         var newName = ColumnIdent.of("y");
-        var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
+        var request = new RenameColumnRequest(tbl.ident(), OID_UNASSIGNED, refToRename, newName);
         ClusterState newState = renameColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         assertThat(newTable.getReference(refToRename.column())).isNull();
@@ -78,7 +79,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var renameColumnTask = buildRenameColumnTask(e, tbl.ident());
         Reference refToRename1 = tbl.getReference(ColumnIdent.of("o"));
         var newName1 = ColumnIdent.of("p");
-        var request = new RenameColumnRequest(tbl.ident(), refToRename1, newName1);
+        var request = new RenameColumnRequest(tbl.ident(), OID_UNASSIGNED, refToRename1, newName1);
         ClusterState newState = renameColumnTask.execute(clusterService.state(), request);
         tbl = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         assertThat(tbl.getReference(refToRename1.column())).isNull();
@@ -86,7 +87,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
         Reference refToRename2 = tbl.getReference(ColumnIdent.of("p", List.of("o2")));
         var newName2 = ColumnIdent.of("p", List.of("p2"));
-        request = new RenameColumnRequest(tbl.ident(), refToRename2, newName2);
+        request = new RenameColumnRequest(tbl.ident(), OID_UNASSIGNED, refToRename2, newName2);
         newState = renameColumnTask.execute(newState, request);
         tbl = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         assertThat(tbl.getReference(refToRename2.column())).isNull();
@@ -94,7 +95,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
         Reference refToRename3 = tbl.getReference(ColumnIdent.of("p", List.of("p2", "x")));
         var newName3 = ColumnIdent.of("p", List.of("p2", "y"));
-        request = new RenameColumnRequest(tbl.ident(), refToRename3, newName3);
+        request = new RenameColumnRequest(tbl.ident(), OID_UNASSIGNED, refToRename3, newName3);
         newState = renameColumnTask.execute(newState, request);
         tbl = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         assertThat(tbl.getReference(refToRename3.column())).isNull();
@@ -113,7 +114,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var renameColumnTask = buildRenameColumnTask(e, tbl.ident());
         Reference refToRename = tbl.getReference(ColumnIdent.of("x"));
         var newName = ColumnIdent.of("y");
-        var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
+        var request = new RenameColumnRequest(tbl.ident(), OID_UNASSIGNED, refToRename, newName);
         ClusterState newState = renameColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         assertThat(newTable.getReference(refToRename.column())).isNull();
@@ -127,7 +128,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         newName = ColumnIdent.of("p");
         var oldNameOfChild = ColumnIdent.of("o", List.of("o2", "x"));
         var newNameOfChild = ColumnIdent.of("p", List.of("o2", "x"));
-        request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
+        request = new RenameColumnRequest(tbl.ident(), OID_UNASSIGNED, refToRename, newName);
         newState = renameColumnTask.execute(newState, request);
         newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         assertThat(newTable.getReference(oldNameOfChild)).isNull();
@@ -145,7 +146,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var renameColumnTask = buildRenameColumnTask(e, tbl.ident());
         Reference refToRename = tbl.getReference(ColumnIdent.of("o", List.of("o2")));
         var newName = ColumnIdent.of("o", List.of("p2"));
-        var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
+        var request = new RenameColumnRequest(tbl.ident(), OID_UNASSIGNED, refToRename, newName);
         ClusterState newState = renameColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         var oldPkCol = ColumnIdent.of("o", List.of("o2", "o3", "x"));
@@ -166,13 +167,13 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var renameColumnTask = buildRenameColumnTask(e, tbl.ident());
         Reference refToRename = tbl.getReference(ColumnIdent.of("o", List.of("a")));
         var newName = ColumnIdent.of("o", List.of("b"));
-        var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
+        var request = new RenameColumnRequest(tbl.ident(), OID_UNASSIGNED, refToRename, newName);
         ClusterState newState = renameColumnTask.execute(clusterService.state(), request);
         tbl = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
         refToRename = tbl.getReference(ColumnIdent.of("o"));
         newName = ColumnIdent.of("p");
-        request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
+        request = new RenameColumnRequest(tbl.ident(), OID_UNASSIGNED, refToRename, newName);
         newState = renameColumnTask.execute(newState, request);
         tbl = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
@@ -191,7 +192,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var renameColumnTask = buildRenameColumnTask(e, tbl.ident());
         Reference refToRename = tbl.getReference(ColumnIdent.of("o"));
         var newName = ColumnIdent.of("o2");
-        var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
+        var request = new RenameColumnRequest(tbl.ident(), OID_UNASSIGNED, refToRename, newName);
         ClusterState newState = renameColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         assertThat(newTable.generatedColumns()).hasSize(1);
@@ -207,7 +208,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var renameColumnTask = buildRenameColumnTask(e, tbl.ident());
         Reference refToRename = tbl.getReference(ColumnIdent.of("a"));
         var newName = ColumnIdent.of("b");
-        var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
+        var request = new RenameColumnRequest(tbl.ident(), OID_UNASSIGNED, refToRename, newName);
         assertThatThrownBy(() -> renameColumnTask.execute(clusterService.state(), request))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Cannot rename column to a name that is in use");
@@ -234,7 +235,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         var newName = ColumnIdent.of("b");
-        var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
+        var request = new RenameColumnRequest(tbl.ident(), OID_UNASSIGNED, refToRename, newName);
         assertThatThrownBy(() -> renameColumnTask.execute(clusterService.state(), request))
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessage("Column a unknown");
@@ -248,7 +249,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var renameColumnTask = buildRenameColumnTask(e, tbl.ident());
         Reference refToRename = tbl.getReference(ColumnIdent.of("x"));
         var newName = ColumnIdent.of("y");
-        var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
+        var request = new RenameColumnRequest(tbl.ident(), OID_UNASSIGNED, refToRename, newName);
         ClusterState newState = renameColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         assertThat(newTable.clusteredBy()).isEqualTo(newName);
@@ -262,13 +263,13 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var renameColumnTask = buildRenameColumnTask(e, tbl.ident());
         Reference refToRename = tbl.getReference(ColumnIdent.of("x"));
         var newName = ColumnIdent.of("x2");
-        var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
+        var request = new RenameColumnRequest(tbl.ident(), OID_UNASSIGNED, refToRename, newName);
         ClusterState newState = renameColumnTask.execute(clusterService.state(), request);
         tbl = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
         refToRename = tbl.indexColumn(ColumnIdent.of("i"));
         newName = ColumnIdent.of("i2");
-        request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
+        request = new RenameColumnRequest(tbl.ident(), OID_UNASSIGNED, refToRename, newName);
         newState = renameColumnTask.execute(newState, request);
         tbl = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 

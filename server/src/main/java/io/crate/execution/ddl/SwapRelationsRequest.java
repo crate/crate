@@ -21,20 +21,22 @@
 
 package io.crate.execution.ddl;
 
-import io.crate.metadata.RelationName;
+import java.io.IOException;
+import java.util.List;
+
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-import java.util.List;
+import io.crate.metadata.RelationName;
 
 public final class SwapRelationsRequest extends AcknowledgedRequest<SwapRelationsRequest> {
 
     private final List<RelationNameSwap> swapRelations;
     private final List<RelationName> dropRelations;
 
-    public SwapRelationsRequest(List<RelationNameSwap> swapRelations, List<RelationName> dropRelations) {
+    public SwapRelationsRequest(List<RelationNameSwap> swapRelations,
+                                List<RelationName> dropRelations) {
         this.swapRelations = swapRelations;
         this.dropRelations = dropRelations;
     }

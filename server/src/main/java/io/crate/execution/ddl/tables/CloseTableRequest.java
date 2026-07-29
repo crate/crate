@@ -22,6 +22,8 @@
 
 package io.crate.execution.ddl.tables;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,16 +39,24 @@ import io.crate.metadata.RelationName;
 public final class CloseTableRequest extends AcknowledgedRequest<CloseTableRequest> {
 
     private final RelationName table;
+    private final int tableOid;
     private final List<String> partitionValues;
 
-    public CloseTableRequest(RelationName table, List<String> partitionValues) {
+    public CloseTableRequest(RelationName table, int tableOid, List<String> partitionValues) {
         this.table = table;
+        this.tableOid = tableOid;
         this.partitionValues = partitionValues;
     }
 
     public CloseTableRequest(StreamInput in) throws IOException {
         super(in);
         this.table = new RelationName(in);
+        if ((in.getVersion().before(Version.V_6_4_0) && in.getVersion().onOrAfter(Version.V_6_3_7))
+            || in.getVersion().onOrAfter(Version.V_6_4_2)) {
+            this.tableOid = in.readVInt();
+        } else {
+            this.tableOid = OID_UNASSIGNED;
+        }
         if (in.getVersion().onOrAfter(Version.V_5_10_0)) {
             int numValues = in.readVInt();
             this.partitionValues = new ArrayList<>(numValues);
@@ -67,6 +77,10 @@ public final class CloseTableRequest extends AcknowledgedRequest<CloseTableReque
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         table.writeTo(out);
+        if ((out.getVersion().before(Version.V_6_4_0) && out.getVersion().onOrAfter(Version.V_6_3_7))
+            || out.getVersion().onOrAfter(Version.V_6_4_2)) {
+            out.writeVInt(tableOid);
+        }
         if (out.getVersion().onOrAfter(Version.V_5_10_0)) {
             out.writeVInt(partitionValues.size());
             for (String value : partitionValues) {
@@ -85,6 +99,10 @@ public final class CloseTableRequest extends AcknowledgedRequest<CloseTableReque
 
     public RelationName table() {
         return table;
+    }
+
+    public int tableOid() {
+        return tableOid;
     }
 
     public List<String> partitionValues() {

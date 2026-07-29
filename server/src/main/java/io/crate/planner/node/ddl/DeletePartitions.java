@@ -49,10 +49,12 @@ import io.crate.types.DataTypes;
 public class DeletePartitions implements Plan {
 
     private final RelationName relationName;
+    private final int tableOid;
     private final List<List<Symbol>> partitions;
 
-    public DeletePartitions(RelationName relationName, List<List<Symbol>> partitions) {
+    public DeletePartitions(RelationName relationName, int tableOid, List<List<Symbol>> partitions) {
         this.relationName = relationName;
+        this.tableOid = tableOid;
         this.partitions = partitions;
     }
 
@@ -76,7 +78,7 @@ public class DeletePartitions implements Plan {
             relationName, plannerContext.transactionContext(), dependencies.nodeContext(), params, subQueryResults);
         dependencies.client().execute(
             TransportDropPartitionsAction.ACTION,
-            new DropPartitionsRequest(relationName, partitionNames)
+            new DropPartitionsRequest(relationName, tableOid, partitionNames)
         ).whenComplete(new OneRowActionListener<>(consumer, ignoredResponse -> Row1.ROW_COUNT_UNKNOWN));
     }
 

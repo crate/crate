@@ -21,9 +21,12 @@
 
 package io.crate.execution.ddl.tables;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -34,17 +37,26 @@ import io.crate.metadata.RelationName;
 public class DropColumnRequest extends AcknowledgedRequest<DropColumnRequest> {
 
     private final RelationName relationName;
+    private final int tableOid;
     private final List<DropColumn> colsToDrop;
 
     public DropColumnRequest(RelationName relationName,
+                             int tableOid,
                              List<DropColumn> colsToDrop) {
         this.relationName = relationName;
+        this.tableOid = tableOid;
         this.colsToDrop = colsToDrop;
     }
 
     public DropColumnRequest(StreamInput in) throws IOException {
         super(in);
         this.relationName = new RelationName(in);
+        if ((in.getVersion().before(Version.V_6_4_0) && in.getVersion().onOrAfter(Version.V_6_3_7))
+            || in.getVersion().onOrAfter(Version.V_6_4_2)) {
+            this.tableOid = in.readVInt();
+        } else {
+            this.tableOid = OID_UNASSIGNED;
+        }
         this.colsToDrop = in.readList(DropColumn::new);
     }
 
@@ -52,11 +64,19 @@ public class DropColumnRequest extends AcknowledgedRequest<DropColumnRequest> {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         relationName.writeTo(out);
+        if ((out.getVersion().before(Version.V_6_4_0) && out.getVersion().onOrAfter(Version.V_6_3_7))
+            || out.getVersion().onOrAfter(Version.V_6_4_2)) {
+            out.writeVInt(tableOid);
+        }
         out.writeCollection(colsToDrop);
     }
 
     public RelationName relationName() {
         return this.relationName;
+    }
+
+    public int tableOid() {
+        return tableOid;
     }
 
     public List<DropColumn> colsToDrop() {

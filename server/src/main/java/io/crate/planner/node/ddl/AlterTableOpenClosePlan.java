@@ -72,7 +72,7 @@ public class AlterTableOpenClosePlan implements Plan {
             : PartitionName.ofAssignments(tableInfo, table.partitionProperties(), plannerContext.clusterState().metadata());
 
         dependencies.alterTableClient()
-            .closeOrOpen(tableInfo.ident(), analyzedAlterTable.isOpenTable(), partitionName)
+            .closeOrOpen(tableInfo.ident(), tableInfo.oid(), analyzedAlterTable.isOpenTable(), partitionName)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }

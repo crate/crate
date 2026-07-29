@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.admin.indices.shrink;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,12 +42,14 @@ import io.crate.metadata.RelationName;
 public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
 
     private final RelationName table;
+    private final int tableOid;
     private final List<String> partitionValues;
     private final int newNumShards;
 
-    public ResizeRequest(RelationName table, List<String> partitionValues, int newNumShards) {
+    public ResizeRequest(RelationName table, int tableOid, List<String> partitionValues, int newNumShards) {
         super();
         this.table = table;
+        this.tableOid = tableOid;
         this.partitionValues = partitionValues;
         this.newNumShards = newNumShards;
         this.timeout = TimeValue.timeValueSeconds(this.timeout.seconds() * 2);
@@ -56,6 +60,12 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
         super(in);
         if (in.getVersion().onOrAfter(Version.V_5_10_0)) {
             table = new RelationName(in);
+            if ((in.getVersion().before(Version.V_6_4_0) && in.getVersion().onOrAfter(Version.V_6_3_7))
+                || in.getVersion().onOrAfter(Version.V_6_4_2)) {
+                tableOid = in.readVInt();
+            } else {
+                tableOid = OID_UNASSIGNED;
+            }
             int numValues = in.readVInt();
             partitionValues = new ArrayList<>(numValues);
             for (int i = 0; i < numValues; i++) {
@@ -73,6 +83,10 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
         super.writeTo(out);
         if (out.getVersion().onOrAfter(Version.V_5_10_0)) {
             table.writeTo(out);
+            if ((out.getVersion().before(Version.V_6_4_0) && out.getVersion().onOrAfter(Version.V_6_3_7))
+                || out.getVersion().onOrAfter(Version.V_6_4_2)) {
+                out.writeVInt(tableOid);
+            }
             out.writeVInt(partitionValues.size());
             for (String value : partitionValues) {
                 out.writeOptionalString(value);
@@ -86,6 +100,10 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> {
 
     public RelationName table() {
         return table;
+    }
+
+    public int tableOid() {
+        return tableOid;
     }
 
     public List<String> partitionValues() {

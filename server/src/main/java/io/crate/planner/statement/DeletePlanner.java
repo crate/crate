@@ -96,7 +96,7 @@ public final class DeletePlanner {
             // deleting whole partitions is only valid if the query only contains filters based on partition-by cols
             var hasNonPartitionReferences = query.any(s -> s instanceof Reference && table.partitionedByColumns().contains(s) == false);
             if (hasNonPartitionReferences == false) {
-                return new DeletePartitions(table.ident(), detailedQuery.partitions());
+                return new DeletePartitions(table.ident(), table.oid(), detailedQuery.partitions());
             }
         }
 
@@ -104,7 +104,7 @@ public final class DeletePlanner {
             return new DeleteById(tableRel.tableInfo(), detailedQuery.docKeys().get());
         }
         if (table.isPartitioned() && query instanceof Input<?> input && DataTypes.BOOLEAN.sanitizeValue(input.value())) {
-            return new DeleteAllPartitions(table.ident());
+            return new DeleteAllPartitions(table.ident(), table.oid());
         }
 
         return new Delete(tableRel, detailedQuery);
@@ -148,7 +148,7 @@ public final class DeletePlanner {
                 }
                 dependencies.client().execute(
                     TransportDropPartitionsAction.ACTION,
-                    new DropPartitionsRequest(table.relationName(), partitionValues)
+                    new DropPartitionsRequest(table.relationName(), table.tableInfo().oid(), partitionValues)
                 ).whenComplete(new OneRowActionListener<>(consumer, _ -> Row1.ROW_COUNT_UNKNOWN));
                 return;
             }

@@ -22,6 +22,7 @@
 package io.crate.execution.ddl.tables;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.List;
 
@@ -37,8 +38,8 @@ public class OpenTableRequestTest {
     public void test_bwc_streaming() throws Exception {
         RelationName relation = new RelationName("foo", "bar");
         List<OpenTableRequest> requests = List.of(
-            new OpenTableRequest(relation, List.of("1")),
-            new OpenTableRequest(relation, List.of())
+            new OpenTableRequest(relation, OID_UNASSIGNED, List.of("1")),
+            new OpenTableRequest(relation, OID_UNASSIGNED, List.of())
         );
 
         for (var request : requests) {
@@ -66,5 +67,40 @@ public class OpenTableRequestTest {
             }
         }
     }
-}
 
+    @Test
+    public void test_streaming_table_oids() throws Exception {
+        // streaming to nodes with supported versions
+        for (Version version : List.of(Version.V_6_3_7, Version.V_6_4_2, Version.CURRENT)) {
+            RelationName relation = new RelationName("doc", "tbl");
+            int tableOid = 1234;
+            OpenTableRequest request = new OpenTableRequest(relation, tableOid, List.of());
+
+            var out = new BytesStreamOutput();
+            out.setVersion(version);
+            request.writeTo(out);
+
+            var in = out.bytes().streamInput();
+            in.setVersion(version);
+            OpenTableRequest streamed = new OpenTableRequest(in);
+
+            assertThat(streamed.tableOid()).isEqualTo(tableOid);
+        }
+
+        // streaming to nodes with unsupported versions
+        for (Version version : List.of(Version.V_6_3_6, Version.V_6_4_0, Version.V_6_4_1)) {
+            RelationName relation = new RelationName("doc", "tbl");
+            OpenTableRequest request = new OpenTableRequest(relation, 1234, List.of());
+
+            var out = new BytesStreamOutput();
+            out.setVersion(version);
+            request.writeTo(out);
+
+            var in = out.bytes().streamInput();
+            in.setVersion(version);
+            OpenTableRequest streamed = new OpenTableRequest(in);
+
+            assertThat(streamed.tableOid()).isEqualTo(OID_UNASSIGNED);
+        }
+    }
+}

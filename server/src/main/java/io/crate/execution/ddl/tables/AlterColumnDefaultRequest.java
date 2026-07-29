@@ -21,8 +21,11 @@
 
 package io.crate.execution.ddl.tables;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,12 +38,14 @@ import io.crate.metadata.RelationName;
 public class AlterColumnDefaultRequest extends AcknowledgedRequest<AlterColumnDefaultRequest> {
 
     private final RelationName relationName;
+    private final int tableOid;
     private final Reference ref;
     @Nullable
     private final Symbol newDefault;
 
-    public AlterColumnDefaultRequest(RelationName relationName, Reference ref, @Nullable Symbol newDefault) {
+    public AlterColumnDefaultRequest(RelationName relationName, int tableOid, Reference ref, @Nullable Symbol newDefault) {
         this.relationName = relationName;
+        this.tableOid = tableOid;
         this.ref = ref;
         this.newDefault = newDefault;
     }
@@ -48,6 +53,12 @@ public class AlterColumnDefaultRequest extends AcknowledgedRequest<AlterColumnDe
     public AlterColumnDefaultRequest(StreamInput in) throws IOException {
         super(in);
         this.relationName = new RelationName(in);
+        if ((in.getVersion().before(Version.V_6_4_0) && in.getVersion().onOrAfter(Version.V_6_3_7))
+            || in.getVersion().onOrAfter(Version.V_6_4_2)) {
+            this.tableOid = in.readVInt();
+        } else {
+            this.tableOid = OID_UNASSIGNED;
+        }
         this.ref = Reference.fromStream(in);
         this.newDefault = Symbol.nullableFromStream(in);
     }
@@ -56,12 +67,20 @@ public class AlterColumnDefaultRequest extends AcknowledgedRequest<AlterColumnDe
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         relationName.writeTo(out);
+        if ((out.getVersion().before(Version.V_6_4_0) && out.getVersion().onOrAfter(Version.V_6_3_7))
+            || out.getVersion().onOrAfter(Version.V_6_4_2)) {
+            out.writeVInt(tableOid);
+        }
         Reference.toStream(out, ref);
         Symbol.nullableToStream(newDefault, out);
     }
 
     public RelationName relationName() {
         return relationName;
+    }
+
+    public int tableOid() {
+        return tableOid;
     }
 
     public Reference ref() {

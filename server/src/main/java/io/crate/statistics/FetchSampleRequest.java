@@ -61,7 +61,7 @@ public final class FetchSampleRequest extends TransportRequest {
         this.relationName = new RelationName(in);
         if ((in.getVersion().before(Version.V_6_4_0) && in.getVersion().onOrAfter(Version.V_6_3_7))
             || in.getVersion().onOrAfter(Version.V_6_4_2)) {
-            this.tableOid = in.readInt();
+            this.tableOid = in.readVInt();
         } else {
             this.tableOid = OID_UNASSIGNED;
         }
@@ -80,7 +80,7 @@ public final class FetchSampleRequest extends TransportRequest {
         relationName.writeTo(out);
         if ((out.getVersion().before(Version.V_6_4_0) && out.getVersion().onOrAfter(Version.V_6_3_7))
             || out.getVersion().onOrAfter(Version.V_6_4_2)) {
-            out.writeInt(tableOid);
+            out.writeVInt(tableOid);
         }
         if (out.getVersion().before(Version.V_5_7_0)) {
             out.writeVInt(30_000);  // Old max samples value

@@ -30,6 +30,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
 public record AnalyzedAlterTableAlterColumnDefault(RelationName table,
+                                                   int tableOid,
                                                    Reference ref,
                                                    @Nullable Symbol newDefault) implements DDLStatement {
 

@@ -125,6 +125,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             e.nodeCtx, table.ident(), e.fulltextAnalyzerResolver(), TransportAddColumn.ADD_COLUMN_OPERATOR);
         AddColumnRequest request = new AddColumnRequest(
                 table.ident(),
+                OID_UNASSIGNED,
                 newColumns,
                 Map.of(),
                 new IntArrayList(0)

@@ -24,6 +24,7 @@ import static io.crate.lucene.CrateLuceneTestCase.rarely;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_TYPE_SETTING;
 import static org.elasticsearch.discovery.DiscoveryModule.ZEN2_DISCOVERY_TYPE;
 import static org.elasticsearch.test.ESTestCase.assertBusy;
@@ -391,7 +392,7 @@ public final class TestCluster implements Closeable {
             for (var relation : infoSchema.relations()) {
                 if (relation.relationType() == RelationType.BASE_TABLE && relation instanceof SystemTable<?> == false) {
                     relationNames.add(relation.ident());
-                    futures.add(client().execute(TransportDropTable.ACTION, new DropTableRequest(relation.ident())));
+                    futures.add(client().execute(TransportDropTable.ACTION, new DropTableRequest(relation.ident(), OID_UNASSIGNED)));
                 }
             }
             CompletableFuture<List<AcknowledgedResponse>> allResponses = CompletableFutures.allAsList(futures);

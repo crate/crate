@@ -19,58 +19,33 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.ddl.tables;
+package io.crate.execution.ddl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.metadata.RelationName;
 
-public class AlterTableRequestTest {
-
-    @Test
-    public void test_streaming_bwc() throws Exception {
-        RelationName tbl = new RelationName("doc", "tbl");
-        List<AlterTableRequest> requests = List.of(
-            new AlterTableRequest(tbl, OID_UNASSIGNED, List.of(), true, false, Settings.EMPTY),
-            new AlterTableRequest(tbl, OID_UNASSIGNED, Arrays.asList("1", null, "3"), true, false, Settings.EMPTY)
-        );
-        for (var request : requests) {
-            try (var out = new BytesStreamOutput()) {
-                request.writeTo(out);
-                try (var in = out.bytes().streamInput()) {
-                    AlterTableRequest inRequest = new AlterTableRequest(in);
-                    assertThat(inRequest).isEqualTo(request);
-                }
-            }
-            try (var out = new BytesStreamOutput()) {
-                out.setVersion(Version.V_5_9_4);
-                request.writeTo(out);
-                try (var in = out.bytes().streamInput()) {
-                    in.setVersion(Version.V_5_9_4);
-                    AlterTableRequest inRequest = new AlterTableRequest(in);
-                    assertThat(inRequest).isEqualTo(request);
-                }
-            }
-        }
-    }
+public class SwapRelationsRequestTest {
 
     @Test
     public void test_streaming_table_oids() throws Exception {
         // streaming to nodes with supported versions
         for (Version version : List.of(Version.V_6_3_7, Version.V_6_4_2, Version.CURRENT)) {
-            RelationName relation = new RelationName("doc", "tbl");
-            int tableOid = 1234;
-            AlterTableRequest request = new AlterTableRequest(
-                relation, tableOid, List.of(), false, false, Settings.EMPTY);
+            RelationName source = new RelationName("doc", "source");
+            RelationName target = new RelationName("doc", "target");
+            int sourceOid = 1234;
+            int targetOid = 5678;
+            SwapRelationsRequest request = new SwapRelationsRequest(
+                List.of(new RelationNameSwap(source, sourceOid, target, targetOid)),
+                List.of(source)
+            );
 
             var out = new BytesStreamOutput();
             out.setVersion(version);
@@ -78,16 +53,21 @@ public class AlterTableRequestTest {
 
             var in = out.bytes().streamInput();
             in.setVersion(version);
-            AlterTableRequest streamed = new AlterTableRequest(in);
+            SwapRelationsRequest streamed = new SwapRelationsRequest(in);
+            RelationNameSwap swap = streamed.swapActions().get(0);
 
-            assertThat(streamed.tableOid()).isEqualTo(tableOid);
+            assertThat(swap.sourceOid()).isEqualTo(sourceOid);
+            assertThat(swap.targetOid()).isEqualTo(targetOid);
         }
 
         // streaming to nodes with unsupported versions
         for (Version version : List.of(Version.V_6_3_6, Version.V_6_4_0, Version.V_6_4_1)) {
-            RelationName relation = new RelationName("doc", "tbl");
-            AlterTableRequest request = new AlterTableRequest(
-                relation, 1234, List.of(), false, false, Settings.EMPTY);
+            RelationName source = new RelationName("doc", "source");
+            RelationName target = new RelationName("doc", "target");
+            SwapRelationsRequest request = new SwapRelationsRequest(
+                List.of(new RelationNameSwap(source, 1234, target, 5678)),
+                List.of(source)
+            );
 
             var out = new BytesStreamOutput();
             out.setVersion(version);
@@ -95,9 +75,11 @@ public class AlterTableRequestTest {
 
             var in = out.bytes().streamInput();
             in.setVersion(version);
-            AlterTableRequest streamed = new AlterTableRequest(in);
+            SwapRelationsRequest streamed = new SwapRelationsRequest(in);
+            RelationNameSwap swap = streamed.swapActions().get(0);
 
-            assertThat(streamed.tableOid()).isEqualTo(OID_UNASSIGNED);
+            assertThat(swap.sourceOid()).isEqualTo(OID_UNASSIGNED);
+            assertThat(swap.targetOid()).isEqualTo(OID_UNASSIGNED);
         }
     }
 }

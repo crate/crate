@@ -51,7 +51,12 @@ public class AlterTableRenameColumnPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
-        var renameColumnRequest = new RenameColumnRequest(renameColumn.table(), renameColumn.refToRename(), renameColumn.newName());
+        var renameColumnRequest = new RenameColumnRequest(
+            renameColumn.table(),
+            renameColumn.tableOid(),
+            renameColumn.refToRename(),
+            renameColumn.newName()
+        );
         dependencies.client()
             .execute(TransportRenameColumn.ACTION, renameColumnRequest)
             .whenComplete(new OneRowActionListener<>(consumer, r -> r.isAcknowledged() ? new Row1(-1L) : new Row1(0L)));

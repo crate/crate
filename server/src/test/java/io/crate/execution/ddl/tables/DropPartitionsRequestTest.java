@@ -22,10 +22,12 @@
 package io.crate.execution.ddl.tables;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.Arrays;
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -41,7 +43,7 @@ public class DropPartitionsRequestTest {
             new PartitionName(relationName, List.of("1", "2")),
             new PartitionName(relationName, Arrays.asList("1", null))
         );
-        var req = new DropPartitionsRequest(relationName, partitions);
+        var req = new DropPartitionsRequest(relationName, OID_UNASSIGNED, partitions);
         try (var out = new BytesStreamOutput()) {
             req.writeTo(out);
             try (var in = out.bytes().streamInput()) {
@@ -51,5 +53,48 @@ public class DropPartitionsRequestTest {
             }
         }
     }
-}
 
+    @Test
+    public void test_streaming_table_oids() throws Exception {
+        // streaming to nodes with supported versions
+        for (Version version : List.of(Version.V_6_3_7, Version.V_6_4_2, Version.CURRENT)) {
+            RelationName relation = new RelationName("doc", "tbl");
+            int tableOid = 1234;
+            DropPartitionsRequest request = new DropPartitionsRequest(
+                relation,
+                tableOid,
+                List.of(new PartitionName(relation, List.of("1")))
+            );
+
+            var out = new BytesStreamOutput();
+            out.setVersion(version);
+            request.writeTo(out);
+
+            var in = out.bytes().streamInput();
+            in.setVersion(version);
+            DropPartitionsRequest streamed = new DropPartitionsRequest(in);
+
+            assertThat(streamed.tableOid()).isEqualTo(tableOid);
+        }
+
+        // streaming to nodes with unsupported versions
+        for (Version version : List.of(Version.V_6_3_6, Version.V_6_4_0, Version.V_6_4_1)) {
+            RelationName relation = new RelationName("doc", "tbl");
+            DropPartitionsRequest request = new DropPartitionsRequest(
+                relation,
+                1234,
+                List.of(new PartitionName(relation, List.of("1")))
+            );
+
+            var out = new BytesStreamOutput();
+            out.setVersion(version);
+            request.writeTo(out);
+
+            var in = out.bytes().streamInput();
+            in.setVersion(version);
+            DropPartitionsRequest streamed = new DropPartitionsRequest(in);
+
+            assertThat(streamed.tableOid()).isEqualTo(OID_UNASSIGNED);
+        }
+    }
+}

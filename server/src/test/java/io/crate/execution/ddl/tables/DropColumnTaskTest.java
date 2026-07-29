@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.List;
 import java.util.Map;
@@ -61,7 +62,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         ClusterState initialState = clusterService.state();
         var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         Reference colToDrop = tbl.getReference(ColumnIdent.of("y"));
-        var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
+        var request = new DropColumnRequest(tbl.ident(), OID_UNASSIGNED, List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(initialState, request);
 
         assertThat(newState.version())
@@ -95,7 +96,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         ClusterState initialState = clusterService.state();
         var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         Reference colToDrop = tbl.getReference(ColumnIdent.of("y"));
-        var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
+        var request = new DropColumnRequest(tbl.ident(), OID_UNASSIGNED, List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(initialState, request);
 
         assertThat(newState.version())
@@ -128,7 +129,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         Reference colToDrop = tbl.getReference(ColumnIdent.of("o", "oo"));
-        var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
+        var request = new DropColumnRequest(tbl.ident(), OID_UNASSIGNED, List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
@@ -153,7 +154,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         // parent specified first then its child
         Reference colToDrop1 = tbl.getReference(ColumnIdent.of("o", "o2"));
         Reference colToDrop2 = tbl.getReference(ColumnIdent.of("o", List.of("o2", "c")));
-        var request = new DropColumnRequest(tbl.ident(), List.of(
+        var request = new DropColumnRequest(tbl.ident(), OID_UNASSIGNED, List.of(
             new DropColumn(colToDrop1, false),
             new DropColumn(colToDrop2, false)));
         ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
@@ -178,7 +179,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             333, // irrelevant
             null
         );
-        var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, true)));
+        var request = new DropColumnRequest(tbl.ident(), OID_UNASSIGNED, List.of(new DropColumn(colToDrop, true)));
         ClusterState newState = dropColumnTask.execute(state, request);
         assertThat(newState).isSameAs(state);
     }
@@ -197,7 +198,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             333, // irrelevant
             null
         );
-        var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
+        var request = new DropColumnRequest(tbl.ident(), OID_UNASSIGNED, List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
@@ -215,7 +216,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         Reference ref = tbl.getReference(ColumnIdent.of("y"));
 
-        DropColumnRequest request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(ref, true)));
+        DropColumnRequest request = new DropColumnRequest(tbl.ident(), OID_UNASSIGNED, List.of(new DropColumn(ref, true)));
         assertThatThrownBy(() -> dropColumnTask.execute(state, request))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage(
@@ -237,7 +238,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             333, // irrelevant
             null
         );
-        var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
+        var request = new DropColumnRequest(tbl.ident(), OID_UNASSIGNED, List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
@@ -259,7 +260,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             333, // irrelevant
             null
         );
-        var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
+        var request = new DropColumnRequest(tbl.ident(), OID_UNASSIGNED, List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
@@ -287,7 +288,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             333, // irrelevant
             null
         );
-        var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
+        var request = new DropColumnRequest(tbl.ident(), OID_UNASSIGNED, List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
@@ -311,7 +312,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             333, // irrelevant
             null
         );
-        var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
+        var request = new DropColumnRequest(tbl.ident(), OID_UNASSIGNED, List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 

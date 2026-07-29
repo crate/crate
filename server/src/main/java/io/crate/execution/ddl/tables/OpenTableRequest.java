@@ -21,6 +21,8 @@
 
 package io.crate.execution.ddl.tables;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,15 +39,21 @@ import io.crate.metadata.RelationName;
 public class OpenTableRequest extends AcknowledgedRequest<OpenTableRequest> {
 
     private final RelationName relation;
+    private final int tableOid;
     private final List<String> partitionValues;
 
-    public OpenTableRequest(RelationName relation, List<String> partitionValues) {
+    public OpenTableRequest(RelationName relation, int tableOid, List<String> partitionValues) {
         this.relation = relation;
+        this.tableOid = tableOid;
         this.partitionValues = partitionValues;
     }
 
     public RelationName relation() {
         return relation;
+    }
+
+    public int tableOid() {
+        return tableOid;
     }
 
     /**
@@ -62,6 +70,7 @@ public class OpenTableRequest extends AcknowledgedRequest<OpenTableRequest> {
         super(in);
         if (in.getVersion().before(Version.V_5_10_0)) {
             relation = new RelationName(in);
+            tableOid = OID_UNASSIGNED;
             String partitionIndexName = in.readOptionalString();
             if (partitionIndexName == null) {
                 partitionValues = List.of();
@@ -71,6 +80,12 @@ public class OpenTableRequest extends AcknowledgedRequest<OpenTableRequest> {
             in.readBoolean(); // openTable flag; before 4.3.0 the request was also used to close tables
         } else {
             relation = new RelationName(in);
+            if ((in.getVersion().before(Version.V_6_4_0) && in.getVersion().onOrAfter(Version.V_6_3_7))
+                || in.getVersion().onOrAfter(Version.V_6_4_2)) {
+                tableOid = in.readVInt();
+            } else {
+                tableOid = OID_UNASSIGNED;
+            }
             int numValues = in.readVInt();
             partitionValues = new ArrayList<>(numValues);
             for (int i = 0; i < numValues; i++) {
@@ -94,6 +109,10 @@ public class OpenTableRequest extends AcknowledgedRequest<OpenTableRequest> {
             out.writeBoolean(true); // openTable flag; before 4.3.0 the request was also used to close tables
         } else {
             relation.writeTo(out);
+            if ((out.getVersion().before(Version.V_6_4_0) && out.getVersion().onOrAfter(Version.V_6_3_7))
+                || out.getVersion().onOrAfter(Version.V_6_4_2)) {
+                out.writeVInt(tableOid);
+            }
             out.writeVInt(partitionValues.size());
             for (String partitionValue : partitionValues) {
                 out.writeOptionalString(partitionValue);

@@ -565,8 +565,10 @@ public class TransportShardUpsertAction extends TransportShardAction<
     private DocTableInfo updateSchema(RelationName tableName,
                                       Index index,
                                       List<Reference> newColumns) throws InterruptedException, ExecutionException {
+        DocTableInfo tableInfo = schemas.getTableInfo(index);
         var addColumnRequest = new AddColumnRequest(
             tableName,
+            tableInfo.oid(),
             newColumns,
             Map.of(),
             new IntArrayList(0)

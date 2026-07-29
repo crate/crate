@@ -72,7 +72,9 @@ public class SwapTablePlan implements Plan {
 
         RelationName source = swapTable.source().ident();
         SwapRelationsRequest request = new SwapRelationsRequest(
-            Collections.singletonList(new RelationNameSwap(source, swapTable.target().ident())),
+            Collections.singletonList(
+                new RelationNameSwap(source, swapTable.source().oid(), swapTable.target().ident(), swapTable.target().oid())
+            ),
             dropSource ? Collections.singletonList(source) : emptyList()
         );
         OneRowActionListener<AcknowledgedResponse> listener = new OneRowActionListener<>(

@@ -32,41 +32,7 @@ import org.junit.Test;
 
 import io.crate.metadata.RelationName;
 
-public class CloseTableRequestTest {
-
-    @Test
-    public void test_bwc_streaming() throws Exception {
-        RelationName relation = new RelationName("foo", "bar");
-        List<CloseTableRequest> requests = List.of(
-            new CloseTableRequest(relation, OID_UNASSIGNED, List.of("1")),
-            new CloseTableRequest(relation, OID_UNASSIGNED, List.of())
-        );
-
-        for (var request : requests) {
-            {
-                BytesStreamOutput out = new BytesStreamOutput();
-                request.writeTo(out);
-
-                try (var in = out.bytes().streamInput()) {
-                    CloseTableRequest deserializedRequest = new CloseTableRequest(in);
-                    assertThat(deserializedRequest.table()).isEqualTo(relation);
-                    assertThat(deserializedRequest.partitionValues()).isEqualTo(request.partitionValues());
-                }
-            }
-            {
-                BytesStreamOutput out = new BytesStreamOutput();
-                out.setVersion(Version.V_5_9_0);
-                request.writeTo(out);
-
-                try (var in = out.bytes().streamInput()) {
-                    in.setVersion(Version.V_5_9_0);
-                    CloseTableRequest deserializedRequest = new CloseTableRequest(in);
-                    assertThat(deserializedRequest.table()).isEqualTo(relation);
-                    assertThat(deserializedRequest.partitionValues()).isEqualTo(request.partitionValues());
-                }
-            }
-        }
-    }
+public class DropConstraintRequestTest {
 
     @Test
     public void test_streaming_table_oids() throws Exception {
@@ -74,7 +40,7 @@ public class CloseTableRequestTest {
         for (Version version : List.of(Version.V_6_3_7, Version.V_6_4_2, Version.CURRENT)) {
             RelationName relation = new RelationName("doc", "tbl");
             int tableOid = 1234;
-            CloseTableRequest request = new CloseTableRequest(relation, tableOid, List.of());
+            DropConstraintRequest request = new DropConstraintRequest(relation, tableOid, "check_x");
 
             var out = new BytesStreamOutput();
             out.setVersion(version);
@@ -82,7 +48,7 @@ public class CloseTableRequestTest {
 
             var in = out.bytes().streamInput();
             in.setVersion(version);
-            CloseTableRequest streamed = new CloseTableRequest(in);
+            DropConstraintRequest streamed = new DropConstraintRequest(in);
 
             assertThat(streamed.tableOid()).isEqualTo(tableOid);
         }
@@ -90,7 +56,7 @@ public class CloseTableRequestTest {
         // streaming to nodes with unsupported versions
         for (Version version : List.of(Version.V_6_3_6, Version.V_6_4_0, Version.V_6_4_1)) {
             RelationName relation = new RelationName("doc", "tbl");
-            CloseTableRequest request = new CloseTableRequest(relation, 1234, List.of());
+            DropConstraintRequest request = new DropConstraintRequest(relation, 1234, "check_x");
 
             var out = new BytesStreamOutput();
             out.setVersion(version);
@@ -98,7 +64,7 @@ public class CloseTableRequestTest {
 
             var in = out.bytes().streamInput();
             in.setVersion(version);
-            CloseTableRequest streamed = new CloseTableRequest(in);
+            DropConstraintRequest streamed = new DropConstraintRequest(in);
 
             assertThat(streamed.tableOid()).isEqualTo(OID_UNASSIGNED);
         }

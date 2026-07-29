@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
@@ -73,6 +74,7 @@ class DropTableAnalyzer {
                                                                boolean dropIfExists,
                                                                CoordinatorSessionSettings sessionSettings) {
         RelationName tableName;
+        int tableOid = Metadata.OID_UNASSIGNED;
         try {
             TableInfo tableInfo = schemas.findRelation(
                 name,
@@ -81,6 +83,7 @@ class DropTableAnalyzer {
                 sessionSettings.searchPath()
             );
             tableName = tableInfo.ident();
+            tableOid = tableInfo.oid();
         } catch (SchemaUnknownException | RelationUnknown e) {
             tableName = RelationName.of(name, sessionSettings.searchPath().currentSchema());
             var metadata = clusterService.state().metadata();
@@ -101,6 +104,6 @@ class DropTableAnalyzer {
                 t
             );
         }
-        return new AnalyzedDropTable<>(dropIfExists, tableName);
+        return new AnalyzedDropTable<>(dropIfExists, tableName, tableOid);
     }
 }

@@ -21,8 +21,11 @@
 
 package io.crate.execution.ddl.tables;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,11 +38,13 @@ import io.crate.metadata.RelationName;
 public class RenameColumnRequest extends AcknowledgedRequest<RenameColumnRequest> {
 
     private final RelationName relationName;
+    private final int tableOid;
     private final Reference refToRename;
     private final ColumnIdent newName;
 
-    public RenameColumnRequest(RelationName relationName, Reference refToRename, ColumnIdent newName) {
+    public RenameColumnRequest(RelationName relationName, int tableOid, Reference refToRename, ColumnIdent newName) {
         this.relationName = relationName;
+        this.tableOid = tableOid;
         this.refToRename = refToRename;
         this.newName = newName;
     }
@@ -47,6 +52,12 @@ public class RenameColumnRequest extends AcknowledgedRequest<RenameColumnRequest
     public RenameColumnRequest(StreamInput in) throws IOException {
         super(in);
         this.relationName = new RelationName(in);
+        if ((in.getVersion().before(Version.V_6_4_0) && in.getVersion().onOrAfter(Version.V_6_3_7))
+            || in.getVersion().onOrAfter(Version.V_6_4_2)) {
+            this.tableOid = in.readVInt();
+        } else {
+            this.tableOid = OID_UNASSIGNED;
+        }
         this.refToRename = (Reference) Symbol.fromStream(in);
         this.newName = ColumnIdent.of(in);
     }
@@ -55,12 +66,20 @@ public class RenameColumnRequest extends AcknowledgedRequest<RenameColumnRequest
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         relationName.writeTo(out);
+        if ((out.getVersion().before(Version.V_6_4_0) && out.getVersion().onOrAfter(Version.V_6_3_7))
+            || out.getVersion().onOrAfter(Version.V_6_4_2)) {
+            out.writeVInt(tableOid);
+        }
         Symbol.toStream(refToRename, out);
         newName.writeTo(out);
     }
 
     public RelationName relationName() {
         return relationName;
+    }
+
+    public int tableOid() {
+        return tableOid;
     }
 
     public Reference refToRename() {
