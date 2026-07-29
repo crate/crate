@@ -708,7 +708,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             LOGGER.warn(() -> new ParameterizedMessage(
                     "[{}][{}] failed to remove shard after failure ([{}])",
                     shardRouting.getIndexUUID(),
-                    shardRouting.getId(),
+                    shardRouting.id(),
                     message),
                 inner);
         }
@@ -728,7 +728,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             LOGGER.warn(() -> new ParameterizedMessage(
                     "[{}][{}] failed to mark shard as failed (because of [{}])",
                     shardRouting.getIndexUUID(),
-                    shardRouting.getId(),
+                    shardRouting.id(),
                     message),
                 inner);
         }

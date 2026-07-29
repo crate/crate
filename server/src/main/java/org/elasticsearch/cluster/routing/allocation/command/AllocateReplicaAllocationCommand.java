@@ -110,7 +110,7 @@ public class AllocateReplicaAllocationCommand extends AbstractAllocateAllocation
         ShardRouting primaryShardRouting = null;
         for (RoutingNode node : allocation.routingNodes()) {
             for (ShardRouting shard : node) {
-                if (shard.getIndexUUID().equals(index) && shard.getId() == shardId && shard.primary()) {
+                if (shard.getIndexUUID().equals(index) && shard.id() == shardId && shard.primary()) {
                     primaryShardRouting = shard;
                     break;
                 }
@@ -123,7 +123,7 @@ public class AllocateReplicaAllocationCommand extends AbstractAllocateAllocation
 
         List<ShardRouting> replicaShardRoutings = new ArrayList<>();
         for (ShardRouting shard : allocation.routingNodes().unassigned()) {
-            if (shard.getIndexUUID().equals(index) && shard.getId() == shardId && shard.primary() == false) {
+            if (shard.getIndexUUID().equals(index) && shard.id() == shardId && shard.primary() == false) {
                 replicaShardRoutings.add(shard);
             }
         }
