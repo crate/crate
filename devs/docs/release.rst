@@ -40,6 +40,11 @@ For each release, we:
   assignment within ``org.elasticsearch.Version`` to a new version constant with
   the ``SNAPSHOT`` flag set.
 
+``./devs/tools/release.py`` automates both commits: ``release.py create
+<version>`` prepares the release notes and version-info commit, and
+``release.py bump <version>`` prepares the version-bump commit. Each opens a
+pull request.
+
 For example::
 
     - Prepare release 2.1.0
