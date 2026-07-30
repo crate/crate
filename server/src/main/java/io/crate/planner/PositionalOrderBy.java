@@ -22,6 +22,7 @@
 package io.crate.planner;
 
 import io.crate.analyze.OrderBy;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -83,8 +84,14 @@ public class PositionalOrderBy {
      *                                            b        a
      *     newOutputs:  [b, a]  -> orderByIndices 0 DESC , 1 ASC NULLS FIRST
      * </pre>
-     *
      * If the newOutputs don't contain a symbol that was used in the oldOutputs `null` is returned.
+     * <p>
+     * A symbol and the same symbol wrapped in an {@link AliasSymbol} are considered equivalent, as
+     * both positions carry the same value and therefore sort identically. This can happen when the
+     * two output lists (joins) are produced on different sides of a relation boundary, e.g.
+     * {@code ORDER BY bar} where one side outputs {@code foo AS bar} and the other the plain
+     * {@code foo}. This mirrors {@code InputColumns.SourceSymbols}, which registers an
+     * {@code AliasSymbol} and its wrapped symbol under the same index.
      */
     @Nullable
     public PositionalOrderBy tryMapToNewOutputs(List<Symbol> oldOutputs, List<Symbol> newOutputs) {
@@ -94,6 +101,9 @@ public class PositionalOrderBy {
             int idxInOldOutputs = indices[i];
             Symbol orderByExpr = oldOutputs.get(idxInOldOutputs);
             int idxInNewOutputs = newOutputs.indexOf(orderByExpr);
+            if (idxInNewOutputs < 0) {
+                idxInNewOutputs = indexOfIgnoringAlias(newOutputs, orderByExpr);
+            }
             if (idxInNewOutputs < 0) {
                 return null;
             } else {
@@ -105,6 +115,27 @@ public class PositionalOrderBy {
             Arrays.copyOf(reverseFlags, reverseFlags.length),
             Arrays.copyOf(nullsFirst, nullsFirst.length)
         );
+    }
+
+    /**
+     * Index of {@code symbol} in {@code outputs}, comparing symbols with any {@link AliasSymbol}
+     * wrapper stripped. Returns -1 if there is no match.
+     */
+    private static int indexOfIgnoringAlias(List<Symbol> outputs, Symbol symbol) {
+        Symbol unaliasedSymbol = unalias(symbol);
+        for (int i = 0; i < outputs.size(); i++) {
+            if (unalias(outputs.get(i)).equals(unaliasedSymbol)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static Symbol unalias(Symbol symbol) {
+        while (symbol instanceof AliasSymbol alias) {
+            symbol = alias.symbol();
+        }
+        return symbol;
     }
 
     @Nullable

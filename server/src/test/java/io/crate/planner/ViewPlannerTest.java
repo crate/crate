@@ -77,6 +77,7 @@ public class ViewPlannerTest extends CrateDummyClusterServiceUnitTest {
     /**
      * https://github.com/crate/crate/issues/17427
      */
+    @Test
     public void test_push_filter_beyond_view_with_aliased_column() throws Exception {
         var e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.t1 (field1 INT, arr ARRAY(OBJECT))")
@@ -90,6 +91,42 @@ public class ViewPlannerTest extends CrateDummyClusterServiceUnitTest {
             "  └ Eval[field1 AS tableid, unnest(arr)]",
             "    └ ProjectSet[unnest(arr), arr, field1 AS tableid]",
             "      └ Collect[doc.t1 | [arr, field1 AS tableid] | (field1 AS tableid = 1)]"
+        );
+    }
+
+    /**
+     * ORDER BY on a view column that only aliases an underlying column must not add an extra
+     * output to {@link io.crate.planner.operators.Order}.
+     * <p>
+     * Through a view, {@code ORDER BY bar} resolves to {@code AliasSymbol(foo, "bar")}, which
+     * is not {@code equals} to the plain {@code foo} a join already outputs. Appending it makes
+     * {@code Order.rewriteToFetch} treat it as a computed extra output and map it to a fetch stub.
+     */
+    @Test
+    public void test_order_by_aliased_view_column_does_not_add_extra_fetch_output() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.tbl1 (ts timestamp, id int, val double)")
+            .addTable("CREATE TABLE doc.tbl2 (id int, name string)")
+            .addView(new RelationName("doc", "v"),
+                """
+                SELECT y.name AS new_name, x.ts, x.val
+                FROM doc.tbl1 x
+                INNER JOIN doc.tbl2 y ON x.id = y.id
+                """);
+
+        var logicalPlan = e.logicalPlan("SELECT * FROM doc.v ORDER BY ts, new_name LIMIT 100");
+
+        assertThat(logicalPlan).hasOperators(
+            "Rename[new_name, ts, val] AS doc.v",
+            "  └ Eval[name AS new_name, ts, val]",
+            "    └ Fetch[ts, val, id, name, id]",
+            "      └ Limit[100::bigint;0]",
+            "        └ OrderBy[ts ASC name AS new_name ASC]",
+            "          └ HashJoin[INNER | (id = id)]",
+            "            ├ Rename[x._fetchid, ts, id] AS x",
+            "            │  └ Collect[doc.tbl1 | [_fetchid, ts, id] | true]",
+            "            └ Rename[name, id] AS y",
+            "              └ Collect[doc.tbl2 | [name, id] | true]"
         );
     }
 }

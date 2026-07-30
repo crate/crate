@@ -94,3 +94,8 @@ Fixes
 
 - Fixed an optimizer bug that could drop filters on aliased bare boolean
   columns in join queries.
+
+- Fixed an issue that caused a ``SELECT`` with ``LIMIT`` and ``ORDER BY`` on a
+  :ref:`view <ddl-views>` column that aliases a column of a joined relation to
+  contain duplicate entries of the column (plain & aliased) in the fetch list,
+  or fail with ```Must have an orderByPosition for each symbol``.
