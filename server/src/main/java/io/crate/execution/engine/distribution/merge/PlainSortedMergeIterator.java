@@ -61,6 +61,12 @@ final class PlainSortedMergeIterator<TKey, TRow> implements PagingIterator<TKey,
     }
 
     @Override
+    public boolean requiresAllBucketsPerPage() {
+        // Orders across buckets, so no row can be emitted before the head of every bucket is known.
+        return true;
+    }
+
+    @Override
     public void finish() {
         ignoreLeastExhausted = true;
     }

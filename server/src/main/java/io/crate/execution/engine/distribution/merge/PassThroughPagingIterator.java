@@ -83,6 +83,13 @@ public class PassThroughPagingIterator<TKey, TRow> implements PagingIterator<TKe
     }
 
     @Override
+    public boolean requiresAllBucketsPerPage() {
+        // Concatenates without establishing an order across buckets, so buckets can be merged
+        // independently as they arrive.
+        return false;
+    }
+
+    @Override
     public void finish() {
     }
 
