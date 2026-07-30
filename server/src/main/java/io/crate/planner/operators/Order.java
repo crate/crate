@@ -21,8 +21,8 @@
 
 package io.crate.planner.operators;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -40,6 +40,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.DependencyCarrier;
@@ -63,7 +64,24 @@ public class Order extends ForwardingLogicalPlan {
 
     public Order(LogicalPlan source, OrderBy orderBy) {
         super(source);
-        this.outputs = Lists.concatUnique(source.outputs(), orderBy.orderBySymbols());
+        List<Symbol> sourceOutputs = source.outputs();
+        List<Symbol> extraOrderBySymbols = new ArrayList<>();
+        for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
+            // An order-by symbol that only aliases an existing source output (e.g. `ORDER BY bar`
+            // resolving to `foo AS bar` via a view/sub-relation select item, while the source
+            // already outputs the plain `foo`) shouldn't be an extra output; `InputColumns` resolves the
+            // alias to the source column when building the sort projection.
+            //
+            // Adding it would also make `rewriteToFetch` below treat it as a computed extra output
+            // and map it to a fetch stub, even though the value is already carried by the source.
+            if (!sourceOutputs.contains(orderBySymbol)
+                && !(orderBySymbol instanceof AliasSymbol alias && sourceOutputs.contains(alias.symbol()))) {
+                extraOrderBySymbols.add(orderBySymbol);
+            }
+        }
+        this.outputs = extraOrderBySymbols.isEmpty()
+            ? sourceOutputs
+            : Lists.concatUnique(sourceOutputs, extraOrderBySymbols);
         this.orderBy = orderBy;
     }
 
@@ -90,7 +108,8 @@ public class Order extends ForwardingLogicalPlan {
     @Nullable
     @Override
     public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
-        HashSet<Symbol> allUsedColumns = new HashSet<>(usedColumns);
+        // Preserve the order
+        LinkedHashSet<Symbol> allUsedColumns = new LinkedHashSet<>(usedColumns);
         allUsedColumns.addAll(orderBy.orderBySymbols());
         FetchRewrite fetchRewrite = source.rewriteToFetch(allUsedColumns);
         if (fetchRewrite == null) {

@@ -28,7 +28,6 @@ import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLimitAndOffset;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -96,8 +95,9 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
             isLimitAndOffset(3, 0),
             exactlyInstanceOf(EvalProjection.class)
         );
-        assertSQL(projections.get(0).outputs(), "INPUT(0)");
-        assertSQL(projections.get(4).outputs(), "INPUT(1)");
+        for (int i = 0; i < projections.size(); i++) {
+            assertSQL(projections.get(i).outputs(), "INPUT(0)");
+        }
     }
 
     @Test
