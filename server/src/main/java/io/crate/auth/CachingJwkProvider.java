@@ -61,6 +61,7 @@ public class CachingJwkProvider implements JwkProvider {
     private final ObjectReader reader;
     private final Clock clock;
     private volatile JwkResult cache;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public CachingJwkProvider(String domain) {
         this(domain, Clock.systemUTC());
@@ -76,33 +77,53 @@ public class CachingJwkProvider implements JwkProvider {
         if (Strings.isNullOrEmpty(issuer)) {
             throw new IllegalArgumentException("Issuer is required");
         }
+
         if (!issuer.startsWith("http")) {
             issuer = "https://" + issuer;
         }
-        if (issuer.endsWith("/certs") || issuer.endsWith(".json") || issuer.contains("/jwks")) {
-            try {
-                final URI uri = new URI(issuer).normalize();
-                return uri.toURL();
-            } catch (MalformedURLException | URISyntaxException e) {
-                throw new IllegalArgumentException("Invalid jwks uri", e);
-            }
-        }
-        String discovery = issuer.endsWith("/")
-            ? issuer + ".well-known/openid-configuration"
-            : issuer + "/.well-known/openid-configuration";
 
         try {
+            URI uri = new URI(issuer).normalize();
+            URL configuredUrl = uri.toURL();
+
+            // Try the configured URL first.
+            try {
+                URLConnection connection = configuredUrl.openConnection();
+                connection.setRequestProperty("Accept", "application/json");
+
+                try (InputStream in = connection.getInputStream()) {
+                    Map<String, Object> json =
+                        MAPPER.readValue(in, Map.class);
+
+                    // Already a JWKS endpoint.
+                    if (json.containsKey("keys")) {
+                        return configuredUrl;
+                    }
+
+                    // OpenID discovery document.
+                    Object jwksUri = json.get("jwks_uri");
+                    if (jwksUri instanceof String s && !s.isBlank()) {
+                        return new URL(s);
+                    }
+                }
+            } catch (IOException ignored) {
+                // Ignore and try OpenID discovery below.
+            }
+
+            String discovery =
+                issuer.endsWith("/")
+                    ? issuer + ".well-known/openid-configuration"
+                    : issuer + "/.well-known/openid-configuration";
+
             URLConnection connection = new URL(discovery).openConnection();
             connection.setRequestProperty("Accept", "application/json");
 
             try (InputStream in = connection.getInputStream()) {
-                ObjectMapper mapper = new ObjectMapper();
-
                 Map<String, Object> config =
-                    mapper.readValue(in, Map.class);
+                    MAPPER.readValue(in, Map.class);
 
                 String jwksUri = (String) config.get("jwks_uri");
-                if (jwksUri == null) {
+                if (jwksUri == null || jwksUri.isBlank()) {
                     throw new IllegalArgumentException(
                         "Missing jwks_uri in OpenID configuration"
                     );
@@ -110,14 +131,19 @@ public class CachingJwkProvider implements JwkProvider {
 
                 return new URL(jwksUri);
             }
+
+        } catch (MalformedURLException | URISyntaxException e) {
+            throw new IllegalArgumentException("Invalid jwks uri", e);
         } catch (IOException e) {
-            throw new IllegalArgumentException(
-                "Unable to resolve JWKS URI",
-                e
-            );
+            // Preserve previous behavior so getKeys() reports:
+            try {
+                return new URI(issuer).normalize().toURL();
+            } catch (MalformedURLException | URISyntaxException ex) {
+                throw new IllegalArgumentException("Invalid jwks uri", ex);
+            }
         }
     }
-
+    
     @Override
     public Jwk get(String keyId) throws JwkException {
         var keys = cache;
