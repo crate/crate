@@ -67,23 +67,54 @@ public class CachingJwkProvider implements JwkProvider {
     }
 
     CachingJwkProvider(String domain, Clock clock) {
-        this.url = urlForDomain(domain);
+        this.url = resolveJwksUrlForDomain(domain);
         this.clock = clock;
         this.reader = new ObjectMapper().readerFor(Map.class);
     }
 
-    static URL urlForDomain(String domain) {
-        if (Strings.isNullOrEmpty(domain)) {
-            throw new IllegalArgumentException("A domain is required");
+    static URL resolveJwksUrlForDomain(String issuer) {
+        if (Strings.isNullOrEmpty(issuer)) {
+            throw new IllegalArgumentException("Issuer is required");
         }
-        if (!domain.startsWith("http")) {
-            domain = "https://" + domain;
+        if (!issuer.startsWith("http")) {
+            issuer = "https://" + issuer;
         }
+        if (issuer.endsWith("/certs") || issuer.endsWith(".json") || issuer.contains("/jwks")) {
+            try {
+                final URI uri = new URI(issuer).normalize();
+                return uri.toURL();
+            } catch (MalformedURLException | URISyntaxException e) {
+                throw new IllegalArgumentException("Invalid jwks uri", e);
+            }
+        }
+        String discovery = issuer.endsWith("/")
+            ? issuer + ".well-known/openid-configuration"
+            : issuer + "/.well-known/openid-configuration";
+
         try {
-            final URI uri = new URI(domain).normalize();
-            return uri.toURL();
-        } catch (MalformedURLException | URISyntaxException e) {
-            throw new IllegalArgumentException("Invalid jwks uri", e);
+            URLConnection connection = new URL(discovery).openConnection();
+            connection.setRequestProperty("Accept", "application/json");
+
+            try (InputStream in = connection.getInputStream()) {
+                ObjectMapper mapper = new ObjectMapper();
+
+                Map<String, Object> config =
+                    mapper.readValue(in, Map.class);
+
+                String jwksUri = (String) config.get("jwks_uri");
+                if (jwksUri == null) {
+                    throw new IllegalArgumentException(
+                        "Missing jwks_uri in OpenID configuration"
+                    );
+                }
+
+                return new URL(jwksUri);
+            }
+        } catch (IOException e) {
+            throw new IllegalArgumentException(
+                "Unable to resolve JWKS URI",
+                e
+            );
         }
     }
 
