@@ -40,55 +40,11 @@ Usage::
 """
 
 import re
-import subprocess
-import sys
-from argparse import ArgumentParser
 from datetime import date
-from pathlib import Path
-from urllib.parse import quote
 
-VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
-NOTES_DIR = "docs/appendices/release-notes"
-VERSION_JAVA = "server/src/main/java/org/elasticsearch/Version.java"
-
-
-def fail(message):
-    sys.stdout.flush()  # keep the message in order with the progress output
-    print(f"error: {message}", file=sys.stderr)
-    sys.exit(1)
-
-
-def warn(message):
-    sys.stdout.flush()
-    print(f"warning: {message}", file=sys.stderr)
-
-
-def run(*args, cwd, quiet=True):
-    result = subprocess.run(
-        args,
-        cwd=cwd,
-        text=True,
-        stdout=subprocess.PIPE if quiet else None,
-        stderr=subprocess.PIPE if quiet else None,
-    )
-    if result.returncode != 0:
-        details = (result.stderr or result.stdout or "").strip()
-        fail(f"`{' '.join(args)}` failed" + (f": {details}" if details else ""))
-    return (result.stdout or "").strip()
-
-
-def ref_exists(root, ref):
-    return subprocess.run(
-        ("git", "rev-parse", "--verify", "--quiet", ref),
-        cwd=root,
-        stdout=subprocess.DEVNULL,
-    ).returncode == 0
-
-
-def discard_branch(root, branch, previous):
-    """Delete ``branch`` and restore the checkout, to be used on failure"""
-    run("git", "checkout", "--force", previous, cwd=root)
-    run("git", "branch", "--delete", "--force", branch, cwd=root)
+from release_helpers import (NOTES_DIR, VERSION_JAVA, commit_and_push, create_branch,
+                            discard_branch, fail, fetch_and_check, print_pull_request_link,
+                            repo_root, version_arg, warn)
 
 
 def patch_release_notes(text, version, released_on):
@@ -146,39 +102,15 @@ def patch_version_java(text, version):
     return f"{text[:match.start()]}{match.group(1)}false{match.group(3)}{text[match.end():]}"
 
 
-def parse_args():
-    parser = ArgumentParser(description=__doc__.strip().splitlines()[0])
-    parser.add_argument("version", help="version to release, e.g. 5.4.1")
-    args = parser.parse_args()
-    if VERSION_RE.match(args.version) is None:
-        fail(f"invalid version '{args.version}', expected <major>.<minor>.<patch>")
-    return args
-
-
 def main():
-    version = parse_args().version
+    version = version_arg(__doc__, "version to release, e.g. 5.4.1")
     base = ".".join(version.split(".")[:2])
     branch = f"release-{version}"
     released_on = date.today().isoformat()
 
-    root = Path(run("git", "rev-parse", "--show-toplevel", cwd=Path(__file__).resolve().parent))
-
-    if run("git", "status", "--porcelain", cwd=root):
-        fail("working directory not clean, commit or stash your changes first")
-
-    print("Fetching origin...")
-    run("git", "fetch", "origin", cwd=root)
-    if not ref_exists(root, f"refs/remotes/origin/{base}"):
-        fail(f"origin/{base} does not exist, is {version} released from a {base} branch?")
-    for ref in (f"refs/heads/{branch}", f"refs/remotes/origin/{branch}"):
-        if ref_exists(root, ref):
-            fail(f"{ref} already exists, delete it or finish that release first")
-
-    print(f"Creating branch {branch} from origin/{base}...")
-    previous_branch = run("git", "rev-parse", "--abbrev-ref", "HEAD", cwd=root)
-    if previous_branch == "HEAD":  # detached, remember the commit instead
-        previous_branch = run("git", "rev-parse", "HEAD", cwd=root)
-    run("git", "checkout", "-b", branch, f"origin/{base}", cwd=root, quiet=False)
+    root = repo_root(__file__)
+    fetch_and_check(root, base, branch)
+    previous_branch = create_branch(root, branch, base)
 
     paths = (f"{NOTES_DIR}/{version}.rst", VERSION_JAVA)
     patches = (lambda text: patch_release_notes(text, version, released_on),
@@ -195,20 +127,8 @@ def main():
             fail(str(e))
         print(f"Updated {path}")
 
-    run("git", "add", "--", *paths, cwd=root)
-    run("git", "commit", "-m", f"Release {version}", cwd=root, quiet=False)
-    print(f"Pushing {branch} to origin...")
-    run("git", "push", "--set-upstream", "origin", branch, cwd=root, quiet=False)
-
-    repo = run("gh", "repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner", cwd=root)
-    title = quote(f"Release {version}")
-    print(f"""
-Open the pull request:
-
-    https://github.com/{repo}/compare/{base}...{branch}?expand=1&title={title}
-
-Once it is merged, tag the release with ./devs/tools/create_tag.sh and add a
-version bump commit (see devs/docs/release.rst).""")
+    commit_and_push(root, branch, f"Release {version}", paths)
+    print_pull_request_link(root, base, branch, f"Release {version}")
 
 
 if __name__ == "__main__":
