@@ -29,6 +29,7 @@ import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -92,6 +93,19 @@ public class OrderByPositionVisitor extends SymbolVisitor<OrderByPositionVisitor
     public Void visitInputColumn(InputColumn inputColumn, Context context) {
         context.orderByPositions.add(inputColumn.index());
         return null;
+    }
+
+    @Override
+    public Void visitAlias(AliasSymbol aliasSymbol, Context context) {
+        int idx = context.sourceSymbols.indexOf(aliasSymbol);
+        if (idx >= 0) {
+            context.orderByPositions.add(idx);
+            return null;
+        }
+        // The outputs may contain the aliased symbol in its un-aliased form, e.g. if the
+        // alias comes from a sub-relation select item (`ORDER BY bar` -> `foo AS bar`)
+        // while the source outputs the plain `foo` column.
+        return aliasSymbol.symbol().accept(this, context);
     }
 
     @Override
