@@ -104,7 +104,8 @@ public class CachingJwkProvider implements JwkProvider {
             }
 
         } catch (IOException e) {
-            // Preserve previous behavior so getKeys() reports:
+            //  Preserve previous behavior so getKeys() reports: this add secondary requestHandler call 
+            //  highlighting the original issuer URL and aprropriate Test case is added to JwtAuthenticationIntegrationTest
             try {
                 final URI uri = new URI(issuer).normalize();
                 return uri.toURL();
