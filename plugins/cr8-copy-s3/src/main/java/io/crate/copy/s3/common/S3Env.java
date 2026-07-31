@@ -23,6 +23,7 @@ package io.crate.copy.s3.common;
 
 import org.apache.opendal.ServiceConfig;
 import org.elasticsearch.common.settings.Settings;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.opendal.S3;
 
@@ -35,15 +36,19 @@ public final class S3Env {
         String protocol = S3Protocol.get(withClause);
         String endpoint = protocol + "://" + s3uri.endpoint();
         String region = S3.getRegion(endpoint, s3uri.bucket());
-        return ServiceConfig.S3.builder()
+        @Nullable
+        String accessKey = s3uri.accessKey();
+        var builder = ServiceConfig.S3.builder()
             .bucket(s3uri.bucket())
             .endpoint(endpoint)
-            .accessKeyId(s3uri.accessKey())
+            .accessKeyId(accessKey)
             .secretAccessKey(s3uri.secretKey())
             .disableConfigLoad(true)
             .disableEc2Metadata(true)
-            .allowAnonymous(true)
-            .region(region)
-            .build();
+            .region(region);
+        if (accessKey == null) {
+            builder.skipSignature(true);
+        }
+        return builder.build();
     }
 }
