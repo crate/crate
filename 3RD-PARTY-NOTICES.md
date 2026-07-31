@@ -68,7 +68,7 @@ Generated using [License Maven Plugin](https://www.mojohaus.org/license-maven-pl
 - (Apache 2) Apache Lucene (module: spatial3d) (org.apache.lucene:lucene-spatial3d:10.3.2 - https://lucene.apache.org/)
 - (Apache 2) Apache Lucene (module: suggest) (org.apache.lucene:lucene-suggest:10.3.2 - https://lucene.apache.org/)
 - (Apache 2) Apache Lucene (module: test-framework) (org.apache.lucene:lucene-test-framework:10.3.2 - https://lucene.apache.org/)
-- (Apache-2.0) Apache OpenDAL™ (org.apache.opendal:opendal:0.48.2 - https://opendal.apache.org)
+- (Apache-2.0) Apache OpenDAL™ (org.apache.opendal:opendal:0.50.1 - https://opendal.apache.org)
 - (The Apache License, Version 2.0) org.apiguardian:apiguardian-api (org.apiguardian:apiguardian-api:1.1.2 - https://github.com/apiguardian-team/apiguardian)
 - (Apache-2.0) AssertJ Core (org.assertj:assertj-core:3.27.6 - https://assertj.github.io/doc/#assertj-core)
 - (The MIT License) Checker Qual (org.checkerframework:checker-qual:3.49.5 - https://checkerframework.org/)
