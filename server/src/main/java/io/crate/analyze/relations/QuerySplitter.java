@@ -29,6 +29,7 @@ import java.util.Set;
 
 import io.crate.analyze.RelationNames;
 import io.crate.expression.operator.AndOperator;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
@@ -144,6 +145,13 @@ public class QuerySplitter {
                 }
             }
             ctx.parts.merge(relationNames, matchPredicate, AndOperator::of);
+            return null;
+        }
+
+        @Override
+        public Void visitAlias(AliasSymbol aliasSymbol, Context ctx) {
+            Set<RelationName> qualifiedNames = RelationNames.getShallow(aliasSymbol);
+            ctx.parts.merge(qualifiedNames, aliasSymbol, AndOperator::of);
             return null;
         }
     }
