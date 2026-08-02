@@ -32,6 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.expression.operator.AndOperator;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -149,5 +150,27 @@ public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
 
         Symbol query = AndOperator.join(List.of(bool_a, bool_b, scopedSymbol, matchPredicate));
         assertThat(QuerySplitter.split(query)).containsExactlyEntriesOf(Map.of(Set.of(tr1), query));
+    }
+
+    // tracks a bug: https://github.com/crate/crate/issues/19837
+    @Test
+    public void test_split_preserves_aliased_boolean_predicate() {
+        Symbol cFlag = new SimpleReference(
+            tr1,
+            ColumnIdent.of("c_flag"),
+            RowGranularity.DOC,
+            DataTypes.BOOLEAN,
+            0,
+            null
+        );
+        Symbol alias = new AliasSymbol("c_flag", cFlag);
+        Symbol rightQuery = asSymbol("t2.b = 1");
+        Symbol query = AndOperator.of(alias, rightQuery);
+
+        Map<Set<RelationName>, Symbol> split = QuerySplitter.split(query);
+
+        assertThat(split).hasSize(2);
+        assertThat(split.get(Set.of(tr1))).isEqualTo(alias);
+        assertThat(split.get(Set.of(tr2))).isEqualTo(rightQuery);
     }
 }
