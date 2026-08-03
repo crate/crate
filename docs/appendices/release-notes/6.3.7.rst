@@ -91,3 +91,6 @@ Fixes
   :ref:`creating an S3 repository <sql-create-repo-s3>` on Linux ARM64. Special
   thanks to `Robert Palmer <https://github.com/robd003>`_ for fixing the issue
   on the upstream project.
+
+- Fixed an optimizer bug that could drop filters on aliased bare boolean
+  columns in join queries.
