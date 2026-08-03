@@ -62,10 +62,10 @@ class InterceptingRowConsumer implements RowConsumer {
     public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
         consumer.accept(iterator, failure);
         initTracker.future.whenComplete((_, err) -> {
-            Throwable t = SQLExceptions.unwrap(failure == null ? err : failure);
-            if (t == null) {
+            if (err == null && failure == null) {
                 return;
             }
+            Throwable t = SQLExceptions.unwrap(failure == null ? err : failure);
             if (iterator != null) {
                 iterator.kill(t);
             }
