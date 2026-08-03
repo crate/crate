@@ -86,11 +86,12 @@ class DistinctRewriter extends SymbolVisitor<UnaryOperator<Function>, Symbol> {
             return new Result(aggregates, outputs, null);
         }
 
-        List<Function> aggregatesCollectSet = toCollectSet(aggregates, txnCtx, nodeCtx);
-        List<? extends Symbol> outputsCollectSet = toCollectSet(outputs, txnCtx, nodeCtx);
+        var rewriter = new DistinctRewriter(txnCtx, nodeCtx);
+        List<Function> aggregatesCollectSet = rewriter.rewrite(aggregates, rewriter::toCollectSet);
+        List<? extends Symbol> outputsCollectSet = rewriter.rewrite(outputs, rewriter::toCollectSet);
 
         List<? extends Symbol> outputsCollectSetBound = Lists.map(outputsCollectSet, paramBinder);
-        List<? extends Symbol> outputsCollectionFuncsBound = Lists.map(toCollectionFunctions(outputs, txnCtx, nodeCtx), paramBinder);
+        List<? extends Symbol> outputsCollectionFuncsBound = Lists.map(rewriter.rewrite(outputs, rewriter::toCollectionFunction), paramBinder);
 
         var evalProj = new EvalProjection(
             InputColumns.create(outputsCollectionFuncsBound, new InputColumns.SourceSymbols(outputsCollectSetBound))
@@ -99,30 +100,10 @@ class DistinctRewriter extends SymbolVisitor<UnaryOperator<Function>, Symbol> {
         return new Result(aggregatesCollectSet, outputsCollectSet, evalProj);
     }
 
-    /// Replaces distinct functions with the aggregate that collects their values.
-    /// `count(distinct x)` -> `collect_set(x)`
-    private static <T extends Symbol> List<T> toCollectSet(List<T> symbols,
-                                                   CoordinatorTxnCtx txnCtx,
-                                                   NodeContext nodeCtx) {
-        var rewriter = new DistinctRewriter(txnCtx, nodeCtx);
-        return rewriter.rewrite(symbols, rewriter::toCollectSet);
-    }
-
-    /// Replaces distinct functions with the scalar applied over the collected values.
-    /// `count(distinct x)` -> `collection_count(collect_set(x))`
-    private static <T extends Symbol> List<T> toCollectionFunctions(List<T> symbols,
-                                                                    CoordinatorTxnCtx txnCtx,
-                                                                    NodeContext nodeCtx) {
-        var rewriter = new DistinctRewriter(txnCtx, nodeCtx);
-        return rewriter.rewrite(symbols, rewriter::toCollectionFunction);
-    }
-
     // Safe because every visitXYZ() method returns a symbol of the same type.
     @SuppressWarnings("unchecked")
     private <T extends Symbol> List<T> rewrite(List<T> symbols, UnaryOperator<Function> rewriteDistinct) {
-        return symbols.stream()
-            .map(symbol -> (T) symbol.accept(this, rewriteDistinct))
-            .toList();
+        return Lists.map(symbols, symbol -> (T) symbol.accept(this, rewriteDistinct));
     }
 
     @Override
