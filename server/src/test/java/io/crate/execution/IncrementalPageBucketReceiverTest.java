@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -173,6 +175,32 @@ public class IncrementalPageBucketReceiverTest {
             distributedResultResponse -> distributedResultResponse.needMore() == false,
             Duration.ofSeconds(1)
         );
+    }
+
+    @Test
+    public void test_no_npe_when_first_accumulating_on_last_bucket_throws() {
+        TestingRowConsumer batchConsumer = new TestingRowConsumer();
+        Collector<Row, ?, Iterable<Row>> collector = Collectors.collectingAndThen(Collectors.toList(), l -> l);
+
+        var pageBucketReceiver = new IncrementalPageBucketReceiver<>(
+            collector,
+            batchConsumer,
+            (_) -> {
+                // Imitate SEARCH pool exhaustion
+                throw new RejectedExecutionException();
+            },
+            new Streamer[1],
+            1
+        );
+
+        final CompletableFuture<DistributedResultResponse> result = new CompletableFuture<>();
+        PageResultListener listener = needMore -> result.complete(new DistributedResultResponse(needMore));
+        pageBucketReceiver.setBucket(0, Bucket.EMPTY, true, listener);
+        assertThat(pageBucketReceiver.completionFuture())
+            .failsWithin(1, TimeUnit.MILLISECONDS)
+            .withThrowableOfType(ExecutionException.class)
+            .havingCause()
+            .isExactlyInstanceOf(RejectedExecutionException.class);
     }
 
     @Test
