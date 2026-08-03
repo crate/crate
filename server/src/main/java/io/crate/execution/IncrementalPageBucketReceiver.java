@@ -114,7 +114,7 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
             }
         }
         if (isLast) {
-            if (remainingUpstreams.decrementAndGet() == 0) {
+            if (remainingUpstreams.decrementAndGet() == 0 && currentlyAccumulating != null) {
                 currentlyAccumulating.whenComplete((r, t) -> consumeRows());
             }
         }
