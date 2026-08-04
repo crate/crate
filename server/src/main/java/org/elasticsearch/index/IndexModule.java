@@ -226,7 +226,7 @@ public final class IndexModule {
         private static final Map<String, Type> TYPES;
 
         static {
-            final Map<String, Type> types = new HashMap<>(4);
+            final HashMap<String, Type> types = HashMap.newHashMap(4);
             for (final Type type : values()) {
                 types.put(type.settingsKey, type);
             }

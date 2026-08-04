@@ -75,7 +75,7 @@ public final class InputColumns extends SymbolVisitor<InputColumns.SourceSymbols
         final IdentityHashMap<Symbol, InputColumn> nonDeterministicFunctions;
 
         public SourceSymbols(Collection<? extends Symbol> inputs) {
-            this.inputs = new HashMap<>(inputs.size());
+            this.inputs = HashMap.newHashMap(inputs.size());
 
             // non deterministic functions would override each other in a normal hashmap
             // as they compare equal but shouldn't be treated that way here.

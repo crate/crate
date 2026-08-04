@@ -44,7 +44,7 @@ public final class ReaderAllocations {
                       Map<RelationName, Collection<String>> tableIndices) {
         this.bases = bases;
         this.tableIndices = tableIndices;
-        this.indicesToIdents = new HashMap<>(tableIndices.values().size());
+        this.indicesToIdents = HashMap.newHashMap(tableIndices.values().size());
         for (Map.Entry<RelationName, Collection<String>> entry : tableIndices.entrySet()) {
             for (String index : entry.getValue()) {
                 indicesToIdents.put(index, entry.getKey());

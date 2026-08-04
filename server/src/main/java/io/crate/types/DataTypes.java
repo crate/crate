@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -50,6 +49,7 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
 import io.crate.Streamer;
+import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ConversionException;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnPolicy;
@@ -151,42 +151,40 @@ public final class DataTypes {
     /**
      * Type registry mapping type ids to the according data type instance.
      */
-    private static final Map<Integer, Writeable.Reader<DataType<?>>> TYPE_REGISTRY = new HashMap<>(
-        Map.ofEntries(
-            entry(UndefinedType.ID, _ -> UNDEFINED),
-            entry(NotSupportedType.ID, _ -> NOT_SUPPORTED),
-            entry(ByteType.ID, _ -> BYTE),
-            entry(BooleanType.ID, _ -> BOOLEAN),
-            entry(CharacterType.ID, CharacterType::new),
-            entry(StringType.ID, StringType::new),
-            entry(IpType.ID, _ -> IP),
-            entry(DoubleType.ID, _ -> DOUBLE),
-            entry(FloatType.ID, _ -> FLOAT),
-            entry(ShortType.ID, _ -> SHORT),
-            entry(IntegerType.ID, _ -> INTEGER),
-            entry(LongType.ID, _ -> LONG),
-            entry(NumericType.ID, NumericType::new),
-            entry(TimeTZType.ID, _ -> TIMETZ),
-            entry(TimestampType.ID_WITH_TZ, _ -> TIMESTAMPZ),
-            entry(TimestampType.ID_WITHOUT_TZ, _ -> TIMESTAMP),
-            entry(ObjectType.ID, ObjectType::new),
-            entry(UncheckedObjectType.ID, _ -> UncheckedObjectType.INSTANCE),
-            entry(GeoPointType.ID, _ -> GEO_POINT),
-            entry(GeoShapeType.ID, _ -> GEO_SHAPE),
-            entry(ArrayType.ID, ArrayType::new),
-            entry(IntervalType.ID, _ -> INTERVAL),
-            entry(RowType.ID, RowType::new),
-            entry(RegprocType.ID, _ -> REGPROC),
-            entry(RegtypeType.ID, _ -> REGTYPE),
-            entry(RegclassType.ID, _ -> REGCLASS),
-            entry(OidVectorType.ID, _ -> OIDVECTOR),
-            entry(DateType.ID, _ -> DATE),
-            entry(BitStringType.ID, BitStringType::new),
-            entry(JsonType.ID, _ -> JsonType.INSTANCE),
-            entry(FloatVectorType.ID, FloatVectorType::new),
-            entry(UUIDType.ID, _ -> UUIDType.INSTANCE)
-        )
-    );
+    private static final Map<Integer, Writeable.Reader<DataType<?>>> TYPE_REGISTRY = MapBuilder.<Integer, Writeable.Reader<DataType<?>>>newMapBuilder()
+        .put(UndefinedType.ID, _ -> UNDEFINED)
+        .put(NotSupportedType.ID, _ -> NOT_SUPPORTED)
+        .put(ByteType.ID, _ -> BYTE)
+        .put(BooleanType.ID, _ -> BOOLEAN)
+        .put(CharacterType.ID, CharacterType::new)
+        .put(StringType.ID, StringType::new)
+        .put(IpType.ID, _ -> IP)
+        .put(DoubleType.ID, _ -> DOUBLE)
+        .put(FloatType.ID, _ -> FLOAT)
+        .put(ShortType.ID, _ -> SHORT)
+        .put(IntegerType.ID, _ -> INTEGER)
+        .put(LongType.ID, _ -> LONG)
+        .put(NumericType.ID, NumericType::new)
+        .put(TimeTZType.ID, _ -> TIMETZ)
+        .put(TimestampType.ID_WITH_TZ, _ -> TIMESTAMPZ)
+        .put(TimestampType.ID_WITHOUT_TZ, _ -> TIMESTAMP)
+        .put(ObjectType.ID, ObjectType::new)
+        .put(UncheckedObjectType.ID, _ -> UncheckedObjectType.INSTANCE)
+        .put(GeoPointType.ID, _ -> GEO_POINT)
+        .put(GeoShapeType.ID, _ -> GEO_SHAPE)
+        .put(ArrayType.ID, ArrayType::new)
+        .put(IntervalType.ID, _ -> INTERVAL)
+        .put(RowType.ID, RowType::new)
+        .put(RegprocType.ID, _ -> REGPROC)
+        .put(RegtypeType.ID, _ -> REGTYPE)
+        .put(RegclassType.ID, _ -> REGCLASS)
+        .put(OidVectorType.ID, _ -> OIDVECTOR)
+        .put(DateType.ID, _ -> DATE)
+        .put(BitStringType.ID, BitStringType::new)
+        .put(JsonType.ID, _ -> JsonType.INSTANCE)
+        .put(FloatVectorType.ID, FloatVectorType::new)
+        .put(UUIDType.ID, _ -> UUIDType.INSTANCE)
+        .map();
 
     private static final Set<Integer> NUMBER_CONVERSIONS = Stream.concat(
         Stream.of(BOOLEAN, STRING, TIMESTAMPZ, TIMESTAMP, DATE, IP, NUMERIC, CHARACTER),

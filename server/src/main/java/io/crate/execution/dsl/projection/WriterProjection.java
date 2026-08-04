@@ -103,7 +103,7 @@ public class WriterProjection extends Projection {
         }
         inputs = Symbols.fromStream(in);
         int numOverwrites = in.readVInt();
-        overwrites = new HashMap<>(numOverwrites);
+        overwrites = HashMap.newHashMap(numOverwrites);
         for (int i = 0; i < numOverwrites; i++) {
             overwrites.put(ColumnIdent.of(in), Symbol.fromStream(in));
         }

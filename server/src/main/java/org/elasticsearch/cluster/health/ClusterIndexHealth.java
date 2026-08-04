@@ -103,7 +103,7 @@ public final class ClusterIndexHealth implements Iterable<ClusterShardHealth>, W
         status = Health.fromValue(in.readByte());
 
         int size = in.readVInt();
-        shards = new HashMap<>(size);
+        shards = HashMap.newHashMap(size);
         for (int i = 0; i < size; i++) {
             ClusterShardHealth shardHealth = new ClusterShardHealth(in);
             shards.put(shardHealth.getShardId(), shardHealth);

@@ -234,14 +234,14 @@ public final class Maps {
     }
 
     private static Map<String, Object> nestedMaps(List<String> path, Object value) {
-        final HashMap<String, Object> root = new HashMap<>(1);
+        final HashMap<String, Object> root = HashMap.newHashMap(1);
         HashMap<String, Object> m = root;
         for (int i = 0, size = path.size(); i < size; i++) {
             String key = path.get(i);
             if (i + 1 == size) {
                 m.put(key, value);
             } else {
-                HashMap<String, Object> nextChild = new HashMap<>(1);
+                HashMap<String, Object> nextChild = HashMap.newHashMap(1);
                 m.put(key, nextChild);
                 m = nextChild;
             }
