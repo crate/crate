@@ -785,7 +785,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             List<RelationMetadata.View> views = relations(RelationMetadata.View.class);
             if (views.isEmpty() == false) {
                 copyCustoms = new HashMap<>(customs);
-                Map<String, ViewMetadata> viewsMap = new HashMap<>(views.size());
+                HashMap<String, ViewMetadata> viewsMap = HashMap.newHashMap(views.size());
                 for (RelationMetadata.View view : views) {
                     viewsMap.put(view.name().fqn(), new ViewMetadata(
                         view.stmt(),

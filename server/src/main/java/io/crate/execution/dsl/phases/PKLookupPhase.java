@@ -73,11 +73,11 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
         toCollect = Symbols.fromStream(in);
 
         int numNodes = in.readVInt();
-        idsByShardByNode = new HashMap<>(numNodes);
+        idsByShardByNode = HashMap.newHashMap(numNodes);
         for (int nodeIdx = 0; nodeIdx < numNodes; nodeIdx++) {
             String nodeId = in.readString();
             int numShards = in.readVInt();
-            HashMap<ShardId, SequencedSet<PKAndVersion>> idsByShard = new HashMap<>(numShards);
+            HashMap<ShardId, SequencedSet<PKAndVersion>> idsByShard = HashMap.newHashMap(numShards);
             idsByShardByNode.put(nodeId, idsByShard);
             for (int shardIdx = 0; shardIdx < numShards; shardIdx++) {
                 ShardId shardId = new ShardId(in);

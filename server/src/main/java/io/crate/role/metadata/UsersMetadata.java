@@ -84,7 +84,7 @@ public class UsersMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
 
     public UsersMetadata(StreamInput in) throws IOException {
         int numUsers = in.readVInt();
-        users = new HashMap<>(numUsers);
+        users = HashMap.newHashMap(numUsers);
         for (int i = 0; i < numUsers; i++) {
             String userName = in.readString();
             SecureHash secureHash = in.readOptionalWriteable(SecureHash::readFrom);

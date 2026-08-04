@@ -270,7 +270,7 @@ public final class UpdateAnalyzer {
         }
 
         public Map<Reference, Symbol> allocate() {
-            Map<Reference, Symbol> refToArraySetMap = new HashMap<>(mappings.size());
+            HashMap<Reference, Symbol> refToArraySetMap = HashMap.newHashMap(mappings.size());
             for (var e : mappings.entrySet()) {
                 Reference targetCol = e.getKey();
                 LinkedHashMap<Symbol, Symbol> mapping = e.getValue();

@@ -303,14 +303,14 @@ public final class Diffs {
             this.valueSerializer = valueSerializer;
             deletes = in.readList(keySerializer::readKey);
             int diffsCount = in.readVInt();
-            diffs = diffsCount == 0 ? Collections.emptyMap() : new HashMap<>(diffsCount);
+            diffs = diffsCount == 0 ? Collections.emptyMap() : HashMap.newHashMap(diffsCount);
             for (int i = 0; i < diffsCount; i++) {
                 K key = keySerializer.readKey(in);
                 Diff<T> diff = valueSerializer.readDiff(in, key);
                 diffs.put(key, diff);
             }
             int upsertsCount = in.readVInt();
-            upserts = upsertsCount == 0 ? Collections.emptyMap() : new HashMap<>(upsertsCount);
+            upserts = upsertsCount == 0 ? Collections.emptyMap() : HashMap.newHashMap(upsertsCount);
             for (int i = 0; i < upsertsCount; i++) {
                 K key = keySerializer.readKey(in);
                 T newValue = valueSerializer.read(in, key);

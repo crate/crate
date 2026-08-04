@@ -157,7 +157,7 @@ public class OrderedLuceneBatchIteratorFactory {
 
 
     private static Map<ShardId, OrderedDocCollector> toMapByShardId(List<OrderedDocCollector> collectors) {
-        Map<ShardId, OrderedDocCollector> collectorsByShardId = new HashMap<>(collectors.size());
+        HashMap<ShardId, OrderedDocCollector> collectorsByShardId = HashMap.newHashMap(collectors.size());
         for (OrderedDocCollector collector : collectors) {
             collectorsByShardId.put(collector.shardId(), collector);
         }

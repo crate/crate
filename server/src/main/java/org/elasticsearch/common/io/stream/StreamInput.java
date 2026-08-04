@@ -627,7 +627,7 @@ public abstract class StreamInput extends InputStream {
         if (size == 0) {
             return Collections.emptyMap();
         }
-        final Map<K, List<V>> map = new HashMap<>(size);
+        final HashMap<K, List<V>> map = HashMap.newHashMap(size);
         for (int i = 0; i < size; ++i) {
             map.put(keyReader.read(this), readList(valueReader));
         }
@@ -789,7 +789,7 @@ public abstract class StreamInput extends InputStream {
         if (size10 == 0) {
             return Collections.emptyMap();
         }
-        Map<String, Object> map10 = new HashMap<>(size10);
+        HashMap<String, Object> map10 = HashMap.newHashMap(size10);
         for (int i = 0; i < size10; i++) {
             map10.put(readString(), readGenericValue());
         }
