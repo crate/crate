@@ -46,4 +46,5 @@ series.
 Fixes
 =====
 
-None
+- Fixed an issue that could lead to an ``OutOfMemoryError`` when running a
+  query with aggregations under memory pressure.
