@@ -21,6 +21,8 @@
 
 package io.crate.execution.ddl.tables;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 
 import org.elasticsearch.Version;
@@ -33,18 +35,29 @@ import io.crate.metadata.RelationName;
 public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
 
     private final RelationName relationName;
+    private final int tableOid;
 
-    public DropTableRequest(RelationName relationName) {
+    public DropTableRequest(RelationName relationName, int tableOid) {
         this.relationName = relationName;
+        this.tableOid = tableOid;
     }
 
     public RelationName tableIdent() {
         return relationName;
     }
 
+    public int tableOid() {
+        return tableOid;
+    }
+
     public DropTableRequest(StreamInput in) throws IOException {
         super(in);
         relationName = new RelationName(in);
+        if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
+            tableOid = in.readVInt();
+        } else {
+            tableOid = OID_UNASSIGNED;
+        }
         if (in.getVersion().before(Version.V_5_8_0)) {
             in.readBoolean(); // isPartitioned
         }
@@ -54,6 +67,9 @@ public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         relationName.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
+            out.writeVInt(tableOid);
+        }
         if (out.getVersion().before(Version.V_5_8_0)) {
             // sets isPartitioned to true,
             // which if wrong shouldn't cause much harm, as it will only result in a
