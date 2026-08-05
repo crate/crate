@@ -21,6 +21,8 @@
 
 package io.crate.fdw;
 
+import static org.elasticsearch.threadpool.ThreadPool.Names.SEARCH;
+
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -30,11 +32,16 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.common.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.InputColumns;
@@ -61,9 +68,7 @@ import io.crate.role.Role;
 
 final class JdbcForeignDataWrapper implements ForeignDataWrapper {
 
-    /**
-     * Functions that any foreign database accessible via jdbc must support
-     */
+    private static final Logger LOGGER = LogManager.getLogger(JdbcForeignDataWrapper.class);
     private static final Set<String> SAFE_FUNCTIONS = Set.of(
         AndOperator.NAME,
         OrOperator.NAME,
@@ -77,6 +82,7 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
 
     private final InputFactory inputFactory;
     private final Settings settings;
+    private final Executor executor;
     private final Setting<String> urlSetting = Setting.simpleString("url");
     private final List<Setting<?>> mandatoryServerOptions = List.of(urlSetting);
 
@@ -94,9 +100,10 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
         foreignPw
     );
 
-    JdbcForeignDataWrapper(Settings settings, InputFactory inputFactory) {
+    JdbcForeignDataWrapper(Settings settings, InputFactory inputFactory, ThreadPool threadPool) {
         this.settings = settings;
         this.inputFactory = inputFactory;
+        this.executor = threadPool.executor(SEARCH);
     }
 
     @Override
@@ -121,19 +128,6 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
                                                              TransactionContext txnCtx,
                                                              List<Symbol> collect,
                                                              Symbol query) {
-        SessionSettings sessionSettings = txnCtx.sessionSettings();
-        Settings userOptions = server.users().get(currentUser.name());
-        if (userOptions == null) {
-            userOptions = Settings.EMPTY;
-        }
-        String user = foreignUser.get(userOptions);
-        String password = foreignPw.get(userOptions);
-        var properties = new Properties();
-        properties.setProperty("user", user.isEmpty() ? sessionSettings.userName() : user);
-        if (!password.isEmpty()) {
-            properties.setProperty("password", password);
-        }
-
         // It's unknown if/what kind of scalars are supported by the remote.
         // Evaluate them locally and only fetch columns
         List<Reference> refs = new ArrayList<>(collect.size());
@@ -176,6 +170,7 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
 
         assert supportsQueryPushdown(query)
             : "ForeignCollect must only have a query where `supportsQueryPushDown` is true";
+        var properties = getConnectionProperties(currentUser, server, txnCtx);
         BatchIterator<Row> it = new JdbcBatchIterator(url, properties, refs, query, remoteName);
         if (!refs.containsAll(collect)) {
             var sourceRefs = new InputColumns.SourceSymbols(refs);
@@ -190,5 +185,48 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
     @Override
     public boolean supportsQueryPushdown(Symbol query) {
         return !query.any(x -> x instanceof Function fn && !SAFE_FUNCTIONS.contains(fn.name()));
+    }
+
+    @Override
+    public CompletableFuture<ForeignTableStats> getStats(Role currentUser,
+                                                         Server server,
+                                                         RelationMetadata.ForeignTable foreignTable,
+                                                         TransactionContext txnCtx,
+                                                         List<Reference> columns) {
+        return CompletableFutures.supplyAsync(() -> {
+            var properties = getConnectionProperties(currentUser, server, txnCtx);
+
+            Settings options = server.options();
+            String url = urlSetting.get(options);
+
+            String remoteSchema = schemaName.get(foreignTable.settings());
+            String remoteTable = tableName.get(foreignTable.settings());
+            if (remoteSchema.isEmpty()) {
+                remoteSchema = foreignTable.name().schema();
+            }
+            if (remoteTable.isEmpty()) {
+                remoteTable = foreignTable.name().name();
+            }
+
+            JdbcDialect dialect = JdbcDialect.fromUrl(url);
+            return dialect.getStats(url, properties, remoteSchema, remoteTable, LOGGER);
+        }, executor);
+    }
+
+    private Properties getConnectionProperties(Role currentUser, Server server, TransactionContext txnCtx) {
+        SessionSettings sessionSettings = txnCtx.sessionSettings();
+        Settings userOptions = server.users().get(currentUser.name());
+        if (userOptions == null) {
+            userOptions = Settings.EMPTY;
+        }
+
+        String user = foreignUser.get(userOptions);
+        String password = foreignPw.get(userOptions);
+        var properties = new Properties();
+        properties.setProperty("user", user.isEmpty() ? sessionSettings.userName() : user);
+        if (!password.isEmpty()) {
+            properties.setProperty("password", password);
+        }
+        return properties;
     }
 }

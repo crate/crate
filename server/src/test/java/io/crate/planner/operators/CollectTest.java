@@ -56,7 +56,7 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation analyzedRelation = e.analyze("SELECT 123 AS alias, 456 AS alias2 FROM t ORDER BY alias, 2");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx, mock(org.elasticsearch.threadpool.ThreadPool.class)),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan operator = logicalPlanner.plan(analyzedRelation, plannerCtx);
