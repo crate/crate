@@ -261,7 +261,7 @@ final class DocValuesGroupByOptimizedIterator {
                                                   RamAccounting ramAccounting,
                                                   MemoryManager memoryManager,
                                                   Version minNodeVersion,
-                                                  BiConsumer<Map<K, Object[]>, K> accountForNewKeyEntry,
+                                                  BiConsumer<K, Object[]> accountForNewKeyEntry,
                                                   Function<List<? extends LuceneCollectorExpression<?>>, K> keyExtractor,
                                                   BiConsumer<K, Object[]> applyKeyToCells,
                                                   Query query,
@@ -326,7 +326,7 @@ final class DocValuesGroupByOptimizedIterator {
             List<DocValueAggregator> aggregators,
             IndexSearcher indexSearcher,
             List<? extends LuceneCollectorExpression<?>> keyExpressions,
-            BiConsumer<Map<K, Object[]>, K> accountForNewKeyEntry,
+            BiConsumer<K, Object[]> accountForNewKeyEntry,
             Function<List<? extends LuceneCollectorExpression<?>>, K> keyExtractor,
             RamAccounting ramAccounting,
             MemoryManager memoryManager,
@@ -380,7 +380,7 @@ final class DocValuesGroupByOptimizedIterator {
                             state = aggregator.apply(ramAccounting, doc, state);
                             states[i] = state;
                         }
-                        accountForNewKeyEntry.accept(statesByKey, key);
+                        accountForNewKeyEntry.accept(key, states);
                         statesByKey.put(key, states);
                     } else {
                         for (int i = 0; i < aggregators.size(); i++) {
