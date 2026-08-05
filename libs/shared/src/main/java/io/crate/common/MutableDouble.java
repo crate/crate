@@ -21,8 +21,11 @@
 
 package io.crate.common;
 
+import org.apache.lucene.util.RamUsageEstimator;
+
 public final class MutableDouble {
 
+    public static long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(MutableDouble.class);
     private double value;
     private boolean hasValue = false;
 

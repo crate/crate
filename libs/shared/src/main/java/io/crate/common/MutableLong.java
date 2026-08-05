@@ -24,8 +24,11 @@ package io.crate.common;
 
 import java.util.Objects;
 
+import org.apache.lucene.util.RamUsageEstimator;
+
 public final class MutableLong {
 
+    public static long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(MutableLong.class);
     private long value;
     private boolean hasValue = false;
 
