@@ -101,7 +101,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
 
         @Override
         public MutableLong initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
-            ramAccounting.addBytes(DataTypes.LONG.fixedSize());
+            ramAccounting.addBytes(MutableLong.SHALLOW_SIZE);
             return new MutableLong(Long.MAX_VALUE);
         }
 
@@ -143,7 +143,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
 
         @Override
         public MutableDouble initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
-            ramAccounting.addBytes(DataTypes.DOUBLE.fixedSize());
+            ramAccounting.addBytes(MutableDouble.SHALLOW_SIZE);
             return new MutableDouble(Double.MAX_VALUE);
         }
 
@@ -184,7 +184,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
 
         @Override
         public MutableFloat initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
-            ramAccounting.addBytes(DataTypes.FLOAT.fixedSize());
+            ramAccounting.addBytes(MutableFloat.SHALLOW_SIZE);
             return new MutableFloat(Float.MAX_VALUE);
         }
 
