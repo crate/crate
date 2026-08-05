@@ -43,22 +43,26 @@ import io.netty.util.collection.ShortObjectHashMap;
 
 public final class GroupByMaps {
 
-    public static <K, V> BiConsumer<Map<K, V>, K> accountForNewEntry(RamAccounting ramAccounting, DataType<K> type) {
-        return (_, k) -> ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(type.valueBytes(k) + 36));
+    public static <K> BiConsumer<K, Object[]> accountForNewEntry(RamAccounting ramAccounting, DataType<K> type) {
+        return (key, states) -> {
+            ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(type.valueBytes(key) + 36));
+            ramAccounting.addBytes(RamUsageEstimator.shallowSizeOf(states));
+        };
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public static <K, V> BiConsumer<Map<K, V>, K> accountForNewEntry(RamAccounting ramAccounting,
-                                                                     List<? extends DataType> types) {
-        return (_, k) -> {
-            assert k instanceof List : "keys must be a list if there are multiple key types";
+    public static <K> BiConsumer<K, Object[]> accountForNewEntry(RamAccounting ramAccounting,
+                                                                 List<? extends DataType> types) {
+        return (key, states) -> {
+            assert key instanceof List : "keys must be a list if there are multiple key types";
             long size = 0;
             for (int i = 0; i < types.size(); i++) {
                 DataType dataType = types.get(i);
-                Object value = ((List) k).get(i);
+                Object value = ((List) key).get(i);
                 size += dataType.valueBytes(value);
             }
             ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(size + 36));
+            ramAccounting.addBytes(RamUsageEstimator.shallowSizeOf(states));
         };
     }
 
