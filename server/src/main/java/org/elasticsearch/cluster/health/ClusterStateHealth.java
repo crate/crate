@@ -34,6 +34,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.Index;
+
 import io.crate.rest.action.HttpErrorStatus;
 
 
@@ -125,7 +126,7 @@ public final class ClusterStateHealth implements Iterable<ClusterIndexHealth>, W
         numberOfDataNodes = in.readVInt();
         status = Health.fromValue(in.readByte());
         int size = in.readVInt();
-        indices = new HashMap<>(size);
+        indices = HashMap.newHashMap(size);
         for (int i = 0; i < size; i++) {
             ClusterIndexHealth indexHealth = new ClusterIndexHealth(in);
             indices.put(indexHealth.getIndex(), indexHealth);

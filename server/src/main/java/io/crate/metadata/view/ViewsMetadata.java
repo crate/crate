@@ -58,7 +58,7 @@ public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
 
     public ViewsMetadata(StreamInput in) throws IOException {
         int numViews = in.readVInt();
-        viewByName = new HashMap<>(numViews);
+        viewByName = HashMap.newHashMap(numViews);
         for (int i = 0; i < numViews; i++) {
             viewByName.put(in.readString(), ViewMetadata.of(in));
         }

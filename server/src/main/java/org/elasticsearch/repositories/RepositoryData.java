@@ -609,10 +609,10 @@ public final class RepositoryData {
             return IndexMetaDataGenerations.EMPTY;
         }
         // Build a new map that instead of indexing the per-snapshot index generations by index id string, is indexed by IndexId
-        final Map<SnapshotId, Map<IndexId, String>> indexGenerations = new HashMap<>(indexMetaLookup.size());
+        final HashMap<SnapshotId, Map<IndexId, String>> indexGenerations = HashMap.newHashMap(indexMetaLookup.size());
         for (Map.Entry<SnapshotId, Map<String, String>> snapshotIdMapEntry : indexMetaLookup.entrySet()) {
             final Map<String, String> val = snapshotIdMapEntry.getValue();
-            final Map<IndexId, String> forSnapshot = new HashMap<>(val.size());
+            final HashMap<IndexId, String> forSnapshot = HashMap.newHashMap(val.size());
             for (Map.Entry<String, String> generationEntry : val.entrySet()) {
                 forSnapshot.put(indexLookup.get(generationEntry.getKey()), generationEntry.getValue());
             }

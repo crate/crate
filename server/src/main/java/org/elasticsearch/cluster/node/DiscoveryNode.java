@@ -212,7 +212,7 @@ public class DiscoveryNode implements Writeable {
         this.hostAddress = in.readString().intern();
         this.address = new TransportAddress(in);
         int size = in.readVInt();
-        this.attributes = new HashMap<>(size);
+        this.attributes = HashMap.newHashMap(size);
         for (int i = 0; i < size; i++) {
             this.attributes.put(in.readString(), in.readString());
         }

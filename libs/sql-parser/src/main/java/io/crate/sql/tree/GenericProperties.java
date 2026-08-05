@@ -116,7 +116,7 @@ public class GenericProperties<T> extends Node implements Iterable<Entry<String,
             return empty();
         }
         // The new map must support NULL values.
-        Map<String, U> mappedProperties = new HashMap<>(properties.size());
+        HashMap<String, U> mappedProperties = HashMap.newHashMap(properties.size());
         properties.forEach((key, value) -> mappedProperties.put(
             key,
             mapper.apply(value)
