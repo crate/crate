@@ -55,6 +55,8 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
@@ -659,5 +661,65 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
             return;
         }
         fail("The test failed to complete a successful interleaving of swap with delete");
+    }
+
+    @Repeat(iterations = 30)
+    @Test
+    public void test_concurrent_table_swaps_with_drop() throws Exception {
+        for (int retry = 0; retry < 10; retry++) {
+            execute("drop table if exists t1");
+            execute("drop table if exists t2");
+            execute("create table t1 (p int) partitioned by (p)");
+            execute("create table t2 (p int)");
+            execute("insert into t1 values (1), (2)");
+            execute("insert into t2 values (3), (4)");
+            execute("refresh table t1, t2");
+
+            final AtomicReference<Throwable> dropError = new AtomicReference<>();
+            final AtomicReference<Throwable> swapError = new AtomicReference<>();
+            final CyclicBarrier barrier = new CyclicBarrier(2);
+
+            Thread t1 = new Thread(() -> {
+                try {
+                    barrier.await();
+                    execute("drop table t2");
+                } catch (Throwable e) {
+                    dropError.set(e);
+                }
+            });
+
+            Thread t2 = new Thread(() -> {
+                try {
+                    barrier.await();
+                    execute("ALTER CLUSTER SWAP TABLE t1 TO t2");
+                } catch (Throwable e) {
+                    swapError.set(e);
+                }
+            });
+
+            t1.start();
+            t2.start();
+
+            t1.join();
+            t2.join();
+
+            // SWAP failed because the table was dropped too early
+            if (swapError.get() != null) {
+                System.out.println(swapError.get().getMessage());
+                continue;
+            }
+            assertThat(dropError.get()).isNull();
+
+            execute("select distinct table_name from sys.shards where schema_name = 'doc' and table_name = 't2'");
+            if (response.rowCount() > 0) {
+                // DROP TABLE was analyzed after SWAP TABLE and dropped the original t1.
+                continue;
+            }
+
+            execute("select * from t2 order by p");
+            assertThat(response).hasRows("1", "2");
+            return;
+        }
+        fail("The test failed to complete a successful interleaving of swap with drop");
     }
 }

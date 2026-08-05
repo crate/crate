@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -73,6 +75,7 @@ class DropTableAnalyzer {
                                                                boolean dropIfExists,
                                                                CoordinatorSessionSettings sessionSettings) {
         RelationName tableName;
+        int tableOid = OID_UNASSIGNED;
         try {
             TableInfo tableInfo = schemas.findRelation(
                 name,
@@ -81,6 +84,7 @@ class DropTableAnalyzer {
                 sessionSettings.searchPath()
             );
             tableName = tableInfo.ident();
+            tableOid = tableInfo.oid();
         } catch (SchemaUnknownException | RelationUnknown e) {
             tableName = RelationName.of(name, sessionSettings.searchPath().currentSchema());
             var metadata = clusterService.state().metadata();
@@ -101,6 +105,6 @@ class DropTableAnalyzer {
                 t
             );
         }
-        return new AnalyzedDropTable<>(dropIfExists, tableName);
+        return new AnalyzedDropTable<>(dropIfExists, tableName, tableOid);
     }
 }

@@ -71,7 +71,7 @@ public class DropTablePlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        var request = new DropTableRequest(dropTable.tableName());
+        var request = new DropTableRequest(dropTable.tableName(), dropTable.tableOid());
         dependencies.client().execute(TransportDropTable.ACTION, request).whenComplete((response, err) -> {
             if (err == null) {
                 if (!response.isAcknowledged() && LOGGER.isWarnEnabled()) {

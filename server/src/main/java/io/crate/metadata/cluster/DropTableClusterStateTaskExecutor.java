@@ -21,9 +21,10 @@
 
 package io.crate.metadata.cluster;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.util.Collection;
 import java.util.List;
-
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -47,20 +48,40 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
 
     @Override
     protected ClusterState execute(ClusterState currentState, DropTableRequest request) throws Exception {
+        Metadata.Builder newMetadata;
+        Collection<Index> indices;
+        int tableOid = request.tableOid();
         RelationName relationName = request.tableIdent();
-        Metadata currentMetadata = currentState.metadata();
 
-        if (!currentMetadata.contains(relationName)) {
-            throw new RelationUnknown(relationName);
+        if (tableOid == OID_UNASSIGNED) {
+            Metadata currentMetadata = currentState.metadata();
+            if (!currentMetadata.contains(relationName)) {
+                throw new RelationUnknown(relationName);
+            }
+
+            indices = currentMetadata.getIndices(
+                relationName,
+                List.of(),
+                false,
+                IndexMetadata::getIndex
+            );
+            newMetadata = Metadata.builder(currentMetadata)
+                .dropRelation(relationName);
+        } else {
+            Metadata currentMetadata = currentState.metadata();
+
+            indices = currentMetadata.getIndices(
+                tableOid,
+                List.of(),
+                false,
+                IndexMetadata::getIndex
+            );
+            newMetadata = Metadata.builder(currentMetadata)
+                .dropRelation(tableOid);
+
+            // relationName may be different from request.tableIdent if swap/rename applied along the way
+            relationName = currentMetadata.getRelationName(tableOid);
         }
-        Collection<Index> indices = currentMetadata.getIndices(
-            relationName,
-            List.of(),
-            false,
-            IndexMetadata::getIndex
-        );
-        Metadata.Builder newMetadata = Metadata.builder(currentMetadata)
-            .dropRelation(relationName);
 
         currentState = ClusterState.builder(currentState)
             .metadata(newMetadata)
