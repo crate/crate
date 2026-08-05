@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
@@ -328,5 +327,21 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
         assertThat(resultRows).containsOnlyKeys("maximum_error", "frequencies");
         assertThat(resultRows.get("maximum_error")).isNotNull();
         assertThat(resultRows.get("frequencies")).isNotNull();
+    }
+
+    @Test
+    public void test_distinct_aggregation() {
+        execute("create table tbl (x int)");
+        execute("select count(distinct x) from tbl");
+        assertThat(response).hasRows("0");
+
+        execute("insert into tbl (x) values (3), (null), (6), (null), (6)");
+        execute("refresh table tbl");
+
+        execute("select count(distinct x), avg(distinct x) from tbl");
+        assertThat(response).hasRows("2| 4.5");
+
+        execute("select count(distinct x), avg(distinct x) from tbl where x > 3");
+        assertThat(response).hasRows("1| 6.0");
     }
 }

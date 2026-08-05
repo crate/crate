@@ -100,6 +100,29 @@ class DistinctRewriter extends SymbolVisitor<UnaryOperator<Function>, Symbol> {
         return new Result(aggregatesCollectSet, outputsCollectSet, evalProj);
     }
 
+    /// Returns the `aggregates` unchanged, for callers that don't need a rewrite.
+    static Result noop(List<Function> aggregates) {
+        return new Result(aggregates, aggregates, null);
+    }
+
+    /// Replaces distinct functions with the aggregate that collects their values.
+    /// `count(distinct x)` -> `collect_set(x)`
+    private static <T extends Symbol> List<T> toCollectSet(List<T> symbols,
+                                                   CoordinatorTxnCtx txnCtx,
+                                                   NodeContext nodeCtx) {
+        var rewriter = new DistinctRewriter(txnCtx, nodeCtx);
+        return rewriter.rewrite(symbols, rewriter::toCollectSet);
+    }
+
+    /// Replaces distinct functions with the scalar applied over the collected values.
+    /// `count(distinct x)` -> `collection_count(collect_set(x))`
+    private static <T extends Symbol> List<T> toCollectionFunctions(List<T> symbols,
+                                                                    CoordinatorTxnCtx txnCtx,
+                                                                    NodeContext nodeCtx) {
+        var rewriter = new DistinctRewriter(txnCtx, nodeCtx);
+        return rewriter.rewrite(symbols, rewriter::toCollectionFunction);
+    }
+
     // Safe because every visitXYZ() method returns a symbol of the same type.
     @SuppressWarnings("unchecked")
     private <T extends Symbol> List<T> rewrite(List<T> symbols, UnaryOperator<Function> rewriteDistinct) {
