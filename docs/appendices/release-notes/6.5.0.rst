@@ -157,6 +157,17 @@ Performance and Resilience Improvements
   target relation name points to a different table while the statement is being
   executed.
 
+- Added an optimization for ``count(DISTINCT col)`` and ``avg(DISTINCT col)``
+  queries without a ``GROUP BY``. Such a query is now rewritten to group by
+  ``col``, so that it is executed like::
+
+      SELECT count(col) FROM (SELECT col FROM tbl GROUP BY col) tmp
+
+In our benchmarks this improvement made certain queries up to 21x
+faster. The amount of improvement you'll see depends on the data type
+and cardinality.
+
+
 Administration and Operations
 -----------------------------
 

@@ -62,9 +62,18 @@ public class HashAggregate extends ForwardingLogicalPlan {
     private static final String MERGE_PHASE_NAME = "mergeOnHandler";
     final List<Function> aggregates;
 
-    HashAggregate(LogicalPlan source, List<Function> aggregates) {
+    /// The `distinct` flag in the functions might still need to be rewritten, if an optimizer rule
+    /// didn't already take care of it by deduplicating the source.
+    private final boolean rewriteDistinct;
+
+    public HashAggregate(LogicalPlan source, List<Function> aggregates) {
+        this(source, aggregates, true);
+    }
+
+    public HashAggregate(LogicalPlan source, List<Function> aggregates, boolean rewriteDistinct) {
         super(source);
         this.aggregates = aggregates;
+        this.rewriteDistinct = rewriteDistinct;
     }
 
     @Override
@@ -90,13 +99,14 @@ public class HashAggregate extends ForwardingLogicalPlan {
         AggregationOutputValidator.validateOutputs(aggregates);
         var paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
-        DistinctRewriter.Result rewritten = DistinctRewriter.rewrite(
-            aggregates,
-            aggregates,
-            paramBinder,
-            plannerContext.transactionContext(),
-            plannerContext.nodeContext()
-        );
+        DistinctRewriter.Result rewritten = rewriteDistinct
+            ? DistinctRewriter.rewrite(
+                aggregates,
+                aggregates,
+                paramBinder,
+                plannerContext.transactionContext(),
+                plannerContext.nodeContext())
+            : DistinctRewriter.noop(aggregates);
 
         var sourceOutputs = source.outputs();
         if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {
@@ -191,7 +201,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new HashAggregate(Lists.getOnlyElement(sources), aggregates);
+        return new HashAggregate(Lists.getOnlyElement(sources), aggregates, rewriteDistinct);
     }
 
     @Override
@@ -208,7 +218,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         if (source == newSource && newAggregates == aggregates) {
             return this;
         }
-        return new HashAggregate(newSource, newAggregates);
+        return new HashAggregate(newSource, newAggregates, rewriteDistinct);
     }
 
     @Override
