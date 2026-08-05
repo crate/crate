@@ -41,6 +41,7 @@ import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.OrdinalMap;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Term;
@@ -59,7 +60,9 @@ import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.LongBitSet;
+import org.apache.lucene.util.LongValues;
 import org.apache.lucene.util.RamUsageEstimator;
+import org.apache.lucene.util.packed.PackedInts;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.Queries;
@@ -197,7 +200,7 @@ final class GroupByOptimizedIterator {
         if (keysOnly) {
             return CollectingBatchIterator.newInstance(
                 killToken,
-                () -> keysToRows(getDistinctKeys(ramAccounting, keyRef, searcher, killToken)),
+                () -> keysToRows(getDistinctKeysFromGlobalOrdinals(ramAccounting, keyRef, searcher, killToken)),
                 true
             );
         }
@@ -262,6 +265,106 @@ final class GroupByOptimizedIterator {
         }
         if (keyRef.isNullable() && countNullValues(keyRef, searcher) > 0) {
             ramAccounting.addBytes(HASH_MAP_ENTRY_OVERHEAD);
+            keys.add(null);
+        }
+        return keys;
+    }
+
+    /// Alternative to {@link #getDistinctKeys} that merges the ordinals of all segments into one global
+    /// numbering via an {@link OrdinalMap}. Every distinct value of the shard then has exactly one global
+    /// ordinal, so no cross-segment de-duplication by value is needed: a bit set over the global ordinals
+    /// replaces the `HashSet<BytesRef>`, and each value is resolved to its bytes exactly once.
+    ///
+    /// Falls back to {@link #getDistinctKeys} if any segment stores the column without doc values, since
+    /// there are no ordinals to merge in that case.
+    static Collection<BytesRef> getDistinctKeysFromGlobalOrdinals(RamAccounting ramAccounting,
+                                                                  Reference keyRef,
+                                                                  IndexSearcher searcher,
+                                                                  Token killToken) throws IOException {
+        String field = keyRef.storageIdent();
+
+        // Collect the doc values of every segment storing the column,
+        // and merge their ordinals into a single global numbering.
+        List<LeafReader> readers = new ArrayList<>();
+
+        // A list of doc values, one per segment.
+        List<SortedSetDocValues> docsValuesList = new ArrayList<>();
+        for (var leaf : searcher.getLeafContexts()) {
+            LeafReader reader = leaf.reader();
+            FieldInfo fieldInfo = reader.getFieldInfos().fieldInfo(field);
+            if (fieldInfo == null) {
+                continue; // column absent from this segment, it has no values to contribute
+            }
+            if (fieldInfo.getDocValuesType() == DocValuesType.NONE) {
+                return getDistinctKeys(ramAccounting, keyRef, searcher, killToken);
+            }
+            readers.add(reader);
+            docsValuesList.add(DocValues.getSortedSet(reader, field));
+        }
+
+        // An array of doc values, one per segment
+        SortedSetDocValues[] docValuesArray = docsValuesList.toArray(SortedSetDocValues[]::new);
+        if (docValuesArray.length == 0) {
+            return getDistinctKeys(ramAccounting, keyRef, searcher, killToken);
+        }
+
+        OrdinalMap ordinalMap = OrdinalMap.build(null, docValuesArray, PackedInts.DEFAULT);
+        long valueCount = ordinalMap.getValueCount();
+        // Needed only for a LongBitSet and the OrdinalMap, discarded in the finally block below.
+        long transientBytes = ordinalMap.ramBytesUsed() + (long) LongBitSet.bits2words(valueCount) * Long.BYTES;
+        ramAccounting.addBytes(transientBytes);
+
+        // Ordinal map has the distinct ordinals. Now we'll check each for liveness
+        // (i.e., that there's at least one doc with that ordinal/term).
+        List<BytesRef> keys;
+        try {
+            LongBitSet distinctOrds = new LongBitSet(valueCount);
+            for (int i = 0; i < docValuesArray.length; i++) {
+                killToken.raiseIfKilled();
+                LeafReader reader = readers.get(i);
+                LongValues globalOrds = ordinalMap.getGlobalOrds(i);
+                Bits liveDocs = reader.getLiveDocs();
+                if (liveDocs == null) {
+                    long localValueCount = docValuesArray[i].getValueCount();
+                    for (long ord = 0; ord < localValueCount; ord++) {
+                        distinctOrds.set(globalOrds.get(ord));
+                    }
+                    continue;
+                }
+                // Fresh instance: doc-value iterators are forward-only and single-pass
+                SortedSetDocValues docVals = DocValues.getSortedSet(reader, field);
+                for (int doc = docVals.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docVals.nextDoc()) {
+                    killToken.raiseIfKilled();
+                    if (!liveDocs.get(doc)) {
+                        continue;
+                    }
+                    for (int v = 0, c = docVals.docValueCount(); v < c; v++) {
+                        distinctOrds.set(globalOrds.get(docVals.nextOrd()));
+                    }
+                }
+            }
+
+            // Resolve each distinct global ordinal that we have to its value. The segment it first appears in is used.
+            keys = new ArrayList<>((int) distinctOrds.cardinality() + 1);
+
+            for (long globalOrd = distinctOrds.nextSetBit(0);
+                 globalOrd != -1;
+                 globalOrd = globalOrd + 1 < valueCount ? distinctOrds.nextSetBit(globalOrd + 1) : -1) {
+
+                killToken.raiseIfKilled();
+                int segment = ordinalMap.getFirstSegmentNumber(globalOrd);
+                BytesRef sharedKey = docValuesArray[segment].lookupOrd(ordinalMap.getFirstSegmentOrd(globalOrd));
+                ramAccounting.addBytes(
+                    BYTES_REF_SHALLOW_SIZE + sharedKey.length + RamUsageEstimator.NUM_BYTES_OBJECT_REF
+                );
+                keys.add(BytesRef.deepCopyOf(sharedKey));
+            }
+        } finally {
+            ramAccounting.addBytes(-transientBytes);
+        }
+
+        if (keyRef.isNullable() && countNullValues(keyRef, searcher) > 0) {
+            ramAccounting.addBytes(RamUsageEstimator.NUM_BYTES_OBJECT_REF);
             keys.add(null);
         }
         return keys;
