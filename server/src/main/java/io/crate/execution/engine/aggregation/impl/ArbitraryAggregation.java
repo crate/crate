@@ -264,6 +264,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
         @Override
         public MutableObject initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
+            ramAccounting.addBytes(MutableObject.SHALLOW_SIZE);
             return new MutableObject();
         }
 
@@ -298,6 +299,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
         @Override
         public MutableObject initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
+            ramAccounting.addBytes(MutableObject.SHALLOW_SIZE);
             return new MutableObject();
         }
 
@@ -342,6 +344,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
         @Override
         public MutableObject initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
+            ramAccounting.addBytes(MutableObject.SHALLOW_SIZE);
             return new MutableObject();
         }
 

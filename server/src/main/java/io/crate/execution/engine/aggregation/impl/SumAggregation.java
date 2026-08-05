@@ -259,7 +259,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
         @Override
         public MutableLong initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
-            ramAccounting.addBytes(DataTypes.LONG.fixedSize());
+            ramAccounting.addBytes(MutableLong.SHALLOW_SIZE);
             return new MutableLong(0L);
         }
 
@@ -294,7 +294,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
         @Override
         public MutableDouble initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
-            ramAccounting.addBytes(DataTypes.DOUBLE.fixedSize());
+            ramAccounting.addBytes(MutableDouble.SHALLOW_SIZE);
             return new MutableDouble(.0d);
         }
 
@@ -333,7 +333,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
         @Override
         public MutableFloat initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
-            ramAccounting.addBytes(DataTypes.FLOAT.fixedSize());
+            ramAccounting.addBytes(MutableFloat.SHALLOW_SIZE);
             return new MutableFloat(.0f);
         }
 

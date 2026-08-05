@@ -131,7 +131,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     public MutableLong newState(RamAccounting ramAccounting,
                                 Version minNodeInCluster,
                                 MemoryManager memoryManager) {
-        ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
+        ramAccounting.addBytes(MutableLong.SHALLOW_SIZE);
         return new MutableLong(0L);
     }
 
@@ -265,7 +265,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
                 new SortedNumericDocValueAggregator<>(
                     ref.storageIdent(),
                     (ramAccounting, _, _) -> {
-                        ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
+                        ramAccounting.addBytes(MutableLong.SHALLOW_SIZE);
                         return new MutableLong(0L);
                     },
                     (_, _, state) -> state.add(1L)
@@ -273,7 +273,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
             case IpType.ID, StringType.ID, BitStringType.ID -> new BinaryDocValueAggregator<>(
                 ref.storageIdent(),
                 (ramAccounting, _, _) -> {
-                    ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
+                    ramAccounting.addBytes(MutableLong.SHALLOW_SIZE);
                     return new MutableLong(0L);
                 },
                 (_, _, state) -> state.add(1L)
