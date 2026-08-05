@@ -30,12 +30,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
 import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.DocValuesType;
+import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.PostingsEnum;
@@ -55,6 +58,7 @@ import org.apache.lucene.search.TotalHitCountCollectorManager;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.LongBitSet;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -232,8 +236,12 @@ final class GroupByOptimizedIterator {
             if (terms == null) {
                 continue;
             }
-            TermsEnum termsEnum = terms.iterator();
             Bits liveDocs = reader.getLiveDocs();
+            if (liveDocs != null && hasOrdinals(reader, keyStorageIdent)) {
+                collectKeysFromOrdinals(ramAccounting, reader, keyStorageIdent, liveDocs, keys, killToken);
+                continue;
+            }
+            TermsEnum termsEnum = terms.iterator();
             BytesRef sharedKey;
             while ((sharedKey = termsEnum.next()) != null) {
                 killToken.raiseIfKilled();
@@ -257,6 +265,54 @@ final class GroupByOptimizedIterator {
             keys.add(null);
         }
         return keys;
+    }
+
+    private static boolean hasOrdinals(LeafReader reader, String field) {
+        FieldInfo fieldInfo = reader.getFieldInfos().fieldInfo(field);
+        return fieldInfo != null && fieldInfo.getDocValuesType() != DocValuesType.NONE;
+    }
+
+    /// Collects the distinct live values of `field` from the ordinals of its `SortedSetDocValues`: the
+    /// ordinal of each live document is marked in a bit set, then only the marked ordinals are resolved
+    /// to their value. Costs one pass over the live documents plus one dictionary lookup per distinct
+    /// live value, instead of one postings scan per term in the dictionary.
+    private static void collectKeysFromOrdinals(RamAccounting ramAccounting,
+                                                LeafReader reader,
+                                                String field,
+                                                Bits liveDocs,
+                                                Set<BytesRef> keys,
+                                                Token killToken) throws IOException {
+        SortedSetDocValues values = DocValues.getSortedSet(reader, field);
+        long valueCount = values.getValueCount();
+        if (valueCount == 0) {
+            return;
+        }
+        long bitSetBytes = (long) LongBitSet.bits2words(valueCount) * Long.BYTES;
+        ramAccounting.addBytes(bitSetBytes);
+        try {
+            LongBitSet seenOrds = new LongBitSet(valueCount);
+            for (int doc = values.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = values.nextDoc()) {
+                killToken.raiseIfKilled();
+                if (liveDocs.get(doc) == false) {
+                    continue;
+                }
+                for (int i = 0, c = values.docValueCount(); i < c; i++) {
+                    seenOrds.set(values.nextOrd());
+                }
+            }
+            // Ascending ordinals keep lookupOrd a sequential scan of the doc-value terms dictionary
+            for (long ord = seenOrds.nextSetBit(0); ord != -1;
+                    ord = ord + 1 < valueCount ? seenOrds.nextSetBit(ord + 1) : -1) {
+                killToken.raiseIfKilled();
+                BytesRef sharedKey = values.lookupOrd(ord);
+                if (keys.contains(sharedKey) == false) {
+                    ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + sharedKey.length + HASH_MAP_ENTRY_OVERHEAD);
+                    keys.add(BytesRef.deepCopyOf(sharedKey));
+                }
+            }
+        } finally {
+            ramAccounting.addBytes(-bitSetBytes);
+        }
     }
 
     private static boolean hasLiveDoc(PostingsEnum postings, Bits liveDocs) throws IOException {
