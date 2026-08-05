@@ -143,6 +143,16 @@ Performance and Resilience Improvements
   :ref:`SWAP TABLE <alter_cluster_swap_table>` cannot affect a ``DELETE``
   already in progress.
 
+- Added an optimization for ``count(DISTINCT col)`` and ``avg(DISTINCT col)``
+  queries without a ``GROUP BY``. Such a query is now rewritten to group by
+  ``col``, so that it is executed like::
+
+      SELECT count(col) FROM (SELECT col FROM tbl GROUP BY col) tmp
+
+  It can be turned off with::
+
+      SET optimizer_rewrite_distinct_agg_to_group_by = false
+
 Administration and Operations
 -----------------------------
 
