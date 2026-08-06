@@ -79,8 +79,8 @@ public class ResizeAwareMap<K, V> implements Map<K, V> {
 
     @Override
     public V put(K key, V value) {
-        growIfNeeded(1);
         V result = delegate.put(key, value);
+        growIfNeeded();
         return result;
     }
 
@@ -91,8 +91,7 @@ public class ResizeAwareMap<K, V> implements Map<K, V> {
 
     @Override
     public void putAll(Map<? extends K, ? extends V> m) {
-        growIfNeeded(m.size());
-        delegate.putAll(m);
+        throw new UnsupportedOperationException("putAll is not supported on ResizeAwareMap");
     }
 
     @Override
@@ -116,17 +115,12 @@ public class ResizeAwareMap<K, V> implements Map<K, V> {
     }
 
     /**
-     * @return internal capacity increase after the next put() or putAll().
-     * can only return 2 values:
-     * <ol>
-     *   <li> 0 (No resize would happen)</li>
-     *   <li> currentCapacity * 2 (Resize would happen. Both JDK and Netty Maps double their sizes)</li>
-     * </ol>
-     * <br>
+     * @return internal capacity increase
+     * after the next put() which will add a new unique key.
      */
-    public int expectedCapacityIncrease(int newItems) {
+    public int expectedCapacityIncrease() {
         int capacity = currentCapacity;
-        while (capacity < MAXIMUM_CAPACITY && delegate.size() + newItems > resizeThreshold(capacity)) {
+        while (capacity < MAXIMUM_CAPACITY && delegate.size() + 1 > resizeThreshold(capacity)) {
             capacity = capacity << 1;
         }
         return capacity - currentCapacity;
@@ -142,8 +136,10 @@ public class ResizeAwareMap<K, V> implements Map<K, V> {
      * JDK map has an explicit limit.
      * Netty map's growSize() doesn't check 1<<30 and rehash with negative capacity throws.
      */
-    private void growIfNeeded(int newItems) {
-        while (currentCapacity < MAXIMUM_CAPACITY && delegate.size() + newItems > resizeThreshold(currentCapacity)) {
+    private void growIfNeeded() {
+        // This method is always called **after** put(),
+        // so delegate.size() already accounts for potential duplicate key(s).
+        while (currentCapacity < MAXIMUM_CAPACITY && delegate.size() > resizeThreshold(currentCapacity)) {
             currentCapacity <<= 1;
         }
     }
