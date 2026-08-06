@@ -53,7 +53,11 @@ public class AlterTableDropColumnPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
-        var dropColumnRequest = new DropColumnRequest(alterTable.table().ident(), alterTable.columns());
+        var dropColumnRequest = new DropColumnRequest(
+            alterTable.table().ident(),
+            alterTable.table().oid(),
+            alterTable.columns()
+        );
         dependencies.client().execute(TransportDropColumn.ACTION, dropColumnRequest)
             .whenComplete(new OneRowActionListener<>(consumer, _ -> ROW_COUNT_UNKNOWN));
     }

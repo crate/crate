@@ -54,6 +54,7 @@ import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
@@ -122,7 +123,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     private DocTableInfo addColumns(SQLExecutor e, DocTableInfo table, List<Reference> newColumns) throws Exception {
         var addColumnTask = new AlterTableTask<>(
-            e.nodeCtx, table.ident(), e.fulltextAnalyzerResolver(), TransportAddColumn.ADD_COLUMN_OPERATOR);
+            e.nodeCtx, table.ident(), Metadata.OID_UNASSIGNED, e.fulltextAnalyzerResolver(), TransportAddColumn.ADD_COLUMN_OPERATOR);
         AddColumnRequest request = new AddColumnRequest(
                 table.ident(),
                 newColumns,

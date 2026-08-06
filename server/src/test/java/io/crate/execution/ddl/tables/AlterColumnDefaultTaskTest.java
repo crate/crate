@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Literal;
@@ -41,7 +42,7 @@ public class AlterColumnDefaultTaskTest extends CrateDummyClusterServiceUnitTest
 
     private static AlterTableTask<AlterColumnDefaultRequest> buildAlterColumnDefaultTask(SQLExecutor e, RelationName tblName) {
         return new AlterTableTask<>(
-            e.nodeCtx, tblName, e.fulltextAnalyzerResolver(), TransportAlterColumnDefault.ALTER_COLUMN_DEFAULT_OPERATOR);
+            e.nodeCtx, tblName, Metadata.OID_UNASSIGNED, e.fulltextAnalyzerResolver(), TransportAlterColumnDefault.ALTER_COLUMN_DEFAULT_OPERATOR);
     }
 
     @Test
