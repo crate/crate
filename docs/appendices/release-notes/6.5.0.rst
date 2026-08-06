@@ -139,8 +139,9 @@ Performance and Resilience Improvements
   performance by caching analyzed ``ViewInfo`` instances, reducing repeated
   analysis of view definitions when accessing ``information_schema`` views.
 
-- Improved :ref:`DELETE <sql_reference_delete>` and
-  :ref:`DROP TABLE <drop-table>` such that concurrent
+- Improved :ref:`DELETE <sql_reference_delete>`,
+  :ref:`DROP TABLE <drop-table>` and
+  :ref:`DROP COLUMN <sql-alter-table-drop-column>` such that concurrent
   :ref:`SWAP TABLE <alter_cluster_swap_table>` cannot affect a ``DELETE``
   already in progress.
 

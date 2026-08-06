@@ -129,6 +129,24 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
         throw new UnsupportedOperationException("Unsupported relation type: " + relationMetadata.getClass().getSimpleName());
     }
 
+    /**
+     * Tables created before 6.3 are assigned OID_UNASSIGNED as table oids. Callers are responsible for checking
+     * unassigned table oids and falling back to {@link TableInfoFactory#create(RelationName, Metadata)}.
+     */
+    @Override
+    public DocTableInfo create(int tableOid, Metadata metadata) {
+        assert tableOid > Metadata.OID_UNASSIGNED :
+            "Tables created before 6.3 are assigned OID_UNASSIGNED and they must be handled by create(RelationName, Metadata)";
+        RelationMetadata relationMetadata = metadata.getRelation(tableOid);
+        if (relationMetadata == null) {
+            throw new RelationUnknown(String.format(Locale.ENGLISH, "Relation not found for oid=%s", tableOid));
+        }
+        if (relationMetadata instanceof RelationMetadata.Table table) {
+            return tableFromRelationMetadata(table, metadata);
+        }
+        throw new UnsupportedOperationException("Unsupported relation type: " + relationMetadata.getClass().getSimpleName());
+    }
+
     private DocTableInfo tableFromRelationMetadata(RelationMetadata.Table table,
                                                    Metadata metadata) {
         PublicationsMetadata publicationsMetadata = metadata.custom(PublicationsMetadata.TYPE);

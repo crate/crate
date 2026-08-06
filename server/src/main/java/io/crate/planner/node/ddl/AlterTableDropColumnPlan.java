@@ -23,6 +23,8 @@ package io.crate.planner.node.ddl;
 
 import static io.crate.data.Row1.ROW_COUNT_UNKNOWN;
 
+import org.elasticsearch.cluster.metadata.Metadata;
+
 import io.crate.analyze.AnalyzedAlterTableDropColumn;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -53,7 +55,11 @@ public class AlterTableDropColumnPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
-        var dropColumnRequest = new DropColumnRequest(alterTable.table().ident(), alterTable.columns());
+        var dropColumnRequest = new DropColumnRequest(
+            alterTable.table().ident(),
+            Metadata.OID_UNASSIGNED,
+            alterTable.columns()
+        );
         dependencies.client().execute(TransportDropColumn.ACTION, dropColumnRequest)
             .whenComplete(new OneRowActionListener<>(consumer, _ -> ROW_COUNT_UNKNOWN));
     }

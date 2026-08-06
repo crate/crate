@@ -28,4 +28,10 @@ import io.crate.metadata.table.TableInfo;
 public interface TableInfoFactory<T extends TableInfo> {
 
     T create(RelationName ident, Metadata metadata);
+
+    /**
+     * Tables created before 6.3 are assigned OID_UNASSIGNED as table oids. Callers are responsible for checking
+     * unassigned table oids and falling back to {@link TableInfoFactory#create(RelationName, Metadata)}.
+     */
+    T create(int tableOid, Metadata metadata);
 }

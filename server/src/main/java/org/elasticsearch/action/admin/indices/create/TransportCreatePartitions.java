@@ -72,7 +72,6 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 
 
@@ -170,8 +169,7 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
      * but optimized for bulk operation without separate mapping/alias/index settings.
      */
     private ClusterState executeCreateIndices(ClusterState currentState,
-                                              RelationMetadata.Table table,
-                                              DocTableInfo docTableInfo,
+                                              Table table,
                                               CreatePartitionsRequest request) throws Exception {
         String removalReason = null;
         Index testIndex = null;
@@ -303,8 +301,7 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                     try {
                         Metadata metadata = currentState.metadata();
                         RelationMetadata.Table table = getTable(metadata, request1);
-                        DocTableInfo docTableInfo = docTableInfoFactory.create(table.name(), metadata);
-                        currentState = executeCreateIndices(currentState, table, docTableInfo, request1);
+                        currentState = executeCreateIndices(currentState, table, request1);
                         builder.success(request);
                     } catch (Exception e) {
                         builder.failure(request, e);
@@ -316,8 +313,7 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     RelationMetadata.Table table = getTable(currentState.metadata(), request);
-                    DocTableInfo docTableInfo = docTableInfoFactory.create(table.name(), currentState.metadata());
-                    return executeCreateIndices(currentState, table, docTableInfo, request);
+                    return executeCreateIndices(currentState, table, request);
                 }
 
                 @Override
