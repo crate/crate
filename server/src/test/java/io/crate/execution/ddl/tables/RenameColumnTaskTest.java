@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.List;
 
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
 import io.crate.exceptions.ColumnUnknownException;
@@ -47,7 +48,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     private static AlterTableTask<RenameColumnRequest> buildRenameColumnTask(SQLExecutor e, RelationName tblName) {
         return new AlterTableTask<>(
-            e.nodeCtx, tblName, e.fulltextAnalyzerResolver(), TransportRenameColumn.RENAME_COLUMN_OPERATOR);
+            e.nodeCtx, tblName, Metadata.OID_UNASSIGNED, e.fulltextAnalyzerResolver(), TransportRenameColumn.RENAME_COLUMN_OPERATOR);
     }
 
     @Test

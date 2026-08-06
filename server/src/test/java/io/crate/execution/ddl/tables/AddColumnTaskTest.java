@@ -32,6 +32,7 @@ import java.util.Map;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -55,7 +56,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     private static AlterTableTask<AddColumnRequest> buildAddColumnTask(SQLExecutor e, RelationName tblName) {
         return new AlterTableTask<>(
-            e.nodeCtx, tblName, e.fulltextAnalyzerResolver(), TransportAddColumn.ADD_COLUMN_OPERATOR);
+            e.nodeCtx, tblName, Metadata.OID_UNASSIGNED, e.fulltextAnalyzerResolver(), TransportAddColumn.ADD_COLUMN_OPERATOR);
     }
 
     @Test

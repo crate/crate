@@ -22,6 +22,7 @@
 package io.crate.metadata.blob;
 
 import java.nio.file.Path;
+import java.util.Locale;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
@@ -68,6 +69,38 @@ public class BlobTableInfoFactory implements TableInfoFactory<BlobTableInfo> {
         Settings indexSettings = indexMetadata.getSettings();
         return new BlobTableInfo(
             ident,
+            indexMetadata.getNumberOfShards(),
+            NumberOfReplicas.getVirtualValue(indexSettings),
+            tableSettings,
+            blobsPath(tableSettings),
+            indexMetadata.getCreationVersion(),
+            indexSettings.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null),
+            blobTable.state() == State.CLOSE,
+            blobTable.oid()
+        );
+    }
+
+    /**
+     * Tables created before 6.3 are assigned OID_UNASSIGNED as table oids. Callers are responsible for checking
+     * unassigned table oids and falling back to {@link TableInfoFactory#create(RelationName, Metadata)}.
+     */
+    @Override
+    public BlobTableInfo create(int tableOid, Metadata metadata) {
+        assert tableOid > Metadata.OID_UNASSIGNED :
+            "Tables created before 6.3 are assigned OID_UNASSIGNED and they must be handled by create(RelationName, Metadata)";
+        RelationMetadata.BlobTable blobTable = metadata.getRelation(tableOid);
+        if (blobTable == null) {
+            throw new RelationUnknown(String.format(Locale.ENGLISH, "Relation not found for oid=%s", tableOid));
+        }
+        String indexUUID = blobTable.indexUUID();
+        IndexMetadata indexMetadata = metadata.index(indexUUID);
+        if (indexMetadata == null) {
+            throw new RelationUnknown(String.format(Locale.ENGLISH, "Relation not found for oid=%s", tableOid));
+        }
+        Settings tableSettings = blobTable.settings();
+        Settings indexSettings = indexMetadata.getSettings();
+        return new BlobTableInfo(
+            blobTable.name(),
             indexMetadata.getNumberOfShards(),
             NumberOfReplicas.getVirtualValue(indexSettings),
             tableSettings,

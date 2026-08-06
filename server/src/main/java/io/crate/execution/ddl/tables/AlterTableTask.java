@@ -21,6 +21,8 @@
 
 package io.crate.execution.ddl.tables;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 
 import org.elasticsearch.cluster.ClusterState;
@@ -38,6 +40,7 @@ public class AlterTableTask<T> extends DDLClusterStateTaskExecutor<T> {
 
     private final NodeContext nodeContext;
     private final RelationName relationName;
+    private final int tableOid;
     private final AlterTableOperator<T> alterTableOperator;
     private final @Nullable FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private final DocTableInfoFactory docTableInfoFactory;
@@ -48,10 +51,12 @@ public class AlterTableTask<T> extends DDLClusterStateTaskExecutor<T> {
      **/
     public AlterTableTask(NodeContext nodeContext,
                           RelationName relationName,
+                          int tableOid,
                           @Nullable FulltextAnalyzerResolver fulltextAnalyzerResolver,
                           AlterTableOperator<T> alterTableOperator) {
         this.nodeContext = nodeContext;
         this.relationName = relationName;
+        this.tableOid = tableOid;
         this.alterTableOperator = alterTableOperator;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         docTableInfoFactory = new DocTableInfoFactory(nodeContext);
@@ -60,7 +65,12 @@ public class AlterTableTask<T> extends DDLClusterStateTaskExecutor<T> {
     @Override
     public ClusterState execute(ClusterState currentState, T t) throws Exception {
         Metadata metadata = currentState.metadata();
-        DocTableInfo currentTable = docTableInfoFactory.create(relationName, metadata);
+        DocTableInfo currentTable;
+        if (tableOid == OID_UNASSIGNED) {
+            currentTable = docTableInfoFactory.create(relationName, metadata);
+        } else {
+            currentTable = docTableInfoFactory.create(tableOid, metadata);
+        }
         Metadata.Builder metadataBuilder = Metadata.builder(metadata);
         DocTableInfo newTable = alterTableOperator.apply(
             t, currentTable, metadataBuilder, nodeContext, fulltextAnalyzerResolver);
@@ -70,7 +80,11 @@ public class AlterTableTask<T> extends DDLClusterStateTaskExecutor<T> {
         newTable.writeTo(metadata, metadataBuilder);
         Metadata newMetadata = metadataBuilder.build();
         // Ensure new table can still be parsed
-        docTableInfoFactory.create(relationName, newMetadata);
+        if (tableOid == OID_UNASSIGNED) {
+            docTableInfoFactory.create(relationName, newMetadata);
+        } else {
+            docTableInfoFactory.create(tableOid, newMetadata);
+        }
         return ClusterState.builder(currentState)
             .metadata(newMetadata)
             .build();
