@@ -368,7 +368,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             null,
             null,
             null,
-            (states, key) -> {
+            (_, states, key) -> {
             },
             (expressions) -> expressions.get(0).value(),
             (key, cells) -> cells[0] = key,
