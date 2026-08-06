@@ -26,7 +26,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.Version;
@@ -81,7 +80,7 @@ public class GroupingCollectorTest {
             DataTypes.LONG
         );
 
-        Map<Object, Object[]> statesByKey = new HashMap<>();
+        ResizeAwareMap<Object, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(new HashMap<>());
         collector.addNewEntry(statesByKey, 1L);
 
         assertThat(ramAccounting.totalBytes()).isEqualTo(112L);
@@ -118,7 +117,7 @@ public class GroupingCollectorTest {
             DataTypes.LONG
         );
 
-        Map<Object, Object[]> statesByKey = new HashMap<>();
+        ResizeAwareMap<Object, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(new HashMap<>());
         collector.reduce(statesByKey, new Row1(1L));
 
         assertThat(ramAccounting.totalBytes()).isEqualTo(88L);
