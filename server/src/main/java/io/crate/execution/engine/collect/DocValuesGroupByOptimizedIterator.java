@@ -47,6 +47,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.common.TriConsumer;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.common.concurrent.Killable;
@@ -60,6 +61,7 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.GroupByMaps;
+import io.crate.execution.engine.aggregation.ResizeAwareMap;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
@@ -261,7 +263,7 @@ final class DocValuesGroupByOptimizedIterator {
                                                   RamAccounting ramAccounting,
                                                   MemoryManager memoryManager,
                                                   Version minNodeVersion,
-                                                  BiConsumer<K, Object[]> accountForNewKeyEntry,
+                                                  TriConsumer<ResizeAwareMap<K, Object[]>, K, Object[]> accountForNewKeyEntry,
                                                   Function<List<? extends LuceneCollectorExpression<?>>, K> keyExtractor,
                                                   BiConsumer<K, Object[]> applyKeyToCells,
                                                   Query query,
@@ -326,7 +328,7 @@ final class DocValuesGroupByOptimizedIterator {
             List<DocValueAggregator> aggregators,
             IndexSearcher indexSearcher,
             List<? extends LuceneCollectorExpression<?>> keyExpressions,
-            BiConsumer<K, Object[]> accountForNewKeyEntry,
+            TriConsumer<ResizeAwareMap<K, Object[]>, K, Object[]> accountForNewKeyEntry,
             Function<List<? extends LuceneCollectorExpression<?>>, K> keyExtractor,
             RamAccounting ramAccounting,
             MemoryManager memoryManager,
@@ -335,7 +337,7 @@ final class DocValuesGroupByOptimizedIterator {
             Killable.Token killToken
         ) throws IOException {
 
-            HashMap<K, Object[]> statesByKey = new HashMap<>();
+            ResizeAwareMap<K, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(new HashMap<>());
             Weight weight = indexSearcher.createWeight(
                 indexSearcher.rewrite(query),
                 ScoreMode.COMPLETE_NO_SCORES,
@@ -380,7 +382,7 @@ final class DocValuesGroupByOptimizedIterator {
                             state = aggregator.apply(ramAccounting, doc, state);
                             states[i] = state;
                         }
-                        accountForNewKeyEntry.accept(key, states);
+                        accountForNewKeyEntry.accept(statesByKey, key, states);
                         statesByKey.put(key, states);
                     } else {
                         for (int i = 0; i < aggregators.size(); i++) {

@@ -24,11 +24,11 @@ package io.crate.execution.engine.aggregation;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import org.apache.lucene.util.RamUsageEstimator;
 
+import io.crate.common.TriConsumer;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -43,17 +43,33 @@ import io.netty.util.collection.ShortObjectHashMap;
 
 public final class GroupByMaps {
 
-    public static <K> BiConsumer<K, Object[]> accountForNewEntry(RamAccounting ramAccounting, DataType<K> type) {
-        return (key, states) -> {
+    public static <K, V> TriConsumer<ResizeAwareMap<K, V>, K, Object[]> accountForNewEntry(RamAccounting ramAccounting, DataType<K> type) {
+        long singleItemBytes = singleItemBytes(type);
+        return (map, key, states) -> {
             ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(type.valueBytes(key) + 36));
             ramAccounting.addBytes(RamUsageEstimator.shallowSizeOf(states));
+            ramAccounting.addBytes(singleItemBytes * map.expectedCapacityIncrease());
+        };
+    }
+
+    /**
+     * Netty maps keep a primitive key array alongside the  Object[] array.
+     */
+    private static long singleItemBytes(DataType<?> type) {
+        return switch (type.id()) {
+            case ByteType.ID -> Byte.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF;
+            case ShortType.ID -> Short.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF;
+            case IntegerType.ID -> Integer.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF;
+            case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ ->
+                Long.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF;
+            default -> RamUsageEstimator.NUM_BYTES_OBJECT_REF;
         };
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public static <K> BiConsumer<K, Object[]> accountForNewEntry(RamAccounting ramAccounting,
+    public static <K, V> TriConsumer<ResizeAwareMap<K, V>, K, Object[]> accountForNewEntry(RamAccounting ramAccounting,
                                                                  List<? extends DataType> types) {
-        return (key, states) -> {
+        return (map, key, states) -> {
             assert key instanceof List : "keys must be a list if there are multiple key types";
             long size = 0;
             for (int i = 0; i < types.size(); i++) {
@@ -63,18 +79,54 @@ public final class GroupByMaps {
             }
             ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(size + 36));
             ramAccounting.addBytes(RamUsageEstimator.shallowSizeOf(states));
+            ramAccounting.addBytes((long) RamUsageEstimator.NUM_BYTES_OBJECT_REF * map.expectedCapacityIncrease());
         };
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public static <K, V> Supplier<Map<K, V>> mapForType(DataType<K> type) {
+    public static <K, V> Supplier<ResizeAwareMap<K, V>> mapForType(DataType<K> type) {
         return switch (type.id()) {
-            case ByteType.ID -> () -> (Map) new PrimitiveMapWithNulls<>(new ByteObjectHashMap<>());
-            case ShortType.ID -> () -> (Map) new PrimitiveMapWithNulls<>(new ShortObjectHashMap<>());
-            case IntegerType.ID -> () -> (Map) new PrimitiveMapWithNulls<>(new IntObjectHashMap<>());
+            case ByteType.ID -> () -> (ResizeAwareMap<K, V>) new ResizeAwareMap<>(
+                new PrimitiveMapWithNulls<>(new ByteObjectHashMap<>()),
+                ByteObjectHashMap.DEFAULT_CAPACITY,
+                ByteObjectHashMap.DEFAULT_LOAD_FACTOR,
+                true
+            );
+
+            case ShortType.ID -> () -> (ResizeAwareMap<K, V>) new ResizeAwareMap<>(
+                new PrimitiveMapWithNulls<>(new ShortObjectHashMap<>()),
+                ShortObjectHashMap.DEFAULT_CAPACITY,
+                ShortObjectHashMap.DEFAULT_LOAD_FACTOR,
+                true
+            );
+
+            case IntegerType.ID -> () -> (ResizeAwareMap<K, V>) new ResizeAwareMap<>(
+                new PrimitiveMapWithNulls<>(new IntObjectHashMap<>()),
+                IntObjectHashMap.DEFAULT_CAPACITY,
+                IntObjectHashMap.DEFAULT_LOAD_FACTOR,
+                true
+            );
+
             case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ ->
-                () -> (Map) new PrimitiveMapWithNulls<>(new LongObjectHashMap<>());
-            default -> HashMap::new;
+                () -> (ResizeAwareMap<K, V>) new ResizeAwareMap<>(
+                    new PrimitiveMapWithNulls<>(new LongObjectHashMap<>()),
+                    LongObjectHashMap.DEFAULT_CAPACITY,
+                    LongObjectHashMap.DEFAULT_LOAD_FACTOR,
+                    true
+                );
+
+            default -> () -> wrapperForJDKMap(new HashMap<>());
         };
     }
+
+    public static <K, V> ResizeAwareMap<K, V> wrapperForJDKMap(Map<K, V> map) {
+        return new ResizeAwareMap<>(
+            map,
+            LongObjectHashMap.DEFAULT_CAPACITY,
+            LongObjectHashMap.DEFAULT_LOAD_FACTOR,
+            false
+        );
+    }
+
+
 }

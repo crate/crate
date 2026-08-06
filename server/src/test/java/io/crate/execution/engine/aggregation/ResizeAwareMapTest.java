@@ -41,10 +41,10 @@ public class ResizeAwareMapTest {
         ResizeAwareMap<Integer, Integer> map = new ResizeAwareMap<>(delegate, capacity, loadFactor, false);
 
         for (int i = 0; i < threshold; i++) {
-            assertThat(map.expectedCapacityIncrease(1)).isEqualTo(0);
+            assertThat(map.expectedCapacityIncrease()).isEqualTo(0);
             map.put(i, i);
         }
-        assertThat(map.expectedCapacityIncrease(1)).isEqualTo(capacity);
+        assertThat(map.expectedCapacityIncrease()).isEqualTo(capacity);
     }
 
     @Test
@@ -53,33 +53,10 @@ public class ResizeAwareMapTest {
         ResizeAwareMap<Integer, Integer> map = new ResizeAwareMap<>(delegate, 5, 0.75f, false);
         // 5 is rounded up to 8, hence threshold is 8*0.75 = 6
         for (int i = 0; i < 6; i++) {
-            assertThat(map.expectedCapacityIncrease(1)).isEqualTo(0);
+            assertThat(map.expectedCapacityIncrease()).isEqualTo(0);
             map.put(i, i);
         }
-        assertThat(map.expectedCapacityIncrease(1)).isEqualTo(8);
-    }
-
-    @Test
-    public void test_putAll_tracks_growth() {
-        Map<Integer, Integer> delegate = new HashMap<>();
-        float loadFactor = 0.75f;
-        ResizeAwareMap<Integer, Integer> map = new ResizeAwareMap<>(delegate, 4, loadFactor, false);
-
-        Map<Integer, Integer> bulk = new HashMap<>();
-        bulk.put(1, 1);
-        bulk.put(2, 2);
-        bulk.put(3, 3);
-        bulk.put(4, 4);
-        map.putAll(bulk);
-
-        int expectedNewCapacity = 8;
-        assertThat(map.currentCapacity()).isEqualTo(expectedNewCapacity);
-        int threshold = (int) (expectedNewCapacity * loadFactor);
-        for (int i = 0; i < threshold; i++) {
-            assertThat(map.expectedCapacityIncrease(1)).isEqualTo(0);
-            map.put(i, i);
-        }
-        assertThat(map.expectedCapacityIncrease(1)).isEqualTo(expectedNewCapacity);
+        assertThat(map.expectedCapacityIncrease()).isEqualTo(8);
     }
 
     @Test
@@ -91,9 +68,9 @@ public class ResizeAwareMapTest {
         ResizeAwareMap<Integer, Integer> map = new ResizeAwareMap<>(delegate, capacity, loadFactor, false);
 
         for (int i = 0; i < threshold + 1; i++) {
-            map.expectedCapacityIncrease(1);
+            map.expectedCapacityIncrease();
         }
-        // We did threshold + 1 calls, but actual capacity didn't cahnge without put calls.
+        // We did threshold + 1 calls, but actual capacity didn't change without put calls.
         assertThat(map.currentCapacity()).isEqualTo(capacity);
     }
 
@@ -105,6 +82,28 @@ public class ResizeAwareMapTest {
         when(delegate.size()).thenReturn(Integer.MAX_VALUE - 1);
 
         ResizeAwareMap<Integer, Integer> map = new ResizeAwareMap<>(delegate, maximumCapacity, 0.75f, false);
-        assertThat(map.expectedCapacityIncrease(1)).isEqualTo(0);
+        assertThat(map.expectedCapacityIncrease()).isEqualTo(0);
+    }
+
+    @Test
+    public void test_put_with_duplicate_key_does_no_resize() {
+        Map<Integer, Integer> delegate = new HashMap<>();
+        int capacity = 4;
+        float loadFactor = 0.75f;
+        int threshold = (int) (capacity * loadFactor);
+        ResizeAwareMap<Integer, Integer> map = new ResizeAwareMap<>(delegate, capacity, loadFactor, false);
+
+        // Bringing to the point where it's about to resize.
+        for (int i = 0; i < threshold; i++) {
+            map.put(i, i);
+        }
+        assertThat(map.size()).isEqualTo(threshold);
+        assertThat(map.currentCapacity()).isEqualTo(capacity);
+
+        // Next put() calls with duplicate keys won't trigger resize.
+        for (int i = 0; i < 3; i++) {
+            map.put(i, i);
+            assertThat(map.currentCapacity()).isEqualTo(capacity);
+        }
     }
 }
