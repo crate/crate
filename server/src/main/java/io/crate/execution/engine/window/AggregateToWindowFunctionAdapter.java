@@ -63,7 +63,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
                                      RamAccounting ramAccounting,
                                      MemoryManager memoryManager,
                                      Version minNodeVersion) {
-        this.aggregationFunction = aggregationFunction.optimizeForExecutionAsWindowFunction();
+        this.aggregationFunction = aggregationFunction.optimizeForExecutionAsWindowFunction(minNodeVersion);
         this.filter = filter;
         this.ramAccounting = ramAccounting;
         this.memoryManager = memoryManager;

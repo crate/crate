@@ -94,7 +94,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     }
 
     @Override
-    public AggregationFunction<Map<Object, Long>, List<Object>> optimizeForExecutionAsWindowFunction() {
+    public AggregationFunction<Map<Object, Long>, List<Object>> optimizeForExecutionAsWindowFunction(Version minNideVersion) {
         return new RemovableCumulativeCollectSet(signature, boundSignature);
     }
 

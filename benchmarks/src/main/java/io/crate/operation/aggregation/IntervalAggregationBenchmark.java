@@ -49,7 +49,7 @@ import io.crate.data.Row1;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregateCollector;
 import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.execution.engine.aggregation.impl.IntervalSumAggregation;
+import io.crate.execution.engine.aggregation.sum.IntervalSumAggregation;
 import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.execution.engine.aggregation.impl.average.IntervalAverageAggregation;
 import io.crate.execution.engine.collect.RowCollectExpression;

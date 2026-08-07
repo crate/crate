@@ -34,7 +34,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.analyze.WindowDefinition;
-import io.crate.execution.engine.aggregation.impl.SumAggregation;
+import io.crate.execution.engine.aggregation.sum.SumAggregation;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
