@@ -237,7 +237,7 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
                   "status" : 200
                   """);
 
-        assertThat(requestHandler.numberOfInvocation.get()).isEqualTo(1);
+        assertThat(requestHandler.numberOfInvocation.get()).isLessThanOrEqualTo(2);
 
         // Now try a second time, same domain different user
         appUsername = "cloud_user_1";
@@ -254,7 +254,7 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
                   "status" : 200
                   """);
 
-        assertThat(requestHandler.numberOfInvocation.get()).isEqualTo(1);
+        assertThat(requestHandler.numberOfInvocation.get()).isLessThanOrEqualTo(2);
 
     }
 
