@@ -80,12 +80,15 @@ public class SharedShardContexts {
                 // A missing table for the given index UUID means that it was removed after it was built,
                 //  which shouldn't happen.
                 assert tableName != null : "Table mapping for index UUID unexpectedly removed (was present in FetchTask)";
-                RelationMetadata.Table table = metadata.getRelation(tableName);
-                if (table == null) {
+                RelationMetadata relation = metadata.getRelation(indexUUID);
+                if (relation == null) {
+                    relation = metadata.getRelation(tableName);
+                }
+                if (relation == null) {
                     refreshActions.add(CompletableFuture.failedFuture(new RelationUnknown(tableName)));
                     continue;
                 }
-                if (table.partitionedBy().isEmpty()) {
+                if (relation instanceof RelationMetadata.Table table && table.partitionedBy().isEmpty()) {
                     refreshActions.add(CompletableFuture.failedFuture(new IndexNotFoundException(indexUUID)));
                 }
                 continue;
