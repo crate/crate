@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.aggregation.impl;
+package io.crate.execution.engine.aggregation.sum;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -172,6 +172,81 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
             }
         }
         return previousAggState;
+    }
+
+    @Override
+    public AggregationFunction<?, BigDecimal> optimizeForExecutionAsWindowFunction(Version minNideVersion) {
+        if (minNideVersion.onOrBefore(Version.V_6_4_2)) {
+            return this;
+        }
+        return new RemovableCumulativeSum();
+    }
+
+    private final class RemovableCumulativeSum extends AggregationFunction<RemovableCumulativeState<BigDecimal>, BigDecimal> {
+
+        @Override
+        public RemovableCumulativeState<BigDecimal> newState(RamAccounting ramAccounting,
+                                                              Version minNodeInCluster,
+                                                              MemoryManager memoryManager) {
+            ramAccounting.addBytes(RemovableCumulativeState.SHALLOW_SIZE);
+            return new RemovableCumulativeState<>(null, returnType, 0);
+        }
+
+        @Override
+        public RemovableCumulativeState<BigDecimal> iterate(RamAccounting ramAccounting,
+                                                             MemoryManager memoryManager,
+                                                             RemovableCumulativeState<BigDecimal> state,
+                                                             Input<?> ... args) throws CircuitBreakingException {
+            BigDecimal value = returnType.implicitCast(args[0].value());
+            if (value != null) {
+                state.add(BigDecimal::add, value);
+            }
+            return state;
+        }
+
+        @Override
+        public boolean isRemovableCumulative() {
+            return true;
+        }
+
+        @Override
+        public RemovableCumulativeState<BigDecimal> removeFromAggregatedState(RamAccounting ramAccounting,
+                                                                               RemovableCumulativeState<BigDecimal> previousAggState,
+                                                                               Input<?>[] stateToRemove) {
+            BigDecimal value = returnType.implicitCast(stateToRemove[0].value());
+            if (value != null) {
+                previousAggState.remove(BigDecimal::subtract, value);
+            }
+            return previousAggState;
+        }
+
+        @Override
+        public RemovableCumulativeState<BigDecimal> reduce(RamAccounting ramAccounting,
+                                                            RemovableCumulativeState<BigDecimal> state1,
+                                                            RemovableCumulativeState<BigDecimal> state2) {
+            state1.merge(BigDecimal::add, state2);
+            return state1;
+        }
+
+        @Override
+        public BigDecimal terminatePartial(RamAccounting ramAccounting, RemovableCumulativeState<BigDecimal> state) {
+            return state.value();
+        }
+
+        @Override
+        public DataType<?> partialType() {
+            return RemovableCumulativeStateType.INSTANCE;
+        }
+
+        @Override
+        public Signature signature() {
+            return signature;
+        }
+
+        @Override
+        public BoundSignature boundSignature() {
+            return boundSignature;
+        }
     }
 
     @Nullable

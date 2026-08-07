@@ -106,7 +106,7 @@ public class CollectSetAggregationTest extends AggregationTestCase {
     public void test_value_adding_and_removal() {
         var impl = (AggregationFunction<Object, Object>) nodeCtx.functions().get(
             null, "collect_set", List.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
-        var aggregationFunction = (AggregationFunction<Object, Object>) impl.optimizeForExecutionAsWindowFunction();
+        var aggregationFunction = (AggregationFunction<Object, Object>) impl.optimizeForExecutionAsWindowFunction(Version.CURRENT);
 
         Object state = aggregationFunction.newState(RAM_ACCOUNTING, Version.CURRENT, memoryManager);
         state = aggregationFunction.iterate(RAM_ACCOUNTING, memoryManager, state, Literal.of(10L));
