@@ -27,6 +27,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -72,7 +73,7 @@ public class TransportRenameColumn extends AbstractDDLTransportAction<RenameColu
 
     @Override
     public ClusterStateTaskExecutor<RenameColumnRequest> clusterStateTaskExecutor(RenameColumnRequest request) {
-        return new AlterTableTask<>(nodeContext, request.relationName(), null, RENAME_COLUMN_OPERATOR);
+        return new AlterTableTask<>(nodeContext, request.relationName(), Metadata.OID_UNASSIGNED, null, RENAME_COLUMN_OPERATOR);
     }
 
 

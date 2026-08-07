@@ -21,6 +21,8 @@
 
 package io.crate.execution.ddl.tables;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 
 import org.elasticsearch.cluster.ClusterState;
@@ -38,6 +40,7 @@ public class AlterTableTask<T> extends DDLClusterStateTaskExecutor<T> {
 
     private final NodeContext nodeContext;
     private final RelationName relationName;
+    private final int tableOid;
     private final AlterTableOperator<T> alterTableOperator;
     private final @Nullable FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private final DocTableInfoFactory docTableInfoFactory;
@@ -48,10 +51,12 @@ public class AlterTableTask<T> extends DDLClusterStateTaskExecutor<T> {
      **/
     public AlterTableTask(NodeContext nodeContext,
                           RelationName relationName,
+                          int tableOid,
                           @Nullable FulltextAnalyzerResolver fulltextAnalyzerResolver,
                           AlterTableOperator<T> alterTableOperator) {
         this.nodeContext = nodeContext;
         this.relationName = relationName;
+        this.tableOid = tableOid;
         this.alterTableOperator = alterTableOperator;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         docTableInfoFactory = new DocTableInfoFactory(nodeContext);
@@ -60,6 +65,7 @@ public class AlterTableTask<T> extends DDLClusterStateTaskExecutor<T> {
     @Override
     public ClusterState execute(ClusterState currentState, T t) throws Exception {
         Metadata metadata = currentState.metadata();
+        RelationName relationName = tableOid == OID_UNASSIGNED ? this.relationName : metadata.getRelationName(tableOid);
         DocTableInfo currentTable = docTableInfoFactory.create(relationName, metadata);
         Metadata.Builder metadataBuilder = Metadata.builder(metadata);
         DocTableInfo newTable = alterTableOperator.apply(

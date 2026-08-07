@@ -71,7 +71,13 @@ public class TransportDropColumn extends AbstractDDLTransportAction<DropColumnRe
 
     @Override
     public ClusterStateTaskExecutor<DropColumnRequest> clusterStateTaskExecutor(DropColumnRequest request) {
-        return new AlterTableTask<>(nodeContext, request.relationName(), null, DROP_COLUMN_OPERATOR);
+        return new AlterTableTask<>(
+            nodeContext,
+            request.relationName(),
+            request.tableOid(),
+            null,
+            DROP_COLUMN_OPERATOR
+        );
     }
 
 
