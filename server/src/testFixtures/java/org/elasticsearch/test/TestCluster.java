@@ -391,7 +391,7 @@ public final class TestCluster implements Closeable {
             for (var relation : infoSchema.relations()) {
                 if (relation.relationType() == RelationType.BASE_TABLE && relation instanceof SystemTable<?> == false) {
                     relationNames.add(relation.ident());
-                    futures.add(client().execute(TransportDropTable.ACTION, new DropTableRequest(relation.ident())));
+                    futures.add(client().execute(TransportDropTable.ACTION, new DropTableRequest(relation.ident(), Metadata.OID_UNASSIGNED)));
                 }
             }
             CompletableFuture<List<AcknowledgedResponse>> allResponses = CompletableFutures.allAsList(futures);

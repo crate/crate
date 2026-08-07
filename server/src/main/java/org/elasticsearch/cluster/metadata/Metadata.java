@@ -997,6 +997,17 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
+        public Builder dropRelation(int tableOID) {
+            RelationName relationName = null;
+            for (RelationMetadata relationMetadata : relations()) {
+                if (relationMetadata.oid() == tableOID) {
+                    relationName = relationMetadata.name();
+                    break;
+                }
+            }
+            return relationName == null ? this : dropRelation(relationName);
+        }
+
         @Nullable
         public <T extends RelationMetadata> T getRelation(RelationName relation) {
             return Metadata.getRelation(relation, schemas::get);
