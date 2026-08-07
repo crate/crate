@@ -60,3 +60,8 @@ Fixes
 - Fixed a ``NullPointerException`` that could happen if using an aggregation
   function as window function with ``RANGE..FOLLOWING`` on a column containing
   ``NULL`` values.
+
+- Fixed an issue that caused a :ref:`string_agg <aggregation-string-agg>`
+  aggregation to fail with ``IndexOutOfBoundsException`` error when used as a
+  part of a window function with windows of size 1, for example
+  ``ROWS BETWEEN CURRENT ROW AND CURRENT ROW``
