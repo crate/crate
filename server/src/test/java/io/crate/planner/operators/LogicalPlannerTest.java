@@ -248,17 +248,25 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_select_count_distinct_on_non_nullable_column_is_not_optimized_to_count() {
-        // `MergeAggregateAndCollectToCount` turns `count(ref)` into a `Count` operator if `ref` is not nullable,
-        // because counting non-null values is then the same as counting rows. That does not hold for
-        // `count(distinct ref)`, which counts distinct values.
+    public void test_count_distinct_on_non_nullable_column_counts_distinct_values_not_rows() {
+        // `id` is a primary key and therefore not nullable. Counting a non-nullable column is the same
+        // as counting rows, which `MergeAggregateAndCollectToCount` uses to collapse the query into a
+        // `Count` operator. That shortcut does not apply to `count(distinct id)`, which counts distinct
+        // values, so the plan has to deduplicate them first.
         LogicalPlan plan = plan("SELECT count(distinct id) FROM users");
         assertThat(plan).isEqualTo(
             """
             HashAggregate[count(DISTINCT id)]
-              └ Collect[doc.users | [id] | true]
+              └ GroupHashAggregate[id]
+                └ Collect[doc.users | [id] | true]
             """
         );
+    }
+
+    @Test
+    public void test_count_on_non_nullable_column_is_optimized_to_row_count() {
+        LogicalPlan plan = plan("SELECT count(id) FROM users");
+        assertThat(plan).isEqualTo("Count[doc.users | true]");
     }
 
     @Test
