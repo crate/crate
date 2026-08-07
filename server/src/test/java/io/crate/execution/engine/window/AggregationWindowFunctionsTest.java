@@ -384,4 +384,19 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
             rows
         );
     }
+
+    @Test
+    public void test_string_agg_with_rows_current_row_to_current_row() throws Throwable {
+        assertEvaluate(
+            """
+            string_agg(cast(x AS text), ',') OVER (ROWS BETWEEN CURRENT ROW AND CURRENT ROW)
+            """,
+            new Object[] { "1", "2" },
+            List.of(ColumnIdent.of("x")),
+            new Object[][] {
+                new Object[] { 1 },
+                new Object[] { 2 },
+            }
+        );
+    }
 }
