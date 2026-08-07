@@ -65,3 +65,16 @@ Fixes
   aggregation to fail with ``IndexOutOfBoundsException`` error when used as a
   part of a window function with windows of size 1, for example
   ``ROWS BETWEEN CURRENT ROW AND CURRENT ROW``
+
+- Fixed an issue that caused a :ref:`SUM <aggregation-sum>` aggregation to
+  return wrong results when used as part of a window function and a not null
+  value being last in one window and next window having only NULL-s.
+  An Example::
+
+    select sum(x) OVER (ROWS BETWEEN CURRENT ROW AND CURRENT ROW)
+    from (
+      select 10
+      union all
+      select null
+    ) tbl (x);
+
