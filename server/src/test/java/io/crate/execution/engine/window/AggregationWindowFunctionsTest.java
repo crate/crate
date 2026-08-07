@@ -23,11 +23,13 @@ package io.crate.execution.engine.window;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.types.DataTypes;
 
 public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
 
@@ -77,6 +79,52 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                 new Object[] { null },
                 new Object[] { null },
                 new Object[] { null },
+            }
+        );
+    }
+
+    @Test
+    public void test_sum_remove_last_not_null_sets_state_to_null() throws Throwable {
+        assertEvaluate(
+            """
+            sum(x) over (order by x nulls last rows between current row and current row)
+            """,
+            new Object[] { 10L, null },
+            List.of(ColumnIdent.of("x")),
+            new Object[][] {
+                new Object[] { 10 },
+                new Object[] { null },
+            }
+        );
+    }
+
+    @Test
+    public void test_numeric_sum_remove_last_not_null_sets_state_to_null() throws Throwable {
+        assertEvaluate(
+            """
+            sum(x::numeric) over (order by x nulls last rows between current row and current row)
+            """,
+            new Object[] { BigDecimal.valueOf(10), null },
+            List.of(ColumnIdent.of("x")),
+            new Object[][] {
+                new Object[] { 10 },
+                new Object[] { null },
+            }
+        );
+    }
+
+    @Test
+    public void test_interval_sum_remove_last_not_null_sets_state_to_null() throws Throwable {
+        var oneDay = DataTypes.INTERVAL.implicitCast("1 day");
+        assertEvaluate(
+            """
+            sum(z::interval) over (order by x rows between current row and current row)
+            """,
+            new Object[] { oneDay, null },
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("z")),
+            new Object[][] {
+                new Object[] { 1, "1 day" },
+                new Object[] { 2, null },
             }
         );
     }

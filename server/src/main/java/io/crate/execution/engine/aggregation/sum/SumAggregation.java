@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.aggregation.impl;
+package io.crate.execution.engine.aggregation.sum;
 
 import java.io.IOException;
 import java.util.List;
@@ -66,6 +66,10 @@ import io.crate.types.ShortType;
 public class SumAggregation<T extends Number> extends AggregationFunction<T, T> {
 
     public static final String NAME = "sum";
+
+    static {
+        DataTypes.register(RemovableCumulativeStateType.ID, _ -> RemovableCumulativeStateType.INSTANCE);
+    }
 
     public static void register(Functions.Builder builder) {
         BinaryOperator<Long> add = Math::addExact;
@@ -190,6 +194,82 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
             return previousAggState;
         }
         return subtraction.apply(previousAggState, returnType.sanitizeValue(value));
+    }
+
+    @Override
+    public AggregationFunction<?, T> optimizeForExecutionAsWindowFunction(Version minNideVersion) {
+        if (minNideVersion.onOrBefore(Version.V_6_4_2)) {
+            return this;
+        }
+        return new RemovableCumulativeSum();
+    }
+
+
+    private final class RemovableCumulativeSum extends AggregationFunction<RemovableCumulativeState<T>, T> {
+
+        @Override
+        public RemovableCumulativeState<T> newState(RamAccounting ramAccounting,
+                                                     Version minNodeInCluster,
+                                                     MemoryManager memoryManager) {
+            ramAccounting.addBytes(RemovableCumulativeState.SHALLOW_SIZE);
+            return new RemovableCumulativeState<>(null, returnType, 0);
+        }
+
+        @Override
+        public RemovableCumulativeState<T> iterate(RamAccounting ramAccounting,
+                                                    MemoryManager memoryManager,
+                                                    RemovableCumulativeState<T> state,
+                                                    Input<?> ... args) throws CircuitBreakingException {
+            Object value = args[0].value();
+            if (value != null) {
+                state.add(addition, returnType.sanitizeValue(value));
+            }
+            return state;
+        }
+
+        @Override
+        public boolean isRemovableCumulative() {
+            return true;
+        }
+
+        @Override
+        public RemovableCumulativeState<T> removeFromAggregatedState(RamAccounting ramAccounting,
+                                                                      RemovableCumulativeState<T> previousAggState,
+                                                                      Input<?>[] stateToRemove) {
+            Object value = stateToRemove[0].value();
+            if (value != null) {
+                previousAggState.remove(subtraction, returnType.sanitizeValue(value));
+            }
+            return previousAggState;
+        }
+
+        @Override
+        public RemovableCumulativeState<T> reduce(RamAccounting ramAccounting,
+                                                  RemovableCumulativeState<T> state1,
+                                                  RemovableCumulativeState<T> state2) {
+            state1.merge(addition, state2);
+            return state1;
+        }
+
+        @Override
+        public T terminatePartial(RamAccounting ramAccounting, RemovableCumulativeState<T> state) {
+            return state.value();
+        }
+
+        @Override
+        public DataType<?> partialType() {
+            return RemovableCumulativeStateType.INSTANCE;
+        }
+
+        @Override
+        public Signature signature() {
+            return signature;
+        }
+
+        @Override
+        public BoundSignature boundSignature() {
+            return boundSignature;
+        }
     }
 
     @Nullable

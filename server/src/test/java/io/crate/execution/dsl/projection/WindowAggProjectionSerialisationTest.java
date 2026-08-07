@@ -23,7 +23,6 @@ package io.crate.execution.dsl.projection;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -34,7 +33,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.analyze.WindowDefinition;
-import io.crate.execution.engine.aggregation.impl.SumAggregation;
+import io.crate.execution.engine.aggregation.sum.SumAggregation;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;

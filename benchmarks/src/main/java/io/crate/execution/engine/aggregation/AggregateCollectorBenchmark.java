@@ -43,7 +43,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.breaker.RamAccounting;
-import io.crate.execution.engine.aggregation.impl.SumAggregation;
+import io.crate.execution.engine.aggregation.sum.SumAggregation;
 import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
