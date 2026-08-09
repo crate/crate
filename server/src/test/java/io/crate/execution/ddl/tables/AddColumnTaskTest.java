@@ -81,6 +81,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         List<Reference> columns = List.of(newColumn);
         var request = new AddColumnRequest(
             tbl.ident(),
+            OID_UNASSIGNED,
             columns,
             Map.of(),
             new IntArrayList()
@@ -151,6 +152,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         List<Reference> columns = List.of(geoShapeArrayRef, geoPointArrayRef);
         var request = new AddColumnRequest(
             tbl.ident(),
+            OID_UNASSIGNED,
             columns,
             Map.of(),
             new IntArrayList()
@@ -188,6 +190,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         List<Reference> columns = List.of(newColumn);
         var request = new AddColumnRequest(
             tbl.ident(),
+            OID_UNASSIGNED,
             columns,
             Map.of(),
             new IntArrayList()
@@ -222,6 +225,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         List<Reference> columns = List.of(newColumn1, newColumn2);
         var request = new AddColumnRequest(
             tbl.ident(),
+            OID_UNASSIGNED,
             columns,
             Map.of(),
             new IntArrayList()
@@ -249,6 +253,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         List<Reference> columns = List.of(newColumn1);
         var request = new AddColumnRequest(
             tbl.ident(),
+            OID_UNASSIGNED,
             columns,
             Map.of(),
             new IntArrayList()
@@ -282,6 +287,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         List<Reference> columns = List.of(colToAdd);
         var request = new AddColumnRequest(
             tbl.ident(),
+            OID_UNASSIGNED,
             columns,
             Map.of(),
             new IntArrayList()
@@ -311,6 +317,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         List<Reference> columns = List.of(colToAdd);
         var request = new AddColumnRequest(
             tbl.ident(),
+            OID_UNASSIGNED,
             columns,
             Map.of(),
             new IntArrayList()

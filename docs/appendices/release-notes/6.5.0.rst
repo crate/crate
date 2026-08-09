@@ -140,8 +140,9 @@ Performance and Resilience Improvements
   analysis of view definitions when accessing ``information_schema`` views.
 
 - Improved :ref:`DELETE <sql_reference_delete>`,
-  :ref:`DROP TABLE <drop-table>` and
-  :ref:`DROP COLUMN <sql-alter-table-drop-column>` such that concurrent
+  :ref:`DROP TABLE <drop-table>`,
+  :ref:`DROP COLUMN <sql-alter-table-drop-column>` and
+  :ref:`ADD COLUMN <sql-alter-table-add-column>` such that concurrent
   :ref:`SWAP TABLE <alter_cluster_swap_table>` cannot affect a ``DELETE``
   already in progress.
 

@@ -125,11 +125,11 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         var addColumnTask = new AlterTableTask<>(
             e.nodeCtx, table.ident(), Metadata.OID_UNASSIGNED, e.fulltextAnalyzerResolver(), TransportAddColumn.ADD_COLUMN_OPERATOR);
         AddColumnRequest request = new AddColumnRequest(
-                table.ident(),
-                newColumns,
-                Map.of(),
-                new IntArrayList(0)
-        );
+            table.ident(),
+            OID_UNASSIGNED,
+            newColumns,
+            Map.of(),
+            new IntArrayList(0));
         ClusterState newState = addColumnTask.execute(clusterService.state(), request);
         return new DocTableInfoFactory(e.nodeCtx).create(table.ident(), newState.metadata());
     }

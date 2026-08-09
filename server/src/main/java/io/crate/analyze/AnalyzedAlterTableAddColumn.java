@@ -94,6 +94,7 @@ public record AnalyzedAlterTableAddColumn(
         }
         return new AddColumnRequest(
             table.ident(),
+            table.oid(),
             newColumns,
             checkConstraints,
             pkIndices
