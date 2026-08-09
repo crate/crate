@@ -104,7 +104,12 @@ public class AlterTableRenameColumnAnalyzer {
         }
 
         tableInfo.renameColumn(sourceRef, targetCol);
-        return new AnalyzedAlterTableRenameColumn(tableInfo.ident(), sourceRef, targetCol);
+        return new AnalyzedAlterTableRenameColumn(
+            tableInfo.ident(),
+            tableInfo.oid(),
+            sourceRef,
+            targetCol
+        );
     }
 
     /** Returns DynamicReferences instead of throwing ColumnUnknownExceptions. */

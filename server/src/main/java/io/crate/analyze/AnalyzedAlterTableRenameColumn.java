@@ -29,6 +29,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
 public record AnalyzedAlterTableRenameColumn(RelationName table,
+                                             int tableOid,
                                              Reference refToRename,
                                              ColumnIdent newName) implements DDLStatement {
 
