@@ -46,4 +46,6 @@ series.
 Fixes
 =====
 
-None
+- Fixed a ``NullPointerException`` that could happen if using an aggregation
+  function as window function with ``RANGE..FOLLOWING`` on a column containing
+  ``NULL`` values.

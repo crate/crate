@@ -255,7 +255,8 @@ public class WindowProjector {
             // probe value to null so it doesn't impact ordering (ie. all values will be consistently GT or LT
             // `null`)
             if (offsetColumnPosition != -1) {
-                x[offsetColumnPosition] = applyOffsetOnOrderingValue.apply(currentRow[offsetColumnPosition], finalOffsetValue);
+                Object curValue = currentRow[offsetColumnPosition];
+                x[offsetColumnPosition] = curValue == null ? null : applyOffsetOnOrderingValue.apply(curValue, finalOffsetValue);
             }
             return x;
         };
