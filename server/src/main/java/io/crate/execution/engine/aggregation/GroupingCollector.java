@@ -36,6 +36,8 @@ import java.util.stream.Collector;
 
 import org.elasticsearch.Version;
 
+import io.crate.common.TriConsumer;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -63,7 +65,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
     private final MemoryManager memoryManager;
     private final BiConsumer<K, Object[]> applyKeyToCells;
     private final int numKeyColumns;
-    private final BiConsumer<Map<K, Object[]>, K> accountForNewEntry;
+    private final TriConsumer<ResizeAwareMap<K, Object[]>, K, Object[]> accountForNewEntry;
     private final Function<Row, K> keyExtractor;
     private final BiConsumer<Map<K, Object[]>, Row> accumulator;
     private final Supplier<Map<K, Object[]>> supplier;
@@ -119,7 +121,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             keyInputs.size(),
             GroupByMaps.accountForNewEntry(ramAccountingContext, keyTypes),
             row -> evalKeyInputs(keyInputs),
-            HashMap::new
+            () -> GroupByMaps.wrapperForJDKMap(new HashMap<>())
         );
     }
 
@@ -147,7 +149,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                               Version minNodeVersion,
                               BiConsumer<K, Object[]> applyKeyToCells,
                               int numKeyColumns,
-                              BiConsumer<Map<K, Object[]>, K> accountForNewEntry,
+                              TriConsumer<ResizeAwareMap<K, Object[]>, K, Object[]> accountForNewEntry,
                               Function<Row, K> keyExtractor,
                               Supplier<Map<K, Object[]>> supplier) {
         this.expressions = expressions;
@@ -193,7 +195,8 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         return Collections.emptySet();
     }
 
-    private void reduce(Map<K, Object[]> statesByKey, Row row) {
+    @VisibleForTesting
+    public void reduce(Map<K, Object[]> statesByKey, Row row) {
         for (CollectExpression<Row, ?> expression : expressions) {
             expression.setNextRow(row);
         }
@@ -204,7 +207,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             for (int i = 0; i < aggregations.length; i++) {
                 states[i] = inputs[i][0].value();
             }
-            addWithAccounting(statesByKey, key, states);
+            addWithAccounting((ResizeAwareMap<K, Object[]>) statesByKey, key, states);
         } else {
             for (int i = 0; i < aggregations.length; i++) {
                 states[i] = aggregations[i].reduce(ramAccounting, states[i], inputs[i][0].value());
@@ -212,8 +215,8 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         }
     }
 
-    private void addWithAccounting(Map<K, Object[]> statesByKey, K key, Object[] states) {
-        accountForNewEntry.accept(statesByKey, key);
+    private void addWithAccounting(ResizeAwareMap<K, Object[]> statesByKey, K key, Object[] states) {
+        accountForNewEntry.accept(statesByKey, key, states);
         statesByKey.put(key, states);
     }
 
@@ -224,7 +227,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         K key = keyExtractor.apply(row);
         Object[] states = statesByKey.get(key);
         if (states == null) {
-            addNewEntry(statesByKey, key);
+            addNewEntry((ResizeAwareMap<K, Object[]>) statesByKey, key);
         } else {
             for (int i = 0; i < aggregations.length; i++) {
                 if (InputCondition.matches(filters[i])) {
@@ -235,7 +238,8 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         }
     }
 
-    private void addNewEntry(Map<K, Object[]> statesByKey, K key) {
+    @VisibleForTesting
+    void addNewEntry(ResizeAwareMap<K, Object[]> statesByKey, K key) {
         Object[] states;
         states = new Object[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {

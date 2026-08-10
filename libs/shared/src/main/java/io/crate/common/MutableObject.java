@@ -21,9 +21,12 @@
 
 package io.crate.common;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.jspecify.annotations.Nullable;
 
 public final class MutableObject {
+
+    public static long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(MutableObject.class);
 
     private Object value;
     private boolean hasValue = false;

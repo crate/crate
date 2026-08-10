@@ -21,8 +21,11 @@
 
 package io.crate.common;
 
+import org.apache.lucene.util.RamUsageEstimator;
+
 public final class MutableFloat {
 
+    public static long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(MutableFloat.class);
     private float value;
     private boolean hasValue = false;
 
