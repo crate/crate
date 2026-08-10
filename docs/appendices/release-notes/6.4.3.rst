@@ -46,6 +46,10 @@ series.
 Fixes
 =====
 
+- Fixed an issue that could cause partitions of tables to be excluded from a
+  query if the ``WHERE`` clause contained a complex expression nesting an ``IS
+  NULL`` clause.
+
 - Fixed a ``NullPointerException`` that could happen if using an aggregation
   function as window function with a ``FILTER`` clause on a column containing
   ``NULL`` values.
