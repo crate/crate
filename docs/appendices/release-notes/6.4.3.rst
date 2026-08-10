@@ -80,3 +80,6 @@ Fixes
 
 - Fixed an issue that could lead to a memory leak if nodes within the
   cluster were temporarily not reachable.
+
+- Fixed incorrect results in window function when using
+  ``RANGE <offset> FOLLOWING/PRECEDING`` with ``ORDER BY <column> DESC``.
