@@ -43,11 +43,16 @@ public class ScalarsAndRefsToTrueTest extends ESTestCase {
 
     @Before
     public void prepare() throws Exception {
-        DummyRelation dummyRelation = new DummyRelation("clustered_by",
+        DummyRelation dummyRelation = new DummyRelation(
+            "clustered_by",
             "number_of_shards",
             "table_name",
             "number_of_replicas",
-            "schema_name");
+            "schema_name",
+            "name",
+            "created_at",
+            "id"
+        );
         Map<RelationName, AnalyzedRelation> sources = Map.of(dummyRelation.relationName(), dummyRelation);
         expressions = new SqlExpressions(sources);
     }
@@ -65,6 +70,38 @@ public class ScalarsAndRefsToTrueTest extends ESTestCase {
 
     private Symbol convertFromSQL(String expression) {
         return convert(fromSQL(expression));
+    }
+
+    @Test
+    public void test_nested_is_null_doesnt_affect_evaluation_of_other_operands() throws Exception {
+        Symbol symbol = convertFromSQL(
+            """
+            case when false then name is not null
+                 when true then length(name) = 10
+            end
+            """
+        );
+        assertThat(symbol).isLiteral(true);
+
+
+        // From https://github.com/crate/crate/issues/19855
+        symbol = convertFromSQL(
+            """
+            (
+            (
+              (id != 15)
+              OR (
+                CASE WHEN True THEN true
+                    WHEN true THEN name IS NOT NULL
+                    ELSE true END
+              )
+             )
+             NOT IN (CASE
+                      WHEN true THEN false AND (created_at <= created_at) END,
+                     LENGTH(name) NOT IN ((trunc(0) / 10), coalesce(id - id, MOD(id, 4))))) <= false
+            """
+        );
+        assertThat(symbol).isLiteral(true);
     }
 
     @Test
