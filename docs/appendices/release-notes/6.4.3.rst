@@ -52,3 +52,7 @@ Fixes
 
 - Fixed an issue that could lead to an ``OutOfMemoryError`` when running a
   query with aggregations under memory pressure.
+
+- Fixed a ``NullPointerException`` that could happen if using an aggregation
+  function as window function with ``RANGE..FOLLOWING`` on a column containing
+  ``NULL`` values.
