@@ -118,6 +118,11 @@ public class AlterTableAlterColumnDefaultAnalyzer {
             EnsureNoMatchPredicate.ensureNoMatchPredicate(newDefault, "Cannot use MATCH in DEFAULT expression");
         }
 
-        return new AnalyzedAlterTableAlterColumnDefault(tableInfo.ident(), ref, newDefault);
+        return new AnalyzedAlterTableAlterColumnDefault(
+            tableInfo.ident(),
+            tableInfo.oid(),
+            ref,
+            newDefault
+        );
     }
 }

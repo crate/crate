@@ -27,7 +27,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -75,7 +74,13 @@ public class TransportAlterColumnDefault extends AbstractDDLTransportAction<Alte
 
     @Override
     public ClusterStateTaskExecutor<AlterColumnDefaultRequest> clusterStateTaskExecutor(AlterColumnDefaultRequest request) {
-        return new AlterTableTask<>(nodeContext, request.relationName(), Metadata.OID_UNASSIGNED, null, ALTER_COLUMN_DEFAULT_OPERATOR);
+        return new AlterTableTask<>(
+            nodeContext,
+            request.relationName(),
+            request.tableOid(),
+            null,
+            ALTER_COLUMN_DEFAULT_OPERATOR
+        );
     }
 
     @Override
