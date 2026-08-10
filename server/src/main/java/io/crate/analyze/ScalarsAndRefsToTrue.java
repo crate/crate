@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.Operators;
@@ -66,12 +65,12 @@ public final class ScalarsAndRefsToTrue extends SymbolVisitor<ScalarsAndRefsToTr
     public static class Context {
         private final EvaluatingNormalizer normalizer;
         private final TransactionContext txnCtx;
-        private boolean isNullPredicate;
+        private int isNullLevel = 0;
 
         private Context(EvaluatingNormalizer normalizer, TransactionContext txnCtx) {
             this.normalizer = normalizer;
             this.txnCtx = txnCtx;
-            this.isNullPredicate = false;
+            this.isNullLevel = 0;
         }
     }
 
@@ -83,11 +82,12 @@ public final class ScalarsAndRefsToTrue extends SymbolVisitor<ScalarsAndRefsToTr
     public Symbol visitFunction(Function symbol, ScalarsAndRefsToTrue.Context ctx) {
         String functionName = symbol.name();
 
-        if (functionName.equals(IsNullPredicate.NAME)) {
-            ctx.isNullPredicate = true;
+        boolean isNullPredicate = functionName.equals(IsNullPredicate.NAME);
+        if (isNullPredicate) {
+            ctx.isNullLevel ++;
         }
 
-        List<Symbol> newArgs = new ArrayList<>(symbol.arguments().size());
+        ArrayList<Symbol> newArgs = new ArrayList<>(symbol.arguments().size());
         boolean allLiterals = true;
         boolean hasNullArg = false;
         for (Symbol arg : symbol.arguments()) {
@@ -101,9 +101,13 @@ public final class ScalarsAndRefsToTrue extends SymbolVisitor<ScalarsAndRefsToTr
             }
         }
 
+        if (isNullPredicate) {
+            ctx.isNullLevel--;
+        }
+
         if (allLiterals
             && !Operators.LOGICAL_OPERATORS.contains(functionName)
-            && !IsNullPredicate.NAME.equals(functionName)) {
+            && !isNullPredicate) {
             return hasNullArg ? Literal.NULL : Literal.BOOLEAN_TRUE;
         }
         if (functionName.equals(NotPredicate.NAME)) {
@@ -127,7 +131,7 @@ public final class ScalarsAndRefsToTrue extends SymbolVisitor<ScalarsAndRefsToTr
 
     @Override
     protected Symbol visitSymbol(Symbol symbol, ScalarsAndRefsToTrue.Context ctx) {
-        if (ctx.isNullPredicate || symbol.valueType().id() == DataTypes.UNDEFINED.id()) {
+        if (ctx.isNullLevel > 0 || symbol.valueType().id() == DataTypes.UNDEFINED.id()) {
             return Literal.NULL;
         }
         return Literal.BOOLEAN_TRUE;
