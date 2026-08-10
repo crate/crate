@@ -46,9 +46,10 @@ public final class GroupByMaps {
     public static <K, V> TriConsumer<ResizeAwareMap<K, V>, K, Object[]> accountForNewEntry(RamAccounting ramAccounting, DataType<K> type) {
         long singleItemBytes = singleItemBytes(type);
         return (map, key, states) -> {
-            ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(type.valueBytes(key) + 36));
-            ramAccounting.addBytes(RamUsageEstimator.shallowSizeOf(states));
-            ramAccounting.addBytes(singleItemBytes * map.expectedCapacityIncrease());
+            long keyBytes = RamUsageEstimator.alignObjectSize(type.valueBytes(key) + 36);
+            long statesShallowBytes = RamUsageEstimator.shallowSizeOf(states);
+            long capacityIncreaseBytes = singleItemBytes * map.expectedCapacityIncrease();
+            ramAccounting.addBytes(keyBytes + statesShallowBytes + capacityIncreaseBytes);
         };
     }
 
@@ -77,9 +78,10 @@ public final class GroupByMaps {
                 Object value = ((List) key).get(i);
                 size += dataType.valueBytes(value);
             }
-            ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(size + 36));
-            ramAccounting.addBytes(RamUsageEstimator.shallowSizeOf(states));
-            ramAccounting.addBytes((long) RamUsageEstimator.NUM_BYTES_OBJECT_REF * map.expectedCapacityIncrease());
+            long keyBytes = RamUsageEstimator.alignObjectSize(size + 36);
+            long statesShallowBytes = RamUsageEstimator.shallowSizeOf(states);
+            long capacityIncreaseBytes = (long) RamUsageEstimator.NUM_BYTES_OBJECT_REF * map.expectedCapacityIncrease();
+            ramAccounting.addBytes(keyBytes + statesShallowBytes + capacityIncreaseBytes);
         };
     }
 
