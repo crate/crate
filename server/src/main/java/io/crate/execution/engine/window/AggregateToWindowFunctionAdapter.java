@@ -46,7 +46,7 @@ import io.crate.metadata.functions.Signature;
 
 public class AggregateToWindowFunctionAdapter implements WindowFunction {
 
-    private final AggregationFunction aggregationFunction;
+    private final AggregationFunction<Object, Object> aggregationFunction;
     private final ExpressionsInput<Row, Boolean> filter;
     private final RamAccounting ramAccounting;
     private final MemoryManager memoryManager;
@@ -57,6 +57,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     private int seenFrameUpperBound = -1;
     private Object resultForCurrentFrame;
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     AggregateToWindowFunctionAdapter(AggregationFunction aggregationFunction,
                                      ExpressionsInput<Row, Boolean> filter,
                                      RamAccounting ramAccounting,
@@ -129,7 +130,8 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
             for (int j = 0, expressionsSize = expressions.size(); j < expressionsSize; j++) {
                 expressions.get(j).setNextRow(row);
             }
-            if (filter.value(row)) {
+            Boolean match = filter.value(row);
+            if (match != null && match) {
                 //noinspection unchecked
                 accumulatedState = aggregationFunction.removeFromAggregatedState(
                     ramAccounting,
@@ -179,7 +181,8 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
             for (int j = 0, expressionsSize = expressions.size(); j < expressionsSize; j++) {
                 expressions.get(j).setNextRow(row);
             }
-            if (filter.value(row)) {
+            Boolean match = filter.value(row);
+            if (match != null && match) {
                 //noinspection unchecked
                 accumulatedState = aggregationFunction.iterate(
                     ramAccounting,
