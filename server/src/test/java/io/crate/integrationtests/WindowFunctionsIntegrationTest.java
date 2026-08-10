@@ -264,11 +264,12 @@ public class WindowFunctionsIntegrationTest extends IntegTestCase {
                 "   SUM(x) FILTER (WHERE x != 3) OVER(ORDER BY x)," +
                 "   SUM(x) FILTER (WHERE x != 2) OVER(ORDER BY x)," +
                 "   SUM(x) FILTER (WHERE x > 3) OVER()" +
-                "FROM UNNEST([1, 2, 4, 3]) as t(x)");
+                "FROM UNNEST([1, 2, 4, null, 3]) as t(x)");
         assertThat(response).hasRows(
             "1| 1| 4",
             "3| 1| 4",
             "3| 4| 4",
+            "7| 8| 4",
             "7| 8| 4"
         );
     }
