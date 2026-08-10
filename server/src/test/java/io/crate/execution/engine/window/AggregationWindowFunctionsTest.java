@@ -284,6 +284,18 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
+    public void test_agg_over_range_following_with_null_values() throws Throwable {
+        Object[] expected = new Object[]{ 3L, 3L, 3L, 2L, 2L, 1L, 0L};
+        assertEvaluate("count(x) OVER (" +
+             "ORDER BY x RANGE BETWEEN CURRENT ROW AND 1 FOLLOWING)",
+            expected,
+            List.of(ColumnIdent.of("x")),
+            INPUT_ROWS
+        );
+    }
+
+
+    @Test
     public void test_agg_over_range_following() throws Throwable {
         Object[] expected = new Object[]{
             11.5,
