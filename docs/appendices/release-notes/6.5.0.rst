@@ -142,10 +142,11 @@ Performance and Resilience Improvements
 - Improved :ref:`DELETE <sql_reference_delete>`,
   :ref:`DROP TABLE <drop-table>`,
   :ref:`DROP COLUMN <sql-alter-table-drop-column>`,
-  :ref:`ADD COLUMN <sql-alter-table-add-column>` and
-  :ref:`RENAME COLUMN <sql-alter-table-rename-column>` such that concurrent
-  :ref:`SWAP TABLE <alter_cluster_swap_table>` cannot affect a ``DELETE``
-  already in progress.
+  :ref:`ADD COLUMN <sql-alter-table-add-column>`,
+  :ref:`RENAME COLUMN <sql-alter-table-rename-column>` and
+  :ref:`SET/DROP DEFAULT <SQL-alter-table-alter-column-default>`
+  such that concurrent :ref:`SWAP TABLE <alter_cluster_swap_table>`
+  cannot affect aforementioned queries already in progress.
 
 Administration and Operations
 -----------------------------

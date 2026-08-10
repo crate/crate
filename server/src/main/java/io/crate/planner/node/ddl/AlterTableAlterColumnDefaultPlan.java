@@ -52,7 +52,12 @@ public class AlterTableAlterColumnDefaultPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
-        var request = new AlterColumnDefaultRequest(analyzed.table(), analyzed.ref(), analyzed.newDefault());
+        var request = new AlterColumnDefaultRequest(
+            analyzed.table(),
+            analyzed.tableOid(),
+            analyzed.ref(),
+            analyzed.newDefault()
+        );
         dependencies.client()
             .execute(TransportAlterColumnDefault.ACTION, request)
             .whenComplete(new OneRowActionListener<>(consumer, r -> r.isAcknowledged() ? new Row1(-1L) : new Row1(0L)));

@@ -53,7 +53,7 @@ public class AlterColumnDefaultTaskTest extends CrateDummyClusterServiceUnitTest
         var task = buildAlterColumnDefaultTask(e, tbl.ident());
         Reference ref = tbl.getReference(ColumnIdent.of("x"));
         Symbol newDefault = Literal.of(42);
-        var request = new AlterColumnDefaultRequest(tbl.ident(), ref, newDefault);
+        var request = new AlterColumnDefaultRequest(tbl.ident(), Metadata.OID_UNASSIGNED, ref, newDefault);
         ClusterState newState = task.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         Reference updatedRef = newTable.getReference(ColumnIdent.of("x"));
@@ -69,7 +69,7 @@ public class AlterColumnDefaultTaskTest extends CrateDummyClusterServiceUnitTest
         Reference ref = tbl.getReference(ColumnIdent.of("x"));
         assertThat(ref.defaultExpression()).isEqualTo(Literal.of(1));
         Symbol newDefault = Literal.of(99);
-        var request = new AlterColumnDefaultRequest(tbl.ident(), ref, newDefault);
+        var request = new AlterColumnDefaultRequest(tbl.ident(), Metadata.OID_UNASSIGNED, ref, newDefault);
         ClusterState newState = task.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         Reference updatedRef = newTable.getReference(ColumnIdent.of("x"));
@@ -84,7 +84,7 @@ public class AlterColumnDefaultTaskTest extends CrateDummyClusterServiceUnitTest
         var task = buildAlterColumnDefaultTask(e, tbl.ident());
         Reference ref = tbl.getReference(ColumnIdent.of("x"));
         assertThat(ref.defaultExpression()).isNotNull();
-        var request = new AlterColumnDefaultRequest(tbl.ident(), ref, null);
+        var request = new AlterColumnDefaultRequest(tbl.ident(), Metadata.OID_UNASSIGNED, ref, null);
         ClusterState newState = task.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         Reference updatedRef = newTable.getReference(ColumnIdent.of("x"));
@@ -98,7 +98,7 @@ public class AlterColumnDefaultTaskTest extends CrateDummyClusterServiceUnitTest
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         var task = buildAlterColumnDefaultTask(e, tbl.ident());
         Reference ref = tbl.getReference(ColumnIdent.of("x"));
-        var request = new AlterColumnDefaultRequest(tbl.ident(), ref, null);
+        var request = new AlterColumnDefaultRequest(tbl.ident(), Metadata.OID_UNASSIGNED, ref, null);
         ClusterState newState = task.execute(clusterService.state(), request);
         // No-op: cluster state should be the same object
         assertThat(newState).isSameAs(clusterService.state());
@@ -112,7 +112,7 @@ public class AlterColumnDefaultTaskTest extends CrateDummyClusterServiceUnitTest
         var task = buildAlterColumnDefaultTask(e, tbl.ident());
         Reference ref = tbl.getReference(ColumnIdent.of("o", "a"));
         Symbol newDefault = Literal.of(10);
-        var request = new AlterColumnDefaultRequest(tbl.ident(), ref, newDefault);
+        var request = new AlterColumnDefaultRequest(tbl.ident(), Metadata.OID_UNASSIGNED, ref, newDefault);
         ClusterState newState = task.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         Reference updatedRef = newTable.getReference(ColumnIdent.of("o", "a"));
@@ -130,7 +130,7 @@ public class AlterColumnDefaultTaskTest extends CrateDummyClusterServiceUnitTest
         var task = buildAlterColumnDefaultTask(e, tbl.ident());
         Reference ref = tbl.getReference(ColumnIdent.of("x"));
         Symbol newDefault = Literal.of(77);
-        var request = new AlterColumnDefaultRequest(tbl.ident(), ref, newDefault);
+        var request = new AlterColumnDefaultRequest(tbl.ident(), Metadata.OID_UNASSIGNED, ref, newDefault);
         ClusterState newState = task.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         Reference updatedRef = newTable.getReference(ColumnIdent.of("x"));
