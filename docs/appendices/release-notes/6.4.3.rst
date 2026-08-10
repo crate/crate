@@ -46,5 +46,9 @@ series.
 Fixes
 =====
 
+- Fixed a ``NullPointerException`` that could happen if using an aggregation
+  function as window function with a ``FILTER`` clause on a column containing
+  ``NULL`` values.
+
 - Fixed an issue that could lead to an ``OutOfMemoryError`` when running a
   query with aggregations under memory pressure.
