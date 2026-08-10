@@ -2,8 +2,7 @@
   <configuration default="false" name="CrateDB" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="io.crate.bootstrap.CrateDB" />
     <module name="crate-app" />
-    <option name="PROGRAM_PARAMETERS" value="-Cpath.home=$PROJECT_DIR$/sandbox/crate" />
-    <!-- Netty uses Unsafe, disable warning, continue to allow it (See also https://github.com/netty/netty/pull/14975) -->
+    <option name="PROGRAM_PARAMETERS" value="-Cpath.home=$PROJECT_DIR$/sandbox/crate -Cpath.repo=$PROJECT_DIR$/../test-data/snapshots" />
     <option name="VM_PARAMETERS" value="-Dlog4j.shutdownHookEnabled=false -Dlog4j.skipJansi=true --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector --sun-misc-unsafe-memory-access=allow -XX:+HeapDumpOnOutOfMemoryError" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/app" />
     <RunnerSettings RunnerId="Debug">
