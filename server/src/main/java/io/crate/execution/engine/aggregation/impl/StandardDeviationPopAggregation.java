@@ -99,6 +99,10 @@ public class StandardDeviationPopAggregation extends StandardDeviationAggregatio
     public StandardDeviationPop newState(RamAccounting ramAccounting,
                                          Version minNodeInCluster,
                                          MemoryManager memoryManager) {
+        if (minNodeInCluster.before(Version.V_6_5_0)) {
+            throw new IllegalStateException(
+                "Cannot use '" + NAME + "' aggregation until all nodes are upgraded to 6.5.0");
+        }
         ramAccounting.addBytes(StandardDeviationPop.fixedSize());
         return new StandardDeviationPop();
     }

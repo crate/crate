@@ -36,26 +36,26 @@ public class Variance implements Writeable, Comparable<Variance> {
         return FIXED_SIZE;
     }
 
-    private double sumOfSqrs;
-    private double sum;
+    private double mean;
+    private double m2;
     private long count;
 
     public Variance() {
-        sumOfSqrs = 0.0;
-        sum = 0.0;
+        mean = 0.0;
+        m2 = 0.0;
         count = 0;
     }
 
     public Variance(StreamInput in) throws IOException {
-        sumOfSqrs = in.readDouble();
-        sum = in.readDouble();
+        mean = in.readDouble();
+        m2 = in.readDouble();
         count = in.readVLong();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeDouble(sumOfSqrs);
-        out.writeDouble(sum);
+        out.writeDouble(mean);
+        out.writeDouble(m2);
         out.writeVLong(count);
     }
 
@@ -63,16 +63,27 @@ public class Variance implements Writeable, Comparable<Variance> {
         return count;
     }
 
+    // Welford's online algorithm. Unlike the naive sum(x^2) - sum(x)^2/n formula it never squares
+    // the raw values, so it avoids the catastrophic cancellation that produced a negative variance
+    // (and NULL standard deviations) for large-magnitude inputs. See crate/crate#19760.
     public Variance increment(double value) {
-        sumOfSqrs += (value * value);
-        sum += value;
         count++;
+        double delta = value - mean;
+        mean += delta / count;
+        m2 += delta * (value - mean);
         return this;
     }
 
     public void decrement(double value) {
-        sumOfSqrs -= (value * value);
-        sum -= value;
+        if (count == 1) {
+            count = 0;
+            mean = 0.0;
+            m2 = 0.0;
+            return;
+        }
+        double meanPrev = (count * mean - value) / (count - 1);
+        m2 -= (value - mean) * (value - meanPrev);
+        mean = meanPrev;
         count--;
     }
 
@@ -80,18 +91,26 @@ public class Variance implements Writeable, Comparable<Variance> {
         if (count == 0) {
             return Double.NaN;
         }
-        double variance = (sumOfSqrs - ((sum * sum) / count)) / count;
-        // The naive sum-of-squares formula can produce a small negative result for
-        // large-magnitude inputs with little spread (e.g. a constant DATE/TIMESTAMP) due to
-        // floating point cancellation. A variance is never negative, so clamp it; otherwise
-        // sqrt() in the stddev variants would yield NaN (returned to the user as NULL).
-        return variance < 0 ? 0 : variance;
+        // m2 is non-negative by construction under forward accumulation; the clamp guards against
+        // tiny negative residues from decrement() in removable window frames.
+        return Math.max(m2, 0.0) / count;
     }
 
     public void merge(Variance other) {
-        sumOfSqrs += other.sumOfSqrs;
-        sum += other.sum;
-        count += other.count;
+        if (other.count == 0) {
+            return;
+        }
+        if (count == 0) {
+            mean = other.mean;
+            m2 = other.m2;
+            count = other.count;
+            return;
+        }
+        long newCount = count + other.count;
+        double delta = other.mean - mean;
+        m2 = m2 + other.m2 + delta * delta * count * other.count / newCount;
+        mean = mean + delta * other.count / newCount;
+        count = newCount;
     }
 
     @Override

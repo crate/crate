@@ -132,6 +132,33 @@ public class VarianceAggregationTest extends AggregationTestCase {
     }
 
     @Test
+    public void test_large_magnitude_low_spread_is_precise() throws Exception {
+        // The naive sum-of-squares formula loses all precision at ~1e12 magnitude (ulp ~1e9 at
+        // ~1e24), so it cannot recover the small spread. Welford computes the exact population
+        // variance of {1, 2, 3} offset by 1e12, which is 2/3.
+        Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{
+            {1_000_000_000_001.0d}, {1_000_000_000_002.0d}, {1_000_000_000_003.0d}});
+        assertThat(result).isEqualTo(0.6666666666666666d);
+    }
+
+    @Test
+    public void test_new_state_throws_until_all_nodes_upgraded() throws Exception {
+        // The Welford accumulator changes the streamed partial-state layout, so the aggregation
+        // must not run until every node is on 6.5.0.
+        var func = (io.crate.execution.engine.aggregation.AggregationFunction<?, ?>) nodeCtx.functions().get(
+            null,
+            VarianceAggregation.NAME,
+            List.of(Literal.of(DataTypes.DOUBLE, null)),
+            SearchPath.pathWithPGCatalogAndDoc());
+        assertThatThrownBy(() -> func.newState(
+                io.crate.data.breaker.RamAccounting.NO_ACCOUNTING,
+                org.elasticsearch.Version.V_6_4_0,
+                null))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("6.5.0");
+    }
+
+    @Test
     public void testUnsupportedType() throws Exception {
         assertThatThrownBy(() -> executeAggregation(DataTypes.GEO_POINT, new Object[][] {}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)

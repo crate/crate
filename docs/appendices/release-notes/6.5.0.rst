@@ -86,6 +86,14 @@ Breaking Changes
   symmetrical join conditions (i.e. ``a = b`` is identical to ``b = a``).
   Query results are not affected.
 
+- The :ref:`stddev_pop() <aggregation-stddev-pop>`, :ref:`stddev_samp()
+  <aggregation-stddev-samp>`, :ref:`stddev() <aggregation-stddev>` and
+  :ref:`variance() <aggregation-variance>` aggregations now use a numerically
+  stable algorithm that also improves precision for large-magnitude inputs.
+  Because this changes the internal partial-aggregation state, during a rolling
+  upgrade these aggregations cannot be used until all nodes have been upgraded
+  to 6.5.0.
+
 Deprecations
 ============
 
