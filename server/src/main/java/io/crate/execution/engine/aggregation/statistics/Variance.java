@@ -36,26 +36,50 @@ public class Variance implements Writeable, Comparable<Variance> {
         return FIXED_SIZE;
     }
 
-    private double sumOfSqrs;
-    private double sum;
+    /**
+     * The streamed partial state is always two IEEE-754 doubles plus a count, but the meaning of
+     * the two doubles depends on {@link #legacy}:
+     * <ul>
+     *   <li>legacy  (pre-6.5 wire format): {@code d1} = Σx² (sum of squares), {@code d2} = Σx (sum)</li>
+     *   <li>Welford (6.5+ wire format):    {@code d1} = running mean,         {@code d2} = M2 = Σ(x-mean)²</li>
+     * </ul>
+     * Welford's online algorithm never squares the raw values, so it avoids the catastrophic
+     * cancellation that produced a negative variance (and NULL standard deviations) for
+     * large-magnitude inputs. See crate/crate#19760.
+     * <p>
+     * The naive layout is kept as a rolling-upgrade fallback: as long as any node in the cluster is
+     * older than 6.5.0 the partial state is streamed in the legacy layout so that pre-6.5 nodes
+     * (which only understand the naive layout) keep interoperating. The mode is chosen cluster-wide
+     * at plan time from the min node version and mirrored by {@code newState}, so both accumulators
+     * are never mixed within a single query. See PR #19885.
+     */
+    private final boolean legacy;
+    private double d1;
+    private double d2;
     private long count;
 
     public Variance() {
-        sumOfSqrs = 0.0;
-        sum = 0.0;
-        count = 0;
+        this(false);
     }
 
-    public Variance(StreamInput in) throws IOException {
-        sumOfSqrs = in.readDouble();
-        sum = in.readDouble();
-        count = in.readVLong();
+    public Variance(boolean legacy) {
+        this.legacy = legacy;
+        this.d1 = 0.0;
+        this.d2 = 0.0;
+        this.count = 0;
+    }
+
+    public Variance(StreamInput in, boolean legacy) throws IOException {
+        this.legacy = legacy;
+        this.d1 = in.readDouble();
+        this.d2 = in.readDouble();
+        this.count = in.readVLong();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeDouble(sumOfSqrs);
-        out.writeDouble(sum);
+        out.writeDouble(d1);
+        out.writeDouble(d2);
         out.writeVLong(count);
     }
 
@@ -63,16 +87,40 @@ public class Variance implements Writeable, Comparable<Variance> {
         return count;
     }
 
+    public boolean isLegacy() {
+        return legacy;
+    }
+
     public Variance increment(double value) {
-        sumOfSqrs += (value * value);
-        sum += value;
-        count++;
+        if (legacy) {
+            d1 += value * value;
+            d2 += value;
+            count++;
+        } else {
+            count++;
+            double delta = value - d1;
+            d1 += delta / count;
+            d2 += delta * (value - d1);
+        }
         return this;
     }
 
     public void decrement(double value) {
-        sumOfSqrs -= (value * value);
-        sum -= value;
+        if (legacy) {
+            d1 -= value * value;
+            d2 -= value;
+            count--;
+            return;
+        }
+        if (count == 1) {
+            count = 0;
+            d1 = 0.0;
+            d2 = 0.0;
+            return;
+        }
+        double meanPrev = (count * d1 - value) / (count - 1);
+        d2 -= (value - d1) * (value - meanPrev);
+        d1 = meanPrev;
         count--;
     }
 
@@ -80,18 +128,43 @@ public class Variance implements Writeable, Comparable<Variance> {
         if (count == 0) {
             return Double.NaN;
         }
-        double variance = (sumOfSqrs - ((sum * sum) / count)) / count;
-        // The naive sum-of-squares formula can produce a small negative result for
-        // large-magnitude inputs with little spread (e.g. a constant DATE/TIMESTAMP) due to
-        // floating point cancellation. A variance is never negative, so clamp it; otherwise
-        // sqrt() in the stddev variants would yield NaN (returned to the user as NULL).
-        return variance < 0 ? 0 : variance;
+        if (legacy) {
+            // The naive sum-of-squares formula can produce a small negative result for
+            // large-magnitude inputs with little spread (e.g. a constant DATE/TIMESTAMP) due to
+            // floating point cancellation. A variance is never negative, so clamp it; otherwise
+            // sqrt() in the stddev variants would yield NaN (returned to the user as NULL).
+            double variance = (d1 - ((d2 * d2) / count)) / count;
+            return variance < 0 ? 0 : variance;
+        }
+        // d2 (M2) is non-negative by construction under forward accumulation; the clamp guards
+        // against tiny negative residues from decrement() in removable window frames.
+        return Math.max(d2, 0.0) / count;
     }
 
     public void merge(Variance other) {
-        sumOfSqrs += other.sumOfSqrs;
-        sum += other.sum;
-        count += other.count;
+        assert legacy == other.legacy
+            : "Cannot merge a legacy and a Welford variance state; the mode must be chosen "
+              + "consistently cluster-wide at plan time";
+        if (legacy) {
+            d1 += other.d1;
+            d2 += other.d2;
+            count += other.count;
+            return;
+        }
+        if (other.count == 0) {
+            return;
+        }
+        if (count == 0) {
+            d1 = other.d1;
+            d2 = other.d2;
+            count = other.count;
+            return;
+        }
+        long newCount = count + other.count;
+        double delta = other.d1 - d1;
+        d2 = d2 + other.d2 + delta * delta * count * other.count / newCount;
+        d1 = d1 + delta * other.count / newCount;
+        count = newCount;
     }
 
     @Override

@@ -116,7 +116,13 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
-None
+- The :ref:`stddev_pop() <aggregation-stddev-pop>`, :ref:`stddev_samp()
+  <aggregation-stddev-samp>`, :ref:`stddev() <aggregation-stddev>` and
+  :ref:`variance() <aggregation-variance>` aggregations now use a numerically
+  stable algorithm, improving precision for large-magnitude inputs. The change
+  is transparent for rolling upgrades: while any node is still on an older
+  version the previous algorithm is used, and the new one takes over once all
+  nodes are on 6.5.0.
 
 Performance and Resilience Improvements
 ---------------------------------------

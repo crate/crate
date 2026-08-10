@@ -39,8 +39,10 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.aggregation.AggregationContext;
+import io.crate.execution.engine.aggregation.impl.VarianceAggregation;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
+import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
@@ -87,6 +89,36 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_aggregation_context_partial_type_follows_mode() throws Exception {
+        // The partial-state type stored on AggregationContext must be the one the plan chose, so
+        // newState can follow it instead of re-deriving from a local node version. Its location is
+        // mode-dependent, and getting it wrong for the reducer silently reintroduces the rolling-upgrade
+        // divergence this fix closes (see PR #19885), so assert both modes explicitly.
+        Function varianceX = (Function) expressions.asSymbol("variance(x)");
+
+        // Reducer (PARTIAL_FINAL): reads the partial state as its INPUT and outputs the final double,
+        // so the partial-state type must come from the input column, not the (double) value type.
+        var reduceAgg = new Aggregation(
+            varianceX.signature(),
+            DataTypes.DOUBLE,
+            List.of(new InputColumn(0, VarianceAggregation.VarianceStateType.INSTANCE)));
+        var reduceCtx = factory.ctxForAggregations(txnCtx, AggregateMode.PARTIAL_FINAL);
+        reduceCtx.add(List.of(reduceAgg));
+        assertThat(reduceCtx.aggregations().get(0).partialType())
+            .isEqualTo(VarianceAggregation.VarianceStateType.INSTANCE);
+
+        // Producer (ITER_PARTIAL): the partial-state type is the aggregation's own value type.
+        var iterAgg = new Aggregation(
+            varianceX.signature(),
+            VarianceAggregation.VarianceStateTypeWelford.INSTANCE,
+            List.of(new InputColumn(0, DataTypes.DOUBLE)));
+        var iterCtx = factory.ctxForAggregations(txnCtx, AggregateMode.ITER_PARTIAL);
+        iterCtx.add(List.of(iterAgg));
+        assertThat(iterCtx.aggregations().get(0).partialType())
+            .isEqualTo(VarianceAggregation.VarianceStateTypeWelford.INSTANCE);
+    }
+
+    @Test
     public void testAggregationSymbolsInputReuse() throws Exception {
         Function countX = (Function) expressions.asSymbol("count(x)");
         Function avgX = (Function) expressions.asSymbol("avg(x)");
@@ -100,7 +132,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
                             List.of(new InputColumn(0)))
         );
 
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations(txnCtx);
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations(txnCtx, AggregateMode.ITER_FINAL);
         ctx.add(aggregations);
         List<AggregationContext> aggregationContexts = ctx.aggregations();
 
@@ -117,7 +149,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         // keys: [ in(0), in(1) + 10 ]
         List<Symbol> keys = Arrays.asList(new InputColumn(0, DataTypes.LONG), add);
 
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations(txnCtx);
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations(txnCtx, AggregateMode.ITER_FINAL);
         ctx.add(keys);
         ArrayList<CollectExpression<Row, ?>> expressions = new ArrayList<>(ctx.expressions());
         assertThat(expressions).hasSize(2);
@@ -155,7 +187,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
             List.of(new InputColumn(0))
         ));
 
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations(txnCtx);
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations(txnCtx, AggregateMode.ITER_FINAL);
         ctx.add(keys);
 
         // inputs: [ x, add ]

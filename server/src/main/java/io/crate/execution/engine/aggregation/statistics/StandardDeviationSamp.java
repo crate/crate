@@ -31,8 +31,12 @@ public class StandardDeviationSamp extends Variance {
     public StandardDeviationSamp() {
     }
 
-    public StandardDeviationSamp(StreamInput in) throws IOException {
-        super(in);
+    public StandardDeviationSamp(boolean legacy) {
+        super(legacy);
+    }
+
+    public StandardDeviationSamp(StreamInput in, boolean legacy) throws IOException {
+        super(in, legacy);
     }
 
     @Override

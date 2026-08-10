@@ -168,6 +168,7 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        Version shardCreatedVersion,
+                                                       DataType<?> partialStateType,
                                                        List<Literal<?>> optionalParams) {
         Reference reference = getAggReference(aggregationReferences);
         if (reference == null) {
@@ -179,7 +180,7 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
                      reference.storageIdent(),
                      (ramAccounting, memoryManager, version) -> {
                          ramAccounting.addBytes(V.fixedSize());
-                         return newState(ramAccounting, version, memoryManager);
+                         return newState(ramAccounting, partialStateType, version, memoryManager);
                      },
                      (_, values, state) -> {
                          state.increment(values.nextValue());
@@ -190,7 +191,7 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
                 reference.storageIdent(),
                 (ramAccounting, memoryManager, version) -> {
                     ramAccounting.addBytes(V.fixedSize());
-                    return newState(ramAccounting, version, memoryManager);
+                    return newState(ramAccounting, partialStateType, version, memoryManager);
                 },
                 (_, values, state) -> {
                     var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
@@ -202,7 +203,7 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
                 reference.storageIdent(),
                 (ramAccounting, memoryManager, version) -> {
                     ramAccounting.addBytes(V.fixedSize());
-                    return newState(ramAccounting, version, memoryManager);
+                    return newState(ramAccounting, partialStateType, version, memoryManager);
                 },
                 (_, values, state) -> {
                     var value = NumericUtils.sortableLongToDouble((values.nextValue()));

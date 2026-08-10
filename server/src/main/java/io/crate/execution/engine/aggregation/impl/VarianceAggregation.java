@@ -66,6 +66,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
 
     static {
         DataTypes.register(VarianceStateType.ID, _ -> VarianceStateType.INSTANCE);
+        DataTypes.register(VarianceStateTypeWelford.ID, _ -> VarianceStateTypeWelford.INSTANCE);
     }
 
     static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(
@@ -121,7 +122,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
 
         @Override
         public Variance readValueFrom(StreamInput in) throws IOException {
-            return new Variance(in);
+            return new Variance(in, true);
         }
 
         @Override
@@ -140,6 +141,31 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         }
     }
 
+    /**
+     * State type for the Welford wire format (6.5+). Shares everything with the legacy
+     * {@link VarianceStateType} except the id/name and the {@code legacy} flag it reads states with.
+     */
+    public static class VarianceStateTypeWelford extends VarianceStateType {
+
+        public static final VarianceStateTypeWelford INSTANCE = new VarianceStateTypeWelford();
+        public static final int ID = 2049;
+
+        @Override
+        public int id() {
+            return ID;
+        }
+
+        @Override
+        public String getName() {
+            return "variance_state_welford";
+        }
+
+        @Override
+        public Variance readValueFrom(StreamInput in) throws IOException {
+            return new Variance(in, false);
+        }
+    }
+
     private final Signature signature;
     private final BoundSignature boundSignature;
 
@@ -154,7 +180,22 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                              Version minNodeInCluster,
                              MemoryManager memoryManager) {
         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
-        return new Variance();
+        // Local/window-only fallback (state never streamed cross-node here); the streaming paths use
+        // the partialType-aware overload below. See PR #19760 / #19885.
+        return new Variance(minNodeInCluster.before(Version.V_6_5_0));
+    }
+
+    @Nullable
+    @Override
+    public Variance newState(RamAccounting ramAccounting,
+                             DataType<?> partialType,
+                             Version minNodeInCluster,
+                             MemoryManager memoryManager) {
+        ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
+        // Follow the partial-state type the plan already chose so the accumulator layout can never
+        // diverge from the streamed wire format: VarianceStateType (id 2048) = legacy naive layout,
+        // VarianceStateTypeWelford (id 2049) = Welford layout. See PR #19885.
+        return new Variance(partialType.id() == VarianceStateType.ID);
     }
 
     @Override
@@ -209,7 +250,14 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
 
     @Override
     public DataType<?> partialType() {
-        return VarianceStateType.INSTANCE;
+        return VarianceStateTypeWelford.INSTANCE;
+    }
+
+    @Override
+    public DataType<?> partialType(Version minNodeInCluster) {
+        return minNodeInCluster.before(Version.V_6_5_0)
+            ? VarianceStateType.INSTANCE
+            : VarianceStateTypeWelford.INSTANCE;
     }
 
     @Override
@@ -228,6 +276,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        Version shardCreatedVersion,
+                                                       DataType<?> partialStateType,
                                                        List<Literal<?>> optionalParams) {
         Reference reference = getAggReference(aggregationReferences);
         if (reference == null) {
@@ -245,7 +294,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                     reference.storageIdent(),
                     (ramAccounting, _, _) -> {
                         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
-                        return new Variance();
+                        return new Variance(partialStateType.id() == VarianceStateType.ID);
                     },
                     (_, values, state) -> state.increment(values.nextValue())
                 );
@@ -254,7 +303,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                     reference.storageIdent(),
                     (ramAccounting, _, _) -> {
                         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
-                        return new Variance();
+                        return new Variance(partialStateType.id() == VarianceStateType.ID);
                     },
                     (_, values, state) -> {
                         var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
@@ -266,7 +315,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                     reference.storageIdent(),
                     (ramAccounting, _, _) -> {
                         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
-                        return new Variance();
+                        return new Variance(partialStateType.id() == VarianceStateType.ID);
                     },
                     (_, values, state) -> {
                         var value = NumericUtils.sortableLongToDouble((values.nextValue()));

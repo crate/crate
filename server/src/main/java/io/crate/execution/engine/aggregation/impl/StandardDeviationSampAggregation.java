@@ -46,6 +46,7 @@ public class StandardDeviationSampAggregation extends StandardDeviationAggregati
 
     static {
         DataTypes.register(StdDevSampStateType.ID, _ -> StdDevSampStateType.INSTANCE);
+        DataTypes.register(StdDevSampStateTypeWelford.ID, _ -> StdDevSampStateTypeWelford.INSTANCE);
     }
 
     private static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(
@@ -83,7 +84,28 @@ public class StandardDeviationSampAggregation extends StandardDeviationAggregati
 
         @Override
         public StandardDeviationSamp readValueFrom(StreamInput in) throws IOException {
-            return new StandardDeviationSamp(in);
+            return new StandardDeviationSamp(in, true);
+        }
+    }
+
+    public static class StdDevSampStateTypeWelford extends StdDevSampStateType {
+
+        public static final StdDevSampStateTypeWelford INSTANCE = new StdDevSampStateTypeWelford();
+        public static final int ID = 8197;
+
+        @Override
+        public int id() {
+            return ID;
+        }
+
+        @Override
+        public String getName() {
+            return "stddev_sampl_state_welford";
+        }
+
+        @Override
+        public StandardDeviationSamp readValueFrom(StreamInput in) throws IOException {
+            return new StandardDeviationSamp(in, false);
         }
     }
 
@@ -93,7 +115,14 @@ public class StandardDeviationSampAggregation extends StandardDeviationAggregati
 
     @Override
     public DataType<?> partialType() {
-        return new StdDevSampStateType();
+        return StdDevSampStateTypeWelford.INSTANCE;
+    }
+
+    @Override
+    public DataType<?> partialType(Version minNodeInCluster) {
+        return minNodeInCluster.before(Version.V_6_5_0)
+            ? StdDevSampStateType.INSTANCE
+            : StdDevSampStateTypeWelford.INSTANCE;
     }
 
     @Nullable
@@ -102,6 +131,19 @@ public class StandardDeviationSampAggregation extends StandardDeviationAggregati
                                           Version minNodeInCluster,
                                           MemoryManager memoryManager) {
         ramAccounting.addBytes(StandardDeviationSamp.fixedSize());
-        return new StandardDeviationSamp();
+        // Local/window-only fallback; the streaming paths use the partialType-aware overload below.
+        return new StandardDeviationSamp(minNodeInCluster.before(Version.V_6_5_0));
+    }
+
+    @Nullable
+    @Override
+    public StandardDeviationSamp newState(RamAccounting ramAccounting,
+                                          DataType<?> partialType,
+                                          Version minNodeInCluster,
+                                          MemoryManager memoryManager) {
+        ramAccounting.addBytes(StandardDeviationSamp.fixedSize());
+        // Follow the partial-state type the plan chose: StdDevSampStateType (id 8193) = legacy layout,
+        // StdDevSampStateTypeWelford (id 8197) = Welford layout. See PR #19885.
+        return new StandardDeviationSamp(partialType.id() == StdDevSampStateType.ID);
     }
 }
