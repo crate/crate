@@ -32,7 +32,6 @@ import java.util.function.BiFunction;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
-import org.elasticsearch.Version;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
@@ -68,7 +67,6 @@ public class WindowProjector {
                                            TransactionContext txnCtx,
                                            RamAccounting ramAccounting,
                                            MemoryManager memoryManager,
-                                           Version minNodeVersion,
                                            IntSupplier numThreads,
                                            Executor executor) {
         var windowFunctionSymbols = projection.windowFunctions();
@@ -106,8 +104,7 @@ public class WindowProjector {
                         (AggregationFunction) impl,
                         filter,
                         ramAccounting,
-                        memoryManager,
-                        minNodeVersion
+                        memoryManager
                     )
                 );
             } else if (impl instanceof WindowFunction) {

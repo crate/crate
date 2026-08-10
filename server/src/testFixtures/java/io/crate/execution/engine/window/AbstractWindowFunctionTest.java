@@ -34,7 +34,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongConsumer;
 
-import org.elasticsearch.Version;
 import org.junit.Before;
 
 import io.crate.analyze.OrderBy;
@@ -150,8 +149,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
                 (AggregationFunction) impl,
                 new ExpressionsInput<>(Literal.BOOLEAN_TRUE, List.of()),
                 RamAccounting.NO_ACCOUNTING,
-                memoryManager,
-                Version.CURRENT
+                memoryManager
             );
         } else {
             windowFunctionImpl = (WindowFunction) impl;

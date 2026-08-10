@@ -69,6 +69,25 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
                                       MemoryManager memoryManager);
 
     /**
+     * Variant of {@link #newState(RamAccounting, Version, MemoryManager)} that also receives the
+     * partial-state type the plan already picked for this aggregation. Aggregations whose
+     * partial-state layout changed between versions override this to build the state that matches
+     * {@code partialType} exactly, so the accumulator can never disagree with the streamed wire
+     * format (which is derived from the same {@link #partialType(Version)} at plan time). The
+     * default ignores {@code partialType} and delegates to the version-based variant.
+     *
+     * @param partialType the partial-state type chosen by the plan (the same type used to stream the
+     *                     partial state cluster-wide)
+     */
+    @Nullable
+    public TPartial newState(RamAccounting ramAccounting,
+                             DataType<?> partialType,
+                             Version minNodeInCluster,
+                             MemoryManager memoryManager) {
+        return newState(ramAccounting, minNodeInCluster, memoryManager);
+    }
+
+    /**
      * the "aggregate" function.
      *
      * @param ramAccounting used to account for additional memory usage if the state grows in size
@@ -100,6 +119,19 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
     public abstract TFinal terminatePartial(RamAccounting ramAccounting, TPartial state);
 
     public abstract DataType<?> partialType();
+
+    /**
+     * Version-aware variant of {@link #partialType()} used at plan time to pick the wire format of
+     * the streamed partial state. The default ignores the version and delegates to {@link
+     * #partialType()}. Aggregations whose partial-state layout changed between versions override
+     * this to return a backwards-compatible type while the cluster still contains older nodes, so
+     * that the choice stays consistent with {@link #newState(RamAccounting, Version, MemoryManager)}.
+     *
+     * @param minNodeInCluster the version of the oldest node in the cluster
+     */
+    public DataType<?> partialType(Version minNodeInCluster) {
+        return partialType();
+    }
 
     /**
      * Executing aggregations as window functions might require different runtime implementations in order to still be
@@ -145,6 +177,24 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
                                                        Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         return null;
+    }
+
+    /**
+     * Variant of {@link #getDocValueAggregator(LuceneReferenceResolver, List, DocTableInfo, Version, List)}
+     * that also receives the partial-state type the plan picked. Aggregations whose partial-state layout
+     * changed between versions override this so the doc-value produced partial matches the streamed wire
+     * format. The default ignores {@code partialStateType} and delegates.
+     *
+     * @param partialStateType the partial-state type chosen by the plan for this aggregation
+     */
+    @Nullable
+    public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
+                                                       List<Reference> aggregationReferences,
+                                                       DocTableInfo table,
+                                                       Version shardCreatedVersion,
+                                                       DataType<?> partialStateType,
+                                                       List<Literal<?>> optionalParams) {
+        return getDocValueAggregator(referenceResolver, aggregationReferences, table, shardCreatedVersion, optionalParams);
     }
 
 

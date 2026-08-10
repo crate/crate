@@ -45,6 +45,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.testing.PlainRamAccounting;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class GroupingCollectorTest {
@@ -76,6 +77,7 @@ public class GroupingCollectorTest {
             ramAccounting,
             null, // memoryManager is unused
             Version.CURRENT,
+            new DataType[] { DataTypes.LONG },
             keyInputs.get(0),
             DataTypes.LONG
         );
@@ -113,6 +115,7 @@ public class GroupingCollectorTest {
             ramAccounting,
             null, // memoryManager is unused
             Version.CURRENT,
+            new DataType[] { DataTypes.LONG },
             keyInputs.get(0),
             DataTypes.LONG
         );

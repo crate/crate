@@ -132,6 +132,65 @@ public class VarianceAggregationTest extends AggregationTestCase {
     }
 
     @Test
+    public void test_large_magnitude_low_spread_is_precise() throws Exception {
+        // The naive sum-of-squares formula loses all precision at ~1e12 magnitude (ulp ~1e9 at
+        // ~1e24), so it cannot recover the small spread. Welford computes the exact population
+        // variance of {1, 2, 3} offset by 1e12, which is 2/3.
+        Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{
+            {1_000_000_000_001.0d}, {1_000_000_000_002.0d}, {1_000_000_000_003.0d}});
+        assertThat(result).isEqualTo(0.6666666666666666d);
+    }
+
+    @Test
+    public void test_new_state_follows_the_plan_chosen_partial_type() throws Exception {
+        // The plan's chosen partial type - not a locally re-read node version - decides the state
+        // layout, so a producing node's accumulator can never diverge from the streamed wire format
+        // during a rolling upgrade. Pairing each partial type with the "wrong" version proves the
+        // partial type wins. See #19885.
+        var func = (io.crate.execution.engine.aggregation.AggregationFunction<?, ?>) nodeCtx.functions().get(
+            null,
+            VarianceAggregation.NAME,
+            List.of(Literal.of(DataTypes.DOUBLE, null)),
+            SearchPath.pathWithPGCatalogAndDoc());
+        var legacy = (io.crate.execution.engine.aggregation.statistics.Variance) func.newState(
+            io.crate.data.breaker.RamAccounting.NO_ACCOUNTING,
+            VarianceAggregation.VarianceStateType.INSTANCE,
+            org.elasticsearch.Version.CURRENT,
+            null);
+        assertThat(legacy.isLegacy()).isTrue();
+        var welford = (io.crate.execution.engine.aggregation.statistics.Variance) func.newState(
+            io.crate.data.breaker.RamAccounting.NO_ACCOUNTING,
+            VarianceAggregation.VarianceStateTypeWelford.INSTANCE,
+            org.elasticsearch.Version.V_6_4_0,
+            null);
+        assertThat(welford.isLegacy()).isFalse();
+        // partialType(version) still drives the plan-time wire-format choice.
+        assertThat(func.partialType(org.elasticsearch.Version.V_6_4_0).id())
+            .isEqualTo(VarianceAggregation.VarianceStateType.ID);
+        assertThat(func.partialType(org.elasticsearch.Version.CURRENT).id())
+            .isEqualTo(VarianceAggregation.VarianceStateTypeWelford.ID);
+    }
+
+    @Test
+    public void test_legacy_naive_accumulator_is_numerically_correct() {
+        // A mixed (< 6.5) cluster runs entirely on the naive layout, so it must stay correct on its
+        // own. Population variance of {7, 3} is 4.0.
+        var legacy = new io.crate.execution.engine.aggregation.statistics.Variance(true);
+        legacy.increment(7.0d);
+        legacy.increment(3.0d);
+        assertThat(legacy.isLegacy()).isTrue();
+        assertThat(legacy.result()).isEqualTo(4.0d);
+
+        // Merging two legacy partials equals a single legacy accumulation.
+        var a = new io.crate.execution.engine.aggregation.statistics.Variance(true);
+        a.increment(7.0d);
+        var b = new io.crate.execution.engine.aggregation.statistics.Variance(true);
+        b.increment(3.0d);
+        a.merge(b);
+        assertThat(a.result()).isEqualTo(4.0d);
+    }
+
+    @Test
     public void testUnsupportedType() throws Exception {
         assertThatThrownBy(() -> executeAggregation(DataTypes.GEO_POINT, new Object[][] {}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
