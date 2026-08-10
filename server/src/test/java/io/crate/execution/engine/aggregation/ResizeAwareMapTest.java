@@ -33,6 +33,20 @@ import org.junit.Test;
 public class ResizeAwareMapTest {
 
     @Test
+    public void test_wrapperForJDKMap_uses_correct_defaults() {
+        Map<Integer, Integer> map = new HashMap<>();
+        ResizeAwareMap<Integer, Integer> resizeAwareMap = GroupByMaps.wrapperForJDKMap(map);
+        int defaultCapacity = 16; // HashMap.DEFAULT_INITIAL_CAPACITY
+        float defaultLoadFactor = 0.75f; // HashMap.DEFAULT_LOAD_FACTOR
+        int threshold = (int) (defaultCapacity * defaultLoadFactor);
+        assertThat(resizeAwareMap.currentCapacity()).isEqualTo(16); //HashMap. DEFAULT_INITIAL_CAPACITY
+        for (int i = 0; i < threshold; i++) {
+            assertThat(resizeAwareMap.expectedCapacityIncrease()).isEqualTo(0);
+            map.put(i, i);
+        }
+    }
+
+    @Test
     public void test_put_initial_capacity_power_of_two() {
         Map<Integer, Integer> delegate = new HashMap<>();
         int capacity = 4;

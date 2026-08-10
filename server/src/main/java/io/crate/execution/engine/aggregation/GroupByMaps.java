@@ -124,8 +124,8 @@ public final class GroupByMaps {
     public static <K, V> ResizeAwareMap<K, V> wrapperForJDKMap(Map<K, V> map) {
         return new ResizeAwareMap<>(
             map,
-            LongObjectHashMap.DEFAULT_CAPACITY,
-            LongObjectHashMap.DEFAULT_LOAD_FACTOR,
+            16, // HashMap.DEFAULT_INITIAL_CAPACITY
+            0.75f, // HashMap.DEFAULT_LOAD_FACTOR
             false
         );
     }
