@@ -36,7 +36,7 @@ import org.junit.Test;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
-import io.crate.execution.engine.aggregation.impl.SumAggregation;
+import io.crate.execution.engine.aggregation.sum.SumAggregation;
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Aggregation;

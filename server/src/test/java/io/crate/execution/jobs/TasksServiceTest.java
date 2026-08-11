@@ -292,6 +292,27 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_kills_tasks_if_coordinator_node_disconnects() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        RootTask.Builder builder = tasksService.newBuilder(jobId);
+        String nodeId = CrateDummyClusterServiceUnitTest.NODE_ID;
+        DiscoveryNode node = clusterService.state().nodes().resolveNode(nodeId);
+        builder.addTask(new DummyTask());
+
+        RootTask task = tasksService.createTask(builder);
+        assertThat(task.coordinatorNodeId()).isEqualTo(nodeId);
+        assertThat(task.participatingNodes()).doesNotContain(nodeId);
+        assertThat(task.completionFuture()).isNotDone();
+
+        tasksService.onNodeDisconnected(node, Mockito.mock(Connection.class));
+        assertThat(task.completionFuture()).failsWithin(1, TimeUnit.SECONDS)
+            .withThrowableThat()
+            .havingRootCause()
+            .isExactlyInstanceOf(JobKilledException.class)
+            .withMessage("Job killed. Coordinator node n1 disconnected");
+    }
+
+    @Test
     public void test_kill_missing_job_adds_job_id_to_recently_failed() throws Exception {
         /// Adding jobs that are missing when killed to recentlyFailed helps
         /// speed up the failure in the following scenario:

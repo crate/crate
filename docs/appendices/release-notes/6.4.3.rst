@@ -46,9 +46,40 @@ series.
 Fixes
 =====
 
+- Fixed an issue that could cause partitions of tables to be excluded from a
+  query if the ``WHERE`` clause contained a complex expression nesting an ``IS
+  NULL`` clause.
+
 - Fixed a ``NullPointerException`` that could happen if using an aggregation
   function as window function with a ``FILTER`` clause on a column containing
   ``NULL`` values.
 
 - Fixed an issue that could lead to an ``OutOfMemoryError`` when running a
   query with aggregations under memory pressure.
+
+- Fixed a ``NullPointerException`` that could happen if using an aggregation
+  function as window function with ``RANGE..FOLLOWING`` on a column containing
+  ``NULL`` values.
+
+- Fixed an issue that caused a :ref:`string_agg <aggregation-string-agg>`
+  aggregation to fail with ``IndexOutOfBoundsException`` error when used as a
+  part of a window function with windows of size 1, for example
+  ``ROWS BETWEEN CURRENT ROW AND CURRENT ROW``
+
+- Fixed an issue that caused a :ref:`SUM <aggregation-sum>` aggregation to
+  return wrong results when used as part of a window function and a not null
+  value being last in one window and next window having only NULL-s.
+  An Example::
+
+    select sum(x) OVER (ROWS BETWEEN CURRENT ROW AND CURRENT ROW)
+    from (
+      select 10
+      union all
+      select null
+    ) tbl (x);
+
+- Fixed an issue that could lead to a memory leak if nodes within the
+  cluster were temporarily not reachable.
+
+- Fixed incorrect results in window function when using
+  ``RANGE <offset> FOLLOWING/PRECEDING`` with ``ORDER BY <column> DESC``.

@@ -191,7 +191,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     @Override
     public StringAggState removeFromAggregatedState(RamAccounting ramAccounting,
                                                     StringAggState previousAggState,
-                                                    Input<?>[]stateToRemove) {
+                                                    Input<?>[] stateToRemove) {
         String expression = (String) stateToRemove[0].value();
         if (expression == null) {
             return previousAggState;
@@ -201,11 +201,16 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
         int indexOfExpression = previousAggState.values.indexOf(expression);
         if (indexOfExpression > -1) {
             ramAccounting.addBytes(-LIST_ENTRY_OVERHEAD + RamUsageEstimator.sizeOf(expression));
-            if (delimiter != null) {
+            if (delimiter != null && indexOfExpression + 1 < previousAggState.values.size()) {
                 String elementNextToExpression = previousAggState.values.get(indexOfExpression + 1);
                 if (elementNextToExpression.equalsIgnoreCase(delimiter)) {
                     previousAggState.values.remove(indexOfExpression + 1);
                 }
+            }
+            if (indexOfExpression == 0) {
+                // First element is removed, so next one will a new first.
+                // Reset state to avoid adding a delimiter before the "new first"
+                previousAggState.firstDelimiter = null;
             }
             previousAggState.values.remove(indexOfExpression);
         }

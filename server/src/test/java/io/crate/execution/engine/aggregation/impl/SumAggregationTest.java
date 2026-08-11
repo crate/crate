@@ -33,6 +33,9 @@ import org.junit.Test;
 
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.sum.IntervalSumAggregation;
+import io.crate.execution.engine.aggregation.sum.NumericSumAggregation;
+import io.crate.execution.engine.aggregation.sum.SumAggregation;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;

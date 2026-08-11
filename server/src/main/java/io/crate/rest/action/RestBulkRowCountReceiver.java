@@ -56,11 +56,7 @@ class RestBulkRowCountReceiver extends BaseResultReceiver {
 
     @Override
     public void allFinished() {
-        if (failure == null) {
-            results[resultIdx] = new Result(rowCount, null);
-        } else {
-            results[resultIdx] = new Result(rowCount, failure);
-        }
+        results[resultIdx] = new Result(rowCount, failure);
         super.allFinished();
     }
 

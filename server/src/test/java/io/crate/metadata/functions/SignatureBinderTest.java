@@ -38,7 +38,7 @@ import org.junit.Test;
 
 import io.crate.execution.engine.aggregation.impl.MaximumAggregation;
 import io.crate.execution.engine.aggregation.impl.MinimumAggregation;
-import io.crate.execution.engine.aggregation.impl.NumericSumAggregation;
+import io.crate.execution.engine.aggregation.sum.NumericSumAggregation;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.BitStringType;
 import io.crate.types.CharacterType;
