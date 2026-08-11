@@ -249,4 +249,23 @@ public class RewriteFilterOnOuterJoinToInnerJoinTest extends CrateDummyClusterSe
             "      └ Collect[doc.t2 | [b] | true]"
         );
     }
+
+    @Test
+    public void test_cannot_rewrite_full_join_to_inner_join_if_filter_contains_a_sub_query() {
+        var joinCondition = e.asSymbol("doc.t1.a = doc.t2.b");
+        var join = new JoinPlan(t1, t2, JoinType.FULL, joinCondition);
+        var filter = new Filter(join, e.asSymbol("coalesce(doc.t1.a, 15) not in (select b from t2 where b = 2)"));
+
+        var rule = new RewriteFilterOnOuterJoinToInnerJoin();
+        var match = rule.pattern().accept(filter, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isEqualTo(filter);
+
+        var result = rule.apply(match.value(),
+            match.captures(),
+            e.ruleContext());
+
+        assertThat(result).isNull();
+    }
 }

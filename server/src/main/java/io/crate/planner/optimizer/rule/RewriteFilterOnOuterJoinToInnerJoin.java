@@ -34,7 +34,6 @@ import org.jspecify.annotations.Nullable;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.common.collections.Lists;
-import io.crate.data.Input;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
@@ -254,7 +253,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         if (query == null) {
             return false;
         }
-        Input<?> input = query.accept(evaluator, null);
-        return WhereClause.canMatch(input);
+        Symbol normalized = query.accept(evaluator, null);
+        return WhereClause.canMatch(normalized);
     }
 }
