@@ -2043,8 +2043,11 @@ public final class TestCluster implements Closeable {
     public List<String> startDataOnlyNodes(int numNodes, Settings settings) {
         return startNodes(
             numNodes,
-            Settings.builder().put(settings).put(Node.NODE_MASTER_SETTING.getKey(), false)
-                .put(Node.NODE_DATA_SETTING.getKey(), true).build());
+            Settings.builder()
+                .put(settings)
+                .put(Node.NODE_MASTER_SETTING.getKey(), false)
+                .put(Node.NODE_DATA_SETTING.getKey(), true)
+                .build());
     }
 
     private int getMasterNodesCount() {

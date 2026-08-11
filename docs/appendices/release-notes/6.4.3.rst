@@ -43,6 +43,41 @@ Version 6.4.3 - Unreleased
 See the :ref:`version_6.4.0` release notes for a full list of changes in the 6.4
 series.
 
+Breaking Changes
+================
+
+- Changed the error response for ``INSERT INTO .. VALUES`` bulk operations for
+  errors like unavailable shards. In 5.10 the reporting was unintentionally
+  changed to report the error on top-level instead of per bulk item. This
+  restores the 5.9 behavior and reports the error per bulk item again. This
+  allows to distinguish successful inserts if only a subset of shards wasn't
+  available. For example if using the HTTP interface, the response could look
+  like this:
+
+  ::
+
+    HTTP/1.1 200 OK
+    {
+        "cols": [],
+        "duration": 60112.33,
+        "results": [
+            {
+                "rowcount": 1
+            },
+            {
+                "rowcount": 1
+            },
+            {
+                "error": {
+                    "code": 5002,
+                    "message": "UnavailableShardsException[[doc.tbl][1] primary shard is not active Timeout: [1m], request: [ShardRequest{, shardId=[tbl/tAwjETKASaGfQJRrnn1M4g][1], timeout=1m}]]"
+                },
+                "rowcount": -2
+            }
+        ]
+    }
+
+
 Fixes
 =====
 
