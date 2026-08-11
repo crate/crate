@@ -21,45 +21,119 @@
 
 package io.crate.planner.optimizer.rule;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.crate.data.Input;
-import io.crate.expression.BaseImplementationSymbolVisitor;
+import io.crate.expression.operator.any.AnyOperator;
+import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.DynamicReference;
+import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.OuterColumn;
-import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
-import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.VoidReference;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 
-final class NullSymbolEvaluator extends BaseImplementationSymbolVisitor<Void> {
+final class NullSymbolEvaluator extends SymbolVisitor<Void, Symbol> {
+
+    private final TransactionContext txnCtx;
+    private final NodeContext nodeCtx;
 
     public NullSymbolEvaluator(TransactionContext txnCtx, NodeContext nodeCtx) {
-        super(txnCtx, nodeCtx);
+        this.txnCtx = txnCtx;
+        this.nodeCtx = nodeCtx;
     }
 
     @Override
-    public Input<?> visitField(ScopedSymbol field, Void context) {
+    public Symbol visitField(ScopedSymbol field, Void context) {
         return Literal.NULL;
     }
 
     @Override
-    public Input<?> visitReference(Reference symbol, Void context) {
+    public Symbol visitReference(Reference symbol, Void context) {
         return Literal.NULL;
     }
 
     @Override
-    public Input<?> visitParameterSymbol(ParameterSymbol parameterSymbol, Void context) {
+    public Symbol visitDynamicReference(DynamicReference symbol, Void context) {
+        return visitReference(symbol, context);
+    }
+
+    @Override
+    public Symbol visitVoidReference(VoidReference symbol, Void context) {
+        return visitReference(symbol, context);
+    }
+
+    @Override
+    public Symbol visitOuterColumn(OuterColumn outerColumn, Void context) {
         return Literal.NULL;
     }
 
     @Override
-    public Input<?> visitSelectSymbol(SelectSymbol selectSymbol, Void context) {
-        return Literal.NULL;
+    public Symbol visitAlias(AliasSymbol aliasSymbol, Void context) {
+        return aliasSymbol.symbol().accept(this, context);
     }
 
     @Override
-    public Input<?> visitOuterColumn(OuterColumn outerColumn, Void context) {
-        return Literal.NULL;
+    public Symbol visitLiteral(Literal<?> symbol, Void context) {
+        return symbol;
+    }
+
+    @Override
+    protected Symbol visitSymbol(Symbol symbol, Void context) {
+        // ParameterSymbol or SelectSymbol can have a different value than NULL,
+        return symbol;
+    }
+
+    @Override
+    public Symbol visitFunction(Function function, Void context) {
+        List<Symbol> arguments = function.arguments();
+        List<Symbol> newArguments = new ArrayList<>(arguments.size());
+        boolean allResolved = true;
+        boolean atLeastOneNull = false;
+        for (int i = 0; i < arguments.size(); i++) {
+            var newArg = arguments.get(i).accept(this, context);
+            if (newArg == Literal.NULL) {
+                atLeastOneNull = true;
+            }
+            if (!(newArg instanceof Input<?>)) {
+                allResolved = false;
+            }
+            newArguments.add(newArg);
+        }
+        if (!allResolved) {
+            if (atLeastOneNull) {
+                if (function.signature().hasFeature(Scalar.Feature.STRICTNULL)) {
+                    // Function is unresolved, but having at least one null argument is enough to make it NULL
+                    return Literal.NULL;
+                }
+                if (AnyOperator.OPERATOR_NAMES.contains(function.name())) {
+                    // ANY` isn't STRICTNULL, because it doesn't fit equivalence: arg null <==> f null
+                    // But here we need only weaker implication  arg null ==> f null to resolve function to null.
+                    return Literal.NULL;
+                }
+            }
+            return new Function(function.signature(), newArguments, function.valueType(), function.filter(), function.distinct());
+        }
+
+        // Fallback to BaseImplementationSymbolVisitor.visitFunction
+        FunctionImplementation implementation = nodeCtx.functions().getQualified(function);
+        if (!(implementation instanceof Scalar<?, ?> scalar)) {
+            return function;
+        }
+        Scalar<?, ?> compiled = scalar.compile(arguments, txnCtx.sessionSettings().userName(), nodeCtx.roles());
+        Input<?>[] inputs = new Input<?>[newArguments.size()];
+        for (int i = 0; i < newArguments.size(); i++) {
+            inputs[i] = (Input<?>) newArguments.get(i);
+        }
+        Object value = ((Scalar) compiled).evaluate(txnCtx, nodeCtx, inputs);
+        return Literal.ofUnchecked(function.valueType(), value);
     }
 }
