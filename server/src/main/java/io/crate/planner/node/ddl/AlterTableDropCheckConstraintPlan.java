@@ -55,6 +55,7 @@ public class AlterTableDropCheckConstraintPlan implements Plan {
                               SubQueryResults subQueryResults) {
         var request = new DropConstraintRequest(
             dropCheckConstraint.tableInfo().ident(),
+            dropCheckConstraint.tableInfo().oid(),
             dropCheckConstraint.name()
         );
 
