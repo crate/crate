@@ -202,3 +202,6 @@ Fixes
   when an explicit window frame is specified. For example: ``SELECT rank() OVER
   (ORDER BY <column> ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
   FROM <table>``
+
+- Fixed an issue causing queries with an ``OUTER JOIN`` return incorrect
+  results if ``WHERE`` clause had a subquery.
