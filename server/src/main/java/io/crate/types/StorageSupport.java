@@ -89,6 +89,13 @@ public abstract class StorageSupport<T> {
     }
 
     /**
+     * Decode a value from the packed bytes of a point in the BKD index.
+     */
+    public T decode(byte[] packedPoint) {
+        throw new UnsupportedOperationException("decodeFromPackedPoint not supported");
+    }
+
+    /**
      * @return {@code true} if values should always be loaded from stored fields
      */
     public boolean retrieveFromStoredFields() {

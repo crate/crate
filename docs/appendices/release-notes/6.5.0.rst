@@ -183,6 +183,11 @@ Performance and Resilience Improvements
   Lucene's term dictionary. Such queries now take 41% less time to complete in
   our benchmark for high-cardinality columns.
 
+- Improved the performance of ``GROUP BY`` queries where the grouping key is a
+  numeric column by taking advantage of Lucene's BKD trees. The speed up depends
+  on a number of factors, such as a column's cardinality ration, but can range
+  from 20% up to two orders of magnitude.
+
 Administration and Operations
 -----------------------------
 
