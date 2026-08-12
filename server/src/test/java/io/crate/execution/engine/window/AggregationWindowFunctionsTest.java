@@ -332,7 +332,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void test_agg_over_range_following_with_null_values() throws Throwable {
+    public void test_agg_over_range_asc_following_with_null_values() throws Throwable {
         Object[] expected = new Object[]{ 3L, 3L, 3L, 2L, 2L, 1L, 0L};
         assertEvaluate("count(x) OVER (" +
              "ORDER BY x RANGE BETWEEN CURRENT ROW AND 1 FOLLOWING)",
@@ -342,6 +342,38 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         );
     }
 
+    @Test
+    public void test_agg_over_range_desc_following_with_null_values() throws Throwable {
+        Object[] expected = new Object[]{ 0L, 2L, 2L, 3L, 3L, 3L, 1L};
+        assertEvaluate("count(x) OVER (" +
+             "ORDER BY x DESC RANGE BETWEEN CURRENT ROW AND 1 FOLLOWING)",
+            expected,
+            List.of(ColumnIdent.of("x")),
+            INPUT_ROWS
+        );
+    }
+
+    @Test
+    public void test_agg_over_range_asc_preceding_with_null_values() throws Throwable {
+        Object[] expected = new Object[]{ 1L, 3L, 3L, 3L, 2L, 2L, 0L};
+        assertEvaluate("count(x) OVER (" +
+             "ORDER BY x RANGE BETWEEN 1 PRECEDING AND CURRENT ROW)",
+            expected,
+            List.of(ColumnIdent.of("x")),
+            INPUT_ROWS
+        );
+    }
+
+    @Test
+    public void test_agg_over_range_desc_preceding_with_null_values() throws Throwable {
+        Object[] expected = new Object[]{ 0L, 1L, 2L, 2L, 3L, 3L, 3L};
+        assertEvaluate("count(x) OVER (" +
+             "ORDER BY x DESC RANGE BETWEEN 1 PRECEDING AND CURRENT ROW)",
+            expected,
+            List.of(ColumnIdent.of("x")),
+            INPUT_ROWS
+        );
+    }
 
     @Test
     public void test_agg_over_range_following() throws Throwable {
