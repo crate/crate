@@ -147,6 +147,10 @@ Performance and Resilience Improvements
   :ref:`SWAP TABLE <alter_cluster_swap_table>` cannot affect a ``DELETE``
   already in progress.
 
+- Improved :ref:`RENAME TABLE <sql-alter-table-rename-to>` to fail if the
+  source relation name points to a different table while the statement is being
+  executed.
+
 Administration and Operations
 -----------------------------
 

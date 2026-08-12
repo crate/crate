@@ -21,6 +21,8 @@
 
 package io.crate.metadata.cluster;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.util.List;
 import java.util.Locale;
 
@@ -63,6 +65,7 @@ public class RenameTableClusterStateExecutor {
         RelationMetadata relationMetadataSource = currentMetadata.getRelation(source);
         RelationMetadata relationMetadataTarget = currentMetadata.getRelation(target);
         boolean isView = relationMetadataSource instanceof RelationMetadata.View;
+        validateSourceRelation(source, request.sourceOid(), relationMetadataSource);
 
         if (relationMetadataTarget != null) {
             boolean viewExists = relationMetadataTarget instanceof RelationMetadata.View;
@@ -148,5 +151,23 @@ public class RenameTableClusterStateExecutor {
             ddlClusterStateService.onRenameTable(clusterStateAfterRename, source, target, request.isPartitioned()),
             "rename-table"
         );
+    }
+
+    private static void validateSourceRelation(RelationName source,
+                                               int sourceOid,
+                                               RelationMetadata relationMetadataSource) {
+        if (sourceOid == OID_UNASSIGNED) {
+            return;
+        }
+        if (relationMetadataSource == null) {
+            throw new RelationUnknown(source);
+        }
+        if (relationMetadataSource.oid() != sourceOid) {
+            throw new IllegalStateException(String.format(
+                Locale.ENGLISH,
+                "Relation '%s' changed while RENAME TABLE was being executed",
+                source
+            ));
+        }
     }
 }
