@@ -54,6 +54,7 @@ public class AlterTableRenameTablePlan implements Plan {
                               Row params, SubQueryResults subQueryResults) throws Exception {
         var request = new RenameTableRequest(
             analyzedAlterTableRenameTable.sourceName(),
+            analyzedAlterTableRenameTable.sourceOid(),
             analyzedAlterTableRenameTable.targetName(),
             analyzedAlterTableRenameTable.isPartitioned());
         dependencies.client().execute(TransportRenameTable.ACTION, request)
