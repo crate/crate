@@ -47,6 +47,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.MergeCountProjection;
@@ -251,6 +252,9 @@ public final class CopyToPlan implements Plan {
         WhereClause whereClause = new WhereClause(copyTo.whereClause(), partitions, Collections.emptySet());
         String uri = DataTypes.STRING.sanitizeValue(eval.apply(copyTo.uri()));
         if (uri.startsWith("/") || uri.startsWith("file:")) {
+            if (txnCtx.sessionSettings().authenticatedUser().isSuperUser() == false) {
+                throw new UnauthorizedException("Only a superuser can write to the local file system");
+            }
             // Settings of other schemes are validated later in plugins
             // as only plugins are aware of scheme specific properties.
             properties.ensureContainsOnly(CopyStatementSettings.COMMON_COPY_TO_SETTINGS);

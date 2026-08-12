@@ -1188,7 +1188,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
     @UseRandomizedSchema(random = false)
     @Test
-    public void test_copy_from_local_file_is_only_allowed_for_superusers() {
+    public void test_copy_from_or_to_local_file_is_only_allowed_for_superusers() {
         execute("CREATE TABLE quotes (id INT PRIMARY KEY, " +
             "quote STRING INDEX USING FULLTEXT) WITH (number_of_replicas = 0)");
         execute("CREATE USER test_user");
@@ -1202,6 +1202,11 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             assertThatThrownBy(() -> execute("COPY quotes FROM ?", new Object[]{copyFilePath + "test_copy_from.json"}, session))
                 .isExactlyInstanceOf(UnauthorizedException.class)
                 .hasMessage("Only a superuser can read from the local file system");
+
+            String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
+            assertThatThrownBy(() -> execute("COPY quotes TO DIRECTORY ?", new Object[]{uriTemplate}, session))
+                .isExactlyInstanceOf(UnauthorizedException.class)
+                .hasMessage("Only a superuser can write to the local file system");
         }
     }
 
