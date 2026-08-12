@@ -92,6 +92,9 @@ public class PGFloatVectorType extends PGType<float[]> {
         buffer.readInt(); // element oid
         int dimension = buffer.readInt();
         buffer.readInt();  // lowerBound ignored
+        if (dimension < 0 || dimension > buffer.readableBytes()) {
+            throw new IllegalArgumentException("Invalid vector dimension: " + dimension);
+        }
         return readArrayAsBinary(buffer, dimension);
     }
 
