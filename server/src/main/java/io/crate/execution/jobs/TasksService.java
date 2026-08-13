@@ -71,6 +71,7 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
 
     private final ClusterService clusterService;
     private final JobsLogs jobsLogs;
+    private final NodeLimits nodeLimits;
     private final ConcurrentMap<UUID, RootTask> activeTasks =
         ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
 
@@ -83,9 +84,10 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
         .expireAfterWrite(30, TimeUnit.SECONDS)
         .build();
 
-    public TasksService(ClusterService clusterService, JobsLogs jobsLogs) {
+    public TasksService(ClusterService clusterService, JobsLogs jobsLogs, NodeLimits nodeLimits) {
         this.clusterService = clusterService;
         this.jobsLogs = jobsLogs;
+        this.nodeLimits = nodeLimits;
     }
 
     @Override
@@ -132,6 +134,7 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
 
     @Override
     public void onNodeDisconnected(DiscoveryNode node, Connection connection) {
+        nodeLimits.nodeDisconnected(node.getId());
         for (var task : activeTasks.values()) {
             if (task.participatingNodes().contains(node.getId())) {
                 task.kill(JobKilledException.of("Participating node " + node.getId() + " disconnected"));

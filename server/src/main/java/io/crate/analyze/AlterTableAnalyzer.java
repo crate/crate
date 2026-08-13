@@ -103,7 +103,7 @@ class AlterTableAnalyzer {
         RelationName targetName = new RelationName(sourceName.schema(), newIdentParts.get(0));
         targetName.ensureValidForRelationCreation();
         boolean isPartitioned = source instanceof DocTableInfo docTable && docTable.isPartitioned();
-        return new AnalyzedAlterTableRenameTable(sourceName, targetName, isPartitioned);
+        return new AnalyzedAlterTableRenameTable(sourceName, source.oid(), targetName, isPartitioned);
     }
 
     public AnalyzedAlterTableOpenClose analyze(AlterTableOpenClose<Expression> node,

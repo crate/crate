@@ -149,6 +149,10 @@ Performance and Resilience Improvements
   such that concurrent :ref:`SWAP TABLE <alter_cluster_swap_table>`
   cannot affect aforementioned queries already in progress.
 
+- Improved :ref:`RENAME TABLE <sql-alter-table-rename-to>` to fail if the
+  source relation name points to a different table while the statement is being
+  executed.
+
 Administration and Operations
 -----------------------------
 
