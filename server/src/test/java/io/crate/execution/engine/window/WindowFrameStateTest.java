@@ -41,13 +41,13 @@ public class WindowFrameStateTest {
 
     @Test
     public void testGetRowWithinRangeInSinglePartition() {
-        wfs.updateBounds(0, 6, 0, 6);
+        wfs.updateBounds(0, 6, 0, 6, 6);
         assertThat(wfs.getRowInPartitionAtIndexOrNull(1)).isEqualTo(rows.get(1));
     }
 
     @Test
     public void testGetRowOutOfRangeInSinglePartition() {
-        wfs.updateBounds(0, 6, 0, 6);
+        wfs.updateBounds(0, 6, 0, 6, 6);
         assertThat(wfs.getRowInPartitionAtIndexOrNull(-1)).isNull();
         assertThat(wfs.getRowInPartitionAtIndexOrNull(rows.size())).isNull();
     }
@@ -55,12 +55,12 @@ public class WindowFrameStateTest {
     @Test
     public void testGetRowsWithinRangeInTwoPartitionReturnsNull() {
         // Partition 1 index range: [0, 3); frame [0, 1)
-        wfs.updateBounds(0, 3, 0, 1);
+        wfs.updateBounds(0, 3, 0, 1, 3);
         assertThat(wfs.getRowInPartitionAtIndexOrNull(0)).isEqualTo(rows.get(0));
         assertThat(wfs.getRowInPartitionAtIndexOrNull(2)).isEqualTo(rows.get(2));
 
         // Partition 2 index range: [3, 6); frame [3, 6)
-        wfs.updateBounds(3, 6, 3, 6);
+        wfs.updateBounds(3, 6, 3, 6, 6);
         assertThat(wfs.getRowInPartitionAtIndexOrNull(0)).isEqualTo(rows.get(3));
         assertThat(wfs.getRowInPartitionAtIndexOrNull(2)).isEqualTo(rows.get(5));
     }
@@ -68,12 +68,12 @@ public class WindowFrameStateTest {
     @Test
     public void testGetRowsOutOfRangeInTwoPartitionReturnsNull() {
         // Partition 1 index range: [0, 3); frame [0, 1)
-        wfs.updateBounds(0, 3, 0, 1);
+        wfs.updateBounds(0, 3, 0, 1, 3);
         assertThat(wfs.getRowInPartitionAtIndexOrNull(-1)).isNull();
         assertThat(wfs.getRowInPartitionAtIndexOrNull(3)).isNull();
 
         // Partition 2 index range: [3, 6); frame [3, 6)
-        wfs.updateBounds(3, 6, 3, 6);
+        wfs.updateBounds(3, 6, 3, 6, 6);
         assertThat(wfs.getRowInPartitionAtIndexOrNull(-1)).isNull();
         assertThat(wfs.getRowInPartitionAtIndexOrNull(3)).isNull();
     }

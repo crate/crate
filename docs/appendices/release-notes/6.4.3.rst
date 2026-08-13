@@ -194,3 +194,8 @@ Fixes
   by using sub-queries inside :ref:`UPDATE <ref-update>` or
   :ref:`DELETE <sql_reference_delete>` statements. Sub-queries used in such
   statements now require the ``DQL`` privilege on all involved tables and views.
+
+- Fixed incorrect results in :ref:`rank() <window-functions-rank>` and :ref:`dense_rank() <window-functions-dense-rank>` window functions
+  when an explicit window frame is specified. For example: ``SELECT rank() OVER
+  (ORDER BY <column> ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
+  FROM <table>``
