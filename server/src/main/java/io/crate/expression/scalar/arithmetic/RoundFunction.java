@@ -24,6 +24,7 @@ package io.crate.expression.scalar.arithmetic;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
@@ -39,6 +40,14 @@ import io.crate.types.DataTypes;
 public final class RoundFunction {
 
     public static final String NAME = "round";
+
+    /**
+     * The maximum supported `precision` argument of `round(x, precision)`. Matches the maximum
+     * scale of PostgreSQL's `numeric` type. Without an upper bound, `setScale()` has to materialize
+     * an unscaled value with `precision` digits, which runs out of memory or seems hang.
+     */
+    @VisibleForTesting
+    static final int MAX_PRECISION = 16383;
 
     private RoundFunction() {}
 
@@ -121,7 +130,18 @@ public final class RoundFunction {
                 }
 
                 if (numDecimals < 0) {
+                    // Rounding to a power of ten which is larger than the value itself always
+                    // results in 0. Short-circuit those cases, otherwise `movePointRight()` creates
+                    // a BigDecimal with a scale of `numDecimals`, and rounding it requires to
+                    // materialize an unscaled value with that many digits, which increases execution
+                    // time as `numDecimals` grows.
+                    if (-(long) numDecimals > val.precision() - val.scale()) {
+                        return BigDecimal.ZERO;
+                    }
                     return val.movePointRight(numDecimals).setScale(0, RoundingMode.HALF_UP).movePointLeft(numDecimals);
+                }
+                if (numDecimals > MAX_PRECISION) {
+                    return val.setScale(MAX_PRECISION, RoundingMode.HALF_UP);
                 }
                 return val.setScale(numDecimals, RoundingMode.HALF_UP);
             }
