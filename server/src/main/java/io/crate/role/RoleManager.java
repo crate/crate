@@ -38,12 +38,14 @@ public interface RoleManager extends Roles {
      *
      * @param roleName name of the role to create
      * @param jwtProperties contains JWK specific properties if user can be authenticated by providing a JWTtoken.
+     * @param sessionSettings the session settings to apply to new sessions opened by the user.
      * @return 1 if the role was created, otherwise a failed future.
      */
     CompletableFuture<Long> createRole(String roleName,
                                        boolean isUser,
                                        @Nullable SecureHash hashedPw,
-                                       @Nullable JwtProperties jwtProperties);
+                                       @Nullable JwtProperties jwtProperties,
+                                       Map<String, Object> sessionSettings);
 
     /**
      * Delete a roles.
