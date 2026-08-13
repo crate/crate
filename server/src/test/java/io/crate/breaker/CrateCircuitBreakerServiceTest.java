@@ -36,6 +36,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.TasksService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
@@ -46,7 +47,11 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
         try (CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
             Settings.EMPTY,
             clusterService.getClusterSettings(),
-            new TasksService(clusterService, new JobsLogs(true)),
+            new TasksService(
+                clusterService,
+                new JobsLogs(true),
+                new NodeLimits(clusterService.getClusterSettings())
+            ),
             Mockito.mock(Client.class)
         )) {
 
@@ -65,7 +70,10 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
         try (HierarchyCircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
             settings,
             clusterService.getClusterSettings(),
-            new TasksService(clusterService, new JobsLogs(true)),
+            new TasksService(clusterService,
+                new JobsLogs(true),
+                new NodeLimits(clusterService.getClusterSettings())
+            ),
             Mockito.mock(Client.class)
         )) {
 
@@ -91,7 +99,10 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
         try (CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
                 settings,
                 clusterService.getClusterSettings(),
-                new TasksService(clusterService, new JobsLogs(true)),
+                new TasksService(clusterService,
+                    new JobsLogs(true),
+                    new NodeLimits(clusterService.getClusterSettings())
+                ),
                 Mockito.mock(Client.class)
         )) {
             CircuitBreaker breaker = breakerService.getBreaker(CircuitBreaker.JOBS_LOG);
@@ -126,7 +137,11 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
         try (CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
             Settings.EMPTY,
             clusterService.getClusterSettings(),
-            new TasksService(clusterService, new JobsLogs(true)),
+            new TasksService(
+                clusterService,
+                new JobsLogs(true),
+                new NodeLimits(clusterService.getClusterSettings())
+            ),
             Mockito.mock(Client.class)
         )) {
             CircuitBreakerStats queryBreakerStats = breakerService.stats(CircuitBreaker.QUERY);

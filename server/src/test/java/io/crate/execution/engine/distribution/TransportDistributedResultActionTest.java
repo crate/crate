@@ -39,6 +39,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.execution.jobs.kill.KillResponse;
@@ -51,7 +52,11 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
     @Test
     public void testKillIsInvokedIfContextIsNotFound() throws Exception {
         TransportService transportService = mock(TransportService.class);
-        TasksService tasksService = new TasksService(clusterService, new JobsLogs(false));
+        TasksService tasksService = new TasksService(
+            clusterService,
+            new JobsLogs(false),
+            new NodeLimits(clusterService.getClusterSettings())
+        );
         AtomicInteger numBroadcasts = new AtomicInteger(0);
         TransportKillJobsNodeAction killJobsAction = new TransportKillJobsNodeAction(
             tasksService,
