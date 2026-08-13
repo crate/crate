@@ -51,6 +51,7 @@ import io.crate.data.testing.TestingRowConsumer;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.execution.jobs.kill.KillResponse;
@@ -96,7 +97,9 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
 
         TasksService tasksService = new TasksService(
             clusterService,
-            new JobsLogs(true));
+            new JobsLogs(true),
+            new NodeLimits(clusterService.getClusterSettings())
+        );
         numBroadcastCalls = new AtomicInteger(0);
         transportKillJobsNodeAction = new TransportKillJobsNodeAction(
             tasksService,

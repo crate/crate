@@ -33,6 +33,7 @@ import org.junit.Test;
 
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillAllRequest;
 import io.crate.execution.jobs.kill.KillResponse;
@@ -46,7 +47,10 @@ public class KillPlanTest extends CrateDummyClusterServiceUnitTest {
     public void testKillTaskCallsBroadcastOnTransportKillAllNodeAction() {
         AtomicInteger broadcastCalls = new AtomicInteger(0);
         AtomicInteger nodeOperationCalls = new AtomicInteger(0);
-        TasksService tasksService = new TasksService(clusterService, new JobsLogs(false));
+        TasksService tasksService = new TasksService(clusterService,
+            new JobsLogs(false),
+            new NodeLimits(clusterService.getClusterSettings())
+        );
         TransportKillAllNodeAction killAllNodeAction = new TransportKillAllNodeAction(
             tasksService,
             clusterService,
