@@ -21,39 +21,66 @@
 
 package io.crate.execution.ddl;
 
-import io.crate.metadata.RelationName;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
+import java.io.IOException;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import java.io.IOException;
+import io.crate.metadata.RelationName;
 
 public final class RelationNameSwap implements Writeable {
 
     private final RelationName source;
+    private final int sourceOid;
     private final RelationName target;
+    private final int targetOid;
 
-    public RelationNameSwap(RelationName source, RelationName target) {
+    public RelationNameSwap(RelationName source, int sourceOid, RelationName target, int targetOid) {
         this.source = source;
+        this.sourceOid = sourceOid;
         this.target = target;
+        this.targetOid = targetOid;
     }
 
     public RelationNameSwap(StreamInput in) throws IOException {
         this.source = new RelationName(in);
         this.target = new RelationName(in);
+        if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
+            this.sourceOid = in.readVInt();
+            this.targetOid = in.readVInt();
+        } else {
+            this.sourceOid = OID_UNASSIGNED;
+            this.targetOid = OID_UNASSIGNED;
+        }
     }
 
     public RelationName source() {
         return source;
     }
 
+    public int sourceOid() {
+        return sourceOid;
+    }
+
     public RelationName target() {
         return target;
+    }
+
+    public int targetOid() {
+        return targetOid;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         source.writeTo(out);
         target.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
+            out.writeVInt(sourceOid);
+            out.writeVInt(targetOid);
+        }
     }
 }
