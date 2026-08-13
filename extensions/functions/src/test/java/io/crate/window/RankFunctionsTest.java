@@ -62,6 +62,62 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
+    public void test_rank_with_rows_explicit_frames_should_not_depend_on_frames() throws Throwable {
+        assertEvaluate(
+            "rank() over(order by x rows between unbounded preceding and unbounded following)",
+            new Object[] {1, 1, 1, 4, 4},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
+            new Object[] {1, 1},
+            new Object[] {2, 1},
+            new Object[] {1, 1},
+            new Object[] {1, 0},
+            new Object[] {2, 1}
+        );
+    }
+
+    @Test
+    public void test_rank_with_range_explicit_frames_should_not_depend_on_frames() throws Throwable {
+        assertEvaluate(
+            "rank() over(order by x range between unbounded preceding and unbounded following)",
+            new Object[] {1, 1, 1, 4, 4},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
+            new Object[] {1, 1},
+            new Object[] {2, 1},
+            new Object[] {1, 1},
+            new Object[] {1, 0},
+            new Object[] {2, 1}
+        );
+    }
+
+    @Test
+    public void test_rank_with_partition_and_rows_explicit_frames_should_depend_only_on_partition() throws Throwable {
+        assertEvaluate(
+            "rank() over(partition by y order by x rows between unbounded preceding and unbounded following)",
+            new Object[] {1, 2, 2, 4, 1},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
+            new Object[] {1, 1},
+            new Object[] {2, 1},
+            new Object[] {2, 1},
+            new Object[] {2, 2},
+            new Object[] {3, 1}
+        );
+    }
+
+    @Test
+    public void test_rank_with_partition_and_range_explicit_frames_should_depend_only_on_partition() throws Throwable {
+        assertEvaluate(
+            "rank() over(partition by y order by x range between unbounded preceding and unbounded following)",
+            new Object[] {1, 2, 2, 4, 1},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
+            new Object[] {1, 1},
+            new Object[] {2, 1},
+            new Object[] {2, 1},
+            new Object[] {2, 2},
+            new Object[] {3, 1}
+        );
+    }
+
+    @Test
     public void testRankUseSymbolMultipleTimes() throws Throwable {
         assertEvaluate(
             "rank() over(order by y, x)",
@@ -177,6 +233,63 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
             new Object[] {2, 0},
             new Object[] {3, 0});
     }
+
+    @Test
+    public void test_dense_rank_with_rows_explicit_frames_should_not_depend_on_frames() throws Throwable {
+        assertEvaluate(
+            "dense_rank() over(order by x rows between unbounded preceding and unbounded following)",
+            new Object[] {1, 1, 1, 2, 2},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
+            new Object[] {1, 1},
+            new Object[] {2, 1},
+            new Object[] {1, 1},
+            new Object[] {1, 0},
+            new Object[] {2, 1}
+        );
+    }
+
+    @Test
+    public void test_dense_rank_with_range_explicit_frames_should_not_depend_on_frames() throws Throwable {
+        assertEvaluate(
+            "dense_rank() over(order by x range between unbounded preceding and unbounded following)",
+            new Object[] {1, 1, 1, 2, 2},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
+            new Object[] {1, 1},
+            new Object[] {2, 1},
+            new Object[] {1, 1},
+            new Object[] {1, 0},
+            new Object[] {2, 1}
+        );
+    }
+
+    @Test
+    public void test_dense_rank_with_partition_and_rows_explicit_frames_should_depend_only_on_partition() throws Throwable {
+        assertEvaluate(
+            "dense_rank() over(partition by y order by x rows between unbounded preceding and unbounded following)",
+            new Object[] {1, 2, 2, 3, 1},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
+            new Object[] {1, 1},
+            new Object[] {2, 1},
+            new Object[] {2, 1},
+            new Object[] {2, 2},
+            new Object[] {3, 1}
+        );
+    }
+
+    @Test
+    public void test_dense_rank_with_partition_and_range_explicit_frames_should_depend_only_on_partition() throws Throwable {
+        assertEvaluate(
+            "dense_rank() over(partition by y order by x range between unbounded preceding and unbounded following)",
+            new Object[] {1, 2, 2, 3, 1},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
+            new Object[] {1, 1},
+            new Object[] {2, 1},
+            new Object[] {2, 1},
+            new Object[] {2, 2},
+            new Object[] {3, 1}
+        );
+    }
+
 
     @Test
     public void testIgnoreNullsFlagThrows() {

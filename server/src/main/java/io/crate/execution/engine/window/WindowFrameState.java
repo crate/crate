@@ -34,6 +34,7 @@ public final class WindowFrameState {
     private int upperBoundExclusive;
     private int partitionStart;
     private int partitionEnd;
+    private int peerGroupWithinPartitionEndExclusive;
 
     WindowFrameState(int lowerBound, int upperBoundExclusive, List<Object[]> rows) {
         this.lowerBound = lowerBound;
@@ -51,6 +52,10 @@ public final class WindowFrameState {
 
     public int partitionEnd() {
         return partitionEnd;
+    }
+
+    public int peerGroupWithinPartitionEndExclusive() {
+        return peerGroupWithinPartitionEndExclusive;
     }
 
     public Iterable<Object[]> getRows() {
@@ -88,11 +93,12 @@ public final class WindowFrameState {
         return rows.get(idxInPartition);
     }
 
-    void updateBounds(int pStart, int pEnd, int wBegin, int wEnd) {
+    void updateBounds(int pStart, int pEnd, int wBegin, int wEnd, int peerGroupWithinPartitionEnd) {
         this.partitionStart = pStart;
         this.partitionEnd = pEnd;
         this.lowerBound = wBegin - pStart;
         this.upperBoundExclusive = wEnd - pStart;
+        this.peerGroupWithinPartitionEndExclusive = peerGroupWithinPartitionEnd - pStart;
     }
 
     @Override
@@ -102,6 +108,7 @@ public final class WindowFrameState {
                ", upperBoundExclusive=" + upperBoundExclusive +
                ", partitionStart=" + partitionStart +
                ", partitionEnd=" + partitionEnd +
+               ", peerGroupWithinPartitionEndExclusive=" + peerGroupWithinPartitionEndExclusive +
                '}';
     }
 
