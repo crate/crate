@@ -101,3 +101,14 @@ Fixes
   A large positive ``precision`` had the same effect and now is capped to
   ``16383``, meaning, if the ``precision`` exceeds ``16383`` the function would
   yield results as if the precision was set to the maximum value of ``16383``.
+
+- Fixed an issue that caused :ref:`CREATE USER <ref-create-user>` to fail with
+  ``Setting '<name>' is not supported`` even when a valid
+  :ref:`session setting <conf-session>` was provided, e.g.::
+
+    CREATE USER john WITH (password = 'foo', enable_hashjoin = false);
+
+  Such :ref:`session settings <conf-session>` are now saved with the created
+  user. Like with :ref:`ALTER ROLE <ref-alter-role>`, they can only be set for
+  a user and not for a role.
+

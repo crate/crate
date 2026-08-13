@@ -323,6 +323,22 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
     }
 
     @Test
+    public void test_user_session_settings_can_be_set_on_create() {
+        execute("CREATE USER new_user WITH (password = 'pwd', search_path = 'my_schema')");
+        assertUserIsCreated("new_user");
+        executeAsSuperuser("SELECT session_settings FROM sys.users WHERE name = 'new_user'");
+        assertThat(response).hasRows("{search_path=my_schema}");
+
+        execute("GRANT DQL ON SCHEMA my_schema TO new_user");
+        execute("CREATE TABLE my_schema.tbl(a int)");
+        execute("INSERT INTO my_schema.tbl(a) values(1),(2)");
+        execute("REFRESH TABLE my_schema.tbl");
+
+        executeAs("SELECT * FROM tbl ORDER BY 1", "new_user");
+        assertThat(response).hasRows("1", "2");
+    }
+
+    @Test
     public void test_information_schema_roles_tables() {
         executeAs("CREATE ROLE role1", GRANTOR_USER);
         executeAs("CREATE ROLE role2", GRANTOR_USER);

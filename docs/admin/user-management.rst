@@ -190,6 +190,17 @@ methods. You can specify the user's password in the ``WITH`` clause of the
     cr> CREATE USER user_b WITH (password = 'a_secret_password');
     CREATE OK, 1 row affected (... sec)
 
+The ``WITH`` clause also accepts modifiable :ref:`session settings
+<conf-session>`, which are applied to every new session opened by the user::
+
+    cr> CREATE USER user_e WITH (password = 'a_secret_password', search_path = 'myschema');
+    CREATE OK, 1 row affected (... sec)
+
+.. hide:
+
+    cr> DROP USER user_e;
+    DROP OK, 1 row affected (... sec)
+
 The username parameter of the statement follows the principles of an identifier
 which means that it must be double-quoted if it contains special characters
 (e.g. whitespace) or if the case needs to be maintained::

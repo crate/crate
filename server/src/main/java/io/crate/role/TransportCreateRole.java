@@ -41,9 +41,10 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.RoleAlreadyExistsException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
@@ -90,6 +91,11 @@ public class TransportCreateRole extends TransportMasterNodeAction<CreateRoleReq
         if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_5_6_0) == false) {
             throw new IllegalStateException("Cannot create new users/roles until all nodes are upgraded to 5.6");
         }
+        if (request.sessionSettings().isEmpty() == false
+                && state.nodes().getMinNodeVersion().onOrAfter(Version.V_6_4_3) == false) {
+            throw new IllegalStateException(
+                "Cannot create users with session settings until all nodes are upgraded to 6.4.3");
+        }
 
         clusterService.submitStateUpdateTask("create_role [" + request.roleName() + "]",
                 new AckedClusterStateUpdateTask<>(Priority.IMMEDIATE, request, listener) {
@@ -106,7 +112,7 @@ public class TransportCreateRole extends TransportMasterNodeAction<CreateRoleReq
                             request.isUser(),
                             request.secureHash(),
                             request.jwtProperties(),
-                            Map.of()
+                            request.sessionSettings()
                         );
                         return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     }
@@ -135,6 +141,9 @@ public class TransportCreateRole extends TransportMasterNodeAction<CreateRoleReq
                            @Nullable SecureHash secureHash,
                            @Nullable JwtProperties jwtProperties,
                            Map<String, Object> sessionSettings) {
+        if (isUser == false && sessionSettings.isEmpty() == false) {
+            throw new UnsupportedFeatureException("Setting session settings to a ROLE is not allowed");
+        }
         RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
 

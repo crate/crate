@@ -103,5 +103,21 @@ The following ``user_parameter`` are supported to define a new user account:
 
 .. vale on
 
+.. _create-user-session-settings:
+
+:session settings:
+  Any of the modifiable :ref:`session settings <conf-session>`. The value set
+  is used when the user logs in to the database, instead of the default value,
+  thus, there is no need to use ``SET`` statements to modify a setting value
+  after the user is created. e.g.::
+
+     CREATE USER john WITH (password='foo', search_path='my_schema')
+
+.. NOTE::
+
+    Session settings can only be set for a user and not for a role and are
+    therefore not inherited by other users. They can be changed or reset after
+    a user is created with :ref:`ALTER ROLE <ref-alter-role>`.
+
 .. _iss: https://www.rfc-editor.org/rfc/rfc7519#section-4.1.1
 .. _aud: https://www.rfc-editor.org/rfc/rfc7519#section-4.1.3
