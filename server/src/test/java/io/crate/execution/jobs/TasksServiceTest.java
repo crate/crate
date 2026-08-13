@@ -23,6 +23,9 @@ package io.crate.execution.jobs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -41,7 +44,6 @@ import org.elasticsearch.transport.Transport.Connection;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.engine.collect.stats.JobsLogs;
@@ -53,11 +55,13 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
 
     private TasksService tasksService;
+    private NodeLimits nodeLimits;
 
     @Before
     public void prepare() {
         JobsLogs jobsLogs = new JobsLogs(true);
-        tasksService = new TasksService(clusterService, jobsLogs);
+        nodeLimits = mock(NodeLimits.class);
+        tasksService = new TasksService(clusterService, jobsLogs, nodeLimits);
     }
 
     @After
@@ -283,7 +287,8 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         RootTask task = tasksService.createTask(builder);
         assertThat(task.completionFuture()).isNotDone();
 
-        tasksService.onNodeDisconnected(node, Mockito.mock(Connection.class));
+        tasksService.onNodeDisconnected(node, mock(Connection.class));
+        verify(nodeLimits, times(1)).nodeDisconnected(nodeId);
         assertThat(task.completionFuture()).failsWithin(1, TimeUnit.SECONDS)
             .withThrowableThat()
             .havingRootCause()
@@ -304,7 +309,8 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         assertThat(task.participatingNodes()).doesNotContain(nodeId);
         assertThat(task.completionFuture()).isNotDone();
 
-        tasksService.onNodeDisconnected(node, Mockito.mock(Connection.class));
+        tasksService.onNodeDisconnected(node, mock(Connection.class));
+        verify(nodeLimits, times(1)).nodeDisconnected(nodeId);
         assertThat(task.completionFuture()).failsWithin(1, TimeUnit.SECONDS)
             .withThrowableThat()
             .havingRootCause()

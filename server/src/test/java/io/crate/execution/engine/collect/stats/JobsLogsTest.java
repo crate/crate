@@ -53,6 +53,7 @@ import org.mockito.Mockito;
 
 import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
@@ -77,7 +78,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         breakerService = new HierarchyCircuitBreakerService(
             Settings.EMPTY,
             clusterSettings,
-            new TasksService(clusterService, jobsLogs),
+            new TasksService(clusterService, jobsLogs, new NodeLimits(clusterSettings)),
             Mockito.mock(Client.class)
         );
         nodeCtx = createNodeContext();

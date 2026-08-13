@@ -178,6 +178,7 @@ import io.crate.execution.engine.collect.CollectOperationModule;
 import io.crate.execution.engine.collect.files.CopyModule;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.sys.check.SysChecksModule;
 import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
@@ -452,7 +453,8 @@ public class Node implements Closeable {
             IndexSearcher.setMaxClauseCount(LuceneQueryBuilder.INDICES_MAX_CLAUSE_COUNT_SETTING.get(settings));
 
             JobsLogs jobsLogs = new JobsLogs(true);
-            TasksService tasksService = new TasksService(clusterService, jobsLogs);
+            NodeLimits nodeLimits = new NodeLimits(settingsModule.getClusterSettings());
+            TasksService tasksService = new TasksService(clusterService, jobsLogs, nodeLimits);
             resourcesToClose.add(tasksService);
 
             CircuitBreakerService circuitBreakerService = new HierarchyCircuitBreakerService(
@@ -858,6 +860,7 @@ public class Node implements Closeable {
                     b.bind(InformationSchemaInfo.class).toInstance((InformationSchemaInfo) schemas.getSystemSchema(InformationSchemaInfo.NAME));
                     b.bind(BlobSchemaInfo.class).toInstance((BlobSchemaInfo) schemas.getSystemSchema(BlobSchemaInfo.NAME));
                     b.bind(TasksService.class).toInstance(tasksService);
+                    b.bind(NodeLimits.class).toInstance(nodeLimits);
                 }
             );
             injector = modules.createInjector();

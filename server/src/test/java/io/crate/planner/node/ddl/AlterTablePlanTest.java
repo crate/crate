@@ -51,6 +51,7 @@ import io.crate.execution.ddl.tables.GCDanglingArtifactsRequest;
 import io.crate.execution.ddl.tables.TransportAlterTable;
 import io.crate.execution.ddl.tables.TransportGCDanglingArtifacts;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.operators.SubQueryResults;
@@ -74,7 +75,8 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
             );
         tasksService = new TasksService(
             clusterService,
-            new JobsLogs(false)
+            new JobsLogs(false),
+            new NodeLimits(clusterService.getClusterSettings())
         );
     }
 
