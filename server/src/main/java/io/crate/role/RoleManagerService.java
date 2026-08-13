@@ -72,8 +72,9 @@ public class RoleManagerService implements RoleManager {
     public CompletableFuture<Long> createRole(String roleName,
                                               boolean isUser,
                                               @Nullable SecureHash hashedPw,
-                                              @Nullable JwtProperties jwtProperties) {
-        CreateRoleRequest request = new CreateRoleRequest(roleName, isUser, hashedPw, jwtProperties);
+                                              @Nullable JwtProperties jwtProperties,
+                                              Map<String, Object> sessionSettings) {
+        CreateRoleRequest request = new CreateRoleRequest(roleName, isUser, hashedPw, jwtProperties, sessionSettings);
         return client.execute(TransportCreateRole.ACTION, request).thenApply(r -> {
             if (r.doesUserExist()) {
                 throw new RoleAlreadyExistsException(String.format(Locale.ENGLISH, "Role '%s' already exists", roleName));

@@ -19,7 +19,9 @@ example:
   SET OK, 0 rows affected (... sec)
 
 Alternatively, session settings can be modified permanently from their default
-values for a user, with the use of :ref:`ALTER ROLE <ref-alter-role>`.
+values for a user, either when the user is created with :ref:`CREATE USER
+<create-user-session-settings>`, or later on with :ref:`ALTER ROLE
+<ref-alter-role>`.
 
 To retrieve the current value of a session setting, use :ref:`SHOW <ref-show>`
 e.g:
@@ -37,7 +39,8 @@ Besides using ``SHOW``, it is also possible to use the :ref:`current_setting
     :ref:`sys.sessions <sys-sessions>` table.
 
 .. NOTE::
-    Default values for session settings can set per role using :ref:`ALTER ROLE
+    Default values for session settings can set per user using :ref:`CREATE
+    USER <create-user-session-settings>` or :ref:`ALTER ROLE
     <ref-alter-role>`.
 
 Supported session settings

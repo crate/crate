@@ -23,6 +23,8 @@ package io.crate.role;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Map;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.SecureString;
@@ -37,7 +39,8 @@ public class CreateRoleRequestTest extends ESTestCase {
             new CreateRoleRequest("testUser",
                 false,
                 SecureHash.of(new SecureString("passwd".toCharArray())),
-                new JwtProperties("https:dummy.org", "test", "test_aud")
+                new JwtProperties("https:dummy.org", "test", "test_aud"),
+                Map.of("enable_hashjoin", false, "statement_timeout", "10m")
             );
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -51,6 +54,7 @@ public class CreateRoleRequestTest extends ESTestCase {
         assertThat(jwtProps.iss()).isEqualTo("https:dummy.org");
         assertThat(jwtProps.username()).isEqualTo("test");
         assertThat(jwtProps.aud()).isEqualTo("test_aud");
+        assertThat(crr2.sessionSettings()).isEqualTo(crr1.sessionSettings());
 
         out = new BytesStreamOutput();
         out.setVersion(Version.V_5_5_0);
@@ -62,5 +66,17 @@ public class CreateRoleRequestTest extends ESTestCase {
         assertThat(crr2.secureHash()).isEqualTo(crr1.secureHash());
         assertThat(crr2.isUser()).isTrue();
         assertThat(crr2.jwtProperties()).isNull();
+        assertThat(crr2.sessionSettings()).isEmpty();
+
+        // session settings are only streamed to nodes on 6.4.3 or higher
+        out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_4_2);
+        crr1.writeTo(out);
+        in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_4_2);
+        crr2 = new CreateRoleRequest(in);
+        assertThat(crr2.roleName()).isEqualTo(crr1.roleName());
+        assertThat(crr2.jwtProperties()).isEqualTo(crr1.jwtProperties());
+        assertThat(crr2.sessionSettings()).isEmpty();
     }
 }

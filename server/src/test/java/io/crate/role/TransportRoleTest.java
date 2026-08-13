@@ -77,6 +77,20 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
         assertThat(jwtProps.iss()).isEqualTo("https:dummy.org");
         assertThat(jwtProps.username()).isEqualTo("test");
         assertThat(jwtProps.aud()).isEqualTo("test_aud");
+        assertThat(role.sessionSettings()).containsExactly(Map.entry("session_timeout", "1h"));
+    }
+
+    @Test
+    public void test_cannot_create_a_role_with_session_settings() throws Exception {
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
+        assertThatThrownBy(() -> TransportCreateRole.putRole(mdBuilder,
+                "role1",
+                false,
+                null,
+                null,
+                Map.of("enable_hashjoin", false)))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessage("Setting session settings to a ROLE is not allowed");
     }
 
     @Test
