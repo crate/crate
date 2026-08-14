@@ -329,10 +329,10 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             // run join phase non-distributed on the handler
             left.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             right.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
-            if (isMergePhaseNeeded(nlExecutionNodes, leftResultDesc, false)) {
+            if (isMergePhaseNeeded(nlExecutionNodes, leftResultDesc)) {
                 leftMerge = buildMergePhaseForJoin(plannerContext, leftResultDesc, nlExecutionNodes);
             }
-            if (isMergePhaseNeeded(nlExecutionNodes, rightResultDesc, false)) {
+            if (isMergePhaseNeeded(nlExecutionNodes, rightResultDesc)) {
                 rightMerge = buildMergePhaseForJoin(plannerContext, rightResultDesc, nlExecutionNodes);
             }
         }
@@ -384,11 +384,8 @@ public class NestedLoopJoin extends AbstractJoinPlan {
         printContext.nest(Lists.map(sources(), x -> x::print));
     }
 
-    private static boolean isMergePhaseNeeded(Collection<String> executionNodes,
-                                              ResultDescription resultDescription,
-                                              boolean isDistributed) {
-        return isDistributed ||
-               resultDescription.hasRemainingLimitOrOffset() ||
+    private static boolean isMergePhaseNeeded(Collection<String> executionNodes, ResultDescription resultDescription) {
+        return resultDescription.hasRemainingLimitOrOffset() ||
                !Lists.equals(resultDescription.nodeIds(), executionNodes);
     }
 

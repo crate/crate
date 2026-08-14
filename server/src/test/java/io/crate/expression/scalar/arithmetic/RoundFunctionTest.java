@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 import org.junit.Test;
@@ -87,6 +88,34 @@ public class RoundFunctionTest extends ScalarTestCase {
         assertEvaluateNull("round(1,null)");
         assertEvaluateNull("round(null,null)");
         assertEvaluateNull("round(null,1)");
+    }
+
+    @Test
+    public void test_round_with_negative_precision_at_the_magnitude_of_the_value() {
+        // The value is rounded up to the next power of ten, it does not become 0
+        assertEvaluate("round(999.9, -3)", new BigDecimal("1000"));
+        assertEvaluate("round(999.9, -4)", BigDecimal.ZERO);
+        assertEvaluate("round(5000, -4)", new BigDecimal("10000"));
+        assertEvaluate("round(500, -4)", BigDecimal.ZERO);
+        assertEvaluate("round(0.5, -1)", BigDecimal.ZERO);
+    }
+
+    // https://github.com/crate/crate/issues/19918
+    @Test
+    public void test_round_with_large_negative_precision_returns_zero() {
+        assertEvaluate("round(-1479165877, -1000000)", BigDecimal.ZERO);
+        assertEvaluate("round('-1479165877'::NUMERIC, -556375977)", BigDecimal.ZERO);
+        assertEvaluate("round('92233720368547758070.123'::NUMERIC, -2000000000)", BigDecimal.ZERO);
+        assertEvaluate("round(0.0, -2000000000)", BigDecimal.ZERO);
+    }
+
+    // Similar to: https://github.com/crate/crate/issues/19918
+    @Test
+    public void test_round_with_too_large_precision_raises_an_error() {
+        assertEvaluate("round(1.5, " + RoundFunction.MAX_PRECISION + ")",
+            BigDecimal.valueOf(15, 1).setScale(RoundFunction.MAX_PRECISION, RoundingMode.HALF_UP));
+        assertEvaluate("round(1.5, " + (RoundFunction.MAX_PRECISION + 100) + ")",
+            BigDecimal.valueOf(15, 1).setScale(RoundFunction.MAX_PRECISION, RoundingMode.HALF_UP));
     }
 
     @Test

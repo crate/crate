@@ -37,7 +37,11 @@ public class NumericEqQueryTest extends LuceneQueryBuilderTest {
                 x numeric(18, 2),
                 y numeric(38, 2),
                 xarr numeric(18, 2)[],
-                yarr numeric(38, 2)[]
+                yarr numeric(38, 2)[],
+                x_no_index numeric(18, 2) index off,
+                x_no_columnstore numeric(18, 2) storage with (columnstore = false),
+                x_no_index_no_columnstore numeric(18, 2) index off storage with (columnstore = false),
+                y_no_index numeric(38, 2) index off
             )
             """;
     }
@@ -58,7 +62,33 @@ public class NumericEqQueryTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void test_numeric_comparisions_with_different_precision() {
+    public void test_uses_doc_values_range_queries_for_compact_numeric_without_index() {
+        // Without the index there are no points to query, the range must be resolved via doc values
+        Query query = convert("x_no_index < 0.00");
+        // SortedNumericDocValuesRangeQuery.class is not public
+        assertThat(query.getClass().getName()).endsWith("SortedNumericDocValuesRangeQuery");
+        assertThat(query).hasToString("x_no_index:[-999999999999999999 TO -1]");
+
+        query = convert("x_no_index >= 12.34");
+        assertThat(query.getClass().getName()).endsWith("SortedNumericDocValuesRangeQuery");
+        assertThat(query).hasToString("x_no_index:[1234 TO 999999999999999999]");
+
+        // The index is still used if it is available
+        query = convert("x_no_columnstore > 0.00");
+        assertThat(query).isInstanceOf(PointRangeQuery.class);
+        assertThat(query).hasToString("x_no_columnstore:[1 TO 999999999999999999]");
+
+        // Without an index and without doc values a generic filter is used
+        query = convert("x_no_index_no_columnstore <= 0.00");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+
+        // A large numeric has no doc values based range query, it falls back to the generic filter
+        query = convert("y_no_index < 0.00");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+    }
+
+    @Test
+    public void test_numeric_comparisons_with_different_precision() {
         String col = randomBoolean() ? "x" : "y";
         assertThat(convert(col + " > 1.111")).isEqualTo(convert(col + " > 1.11"));
         assertThat(convert(col + " > 1.119")).isEqualTo(convert(col + " > 1.11"));

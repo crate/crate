@@ -83,3 +83,21 @@ Fixes
 
 - Fixed incorrect results in window function when using
   ``RANGE <offset> FOLLOWING/PRECEDING`` with ``ORDER BY <column> DESC``.
+
+- Fixed an issue that caused ``WHERE starts_with(col, '')`` on an indexed
+  column to only match rows where ``col`` is the empty string, instead of all
+  rows where ``col`` is not ``NULL``.
+
+- Fixed an issue that caused range queries, e.g. ``<``, ``>=`` or ``BETWEEN``,
+  on a :ref:`NUMERIC <type-numeric>` column with a precision of ``18`` or less
+  which was created with ``INDEX OFF`` to not match any rows.
+
+- Fixed an issue that caused :ref:`round(x, precision) <scalar-round>` to take
+  a very long time, up to the point where a query seems to hang, if a negative
+  number of large magnitude is used for ``precision``, e.g.::
+
+    SELECT round(-1479165877, -556375977);
+
+  A large positive ``precision`` had the same effect and now is capped to
+  ``16383``, meaning, if the ``precision`` exceeds ``16383`` the function would
+  yield results as if the precision was set to the maximum value of ``16383``.
