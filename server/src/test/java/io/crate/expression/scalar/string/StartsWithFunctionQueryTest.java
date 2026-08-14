@@ -23,9 +23,9 @@ package io.crate.expression.scalar.string;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
 import org.junit.Test;
 
 import io.crate.lucene.LuceneQueryBuilderTest;
@@ -51,11 +51,20 @@ public class StartsWithFunctionQueryTest extends LuceneQueryBuilderTest {
         assertThat(query).hasToString("a1:abc*");
     }
 
+    // https://github.com/crate/crate/issues/19923
+    // Every non-NULL value starts with '', therefore all rows which have a value must match
     @Test
-    public void test_starts_with_empty_prefix_creates_term_query() {
+    public void test_starts_with_empty_prefix_creates_field_exists_query() {
         Query query = convert("starts_with(a1, '')");
-        assertThat(query).isExactlyInstanceOf(TermQuery.class);
-        assertThat(query).hasToString("a1:");
+        assertThat(query).isExactlyInstanceOf(FieldExistsQuery.class);
+        assertThat(query).hasToString("FieldExistsQuery [field=a1]");
+    }
+
+    @Test
+    public void test_starts_with_empty_prefix_on_columnstore_disabled_uses_field_names() {
+        // Without doc values the existence of a value is resolved via the _field_names column
+        Query query = convert("starts_with(a3, '')");
+        assertThat(query).hasToString("ConstantScore(_field_names:a3)");
     }
 
     @Test
