@@ -193,14 +193,14 @@ final class GroupByOptimizedIterator {
         if (keysOnly) {
             return CollectingBatchIterator.newInstance(
                 killToken,
-                () -> keysToRows(getCountsByKey(ramAccounting, keyRef, searcher, killToken)),
+                () -> keysToRows(getCountsByKey(ramAccounting, keyRef, searcher, killToken, false)),
                 true
             );
         }
         AggregateMode mode = groupProjection.mode();
         return CollectingBatchIterator.newInstance(
             killToken,
-            () -> countsToRows(getCountsByKey(ramAccounting, keyRef, searcher, killToken), mode),
+            () -> countsToRows(getCountsByKey(ramAccounting, keyRef, searcher, killToken, true), mode),
             true
         );
     }
@@ -293,7 +293,8 @@ final class GroupByOptimizedIterator {
     private static ObjectLongHashMap<BytesRef> getCountsByKey(RamAccounting ramAccounting,
                                                               Reference keyRef,
                                                               IndexSearcher searcher,
-                                                              Token killToken) throws IOException {
+                                                              Token killToken,
+                                                              boolean includeCounts) throws IOException {
         ObjectLongHashMap<BytesRef> countsByKey = new ObjectLongHashMap<>();
         String keyStorageIdent = keyRef.storageIdent();
         PostingsEnum postings = null;
@@ -312,14 +313,20 @@ final class GroupByOptimizedIterator {
                 }
                 int numDocs;
                 if (liveDocs == null) {
-                    numDocs = termsEnum.docFreq();
+                    if (includeCounts) {
+                        numDocs = termsEnum.docFreq();
+                    } else {
+                        numDocs = 1;
+                    }
                 } else {
                     postings = termsEnum.postings(postings, PostingsEnum.NONE);
-                    numDocs = countFromPostings(postings, liveDocs);
+                    numDocs = countFromPostings(postings, liveDocs, includeCounts);
                 }
                 if (countsByKey.containsKey(sharedKey)) {
-                    countsByKey.addTo(sharedKey, numDocs);
-                } else {
+                    if (includeCounts) {
+                        countsByKey.addTo(sharedKey, numDocs);
+                    }
+                } else if (numDocs != 0) {
                     BytesRef key = BytesRef.deepCopyOf(sharedKey);
                     ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + sharedKey.length + HASH_MAP_ENTRY_OVERHEAD);
                     countsByKey.put(key, numDocs);
@@ -327,6 +334,7 @@ final class GroupByOptimizedIterator {
                 killToken.raiseIfKilled();;
             }
         }
+
         if (keyRef.isNullable()) {
             int count = countNullValues(keyRef, searcher);
             if (count > 0) {
@@ -348,14 +356,18 @@ final class GroupByOptimizedIterator {
         return searcher.search(notNull, topHitCounts);
     }
 
-    private static int countFromPostings(PostingsEnum postings, Bits liveDocs) throws IOException {
+    private static int countFromPostings(PostingsEnum postings, Bits liveDocs, boolean includeCounts) throws IOException {
         int numDocs = 0;
         int doc;
         while ((doc = postings.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
             if (liveDocs.get(doc)) {
+                if (!includeCounts) {
+                    return 1;
+                }
                 numDocs++;
             }
         }
+
         return numDocs;
     }
 
