@@ -21,11 +21,7 @@
 
 package io.crate.analyze;
 
-import static io.crate.role.Role.Properties.JWT_KEY;
-import static io.crate.role.Role.Properties.PASSWORD_KEY;
-
 import java.util.Map;
-import java.util.Set;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -51,14 +47,15 @@ public class RoleAnalyzer {
     public AnalyzedCreateRole analyze(CreateRole node,
                                       ParamTypeHints paramTypeHints,
                                       CoordinatorTxnCtx txnContext) {
+        // Validation of properties takes place later on in CreateRolePlan (when calling Role.Properties.of())
         GenericProperties<Symbol> properties = mappedProperties(node.properties(), paramTypeHints, txnContext);
-        properties.ensureContainsOnly(Set.of(PASSWORD_KEY, JWT_KEY));
         return new AnalyzedCreateRole(node.name(), node.isUser(), properties);
     }
 
     public AnalyzedAlterRole analyze(AlterRoleSet<Expression> node,
                                      ParamTypeHints paramTypeHints,
                                      CoordinatorTxnCtx txnContext) {
+        // Validation of properties takes place later on in AlterRolePlan (when calling Role.Properties.of())
         GenericProperties<Symbol> properties = mappedProperties(node.properties(), paramTypeHints, txnContext);
         return new AnalyzedAlterRole(node.name(), properties, false);
     }

@@ -86,7 +86,8 @@ public class CreateRolePlan implements Plan {
                 createRole.roleName(),
                 createRole.isUser(),
                 roleProperties.password(),
-                roleProperties.jwtProperties())
+                roleProperties.jwtProperties(),
+                roleProperties.sessionSettings())
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }
