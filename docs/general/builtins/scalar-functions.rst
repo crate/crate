@@ -2464,6 +2464,11 @@ precision and scale with the input. If it's of any other arithmetic type, the
 Notice that ``round(number)`` and ``round(number, 0)`` may return different
 result types.
 
+A positive ``precision`` is capped to ``16383``, any larger precision specified
+would yield the same results as if it was set to ``16383``. A negative
+``precision`` rounds to the left of the decimal point, if the negative precision
+is equal to or exceeds the number of digits of the number, the result is ``0``.
+
 
 Examples::
 
@@ -2480,6 +2485,22 @@ Examples::
     | round |
     +-------+
     |  42.2 |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+    cr> select round(1234, -2) AS round;
+    +-------+
+    | round |
+    +-------+
+    |  1200 |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+    cr> select round(1234, -4) AS round;
+    +-------+
+    | round |
+    +-------+
+    |     0 |
     +-------+
     SELECT 1 row in set (... sec)
 
