@@ -22,6 +22,7 @@
 package io.crate.expression.scalar.string;
 
 import io.crate.data.Input;
+import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -36,8 +37,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-import io.crate.types.EqQuery;
-import io.crate.types.StorageSupport;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
@@ -84,13 +83,9 @@ public final class StartsWithFunction extends Scalar<Boolean, String> {
             assert value instanceof String
                 : "StartsWithFunction is registered for string types. Value must be a string";
             if (((String) value).isEmpty()) {
-                StorageSupport<?> storageSupport = ref.valueType().storageSupport();
-                EqQuery<?> eqQuery = storageSupport == null ? null : storageSupport.eqQuery();
-                if (eqQuery == null) {
-                    return null;
-                }
-                return ((EqQuery<Object>) eqQuery).termQuery(
-                    ref.storageIdent(), value, ref.hasDocValues(), ref.indexType() != IndexType.NONE);
+                // Every non-NULL value starts with the empty string,
+                // so this matches all rows which have a value.
+                return IsNullPredicate.refExistsQuery(ref, context);
             }
             return new PrefixQuery(new Term(ref.storageIdent(), (String) value));
         }

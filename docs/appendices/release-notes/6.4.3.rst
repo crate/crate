@@ -83,3 +83,7 @@ Fixes
 
 - Fixed incorrect results in window function when using
   ``RANGE <offset> FOLLOWING/PRECEDING`` with ``ORDER BY <column> DESC``.
+
+- Fixed an issue that caused ``WHERE starts_with(col, '')`` on an indexed
+  column to only match rows where ``col`` is the empty string, instead of all
+  rows where ``col`` is not ``NULL``.
