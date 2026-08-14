@@ -21,8 +21,11 @@
 
 package io.crate.execution.ddl;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -37,6 +40,7 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.index.Index;
 
 import io.crate.common.collections.Lists;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
@@ -129,6 +133,8 @@ public class SwapRelationsOperation {
 
             RelationMetadata.Table sourceRelation = metadata.getRelation(source);
             RelationMetadata.Table targetRelation = metadata.getRelation(target);
+            validateRelation(source, nameSwap.sourceOid(), sourceRelation);
+            validateRelation(target, nameSwap.targetOid(), targetRelation);
             updatedMetadata
                 .dropRelation(source)
                 .dropRelation(target)
@@ -208,6 +214,24 @@ public class SwapRelationsOperation {
             updatedState = ddlClusterStateService.onSwapRelations(updatedState, swapAction.source(), swapAction.target());
         }
         return updatedState;
+    }
+
+    private static void validateRelation(RelationName relationName,
+                                         int relationOid,
+                                         RelationMetadata.Table relationMetadata) {
+        if (relationOid == OID_UNASSIGNED) {
+            return;
+        }
+        if (relationMetadata == null) {
+            throw new RelationUnknown(relationName);
+        }
+        if (relationMetadata.oid() != relationOid) {
+            throw new IllegalStateException(String.format(
+                Locale.ENGLISH,
+                "Relation '%s' changed while SWAP TABLE was being executed",
+                relationName
+            ));
+        }
     }
 
     private void removeOccurrences(ClusterState state,

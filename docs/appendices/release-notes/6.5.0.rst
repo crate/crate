@@ -153,6 +153,10 @@ Performance and Resilience Improvements
   source relation name points to a different table while the statement is being
   executed.
 
+- Improved :ref:`SWAP TABLE <alter_cluster_swap_table>` to fail if the source or
+  target relation name points to a different table while the statement is being
+  executed.
+
 Administration and Operations
 -----------------------------
 
