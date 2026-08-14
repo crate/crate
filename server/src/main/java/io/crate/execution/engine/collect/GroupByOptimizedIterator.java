@@ -193,7 +193,7 @@ final class GroupByOptimizedIterator {
         if (keysOnly) {
             return CollectingBatchIterator.newInstance(
                 killToken,
-                () -> keysToRows(getDistinctKeys(ramAccounting, keyRef, searcher, killToken)),
+                () -> keysToRows(getCountsByKey(ramAccounting, keyRef, searcher, killToken)),
                 true
             );
         }
@@ -205,12 +205,12 @@ final class GroupByOptimizedIterator {
         );
     }
 
-    private static Iterable<Row> keysToRows(Collection<BytesRef> keys) {
+    private static Iterable<Row> keysToRows(ObjectLongHashMap<BytesRef> countsByKey) {
         final Object[] cells = new Object[1];
         final Row row = new RowN(cells);
-        return () -> keys.stream()
-            .map(key -> {
-                cells[0] = key == null ? null : key.utf8ToString();
+        return () -> StreamSupport.stream(countsByKey.spliterator(), false)
+            .map(keyToCount -> {
+                cells[0] = keyToCount.key == null ? null : keyToCount.key.utf8ToString();
                 return row;
             })
             .iterator();
