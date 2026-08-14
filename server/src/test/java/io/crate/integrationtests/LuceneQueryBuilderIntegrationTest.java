@@ -26,7 +26,6 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -437,6 +436,24 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows(
             "[1, 2, 3]",
             "[3, 4, 5, 1]");
+    }
+
+    // https://github.com/crate/crate/issues/19923
+    @Test
+    public void test_starts_with_empty_prefix_matches_all_non_null_rows() {
+        execute("create table t (name text, name_nodocval text storage with (columnstore = false)) clustered into 1 shards with (number_of_replicas = 0)");
+        execute("insert into t (name, name_nodocval) values ('a', 'a'), ('', ''), ('abc', 'abc'), (null, null)");
+        execute("refresh table t");
+
+        assertThat(execute("select name from t where starts_with(name, '') order by name"))
+            .hasRows("", "a", "abc");
+        assertThat(execute("select name from t where starts_with(name, 'a') order by name"))
+            .hasRows("a", "abc");
+
+        assertThat(execute("select name_nodocval from t where starts_with(name_nodocval, '') order by name"))
+            .hasRows("", "a", "abc");
+        assertThat(execute("select name_nodocval from t where starts_with(name_nodocval, 'a') order by name"))
+            .hasRows("a", "abc");
     }
 
     @Test
