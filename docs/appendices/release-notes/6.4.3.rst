@@ -87,3 +87,7 @@ Fixes
 - Fixed an issue that caused ``WHERE starts_with(col, '')`` on an indexed
   column to only match rows where ``col`` is the empty string, instead of all
   rows where ``col`` is not ``NULL``.
+
+- Fixed an issue that caused range queries, e.g. ``<``, ``>=`` or ``BETWEEN``,
+  on a :ref:`NUMERIC <type-numeric>` column with a precision of ``18`` or less
+  which was created with ``INDEX OFF`` to not match any rows.

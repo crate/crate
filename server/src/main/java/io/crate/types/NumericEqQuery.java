@@ -101,7 +101,13 @@ public class NumericEqQuery {
                 upperTerm = upperTerm.setScale(Objects.requireNonNull(type.scale()), includeUpper ? RoundingMode.FLOOR : RoundingMode.CEILING);
                 upper = upperTerm.unscaledValue().longValueExact() + (includeUpper ? 0 : - 1);
             }
-            return LongPoint.newRangeQuery(field, lower, upper);
+            if (isIndexed) {
+                return LongPoint.newRangeQuery(field, lower, upper);
+            }
+            if (hasDocValues) {
+                return SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper);
+            }
+            return null;
         }
 
         @Override
