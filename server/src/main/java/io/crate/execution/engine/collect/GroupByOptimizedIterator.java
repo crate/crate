@@ -193,7 +193,7 @@ final class GroupByOptimizedIterator {
         if (keysOnly) {
             return CollectingBatchIterator.newInstance(
                 killToken,
-                () -> keysToRows(getCountsByKey(ramAccounting, keyRef, searcher, killToken, true)),
+                () -> keysToRows(getCountsByKey(ramAccounting, keyRef, searcher, killToken, false)),
                 true
             );
         }
@@ -311,6 +311,11 @@ final class GroupByOptimizedIterator {
                 if (sharedKey == null) {
                     break;
                 }
+                boolean seen = countsByKey.containsKey(sharedKey);
+                if (seen && !includeCounts) {
+                    continue;
+                }
+
                 int numDocs;
                 if (liveDocs == null) {
                     if (includeCounts) {
@@ -322,12 +327,8 @@ final class GroupByOptimizedIterator {
                     postings = termsEnum.postings(postings, PostingsEnum.NONE);
                     numDocs = countFromPostings(postings, liveDocs, includeCounts);
                 }
-                boolean seen = countsByKey.containsKey(sharedKey);
-                if (seen && !includeCounts) {
-                    continue;
-                }
 
-                if (includeCounts) {
+                if (seen) {
                     countsByKey.addTo(sharedKey, numDocs);
                 } else if (numDocs != 0) {
                     BytesRef key = BytesRef.deepCopyOf(sharedKey);
