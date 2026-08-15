@@ -193,7 +193,7 @@ final class GroupByOptimizedIterator {
         if (keysOnly) {
             return CollectingBatchIterator.newInstance(
                 killToken,
-                () -> keysToRows(getCountsByKey(ramAccounting, keyRef, searcher, killToken, false)),
+                () -> keysToRows(getCountsByKey(ramAccounting, keyRef, searcher, killToken, true)),
                 true
             );
         }
