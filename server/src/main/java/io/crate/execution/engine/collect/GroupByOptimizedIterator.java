@@ -322,10 +322,13 @@ final class GroupByOptimizedIterator {
                     postings = termsEnum.postings(postings, PostingsEnum.NONE);
                     numDocs = countFromPostings(postings, liveDocs, includeCounts);
                 }
-                if (countsByKey.containsKey(sharedKey)) {
-                    if (includeCounts) {
-                        countsByKey.addTo(sharedKey, numDocs);
-                    }
+                boolean seen = countsByKey.containsKey(sharedKey);
+                if (seen && !includeCounts) {
+                    continue;
+                }
+
+                if (includeCounts) {
+                    countsByKey.addTo(sharedKey, numDocs);
                 } else if (numDocs != 0) {
                     BytesRef key = BytesRef.deepCopyOf(sharedKey);
                     ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + sharedKey.length + HASH_MAP_ENTRY_OVERHEAD);
