@@ -1,6 +1,10 @@
 name: Check PR Author has signed CLA
 on:
+<<<<<<< HEAD
   pull_request:
+=======
+  pull_request_target:
+>>>>>>> 7b89c0c739 (Remove `master` branch filter from cla-check)
     types: [opened, synchronize, unlabeled]
 jobs:
   check-author-signed-cla:
