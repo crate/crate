@@ -1,9 +1,12 @@
 ---
 name: Add PR to CrateDB project board
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, reopened]
 
+# No repository code is checked out or executed, so pull_request_target is safe
+# here. It is required so that secrets are available for PRs opened from forks.
+permissions: {}
 
 jobs:
   automate-project:
