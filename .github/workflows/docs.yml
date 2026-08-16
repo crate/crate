@@ -2,8 +2,6 @@
 name: CrateDB Docs
 on:
   pull_request:
-    paths:
-      - '**.rst'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -11,24 +9,44 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
   checks: write
   statuses: write
 
 jobs:
+  # Vale job always runs so that it always reports a check run,
+  # which is returns success if no docs are changed.
+  changes:
+    name: Detect docs changes
+    runs-on: ubuntu-latest
+    outputs:
+      rst: ${{ steps.filter.outputs.rst }}
+    steps:
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # 4.0.3
+        id: filter
+        with:
+          filters: |
+            rst:
+              - '**.rst'
+
   vale:
     name: Vale
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        if: needs.changes.outputs.rst == 'true'
         with:
           persist-credentials: false
 
       - name: Install docutils
+        if: needs.changes.outputs.rst == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y docutils
 
       - name: Run vale
+        if: needs.changes.outputs.rst == 'true'
         uses: vale-cli/vale-action@85f9f7f2c5f449ac0ae5b66662961bae3f77ca6a # 2.1.2
         with:
           files: docs/
