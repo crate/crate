@@ -77,6 +77,18 @@ Breaking Changes
         ]
     }
 
+- Added requirement for :ref:`AL <privilege_types_al>` privilege on cluster
+  level in addition to the :ref:`DDL <privilege_types_ddl>` privilege when
+  issuing :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>`, if the restored
+  sections include user management metadata, (users, roles and privileges). This
+  is the case for:
+
+  * ``RESTORE SNAPSHOT ... ALL``
+  * ``RESTORE SNAPSHOT ... METADATA``
+  * ``RESTORE SNAPSHOT ... USERMANAGEMENT``
+
+  Previously the ``DDL`` privilege alone was sufficient.
+
 
 Fixes
 =====

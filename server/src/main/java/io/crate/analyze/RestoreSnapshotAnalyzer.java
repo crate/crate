@@ -48,9 +48,9 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.Table;
 
-class RestoreSnapshotAnalyzer {
+public class RestoreSnapshotAnalyzer {
 
-    static final DeprecationLogger DEPRECATION_LOGGER =
+    public static final DeprecationLogger DEPRECATION_LOGGER =
         new DeprecationLogger(LogManager.getLogger(RestoreSnapshotAnalyzer.class));
 
     public static final List<String> USER_MANAGEMENT_METADATA = List.of(

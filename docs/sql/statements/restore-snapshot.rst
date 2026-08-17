@@ -61,6 +61,17 @@ multiple concrete sections at once.
 
 To cancel a restore operation simply drop the tables that are being restored.
 
+.. NOTE::
+
+    ``RESTORE SNAPSHOT`` requires the :ref:`DDL <privilege_types>` privilege on
+    the cluster level. If the restored sections include user management
+    metadata (users, roles and privileges) the :ref:`AL <privilege_types>`
+    privilege on the cluster level is required as well. This is the case for:
+
+    - ``RESTORE SNAPSHOT ... ALL``
+    - ``RESTORE SNAPSHOT ... METADATA``
+    - ``RESTORE SNAPSHOT ... USERMANAGEMENT``
+
 .. CAUTION::
 
     If you try to restore a table that already exists, CrateDB will return an
