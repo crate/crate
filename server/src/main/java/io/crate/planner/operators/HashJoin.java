@@ -27,6 +27,7 @@ import static io.crate.planner.operators.NestedLoopJoin.createJoinProjection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -85,10 +86,15 @@ public class HashJoin extends AbstractJoinPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
+        // A nested join must not be executed distributed, otherwise its output would have to be
+        // re-shuffled for this join, which can deadlock. See PlanHint#AVOID_DISTRIBUTED_JOIN.
+        Set<PlanHint> sourceHints = EnumSet.of(PlanHint.AVOID_DISTRIBUTED_JOIN);
+        sourceHints.addAll(hints);
+
         ExecutionPlan leftExecutionPlan = lhs.build(
-            executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
+            executor, plannerContext, sourceHints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
         ExecutionPlan rightExecutionPlan = rhs.build(
-            executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
+            executor, plannerContext, sourceHints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
 
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
         var hashSymbols = createHashSymbols(lhs.relationNames(), rhs.relationNames(), joinCondition);
@@ -108,9 +114,14 @@ public class HashJoin extends AbstractJoinPlan {
         // We can only run the join distributed if no remaining limit or offset must be applied on the source relations.
         // Because on distributed joins, every join is running on a slice (modulo) set of the data and so no limit/offset
         // could be applied. Limit/offset can only be applied on the whole data set after all partial rows from the
-        // shards are merged
+        // shards are merged.
+        //
+        // A nested join must not be executed distributed, otherwise its outputs
+        // would have to be re-shuffled for this join, which can lead to deadlock.
+        // See PlanHint#AVOID_DISTRIBUTED_JOIN for details
         boolean isDistributed = leftResultDesc.hasRemainingLimitOrOffset() == false
-                                && rightResultDesc.hasRemainingLimitOrOffset() == false;
+                                && rightResultDesc.hasRemainingLimitOrOffset() == false
+                                && hints.contains(PlanHint.AVOID_DISTRIBUTED_JOIN) == false;
 
         if (joinExecutionNodes.isEmpty()) {
             // The left source might have zero execution nodes, for example in the case of `sys.shards` without any tables
