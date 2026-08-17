@@ -28,7 +28,6 @@ import static io.netty.buffer.Unpooled.copiedBuffer;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
-import java.util.List;
 import java.util.Locale;
 import java.util.function.Predicate;
 
@@ -41,8 +40,8 @@ import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.protocols.SSL;
 import io.crate.protocols.http.Headers;
 import io.crate.protocols.postgres.ConnectionProperties;
@@ -69,8 +68,6 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     @VisibleForTesting
     // realm-value should not contain any special characters
     static final String WWW_AUTHENTICATE_REALM_MESSAGE = "Basic realm=\"CrateDB Authenticator\"";
-
-    private static final List<String> REAL_IP_HEADER_BLACKLIST = List.of("127.0.0.1", "::1");
 
     private final Authentication authService;
     private final Settings settings;
@@ -216,12 +213,18 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
 
     private InetAddress addressFromRequestOrChannel(HttpRequest request, Channel channel) {
         boolean supportXRealIp = AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.get(settings);
-        var realIP = request.headers().get(AuthSettings.HTTP_HEADER_REAL_IP);
-        if (supportXRealIp && realIP != null && !REAL_IP_HEADER_BLACKLIST.contains(realIP)) {
-            return InetAddresses.forString(realIP);
-        } else {
-            return Netty4HttpServerTransport.getRemoteAddress(channel);
+        if (supportXRealIp) {
+            String realIPHeader = request.headers().get(AuthSettings.HTTP_HEADER_REAL_IP);
+            if (realIPHeader == null) {
+                return Netty4HttpServerTransport.getRemoteAddress(channel);
+            }
+            InetAddress realIP = InetAddresses.forString(realIPHeader);
+            if (realIP.isLoopbackAddress() || realIP.isAnyLocalAddress() || realIP.isLinkLocalAddress()) {
+                return Netty4HttpServerTransport.getRemoteAddress(channel);
+            }
+            return realIP;
         }
+        return Netty4HttpServerTransport.getRemoteAddress(channel);
     }
 }
 
