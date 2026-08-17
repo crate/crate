@@ -36,7 +36,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -64,11 +63,14 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntObjectMap;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.common.concurrent.ConcurrencyLimit;
+import io.crate.common.exceptions.Exceptions;
+import io.crate.data.BatchIterator;
 import io.crate.data.CollectionBucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
@@ -298,16 +300,32 @@ public class InsertFromValues implements LogicalPlan {
                 dependencies.scheduler(),
                 tableInfo.isPartitioned());
         }).whenComplete((response, t) -> {
-            if (t == null) {
-                if (returnValues.isEmpty()) {
-                    consumer.accept(InMemoryBatchIterator.of(new Row1((long) response.numSuccessfulWrites()), SENTINEL),
-                                    null);
-                } else {
-                    consumer.accept(InMemoryBatchIterator.of(new CollectionBucket(response.resultRows()), SENTINEL, false), null);
-                }
-            } else {
+            if (t != null) {
                 consumer.accept(null, t);
+                return;
             }
+
+            IntObjectMap<Throwable> failures = response.failures();
+            if (!failures.isEmpty()) {
+                Throwable mergedFailure = null;
+                for (var cursor : failures.values()) {
+                    Throwable failure = SQLExceptions.unwrap(cursor.value);
+                    if (reportErrorAsRowCount(failure, tableInfo.isPartitioned(), rows.size())) {
+                        continue;
+                    }
+                    mergedFailure = Exceptions.useOrSuppress(mergedFailure, failure);
+                }
+                if (mergedFailure != null) {
+                    consumer.accept(null, mergedFailure);
+                    return;
+                }
+            }
+
+            BatchIterator<Row> batchIterator = returnValues.isEmpty()
+                ? InMemoryBatchIterator.of(new Row1((long) response.numSuccessfulWrites()), SENTINEL)
+                : InMemoryBatchIterator.of(new CollectionBucket(response.resultRows()), SENTINEL, false);
+
+            consumer.accept(batchIterator, null);
         });
     }
 
@@ -656,25 +674,10 @@ public class InsertFromValues implements LogicalPlan {
 
         CompletableFuture<ShardResponse.CompressedResult> result = new CompletableFuture<>();
         AtomicInteger numRequests = new AtomicInteger(shardUpsertRequests.size());
-        AtomicReference<Throwable> lastFailure = new AtomicReference<>(null);
 
         Consumer<ShardUpsertRequest> countdown = _ -> {
             if (numRequests.decrementAndGet() == 0) {
-                Throwable throwable = lastFailure.get();
-                if (throwable == null) {
-                    result.complete(compressedResult);
-                } else {
-                    throwable = SQLExceptions.unwrap(throwable);
-                    // we want to report duplicate key exceptions
-                    if (!SQLExceptions.isDocumentAlreadyExistsException(throwable) &&
-                            (partitionWasDeleted(throwable, isPartitioned)
-                                    || partitionClosed(throwable, isPartitioned)
-                                    || mixedArgumentTypesFailure(throwable))) {
-                        result.complete(compressedResult);
-                    } else {
-                        result.completeExceptionally(throwable);
-                    }
-                }
+                result.complete(compressedResult);
             }
         };
         for (ShardUpsertRequest request : shardUpsertRequests) {
@@ -685,10 +688,9 @@ public class InsertFromValues implements LogicalPlan {
                     .primaryShard()
                     .currentNodeId();
             } catch (IndexNotFoundException | ShardNotFoundException e) {
-                lastFailure.set(e);
                 if (!isPartitioned) {
                     synchronized (compressedResult) {
-                        compressedResult.markAsFailed(request.items());
+                        compressedResult.markAsFailed(request.items(), e);
                     }
                 }
                 countdown.accept(request);
@@ -700,15 +702,13 @@ public class InsertFromValues implements LogicalPlan {
             ActionListener<ShardResponse> listener = new ActionListener<>() {
                 @Override
                 public void onResponse(ShardResponse shardResponse) {
+                    nodeLimit.onSample(startTime);
                     Throwable throwable = shardResponse.failure();
-                    if (throwable == null) {
-                        nodeLimit.onSample(startTime);
-                        synchronized (compressedResult) {
-                            compressedResult.update(shardResponse);
+                    synchronized (compressedResult) {
+                        compressedResult.update(shardResponse);
+                        if (throwable != null) {
+                            compressedResult.markAsFailed(request.items(), SQLExceptions.unwrap(throwable));
                         }
-                    } else {
-                        nodeLimit.onSample(startTime);
-                        lastFailure.set(throwable);
                     }
                     countdown.accept(request);
                 }
@@ -717,12 +717,9 @@ public class InsertFromValues implements LogicalPlan {
                 public void onFailure(Exception e) {
                     nodeLimit.onSample(startTime);
                     Throwable t = SQLExceptions.unwrap(e);
-                    if (!partitionWasDeleted(t, isPartitioned)) {
-                        synchronized (compressedResult) {
-                            compressedResult.markAsFailed(request.items());
-                        }
+                    synchronized (compressedResult) {
+                        compressedResult.markAsFailed(request.items(), t);
                     }
-                    lastFailure.set(t);
                     countdown.accept(request);
                 }
             };
@@ -738,16 +735,36 @@ public class InsertFromValues implements LogicalPlan {
         return result;
     }
 
+
+    private static boolean reportErrorAsRowCount(Throwable t, boolean isPartitioned, int numValues) {
+        if (mixedArgumentTypesFailure(t)) {
+            return true;
+        }
+        if (isPartitioned) {
+            if (partitionWasDeleted(t)) {
+                return true;
+            }
+            if (partitionClosed(t)) {
+                return true;
+            }
+            return false;
+        }
+        if (numValues > 1) {
+            return true;
+        }
+        return false;
+    }
+
     private static boolean mixedArgumentTypesFailure(Throwable throwable) {
         return throwable instanceof ClassCastException;
     }
 
-    private static boolean partitionWasDeleted(Throwable throwable, boolean isPartitioned) {
-        return throwable instanceof IndexNotFoundException && isPartitioned;
+    private static boolean partitionWasDeleted(Throwable throwable) {
+        return throwable instanceof IndexNotFoundException;
     }
 
-    private static boolean partitionClosed(Throwable throwable, boolean isPartitioned) {
-        if (throwable instanceof ClusterBlockException blockException && isPartitioned) {
+    private static boolean partitionClosed(Throwable throwable) {
+        if (throwable instanceof ClusterBlockException blockException) {
             for (ClusterBlock clusterBlock : blockException.blocks()) {
                 if (clusterBlock.id() == INDEX_CLOSED_BLOCK.id()) {
                     return true;
