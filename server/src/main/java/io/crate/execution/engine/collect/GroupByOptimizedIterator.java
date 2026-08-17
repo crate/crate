@@ -202,12 +202,12 @@ final class GroupByOptimizedIterator {
         );
     }
 
-    private static Iterable<Row> keysToRows(Map<BytesRef, Long> countsByKey) {
+    private static Iterable<Row> keysToRows(Map<String, Long> countsByKey) {
         final Object[] cells = new Object[1];
         final Row row = new RowN(cells);
         return () -> countsByKey.keySet().stream()
             .map(key -> {
-                cells[0] = key == null ? null : key.utf8ToString();
+                cells[0] = key;
                 return row;
             })
             .iterator();
@@ -266,7 +266,7 @@ final class GroupByOptimizedIterator {
         return false;
     }
 
-    private static Iterable<Row> countsToRows(Map<BytesRef, Long> countsByKey, AggregateMode mode) {
+    private static Iterable<Row> countsToRows(Map<String, Long> countsByKey, AggregateMode mode) {
         final Object[] cells = new Object[2];
         final Row row = new RowN(cells);
         LongFunction<Object> wrapCount = switch (mode) {
@@ -277,24 +277,23 @@ final class GroupByOptimizedIterator {
         };
         return () -> countsByKey.entrySet().stream()
             .map(entry -> {
-                BytesRef key = entry.getKey();
                 long count = entry.getValue();
                 // See GroupProjection.outputs(): keys always come first, aggregations second
-                cells[0] = key == null ? null : key.utf8ToString();
+                cells[0] = entry.getKey();
                 cells[1] = wrapCount.apply(count);
                 return row;
             })
             .iterator();
     }
 
-    private static Map<BytesRef, Long> getCountsByKey(RamAccounting ramAccounting,
+    private static Map<String, Long> getCountsByKey(RamAccounting ramAccounting,
                                                               Reference keyRef,
                                                               IndexSearcher searcher,
                                                               Token killToken,
                                                               boolean includeCounts) throws IOException {
         // HashMap rather than an open-addressing map: it caches each key's hash in the node, so a
         // resize does not recompute BytesRef.hashCode(), which murmur-hashes the whole key content.
-        HashMap<BytesRef, Long> countsByKey = new HashMap<>();
+        HashMap<String, Long> countsByKey = new HashMap<>();
         String keyStorageIdent = keyRef.storageIdent();
         PostingsEnum postings = null;
         for (var leaf : searcher.getLeafContexts()) {
@@ -306,10 +305,11 @@ final class GroupByOptimizedIterator {
             TermsEnum termsEnum = terms.iterator();
             Bits liveDocs = reader.getLiveDocs();
             while (true) {
-                BytesRef sharedKey = termsEnum.next();
-                if (sharedKey == null) {
+                BytesRef _sharedKey = termsEnum.next();
+                if (_sharedKey == null) {
                     break;
                 }
+                String sharedKey = _sharedKey.utf8ToString();
                 boolean seen = countsByKey.containsKey(sharedKey);
                 if (seen && !includeCounts) {
                     continue;
@@ -333,11 +333,10 @@ final class GroupByOptimizedIterator {
                     final int increment = numDocs;
                     countsByKey.computeIfPresent(sharedKey, (k, count) -> count + increment);
                 } else if (numDocs != 0) {
-                    BytesRef key = BytesRef.deepCopyOf(sharedKey);
-                    ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + key.length + HASH_MAP_ENTRY_OVERHEAD);
-                    countsByKey.put(key, (long) numDocs);
+                    ramAccounting.addBytes(RamUsageEstimator.sizeOf(sharedKey) + HASH_MAP_ENTRY_OVERHEAD);
+                    countsByKey.put(sharedKey, (long) numDocs);
                 }
-                killToken.raiseIfKilled();;
+                killToken.raiseIfKilled();
             }
         }
 
