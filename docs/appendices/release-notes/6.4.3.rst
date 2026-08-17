@@ -165,3 +165,10 @@ Fixes
        UNION ALL
        SELECT * FROM a
      ) u ORDER BY k;
+
+- Fixed an issue that could cause a query containing two or more :ref:`joins
+  <sql_joins>` to hang indefinitely on a multi-node cluster. This happened when
+  both the outer and the inner join were executed distributed, and their inputs
+  were large enough to be transferred in more than one page between the nodes.
+  Nested joins are now always executed non-distributed, only the very outer join
+  is executed distributed. Note that this fix may cause performance degradation.

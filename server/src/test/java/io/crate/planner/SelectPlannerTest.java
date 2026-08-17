@@ -24,7 +24,6 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collection;
@@ -828,16 +827,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
-        Merge plan = e.plan("select count(*) from users t1, users t2, users t3 " +
+        Join outerNL = e.plan("select count(*) from users t1, users t2, users t3 " +
                             "where t1.id = t2.id and t2.id = t3.id");
-        assertThat(plan.subPlan()).isExactlyInstanceOf(Join.class);
-        Join outerNL = (Join)plan.subPlan();
         assertThat(outerNL.joinPhase().joinCondition()).isSQL("(INPUT(1) = INPUT(2))");
         assertThat(outerNL.joinPhase().projections()).hasSize(2);
         assertThat(outerNL.joinPhase().projections().get(0)).isExactlyInstanceOf(EvalProjection.class);
         assertThat(outerNL.joinPhase().projections().get(1)).isExactlyInstanceOf(AggregationProjection.class);
         assertThat(outerNL.joinPhase().outputTypes()).hasSize(1);
-        assertThat(outerNL.joinPhase().outputTypes().get(0)).isEqualTo(CountAggregation.LongStateType.INSTANCE);
+        assertThat(outerNL.joinPhase().outputTypes().get(0)).isEqualTo(DataTypes.LONG);
 
         Join innerNL = (Join) outerNL.left();
         assertThat(innerNL.joinPhase().joinCondition()).isSQL("(INPUT(0) = INPUT(1))");
@@ -846,16 +843,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(innerNL.joinPhase().outputTypes()).hasSize(2);
         assertThat(innerNL.joinPhase().outputTypes().get(0)).isEqualTo(DataTypes.LONG);
 
-        plan = e.plan("select count(t1.other_id) from users t1, users t2, users t3 " +
+        outerNL = e.plan("select count(t1.other_id) from users t1, users t2, users t3 " +
                       "where t1.id = t2.id and t2.id = t3.id");
-        assertThat(plan.subPlan()).isExactlyInstanceOf(Join.class);
-        outerNL = (Join)plan.subPlan();
         assertThat(outerNL.joinPhase().joinCondition()).isSQL("(INPUT(2) = INPUT(3))");
         assertThat(outerNL.joinPhase().projections()).hasSize(2);
         assertThat(outerNL.joinPhase().projections().get(0)).isExactlyInstanceOf(EvalProjection.class);
         assertThat(outerNL.joinPhase().projections().get(1)).isExactlyInstanceOf(AggregationProjection.class);
         assertThat(outerNL.joinPhase().outputTypes()).hasSize(1);
-        assertThat(outerNL.joinPhase().outputTypes().get(0)).isEqualTo(CountAggregation.LongStateType.INSTANCE);
+        assertThat(outerNL.joinPhase().outputTypes().get(0)).isEqualTo(DataTypes.LONG);
 
         innerNL = (Join) outerNL.left();
         assertThat(innerNL.joinPhase().joinCondition()).isSQL("(INPUT(1) = INPUT(2))");

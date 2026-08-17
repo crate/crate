@@ -28,7 +28,6 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isInputColumn;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -56,6 +55,8 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.sql.tree.JoinType;
@@ -363,6 +364,65 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(join.joinPhase()).isExactlyInstanceOf(HashJoinPhase.class);
         assertThat(join.left()).isExactlyInstanceOf(Join.class);
         assertThat(((Join)join.left()).joinPhase()).isExactlyInstanceOf(HashJoinPhase.class);
+    }
+
+    @Test
+    public void test_nested_hash_join_is_not_executed_distributed() {
+        QueriedSelectRelation mss = e.analyze("select * " +
+                                              "from t1 inner join t2 on t1.a = t2.b " +
+                                              "inner join t3 on t3.c = t2.b");
+
+        var plannerCtx = e.getPlannerContext();
+        Join join = plan(mss, plannerCtx);
+        Join nestedJoin = (Join) join.left();
+
+        assertThat(nestedJoin.joinPhase().nodeIds())
+            .as("A nested join is executed on the handler node only, see PlanHint.AVOID_DISTRIBUTED_JOIN")
+            .containsExactly(plannerCtx.handlerNode());
+        assertThat(((Collect) nestedJoin.left()).collectPhase().distributionInfo())
+            .isEqualTo(DistributionInfo.DEFAULT_BROADCAST);
+        assertThat(((Collect) nestedJoin.right()).collectPhase().distributionInfo())
+            .isEqualTo(DistributionInfo.DEFAULT_BROADCAST);
+
+        assertThat(((Collect) join.right()).collectPhase().distributionInfo().distributionType())
+            .as("The outermost join is still executed distributed")
+            .isEqualTo(DistributionType.MODULO);
+        assertThat(nestedJoin.joinPhase().distributionInfo().distributionType())
+            .as("The outermost join re-distributes the output of the nested join")
+            .isEqualTo(DistributionType.MODULO);
+    }
+
+    @Test
+    public void test_nested_nested_loop_join_is_not_executed_distributed() {
+        // Explicit join conditions are required, an implicit cross join with a filter on top is
+        // never executed distributed, because `isFiltered` is false
+        QueriedSelectRelation mss = e.analyze("select * " +
+                                              "from t1 inner join t2 on t1.a > t2.b " +
+                                              "inner join t3 on t3.c > t2.b");
+
+        var plannerCtx = e.getPlannerContext();
+        plannerCtx.transactionContext().sessionSettings().setHashJoinEnabled(false);
+        Join join = plan(mss, plannerCtx);
+        Join nestedJoin = (Join) join.left();
+
+        assertThat(nestedJoin.joinPhase().name())
+            .as("A nested join is not executed distributed, see PlanHint.AVOID_DISTRIBUTED_JOIN")
+            .isEqualTo("nested-loop");
+        assertThat(join.joinPhase().name())
+            .as("The outermost join is still executed distributed")
+            .isEqualTo("distributed-nested-loop");
+    }
+
+    @Test
+    public void test_nested_loop_join_without_a_parent_join_is_executed_distributed() {
+        // Simple join doesn't set PlanHint.AVOID_DISTRIBUTED_JOIN, so it is still executed distributed
+        QueriedSelectRelation mss = e.analyze("select * from t1 inner join t2 on t1.a > t2.b");
+
+        var plannerCtx = e.getPlannerContext();
+        plannerCtx.transactionContext().sessionSettings().setHashJoinEnabled(false);
+        Join join = plan(mss, plannerCtx);
+
+        assertThat(join.joinPhase().name()).isEqualTo("distributed-nested-loop");
     }
 
     @Test
