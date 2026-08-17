@@ -47,7 +47,6 @@ import org.junit.Test;
 
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.RestoreSnapshotAnalyzer;
 import io.crate.analyze.TableDefinitions;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.RelationUnknown;
@@ -306,12 +305,8 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_restore_snapshot_with_user_metadata_requires_al_and_ddl() throws Exception {
-        for (var type : List.of("ALL", "METADATA", "USERMANAGEMENT", "USERS", "PRIVILEGES")) {
-            RestoreSnapshotAnalyzer.DEPRECATION_LOGGER.resetLRU();
+        for (var type : List.of("ALL", "METADATA", "USERMANAGEMENT")) {
             analyze("restore snapshot my_repo.my_snapshot " + type);
-            if ("USERS".equals(type) || "PRIVILEGES".equals(type)) {
-                assertWarnings(type + " keyword is deprecated, please use USERMANAGEMENT instead");
-            }
             assertAskedForCluster(Permission.DDL);
             assertAskedForCluster(Permission.AL);
         }

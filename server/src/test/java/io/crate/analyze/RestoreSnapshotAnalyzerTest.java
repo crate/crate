@@ -391,27 +391,15 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_restore_user_mananagement_metadata() {
-        for (var meta : List.of("USERS", "PRIVILEGES", "USERMANAGEMENT")) {
-            RestoreSnapshotAnalyzer.DEPRECATION_LOGGER.resetLRU();
-
-            BoundRestoreSnapshot statement =
-                analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot " + meta);
-            assertThat(statement.repository()).isEqualTo("my_repo");
-            assertThat(statement.snapshot()).isEqualTo("my_snapshot");
-            assertThat(statement.includeTables()).isFalse();
-            assertThat(statement.restoreTables().isEmpty()).isTrue();
-            assertThat(statement.includeCustomMetadata()).isTrue();
-            assertThat(statement.customMetadataTypes()).containsExactlyInAnyOrderElementsOf(USER_MANAGEMENT_METADATA);
-            assertThat(statement.includeGlobalSettings()).isFalse();
-            assertThat(statement.globalSettings().isEmpty()).isTrue();
-
-            if ("USERS".equals(meta)) {
-                assertWarnings("USERS keyword is deprecated, please use USERMANAGEMENT instead");
-            }
-            if ("PRIVILEGES".equals(meta)) {
-                assertWarnings("PRIVILEGES keyword is deprecated, please use USERMANAGEMENT instead");
-            }
-        }
+        BoundRestoreSnapshot statement = analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot USERMANAGEMENT");
+        assertThat(statement.repository()).isEqualTo("my_repo");
+        assertThat(statement.snapshot()).isEqualTo("my_snapshot");
+        assertThat(statement.includeTables()).isFalse();
+        assertThat(statement.restoreTables().isEmpty()).isTrue();
+        assertThat(statement.includeCustomMetadata()).isTrue();
+        assertThat(statement.customMetadataTypes()).containsExactlyInAnyOrderElementsOf(USER_MANAGEMENT_METADATA);
+        assertThat(statement.includeGlobalSettings()).isFalse();
+        assertThat(statement.globalSettings().isEmpty()).isTrue();
     }
 
     @Test
