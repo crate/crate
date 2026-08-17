@@ -21,6 +21,7 @@ package org.elasticsearch.cluster.metadata;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -440,7 +441,12 @@ public class MetadataCreateIndexService {
             }
 
             Builder metadataBuilder = Metadata.builder(metadata);
-            RelationMetadata.Table table = metadata.getRelation(request.table());
+            RelationMetadata.Table table;
+            if (request.tableOid() == OID_UNASSIGNED) {
+                table = metadata.getRelation(request.table());
+            } else {
+                table = metadata.getRelation(request.tableOid());
+            }
             if (table == null) {
                 throw new IllegalArgumentException("Cannot resize index for missing table: " + request.table());
             }

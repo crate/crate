@@ -21,6 +21,7 @@
 
 package io.crate.execution.ddl.tables;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 
@@ -40,17 +41,20 @@ import io.crate.metadata.RelationName;
 public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
 
     private final RelationName table;
+    private final int tableOid;
     private final List<String> partitionValues;
     private final boolean isPartitioned;
     private final boolean excludePartitions;
     private final Settings settings;
 
     public AlterTableRequest(RelationName table,
+                             int tableOid,
                              List<String> partitionValues,
                              boolean isPartitioned,
                              boolean excludePartitions,
                              Settings settings) throws IOException {
         this.table = table;
+        this.tableOid = tableOid;
         this.partitionValues = partitionValues;
         this.isPartitioned = isPartitioned;
         this.excludePartitions = excludePartitions;
@@ -60,6 +64,11 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
     public AlterTableRequest(StreamInput in) throws IOException {
         super(in);
         table = new RelationName(in);
+        if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
+            tableOid = in.readVInt();
+        } else {
+            tableOid = OID_UNASSIGNED;
+        }
         boolean before510 = in.getVersion().before(Version.V_5_10_0);
         if (before510) {
             String partitionIndexName = in.readOptionalString();
@@ -85,6 +94,9 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         table.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
+            out.writeVInt(tableOid);
+        }
         boolean before510 = out.getVersion().before(Version.V_5_10_0);
         if (before510) {
             if (partitionValues.isEmpty()) {
@@ -111,6 +123,10 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
         return table;
     }
 
+    public int tableOid() {
+        return tableOid;
+    }
+
     public List<String> partitionValues() {
         return partitionValues;
     }
@@ -132,6 +148,7 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
         final int prime = 31;
         int result = 1;
         result = prime * result + table.hashCode();
+        result = prime * result + tableOid;
         result = prime * result + partitionValues.hashCode();
         result = prime * result + (isPartitioned ? 1231 : 1237);
         result = prime * result + (excludePartitions ? 1231 : 1237);
@@ -143,6 +160,7 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
     public boolean equals(Object obj) {
         return obj instanceof AlterTableRequest other
             && table.equals(other.table)
+            && tableOid == other.tableOid
             && partitionValues.equals(other.partitionValues)
             && isPartitioned == other.isPartitioned
             && excludePartitions == other.excludePartitions
