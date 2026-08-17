@@ -1848,6 +1848,20 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return null;
     }
 
+    @Nullable
+    public <T> T getIndex(int tableOid,
+                          List<String> partitionValues,
+                          boolean strict,
+                          Function<IndexMetadata, T> as) {
+        List<T> indices = getIndices(tableOid, partitionValues, strict, as);
+        if (indices.size() > 1) {
+            throw new IllegalArgumentException("Expected a single index for oid=" + tableOid + " but got " + indices.size());
+        } else if (indices.size() == 1) {
+            return indices.getFirst();
+        }
+        return null;
+    }
+
     @SuppressWarnings("unchecked")
     private static <T extends RelationMetadata> T getRelation(RelationName relation, Function<String, SchemaMetadata> schemaResolver) {
         SchemaMetadata schemaMetadata = schemaResolver.apply(relation.schema());

@@ -22,23 +22,57 @@
 package org.elasticsearch.action.admin.indices.shrink;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.RelationName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
-public class ResizeRequestTest {
+public class ResizeRequestTest extends CrateDummyClusterServiceUnitTest {
+
+    @Test
+    public void test_streaming_table_oids() throws Exception {
+        // streaming to nodes with supported versions
+        RelationName table = new RelationName("foo", "bar");
+        int tableOid = 1234;
+        ResizeRequest request = new ResizeRequest(table, tableOid, List.of(), 4);
+
+        var out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_5_0);
+        request.writeTo(out);
+
+        var in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_5_0);
+        ResizeRequest streamed = new ResizeRequest(in);
+
+        assertThat(streamed.tableOid()).isEqualTo(tableOid);
+
+        // streaming to nodes with unsupported versions
+        request = new ResizeRequest(table, tableOid, List.of(), 4);
+
+        out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_4_0);
+        request.writeTo(out);
+
+        in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_4_0);
+        streamed = new ResizeRequest(in);
+
+        assertThat(streamed.tableOid()).isEqualTo(OID_UNASSIGNED);
+    }
 
     @Test
     public void test_streaming() throws Exception {
         RelationName table = new RelationName("foo", "bar");
         List<ResizeRequest> requests = List.of(
-            new ResizeRequest(table, List.of(), 4),
-            new ResizeRequest(table, List.of("2", "3"), 10)
+            new ResizeRequest(table, OID_UNASSIGNED, List.of(), 4),
+            new ResizeRequest(table, OID_UNASSIGNED, List.of("2", "3"), 10)
         );
         for (var originalReq : requests) {
             try (var out = new BytesStreamOutput()) {

@@ -144,8 +144,9 @@ Performance and Resilience Improvements
   :ref:`DROP COLUMN <sql-alter-table-drop-column>`,
   :ref:`ADD COLUMN <sql-alter-table-add-column>`,
   :ref:`RENAME COLUMN <sql-alter-table-rename-column>`,
-  :ref:`SET/DROP DEFAULT <SQL-alter-table-alter-column-default>` and
-  :ref:`DROP CONSTRAINT <sql-alter-drop-constraint>`
+  :ref:`SET/DROP DEFAULT <SQL-alter-table-alter-column-default>`,
+  :ref:`DROP CONSTRAINT <sql-alter-drop-constraint>`, and
+  :ref:`SET/RESET <sql-alter-table-set-reset>`
   such that concurrent :ref:`SWAP TABLE <alter_cluster_swap_table>`
   cannot affect aforementioned queries already in progress.
 
