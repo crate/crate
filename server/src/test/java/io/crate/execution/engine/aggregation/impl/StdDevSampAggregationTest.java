@@ -164,6 +164,23 @@ public class StdDevSampAggregationTest extends AggregationTestCase {
     }
 
     @Test
+    public void test_new_state_throws_until_all_nodes_upgraded() throws Exception {
+        // The Welford accumulator changes the streamed partial-state layout, so the aggregation
+        // must not run until every node is on 6.5.0.
+        var func = (io.crate.execution.engine.aggregation.AggregationFunction<?, ?>) nodeCtx.functions().get(
+            null,
+            StandardDeviationSampAggregation.NAMES.get(0),
+            List.of(Literal.of(DataTypes.DOUBLE, null)),
+            SearchPath.pathWithPGCatalogAndDoc());
+        assertThatThrownBy(() -> func.newState(
+                io.crate.data.breaker.RamAccounting.NO_ACCOUNTING,
+                org.elasticsearch.Version.V_6_4_0,
+                null))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("6.5.0");
+    }
+
+    @Test
     public void testUnsupportedType() {
         assertThatThrownBy(() -> executeAggregation(DataTypes.GEO_POINT, new Object[][]{}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)

@@ -101,6 +101,10 @@ public class StandardDeviationSampAggregation extends StandardDeviationAggregati
     public StandardDeviationSamp newState(RamAccounting ramAccounting,
                                           Version minNodeInCluster,
                                           MemoryManager memoryManager) {
+        if (minNodeInCluster.before(Version.V_6_5_0)) {
+            throw new IllegalStateException(
+                "Cannot use '" + NAMES.get(0) + "' aggregation until all nodes are upgraded to 6.5.0");
+        }
         ramAccounting.addBytes(StandardDeviationSamp.fixedSize());
         return new StandardDeviationSamp();
     }
