@@ -2,10 +2,6 @@
 name: CrateDB SQL
 on:
   pull_request:
-    paths:
-      - '**.java'
-      - 'pom.xml'
-      - '**/pom.xml'
   push:
     branches:
       - master
@@ -16,22 +12,45 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
   checks: write
   statuses: write
 
 jobs:
+  # Detect whether this PR touches any code. The real jobs below always run so
+  # that they always report a check run under a stable name (Mergify and branch
+  # protection treat a *skipped* job as missing, not as success).
+  changes:
+    name: Detect code changes
+    runs-on: ubuntu-latest
+    outputs:
+      java: ${{ github.event_name != 'pull_request' || steps.filter.outputs.java == 'true' }}
+    steps:
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # 4.0.3
+        id: filter
+        if: github.event_name == 'pull_request'
+        with:
+          filters: |
+            java:
+              - '**.java'
+              - 'pom.xml'
+              - '**/pom.xml'
+
   test:
     name: Test CrateDB SQL on ${{ matrix.os }}
+    needs: changes
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v7
+        if: needs.changes.outputs.java == 'true'
         with:
           persist-credentials: false
 
       - name: Setup Maven Java
+        if: needs.changes.outputs.java == 'true'
         uses: actions/setup-java@v5
         with:
           java-version: "26.0.2"
@@ -39,6 +58,7 @@ jobs:
           cache: maven
 
       - name: Run tests on ${{ matrix.os }}
+        if: needs.changes.outputs.java == 'true'
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
         run: |
@@ -52,37 +72,45 @@ jobs:
             -Djacoco.skip=true
 
       - name: Publish Test Report
-        if: success() || failure()
+        if: needs.changes.outputs.java == 'true' && (success() || failure())
         uses: ScalableCapital/action-surefire-report@1e92f48016e566e4eed2d81560edbfe0f524cfb7 #v2.0.3
 
   forbiddenApis:
     name: forbiddenApis
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        if: needs.changes.outputs.java == 'true'
         with:
           persist-credentials: false
       - name: Setup Maven Java
+        if: needs.changes.outputs.java == 'true'
         uses: actions/setup-java@v5
         with:
           java-version: "26.0.2"
           distribution: "temurin"
           cache: maven
       - name: Run forbiddenapis:check
+        if: needs.changes.outputs.java == 'true'
         run: |
           mvn compile forbiddenapis:check
 
   checkstyle:
     name: checkstyle
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        if: needs.changes.outputs.java == 'true'
         with:
           persist-credentials: false
       - name: Setup Maven Java
+        if: needs.changes.outputs.java == 'true'
         uses: actions/setup-java@v5
         with:
           java-version: "26.0.2"
           distribution: "temurin"
       - name: Run checkstyle
+        if: needs.changes.outputs.java == 'true'
         run: mvn compile checkstyle:checkstyle
