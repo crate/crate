@@ -156,3 +156,12 @@ Fixes
   user. Like with :ref:`ALTER ROLE <ref-alter-role>`, they can only be set for
   a user and not for a role.
 
+- Fixed an issue that caused a ``UNION ALL`` inside a sub-select to return
+  values of the wrong column if the outer query used an ``ORDER BY`` on a
+  column which was not selected. e.g.::
+
+     SELECT ts FROM (
+       SELECT * FROM (SELECT l.k, l.ts FROM a l JOIN a r ON l.k = r.k) j WHERE 1 = 0
+       UNION ALL
+       SELECT * FROM a
+     ) u ORDER BY k;
