@@ -205,3 +205,12 @@ Fixes
 
 - Fixed an issue causing queries with an ``OUTER JOIN`` return incorrect
   results if ``WHERE`` clause had a subquery.
+
+- Fixed an issue where :ref:`lag <window-functions-lag>` and :ref:`lead <window-functions-lead>` ignored row-dependent
+  offset and default value expressions. e.g::
+
+    SELECT id,
+       offset,
+       lag(x, offset, -1) OVER (ORDER BY id) AS v
+    FROM t
+    ORDER BY id;

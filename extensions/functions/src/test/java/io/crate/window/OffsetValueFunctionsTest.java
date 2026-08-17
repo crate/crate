@@ -494,6 +494,32 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
+    public void test_lead_with_row_dependent_offset_expression() throws Throwable {
+        assertEvaluate(
+            "lead(x, y, -1) over(order by x)",
+            new Object[]{10, 30, -1},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
+            new Object[][]{
+                new Object[]{10, 0},
+                new Object[]{20, 1},
+                new Object[]{30, 1}
+            });
+    }
+
+    @Test
+    public void test_lead_with_row_dependent_default_expression() throws Throwable {
+        assertEvaluate(
+            "lead(x, 1, y) over(order by x)",
+            new Object[]{20L, 30L, 1L},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
+            new Object[][]{
+                new Object[]{10, 0},
+                new Object[]{20, 1},
+                new Object[]{30, 1}
+            });
+    }
+
+    @Test
     public void testLagWithNegativeOffsetIgnoringNullsWithMultipleGroupsOfNulls() throws Throwable {
         assertEvaluate(
             "lag(x,-2,123) ignore nulls over()",
@@ -501,6 +527,32 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
             List.of(ColumnIdent.of("x")),
             new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}
         );
+    }
+
+    @Test
+    public void test_lag_with_row_dependent_offset_expression() throws Throwable {
+        assertEvaluate(
+            "lag(x, y, -1) over(order by x)",
+            new Object[]{10, 10, 20},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
+            new Object[][]{
+                new Object[]{10, 0},
+                new Object[]{20, 1},
+                new Object[]{30, 1}
+            });
+    }
+
+    @Test
+    public void test_lag_with_row_dependent_default_value_expression() throws Throwable {
+        assertEvaluate(
+            "lag(x, 100, y) over(order by x)",
+            new Object[]{0L, 1L, 2L},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
+            new Object[][]{
+                new Object[]{10, 0},
+                new Object[]{20, 1},
+                new Object[]{30, 2}
+            });
     }
 
     private static final List<ColumnIdent> INTERVAL_COLS = List.of(ColumnIdent.of("x"), ColumnIdent.of("y"));
