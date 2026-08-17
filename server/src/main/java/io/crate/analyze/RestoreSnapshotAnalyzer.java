@@ -27,9 +27,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.logging.DeprecationLogger;
-
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
@@ -50,9 +47,6 @@ import io.crate.sql.tree.Table;
 
 public class RestoreSnapshotAnalyzer {
 
-    public static final DeprecationLogger DEPRECATION_LOGGER =
-        new DeprecationLogger(LogManager.getLogger(RestoreSnapshotAnalyzer.class));
-
     public static final List<String> USER_MANAGEMENT_METADATA = List.of(
         UsersMetadata.TYPE, // Also restore old UsersMetadata
         RolesMetadata.TYPE,
@@ -60,8 +54,6 @@ public class RestoreSnapshotAnalyzer {
 
     public static final Map<String, List<String>> METADATA_CUSTOM_TYPE_MAP = Map.of(
         "UDFS", List.of(UserDefinedFunctionsMetadata.TYPE),
-        "USERS", USER_MANAGEMENT_METADATA,    // Deprecated, keeping for BWC
-        "PRIVILEGES", USER_MANAGEMENT_METADATA,   // Deprecated, keeping for BWC
         "USERMANAGEMENT", USER_MANAGEMENT_METADATA
     );
 
@@ -146,10 +138,6 @@ public class RestoreSnapshotAnalyzer {
                         var customTypes = METADATA_CUSTOM_TYPE_MAP.get(typeName);
                         if (customTypes == null) {
                             throw new IllegalArgumentException("Unknown metadata type '" + typeName + "'");
-                        }
-                        if ("USERS".equals(typeName) || "PRIVILEGES".equals(typeName)) {
-                            DEPRECATION_LOGGER.deprecatedAndMaybeLog("restore_snapshot.metadata",
-                                typeName + " keyword is deprecated, please use USERMANAGEMENT instead");
                         }
                         includeCustomMetadata = true;
                         customMetadataTypes.addAll(customTypes);
