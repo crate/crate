@@ -81,6 +81,10 @@ Breaking Changes
 Fixes
 =====
 
+- Fixed an issue that allowed authenticated users to bypass the ``COPY FROM``
+  restriction to read from ``file`` URIs - which is supposed to be restricted to
+  superusers.
+
 - Fixed a security vulnerability that could allow clients to spoof the IP
   address used for host based authentication as a ``_local`` address if
   ``auth.trust.http_support_x_real_ip=true`` was set to true, and if there
