@@ -26,15 +26,18 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.common.settings.Settings;
+import org.jspecify.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.expression.symbol.Symbols;
 import io.crate.fdw.ForeignDataWrappers;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.Collect;
@@ -45,6 +48,7 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -162,7 +166,7 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
               SELECT 2, id FROM users
               ) o
             ORDER BY x
-             """;
+            """;
         var logicalPlan = e.logicalPlan(stmt);
         String expectedPlan =
             """
@@ -306,5 +310,59 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         // Ensure that this plan can be built without any exception
         // (Ensure Eval can handle fewer outputs than its source)
         e.plan(stmt);
+    }
+
+    // https://github.com/crate/crate/issues/19913
+    @Test
+    public void test_pruning_a_union_keeps_the_sources_aligned() throws Exception {
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable("create table tbl (id int, val long)");
+
+        // `ORDER BY id` is pushed beneath the union, the sources therefore keep `id` in addition to
+        // the `val` output of the union. `Union` streams the outputs of its sources positionally,
+        // so the outputs of the union must be a "prefix" of the outputs of both sources, otherwise
+        // the values of `id` end up in the `val` column.
+        for (String orderBy : List.of("", "order by id", "order by val")) {
+            String stmt = """
+                select val from (
+                    select * from (select l.id, l.val from tbl l join tbl r on l.id = r.id) j where 1 = 0
+                    union all
+                    select * from tbl
+                ) u
+                """ + orderBy;
+            Union union = extractUnion(executor.logicalPlan(stmt));
+            assertThat(union).isNotNull();
+
+            // The symbols of the union and of its sources are not equal, they belong to different
+            // virtual relations (AliasSymbols(, therefore compare the types
+            List<DataType<?>> outputTypes = Symbols.typeView(union.outputs());
+            List<DataType<?>> lhsTypes = Symbols.typeView(union.sources().get(0).outputs());
+            List<DataType<?>> rhsTypes = Symbols.typeView(union.sources().get(1).outputs());
+
+            assertThat(lhsTypes).hasSameSizeAs(rhsTypes);
+            assertThat(lhsTypes.size()).isGreaterThanOrEqualTo(outputTypes.size());
+            assertThat(lhsTypes.subList(0, outputTypes.size()))
+                .as("lhs of the union must be aligned with its outputs, " + orderBy)
+                .isEqualTo(outputTypes);
+            assertThat(rhsTypes.subList(0, outputTypes.size()))
+                .as("rhs of the union must be aligned with its outputs, " + orderBy)
+                .isEqualTo(outputTypes);
+        }
+    }
+
+    @Nullable
+    private static Union extractUnion(LogicalPlan plan) {
+        if (plan instanceof Union union) {
+            return union;
+        }
+        for (LogicalPlan source : plan.sources()) {
+            Union union = extractUnion(source);
+            if (union != null) {
+                return union;
+            }
+        }
+        return null;
     }
 }
