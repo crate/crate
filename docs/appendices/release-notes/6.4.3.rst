@@ -46,6 +46,11 @@ series.
 Fixes
 =====
 
+- Fixed a security vulnerability that could allow clients to spoof the IP
+  address used for host based authentication as a ``_local`` address if
+  ``auth.trust.http_support_x_real_ip=true`` was set to true, and if there
+  wasn't a trusted proxy in use that filters or sanitizes ``X-Real-IP`` headers.
+
 - Fixed an issue that could cause partitions of tables to be excluded from a
   query if the ``WHERE`` clause contained a complex expression nesting an ``IS
   NULL`` clause.
