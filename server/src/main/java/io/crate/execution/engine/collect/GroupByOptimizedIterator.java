@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
+import java.util.stream.StreamSupport;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
@@ -64,6 +65,8 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jspecify.annotations.Nullable;
+
+import com.carrotsearch.hppc.ObjectLongHashMap;
 
 import io.crate.common.MutableLong;
 import io.crate.common.concurrent.Killable;
@@ -202,12 +205,15 @@ final class GroupByOptimizedIterator {
         );
     }
 
-    private static Iterable<Row> keysToRows(Map<String, Long> countsByKey) {
+    private static Iterable<Row> keysToRows(ObjectLongHashMap<String> countsByKey) {
         final Object[] cells = new Object[1];
         final Row row = new RowN(cells);
-        return () -> countsByKey.keySet().stream()
-            .map(key -> {
-                cells[0] = key;
+
+        return () -> StreamSupport.stream(countsByKey.spliterator(), false)
+            .map(cursor -> {
+                long count = cursor.value;
+                // See GroupProjection.outputs(): keys always come first, aggregations second
+                cells[0] = cursor.key;
                 return row;
             })
             .iterator();
@@ -266,7 +272,7 @@ final class GroupByOptimizedIterator {
         return false;
     }
 
-    private static Iterable<Row> countsToRows(Map<String, Long> countsByKey, AggregateMode mode) {
+    private static Iterable<Row> countsToRows(ObjectLongHashMap<String> countsByKey, AggregateMode mode) {
         final Object[] cells = new Object[2];
         final Row row = new RowN(cells);
         LongFunction<Object> wrapCount = switch (mode) {
@@ -275,25 +281,25 @@ final class GroupByOptimizedIterator {
             case PARTIAL_FINAL -> throw new UnsupportedOperationException(
                 "Shard level projection cannot start at PARTIAL");
         };
-        return () -> countsByKey.entrySet().stream()
-            .map(entry -> {
-                long count = entry.getValue();
+        return () -> StreamSupport.stream(countsByKey.spliterator(), false)
+            .map(cursor -> {
+                long count = cursor.value;
                 // See GroupProjection.outputs(): keys always come first, aggregations second
-                cells[0] = entry.getKey();
+                cells[0] = cursor.key;
                 cells[1] = wrapCount.apply(count);
                 return row;
             })
             .iterator();
     }
 
-    private static Map<String, Long> getCountsByKey(RamAccounting ramAccounting,
-                                                              Reference keyRef,
-                                                              IndexSearcher searcher,
-                                                              Token killToken,
-                                                              boolean includeCounts) throws IOException {
+    private static ObjectLongHashMap<String> getCountsByKey(RamAccounting ramAccounting,
+                                                            Reference keyRef,
+                                                            IndexSearcher searcher,
+                                                            Token killToken,
+                                                            boolean includeCounts) throws IOException {
         // HashMap rather than an open-addressing map: it caches each key's hash in the node, so a
         // resize does not recompute BytesRef.hashCode(), which murmur-hashes the whole key content.
-        HashMap<String, Long> countsByKey = new HashMap<>();
+        ObjectLongHashMap<String> countsByKey = new ObjectLongHashMap<>();
         String keyStorageIdent = keyRef.storageIdent();
         PostingsEnum postings = null;
         for (var leaf : searcher.getLeafContexts()) {
@@ -328,13 +334,10 @@ final class GroupByOptimizedIterator {
                 }
 
                 if (seen) {
-                    // computeIfPresent never inserts, so the reused `sharedKey` cannot become a map
-                    // key; TermsEnum.next() would overwrite it.
-                    final int increment = numDocs;
-                    countsByKey.computeIfPresent(sharedKey, (k, count) -> count + increment);
+                    countsByKey.addTo(sharedKey, numDocs);
                 } else if (numDocs != 0) {
                     ramAccounting.addBytes(RamUsageEstimator.sizeOf(sharedKey) + HASH_MAP_ENTRY_OVERHEAD);
-                    countsByKey.put(sharedKey, (long) numDocs);
+                    countsByKey.put(sharedKey, numDocs);
                 }
                 killToken.raiseIfKilled();
             }
