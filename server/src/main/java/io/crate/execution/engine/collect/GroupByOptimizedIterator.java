@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.LongFunction;
 import java.util.function.Supplier;
 
 import org.apache.lucene.index.DocValues;
@@ -190,12 +189,12 @@ final class GroupByOptimizedIterator {
         );
     }
 
-    private static Iterable<Row> countsToRows(Map<BytesRef, Long> countsByKey, AggregateMode mode) {
+    private static Iterable<Row> countsToRows(Map<BytesRef, MutableLong> countsByKey, AggregateMode mode) {
         final Object[] cells = new Object[2];
         final Row row = new RowN(cells);
-        LongFunction<Object> wrapCount = switch (mode) {
-            case ITER_PARTIAL -> MutableLong::new;
-            case ITER_FINAL -> x -> x;
+        Function<MutableLong, Object> wrapCount = switch (mode) {
+            case ITER_PARTIAL -> x -> x;
+            case ITER_FINAL -> MutableLong::value;
             case PARTIAL_FINAL -> throw new UnsupportedOperationException(
                 "Shard level projection cannot start at PARTIAL");
         };
@@ -210,13 +209,13 @@ final class GroupByOptimizedIterator {
             .iterator();
     }
 
-    private static Map<BytesRef, Long> getCountsByKey(RamAccounting ramAccounting,
-                                                        Reference keyRef,
-                                                        IndexSearcher searcher,
-                                                        Token killToken) throws IOException {
+    private static Map<BytesRef, MutableLong> getCountsByKey(RamAccounting ramAccounting,
+                                                             Reference keyRef,
+                                                             IndexSearcher searcher,
+                                                             Token killToken) throws IOException {
         // HashMap rather than an open-addressing map: it caches each key's hash in the node, so a
         // resize does not recompute BytesRef.hashCode(), which murmur-hashes the whole key content.
-        HashMap<BytesRef, Long> countsByKey = new HashMap<>();
+        HashMap<BytesRef, MutableLong> countsByKey = new HashMap<>();
         String keyStorageIdent = keyRef.storageIdent();
         PostingsEnum postings = null;
         for (var leaf : searcher.getLeafContexts()) {
@@ -242,17 +241,15 @@ final class GroupByOptimizedIterator {
                 }
 
                 if (numDocs != 0) {
-                    // termsEnum reuses the BytesRef it returns, so a key entering the map must be copied.
-                    // Copying up-front keeps this to a single lookup: BytesRef.hashCode() murmur-hashes the
-                    // whole key content, which costs more than the copy.
-                    BytesRef key = BytesRef.deepCopyOf(sharedKey);
-                    countsByKey.compute(key, (k, count) -> {
-                        if (count == null) {
-                            ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + k.length + HASH_MAP_ENTRY_OVERHEAD);
-                            return (long) numDocs;
-                        }
-                        return count + numDocs;
-                    });
+                    // termsEnum reuses the BytesRef it returns, so a key entering the map must be copied first
+                    MutableLong count = countsByKey.get(sharedKey);
+                    if (count == null) {
+                        BytesRef key = BytesRef.deepCopyOf(sharedKey);
+                        ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + key.length + HASH_MAP_ENTRY_OVERHEAD);
+                        countsByKey.put(key, new MutableLong(numDocs));
+                    } else {
+                        count.add(numDocs);
+                    }
                 }
 
                 killToken.raiseIfKilled();
@@ -269,7 +266,7 @@ final class GroupByOptimizedIterator {
             Integer count = searcher.search(notNull, topHitCounts);
             if (count > 0) {
                 ramAccounting.addBytes(HASH_MAP_ENTRY_OVERHEAD);
-                countsByKey.put(null, Long.valueOf(count));
+                countsByKey.put(null, new MutableLong(count));
             }
         }
 
