@@ -383,6 +383,13 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_update_with_subquery_in_returning_clause_requires_dql_on_subquery_relation() {
+        analyze("update users set name = 'ford' returning (select a from t1) as a");
+        assertAskedForTable(Permission.DML, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.t1");
+    }
+
+    @Test
     public void test_update_with_subquery_on_view_requires_owner_to_have_privileges() {
         analyze("update users set name = 'foo' where name in (select name from doc.v1)");
         assertAskedForTable(Permission.DML, "doc.users");
