@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BiFunction;
 
 import org.apache.logging.log4j.LogManager;
@@ -32,7 +33,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.component.Lifecycle;
-import org.elasticsearch.common.metrics.CounterMetric;
 import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.util.concurrent.AbstractLifecycleRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -53,8 +53,8 @@ final class TransportKeepAlive implements Closeable {
     private static final byte[] PING_MESSAGE = {'E', 'S', -1, -1, -1, -1};
 
     private final Logger logger = LogManager.getLogger(TransportKeepAlive.class);
-    private final CounterMetric successfulPings = new CounterMetric();
-    private final CounterMetric failedPings = new CounterMetric();
+    private final LongAdder successfulPings = new LongAdder();
+    private final LongAdder failedPings = new LongAdder();
     private final ConcurrentMap<TimeValue, ScheduledPing> pingIntervals = new ConcurrentHashMap<>();
     private final Lifecycle lifecycle = new Lifecycle();
     private final ThreadPool threadPool;
@@ -101,23 +101,23 @@ final class TransportKeepAlive implements Closeable {
     }
 
     long successfulPingCount() {
-        return successfulPings.count();
+        return successfulPings.sum();
     }
 
     long failedPingCount() {
-        return failedPings.count();
+        return failedPings.sum();
     }
 
     private void sendPing(CloseableChannel channel) {
         var future = pingSender.apply(channel, PING_MESSAGE);
         future.addListener(f -> {
             if (f.isSuccess()) {
-                successfulPings.inc();
+                successfulPings.increment();
             } else {
                 Throwable e = f.cause();
                 if (channel.isOpen()) {
                     logger.debug(() -> new ParameterizedMessage("[{}] failed to send transport ping", channel), e);
-                    failedPings.inc();
+                    failedPings.increment();
                 } else {
                     logger.trace(() -> new ParameterizedMessage("[{}] failed to send transport ping (channel closed)", channel), e);
                 }

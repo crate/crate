@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.LongAdder;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -32,11 +33,10 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.metrics.CounterMetric;
 import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.threadpool.ThreadPool;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 
 /**
@@ -47,7 +47,7 @@ final class TransportHandshaker {
 
     static final String HANDSHAKE_ACTION_NAME = "internal:tcp/handshake";
     private final ConcurrentMap<Long, HandshakeResponseHandler> pendingHandshakes = new ConcurrentHashMap<>();
-    private final CounterMetric numHandshakes = new CounterMetric();
+    private final LongAdder numHandshakes = new LongAdder();
 
     private final Version version;
     private final ThreadPool threadPool;
@@ -60,7 +60,7 @@ final class TransportHandshaker {
     }
 
     void sendHandshake(long requestId, DiscoveryNode node, CloseableChannel channel, TimeValue timeout, ActionListener<Version> listener) {
-        numHandshakes.inc();
+        numHandshakes.increment();
         final HandshakeResponseHandler handler = new HandshakeResponseHandler(requestId, version, listener);
         pendingHandshakes.put(requestId, handler);
         channel.addCloseListener(ActionListener.wrap(
@@ -115,7 +115,7 @@ final class TransportHandshaker {
     }
 
     long getNumHandshakes() {
-        return numHandshakes.count();
+        return numHandshakes.sum();
     }
 
     private class HandshakeResponseHandler implements TransportResponseHandler<HandshakeResponse> {
