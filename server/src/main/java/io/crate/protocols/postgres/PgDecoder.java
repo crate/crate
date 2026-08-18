@@ -105,6 +105,7 @@ public class PgDecoder extends ByteToMessageDecoder {
     private State state = State.STARTUP;
     private byte msgType;
     private int payloadLength;
+    private boolean authenticated = true;
 
 
     public PgDecoder(Supplier<SslContext> getSslContext) {
@@ -212,7 +213,10 @@ public class PgDecoder extends ByteToMessageDecoder {
                 in.markReaderIndex();
                 msgType = in.readByte();
                 payloadLength = in.readInt() - 4; // exclude length itself
-
+                if (!authenticated && payloadLength > MAX_STARTUP_LENGTH) {
+                    in.skipBytes(in.readableBytes());
+                    throw new IllegalStateException("Message too large for unauthenticated user");
+                }
                 if (in.readableBytes() < payloadLength) {
                     in.resetReaderIndex();
                     return null;
@@ -242,5 +246,9 @@ public class PgDecoder extends ByteToMessageDecoder {
 
     public State state() {
         return state;
+    }
+
+    public void setAuthenticated(boolean value) {
+        authenticated = value;
     }
 }

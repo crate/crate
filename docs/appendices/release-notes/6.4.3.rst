@@ -93,6 +93,10 @@ Breaking Changes
 Fixes
 =====
 
+- Limited the size of messages accepted from unauthenticated clients using the
+  PostgreSQL wire protocol to make it more difficult to launch Denial of Service
+  attacks.
+
 - Fixed an issue that allowed authenticated users to bypass the ``COPY FROM``
   restriction to read from ``file`` URIs - which is supposed to be restricted to
   superusers.
