@@ -86,6 +86,10 @@ Breaking Changes
   symmetrical join conditions (i.e. ``a = b`` is identical to ``b = a``).
   Query results are not affected.
 
+- Removed the ``USERS`` and ``PRIVILEGES`` keywords for the
+  :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>` statement, which have been
+  deprecated since :ref:`5.6.0 <version_6.5.0>`. Use ``USERMANAGEMENT`` instead.
+
 Deprecations
 ============
 
