@@ -267,8 +267,10 @@ final class GroupByOptimizedIterator {
         // sharedShardContexts() and then bailing out causes issues in the fallback logic later on.
         try (var searcher = acquireSearcher.get()) {
             // Enough to inspect only the first segment that contains the values since Lucene makes sure all segments
-            // use the same dimension. Segments without points for the column are skipped,
-            // the column may have been added after they were written, or be indexed with INDEX OFF.
+            // use the same dimension.
+            // Segments without points for the column are skipped, because:
+            // (1) the column may have been added after they were written, or
+            // (2) the field is indexed with INDEX OFF (getPointIndexDimensionCount() == 0).
             for (LeafReaderContext leaf : searcher.getIndexReader().leaves()) {
                 FieldInfo fieldInfo = leaf.reader().getFieldInfos().fieldInfo(fieldName);
                 if (fieldInfo == null || fieldInfo.getPointIndexDimensionCount() == 0) {
