@@ -135,8 +135,17 @@ public class GroupByAggregateTest extends IntegTestCase {
     }
 
     @Test
-    public void test_group_by_numeric_column_minimum_and_maximum_values() throws Exception {
-        this.setup.groupBySetup("integer");
+    public void test_group_by_integer_column_min_and_max_values() throws Exception {
+        assertGroupByWithMinAndMaxValues("integer");
+    }
+
+    @Test
+    public void test_group_by_integer_column_index_off_min_and_max_values() throws Exception {
+        assertGroupByWithMinAndMaxValues("integer index off");
+    }
+
+    private void assertGroupByWithMinAndMaxValues(String columnDefinition) throws Exception {
+        this.setup.groupBySetup(columnDefinition);
         execute("insert into characters (name, gender, age) values (?, ?, ?)",
             new Object[][] {
                 new Object[] { "Marvin II", "male", Integer.MIN_VALUE },
