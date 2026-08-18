@@ -242,15 +242,17 @@ final class GroupByOptimizedIterator {
                 }
 
                 if (numDocs != 0) {
-                    // termsEnum reuses the BytesRef it returns, so a key entering the map must be copied first
-                    Long count = countsByKey.get(sharedKey);
-                    if (count == null) {
-                        BytesRef key = BytesRef.deepCopyOf(sharedKey);
-                        ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + key.length + HASH_MAP_ENTRY_OVERHEAD);
-                        countsByKey.put(key, (long) numDocs);
-                    } else {
-                        countsByKey.put(sharedKey, count + numDocs);
-                    }
+                    // termsEnum reuses the BytesRef it returns, so a key entering the map must be copied.
+                    // Copying up-front keeps this to a single lookup: BytesRef.hashCode() murmur-hashes the
+                    // whole key content, which costs more than the copy.
+                    BytesRef key = BytesRef.deepCopyOf(sharedKey);
+                    countsByKey.compute(key, (k, count) -> {
+                        if (count == null) {
+                            ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + k.length + HASH_MAP_ENTRY_OVERHEAD);
+                            return (long) numDocs;
+                        }
+                        return count + numDocs;
+                    });
                 }
 
                 killToken.raiseIfKilled();
