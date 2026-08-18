@@ -69,6 +69,12 @@ indicates that this user/role is allowed to execute ``INSERT``, ``COPY FROM``,
 ``UPDATE`` and ``DELETE`` statements, on the object for which the privilege
 applies.
 
+Statements which read data in addition to modifying it require the
+:ref:`DQL <privilege_types_dql>` privilege on the objects they read from as
+well. This is the case for ``INSERT INTO ... (SELECT ...)`` and for sub-queries
+used in :ref:`UPDATE <ref-update>` or :ref:`DELETE <sql_reference_delete>`
+statements.
+
 .. _privilege_types_ddl:
 
 ``DDL``

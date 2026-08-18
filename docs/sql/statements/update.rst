@@ -30,6 +30,13 @@ specified values from each row that was updated. Any :ref:`expression
 (post-update) values of the table's columns are used. The syntax of the
 ``RETURNING`` list is identical to that of the output list of ``SELECT``.
 
+.. NOTE::
+
+    ``UPDATE`` requires the :ref:`DML <privilege_types_dml>` privilege on the
+    table which is updated. Sub-queries used in the ``SET``, ``WHERE`` or
+    ``RETURNING`` clause additionally require the
+    :ref:`DQL <privilege_types_dql>` privilege on all relations they read from.
+
 Parameters
 ==========
 
