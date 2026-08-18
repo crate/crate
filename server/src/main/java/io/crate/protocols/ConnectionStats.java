@@ -27,40 +27,23 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-public final class ConnectionStats implements Writeable {
+public record ConnectionStats(long open,
+                              long total,
+                              long receivedMessages,
+                              long receivedBytes,
+                              long sentMessages,
+                              long sentBytes) implements Writeable {
 
-    private final long open;
-    private final long total;
-
-    private final long receivedMessages;
-
-    private final long receivedBytes;
-
-    private final long sentMessages;
-
-    private final long sentBytes;
-
-    public ConnectionStats(long open,
-                           long total,
-                           long receivedMessages,
-                           long receivedBytes,
-                           long sentMessages,
-                           long sentBytes) {
-        this.open = open;
-        this.total = total;
-        this.receivedMessages = receivedMessages;
-        this.receivedBytes = receivedBytes;
-        this.sentMessages = sentMessages;
-        this.sentBytes = sentBytes;
-    }
 
     public ConnectionStats(StreamInput in) throws IOException {
-        this.open = in.readVLong();
-        this.total = in.readVLong();
-        this.receivedMessages = in.readVLong();
-        this.receivedBytes = in.readVLong();
-        this.sentMessages = in.readVLong();
-        this.sentBytes = in.readVLong();
+        this(
+            in.readVLong(),
+            in.readVLong(),
+            in.readVLong(),
+            in.readVLong(),
+            in.readVLong(),
+            in.readVLong()
+        );
     }
 
     @Override
@@ -71,29 +54,5 @@ public final class ConnectionStats implements Writeable {
         out.writeVLong(receivedBytes);
         out.writeVLong(sentMessages);
         out.writeVLong(sentBytes);
-    }
-
-    public long open() {
-        return open;
-    }
-
-    public long total() {
-        return total;
-    }
-
-    public long receivedMsgs() {
-        return receivedMessages;
-    }
-
-    public long receivedBytes() {
-        return receivedBytes;
-    }
-
-    public long sentMsgs() {
-        return sentMessages;
-    }
-
-    public long sentBytes() {
-        return sentBytes;
     }
 }
