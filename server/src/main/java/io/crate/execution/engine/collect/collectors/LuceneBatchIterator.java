@@ -97,6 +97,7 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
     @Override
     public void moveToStart() {
         raiseIfKilled();
+        clearState();
         leavesIt = leaves.iterator();
     }
 
