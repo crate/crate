@@ -27,6 +27,7 @@ import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 import java.util.Arrays;
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -52,5 +53,37 @@ public class DropPartitionsRequestTest {
             }
         }
     }
-}
 
+    @Test
+    public void test_streaming_table_oids() throws Exception {
+        // streaming to nodes with supported versions
+        RelationName relation = new RelationName("doc", "tbl");
+        List<PartitionName> partitions = List.of(new PartitionName(relation, List.of("1")));
+        int tableOid = 1234;
+        var req = new DropPartitionsRequest(relation, tableOid, partitions);
+
+        var out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_5_0);
+        req.writeTo(out);
+
+        var in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_5_0);
+        DropPartitionsRequest streamed = new DropPartitionsRequest(in);
+
+        assertThat(streamed.tableOid()).isEqualTo(tableOid);
+
+        // streaming to nodes with unsupported versions
+        req = new DropPartitionsRequest(relation, tableOid, partitions);
+
+
+        out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_4_0);
+        req.writeTo(out);
+
+        in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_4_0);
+        streamed = new DropPartitionsRequest(in);
+
+        assertThat(streamed.tableOid()).isEqualTo(OID_UNASSIGNED);
+    }
+}
