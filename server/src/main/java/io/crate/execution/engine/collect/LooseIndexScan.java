@@ -316,6 +316,7 @@ final class LooseIndexScan {
             this.cmp = ArrayUtil.getUnsignedComparator(bytesPerValue);
             this.ramAccounting = ramAccounting;
             this.killToken = killToken;
+            // the buffer holds 16 values initially, each value needs `bytesPerValue`
             this.buffer = new byte[bytesPerValue * 16];
             // bytesPerValue for the `current` field, which is allocated on the first next()
             ramAccounting.addBytes(buffer.length + bytesPerValue);
