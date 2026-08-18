@@ -58,14 +58,13 @@ import org.jspecify.annotations.Nullable;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 
-import io.crate.session.Sessions;
 import io.crate.auth.Authentication;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.netty.NettyBootstrap;
-import io.crate.protocols.ConnectionStats;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.role.Roles;
+import io.crate.session.Sessions;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -304,7 +303,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         // nothing to close here, see doStop()
     }
 
-    public ConnectionStats stats() {
-        return statsTracker.stats();
+    public StatsTracker stats() {
+        return statsTracker;
     }
 }

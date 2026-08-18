@@ -29,12 +29,11 @@ import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.CloseableConnection;
 import org.elasticsearch.transport.ConnectionProfile;
+import org.elasticsearch.transport.StatsTracker;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportMessageListener;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestOptions;
-
-import io.crate.protocols.ConnectionStats;
 
 /**
  * A transport that does nothing. Normally wrapped by {@link StubbableTransport}.
@@ -43,6 +42,7 @@ public class FakeTransport extends AbstractLifecycleComponent implements Transpo
 
     private final RequestHandlers requestHandlers = new RequestHandlers();
     private final ResponseHandlers responseHandlers = new ResponseHandlers();
+    private final StatsTracker statsTracker = new StatsTracker();
     private TransportMessageListener listener;
 
     @Override
@@ -84,8 +84,8 @@ public class FakeTransport extends AbstractLifecycleComponent implements Transpo
     }
 
     @Override
-    public ConnectionStats getStats() {
-        return new ConnectionStats(0, 0, 0, 0, 0, 0);
+    public StatsTracker getStats() {
+        return statsTracker;
     }
 
     @Override

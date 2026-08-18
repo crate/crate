@@ -21,12 +21,11 @@ package org.elasticsearch.http;
 
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.transport.BoundTransportAddress;
-
-import io.crate.protocols.ConnectionStats;
+import org.elasticsearch.transport.StatsTracker;
 
 public interface HttpServerTransport extends LifecycleComponent {
 
     BoundTransportAddress boundAddress();
 
-    ConnectionStats stats();
+    StatsTracker stats();
 }

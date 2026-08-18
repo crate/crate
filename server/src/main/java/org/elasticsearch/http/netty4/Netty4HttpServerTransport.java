@@ -106,7 +106,6 @@ import io.crate.auth.Protocol;
 import io.crate.blob.BlobService;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.netty.NettyBootstrap;
-import io.crate.protocols.ConnectionStats;
 import io.crate.protocols.http.HttpBlobHandler;
 import io.crate.protocols.http.MainAndStaticFileHandler;
 import io.crate.protocols.ssl.SslContextProvider;
@@ -518,8 +517,8 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     }
 
     @Override
-    public ConnectionStats stats() {
-        return statsTracker.stats();
+    public StatsTracker stats() {
+        return statsTracker;
     }
 
     public Netty4CorsConfig getCorsConfig() {

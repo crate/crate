@@ -85,7 +85,6 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.CountDown;
 import io.crate.exceptions.TransportNotReady;
-import io.crate.protocols.ConnectionStats;
 import io.crate.rest.action.HttpErrorStatus;
 import io.netty.channel.ChannelFuture;
 
@@ -154,10 +153,6 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
 
     public Version getVersion() {
         return version;
-    }
-
-    public StatsTracker getStatsTracker() {
-        return statsTracker;
     }
 
     public ThreadPool getThreadPool() {
@@ -828,8 +823,8 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     }
 
     @Override
-    public final ConnectionStats getStats() {
-        return statsTracker.stats();
+    public final StatsTracker getStats() {
+        return statsTracker;
     }
 
     @Override
