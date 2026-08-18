@@ -45,7 +45,7 @@ import org.jspecify.annotations.Nullable;
 
 import io.crate.common.concurrent.Killable.Token;
 import io.crate.data.BatchIterator;
-import io.crate.data.CollectingBatchIterator;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
@@ -110,9 +110,10 @@ final class LooseIndexScan {
                                        int bytesPerValue,
                                        RamAccounting ramAccounting,
                                        Token killToken) {
-        return CollectingBatchIterator.newInstance(
-            killToken,
-            () -> rows(searcher, keyRef, bytesPerValue, ramAccounting, killToken),
+        return InMemoryBatchIterator.of(
+            rows(searcher, keyRef, bytesPerValue, ramAccounting, killToken),
+            null,
+            // distinct values loaded lazily from each segment
             true
         );
     }

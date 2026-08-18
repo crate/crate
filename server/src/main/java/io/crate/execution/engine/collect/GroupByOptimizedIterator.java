@@ -239,7 +239,7 @@ final class GroupByOptimizedIterator {
         }
 
         int bytesPerValue = pointWidth(
-            () -> indexShard.acquireSearcher("loose-index-scan-dimension-check"), keyRef.storageIdent());
+            () -> indexShard.acquireSearcher("loose-index-scan:" + formatSource(collectPhase)), keyRef.storageIdent());
         if (bytesPerValue < 0) {
             return null;
         }
