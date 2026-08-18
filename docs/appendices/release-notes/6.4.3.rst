@@ -93,6 +93,10 @@ Breaking Changes
 Fixes
 =====
 
+- Limited the size of messages accepted from unauthenticated clients using the
+  PostgreSQL wire protocol to make it more difficult to launch Denial of Service
+  attacks.
+
 - Fixed an issue that allowed authenticated users to bypass the ``COPY FROM``
   restriction to read from ``file`` URIs - which is supposed to be restricted to
   superusers.
@@ -184,3 +188,9 @@ Fixes
   were large enough to be transferred in more than one page between the nodes.
   Nested joins are now always executed non-distributed, only the very outer join
   is executed distributed. Note that this fix may cause performance degradation.
+
+- Fixed an issue that allowed authenticated users to read data from tables and
+  views, on which they don't have :ref:`DQL <privilege_types_dql>` privileges,
+  by using sub-queries inside :ref:`UPDATE <ref-update>` or
+  :ref:`DELETE <sql_reference_delete>` statements. Sub-queries used in such
+  statements now require the ``DQL`` privilege on all involved tables and views.

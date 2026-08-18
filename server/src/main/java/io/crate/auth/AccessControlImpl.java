@@ -462,6 +462,7 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         protected Void visitAnalyzedDeleteStatement(AnalyzedDeleteStatement delete, Role user) {
             visitRelation(delete.relation(), user, Permission.DML);
+            visitSubQueries(delete, user);
             return null;
         }
 
@@ -487,6 +488,7 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         public Void visitAnalyzedUpdateStatement(AnalyzedUpdateStatement update, Role user) {
             visitRelation(update.table(), user, Permission.DML);
+            visitSubQueries(update, user);
             return null;
         }
 
@@ -1001,6 +1003,12 @@ public final class AccessControlImpl implements AccessControl {
                 Securable.TABLE,
                 tableFqn
             );
+        }
+
+        private void visitSubQueries(AnalyzedStatement stmt, Role user) {
+            var ctx = new RelationContext(user, Permission.DQL);
+            stmt.visitSymbols(symbol ->
+                symbol.visit(SelectSymbol.class, s -> s.relation().accept(relationVisitor, ctx)));
         }
     }
 

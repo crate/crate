@@ -291,6 +291,7 @@ public class PostgresWireProtocol {
 
         @Override
         public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
+            decoder.setAuthenticated(false);
             channel = new DelayableWriteChannel(ctx.channel());
         }
 
@@ -396,6 +397,7 @@ public class PostgresWireProtocol {
         }
 
         private void closeSession() {
+            decoder.setAuthenticated(false);
             if (session != null) {
                 session.close();
                 session = null;
@@ -477,6 +479,7 @@ public class PostgresWireProtocol {
             if (options != null) {
                 applyOptions(options);
             }
+            decoder.setAuthenticated(true);
             Messages.sendAuthenticationOK(channel)
                 .addListener(f -> sendParams(channel, session.sessionSettings()))
                 .addListener(f -> Messages.sendKeyData(channel, session.id(), session.secret()))
