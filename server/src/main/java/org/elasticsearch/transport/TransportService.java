@@ -60,7 +60,6 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.TransportNotReady;
-import io.crate.protocols.ConnectionStats;
 
 public class TransportService extends AbstractLifecycleComponent implements TransportMessageListener, TransportConnectionListener {
 
@@ -305,7 +304,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         handleIncomingRequests.set(true);
     }
 
-    public ConnectionStats stats() {
+    public StatsTracker stats() {
         return transport.getStats();
     }
 

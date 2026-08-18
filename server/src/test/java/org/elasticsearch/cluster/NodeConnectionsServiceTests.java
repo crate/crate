@@ -64,6 +64,7 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.ConnectionProfile;
+import org.elasticsearch.transport.StatsTracker;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportMessageListener;
@@ -73,8 +74,6 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import io.crate.protocols.ConnectionStats;
 
 public class NodeConnectionsServiceTests extends ESTestCase {
 
@@ -595,7 +594,7 @@ public class NodeConnectionsServiceTests extends ESTestCase {
         }
 
         @Override
-        public ConnectionStats getStats() {
+        public StatsTracker getStats() {
             throw new UnsupportedOperationException();
         }
 

@@ -39,6 +39,7 @@ import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.StatsTracker;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,13 +48,14 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.protocols.ConnectionStats;
 
 public class NodeStatsContextFieldResolverTest {
 
     private NodeStatsContextFieldResolver resolver;
 
     private TransportAddress postgresAddress;
+
+    private StatsTracker statsTracker;
 
     @Before
     public void setup() throws UnknownHostException {
@@ -65,18 +67,20 @@ public class NodeStatsContextFieldResolverTest {
         when(osService.stats()).thenReturn(osStats);
         DiscoveryNode discoveryNode = newNode("node_name", "node_id");
 
+        statsTracker = new StatsTracker();
+
         postgresAddress = new TransportAddress(Inet4Address.getLocalHost(), 5432);
         resolver = new NodeStatsContextFieldResolver(
             () -> true,
             () -> discoveryNode,
             monitorService,
             () -> null,
-            () -> new ConnectionStats(1, 2, 3, 4, 5, 6),
+            statsTracker,
             mock(ThreadPool.class),
             new ExtendedNodeInfo(),
-            () -> new ConnectionStats(11, 22, 33, 44, 55, 66),
+            statsTracker,
             () -> postgresAddress,
-            () -> new ConnectionStats(111, 222, 333, 444, 555, 666),
+            statsTracker,
             () -> 1L
         );
     }
@@ -90,11 +94,16 @@ public class NodeStatsContextFieldResolverTest {
     @SuppressWarnings("rawtypes")
     @Test
     public void testConnectionsHttpLookupAndExpression() {
+        statsTracker.incrementOpenChannels();
+        statsTracker.incrementOpenChannels();
+        statsTracker.decrementOpenChannels();
+
         NodeStatsContext statsContext = resolver.forTopColumnIdents(
             Collections.singletonList(SysNodesTableInfo.Columns.CONNECTIONS));
         RowCollectExpressionFactory<NodeStatsContext> expressionFactory =
             SysNodesTableInfo.INSTANCE.expressions().get(SysNodesTableInfo.Columns.CONNECTIONS);
         NestableCollectExpression<NodeStatsContext, ?> expression = expressionFactory.create();
+
 
         NestableCollectExpression http = (NestableCollectExpression) expression.getChild("http");
         NestableCollectExpression open = (NestableCollectExpression) http.getChild("open");
@@ -109,6 +118,11 @@ public class NodeStatsContextFieldResolverTest {
     @SuppressWarnings("rawtypes")
     @Test
     public void testNumberOfPSqlConnectionsCanBeRetrieved() {
+        statsTracker.incrementOpenChannels();
+        statsTracker.incrementOpenChannels();
+        statsTracker.incrementOpenChannels();
+        statsTracker.decrementOpenChannels();
+
         // tests the resolver and the expression
         NodeStatsContext statsContext = resolver.forTopColumnIdents(
             Collections.singletonList(SysNodesTableInfo.Columns.CONNECTIONS));
@@ -119,16 +133,19 @@ public class NodeStatsContextFieldResolverTest {
         NestableCollectExpression psql = (NestableCollectExpression) expression.getChild("psql");
         NestableCollectExpression open = (NestableCollectExpression) psql.getChild("open");
         open.setNextRow(statsContext);
-        assertThat(open.value()).isEqualTo(11L);
+        assertThat(open.value()).isEqualTo(2L);
 
         NestableCollectExpression total = (NestableCollectExpression) psql.getChild("total");
         total.setNextRow(statsContext);
-        assertThat(total.value()).isEqualTo(22L);
+        assertThat(total.value()).isEqualTo(3L);
     }
 
     @SuppressWarnings("rawtypes")
     @Test
     public void testNumberOfTransportConnectionsCanBeRetrieved() {
+        statsTracker.incrementOpenChannels();
+        statsTracker.decrementOpenChannels();
+
         // tests the resolver and the expression
         NodeStatsContext statsContext = resolver.forTopColumnIdents(
             Collections.singletonList(SysNodesTableInfo.Columns.CONNECTIONS));
@@ -139,11 +156,11 @@ public class NodeStatsContextFieldResolverTest {
         NestableCollectExpression psql = (NestableCollectExpression) expression.getChild("transport");
         NestableCollectExpression open = (NestableCollectExpression) psql.getChild("open");
         open.setNextRow(statsContext);
-        assertThat(open.value()).isEqualTo(111L);
+        assertThat(open.value()).isEqualTo(0L);
 
         NestableCollectExpression total = (NestableCollectExpression) psql.getChild("total");
         total.setNextRow(statsContext);
-        assertThat(total.value()).isEqualTo(222L);
+        assertThat(total.value()).isEqualTo(1L);
     }
 
     @Test
