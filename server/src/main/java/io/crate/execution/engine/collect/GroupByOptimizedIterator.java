@@ -299,7 +299,7 @@ final class GroupByOptimizedIterator {
                                                             boolean includeCounts) throws IOException {
         // HashMap rather than an open-addressing map: it caches each key's hash in the node, so a
         // resize does not recompute BytesRef.hashCode(), which murmur-hashes the whole key content.
-        ObjectLongHashMap<String> countsByKey = new ObjectLongHashMap<>();
+        ObjectLongHashMap<String> countsByKey = new ObjectLongHashMap<>(16);
         String keyStorageIdent = keyRef.storageIdent();
         PostingsEnum postings = null;
         for (var leaf : searcher.getLeafContexts()) {
