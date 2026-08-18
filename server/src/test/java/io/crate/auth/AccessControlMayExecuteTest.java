@@ -188,6 +188,11 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             s -> assertThat(s).containsExactly(permission, Securable.CLUSTER, null, user.name()));
     }
 
+    private void assertNotAskedForCluster(Permission permission) {
+        assertThat(validationCallArguments).noneSatisfy(
+            s -> assertThat(s).containsExactly(permission, Securable.CLUSTER, null, normalUser.name()));
+    }
+
     private void assertAskedForSchema(Permission permission, String ident) {
         assertThat(validationCallArguments).anySatisfy(
             s -> assertThat(s).containsExactly(permission, Securable.SCHEMA, ident, normalUser.name()));
@@ -299,9 +304,22 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testRestoreSnapshot() throws Exception {
+    public void test_restore_snapshot_with_user_metadata_requires_al_and_ddl() throws Exception {
+        for (var type : List.of("ALL", "METADATA", "USERMANAGEMENT")) {
+            analyze("restore snapshot my_repo.my_snapshot " + type);
+            assertAskedForCluster(Permission.DDL);
+            assertAskedForCluster(Permission.AL);
+        }
+    }
+
+    @Test
+    public void test_restore_snapshot_without_user_management_metadata_does_not_require_al() throws Exception {
         analyze("restore snapshot my_repo.my_snapshot table my_table");
+        for (var type : List.of("TABLES", "VIEWS", "ANALYZERS", "UDFS")) {
+            analyze("restore snapshot my_repo.my_snapshot " + type);
+        }
         assertAskedForCluster(Permission.DDL);
+        assertNotAskedForCluster(Permission.AL);
     }
 
     @Test
@@ -314,6 +332,22 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void testDelete() throws Exception {
         analyze("delete from users");
         assertAskedForTable(Permission.DML, "doc.users");
+    }
+
+    @Test
+    public void test_delete_with_subqueries_requires_dql_on_subquery_relation() {
+        analyze("delete from users where name = (select a from t1 where a = (select b from t2))");
+        assertAskedForTable(Permission.DML, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.t1");
+        assertAskedForTable(Permission.DQL, "doc.t2");
+    }
+
+    @Test
+    public void test_delete_with_subquery_on_view_requires_owner_to_have_privileges() {
+        analyze("delete from users where name in (select name from doc.v1)");
+        assertAskedForTable(Permission.DML, "doc.users");
+        assertAskedForView(Permission.DQL, "doc.v1");
+        assertAskedForTable(Permission.DQL, "doc.users", superUser);
     }
 
     @Test
@@ -333,6 +367,34 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void testUpdate() throws Exception {
         analyze("update users set name = 'ford' where id = 1");
         assertAskedForTable(Permission.DML, "doc.users");
+    }
+
+    @Test
+    public void test_update_with_subqueries_requires_dql_on_subquery_relation() {
+        analyze("update users set name = 'ford' where name = (select a from t1)");
+        assertAskedForTable(Permission.DML, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.t1");
+        analyze("update users set name = (select name from users) where name = " +
+                "(select a from t1 where a = (select b from t2))");
+        assertAskedForTable(Permission.DML, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.t1");
+        assertAskedForTable(Permission.DQL, "doc.t2");
+    }
+
+    @Test
+    public void test_update_with_subquery_in_returning_clause_requires_dql_on_subquery_relation() {
+        analyze("update users set name = 'ford' returning (select a from t1) as a");
+        assertAskedForTable(Permission.DML, "doc.users");
+        assertAskedForTable(Permission.DQL, "doc.t1");
+    }
+
+    @Test
+    public void test_update_with_subquery_on_view_requires_owner_to_have_privileges() {
+        analyze("update users set name = 'foo' where name in (select name from doc.v1)");
+        assertAskedForTable(Permission.DML, "doc.users");
+        assertAskedForView(Permission.DQL, "doc.v1");
+        assertAskedForTable(Permission.DQL, "doc.users", superUser);
     }
 
     @Test

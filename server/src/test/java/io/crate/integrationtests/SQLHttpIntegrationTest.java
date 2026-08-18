@@ -39,6 +39,8 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -48,6 +50,7 @@ import javax.net.ssl.X509ExtendedTrustManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jspecify.annotations.Nullable;
 import org.junit.After;
@@ -131,14 +134,28 @@ public abstract class SQLHttpIntegrationTest extends IntegTestCase {
             .build();
     }
 
+    /// For sub-classes to override to initialize nodes
+    /// @return node to use as http endpoint
+    @Nullable
+    protected String setupNodes() {
+        return null;
+    }
+
     @Before
     public void setup() {
+        String httpEndpointNode = setupNodes();
+        TestCluster cluster = cluster();
+        ThreadPool threadPool = httpEndpointNode == null
+            ? cluster.getInstance(ThreadPool.class)
+            : cluster.getInstance(ThreadPool.class, httpEndpointNode);
         this.httpClient = HttpClient.newBuilder()
             .followRedirects(Redirect.NORMAL)
-            .executor(cluster().getInstance(ThreadPool.class).generic())
+            .executor(threadPool.generic())
             .sslContext(sslContext)
             .build();
-        HttpServerTransport httpServerTransport = cluster().getInstance(HttpServerTransport.class);
+        HttpServerTransport httpServerTransport = httpEndpointNode == null
+            ? cluster.getInstance(HttpServerTransport.class)
+            : cluster.getInstance(HttpServerTransport.class, httpEndpointNode);
         address = httpServerTransport.boundAddress().publishAddress().address();
         uri = URI.create(String.format(Locale.ENGLISH,
             "%s://%s:%s/_sql?error_trace",
@@ -166,15 +183,17 @@ public abstract class SQLHttpIntegrationTest extends IntegTestCase {
     }
 
     protected HttpResponse<String> post(String body, String[] ... headers) throws Exception {
-        Builder builder = HttpRequest.newBuilder(uri)
+        Builder requestBuilder = HttpRequest.newBuilder(uri)
             .header("Content-Type", "application/json");
         if (body != null) {
-            builder.POST(BodyPublishers.ofString(body));
+            requestBuilder.POST(BodyPublishers.ofString(body));
         }
         for (String[] header : headers) {
-            builder.headers(header[0], header[1]);
+            requestBuilder.headers(header[0], header[1]);
         }
-        return httpClient.send(builder.build(), BodyHandlers.ofString());
+        HttpRequest request = requestBuilder.build();
+        CompletableFuture<HttpResponse<String>> response = httpClient.sendAsync(request, BodyHandlers.ofString());
+        return response.get(120, TimeUnit.SECONDS);
     }
 
     protected URI upload(String table, String content) throws Exception {

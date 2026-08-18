@@ -48,6 +48,8 @@ themselves to other users or roles as well.
 Privilege types
 ===============
 
+.. _privilege_types_dql:
+
 ``DQL``
 .......
 
@@ -57,6 +59,7 @@ that this user/role is allowed to execute ``SELECT``, ``SHOW``, ``REFRESH`` and
 :ref:`user-defined functions <user-defined-functions>`, on the object for which
 the privilege applies.
 
+.. _privilege_types_dml:
 
 ``DML``
 .......
@@ -65,6 +68,14 @@ Granting ``Data Manipulation Language (DML)`` privilege to a user or role,
 indicates that this user/role is allowed to execute ``INSERT``, ``COPY FROM``,
 ``UPDATE`` and ``DELETE`` statements, on the object for which the privilege
 applies.
+
+Statements which read data in addition to modifying it require the
+:ref:`DQL <privilege_types_dql>` privilege on the objects they read from as
+well. This is the case for ``INSERT INTO ... (SELECT ...)`` and for sub-queries
+used in :ref:`UPDATE <ref-update>` or :ref:`DELETE <sql_reference_delete>`
+statements.
+
+.. _privilege_types_ddl:
 
 ``DDL``
 .......
@@ -86,6 +97,8 @@ objects for which the privilege applies:
 - ``RESTORE SNAPSHOT``
 - ``ALTER TABLE``
 
+.. _privilege_types_al:
+
 ``AL``
 ......
 
@@ -95,6 +108,8 @@ the user/role to execute the following statements:
 - ``CREATE USER/ROLE``
 - ``DROP USER/ROLE``
 - ``SET GLOBAL``
+- ``RESTORE SNAPSHOT``, if the restored sections include user management
+  metadata, see :ref:`sql-restore-snapshot` for details.
 
 All statements enabled via the ``AL`` privilege operate on a cluster level. So
 granting this on a schema or table level will have no effect.

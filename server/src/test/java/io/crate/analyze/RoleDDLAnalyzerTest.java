@@ -80,11 +80,12 @@ public class RoleDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_create_user_with_password() throws Exception {
+    public void test_create_user_with_password_and_setting() throws Exception {
         // CrateDB syntax
-        AnalyzedCreateRole analysis = e.analyze("CREATE USER ROOT WITH (PASSWORD = 'ROOT')");
+        AnalyzedCreateRole analysis = e.analyze("CREATE USER ROOT WITH (PASSWORD = 'ROOT', search_path='foo')");
         assertThat(analysis.roleName()).isEqualTo("root");
         assertThat(analysis.properties().get("password")).isLiteral("ROOT");
+        assertThat(analysis.properties().get("search_path")).isLiteral("foo");
         assertThat(analysis.isUser()).isTrue();
 
         analysis = e.analyze("CREATE USER ROOT WITH (PASSWORD = ?)", new ParamTypeHints(List.of(DataTypes.STRING)));
@@ -93,9 +94,10 @@ public class RoleDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analysis.isUser()).isTrue();
 
         // PostgreSQL syntax
-        analysis = e.analyze("CREATE USER ROOT WITH PASSWORD 'ROOT'");
+        analysis = e.analyze("CREATE USER ROOT WITH PASSWORD 'ROOT' search_path 'foo'");
         assertThat(analysis.roleName()).isEqualTo("root");
         assertThat(analysis.properties().get("password")).isLiteral("ROOT");
+        assertThat(analysis.properties().get("search_path")).isLiteral("foo");
         assertThat(analysis.isUser()).isTrue();
 
         analysis = e.analyze("CREATE USER ROOT WITH PASSWORD ?", new ParamTypeHints(List.of(DataTypes.STRING)));
@@ -136,15 +138,6 @@ public class RoleDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 .isExactlyInstanceOf(UnsupportedOperationException.class)
                 .hasMessage("Columns cannot be used in this context. " +
                     "Maybe you wanted to use a string literal which requires single quotes: 'no_string'");
-        }
-    }
-
-    @Test
-    public void test_create_user_and_role_with_invalid_settings() throws Exception {
-        for (String userOrRole : List.of("USER", "ROLE")) {
-            assertThatThrownBy(() -> e.analyze("CREATE " + userOrRole + " ROOT WITH (enable_hashjoin = false)"))
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Setting 'enable_hashjoin' is not supported");
         }
     }
 

@@ -21,31 +21,30 @@ package org.elasticsearch.transport;
 
 import java.util.concurrent.atomic.LongAdder;
 
-import org.elasticsearch.common.metrics.CounterMetric;
 import org.elasticsearch.common.metrics.MeanMetric;
 
 import io.crate.protocols.ConnectionStats;
 
 public class StatsTracker {
 
-    private final CounterMetric openChannelsMetric = new CounterMetric();
-    private final CounterMetric totalChannelsMetric = new CounterMetric();
+    private final LongAdder openChannelsMetric = new LongAdder();
+    private final LongAdder totalChannelsMetric = new LongAdder();
 
     private final LongAdder bytesReceivedMetric = new LongAdder();
     /**
      * Use an additional counter for messages received as one payload (which increases received bytes)
      * can hold multiple messages/fragments. See {@link org.elasticsearch.transport.InboundPipeline}
      */
-    private final CounterMetric messagesReceivedMetric = new CounterMetric();
+    private final LongAdder messagesReceivedMetric = new LongAdder();
     private final MeanMetric bytesSentMetric = new MeanMetric();
 
     public void incrementOpenChannels() {
-        openChannelsMetric.inc();
-        totalChannelsMetric.inc();
+        openChannelsMetric.increment();
+        totalChannelsMetric.increment();
     }
 
     public void decrementOpenChannels() {
-        openChannelsMetric.dec();
+        openChannelsMetric.decrement();
     }
 
     public void incrementBytesReceived(long bytesReceived) {
@@ -53,7 +52,7 @@ public class StatsTracker {
     }
 
     public void incrementMessagesReceived() {
-        messagesReceivedMetric.inc();
+        messagesReceivedMetric.increment();
     }
 
     public void incrementBytesSent(long bytesSent) {
@@ -61,15 +60,15 @@ public class StatsTracker {
     }
 
     public long openConnections() {
-        return openChannelsMetric.count();
+        return openChannelsMetric.sum();
     }
 
     public long totalConnections() {
-        return totalChannelsMetric.count();
+        return totalChannelsMetric.sum();
     }
 
     public long messagesReceived() {
-        return messagesReceivedMetric.count();
+        return messagesReceivedMetric.sum();
     }
 
     public long bytesReceived() {

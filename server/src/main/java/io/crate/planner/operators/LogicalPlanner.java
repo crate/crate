@@ -127,6 +127,7 @@ import io.crate.planner.optimizer.rule.RemoveOrderBeneathInsert;
 import io.crate.planner.optimizer.rule.RemoveRedundantEval;
 import io.crate.planner.optimizer.rule.ReorderHashJoin;
 import io.crate.planner.optimizer.rule.ReorderNestedLoopJoin;
+import io.crate.planner.optimizer.rule.RewriteDistinctAggToGroupBy;
 import io.crate.planner.optimizer.rule.RewriteFilterOnCrossJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
@@ -181,6 +182,7 @@ public class LogicalPlanner {
         new DeduplicateOrder(),
         new OptimizeCollectWhereClauseAccess(),
         new RewriteGroupByKeysLimitToLimitDistinct(),
+        new RewriteDistinctAggToGroupBy(),
         new MoveConstantJoinConditionsBeneathJoin(),
         new EliminateCrossJoin(),
         new EquiJoinToLookupJoin(),

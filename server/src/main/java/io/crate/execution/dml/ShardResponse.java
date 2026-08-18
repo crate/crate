@@ -39,6 +39,7 @@ import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntObjectMap;
 
 import io.crate.Streamer;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
@@ -323,6 +324,10 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
             return failures.get(location);
         }
 
+        public IntObjectMap<Throwable> failures() {
+            return failures;
+        }
+
         public List<Object[]> resultRows() {
             return resultRows;
         }
@@ -331,9 +336,11 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
             return successfulWrites.cardinality();
         }
 
-        public void markAsFailed(List<ShardUpsertRequest.Item> items) {
+        public void markAsFailed(List<ShardUpsertRequest.Item> items, Throwable failure) {
             for (ShardUpsertRequest.Item item : items) {
-                failureLocations.set(item.location());
+                int location = item.location();
+                failureLocations.set(location);
+                failures.put(location, failure);
             }
         }
     }

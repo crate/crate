@@ -26,7 +26,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -55,6 +54,7 @@ import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
+import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class GroupByAggregateTest extends IntegTestCase {
@@ -658,20 +658,37 @@ public class GroupByAggregateTest extends IntegTestCase {
 
     @Test
     public void testGlobalCountOnColumn() throws Exception {
-
+        // without filter
         execute("select count(*), count(good), count(distinct good) from employees");
         assertThat(response.rowCount()).isEqualTo(1);
         assertThat(response.rows()[0][0]).isEqualTo(6L);
         assertThat(response.rows()[0][1]).isEqualTo(4L);
         assertThat(response.rows()[0][2]).isEqualTo(2L);
-    }
 
-    @Test
-    public void testGlobalCountDistinct() throws Exception {
-
-        execute("select count(distinct good) from employees");
+        // with filter
+        execute("select count(*), count(good), count(distinct good) from employees where department = 'HR'");
         assertThat(response.rowCount()).isEqualTo(1);
         assertThat(response.rows()[0][0]).isEqualTo(2L);
+        assertThat(response.rows()[0][1]).isEqualTo(1L);
+        assertThat(response.rows()[0][2]).isEqualTo(1L);
+
+    }
+
+    @UseRandomizedOptimizerRules(0)
+    @UseRandomizedSchema(random = false)
+    @Test
+    public void test_optimized_distinct_with_two_functions() {
+        execute("analyze");
+        execute("explain (costs false) select count(distinct income), avg(distinct income) from doc.employees");
+        assertThat(response).hasLines(
+            "HashAggregate[count(DISTINCT income), avg(DISTINCT income)]",
+            "  └ GroupHashAggregate[income]",
+            "    └ Collect[doc.employees | [income] | true]"
+        );
+
+        execute("select count(distinct income), avg(distinct income) from doc.employees");
+        assertThat(response).hasRowCount(1L);
+        assertThat(response).hasRows("5| 3.5953862697246315E307");
     }
 
     @Test

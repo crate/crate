@@ -43,8 +43,71 @@ Version 6.4.3 - Unreleased
 See the :ref:`version_6.4.0` release notes for a full list of changes in the 6.4
 series.
 
+Breaking Changes
+================
+
+- Changed the error response for ``INSERT INTO .. VALUES`` bulk operations for
+  errors like unavailable shards. In 5.10 the reporting was unintentionally
+  changed to report the error on top-level instead of per bulk item. This
+  restores the 5.9 behavior and reports the error per bulk item again. This
+  allows to distinguish successful inserts if only a subset of shards wasn't
+  available. For example if using the HTTP interface, the response could look
+  like this:
+
+  ::
+
+    HTTP/1.1 200 OK
+    {
+        "cols": [],
+        "duration": 60112.33,
+        "results": [
+            {
+                "rowcount": 1
+            },
+            {
+                "rowcount": 1
+            },
+            {
+                "error": {
+                    "code": 5002,
+                    "message": "UnavailableShardsException[[doc.tbl][1] primary shard is not active Timeout: [1m], request: [ShardRequest{, shardId=[tbl/tAwjETKASaGfQJRrnn1M4g][1], timeout=1m}]]"
+                },
+                "rowcount": -2
+            }
+        ]
+    }
+
+- Added requirement for :ref:`AL <privilege_types_al>` privilege on cluster
+  level in addition to the :ref:`DDL <privilege_types_ddl>` privilege when
+  issuing :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>`, if the restored
+  sections include user management metadata, (users, roles and privileges). This
+  is the case for:
+
+  * ``RESTORE SNAPSHOT ... ALL``
+  * ``RESTORE SNAPSHOT ... METADATA``
+  * ``RESTORE SNAPSHOT ... USERMANAGEMENT``
+
+  Previously the ``DDL`` privilege alone was sufficient.
+
+
 Fixes
 =====
+
+- Limited the duration clients using the PostgreSQL wire protocol can remain
+  unauthenticated to make it more difficult to launch Denial of Service attacks.
+
+- Limited the size of messages accepted from unauthenticated clients using the
+  PostgreSQL wire protocol to make it more difficult to launch Denial of Service
+  attacks.
+
+- Fixed an issue that allowed authenticated users to bypass the ``COPY FROM``
+  restriction to read from ``file`` URIs - which is supposed to be restricted to
+  superusers.
+
+- Fixed a security vulnerability that could allow clients to spoof the IP
+  address used for host based authentication as a ``_local`` address if
+  ``auth.trust.http_support_x_real_ip=true`` was set to true, and if there
+  wasn't a trusted proxy in use that filters or sanitizes ``X-Real-IP`` headers.
 
 - Fixed an issue that could cause partitions of tables to be excluded from a
   query if the ``WHERE`` clause contained a complex expression nesting an ``IS
@@ -83,3 +146,62 @@ Fixes
 
 - Fixed incorrect results in window function when using
   ``RANGE <offset> FOLLOWING/PRECEDING`` with ``ORDER BY <column> DESC``.
+
+- Fixed an issue that caused ``WHERE starts_with(col, '')`` on an indexed
+  column to only match rows where ``col`` is the empty string, instead of all
+  rows where ``col`` is not ``NULL``.
+
+- Fixed an issue that caused range queries, e.g. ``<``, ``>=`` or ``BETWEEN``,
+  on a :ref:`NUMERIC <type-numeric>` column with a precision of ``18`` or less
+  which was created with ``INDEX OFF`` to not match any rows.
+
+- Fixed an issue that caused :ref:`round(x, precision) <scalar-round>` to take
+  a very long time, up to the point where a query seems to hang, if a negative
+  number of large magnitude is used for ``precision``, e.g.::
+
+    SELECT round(-1479165877, -556375977);
+
+  A large positive ``precision`` had the same effect and now is capped to
+  ``16383``, meaning, if the ``precision`` exceeds ``16383`` the function would
+  yield results as if the precision was set to the maximum value of ``16383``.
+
+- Fixed an issue that caused :ref:`CREATE USER <ref-create-user>` to fail with
+  ``Setting '<name>' is not supported`` even when a valid
+  :ref:`session setting <conf-session>` was provided, e.g.::
+
+    CREATE USER john WITH (password = 'foo', enable_hashjoin = false);
+
+  Such :ref:`session settings <conf-session>` are now saved with the created
+  user. Like with :ref:`ALTER ROLE <ref-alter-role>`, they can only be set for
+  a user and not for a role.
+
+- Fixed an issue that caused a ``UNION ALL`` inside a sub-select to return
+  values of the wrong column if the outer query used an ``ORDER BY`` on a
+  column which was not selected. e.g.::
+
+     SELECT ts FROM (
+       SELECT * FROM (SELECT l.k, l.ts FROM a l JOIN a r ON l.k = r.k) j WHERE 1 = 0
+       UNION ALL
+       SELECT * FROM a
+     ) u ORDER BY k;
+
+- Fixed an issue that could cause a query containing two or more :ref:`joins
+  <sql_joins>` to hang indefinitely on a multi-node cluster. This happened when
+  both the outer and the inner join were executed distributed, and their inputs
+  were large enough to be transferred in more than one page between the nodes.
+  Nested joins are now always executed non-distributed, only the very outer join
+  is executed distributed. Note that this fix may cause performance degradation.
+
+- Fixed an issue that allowed authenticated users to read data from tables and
+  views, on which they don't have :ref:`DQL <privilege_types_dql>` privileges,
+  by using sub-queries inside :ref:`UPDATE <ref-update>` or
+  :ref:`DELETE <sql_reference_delete>` statements. Sub-queries used in such
+  statements now require the ``DQL`` privilege on all involved tables and views.
+
+- Fixed incorrect results in :ref:`rank() <window-functions-rank>` and :ref:`dense_rank() <window-functions-dense-rank>` window functions
+  when an explicit window frame is specified. For example: ``SELECT rank() OVER
+  (ORDER BY <column> ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
+  FROM <table>``
+
+- Fixed an issue causing queries with an ``OUTER JOIN`` return incorrect
+  results if ``WHERE`` clause had a subquery.

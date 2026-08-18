@@ -86,6 +86,10 @@ Breaking Changes
   symmetrical join conditions (i.e. ``a = b`` is identical to ``b = a``).
   Query results are not affected.
 
+- Removed the ``USERS`` and ``PRIVILEGES`` keywords for the
+  :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>` statement, which have been
+  deprecated since :ref:`5.6.0 <version_6.5.0>`. Use ``USERMANAGEMENT`` instead.
+
 Deprecations
 ============
 
@@ -153,6 +157,21 @@ Performance and Resilience Improvements
 - Improved :ref:`RENAME TABLE <sql-alter-table-rename-to>` to fail if the
   source relation name points to a different table while the statement is being
   executed.
+
+- Improved :ref:`SWAP TABLE <alter_cluster_swap_table>` to fail if the source or
+  target relation name points to a different table while the statement is being
+  executed.
+
+- Added an optimization for ``count(DISTINCT col)`` and ``avg(DISTINCT col)``
+  queries without a ``GROUP BY``. Such a query is now rewritten to group by
+  ``col``, so that it is executed like::
+
+      SELECT count(col) FROM (SELECT col FROM tbl GROUP BY col) tmp
+
+In our benchmarks this improvement made certain queries up to 21x
+faster. The amount of improvement you'll see depends on the data type
+and cardinality.
+
 
 Administration and Operations
 -----------------------------

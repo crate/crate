@@ -21,11 +21,10 @@ package org.elasticsearch.common.util.concurrent;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
-
-import org.elasticsearch.common.metrics.CounterMetric;
+import java.util.concurrent.atomic.LongAdder;
 
 public class EsAbortPolicy implements XRejectedExecutionHandler {
-    private final CounterMetric rejected = new CounterMetric();
+    private final LongAdder rejected = new LongAdder();
 
     @Override
     public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
@@ -44,12 +43,12 @@ public class EsAbortPolicy implements XRejectedExecutionHandler {
                 return;
             }
         }
-        rejected.inc();
+        rejected.increment();
         throw new EsRejectedExecutionException("rejected execution of " + r + " on " + executor, executor.isShutdown());
     }
 
     @Override
     public long rejected() {
-        return rejected.count();
+        return rejected.sum();
     }
 }

@@ -32,9 +32,6 @@ import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.cursors.IntCursor;
-
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.Maps;
@@ -202,9 +199,14 @@ public class Union implements LogicalPlan {
         return new Union(sources.get(0), sources.get(1), outputs);
     }
 
+    private static boolean startsWith(List<Symbol> outputs, List<Symbol> prefix) {
+        return outputs.size() >= prefix.size()
+               && outputs.subList(0, prefix.size()).equals(prefix);
+    }
+
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
-        IntArrayList outputIndicesToKeep = new IntArrayList();
+        ArrayList<Integer> outputIndicesToKeep = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
             Symbols.intersection(outputToKeep, outputs, s -> {
                 // Union can contain identically looking ScopedSymbols due to aliased relations. E.g.:
@@ -230,17 +232,36 @@ public class Union implements LogicalPlan {
                 }
             });
         }
+        // The outputs of both sources must stay aligned with the outputs of the union itself,
+        // therefore pruning must only remove outputs, it must not re-order them. `outputsToKeep`
+        // can be in a different order, e.g. `ORDER BY` appends it symbols at the end.
+        // Sources are free to ignore the requested order, so re-ordering here would make the
+        // sources disagree on which value belongs to which output, and the per-source casts added
+        // by `addCastsForIncompatibleObjects` could then silently cast the wrong columns.
+        Collections.sort(outputIndicesToKeep);
+
         ArrayList<Symbol> toKeepFromLhs = new ArrayList<>();
         ArrayList<Symbol> toKeepFromRhs = new ArrayList<>();
         ArrayList<Symbol> newOutputs = new ArrayList<>();
-        for (IntCursor cursor : outputIndicesToKeep) {
-            toKeepFromLhs.add(lhs.outputs().get(cursor.value));
-            toKeepFromRhs.add(rhs.outputs().get(cursor.value));
-            newOutputs.add(outputs.get(cursor.value));
+        for (int idx : outputIndicesToKeep) {
+            toKeepFromLhs.add(lhs.outputs().get(idx));
+            toKeepFromRhs.add(rhs.outputs().get(idx));
+            newOutputs.add(outputs.get(idx));
         }
         LogicalPlan newLhs = lhs.pruneOutputsExcept(toKeepFromLhs);
         LogicalPlan newRhs = rhs.pruneOutputsExcept(toKeepFromRhs);
         if (newLhs == lhs && newRhs == rhs) {
+            return this;
+        }
+        // The union streams the outputs of its sources positionally, therefore both sources must
+        // have the same layout and the outputs of the union must be a prefix of it.
+        // A source is free to keep more outputs than requested, e.g. an ORDER BY symbol which was
+        // pushed beneath the union, and it may keep them in front of the requested ones. If that
+        // leaves the sources misaligned, skip the pruning: keeping additional outputs is always
+        // correct, reading the values of another column is not.
+        if (newLhs.outputs().size() != newRhs.outputs().size()
+            || startsWith(newLhs.outputs(), toKeepFromLhs) == false
+            || startsWith(newRhs.outputs(), toKeepFromRhs) == false) {
             return this;
         }
         return new Union(newLhs, newRhs, newOutputs);

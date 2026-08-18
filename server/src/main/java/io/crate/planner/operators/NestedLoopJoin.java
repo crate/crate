@@ -27,6 +27,7 @@ import static io.crate.planner.operators.Limit.limitAndOffset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -125,12 +126,21 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             ? limitAndOffset(limit, offset)
             : null;
 
-        ExecutionPlan left = lhs.build(
-            executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
-        ExecutionPlan right = rhs.build(
-            executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
+        // A nested join must not be executed distributed, otherwise its outputs
+        // would have to be re-shuffled for this join, which can lead to deadlock.
+        // See PlanHint#AVOID_DISTRIBUTED_JOIN for details
+        Set<PlanHint> sourceHints = EnumSet.of(PlanHint.AVOID_DISTRIBUTED_JOIN);
+        sourceHints.addAll(hints);
 
-        boolean isDistributed = supportsDistributedReads() && isFiltered && !joinType.isOuter();
+        ExecutionPlan left = lhs.build(
+            executor, plannerContext, sourceHints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
+        ExecutionPlan right = rhs.build(
+            executor, plannerContext, sourceHints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
+
+        boolean isDistributed = supportsDistributedReads()
+                                && isFiltered
+                                && !joinType.isOuter()
+                                && hints.contains(PlanHint.AVOID_DISTRIBUTED_JOIN) == false;
 
         LogicalPlan leftLogicalPlan = lhs;
         LogicalPlan rightLogicalPlan = rhs;
@@ -329,10 +339,10 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             // run join phase non-distributed on the handler
             left.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             right.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
-            if (isMergePhaseNeeded(nlExecutionNodes, leftResultDesc, false)) {
+            if (isMergePhaseNeeded(nlExecutionNodes, leftResultDesc)) {
                 leftMerge = buildMergePhaseForJoin(plannerContext, leftResultDesc, nlExecutionNodes);
             }
-            if (isMergePhaseNeeded(nlExecutionNodes, rightResultDesc, false)) {
+            if (isMergePhaseNeeded(nlExecutionNodes, rightResultDesc)) {
                 rightMerge = buildMergePhaseForJoin(plannerContext, rightResultDesc, nlExecutionNodes);
             }
         }
@@ -384,11 +394,8 @@ public class NestedLoopJoin extends AbstractJoinPlan {
         printContext.nest(Lists.map(sources(), x -> x::print));
     }
 
-    private static boolean isMergePhaseNeeded(Collection<String> executionNodes,
-                                              ResultDescription resultDescription,
-                                              boolean isDistributed) {
-        return isDistributed ||
-               resultDescription.hasRemainingLimitOrOffset() ||
+    private static boolean isMergePhaseNeeded(Collection<String> executionNodes, ResultDescription resultDescription) {
+        return resultDescription.hasRemainingLimitOrOffset() ||
                !Lists.equals(resultDescription.nodeIds(), executionNodes);
     }
 

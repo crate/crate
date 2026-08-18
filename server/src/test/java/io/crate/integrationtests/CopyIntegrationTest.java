@@ -26,6 +26,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
@@ -1199,7 +1200,13 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         Sessions sqlOperations = cluster().getInstance(Sessions.class);
         try (var session = sqlOperations.newSession(
             new ConnectionProperties(null, null, Protocol.HTTP, null), null, user)) {
-            assertThatThrownBy(() -> execute("COPY quotes FROM ?", new Object[]{copyFilePath + "test_copy_from.json"}, session))
+            String fullPath = copyFilePath + "test_copy_from.json";
+            assertThatThrownBy(() -> execute("COPY quotes FROM ?", new Object[]{fullPath}, session))
+                .isExactlyInstanceOf(UnauthorizedException.class)
+                .hasMessage("Only a superuser can read from the local file system");
+
+            String upperCasePath = fullPath.replace("file", "FILE");
+            assertThatThrownBy(() -> execute("COPY quotes FROM ?", new Object[]{upperCasePath}, session))
                 .isExactlyInstanceOf(UnauthorizedException.class)
                 .hasMessage("Only a superuser can read from the local file system");
         }

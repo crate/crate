@@ -12,6 +12,11 @@ on:
       - '**/*.txt'
       - '**/*.rst'
 
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
 jobs:
   analyze:
     name: Analyze

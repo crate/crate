@@ -153,6 +153,7 @@ public final class WindowFunctionBatchIterator {
             computeFrameStart,
             computeFrameEnd,
             cmpPartitionBy,
+            cmpOrderBy,
             numCellsInSourceRow,
             windowFunctions,
             argsExpressions,
@@ -174,6 +175,7 @@ public final class WindowFunctionBatchIterator {
                                                              ComputeFrameBoundary<Object[]> computeFrameStart,
                                                              ComputeFrameBoundary<Object[]> computeFrameEnd,
                                                              @Nullable Comparator<Object[]> cmpPartitionBy,
+                                                             @Nullable Comparator<Object[]> cmpOrderBy,
                                                              int numCellsInSourceRow,
                                                              List<WindowFunction> windowFunctions,
                                                              List<? extends CollectExpression<Row, ?>> argsExpressions,
@@ -188,6 +190,7 @@ public final class WindowFunctionBatchIterator {
 
             private int pStart = start;
             private int pEnd = findFirstNonPeer(sortedRows, pStart, end, cmpPartitionBy);
+            private int peerGroupWithinPartitionEnd = findFirstNonPeer(sortedRows, pStart, pEnd, cmpOrderBy);
             private int i = 0;
 
             private int idxInPartition = 0;
@@ -206,17 +209,20 @@ public final class WindowFunctionBatchIterator {
                     pStart = i;
                     idxInPartition = 0;
                     pEnd = findFirstNonPeer(sortedRows, pStart, end, cmpPartitionBy);
+                    peerGroupWithinPartitionEnd = findFirstNonPeer(sortedRows, pStart, pEnd, cmpOrderBy);
+                } else if (i == peerGroupWithinPartitionEnd) {
+                    peerGroupWithinPartitionEnd = findFirstNonPeer(sortedRows, i, pEnd, cmpOrderBy);
                 }
                 int wBegin = computeFrameStart.apply(pStart, pEnd, i, sortedRows);
                 int wEnd = computeFrameEnd.apply(pStart, pEnd, i, sortedRows);
-                frame.updateBounds(pStart, pEnd, wBegin, wEnd);
+                frame.updateBounds(pStart, pEnd, wBegin, wEnd, peerGroupWithinPartitionEnd);
                 final Object[] row = computeAndInjectResults(
                     sortedRows, allocateBytes, numCellsInSourceRow, windowFunctions, frame, i, idxInPartition, argsExpressions, ignoreNulls, args);
 
                 if (isTraceEnabled) {
                     LOGGER.trace(
-                        "idx={} idxInPartition={} pStart={} pEnd={} wBegin={} wEnd={} row={}",
-                        i, idxInPartition, pStart, pEnd, wBegin, wEnd, Arrays.toString(sortedRows.get(i)));
+                        "idx={} idxInPartition={} pStart={} pEnd={} wBegin={} wEnd={} peerGroupWithinPartitionEnd={} row={}",
+                        i, idxInPartition, pStart, pEnd, wBegin, wEnd, peerGroupWithinPartitionEnd ,Arrays.toString(sortedRows.get(i)));
                 }
                 i++;
                 idxInPartition++;

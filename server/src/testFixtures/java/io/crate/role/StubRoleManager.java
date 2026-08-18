@@ -51,7 +51,8 @@ public class StubRoleManager implements RoleManager {
     public CompletableFuture<Long> createRole(String roleName,
                                               boolean isUser,
                                               @Nullable SecureHash hashedPw,
-                                              @Nullable JwtProperties jwtProperties) {
+                                              @Nullable JwtProperties jwtProperties,
+                                              Map<String, Object> sessionSettings) {
         return CompletableFuture.failedFuture(new UnsupportedFeatureException("createRole is not implemented in StubRoleManager"));
     }
 

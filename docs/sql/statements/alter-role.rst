@@ -95,6 +95,9 @@ are supported to alter an existing user account:
     Changes to session settings are only applied to new sessions opened by the
     user.
 
+    Session settings can also be set when the user is created, see
+    :ref:`CREATE USER <create-user-session-settings>`.
+
 
 ``RESET``
 ---------

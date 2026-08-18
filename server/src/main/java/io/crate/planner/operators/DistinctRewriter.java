@@ -100,6 +100,11 @@ class DistinctRewriter extends SymbolVisitor<UnaryOperator<Function>, Symbol> {
         return new Result(aggregatesCollectSet, outputsCollectSet, evalProj);
     }
 
+    /// Returns the `aggregates` unchanged, for callers that don't need a rewrite.
+    static Result noop(List<Function> aggregates) {
+        return new Result(aggregates, aggregates, null);
+    }
+
     // Safe because every visitXYZ() method returns a symbol of the same type.
     @SuppressWarnings("unchecked")
     private <T extends Symbol> List<T> rewrite(List<T> symbols, UnaryOperator<Function> rewriteDistinct) {

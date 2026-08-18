@@ -53,7 +53,7 @@ public final class Connections implements ConnectionsMBean {
 
     @Override
     public long getHttpMessagesReceived() {
-        return httpStats.get().receivedMsgs();
+        return httpStats.get().receivedMessages();
     }
 
     @Override
@@ -63,7 +63,7 @@ public final class Connections implements ConnectionsMBean {
 
     @Override
     public long getHttpMessagesSent() {
-        return httpStats.get().sentMsgs();
+        return httpStats.get().sentMessages();
     }
 
     @Override
@@ -83,7 +83,7 @@ public final class Connections implements ConnectionsMBean {
 
     @Override
     public long getPsqlMessagesReceived() {
-        return psqlStats.get().receivedMsgs();
+        return psqlStats.get().receivedMessages();
     }
 
     @Override
@@ -93,7 +93,7 @@ public final class Connections implements ConnectionsMBean {
 
     @Override
     public long getPsqlMessagesSent() {
-        return psqlStats.get().sentMsgs();
+        return psqlStats.get().sentMessages();
     }
 
     @Override
@@ -113,7 +113,7 @@ public final class Connections implements ConnectionsMBean {
 
     @Override
     public long getTransportMessagesReceived() {
-        return transportStats.get().receivedMsgs();
+        return transportStats.get().receivedMessages();
     }
 
     @Override
@@ -123,7 +123,7 @@ public final class Connections implements ConnectionsMBean {
 
     @Override
     public long getTransportMessagesSent() {
-        return transportStats.get().sentMsgs();
+        return transportStats.get().sentMessages();
     }
 
     @Override

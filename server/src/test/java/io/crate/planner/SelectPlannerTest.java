@@ -24,7 +24,6 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collection;
@@ -69,14 +68,11 @@ import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.AggregateMode;
-import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
@@ -390,30 +386,36 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
+        // `name` is deduplicated by a `GROUP BY` below the aggregate, so `count` runs over the distinct
+        // values and no set of values has to be collected. Verified bottom-up.
         Merge globalAggregate = e.plan("select count(distinct name) from users");
-        Collect collect = (Collect) globalAggregate.subPlan();
+        Merge groupBy = (Merge) globalAggregate.subPlan();
+        Collect collect = (Collect) groupBy.subPlan();
 
+        // per shard: start grouping `name`
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        Projection projection = collectPhase.projections().get(0);
-        assertThat(projection).isExactlyInstanceOf(AggregationProjection.class);
-        AggregationProjection aggregationProjection = (AggregationProjection) projection;
-        assertThat(aggregationProjection.aggregations()).hasSize(1);
-        assertThat(aggregationProjection.mode()).isEqualTo(AggregateMode.ITER_PARTIAL);
+        assertThat(collectPhase.toCollect()).satisfiesExactly(isReference("name"));
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            p -> assertThat(p).isExactlyInstanceOf(GroupProjection.class));
 
-        Aggregation aggregation = aggregationProjection.aggregations().get(0);
-        Symbol aggregationInput = aggregation.inputs().get(0);
-        assertThat(aggregationInput.symbolType()).isEqualTo(SymbolType.INPUT_COLUMN);
+        // per reducer: finish the grouping, then start counting the distinct values
+        assertThat(groupBy.mergePhase().projections()).satisfiesExactly(
+            p -> assertThat(p).isExactlyInstanceOf(GroupProjection.class),
+            p -> {
+                assertThat(p).isExactlyInstanceOf(AggregationProjection.class);
+                AggregationProjection agg = (AggregationProjection) p;
+                assertThat(agg.mode()).isEqualTo(AggregateMode.ITER_PARTIAL);
+                assertThat(agg.outputs().get(0)).isAggregation("count");
+            });
 
-        assertThat(collectPhase.toCollect().get(0)).isInstanceOf(Reference.class);
-        assertThat(((Reference) collectPhase.toCollect().get(0)).column().name()).isEqualTo("name");
-
-        MergePhase mergePhase = globalAggregate.mergePhase();
-        assertThat(mergePhase.projections()).hasSize(2);
-        Projection projection1 = mergePhase.projections().get(1);
-
-        assertThat(projection1).isExactlyInstanceOf(EvalProjection.class);
-        Symbol collection_count = projection1.outputs().get(0);
-        assertThat(collection_count).isExactlyInstanceOf(Function.class);
+        // handler: merge the counts of the reducers
+        assertThat(globalAggregate.mergePhase().projections()).satisfiesExactly(
+            p -> {
+                assertThat(p).isExactlyInstanceOf(AggregationProjection.class);
+                AggregationProjection agg = (AggregationProjection) p;
+                assertThat(agg.mode()).isEqualTo(AggregateMode.PARTIAL_FINAL);
+                assertThat(agg.outputs().get(0)).isAggregation("count");
+            });
     }
 
     @Test
@@ -828,16 +830,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
-        Merge plan = e.plan("select count(*) from users t1, users t2, users t3 " +
+        Join outerNL = e.plan("select count(*) from users t1, users t2, users t3 " +
                             "where t1.id = t2.id and t2.id = t3.id");
-        assertThat(plan.subPlan()).isExactlyInstanceOf(Join.class);
-        Join outerNL = (Join)plan.subPlan();
         assertThat(outerNL.joinPhase().joinCondition()).isSQL("(INPUT(1) = INPUT(2))");
         assertThat(outerNL.joinPhase().projections()).hasSize(2);
         assertThat(outerNL.joinPhase().projections().get(0)).isExactlyInstanceOf(EvalProjection.class);
         assertThat(outerNL.joinPhase().projections().get(1)).isExactlyInstanceOf(AggregationProjection.class);
         assertThat(outerNL.joinPhase().outputTypes()).hasSize(1);
-        assertThat(outerNL.joinPhase().outputTypes().get(0)).isEqualTo(CountAggregation.LongStateType.INSTANCE);
+        assertThat(outerNL.joinPhase().outputTypes().get(0)).isEqualTo(DataTypes.LONG);
 
         Join innerNL = (Join) outerNL.left();
         assertThat(innerNL.joinPhase().joinCondition()).isSQL("(INPUT(0) = INPUT(1))");
@@ -846,16 +846,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(innerNL.joinPhase().outputTypes()).hasSize(2);
         assertThat(innerNL.joinPhase().outputTypes().get(0)).isEqualTo(DataTypes.LONG);
 
-        plan = e.plan("select count(t1.other_id) from users t1, users t2, users t3 " +
+        outerNL = e.plan("select count(t1.other_id) from users t1, users t2, users t3 " +
                       "where t1.id = t2.id and t2.id = t3.id");
-        assertThat(plan.subPlan()).isExactlyInstanceOf(Join.class);
-        outerNL = (Join)plan.subPlan();
         assertThat(outerNL.joinPhase().joinCondition()).isSQL("(INPUT(2) = INPUT(3))");
         assertThat(outerNL.joinPhase().projections()).hasSize(2);
         assertThat(outerNL.joinPhase().projections().get(0)).isExactlyInstanceOf(EvalProjection.class);
         assertThat(outerNL.joinPhase().projections().get(1)).isExactlyInstanceOf(AggregationProjection.class);
         assertThat(outerNL.joinPhase().outputTypes()).hasSize(1);
-        assertThat(outerNL.joinPhase().outputTypes().get(0)).isEqualTo(CountAggregation.LongStateType.INSTANCE);
+        assertThat(outerNL.joinPhase().outputTypes().get(0)).isEqualTo(DataTypes.LONG);
 
         innerNL = (Join) outerNL.left();
         assertThat(innerNL.joinPhase().joinCondition()).isSQL("(INPUT(1) = INPUT(2))");

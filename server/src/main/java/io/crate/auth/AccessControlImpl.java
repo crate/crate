@@ -98,6 +98,7 @@ import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.RestoreSnapshotAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
@@ -461,6 +462,7 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         protected Void visitAnalyzedDeleteStatement(AnalyzedDeleteStatement delete, Role user) {
             visitRelation(delete.relation(), user, Permission.DML);
+            visitSubQueries(delete, user);
             return null;
         }
 
@@ -486,6 +488,7 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         public Void visitAnalyzedUpdateStatement(AnalyzedUpdateStatement update, Role user) {
             visitRelation(update.table(), user, Permission.DML);
+            visitSubQueries(update, user);
             return null;
         }
 
@@ -705,6 +708,12 @@ public final class AccessControlImpl implements AccessControl {
                 Securable.CLUSTER,
                 null
             );
+            boolean restoreUsersAndPrivileges = analysis.includeCustomMetadata()
+                && (analysis.customMetadataTypes().isEmpty()   // ALL
+                || analysis.customMetadataTypes().stream().anyMatch(RestoreSnapshotAnalyzer.USER_MANAGEMENT_METADATA::contains));
+            if (restoreUsersAndPrivileges) {
+                hasALPrivileges(user);
+            }
             return null;
         }
 
@@ -994,6 +1003,12 @@ public final class AccessControlImpl implements AccessControl {
                 Securable.TABLE,
                 tableFqn
             );
+        }
+
+        private void visitSubQueries(AnalyzedStatement stmt, Role user) {
+            var ctx = new RelationContext(user, Permission.DQL);
+            stmt.visitSymbols(symbol ->
+                symbol.visit(SelectSymbol.class, s -> s.relation().accept(relationVisitor, ctx)));
         }
     }
 

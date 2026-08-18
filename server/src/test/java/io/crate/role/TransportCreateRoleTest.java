@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.EnumSet;
+import java.util.Map;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlock;
@@ -61,7 +62,7 @@ public class TransportCreateRoleTest extends CrateDummyClusterServiceUnitTest {
             .blocks(ClusterBlocks.builder().addGlobalBlock(globalBlock))
             .build();
 
-        assertThat(transportCreateRole.checkBlock(new CreateRoleRequest("test", true, null, null), newState).blocks())
+        assertThat(transportCreateRole.checkBlock(new CreateRoleRequest("test", true, null, null, Map.of()), newState).blocks())
             .containsExactly(globalBlock);
     }
 }

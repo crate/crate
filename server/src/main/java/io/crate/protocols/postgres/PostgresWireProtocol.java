@@ -36,6 +36,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -194,6 +196,7 @@ public class PostgresWireProtocol {
 
     private static final Logger LOGGER = LogManager.getLogger(PostgresWireProtocol.class);
     private static final String PASSWORD_AUTH_NAME = "password";
+    private static final int AUTH_TIMEOUT_SEC = 30;
 
     public static final int SERVER_VERSION_NUM = 140000;
     public static final String PG_SERVER_VERSION = "14.0";
@@ -216,6 +219,10 @@ public class PostgresWireProtocol {
     private final Consumer<ChannelPipeline> addTransportHandler;
 
     private DelayableWriteChannel channel;
+
+    /// Limits how long unauthenticated channels may remain alive to limit potential for DoS attacks
+    @Nullable
+    private Future<?> authTimeoutTask = null;
     Session session;
     private boolean ignoreTillSync = false;
     private AuthenticationContext authContext;
@@ -256,7 +263,7 @@ public class PostgresWireProtocol {
         return StandardCharsets.UTF_8.decode(ByteBuffer.wrap(bytes)).array();
     }
 
-    private Properties readStartupMessage(ByteBuf buffer) {
+    private static Properties readStartupMessage(ByteBuf buffer) {
         Properties properties = new Properties();
         while (true) {
             String key = readCString(buffer);
@@ -289,9 +296,17 @@ public class PostgresWireProtocol {
 
     private class MessageHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
+        private void interrupt(ChannelHandlerContext ctx) {
+            if (session == null) {
+                ctx.close();
+            }
+        }
+
         @Override
         public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
+            decoder.setAuthenticated(false);
             channel = new DelayableWriteChannel(ctx.channel());
+            authTimeoutTask = ctx.executor().schedule(() -> interrupt(ctx), AUTH_TIMEOUT_SEC, TimeUnit.SECONDS);
         }
 
         @Override
@@ -396,6 +411,7 @@ public class PostgresWireProtocol {
         }
 
         private void closeSession() {
+            decoder.setAuthenticated(false);
             if (session != null) {
                 session.close();
                 session = null;
@@ -476,6 +492,11 @@ public class PostgresWireProtocol {
             String options = properties.getProperty("options");
             if (options != null) {
                 applyOptions(options);
+            }
+            decoder.setAuthenticated(true);
+            if (authTimeoutTask != null) {
+                authTimeoutTask.cancel(true);
+                authTimeoutTask = null;
             }
             Messages.sendAuthenticationOK(channel)
                 .addListener(f -> sendParams(channel, session.sessionSettings()))

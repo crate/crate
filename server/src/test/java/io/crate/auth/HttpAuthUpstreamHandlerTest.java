@@ -32,6 +32,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
 import java.util.List;
@@ -219,6 +222,45 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     }
 
     @Test
+    public void test_real_ip_header_non_canonical_loopback() {
+        var settings = Settings.builder()
+            .put(AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.getKey(), true)
+            .put("auth.host_based.config.0.user", "crate")
+            .put("auth.host_based.config.0.address", "_local_")
+            .put("auth.host_based.config.0.method", "trust")
+            .put("auth.host_based.config.99.method", "password")
+            .put(AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.getKey(), true)
+            .build();
+
+        StubRoleManager roles = new StubRoleManager();
+        var hbaAuth = new HostBasedAuthentication(
+            settings,
+            roles,
+            DnsResolver.SYSTEM,
+            () -> "dummy"
+        );
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, hbaAuth, roles);
+        EmbeddedChannel ch = new EmbeddedChannel(handler) {
+            @Override
+            public SocketAddress remoteAddress() {
+                return new InetSocketAddress(InetAddress.ofLiteral("192.168.0.100"), 0);
+            }
+        };
+
+        DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+
+        request.headers().add("X-Real-IP", "::ffff:127.0.0.1");
+
+        ch.writeInbound(request);
+        ch.releaseInbound();
+
+        assertThat(handler.authorized()).isFalse();
+        assertUnauthorized(
+            ch.readOutbound(),
+            "No valid auth.host_based.config entry found for host \"192.168.0.100\", user \"crate\", protocol \"http\". Did you enable TLS in your client?\n");
+    }
+
+    @Test
     public void testUnauthorizedUser() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel(handlerWithHBA);
 
@@ -312,7 +354,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     }
 
     @Test
-    public void test_user_authentication_with_jwt_token_verified_per_connection() throws Exception {
+    public void test_user_authentication_with_jwt_token_verified_per_request() throws Exception {
         Roles roles = () -> List.of(JWT_USER);
         Authentication authentication = mock(Authentication.class);
         AuthenticationMethod jwtAuth = mock(JWTAuthenticationMethod.class);
@@ -335,7 +377,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         request2.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + JWT_TOKEN);
         ch.writeInbound(request2);
         ch.releaseInbound();
-        verify(jwtAuth, times(1)).authenticate(any(Credentials.class), any(ConnectionProperties.class));
+        verify(jwtAuth, times(2)).authenticate(any(Credentials.class), any(ConnectionProperties.class));
     }
 
     @Test

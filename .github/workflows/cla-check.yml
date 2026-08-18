@@ -1,9 +1,15 @@
 name: Check PR Author has signed CLA
 on:
   pull_request_target:
-    branches:
-    - 'master'
     types: [opened, synchronize, unlabeled]
+
+# it creates/edits labels (issues) and can post a comment
+# asking the author to sign the CLA (pull-requests).
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
   check-author-signed-cla:
     uses: crate/actions/.github/workflows/cla-check-workflow.yml@main

@@ -21,6 +21,13 @@ DELETE deletes rows that satisfy the WHERE clause from the specified table. If
 the WHERE clause is absent, the effect is to delete all rows in the table. The
 result is a valid, but empty table.
 
+.. NOTE::
+
+    ``DELETE`` requires the :ref:`DML <privilege_types_dml>` privilege on the
+    table rows are deleted from. Sub-queries used in the ``WHERE`` clause
+    additionally require the :ref:`DQL <privilege_types_dql>` privilege on all
+    relations they read from.
+
 Parameters
 ==========
 
