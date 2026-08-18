@@ -99,7 +99,7 @@ public class NodeStatsContextTest extends ESTestCase {
         assertThat(ctx2.threadPools().getFirst().active()).isEqualTo(ctx1.threadPools().getFirst().active());
         assertThat(ctx2.httpStats().total()).isEqualTo(ctx1.httpStats().total());
         assertThat(ctx2.psqlStats().receivedBytes()).isEqualTo(ctx1.psqlStats().receivedBytes());
-        assertThat(ctx2.transportStats().sentMsgs()).isEqualTo(ctx1.transportStats().sentMsgs());
+        assertThat(ctx2.transportStats().sentMessages()).isEqualTo(ctx1.transportStats().sentMessages());
         assertThat(ctx2.clusterStateVersion()).isEqualTo(ctx1.clusterStateVersion());
         assertThat(ctx2.osName()).isEqualTo(ctx1.osName());
         assertThat(ctx2.osArch()).isEqualTo(ctx1.osArch());
@@ -165,23 +165,23 @@ public class NodeStatsContextTest extends ESTestCase {
         assertThat(ctx2.httpStats().open()).isEqualTo(ctx1.httpStats().open());
         assertThat(ctx2.httpStats().total()).isEqualTo(ctx1.httpStats().total());
         assertThat(ctx2.httpStats().receivedBytes()).isEqualTo(-1);
-        assertThat(ctx2.httpStats().receivedMsgs()).isEqualTo(-1);
+        assertThat(ctx2.httpStats().receivedMessages()).isEqualTo(-1);
         assertThat(ctx2.httpStats().sentBytes()).isEqualTo(-1);
-        assertThat(ctx2.httpStats().sentMsgs()).isEqualTo(-1);
+        assertThat(ctx2.httpStats().sentMessages()).isEqualTo(-1);
 
         assertThat(ctx2.psqlStats().open()).isEqualTo(ctx1.psqlStats().open());
         assertThat(ctx2.psqlStats().total()).isEqualTo(ctx1.psqlStats().total());
         assertThat(ctx2.psqlStats().receivedBytes()).isEqualTo(-1);
-        assertThat(ctx2.psqlStats().receivedMsgs()).isEqualTo(-1);
+        assertThat(ctx2.psqlStats().receivedMessages()).isEqualTo(-1);
         assertThat(ctx2.psqlStats().sentBytes()).isEqualTo(-1);
-        assertThat(ctx2.psqlStats().sentMsgs()).isEqualTo(-1);
+        assertThat(ctx2.psqlStats().sentMessages()).isEqualTo(-1);
 
         assertThat(ctx2.transportStats().open()).isEqualTo(ctx1.transportStats().open());
         assertThat(ctx2.transportStats().total()).isEqualTo(-1);
         assertThat(ctx2.transportStats().receivedBytes()).isEqualTo(-1);
-        assertThat(ctx2.transportStats().receivedMsgs()).isEqualTo(-1);
+        assertThat(ctx2.transportStats().receivedMessages()).isEqualTo(-1);
         assertThat(ctx2.transportStats().sentBytes()).isEqualTo(-1);
-        assertThat(ctx2.transportStats().sentMsgs()).isEqualTo(-1);
+        assertThat(ctx2.transportStats().sentMessages()).isEqualTo(-1);
     }
 
     @Test

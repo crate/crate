@@ -256,7 +256,7 @@ public class PostgresWireProtocol {
         return StandardCharsets.UTF_8.decode(ByteBuffer.wrap(bytes)).array();
     }
 
-    private Properties readStartupMessage(ByteBuf buffer) {
+    private static Properties readStartupMessage(ByteBuf buffer) {
         Properties properties = new Properties();
         while (true) {
             String key = readCString(buffer);
