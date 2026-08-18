@@ -136,7 +136,8 @@ public class FileReadingIteratorTest extends ESTestCase {
             "name,id,age",
             "Trillian,5,33"
         );
-        var tester = new BatchIteratorTester<>(() -> batchIteratorSupplier.get().map(LineCursor::line), ResultOrder.EXACT);
+        var tester = new BatchIteratorTester<>(
+            () -> batchIteratorSupplier.get().map(LineCursor::line), ResultOrder.EXACT, false);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -184,7 +185,8 @@ public class FileReadingIteratorTest extends ESTestCase {
                 }
             };
 
-        var tester = new BatchIteratorTester<>(() -> batchIteratorSupplier.get().map(LineCursor::line), ResultOrder.EXACT);
+        var tester = new BatchIteratorTester<>(
+            () -> batchIteratorSupplier.get().map(LineCursor::line), ResultOrder.EXACT, false);
         tester.verifyResultAndEdgeCaseBehaviour(lines);
     }
 
