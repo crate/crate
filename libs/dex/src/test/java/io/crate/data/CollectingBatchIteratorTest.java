@@ -29,6 +29,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,12 +44,23 @@ import io.crate.data.testing.TestingBatchIterators;
 
 class CollectingBatchIteratorTest {
 
-    private static final List<Object[]> EXPECTED_RESULT = Collections.singletonList(new Object[] {45L});
+    private List<Object[]> expectedResult;
     private ExecutorService executor;
+
+    private static BatchIterator<Row> collectingIterator(BatchIterator<Row> source) {
+        Collector<Row, ?, List<Row>> toRows = Collectors.mapping(
+            row -> new Row1(row.get(0)),
+            Collectors.toList()
+        );
+        return CollectingBatchIterator.newInstance(source, toRows);
+    }
 
     @BeforeEach
     public void setUp() {
         executor = Executors.newFixedThreadPool(2);
+        expectedResult = LongStream.range(0, 10)
+            .mapToObj(i -> new Object[]{i})
+            .collect(Collectors.toList());
     }
 
     @AfterEach
@@ -58,19 +72,29 @@ class CollectingBatchIteratorTest {
     @Test
     void testCollectingBatchIterator() throws Exception {
         var tester = BatchIteratorTester.forRows(
-            () -> CollectingBatchIterator.summingLong(TestingBatchIterators.range(0L, 10L)), ResultOrder.EXACT
+            () -> collectingIterator(TestingBatchIterators.range(0L, 10L)), ResultOrder.EXACT
         );
-        tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
     @Test
     void testCollectingBatchIteratorWithPagedSource() throws Exception {
         var tester = BatchIteratorTester.forRows(
-            () -> CollectingBatchIterator.summingLong(
+            () -> collectingIterator(
                 new BatchSimulatingIterator<>(TestingBatchIterators.range(0L, 10L), 2, 5, executor)
             ), ResultOrder.EXACT
         );
-        tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
+
+    @Test
+    void testSummingLong() throws Exception {
+        var tester = BatchIteratorTester.forRows(
+            () -> CollectingBatchIterator.summingLong(TestingBatchIterators.range(0L, 10L)),
+            ResultOrder.EXACT,
+            false
+        );
+        tester.verifyResultAndEdgeCaseBehaviour(Collections.singletonList(new Object[] { 45L }));
     }
 
     @Test
