@@ -93,6 +93,9 @@ Breaking Changes
 Fixes
 =====
 
+- Limited the duration clients using the PostgreSQL wire protocol can remain
+  unauthenticated to make it more difficult to launch Denial of Service attacks.
+
 - Limited the size of messages accepted from unauthenticated clients using the
   PostgreSQL wire protocol to make it more difficult to launch Denial of Service
   attacks.
