@@ -32,6 +32,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
@@ -82,7 +83,6 @@ import org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndSeqNo;
-import org.elasticsearch.common.metrics.CounterMetric;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.KeyedLock;
 import org.elasticsearch.common.util.concurrent.RejectableRunnable;
@@ -153,12 +153,12 @@ public class InternalEngine extends Engine {
     // An index request is considered as an update if it overwrites existing documents with the same docId in the Lucene index.
     // The value of this marker never goes backwards, and is tracked/updated differently on primary and replica.
     private final AtomicLong maxSeqNoOfUpdatesOrDeletes;
-    private final CounterMetric numVersionLookups = new CounterMetric();
-    private final CounterMetric numIndexVersionsLookups = new CounterMetric();
+    private final LongAdder numVersionLookups = new LongAdder();
+    private final LongAdder numIndexVersionsLookups = new LongAdder();
     // Lucene operations since this engine was opened - not include operations from existing segments.
-    private final CounterMetric numDocDeletes = new CounterMetric();
-    private final CounterMetric numDocAppends = new CounterMetric();
-    private final CounterMetric numDocUpdates = new CounterMetric();
+    private final LongAdder numDocDeletes = new LongAdder();
+    private final LongAdder numDocAppends = new LongAdder();
+    private final LongAdder numDocUpdates = new LongAdder();
     private final NumericDocValuesField softDeletesField = Lucene.newSoftDeletesField();
     private final SoftDeletesPolicy softDeletesPolicy;
     private final LastRefreshedCheckpointListener lastRefreshedCheckpointListener;
@@ -1161,7 +1161,7 @@ public class InternalEngine extends Engine {
 
     private void addDoc(Document doc, final IndexWriter indexWriter) throws IOException {
         indexWriter.addDocument(doc);
-        numDocAppends.inc();
+        numDocAppends.increment();
     }
 
     private void addStaleDoc(Document doc, final IndexWriter indexWriter) throws IOException {
@@ -1256,7 +1256,7 @@ public class InternalEngine extends Engine {
 
     private void updateDoc(final BytesRef uid, Document doc, final IndexWriter indexWriter) throws IOException {
         indexWriter.softUpdateDocument(new Term(SysColumns.Names.ID, uid), doc, softDeletesField);
-        numDocUpdates.inc();
+        numDocUpdates.increment();
     }
 
     @Override
@@ -1463,7 +1463,7 @@ public class InternalEngine extends Engine {
                 indexWriter.softUpdateDocument(new Term(SysColumns.Names.ID, delete.uid()), doc, softDeletesField);
             }
             if (plan.deleteFromLucene) {
-                numDocDeletes.inc();
+                numDocDeletes.increment();
                 versionMap.putDeleteUnderLock(delete.uid(),
                     new DeleteVersionValue(plan.versionOfDeletion, delete.seqNo(), delete.primaryTerm(),
                         engineConfig.getThreadPool().relativeTimeInMillis()));
@@ -2429,7 +2429,7 @@ public class InternalEngine extends Engine {
      * Note this is only available if assertions are enabled
      */
     long getNumIndexVersionsLookups() { // for testing
-        return numIndexVersionsLookups.count();
+        return numIndexVersionsLookups.sum();
     }
 
     /**
@@ -2437,16 +2437,16 @@ public class InternalEngine extends Engine {
      * Note this is only available if assertions are enabled
      */
     long getNumVersionLookups() { // for testing
-        return numVersionLookups.count();
+        return numVersionLookups.sum();
     }
 
     private boolean incrementVersionLookup() { // only used by asserts
-        numVersionLookups.inc();
+        numVersionLookups.increment();
         return true;
     }
 
     private boolean incrementIndexVersionLookup() {
-        numIndexVersionsLookups.inc();
+        numIndexVersionsLookups.increment();
         return true;
     }
 
@@ -2459,7 +2459,7 @@ public class InternalEngine extends Engine {
      * This count does not include the deletions from the existing segments before opening engine.
      */
     long getNumDocDeletes() {
-        return numDocDeletes.count();
+        return numDocDeletes.sum();
     }
 
     /**
@@ -2467,7 +2467,7 @@ public class InternalEngine extends Engine {
      * This count does not include the appends from the existing segments before opening engine.
      */
     long getNumDocAppends() {
-        return numDocAppends.count();
+        return numDocAppends.sum();
     }
 
     /**
@@ -2475,7 +2475,7 @@ public class InternalEngine extends Engine {
      * This count does not include the updates from the existing segments before opening engine.
      */
     long getNumDocUpdates() {
-        return numDocUpdates.count();
+        return numDocUpdates.sum();
     }
 
     @Override

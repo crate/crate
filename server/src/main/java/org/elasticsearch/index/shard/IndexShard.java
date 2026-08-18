@@ -43,6 +43,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -81,7 +82,6 @@ import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
-import org.elasticsearch.common.metrics.CounterMetric;
 import org.elasticsearch.common.metrics.MeanMetric;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -198,7 +198,7 @@ public class IndexShard extends AbstractIndexShardComponent {
     private final RecoveryStats recoveryStats = new RecoveryStats();
     private final MeanMetric refreshMetric = new MeanMetric();
     private final MeanMetric flushMetric = new MeanMetric();
-    private final CounterMetric periodicFlushMetric = new CounterMetric();
+    private final LongAdder periodicFlushMetric = new LongAdder();
 
     private final ShardEventListener shardEventListener = new ShardEventListener();
 
@@ -1716,7 +1716,7 @@ public class IndexShard extends AbstractIndexShardComponent {
                     @Override
                     public void doRun() {
                         flush(false, false);
-                        periodicFlushMetric.inc();
+                        periodicFlushMetric.increment();
                     }
                 });
             }
@@ -2960,7 +2960,7 @@ public class IndexShard extends AbstractIndexShardComponent {
                         @Override
                         public void doRun() throws IOException {
                             flush(false, false);
-                            periodicFlushMetric.inc();
+                            periodicFlushMetric.increment();
                         }
 
                         @Override
@@ -3362,7 +3362,7 @@ public class IndexShard extends AbstractIndexShardComponent {
     }
 
     public long periodicFlushCount() {
-        return periodicFlushMetric.count();
+        return periodicFlushMetric.sum();
     }
 
     public MeanMetric getRefreshMetric() {

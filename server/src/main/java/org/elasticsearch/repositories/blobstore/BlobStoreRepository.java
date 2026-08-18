@@ -42,6 +42,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -95,7 +96,6 @@ import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.store.InputStreamIndexInput;
-import org.elasticsearch.common.metrics.CounterMetric;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -211,9 +211,9 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     private final RateLimiter restoreRateLimiter;
 
-    private final CounterMetric snapshotRateLimitingTimeInNanos = new CounterMetric();
+    private final LongAdder snapshotRateLimitingTimeInNanos = new LongAdder();
 
-    private final CounterMetric restoreRateLimitingTimeInNanos = new CounterMetric();
+    private final LongAdder restoreRateLimitingTimeInNanos = new LongAdder();
 
     public static final ChecksumBlobStoreFormat<Metadata> GLOBAL_METADATA_FORMAT = new ChecksumBlobStoreFormat<>(
         "metadata",
@@ -2122,8 +2122,8 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         });
     }
 
-    private static InputStream maybeRateLimit(InputStream stream, Supplier<RateLimiter> rateLimiterSupplier, CounterMetric metric) {
-        return new RateLimitingInputStream(stream, rateLimiterSupplier, metric::inc);
+    private static InputStream maybeRateLimit(InputStream stream, Supplier<RateLimiter> rateLimiterSupplier, LongAdder metric) {
+        return new RateLimitingInputStream(stream, rateLimiterSupplier, metric::add);
     }
 
     public InputStream maybeRateLimitRestores(InputStream stream) {
