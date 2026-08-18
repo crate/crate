@@ -37,6 +37,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.assertj.core.api.Assertions;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.common.exceptions.Exceptions;
@@ -63,21 +64,37 @@ public class BatchIteratorTester<T> {
          **/
         ANY
     }
+    private final boolean supportRestartAnyTime;
 
-    public static BatchIteratorTester<Object[]> forRows(Supplier<BatchIterator<Row>> it, ResultOrder resultOrder) {
+    public static BatchIteratorTester<Object[]> forRows(Supplier<BatchIterator<Row>> it,
+                                                        ResultOrder resultOrder) {
+        return forRows(it, resultOrder, true);
+    }
+
+    public static BatchIteratorTester<Object[]> forRows(Supplier<BatchIterator<Row>> it,
+                                                        ResultOrder resultOrder,
+                                                        boolean supportRestartAnyTime) {
         return new BatchIteratorTester<>(
             () -> it.get().map(row -> row == null ? null : row.materialize()),
-            resultOrder
+            resultOrder,
+            supportRestartAnyTime
         );
     }
 
-    public BatchIteratorTester(Supplier<BatchIterator<T>> it, ResultOrder resultOrder) {
+    public BatchIteratorTester(Supplier<BatchIterator<T>> it, ResultOrder resultOrder, boolean supportRestartAnyTime) {
         this.it = it;
         this.resultOrder = resultOrder;
+        this.supportRestartAnyTime = supportRestartAnyTime;
     }
 
-    public void verifyResultAndEdgeCaseBehaviour(List<T> expectedResult,
-                                                 @Nullable Consumer<BatchIterator<T>> verifyAfterProperConsumption) throws Exception {
+    public void verifyResultAndEdgeCaseBehaviour(List<T> expectedResult) throws Exception {
+        verifyResultAndEdgeCaseBehaviour(expectedResult, null);
+    }
+
+    public void verifyResultAndEdgeCaseBehaviour(
+        List<T> expectedResult,
+        @Nullable Consumer<BatchIterator<T>> verifyAfterProperConsumption) throws Exception {
+
         BatchIterator<T> firstBatchIterator = this.it.get();
         testProperConsumption(firstBatchIterator, expectedResult);
         if (verifyAfterProperConsumption != null) {
@@ -89,6 +106,9 @@ public class BatchIteratorTester<T> {
         testIllegalNextBatchCall(this.it.get());
         testMoveNextAfterMoveNextReturnedFalse(this.it.get());
         testMoveToStartAndReConsumptionMatchesRowsOnFirstConsumption(this.it.get());
+        if (supportRestartAnyTime) {
+            testMoveToStartWhileConsumptionIsInProgress(this.it, expectedResult);
+        }
         testAllLoadedNeverRaises(this.it);
         testLoadNextBatchFutureCompletesOnKill(this.it.get());
     }
@@ -108,10 +128,6 @@ public class BatchIteratorTester<T> {
         }
     }
 
-    public void verifyResultAndEdgeCaseBehaviour(List<T> expectedResult) throws Exception {
-        verifyResultAndEdgeCaseBehaviour(expectedResult, null);
-    }
-
     private void testAllLoadedNeverRaises(Supplier<BatchIterator<T>> batchIterator) {
         BatchIterator<T> bi = batchIterator.get();
         bi.allLoaded();
@@ -129,6 +145,30 @@ public class BatchIteratorTester<T> {
         List<T> secondResult = it.collect(Collectors.toList(), false).get(5, TimeUnit.SECONDS);
         it.close();
         checkResult(firstResult, secondResult, resultOrder);
+    }
+
+    private void testMoveToStartWhileConsumptionIsInProgress(Supplier<BatchIterator<T>> batchIterator,
+                                                             List<T> expectedResult) throws Exception {
+        if (expectedResult.size() < 2) {
+            Assertions.fail("expectedResult should contain at least 2 rows, " +
+                "to be able to test partial consumption and move to start");
+        }
+        // Stop at different positions, to test different internal batch/segment/page boundaries
+        int maxRowsBeforeRestart = Math.min(3, expectedResult.size());
+        for (int rowsBeforeRestart = 1; rowsBeforeRestart <= maxRowsBeforeRestart; rowsBeforeRestart++) {
+            BatchIterator<T> it = batchIterator.get();
+            for (int i = 0; i < rowsBeforeRestart; i++) {
+                getFirstElement(it);
+            }
+            it.moveToStart();
+            List<T> result = it.collect(Collectors.toList(), false).get(5, TimeUnit.SECONDS);
+            it.close();
+            checkResult(
+                expectedResult,
+                result,
+                resultOrder
+            );
+        }
     }
 
     private void testMoveNextAfterMoveNextReturnedFalse(BatchIterator<T> it) throws Exception {
