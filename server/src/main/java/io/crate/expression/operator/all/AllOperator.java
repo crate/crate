@@ -105,12 +105,28 @@ public abstract sealed class AllOperator<T> extends Operator<T> permits AllEqOpe
     protected void validateRightArg(T arg) {
     }
 
+    @Override
+    public Symbol normalizeSymbol(Function function, TransactionContext txnCtx, NodeContext nodeCtx) {
+        try {
+            return evaluateIfLiterals(this, txnCtx, nodeCtx, function);
+        } catch (Throwable t) {
+            return function;
+        }
+    }
+
     @SuppressWarnings("unchecked")
     @SafeVarargs
     @Override
     public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<T>... args) {
         T leftValue = args[0].value();
         Collection<T> rightValues = (Collection<T>) args[1].value();
+
+        // ALL(<empty>) should return true no matter what the left value is.
+        // Therefore, check for rightValues being empty first
+        if (rightValues != null && rightValues.isEmpty()) {
+            return true;
+        }
+
         if (leftValue == null || rightValues == null) {
             return null;
         }

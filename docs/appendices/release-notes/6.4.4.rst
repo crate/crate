@@ -104,3 +104,6 @@ Fixes
 
     SELECT array_agg(x) OVER(
       ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM tbl
+
+- Fixed an issue where :ref:`ALL <sql_all_subquery_expresion>` did not return
+  ``TRUE`` when comparing ``NULL`` values against an empty array.
