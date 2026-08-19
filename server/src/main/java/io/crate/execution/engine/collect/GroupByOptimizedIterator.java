@@ -234,7 +234,7 @@ final class GroupByOptimizedIterator {
             return null; // group by on a non-reference
         }
         final Reference keyRef = DocReferences.docRefToRegularRef(docKeyRef);
-        if (LooseIndexScan.decoderFor(keyRef.valueType()) == null) {
+        if (!LooseIndexScan.supportsType(keyRef.valueType())) {
             return null; // not a type that CrateDB indexes as a single point dimension
         }
 

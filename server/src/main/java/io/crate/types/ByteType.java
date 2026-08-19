@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.function.Function;
 
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -58,6 +59,13 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
         public Byte decode(int input) {
             return (byte) input;
         }
+
+        // byte is indexed by IntIndexer, so its points are 4 bytes wide.
+        @Override
+        public Byte decode(byte[] packedPoint) {
+            return (byte) NumericUtils.sortableBytesToInt(packedPoint, 0);
+        }
+
     };
 
     private ByteType() {
