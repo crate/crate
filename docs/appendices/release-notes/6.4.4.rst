@@ -46,4 +46,10 @@ series.
 Fixes
 =====
 
-None
+- Fixed an issue that caused a ``UNION ALL`` inside a sub-select to return an
+  additional column, or to fail with ``Index x out of bounds for length y``, if
+  the outer query used an ``ORDER BY`` on a column which was not selected and
+  the sub-select contained further columns which were neither selected nor used
+  by the ``ORDER BY``. e.g::
+
+    SELECT c3 FROM (SELECT * FROM tbl UNION ALL SELECT * FROM tbl) x ORDER BY c1;
