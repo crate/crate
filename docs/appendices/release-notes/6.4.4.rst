@@ -82,3 +82,5 @@ Fixes
 
     SELECT * FROM t JOIN t AS t2 ON t.c = (select 1)
 
+- Fixed an issue where :ref:`ALL <sql_all_subquery_expresion>` did not return
+  ``TRUE`` when comparing ``NULL`` values against an empty array.

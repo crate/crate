@@ -44,8 +44,10 @@ public abstract class Operator<I> extends Scalar<Boolean, I> {
 
     @Override
     public Symbol normalizeSymbol(Function function, TransactionContext txnCtx, NodeContext nodeCtx) {
-        // all operators evaluates to NULL if one argument is NULL
+        // Many operators evaluates to NULL if one argument is NULL
         // let's handle this here to prevent unnecessary collect operations
+        // Some operators handle NULL arguments differently though. Override
+        // this if needed
         for (Symbol symbol : function.arguments()) {
             if (symbol instanceof Input && ((Input<?>) symbol).value() == null) {
                 return Literal.of(RETURN_TYPE, null);

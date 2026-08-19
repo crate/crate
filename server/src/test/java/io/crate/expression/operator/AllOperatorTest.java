@@ -24,6 +24,8 @@ package io.crate.expression.operator;
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.types.DataTypes;
 
 public class AllOperatorTest extends ScalarTestCase {
 
@@ -58,6 +60,16 @@ public class AllOperatorTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_null_eq_empty_array_is_true() {
+        assertEvaluate("id = ALL(ARRAY[]::array(INTEGER))", true, Literal.of(DataTypes.INTEGER, null));
+    }
+
+    @Test
+    public void test_literal_null_eq_empty_array_is_true() {
+        assertEvaluate("null = ALL(ARRAY[]::array(INTEGER))", true);
+    }
+
+    @Test
     public void test_automatically_levels_array_dimensions_to_left_arg() {
         assertEvaluate("1 = ALL([ [1] ])", true);
     }
@@ -85,5 +97,23 @@ public class AllOperatorTest extends ScalarTestCase {
         assertEvaluate("1 <= ALL(ARRAY[1, 1])", true);
         assertEvaluate("0 < ALL(ARRAY[1, 1])", true);
         assertEvaluate("3 <> ALL(ARRAY[1, 2])", true);
+    }
+
+    @Test
+    public void test_all_with_basic_cmp_operators_and_empty_array() {
+        assertEvaluate("id > ALL(ARRAY[]::array(INTEGER))", true, Literal.of(DataTypes.INTEGER, null));
+        assertEvaluate("id >= ALL(ARRAY[]::array(INTEGER))", true, Literal.of(DataTypes.INTEGER, null));
+        assertEvaluate("id < ALL(ARRAY[]::array(INTEGER))", true, Literal.of(DataTypes.INTEGER, null));
+        assertEvaluate("id <= ALL(ARRAY[]::array(INTEGER))", true, Literal.of(DataTypes.INTEGER, null));
+        assertEvaluate("id <> ALL(ARRAY[]::array(INTEGER))", true, Literal.of(DataTypes.INTEGER, null));
+    }
+
+    @Test
+    public void test_all_literal_null_with_basic_cmp_operators_and_empty_array() {
+        assertEvaluate("null > ALL(ARRAY[]::array(INTEGER))", true);
+        assertEvaluate("null >= ALL(ARRAY[]::array(INTEGER))", true);
+        assertEvaluate("null < ALL(ARRAY[]::array(INTEGER))", true);
+        assertEvaluate("null <= ALL(ARRAY[]::array(INTEGER))", true);
+        assertEvaluate("null <> ALL(ARRAY[]::array(INTEGER))", true);
     }
 }
