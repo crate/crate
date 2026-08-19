@@ -39,10 +39,10 @@ Usage::
 """
 
 import re
-from datetime import date
+import datetime
 
 from release_helpers import (NOTES_DIR, VERSION_JAVA, commit_and_push, create_branch,
-                            discard_branch, fail, fetch_and_check, print_pull_request_link,
+                            fail, fetch_and_check, print_pull_request_link,
                             repo_root, version_arg, warn)
 
 
@@ -105,7 +105,7 @@ def main():
     version = version_arg(__doc__, "version to release, e.g. 6.4.1")
     base = ".".join(version.split(".")[:2])
     branch = f"release-{version}"
-    released_on = date.today().isoformat()
+    released_on = datetime.datetime.now(tz=datetime.UTC).date()
 
     root = repo_root(__file__)
     fetch_and_check(root, base, branch)
@@ -117,12 +117,10 @@ def main():
     for path, patch in zip(paths, patches):
         file = root / path
         if not file.is_file():
-            discard_branch(root, branch, previous_branch)
             fail(f"{path} does not exist on origin/{base}")
         try:
             file.write_text(patch(file.read_text()))
         except ValueError as e:
-            discard_branch(root, branch, previous_branch)
             fail(str(e))
         print(f"Updated {path}")
 

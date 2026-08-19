@@ -49,7 +49,7 @@ import re
 from textwrap import fill
 
 from release_helpers import (NOTES_DIR, VERSION_JAVA, commit_and_push, create_branch,
-                            discard_branch, fail, fetch_and_check, print_pull_request_link,
+                            fail, fetch_and_check, print_pull_request_link,
                             repo_root, run, version_arg)
 
 INDEX_RST = f"{NOTES_DIR}/index.rst"
@@ -255,7 +255,6 @@ def main():
             (root / path).write_text(content)
             print(f"Updated {path}")
     except Exception as e:
-        discard_branch(root, branch, previous_branch, created)
         fail(str(e))
 
     commit_and_push(root, branch, f"Bump version to {version}-SNAPSHOT")

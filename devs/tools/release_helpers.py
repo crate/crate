@@ -104,15 +104,6 @@ def create_branch(root, branch, base):
     run("git", "checkout", "-b", branch, f"origin/{base}", cwd=root, quiet=False)
     return previous
 
-
-def discard_branch(root, branch, previous, created=()):
-    """Delete ``branch`` and restore the checkout, to be used on failure"""
-    for path in created:
-        (root / path).unlink(missing_ok=True)
-    run("git", "checkout", "--force", previous, cwd=root)
-    run("git", "branch", "--delete", "--force", branch, cwd=root)
-
-
 def commit_and_push(root, branch, message):
     run("git", "add", "--all", cwd=root)
     run("git", "commit", "-m", message, cwd=root, quiet=False)
