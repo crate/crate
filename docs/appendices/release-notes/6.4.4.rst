@@ -53,3 +53,11 @@ Fixes
   by the ``ORDER BY``. e.g::
 
     SELECT c3 FROM (SELECT * FROM tbl UNION ALL SELECT * FROM tbl) x ORDER BY c1;
+
+- Fixed an issue that could return wrong results if a ``WHERE`` clause contained
+  a non-deterministic function, like :ref:`random() <scalar-random>`, and was
+  applied on a virtual relation which uses
+  :ref:`window functions <window-functions>`, :ref:`GROUP BY <sql_dql_group_by>`
+  or :ref:`table functions <table-functions>`. Prevent the push down for such
+  filters, as they can produce different results than if applied after those
+  operations as intended.
