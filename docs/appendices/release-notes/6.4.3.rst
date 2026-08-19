@@ -93,6 +93,10 @@ Breaking Changes
 Fixes
 =====
 
+- Fixed a ``ClassCastException`` that could occur if using ``byte`` or ``short``
+  columns within an ``ORDER BY`` clause of a window functions ``OVER`` clause
+  together with a ``RANGE BETWEEN`` window definition.
+
 - Authentication via HTTP is no longer cached on connection level to support
   proxy use-cases with keepalive.
 

@@ -25,10 +25,19 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import org.junit.Test;
 
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.role.Role;
+import io.crate.testing.SQLExecutor;
+import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
 
 public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
@@ -274,6 +283,38 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
             new Object[]{4, 4},
             new Object[]{5, 5},
             new Object[]{null, null});
+    }
+
+    @Test
+    public void test_over_ordered_range_between_1_preceding_and_current_row_for_integral_types() throws Throwable {
+        for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            DocTableInfo tableInfo = SQLExecutor.tableInfo(
+                new RelationName("doc", "t1"),
+                String.format(Locale.ENGLISH, "create table doc.t1 (x %s)", type.getName()),
+                clusterService);
+            DocTableRelation tableRelation = new DocTableRelation(tableInfo);
+            Map<RelationName, AnalyzedRelation> tableSources = Map.of(tableInfo.ident(), tableRelation);
+            sqlExpressions = new SqlExpressions(
+                tableSources,
+                tableRelation,
+                Role.CRATE_USER
+            );
+            Object[] expected = new Object[]{
+                1, 2, 3, 4, 5, 6, 7, 8
+            };
+            assertEvaluate(
+                "row_number() OVER (ORDER BY x RANGE BETWEEN 1 PRECEDING and CURRENT ROW)",
+                expected,
+                List.of(ColumnIdent.of("x")),
+                new Object[]{type.implicitCast(1)},
+                new Object[]{type.implicitCast(2)},
+                new Object[]{type.implicitCast(2)},
+                new Object[]{type.implicitCast(2)},
+                new Object[]{type.implicitCast(3)},
+                new Object[]{type.implicitCast(4)},
+                new Object[]{type.implicitCast(5)},
+                new Object[]{null});
+        }
     }
 
     @Test
