@@ -121,7 +121,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
               │  └ Collect[doc.t2 | [b] | true]
               └ Rename[a] AS t3
                 └ Collect[doc.t1 | [a] | true]
-             """
+            """
         );
     }
 
@@ -436,6 +436,60 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             Rename[x, sum] AS sums
               └ WindowAgg[x] | [sum(x) OVER (PARTITION BY x)]
                 └ Collect[doc.t1 | [x] | (x = 10)]
+            """;
+        assertThat(plan).isEqualTo(expectedPlan);
+    }
+
+    @Test
+    public void test_non_deterministic_filter_is_not_pushed_beneath_project_set() {
+        var plan = sqlExecutor.logicalPlan(
+            """
+            SELECT *
+            FROM
+              (SELECT x, generate_series(1::int, x) FROM t1) tt
+            WHERE x > 1 AND random() < 0.5
+            """
+        );
+        var expectedPlan =
+            """
+            Rename[x, generate_series] AS tt
+              └ Eval[x, pg_catalog.generate_series(1, x)]
+                └ Filter[(random() < 0.5)]
+                  └ ProjectSet[pg_catalog.generate_series(1, x), x]
+                    └ Collect[doc.t1 | [x] | (x > 1)]
+            """;
+        assertThat(plan).isEqualTo(expectedPlan);
+    }
+
+    @Test
+    public void test_non_deterministic_filter_is_not_pushed_beneath_group_by() {
+        var plan = sqlExecutor.logicalPlan(
+            "SELECT x, count(*) FROM t1 GROUP BY 1 HAVING x > 1 AND random() < 0.5"
+        );
+        var expectedPlan =
+            """
+            Filter[(random() < 0.5)]
+              └ GroupHashAggregate[x | count(*)]
+                └ Collect[doc.t1 | [x] | (x > 1)]
+            """;
+        assertThat(plan).isEqualTo(expectedPlan);
+    }
+
+    @Test
+    public void test_non_deterministic_filter_is_not_pushed_beneath_window_agg() {
+        var plan = sqlExecutor.logicalPlan(
+            """
+            SELECT * FROM
+              (SELECT x, sum(x) over (partition by x) FROM t1) sums
+            WHERE sums.x = 10 AND random() < 0.5
+            """
+        );
+        var expectedPlan =
+            """
+            Rename[x, sum] AS sums
+              └ Filter[(random() < 0.5)]
+                └ WindowAgg[x] | [sum(x) OVER (PARTITION BY x)]
+                  └ Collect[doc.t1 | [x] | (x = 10)]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
     }
