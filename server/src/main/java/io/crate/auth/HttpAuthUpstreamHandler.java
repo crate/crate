@@ -111,14 +111,6 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         }
 
         String username = credentials.username();
-        if (username != null && username.equals(authorizedUser) && credentials.decodedToken() == null) {
-            // Don't short circuit authentication and force token verification for JWT.
-            // Token can contain an expiration date, and it has to be checked on each request
-            // to avoid situation when expired token can be used throughout the lifetime of the connection.
-            ctx.fireChannelRead(request);
-            return;
-        }
-
         InetAddress address = addressFromRequestOrChannel(request, ctx.channel());
         ConnectionProperties connectionProperties = new ConnectionProperties(credentials, address, Protocol.HTTP, session);
 
