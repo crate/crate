@@ -189,7 +189,7 @@ final class GroupByOptimizedIterator {
         );
     }
 
-    private static Iterable<Row> countsToRows(Map<BytesRef, MutableLong> countsByKey, AggregateMode mode) {
+    private static Iterable<Row> countsToRows(Map<String, MutableLong> countsByKey, AggregateMode mode) {
         final Object[] cells = new Object[2];
         final Row row = new RowN(cells);
         Function<MutableLong, Object> wrapCount = switch (mode) {
@@ -201,21 +201,20 @@ final class GroupByOptimizedIterator {
         return () -> countsByKey.entrySet().stream()
             .map(entry -> {
                 // See GroupProjection.outputs(): keys always come first, aggregations second
-                BytesRef key = entry.getKey();
-                cells[0] = key == null ? null : key.utf8ToString();
+                cells[0] = entry.getKey();
                 cells[1] = wrapCount.apply(entry.getValue());
                 return row;
             })
             .iterator();
     }
 
-    private static Map<BytesRef, MutableLong> getCountsByKey(RamAccounting ramAccounting,
-                                                             Reference keyRef,
-                                                             IndexSearcher searcher,
-                                                             Token killToken) throws IOException {
+    private static Map<String, MutableLong> getCountsByKey(RamAccounting ramAccounting,
+                                                           Reference keyRef,
+                                                           IndexSearcher searcher,
+                                                           Token killToken) throws IOException {
         // HashMap rather than an open-addressing map: it caches each key's hash in the node, so a
         // resize does not recompute BytesRef.hashCode(), which murmur-hashes the whole key content.
-        HashMap<BytesRef, MutableLong> countsByKey = new HashMap<>();
+        HashMap<String, MutableLong> countsByKey = new HashMap<>();
         String keyStorageIdent = keyRef.storageIdent();
         PostingsEnum postings = null;
         for (var leaf : searcher.getLeafContexts()) {
@@ -225,7 +224,7 @@ final class GroupByOptimizedIterator {
                 continue;
             }
             TermsEnum termsEnum = terms.iterator();
-            if (countsByKey.isEmpty()) {
+            if (countsByKey.isEmpty() && terms.size() > 0) {
                 countsByKey = HashMap.newHashMap((int) terms.size());
             }
 
@@ -246,11 +245,11 @@ final class GroupByOptimizedIterator {
 
                 if (numDocs != 0) {
                     // termsEnum reuses the BytesRef it returns, so a key entering the map must be copied first
-                    MutableLong count = countsByKey.get(sharedKey);
+                    String keyStr = sharedKey.utf8ToString();
+                    MutableLong count = countsByKey.get(keyStr);
                     if (count == null) {
-                        BytesRef key = BytesRef.deepCopyOf(sharedKey);
-                        ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + key.length + HASH_MAP_ENTRY_OVERHEAD);
-                        countsByKey.put(key, new MutableLong(numDocs));
+                        ramAccounting.addBytes(RamUsageEstimator.sizeOf(keyStr) + HASH_MAP_ENTRY_OVERHEAD);
+                        countsByKey.put(keyStr, new MutableLong(numDocs));
                     } else {
                         count.add(numDocs);
                     }
