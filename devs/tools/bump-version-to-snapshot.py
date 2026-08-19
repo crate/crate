@@ -38,7 +38,7 @@ which:
 - updates the version of the reindex example in
   ``docs/admin/system-information.rst``
 
-The branch is pushed to origin and a link to open the pull request is printed.
+The branch is pushed to origin and the pull request is opened.
 
 Usage::
 
@@ -49,7 +49,7 @@ import re
 from textwrap import fill
 
 from release_helpers import (NOTES_DIR, VERSION_JAVA, commit_and_push, create_branch,
-                            fail, fetch_and_check, print_pull_request_link,
+                            fail, fetch_and_check, open_pull_request,
                             repo_root, run, version_arg)
 
 INDEX_RST = f"{NOTES_DIR}/index.rst"
@@ -258,7 +258,7 @@ def main():
         fail(str(e))
 
     commit_and_push(root, branch, f"Bump version to {version}-SNAPSHOT")
-    print_pull_request_link(root, base, branch, f"Bump version to {version}-SNAPSHOT")
+    open_pull_request(root, base, branch, f"Bump version to {version}-SNAPSHOT")
 
 
 if __name__ == "__main__":

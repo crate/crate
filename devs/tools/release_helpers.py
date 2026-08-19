@@ -27,7 +27,6 @@ import subprocess
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
-from urllib.parse import quote
 
 VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
 NOTES_DIR = "docs/appendices/release-notes"
@@ -111,7 +110,8 @@ def commit_and_push(root, branch, message):
     run("git", "push", "--set-upstream", "origin", branch, cwd=root, quiet=False)
 
 
-def print_pull_request_link(root, base, branch, title):
-    repo = run("gh", "repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner", cwd=root)
-    link = f"https://github.com/{repo}/compare/{base}...{branch}?expand=1&title={quote(title)}"
-    print(f"\nOpen the pull request:\n\n    {link}")
+def open_pull_request(root, base, branch, title):
+    """Create the pull request of ``branch`` against ``base``"""
+    print(f"Creating the pull request of {branch}...")
+    run("gh", "pr", "create", "--base", base, "--head", branch,
+        "--title", title, "--body", "", cwd=root, quiet=False)

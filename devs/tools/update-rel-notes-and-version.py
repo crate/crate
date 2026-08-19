@@ -31,7 +31,7 @@ Given a version like 6.4.1 it creates a ``release-6.4.1`` branch off
 - clears the snapshot flag of the ``V_6_4_1`` constant in
   ``server/src/main/java/org/elasticsearch/Version.java``
 
-The branch is pushed to origin and a link to open the pull request is printed.
+The branch is pushed to origin and the pull request is opened.
 
 Usage::
 
@@ -42,7 +42,7 @@ import re
 import datetime
 
 from release_helpers import (NOTES_DIR, VERSION_JAVA, commit_and_push, create_branch,
-                            fail, fetch_and_check, print_pull_request_link,
+                            fail, fetch_and_check, open_pull_request,
                             repo_root, version_arg, warn)
 
 
@@ -125,7 +125,7 @@ def main():
         print(f"Updated {path}")
 
     commit_and_push(root, branch, f"Release {version}")
-    print_pull_request_link(root, base, branch, f"Release {version}")
+    open_pull_request(root, base, branch, f"Release {version}")
 
 
 if __name__ == "__main__":
