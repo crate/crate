@@ -225,6 +225,10 @@ final class GroupByOptimizedIterator {
                 continue;
             }
             TermsEnum termsEnum = terms.iterator();
+            if (countsByKey.isEmpty()) {
+                countsByKey = HashMap.newHashMap((int) terms.size());
+            }
+
             Bits liveDocs = reader.getLiveDocs();
             while (true) {
                 BytesRef sharedKey = termsEnum.next();
