@@ -71,3 +71,7 @@ Fixes
   :ref:`INDEX OFF <sql_ddl_index_off>`, e.g.::
 
     SELECT * FROM tbl WHERE no_index_col ~ '[a-z]'
+
+- Fixed an issue where a node could still shut down when the cluster health
+  wait timed out during decommissioning despite
+  ``cluster.graceful_stop.force=false``.
