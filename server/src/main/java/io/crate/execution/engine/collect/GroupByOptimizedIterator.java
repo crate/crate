@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.LongFunction;
 import java.util.function.Supplier;
 
 import org.apache.lucene.index.DocValues;
@@ -189,12 +190,12 @@ final class GroupByOptimizedIterator {
         );
     }
 
-    private static Iterable<Row> countsToRows(Map<String, MutableLong> countsByKey, AggregateMode mode) {
+    private static Iterable<Row> countsToRows(Map<String, Long> countsByKey, AggregateMode mode) {
         final Object[] cells = new Object[2];
         final Row row = new RowN(cells);
-        Function<MutableLong, Object> wrapCount = switch (mode) {
-            case ITER_PARTIAL -> x -> x;
-            case ITER_FINAL -> MutableLong::value;
+        LongFunction<Object> wrapCount = switch (mode) {
+            case ITER_PARTIAL -> MutableLong::new;
+            case ITER_FINAL -> x -> x;
             case PARTIAL_FINAL -> throw new UnsupportedOperationException(
                 "Shard level projection cannot start at PARTIAL");
         };
@@ -208,13 +209,13 @@ final class GroupByOptimizedIterator {
             .iterator();
     }
 
-    private static Map<String, MutableLong> getCountsByKey(RamAccounting ramAccounting,
-                                                           Reference keyRef,
-                                                           IndexSearcher searcher,
-                                                           Token killToken) throws IOException {
+    private static Map<String, Long> getCountsByKey(RamAccounting ramAccounting,
+                                                    Reference keyRef,
+                                                    IndexSearcher searcher,
+                                                    Token killToken) throws IOException {
         // HashMap rather than an open-addressing map: it caches each key's hash in the node, so a
         // resize does not recompute BytesRef.hashCode(), which murmur-hashes the whole key content.
-        HashMap<String, MutableLong> countsByKey = new HashMap<>();
+        HashMap<String, Long> countsByKey = new HashMap<>();
         String keyStorageIdent = keyRef.storageIdent();
         PostingsEnum postings = null;
         for (var leaf : searcher.getLeafContexts()) {
@@ -246,13 +247,13 @@ final class GroupByOptimizedIterator {
                 if (numDocs != 0) {
                     // termsEnum reuses the BytesRef it returns, so a key entering the map must be copied first
                     String keyStr = sharedKey.utf8ToString();
-                    MutableLong count = countsByKey.get(keyStr);
-                    if (count == null) {
-                        ramAccounting.addBytes(RamUsageEstimator.sizeOf(keyStr) + HASH_MAP_ENTRY_OVERHEAD);
-                        countsByKey.put(keyStr, new MutableLong(numDocs));
-                    } else {
-                        count.add(numDocs);
-                    }
+                    countsByKey.compute(keyStr, (k, count) -> {
+                        if (count == null) {
+                            ramAccounting.addBytes(RamUsageEstimator.sizeOf(keyStr) + HASH_MAP_ENTRY_OVERHEAD);
+                            return (long) numDocs;
+                        }
+                        return count + numDocs;
+                    });
                 }
 
                 killToken.raiseIfKilled();
@@ -269,7 +270,7 @@ final class GroupByOptimizedIterator {
             Integer count = searcher.search(notNull, topHitCounts);
             if (count > 0) {
                 ramAccounting.addBytes(HASH_MAP_ENTRY_OVERHEAD);
-                countsByKey.put(null, new MutableLong(count));
+                countsByKey.put(null, Long.valueOf(count));
             }
         }
 
