@@ -103,7 +103,7 @@ def patch_version_java(text, version):
 
 
 def main():
-    version = version_arg(__doc__, "version to release, e.g. 6.4.1")
+    version = version_arg(__doc__)
     base = ".".join(version.split(".")[:2])
     branch = f"release-{version}"
     released_on = datetime.datetime.now(tz=datetime.UTC).date()

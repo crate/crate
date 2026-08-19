@@ -222,7 +222,7 @@ def set_pom_version(root, version, previous):
 
 
 def main():
-    version = version_arg(__doc__, "version to bump to, e.g. 6.5.1")
+    version = version_arg(__doc__)
     major, minor, patch = (int(part) for part in version.split("."))
     if patch == 0:
         sys.exit(f"{version} is not a patch version, bump to x.y.0 versions manually")

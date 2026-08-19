@@ -44,10 +44,12 @@ def run(*args, cwd, capture_output=True):
     return subprocess.check_output(args, cwd=cwd, text=True).strip()
 
 
-def version_arg(doc, help_text):
-    """Parse the single ``version`` argument shared by the release tools"""
+def version_arg(doc):
+    """Parse the single ``version`` argument"""
+
+    # Take just the first line
     parser = ArgumentParser(description=doc.strip().splitlines()[0])
-    parser.add_argument("version", help=help_text)
+    parser.add_argument("version", help='a valid semantic version')
     version = parser.parse_args().version
     if VERSION_RE.match(version) is None:
         sys.exit(f"invalid version '{version}', expected <major>.<minor>.<patch>")
