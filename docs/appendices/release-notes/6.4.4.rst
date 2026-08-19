@@ -76,3 +76,9 @@ Fixes
 - Fixed an issue where a node could still shut down when the cluster health
   wait timed out during decommissioning despite
   ``cluster.graceful_stop.force=false``.
+
+- Improved the error message for queries involving an uncorrelated subquery in
+  join condition. e.g::
+
+    SELECT * FROM t JOIN t AS t2 ON t.c = (select 1)
+
