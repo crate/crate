@@ -33,17 +33,6 @@ NOTES_DIR = "docs/appendices/release-notes"
 VERSION_JAVA = "server/src/main/java/org/elasticsearch/Version.java"
 
 
-def fail(message):
-    sys.stdout.flush()  # keep the message in order with the progress output
-    print(f"error: {message}", file=sys.stderr)
-    sys.exit(1)
-
-
-def warn(message):
-    sys.stdout.flush()
-    print(f"warning: {message}", file=sys.stderr)
-
-
 def run(*args, cwd, quiet=True):
     result = subprocess.run(
         args,
@@ -54,7 +43,7 @@ def run(*args, cwd, quiet=True):
     )
     if result.returncode != 0:
         details = (result.stderr or result.stdout or "").strip()
-        fail(f"`{' '.join(args)}` failed" + (f": {details}" if details else ""))
+        sys.exit(f"`{' '.join(args)}` failed" + (f": {details}" if details else ""))
     return (result.stdout or "").strip()
 
 
@@ -64,7 +53,7 @@ def version_arg(doc, help_text):
     parser.add_argument("version", help=help_text)
     version = parser.parse_args().version
     if VERSION_RE.match(version) is None:
-        fail(f"invalid version '{version}', expected <major>.<minor>.<patch>")
+        sys.exit(f"invalid version '{version}', expected <major>.<minor>.<patch>")
     return version
 
 
@@ -84,14 +73,14 @@ def ref_exists(root, ref):
 def fetch_and_check(root, base, branch):
     """Verify the checkout is ready to create ``branch`` off ``origin/base``"""
     if run("git", "status", "--porcelain", cwd=root):
-        fail("working directory not clean, commit or stash your changes first")
+        sys.exit("working directory not clean, commit or stash your changes first")
     print("Fetching origin...")
     run("git", "fetch", "origin", cwd=root)
     if not ref_exists(root, f"refs/remotes/origin/{base}"):
-        fail(f"origin/{base} does not exist, is there a {base} release branch?")
+        sys.exit(f"origin/{base} does not exist, is there a {base} release branch?")
     for ref in (f"refs/heads/{branch}", f"refs/remotes/origin/{branch}"):
         if ref_exists(root, ref):
-            fail(f"{ref} already exists, delete it or finish that release first")
+            sys.exit(f"{ref} already exists, delete it or finish that release first")
 
 
 def create_branch(root, branch, base):

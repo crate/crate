@@ -46,11 +46,12 @@ Usage::
 """
 
 import re
+import sys
 from textwrap import fill
 
 from release_helpers import (NOTES_DIR, VERSION_JAVA, commit_and_push, create_branch,
-                            fail, fetch_and_check, open_pull_request,
-                            repo_root, run, version_arg)
+                            fetch_and_check, open_pull_request, repo_root,
+                            run, version_arg)
 
 INDEX_RST = f"{NOTES_DIR}/index.rst"
 SYSTEM_INFORMATION_RST = "docs/admin/system-information.rst"
@@ -224,7 +225,7 @@ def main():
     version = version_arg(__doc__, "version to bump to, e.g. 6.5.1")
     major, minor, patch = (int(part) for part in version.split("."))
     if patch == 0:
-        fail(f"{version} is not a patch version, bump to x.y.0 versions manually")
+        sys.exit(f"{version} is not a patch version, bump to x.y.0 versions manually")
     base = f"{major}.{minor}"
     previous = f"{base}.{patch - 1}"
     branch = f"bump-{version}"
@@ -255,7 +256,7 @@ def main():
             (root / path).write_text(content)
             print(f"Updated {path}")
     except Exception as e:
-        fail(str(e))
+        sys.exit(str(e))
 
     commit_and_push(root, branch, f"Bump version to {version}-SNAPSHOT")
     open_pull_request(root, base, branch, f"Bump version to {version}-SNAPSHOT")

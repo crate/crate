@@ -40,10 +40,11 @@ Usage::
 
 import re
 import datetime
+import sys
 
 from release_helpers import (NOTES_DIR, VERSION_JAVA, commit_and_push, create_branch,
-                            fail, fetch_and_check, open_pull_request,
-                            repo_root, version_arg, warn)
+                            fetch_and_check, open_pull_request, repo_root,
+                            version_arg)
 
 
 def patch_release_notes(text, version, released_on):
@@ -96,7 +97,7 @@ def patch_version_java(text, version):
     current = re.search(
         r"^\s*public static final Version CURRENT = (\S+);", text, re.MULTILINE)
     if current is not None and current.group(1) != constant:
-        warn(f"CURRENT is {current.group(1)}, not {constant}")
+        print(f"warning: CURRENT is {current.group(1)}, not {constant}", file=sys.stderr)
 
     return f"{text[:match.start()]}{match.group(1)}false{match.group(3)}{text[match.end():]}"
 
@@ -117,11 +118,11 @@ def main():
     for path, patch in zip(paths, patches):
         file = root / path
         if not file.is_file():
-            fail(f"{path} does not exist on origin/{base}")
+            sys.exit(f"{path} does not exist on origin/{base}")
         try:
             file.write_text(patch(file.read_text()))
         except ValueError as e:
-            fail(str(e))
+            sys.exit(str(e))
         print(f"Updated {path}")
 
     commit_and_push(root, branch, f"Release {version}")
