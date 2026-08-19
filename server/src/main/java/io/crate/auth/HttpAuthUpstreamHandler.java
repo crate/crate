@@ -111,11 +111,6 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         }
 
         String username = credentials.username();
-        if (username != null && username.equals(authorizedUser)) {
-            ctx.fireChannelRead(request);
-            return;
-        }
-
         InetAddress address = addressFromRequestOrChannel(request, ctx.channel());
         ConnectionProperties connectionProperties = new ConnectionProperties(credentials, address, Protocol.HTTP, session);
 
@@ -190,10 +185,10 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     @VisibleForTesting
     static Credentials credentialsFromRequest(HttpRequest request, @Nullable SSLSession session, Settings settings) {
         String username = null;
-        if (request.headers().contains(HttpHeaderNames.AUTHORIZATION.toString())) {
+        String authHeader = request.headers().get(HttpHeaderNames.AUTHORIZATION);
+        if (authHeader != null) {
             // Prefer Http Auth (Basic or JWT, depending on header).
-            return Headers.extractCredentialsFromHttpAuthHeader(
-                request.headers().get(HttpHeaderNames.AUTHORIZATION.toString()));
+            return Headers.extractCredentialsFromHttpAuthHeader(authHeader);
         } else {
             // prefer commonName as userName over AUTH_TRUST_HTTP_DEFAULT_HEADER user
             if (session != null) {
