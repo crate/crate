@@ -34,10 +34,9 @@ VERSION_JAVA = "server/src/main/java/org/elasticsearch/Version.java"
 
 
 def run(*args, cwd, capture_output=True):
-    """Run a command, raising ``CalledProcessError`` if it fails
+    """Run a given command.
 
-    Unless ``capture_output``, the output of the command is left on the terminal
-    instead of being captured and returned.
+    If ``capture_output``, the output of the command is captured and returned.
     """
     if not capture_output:
         subprocess.check_call(args, cwd=cwd)
