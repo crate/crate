@@ -33,18 +33,16 @@ NOTES_DIR = "docs/appendices/release-notes"
 VERSION_JAVA = "server/src/main/java/org/elasticsearch/Version.java"
 
 
-def run(*args, cwd, quiet=True):
-    result = subprocess.run(
-        args,
-        cwd=cwd,
-        text=True,
-        stdout=subprocess.PIPE if quiet else None,
-        stderr=subprocess.PIPE if quiet else None,
-    )
-    if result.returncode != 0:
-        details = (result.stderr or result.stdout or "").strip()
-        sys.exit(f"`{' '.join(args)}` failed" + (f": {details}" if details else ""))
-    return (result.stdout or "").strip()
+def run(*args, cwd, capture_output=True):
+    """Run a command, raising ``CalledProcessError`` if it fails
+
+    Unless ``capture_output``, the output of the command is left on the terminal
+    instead of being captured and returned.
+    """
+    if not capture_output:
+        subprocess.check_call(args, cwd=cwd)
+        return ""
+    return subprocess.check_output(args, cwd=cwd, text=True).strip()
 
 
 def version_arg(doc, help_text):
@@ -89,18 +87,18 @@ def create_branch(root, branch, base):
     previous = run("git", "rev-parse", "--abbrev-ref", "HEAD", cwd=root)
     if previous == "HEAD":  # detached, remember the commit instead
         previous = run("git", "rev-parse", "HEAD", cwd=root)
-    run("git", "checkout", "-b", branch, f"origin/{base}", cwd=root, quiet=False)
+    run("git", "checkout", "-b", branch, f"origin/{base}", cwd=root, capture_output=False)
     return previous
 
 def commit_and_push(root, branch, message):
     run("git", "add", "--all", cwd=root)
-    run("git", "commit", "-m", message, cwd=root, quiet=False)
+    run("git", "commit", "-m", message, cwd=root, capture_output=False)
     print(f"Pushing {branch} to origin...")
-    run("git", "push", "--set-upstream", "origin", branch, cwd=root, quiet=False)
+    run("git", "push", "--set-upstream", "origin", branch, cwd=root, capture_output=False)
 
 
 def open_pull_request(root, base, branch, title):
     """Create the pull request of ``branch`` against ``base``"""
     print(f"Creating the pull request of {branch}...")
     run("gh", "pr", "create", "--base", base, "--head", branch,
-        "--title", title, "--body", "", cwd=root, quiet=False)
+        "--title", title, "--body", "", cwd=root, capture_output=False)

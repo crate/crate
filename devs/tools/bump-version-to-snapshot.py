@@ -218,7 +218,7 @@ def set_pom_version(root, version, previous):
         raise ValueError(f"pom.xml is at {match.group(1)}, not at {previous}")
 
     print(f"Setting the pom.xml version to {version}...")
-    run("./mvnw", "--quiet", "versions:set", f"-DnewVersion={version}", cwd=root, quiet=False)
+    run("./mvnw", "--quiet", "versions:set", f"-DnewVersion={version}", cwd=root, capture_output=False)
 
 
 def main():
