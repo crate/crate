@@ -28,7 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
-import java.util.function.Function;
+import java.util.Set;
 
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.PointValues;
@@ -39,7 +39,6 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.ArrayUtil.ByteArrayComparator;
 import org.apache.lucene.util.Bits;
-import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.jspecify.annotations.Nullable;
 
@@ -58,6 +57,7 @@ import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
+import io.crate.types.StorageSupport;
 import io.crate.types.TimestampType;
 
 /**
@@ -75,31 +75,28 @@ import io.crate.types.TimestampType;
  */
 final class LooseIndexScan {
 
-    private LooseIndexScan() {
+    /// Types CrateDB indexes as a single point dimension, and whose [StorageSupport#decode(byte[])]
+    /// can turn a packed point back into a value.
+    ///
+    /// `ip` and NUMERIC(19..38) are 1-dimension points too, but are left out for now: they need more
+    /// complex logic for comparison and decoding. `boolean` and `text` write no points at all.
+    private static final Set<Integer> SUPPORTED_TYPE_IDS = Set.of(
+        ByteType.ID,
+        ShortType.ID,
+        IntegerType.ID,
+        LongType.ID,
+        FloatType.ID,
+        DoubleType.ID,
+        DateType.ID,
+        TimestampType.ID_WITH_TZ,
+        TimestampType.ID_WITHOUT_TZ
+    );
+
+    static boolean supportsType(DataType<?> type) {
+        return SUPPORTED_TYPE_IDS.contains(type.id());
     }
 
-    /**
-     * Decodes packed point bytes into a value of `type`, or null if CrateDB does not index that type
-     * as a single point dimension.
-     * <p>
-     * `ip` and NUMERIC(19..38) are 1-dimension points too, but are left out for now: they need
-     * more complex logic for comparison and decoding. `boolean` and `text` write no points at all.
-     */
-    @Nullable
-    static Function<byte[], Object> decoderFor(DataType<?> type) {
-        return switch (type.id()) {
-            // byte and smallint are indexed by IntIndexer, so their points are 4 bytes wide.
-            case ByteType.ID -> packed -> (byte) NumericUtils.sortableBytesToInt(packed, 0);
-            case ShortType.ID -> packed -> (short) NumericUtils.sortableBytesToInt(packed, 0);
-            case IntegerType.ID -> packed -> NumericUtils.sortableBytesToInt(packed, 0);
-            case LongType.ID, DateType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ ->
-                packed -> NumericUtils.sortableBytesToLong(packed, 0);
-            case FloatType.ID ->
-                packed -> NumericUtils.sortableIntToFloat(NumericUtils.sortableBytesToInt(packed, 0));
-            case DoubleType.ID ->
-                packed -> NumericUtils.sortableLongToDouble(NumericUtils.sortableBytesToLong(packed, 0));
-            default -> null;
-        };
+    private LooseIndexScan() {
     }
 
     /**
@@ -158,7 +155,7 @@ final class LooseIndexScan {
         private final PriorityQueue<SegmentCursor> queue;
         private final ByteArrayComparator cmp;
         private final int bytesPerValue;
-        private final Function<byte[], Object> decoder;
+        private final StorageSupport<?> storageSupport;
         private final Object[] cells = new Object[1];
         private final Row row = new RowN(cells);
 
@@ -176,8 +173,9 @@ final class LooseIndexScan {
             this.bytesPerValue = bytesPerValue;
             this.cmp = ArrayUtil.getUnsignedComparator(bytesPerValue);
 
-            this.decoder = decoderFor(keyRef.valueType());
-            assert decoder != null : "ShardDistinctValues can only be used with types that have a decoder";
+            this.storageSupport = keyRef.valueType().storageSupportSafe();
+            assert supportsType(keyRef.valueType())
+                : "ShardDistinctValues can only be used with types that decode points";
 
             // bytesPerValue for the `current` field
             ramAccounting.addBytes(
@@ -221,7 +219,7 @@ final class LooseIndexScan {
                 cells[0] = null;
             } else {
                 nextAvailable = false;
-                cells[0] = decoder.apply(current);
+                cells[0] = storageSupport.decode(current);
             }
             return row;
         }
