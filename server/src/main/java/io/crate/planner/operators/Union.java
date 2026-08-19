@@ -86,6 +86,11 @@ public class Union implements LogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
 
+        assert lhs.outputs().size() == outputs.size() && rhs.outputs().size() == outputs.size()
+            : "The sources of a UNION must have the same number of outputs as the UNION itself, "
+              + "otherwise it streams columns which are not part of its outputs. Got "
+              + "lhs=" + lhs.outputs() + ", rhs=" + rhs.outputs() + ", outputs=" + outputs;
+
         Integer childPageSizeHint = limit != LimitAndOffset.NO_LIMIT
             ? limitAndOffset(limit, offset)
             : null;
@@ -199,9 +204,38 @@ public class Union implements LogicalPlan {
         return new Union(sources.get(0), sources.get(1), outputs);
     }
 
-    private static boolean startsWith(List<Symbol> outputs, List<Symbol> prefix) {
-        return outputs.size() >= prefix.size()
-               && outputs.subList(0, prefix.size()).equals(prefix);
+    private static List<Symbol> outputsAt(List<Symbol> outputs, List<Integer> indices) {
+        ArrayList<Symbol> outputsAtIndices = new ArrayList<>(indices.size());
+        for (int index : indices) {
+            outputsAtIndices.add(outputs.get(index));
+        }
+        return outputsAtIndices;
+    }
+
+    /**
+     * Maps the outputs a source kept after pruning back onto the positions they had within the
+     * outputs of the source before the pruning.
+     *
+     * @return null if an output cannot be mapped
+     */
+    @Nullable
+    private static List<Integer> indicesOfOutputs(List<Symbol> sourceOutputs, List<Symbol> newSourceOutputs) {
+        ArrayList<Integer> indices = new ArrayList<>(newSourceOutputs.size());
+        for (Symbol newSourceOutput : newSourceOutputs) {
+            int index = -1;
+            for (int i = 0; i < sourceOutputs.size() && index < 0; i++) {
+                // Sources can contain identically looking symbols (see `pruneOutputsExcept`),
+                // therefore each position can only be used once.
+                if (sourceOutputs.get(i).equals(newSourceOutput) && indices.contains(i) == false) {
+                    index = i;
+                }
+            }
+            if (index < 0) {
+                return null;
+            }
+            indices.add(index);
+        }
+        return indices;
     }
 
     @Override
@@ -240,31 +274,23 @@ public class Union implements LogicalPlan {
         // by `addCastsForIncompatibleObjects` could then silently cast the wrong columns.
         Collections.sort(outputIndicesToKeep);
 
-        ArrayList<Symbol> toKeepFromLhs = new ArrayList<>();
-        ArrayList<Symbol> toKeepFromRhs = new ArrayList<>();
-        ArrayList<Symbol> newOutputs = new ArrayList<>();
-        for (int idx : outputIndicesToKeep) {
-            toKeepFromLhs.add(lhs.outputs().get(idx));
-            toKeepFromRhs.add(rhs.outputs().get(idx));
-            newOutputs.add(outputs.get(idx));
-        }
-        LogicalPlan newLhs = lhs.pruneOutputsExcept(toKeepFromLhs);
-        LogicalPlan newRhs = rhs.pruneOutputsExcept(toKeepFromRhs);
+        LogicalPlan newLhs = lhs.pruneOutputsExcept(outputsAt(lhs.outputs(), outputIndicesToKeep));
+        LogicalPlan newRhs = rhs.pruneOutputsExcept(outputsAt(rhs.outputs(), outputIndicesToKeep));
         if (newLhs == lhs && newRhs == rhs) {
             return this;
         }
-        // The union streams the outputs of its sources positionally, therefore both sources must
-        // have the same layout and the outputs of the union must be a prefix of it.
-        // A source is free to keep more outputs than requested, e.g. an ORDER BY symbol which was
-        // pushed beneath the union, and it may keep them in front of the requested ones. If that
-        // leaves the sources misaligned, skip the pruning: keeping additional outputs is always
-        // correct, reading the values of another column is not.
-        if (newLhs.outputs().size() != newRhs.outputs().size()
-            || startsWith(newLhs.outputs(), toKeepFromLhs) == false
-            || startsWith(newRhs.outputs(), toKeepFromRhs) == false) {
+        // A source can keep more outputs than requested, and can keep them in a different
+        // order. This happens when an `ORDER BY` or `WHERE` on columns not selected are pushed
+        // down beneath the union to its sources.
+        // The union streams the outputs of its sources positionally, therefore its outputs must
+        // mirror what the sources kept, otherwise it emits columns which are not part of its
+        // outputs and parent operators.
+        List<Integer> newLhsIndices = indicesOfOutputs(lhs.outputs(), newLhs.outputs());
+        List<Integer> newRhsIndices = indicesOfOutputs(rhs.outputs(), newRhs.outputs());
+        if (newLhsIndices == null || newLhsIndices.equals(newRhsIndices) == false) {
             return this;
         }
-        return new Union(newLhs, newRhs, newOutputs);
+        return new Union(newLhs, newRhs, outputsAt(outputs, newLhsIndices));
     }
 
     @Override
