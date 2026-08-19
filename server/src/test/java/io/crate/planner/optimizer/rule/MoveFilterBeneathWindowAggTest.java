@@ -164,6 +164,38 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
     }
 
     @Test
+    public void test_only_deterministic_filter_part_is_pushed_down() {
+        var collect = e.logicalPlan("SELECT id FROM t1");
+
+        WindowFunction windowFunction = (WindowFunction) e.asSymbol("ROW_NUMBER() OVER(PARTITION BY id)");
+        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(collect, List.of(windowFunction));
+
+        Symbol query = e.asSymbol("id = 10 AND random() < 0.5");
+        Filter filter = new Filter(windowAgg, query);
+
+        var rule = new MoveFilterBeneathWindowAgg();
+        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isSameAs(filter);
+
+        LogicalPlan newPlan = rule.apply(
+            match.value(),
+            match.captures(),
+            e.ruleContext()
+        );
+        var expectedPlan =
+            """
+            Filter[(random() < 0.5)]
+              └ WindowAgg[id] | [row_number() OVER (PARTITION BY id)]
+                └ Filter[(id = 10)]
+                  └ Collect[doc.t1 | [id] | true]
+            """;
+
+        assertThat(newPlan).isEqualTo(expectedPlan);
+    }
+
+    @Test
     public void test_filters_combined_by_OR_cannot_be_moved() {
         var collect = e.logicalPlan("SELECT id FROM t1");
 

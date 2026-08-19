@@ -24,8 +24,7 @@ import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.plugins.Plugin;
-
-import io.crate.protocols.ConnectionStats;
+import org.elasticsearch.transport.StatsTracker;
 
 /**
  * A dummy http transport used by tests when not wanting to actually bind to a real address.
@@ -43,6 +42,8 @@ public class MockHttpTransport extends AbstractLifecycleComponent implements Htt
     private static final BoundTransportAddress DUMMY_BOUND_ADDRESS = new BoundTransportAddress(
         new TransportAddress[] { DUMMY_TRANSPORT_ADDRESS }, DUMMY_TRANSPORT_ADDRESS);
 
+    private final StatsTracker statsTracker = new StatsTracker();
+
     @Override
     protected void doStart() {}
 
@@ -58,7 +59,7 @@ public class MockHttpTransport extends AbstractLifecycleComponent implements Htt
     }
 
     @Override
-    public ConnectionStats stats() {
-        return new ConnectionStats(0, 0, 0, 0, 0, 0);
+    public StatsTracker stats() {
+        return statsTracker;
     }
 }

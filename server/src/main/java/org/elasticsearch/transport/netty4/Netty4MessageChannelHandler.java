@@ -51,7 +51,7 @@ public final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
         final ThreadPool threadPool = transport.getThreadPool();
         final Transport.RequestHandlers requestHandlers = transport.getRequestHandlers();
         this.pipeline = new InboundPipeline(
-            transport.getStatsTracker(),
+            transport.getStats(),
             threadPool::relativeTimeInMillis,
             new InboundDecoder(recycler),
             new InboundAggregator(transport.getInflightBreaker(), requestHandlers::getHandler),

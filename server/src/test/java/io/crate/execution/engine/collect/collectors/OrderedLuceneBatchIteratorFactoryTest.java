@@ -142,7 +142,9 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
                     () -> 1,
                     true
                 );
-            }, ResultOrder.EXACT
+            },
+            ResultOrder.EXACT,
+            false
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }

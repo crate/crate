@@ -72,7 +72,7 @@ import io.crate.types.DataType;
 public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServiceUnitTest {
 
     private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-    private SqlExpressions sqlExpressions;
+    protected SqlExpressions sqlExpressions;
     private InputFactory inputFactory;
     private OnHeapMemoryManager memoryManager;
 
