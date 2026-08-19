@@ -111,11 +111,6 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         }
 
         String username = credentials.username();
-        if (username != null && username.equals(authorizedUser)) {
-            ctx.fireChannelRead(request);
-            return;
-        }
-
         InetAddress address = addressFromRequestOrChannel(request, ctx.channel());
         ConnectionProperties connectionProperties = new ConnectionProperties(credentials, address, Protocol.HTTP, session);
 
