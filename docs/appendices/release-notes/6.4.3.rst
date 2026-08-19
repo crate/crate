@@ -93,6 +93,9 @@ Breaking Changes
 Fixes
 =====
 
+- Authentication via HTTP is no longer cached on connection level to support
+  proxy use-cases with keepalive.
+
 - Limited the duration clients using the PostgreSQL wire protocol can remain
   unauthenticated to make it more difficult to launch Denial of Service attacks.
 
