@@ -33,6 +33,7 @@ import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
+import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -152,6 +153,13 @@ public class QuerySplitter {
         public Void visitAlias(AliasSymbol aliasSymbol, Context ctx) {
             Set<RelationName> qualifiedNames = RelationNames.getShallow(aliasSymbol);
             ctx.parts.merge(qualifiedNames, aliasSymbol, AndOperator::of);
+            return null;
+        }
+
+        @Override
+        public Void visitOuterColumn(OuterColumn outerColumn, Context ctx) {
+            Set<RelationName> qualifiedNames = RelationNames.getShallow(outerColumn.symbol());
+            ctx.parts.merge(qualifiedNames, outerColumn, AndOperator::of);
             return null;
         }
     }
