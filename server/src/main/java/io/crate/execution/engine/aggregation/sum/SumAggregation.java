@@ -197,8 +197,8 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     }
 
     @Override
-    public AggregationFunction<?, T> optimizeForExecutionAsWindowFunction(Version minNideVersion) {
-        if (minNideVersion.onOrBefore(Version.V_6_4_2)) {
+    public AggregationFunction<?, T> optimizeForExecutionAsWindowFunction(Version minNodeVersion) {
+        if (minNodeVersion.onOrBefore(Version.V_6_4_2)) {
             return this;
         }
         return new RemovableCumulativeSum();
