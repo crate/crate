@@ -33,6 +33,7 @@ import org.junit.Test;
 
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -172,5 +173,37 @@ public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(split).hasSize(2);
         assertThat(split.get(Set.of(tr1))).isEqualTo(alias);
         assertThat(split.get(Set.of(tr2))).isEqualTo(rightQuery);
+    }
+
+    // tracks a bug: https://github.com/crate/crate/issues/20002
+    @Test
+    public void test_split_preserves_outer_column_boolean_predicates() {
+        Symbol firstFlag = new SimpleReference(
+            tr1,
+            ColumnIdent.of("first_flag"),
+            RowGranularity.DOC,
+            DataTypes.BOOLEAN,
+            0,
+            null
+        );
+        Symbol secondFlag = new SimpleReference(
+            tr1,
+            ColumnIdent.of("second_flag"),
+            RowGranularity.DOC,
+            DataTypes.BOOLEAN,
+            1,
+            null
+        );
+        var relation = T3.sources(List.of(T3.T1), clusterService).get(tr1);
+        Symbol firstOuterColumn = new OuterColumn(relation, firstFlag);
+        Symbol secondOuterColumn = new OuterColumn(relation, secondFlag);
+        Symbol normalQuery = asSymbol("t2.y = 1");
+        Symbol query = AndOperator.join(List.of(firstOuterColumn, secondOuterColumn, normalQuery));
+
+        Map<Set<RelationName>, Symbol> split = QuerySplitter.split(query);
+
+        assertThat(split).hasSize(2);
+        assertThat(split.get(Set.of(tr1))).isEqualTo(AndOperator.of(firstOuterColumn, secondOuterColumn));
+        assertThat(split.get(Set.of(tr2))).isEqualTo(normalQuery);
     }
 }
