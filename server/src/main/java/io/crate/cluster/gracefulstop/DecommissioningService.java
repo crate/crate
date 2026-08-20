@@ -32,6 +32,7 @@ import java.util.function.IntSupplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealth;
@@ -205,12 +206,16 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
             })
             // changing settings triggers AllocationService.reroute -> shards will be relocated
             .thenCompose(_ -> clusterHealthGet())
-            .handle((_, error) -> {
-                if (error == null) {
+            .handle((clusterHealthResponse, error) -> {
+                if (error != null) {
+                    executorService.submit(() -> forceStopOrAbort(error));
+                } else if (clusterHealthResponse != null && clusterHealthResponse.isTimedOut()) {
+                    executorService.submit(() -> forceStopOrAbort(
+                        new ElasticsearchTimeoutException("Cluster health wait timed out")
+                    ));
+                } else {
                     final long startTime = System.nanoTime();
                     executorService.submit(() -> exitIfNoActiveRequests(startTime));
-                } else {
-                    executorService.submit(() -> forceStopOrAbort(error));
                 }
                 return null;
             });

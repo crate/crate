@@ -73,9 +73,13 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
         var queryParts = AndOperator.split(filter.query());
         ArrayList<Symbol> toPushDown = new ArrayList<>();
         ArrayList<Symbol> toKeep = new ArrayList<>();
+        // A non-deterministic filter part, e.g. `random() < 0.5`, must not be pushed beneath the ProjectSet.
+        // The table functions of the ProjectSet can generate multiple rows per input row, therefore the
+        // filter would operate on fewer rows.
         for (var part : queryParts) {
             Set<Symbol> partColumns = extractColumns(part);
-            if (!part.any(MoveFilterBeneathProjectSet::isTableFunction)
+            if (part.isDeterministic()
+                    && !part.any(MoveFilterBeneathProjectSet::isTableFunction)
                     && partColumns.stream().allMatch(x -> Symbols.contains(outputs, x))) {
                 toPushDown.add(part);
             } else {

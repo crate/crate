@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.support.broadcast.node;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,6 +34,7 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.NoShardAvailableActionException;
+import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.action.support.broadcast.BroadcastRequest;
@@ -231,8 +234,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
                 throw globalBlockException;
             }
 
-            String[] concreteIndices
-                = clusterState.metadata().getIndices(request.partitions(), false, im -> im.getIndex().uuid()).toArray(String[]::new);
+            String[] concreteIndices = concreteIndices(clusterState, request);
             ClusterBlockException requestBlockException = checkRequestBlock(clusterState, request, concreteIndices);
             if (requestBlockException != null) {
                 throw requestBlockException;
@@ -364,6 +366,24 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
                 }
             }
         }
+    }
+
+    static String[] concreteIndices(ClusterState clusterState, BroadcastRequest request) {
+        if (request instanceof IndicesStatsRequest statsRequest && statsRequest.tableOid() != OID_UNASSIGNED) {
+            assert statsRequest.partitions().size() == 1 : "Stats requests must target a single table/partition";
+            var partitionValues = statsRequest.partitions().get(0).values();
+            return clusterState.metadata()
+                .getIndices(
+                    statsRequest.tableOid(),
+                    partitionValues,
+                    false,
+                    im -> im.getIndex().uuid()
+                )
+                .toArray(String[]::new);
+        }
+        return clusterState.metadata()
+            .getIndices(request.partitions(), false, im -> im.getIndex().uuid())
+            .toArray(String[]::new);
     }
 
     class BroadcastByNodeTransportRequestHandler implements TransportRequestHandler<NodeRequest> {

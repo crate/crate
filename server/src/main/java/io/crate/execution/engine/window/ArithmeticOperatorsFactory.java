@@ -43,11 +43,15 @@ import io.crate.types.TimestampType;
 class ArithmeticOperatorsFactory {
 
     private static final BinaryOperator<Double> ADD_DOUBLE_FUNCTION = Double::sum;
+    private static final BinaryOperator<Byte> ADD_BYTE_FUNCTION = (Byte x, Byte y) -> (byte) (x.intValue() + y.intValue());
+    private static final BinaryOperator<Short> ADD_SHORT_FUNCTION = (Short x, Short y) -> (short) (x.intValue() + y.intValue());
     private static final BinaryOperator<Integer> ADD_INTEGER_FUNCTION = Integer::sum;
     private static final BinaryOperator<Long> ADD_LONG_FUNCTION = Long::sum;
     private static final BinaryOperator<Float> ADD_FLOAT_FUNCTION = Float::sum;
 
     private static final BinaryOperator<Double> SUB_DOUBLE_FUNCTION = (arg0, arg1) -> arg0 - arg1;
+    private static final BinaryOperator<Byte> SUB_BYTE_FUNCTION = (arg0, arg1) -> (byte) (arg0.intValue() - arg1.intValue());
+    private static final BinaryOperator<Short> SUB_SHORT_FUNCTION = (arg0, arg1) -> (short) (arg0.intValue() - arg1.intValue());
     private static final BinaryOperator<Integer> SUB_INTEGER_FUNCTION = (arg0, arg1) -> arg0 - arg1;
     private static final BinaryOperator<Long> SUB_LONG_FUNCTION = (arg0, arg1) -> arg0 - arg1;
     private static final BinaryOperator<Float> SUB_FLOAT_FUNCTION = (arg0, arg1) -> arg0 - arg1;
@@ -75,7 +79,9 @@ class ArithmeticOperatorsFactory {
             case FloatType.ID:
                 return ADD_FLOAT_FUNCTION;
             case ByteType.ID:
+                return ADD_BYTE_FUNCTION;
             case ShortType.ID:
+                return ADD_SHORT_FUNCTION;
             case IntegerType.ID:
                 return ADD_INTEGER_FUNCTION;
             default:
@@ -107,7 +113,9 @@ class ArithmeticOperatorsFactory {
             case FloatType.ID:
                 return SUB_FLOAT_FUNCTION;
             case ByteType.ID:
+                return SUB_BYTE_FUNCTION;
             case ShortType.ID:
+                return SUB_SHORT_FUNCTION;
             case IntegerType.ID:
                 return SUB_INTEGER_FUNCTION;
             default:
