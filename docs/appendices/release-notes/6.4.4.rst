@@ -61,3 +61,6 @@ Fixes
   or :ref:`table functions <table-functions>`. Prevent the push down for such
   filters, as they can produce different results than if applied after those
   operations as intended.
+
+- Fixed an issue that caused under-accounting of memory usage for queries using
+  :ref:`array_agg() <aggregation-array-agg>` aggregation function.
