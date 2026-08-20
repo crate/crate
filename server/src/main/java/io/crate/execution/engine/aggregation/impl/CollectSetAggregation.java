@@ -147,6 +147,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
 
     @Override
     public List<Object> terminatePartial(RamAccounting ramAccounting, Map<Object, Object> state) {
+        ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(40L)); // Overhead for ArrayList
         return new ArrayList<>(state.keySet());
     }
 
@@ -265,6 +266,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
 
         @Override
         public List<Object> terminatePartial(RamAccounting ramAccounting, Map<Object, Long> state) {
+            ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(40L)); // Overhead for ArrayList
             return new ArrayList<>(state.keySet());
         }
 

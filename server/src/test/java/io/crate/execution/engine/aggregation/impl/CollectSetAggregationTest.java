@@ -31,6 +31,7 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import io.crate.data.Input;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
@@ -39,6 +40,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
+import io.crate.testing.PlainRamAccounting;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -104,18 +106,42 @@ public class CollectSetAggregationTest extends AggregationTestCase {
     @SuppressWarnings("unchecked")
     @Test
     public void test_value_adding_and_removal() {
+        var aggregationFunction = (AggregationFunction<Object, Object>) nodeCtx.functions().get(
+            null, "collect_set", List.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
+
+        RamAccounting ramAccounting = new PlainRamAccounting();
+        Object state = aggregationFunction.newState(ramAccounting, Version.CURRENT, memoryManager);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(64L);
+        state = aggregationFunction.iterate(ramAccounting, memoryManager, state, Literal.of(10L));
+        state = aggregationFunction.iterate(ramAccounting, memoryManager, state, Literal.of(20L));
+        state = aggregationFunction.iterate(ramAccounting, memoryManager, state, Literal.of(10L));
+        assertThat(ramAccounting.totalBytes()).isEqualTo(256L);
+
+        Object values = aggregationFunction.terminatePartial(ramAccounting, state);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(296L);
+        assertThat((List<Object>) values).containsExactlyInAnyOrder(10L, 20L);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_value_adding_and_removal_window_function_opt() {
         var impl = (AggregationFunction<Object, Object>) nodeCtx.functions().get(
             null, "collect_set", List.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
         var aggregationFunction = (AggregationFunction<Object, Object>) impl.optimizeForExecutionAsWindowFunction(Version.CURRENT);
 
-        Object state = aggregationFunction.newState(RAM_ACCOUNTING, Version.CURRENT, memoryManager);
-        state = aggregationFunction.iterate(RAM_ACCOUNTING, memoryManager, state, Literal.of(10L));
-        state = aggregationFunction.iterate(RAM_ACCOUNTING, memoryManager, state, Literal.of(10L));
+        RamAccounting ramAccounting = new PlainRamAccounting();
+        Object state = aggregationFunction.newState(ramAccounting, Version.CURRENT, memoryManager);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(64L);
+        state = aggregationFunction.iterate(ramAccounting, memoryManager, state, Literal.of(10L));
+        state = aggregationFunction.iterate(ramAccounting, memoryManager, state, Literal.of(10L));
+        assertThat(ramAccounting.totalBytes()).isEqualTo(136L);
 
-        aggregationFunction.removeFromAggregatedState(RAM_ACCOUNTING, state, new Input[] { Literal.of(10L) });
-        aggregationFunction.removeFromAggregatedState(RAM_ACCOUNTING, state, new Input[] { Literal.of(10L) });
+        aggregationFunction.removeFromAggregatedState(ramAccounting, state, new Input[] { Literal.of(10L) });
+        aggregationFunction.removeFromAggregatedState(ramAccounting, state, new Input[] { Literal.of(10L) });
+        assertThat(ramAccounting.totalBytes()).isEqualTo(64L);
 
-        Object values = aggregationFunction.terminatePartial(RAM_ACCOUNTING, state);
+        Object values = aggregationFunction.terminatePartial(ramAccounting, state);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(104L);
         assertThat((List<Object>) values).isEmpty();
     }
 
