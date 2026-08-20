@@ -31,6 +31,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.lucene.match.RegexQuery;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
@@ -77,6 +78,9 @@ public class RegexpMatchCaseInsensitiveOperator extends Operator<String> {
 
     @Override
     public Query toQuery(Reference ref, Literal<?> literal) {
+        if (ref.indexType().equals(IndexType.NONE)) {
+            return null;
+        }
         String pattern = (String) literal.value();
         return new RegexQuery(
             new Term(ref.storageIdent(), pattern),
