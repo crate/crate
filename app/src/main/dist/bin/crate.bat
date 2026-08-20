@@ -100,6 +100,8 @@ if NOT "%CRATE_HEAP_DUMP_PATH%" == "" (
     set JAVA_OPTS=%JAVA_OPTS% -XX:HeapDumpPath=%CRATE_HEAP_DUMP_PATH%
 )
 
+set JAVA_OPTS=%JAVA_OPTS% -Djava.library.path=%CRATE_HOME%\lib
+
 if "%CRATE_CLASSPATH%" == "" (
     set CRATE_CLASSPATH=%CRATE_HOME%/lib/*
 ) else (
