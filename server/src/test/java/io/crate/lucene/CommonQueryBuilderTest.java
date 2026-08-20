@@ -236,7 +236,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void test_regex_query_prce_without_index() throws Exception {
+    public void test_regex_query_pcre_without_index() throws Exception {
         Query query = convert("text_no_index ~ '\\D'");
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
         query = convert("text_no_index ~* '\\D'");
