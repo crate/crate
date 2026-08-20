@@ -259,18 +259,24 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
-        // Keep the same order and avoid introducing an Eval
-        ArrayList<Symbol> toKeep = new ArrayList<>();
+        HashSet<Symbol> required = new HashSet<>();
         // We cannot prune groupKeys, even if they are not used in the outputs, because it would change the result semantically
         for (Symbol groupKey : groupKeys) {
-            Symbols.intersection(groupKey, source.outputs(), toKeep::add);
+            Symbols.intersection(groupKey, source.outputs(), required::add);
         }
         ArrayList<Function> newAggregates = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
             Symbols.intersection(outputToKeep, aggregates, newAggregates::add);
         }
         for (Function newAggregate : newAggregates) {
-            Symbols.intersection(newAggregate, source.outputs(), toKeep::add);
+            Symbols.intersection(newAggregate, source.outputs(), required::add);
+        }
+        // Keep the same order of source outputs to follow method's contract.
+        ArrayList<Symbol> toKeep = new ArrayList<>();
+        for (Symbol sourceOutput : source.outputs()) {
+            if (required.contains(sourceOutput)) {
+                toKeep.add(sourceOutput);
+            }
         }
         LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
         if (newSource == source && aggregates.size() == newAggregates.size()) {
