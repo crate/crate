@@ -75,8 +75,12 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
         ArrayList<Symbol> remainingFilterSymbols = new ArrayList<>();
         ArrayList<Symbol> windowPartitionedBasedFilters = new ArrayList<>();
 
+        // A non-deterministic filter part, e.g. `random() < 0.5`, must not be pushed beneath the WindowAgg.
+        // It would be evaluated on the input rows of the window functions instead of on their result,
+        // which affects the values which the window functions use to compute.
         for (Symbol part : filterParts) {
-            if (part.any(containsWindowFunction) == false
+            if (part.isDeterministic()
+                && part.any(containsWindowFunction) == false
                 && windowDefinition.partitions().containsAll(extractColumns(part))) {
                 windowPartitionedBasedFilters.add(part);
             } else {

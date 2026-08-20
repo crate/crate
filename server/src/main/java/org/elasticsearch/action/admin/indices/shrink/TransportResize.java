@@ -18,6 +18,8 @@
 
 package org.elasticsearch.action.admin.indices.shrink;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -94,12 +96,23 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
 
     @Override
     protected ClusterBlockException checkBlock(ResizeRequest request, ClusterState state) {
-        String[] indices = state.metadata().getIndices(
-            request.table(),
-            request.partitionValues(),
-            false,
-            idxMd -> idxMd.getIndex().uuid()
-        ).toArray(String[]::new);
+        int tableOid = request.tableOid();
+        String[] indices;
+        if (tableOid == OID_UNASSIGNED) {
+            indices = state.metadata().getIndices(
+                request.table(),
+                request.partitionValues(),
+                false,
+                idxMd -> idxMd.getIndex().uuid()
+            ).toArray(String[]::new);
+        } else {
+            indices = state.metadata().getIndices(
+                tableOid,
+                request.partitionValues(),
+                false,
+                idxMd -> idxMd.getIndex().uuid()
+            ).toArray(String[]::new);
+        }
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indices);
     }
 
@@ -111,10 +124,26 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
             throw new IllegalStateException("Cannot resize a table/partition until all nodes are upgraded to 6.0");
         }
 
-        final String sourceIndexUUID = state.metadata().getIndex(request.table(), request.partitionValues(), true, IndexMetadata::getIndexUUID);
+        int tableOid = request.tableOid();
+        final String sourceIndexUUID;
+        if (tableOid == OID_UNASSIGNED) {
+            sourceIndexUUID = state.metadata().getIndex(
+                request.table(),
+                request.partitionValues(),
+                true,
+                IndexMetadata::getIndexUUID
+            );
+        } else {
+            sourceIndexUUID = state.metadata().getIndex(
+                tableOid,
+                request.partitionValues(),
+                true,
+                IndexMetadata::getIndexUUID
+            );
+        }
         final String resizedIndexUUID = UUIDs.randomBase64UUID();
 
-        client.stats(new IndicesStatsRequest(new PartitionName(request.table(), request.partitionValues()))
+        client.stats(new IndicesStatsRequest(new PartitionName(request.table(), request.partitionValues()), tableOid)
             .clear()
             .docs(true))
             .thenCompose(statsResponse -> createIndexService.resizeIndex(request, sourceIndexUUID, resizedIndexUUID, statsResponse))

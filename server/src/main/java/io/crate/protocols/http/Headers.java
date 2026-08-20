@@ -21,6 +21,14 @@
 
 package io.crate.protocols.http;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Locale;
+import java.util.StringTokenizer;
+import java.util.regex.Pattern;
+
+import org.jspecify.annotations.Nullable;
+
 import io.crate.auth.Credentials;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
@@ -28,12 +36,6 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpVersion;
-
-import org.jspecify.annotations.Nullable;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Locale;
-import java.util.regex.Pattern;
 
 public final class Headers {
 
@@ -74,14 +76,20 @@ public final class Headers {
             // Empty credentials.
             return new Credentials(null, null);
         }
-        String[] splitHeader = authHeaderValue.split(" ");
-        assert splitHeader.length == 2 :
-            "Header must contain only authentication scheme and base64 encoded value, separated by a whitespace";
-        return switch (splitHeader[0].toLowerCase(Locale.ENGLISH)) {
-            case "basic" -> extractCredentialsFromHttpBasicAuthHeader(splitHeader[1]);
-            case "bearer" -> new Credentials(splitHeader[1]);
-            default ->
-                    throw new IllegalArgumentException("Only basic or bearer HTTP Authentication schemes are allowed.");
+        StringTokenizer tokenizer = new StringTokenizer(authHeaderValue, " ");
+        if (!tokenizer.hasMoreTokens()) {
+            return new Credentials(null, null);
+        }
+        String authScheme = tokenizer.nextToken().toLowerCase(Locale.ENGLISH);
+        if (!tokenizer.hasMoreTokens()) {
+            throw new IllegalArgumentException(
+                "Authorization header must contain auth scheme (basic, bearer) and base64 encoded value separated by a whitespace");
+        }
+        String authValue = tokenizer.nextToken();
+        return switch (authScheme) {
+            case "basic" -> extractCredentialsFromHttpBasicAuthHeader(authValue);
+            case "bearer" -> new Credentials(authValue);
+            default -> throw new IllegalArgumentException("Only basic or bearer HTTP Authentication schemes are allowed.");
         };
     }
 

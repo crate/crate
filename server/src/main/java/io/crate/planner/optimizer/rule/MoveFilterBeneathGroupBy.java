@@ -74,28 +74,30 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
                              Rule.Context ruleContext) {
         // Since something like `SELECT x, sum(y) FROM t GROUP BY x HAVING y > 10` is not valid
         // (y would have to be declared as group key) any parts of a HAVING that is not an aggregation can be moved.
+        // A non-deterministic part, e.g. `random() < 0.5`, must not be pushed down either. It would be
+        // evaluated per row of the source instead of per group, which changes the result.
         Symbol predicate = filter.query();
         List<Symbol> parts = AndOperator.split(predicate);
-        ArrayList<Symbol> withAggregates = new ArrayList<>();
-        ArrayList<Symbol> withoutAggregates = new ArrayList<>();
+        ArrayList<Symbol> toKeep = new ArrayList<>();
+        ArrayList<Symbol> toPushDown = new ArrayList<>();
         for (Symbol part : parts) {
-            if (part.hasFunctionType(FunctionType.AGGREGATE)) {
-                withAggregates.add(part);
+            if (part.hasFunctionType(FunctionType.AGGREGATE) || part.isDeterministic() == false) {
+                toKeep.add(part);
             } else {
-                withoutAggregates.add(part);
+                toPushDown.add(part);
             }
         }
-        if (withoutAggregates.isEmpty()) {
+        if (toPushDown.isEmpty()) {
             return null;
         }
         GroupHashAggregate groupBy = captures.get(groupByCapture);
-        if (withoutAggregates.size() == parts.size()) {
+        if (toKeep.isEmpty()) {
             return transpose(filter, groupBy);
         }
 
         /* HAVING `count(*) > 1 AND x = 10`
-         * withAggregates:    [count(*) > 1]
-         * withoutAggregates: [x = 10]
+         * toKeep:     [count(*) > 1]
+         * toPushDown: [x = 10]
          *
          * Filter
          *  |
@@ -110,9 +112,9 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
          * Filter (x = 10)
          */
         LogicalPlan newGroupBy = groupBy.replaceSources(
-            List.of(new Filter(groupBy.source(), AndOperator.join(withoutAggregates))));
+            List.of(new Filter(groupBy.source(), AndOperator.join(toPushDown))));
 
-        return new Filter(newGroupBy, AndOperator.join(withAggregates));
+        return new Filter(newGroupBy, AndOperator.join(toKeep));
     }
 
 }

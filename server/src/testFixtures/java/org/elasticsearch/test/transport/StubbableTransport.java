@@ -34,6 +34,7 @@ import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.ConnectionProfile;
 import org.elasticsearch.transport.RequestHandlerRegistry;
+import org.elasticsearch.transport.StatsTracker;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportException;
@@ -41,8 +42,6 @@ import org.elasticsearch.transport.TransportMessageListener;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportRequestOptions;
-
-import io.crate.protocols.ConnectionStats;
 
 public class StubbableTransport implements Transport {
 
@@ -171,7 +170,7 @@ public class StubbableTransport implements Transport {
     }
 
     @Override
-    public ConnectionStats getStats() {
+    public StatsTracker getStats() {
         return delegate.getStats();
     }
 

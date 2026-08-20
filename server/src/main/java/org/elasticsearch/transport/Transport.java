@@ -42,7 +42,6 @@ import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.unit.TimeValue;
-import io.crate.protocols.ConnectionStats;
 
 public interface Transport extends LifecycleComponent {
 
@@ -80,7 +79,7 @@ public interface Transport extends LifecycleComponent {
      */
     void openConnection(DiscoveryNode node, ConnectionProfile profile, ActionListener<Transport.Connection> listener);
 
-    ConnectionStats getStats();
+    StatsTracker getStats();
 
     ResponseHandlers getResponseHandlers();
 

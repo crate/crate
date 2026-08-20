@@ -19,9 +19,12 @@
 
 package org.elasticsearch.action.admin.indices.stats;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags.Flag;
 import org.elasticsearch.action.support.broadcast.BroadcastRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -41,6 +44,7 @@ import io.crate.metadata.RelationName;
 public class IndicesStatsRequest extends BroadcastRequest {
 
     private CommonStatsFlags flags = new CommonStatsFlags();
+    private final int tableOid;
 
     /**
      * Clears all stats.
@@ -72,11 +76,19 @@ public class IndicesStatsRequest extends BroadcastRequest {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         flags.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
+            out.writeVInt(tableOid);
+        }
     }
 
     public IndicesStatsRequest(StreamInput in) throws IOException {
         super(in);
         flags = new CommonStatsFlags(in);
+        if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
+            tableOid = in.readVInt();
+        } else {
+            tableOid = OID_UNASSIGNED;
+        }
     }
 
     public IndicesStatsRequest(RelationName relationName) {
@@ -84,10 +96,20 @@ public class IndicesStatsRequest extends BroadcastRequest {
     }
 
     public IndicesStatsRequest(PartitionName partitions) {
+        this(partitions, OID_UNASSIGNED);
+    }
+
+    public IndicesStatsRequest(PartitionName partitions, int tableOid) {
         super(partitions);
+        this.tableOid = tableOid;
     }
 
     public IndicesStatsRequest() {
         super(List.of());
+        this.tableOid = OID_UNASSIGNED;
+    }
+
+    public int tableOid() {
+        return tableOid;
     }
 }

@@ -22,6 +22,7 @@
 package io.crate.planner.node.management;
 
 import static io.crate.planner.NodeSelection.resolveNodeId;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.List;
 import java.util.Locale;
@@ -53,11 +54,13 @@ import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.exceptions.PartitionUnknownException;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.planner.DependencyCarrier;
@@ -280,16 +283,37 @@ public class AlterTableReroutePlan implements Plan {
                                               List<Assignment<Object>> partitionsProperties,
                                               Metadata metadata) {
             if (shardedTable instanceof DocTableInfo docTableInfo) {
-                PartitionName partitionName;
-                if (docTableInfo.isPartitioned()) {
-                    partitionName = PartitionName.ofAssignments(docTableInfo, partitionsProperties, metadata);
-                } else {
-                    partitionName = new PartitionName(docTableInfo.ident(), List.of());
+                if (docTableInfo.oid() == OID_UNASSIGNED) {
+                    PartitionName partitionName = docTableInfo.isPartitioned()
+                        ? PartitionName.ofAssignments(docTableInfo, partitionsProperties, metadata)
+                        : new PartitionName(docTableInfo.ident(), List.of());
+                    return metadata.getIndex(partitionName.relationName(), partitionName.values(), true, IndexMetadata::getIndexUUID);
                 }
-                return metadata.getIndex(partitionName.relationName(), partitionName.values(), true, IndexMetadata::getIndexUUID);
+
+                if (docTableInfo.isPartitioned()) {
+                    PartitionName partitionName = PartitionName.ofAssignmentsUnsafe(docTableInfo, partitionsProperties);
+                    String index = metadata.getIndex(
+                        docTableInfo.oid(),
+                        partitionName.values(),
+                        true,
+                        IndexMetadata::getIndexUUID
+                    );
+                    if (index == null) {
+                        throw new PartitionUnknownException(partitionName);
+                    }
+                    return index;
+                }
+                return metadata.getIndex(docTableInfo.oid(), List.of(), true, IndexMetadata::getIndexUUID);
             }
 
-            // Table is a blob table
+            if (shardedTable instanceof BlobTableInfo blobTableInfo && blobTableInfo.oid() != OID_UNASSIGNED) {
+                return metadata.getIndex(
+                    blobTableInfo.oid(),
+                    List.of(),
+                    true,
+                    IndexMetadata::getIndexUUID
+                );
+            }
             assert shardedTable.concreteIndices(metadata).length == 1 : "table has to contain only 1 index name";
             return shardedTable.concreteIndices(metadata)[0];
         }

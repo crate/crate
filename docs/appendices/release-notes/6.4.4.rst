@@ -1,0 +1,74 @@
+.. _version_6.4.4:
+
+==========================
+Version 6.4.4 - Unreleased
+==========================
+
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+.. NOTE::
+
+    In development. 6.4.4 isn't released yet. These are the release notes for
+    the upcoming release.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 5.0.0 or higher
+    before you upgrade to 6.4.4.
+
+    We recommend that you upgrade to the latest 6.3 release before moving to
+    6.4.4.
+
+    A rolling upgrade from >= 6.3.0 to 6.4.4 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 5.x will not function with 6.x
+    and must be recreated before moving to 6.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://cratedb.com/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_6.4.0` release notes for a full list of changes in the 6.4
+series.
+
+Fixes
+=====
+
+- Fixed an issue that caused a ``UNION ALL`` inside a sub-select to return an
+  additional column, or to fail with ``Index x out of bounds for length y``, if
+  the outer query used an ``ORDER BY`` on a column which was not selected and
+  the sub-select contained further columns which were neither selected nor used
+  by the ``ORDER BY``. e.g::
+
+    SELECT c3 FROM (SELECT * FROM tbl UNION ALL SELECT * FROM tbl) x ORDER BY c1;
+
+- Fixed an issue that could return wrong results if a ``WHERE`` clause contained
+  a non-deterministic function, like :ref:`random() <scalar-random>`, and was
+  applied on a virtual relation which uses
+  :ref:`window functions <window-functions>`, :ref:`GROUP BY <sql_dql_group_by>`
+  or :ref:`table functions <table-functions>`. Prevent the push down for such
+  filters, as they can produce different results than if applied after those
+  operations as intended.
+
+- Fixed an issue that caused under-accounting of memory usage for queries using
+  :ref:`array_agg() <aggregation-array-agg>` aggregation function and
+  aggregation queries using ``DISTINCT``.
+
+- Fixed an issue that caused ``~`` and ``~*``
+  :ref:`regular expression operators <sql_dql_regexp>` to not match any rows
+  when used in the ``WHERE`` clause of a query on column with
+  :ref:`INDEX OFF <sql_ddl_index_off>`, e.g.::
+
+    SELECT * FROM tbl WHERE no_index_col ~ '[a-z]'

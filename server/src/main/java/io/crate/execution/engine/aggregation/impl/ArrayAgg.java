@@ -24,6 +24,7 @@ package io.crate.execution.engine.aggregation.impl;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
@@ -63,7 +64,7 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
     public ArrayAgg(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        this.elementType = (DataType<Object>) boundSignature.argTypes().get(0);
+        this.elementType = (DataType<Object>) boundSignature.argTypes().getFirst();
     }
 
     @Override
@@ -80,6 +81,7 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
     public List<Object> newState(RamAccounting ramAccounting,
                                  Version minNodeInCluster,
                                  MemoryManager memoryManager) {
+        ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(40L)); // ArrayList overhead
         return new ArrayList<>();
     }
 

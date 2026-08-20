@@ -194,6 +194,7 @@ public class AlterTableClient {
             PartitionName partitionName = analysis.partitionName();
             AlterTableRequest request = new AlterTableRequest(
                 analysis.table().ident(),
+                analysis.table().oid(),
                 partitionName == null ? List.of() : partitionName.values(),
                 analysis.isPartitioned(),
                 analysis.excludePartitions(),
@@ -246,6 +247,7 @@ public class AlterTableClient {
 
             final ResizeRequest request = new ResizeRequest(
                 table.ident(),
+                table.oid(),
                 partitionName == null ? List.of() : partitionName.values(),
                 targetNumberOfShards
             );

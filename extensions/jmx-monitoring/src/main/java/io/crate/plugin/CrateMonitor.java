@@ -41,7 +41,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.jspecify.annotations.Nullable;
 
-import io.crate.session.Sessions;
 import io.crate.beans.CircuitBreakers;
 import io.crate.beans.Connections;
 import io.crate.beans.NodeInfo;
@@ -50,6 +49,7 @@ import io.crate.beans.QueryStats;
 import io.crate.beans.ThreadPools;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.session.Sessions;
 
 public class CrateMonitor {
 
@@ -71,9 +71,9 @@ public class CrateMonitor {
         registerMBean(NodeStatus.NAME, new NodeStatus(sqlOperations::isEnabled));
         registerMBean(NodeInfo.NAME, new NodeInfo(clusterService::state, new NodeInfo.ShardStateAndSizeProvider(indicesService)));
         registerMBean(Connections.NAME, new Connections(
-            () -> httpServerTransport == null ? null : httpServerTransport.stats(),
-            postgresNetty::stats,
-            transportService::stats
+            httpServerTransport == null ? null : httpServerTransport.stats(),
+            postgresNetty.stats(),
+            transportService.stats()
         ));
         registerMBean(ThreadPools.NAME, new ThreadPools(threadPool));
         registerMBean(CircuitBreakers.NAME, new CircuitBreakers(breakerService));
