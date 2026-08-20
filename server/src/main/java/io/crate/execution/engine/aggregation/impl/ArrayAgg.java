@@ -81,9 +81,8 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
     public List<Object> newState(RamAccounting ramAccounting,
                                  Version minNodeInCluster,
                                  MemoryManager memoryManager) {
-        List<Object> state = new ArrayList<>();
-        ramAccounting.addBytes(RamUsageEstimator.sizeOfCollection(state));
-        return state;
+        ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(40L)); // ArrayList overhead
+        return new ArrayList<>();
     }
 
     @Override
