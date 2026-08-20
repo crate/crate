@@ -44,6 +44,10 @@
       </includes>
     </fileSet>
     <fileSet>
+      <directory>${project.build.directory}/opendal-native/native/${os.classifier}</directory>
+      <outputDirectory>lib</outputDirectory>
+    </fileSet>
+    <fileSet>
       <directory>src/main/dist/config</directory>
       <outputDirectory>config</outputDirectory>
       <includes>
@@ -134,6 +138,9 @@
         <exclude>io.crate:es-repository-azure</exclude>
         <exclude>io.crate:repository-gcs</exclude>
         <exclude>io.crate:dns-discovery</exclude>
+
+        <!-- native lib is copied flat into lib/ instead, see opendal-native fileSet above -->
+        <exclude>org.apache.opendal:opendal:jar:${os.classifier}</exclude>
       </excludes>
     </dependencySet>
   </dependencySets>
