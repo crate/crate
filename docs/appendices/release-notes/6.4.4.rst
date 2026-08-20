@@ -63,9 +63,10 @@ Fixes
   operations as intended.
 
 - Fixed an issue that caused under-accounting of memory usage for queries using
-  :ref:`array_agg() <aggregation-array-agg>` aggregation function.
+  :ref:`array_agg() <aggregation-array-agg>` aggregation function and
+  aggregation queries using ``DISTINCT``.
 
-- Fixed and issue that caused ``~`` and ``~*``
+- Fixed an issue that caused ``~`` and ``~*``
   :ref:`regular expression operators <sql_dql_regexp>` to not match any rows
   when used in the ``WHERE`` clause of a query on column with
   :ref:`INDEX OFF <sql_ddl_index_off>`, e.g.::
