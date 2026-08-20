@@ -199,19 +199,24 @@ Fixes
   :ref:`DELETE <sql_reference_delete>` statements. Sub-queries used in such
   statements now require the ``DQL`` privilege on all involved tables and views.
 
-- Fixed incorrect results in :ref:`rank() <window-functions-rank>` and :ref:`dense_rank() <window-functions-dense-rank>` window functions
-  when an explicit window frame is specified. For example: ``SELECT rank() OVER
-  (ORDER BY <column> ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
-  FROM <table>``
+- Fixed incorrect results in :ref:`rank() <window-functions-rank>` and
+  :ref:`dense_rank() <window-functions-dense-rank>` window functions when an
+  explicit window frame is specified, e.g.::
+
+    SELECT rank() OVER (
+      ORDER BY <column> ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
+    FROM tbl
 
 - Fixed an issue causing queries with an ``OUTER JOIN`` return incorrect
   results if ``WHERE`` clause had a subquery.
 
-- Fixed an issue where :ref:`lag <window-functions-lag>` and :ref:`lead <window-functions-lead>` ignored row-dependent
-  offset and default value expressions. e.g::
+- Fixed an issue where :ref:`lag <window-functions-lag>` and
+  :ref:`lead <window-functions-lead>` ignored row-dependent offset and default
+  value expressions. e.g::
 
     SELECT id,
        offset,
        lag(x, offset, -1) OVER (ORDER BY id) AS v
     FROM t
-    ORDER BY id;
+    ORDER BY id
+
