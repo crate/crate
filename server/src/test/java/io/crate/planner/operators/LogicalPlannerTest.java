@@ -66,6 +66,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.optimizer.rule.EquiJoinToLookupJoin;
+import io.crate.planner.optimizer.rule.EliminateCrossJoin;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.statistics.Stats;
@@ -84,6 +85,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
+            .addTable(T3.T3_DEFINITION)
             .addView(new RelationName("doc", "v2"), "SELECT a, x FROM doc.t1")
             .addView(new RelationName("doc", "v3"), "SELECT a, x FROM doc.t1");
     }
@@ -564,6 +566,32 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 └ HashJoin[INNER | (a = b)]
                   ├ Collect[doc.t1 | [_fetchid, a] | true]
                   └ Collect[doc.t2 | [_fetchid, b] | true]
+            """
+        );
+    }
+
+    @Test
+    public void test_filter_on_nested_cross_join_to_nested_inner_joins() {
+        sqlExecutor.getSessionSettings().excludedOptimizerRules().add(EliminateCrossJoin.class);
+
+        LogicalPlan plan = plan("""
+            SELECT t1.a, t2.b, t3.c
+            FROM t1
+            CROSS JOIN t2
+            CROSS JOIN t3
+            WHERE t1.a = t2.b
+              AND t2.b = t3.c
+            """
+        );
+
+        assertThat(plan).isEqualTo(
+            """
+            Eval[a, b, c]
+              └ HashJoin[INNER | (b = c)]
+                ├ HashJoin[INNER | (a = b)]
+                │  ├ Collect[doc.t1 | [a] | true]
+                │  └ Collect[doc.t2 | [b] | true]
+                └ Collect[doc.t3 | [c] | true]
             """
         );
     }
