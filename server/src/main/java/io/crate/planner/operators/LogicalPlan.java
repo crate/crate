@@ -22,6 +22,7 @@
 package io.crate.planner.operators;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.SequencedCollection;
@@ -157,6 +158,40 @@ public interface LogicalPlan extends Plan {
      *                      unnecessary {@link Eval} operators.
      */
     LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep);
+
+    /**
+     * Using standard 2 pointers approach to check
+     * if outputsAfterPrune is a subsequence of outputsBeforePrune in O(N).
+     *
+     */
+    static void assertOutputsOrderPreserved(List<Symbol> outputsBeforePrune, List<Symbol> outputsAfterPrune) {
+        Iterator<Symbol> unprunedIterator = outputsBeforePrune.iterator();
+        Iterator<Symbol> prunedIterator = outputsAfterPrune.iterator();
+        boolean isSubsequence = true; // No iterations -> empty pruned outputs is a subsequence of any list.
+
+        while (prunedIterator.hasNext()) {
+            boolean matchFound = false;
+            Symbol currentPruned = prunedIterator.next();
+
+            // Move the pointer until we find corresponding element
+            while (unprunedIterator.hasNext()) {
+                Symbol currentUnpruned = unprunedIterator.next();
+                if (currentPruned.equals(currentUnpruned)) {
+                    matchFound = true;
+                    break;
+                }
+            }
+
+            if (matchFound == false) {
+                isSubsequence = false;
+                break;
+            }
+        }
+
+        assert isSubsequence
+            : "pruneOutputsExcept must not shuffle the outputs, it can only remove some of them. "
+              + "Before = " + outputsBeforePrune + ", after = " + outputsAfterPrune;
+    }
 
     /**
      * Rewrite an operator and its children to utilize a "query-then-fetch" approach.
