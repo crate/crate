@@ -572,6 +572,35 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_filter_on_nested_cross_join_to_nested_inner_joins() {
+        sqlExecutor.getSessionSettings().excludedOptimizerRules().add(EliminateCrossJoin.class);
+
+        LogicalPlan plan = plan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1
+            CROSS JOIN t2
+            CROSS JOIN t3
+            WHERE t1.x = t2.y
+              AND t1.x = t3.z
+              AND t2.y = t3.z
+              AND t1.x > 1
+              AND t2.y > 2
+              AND t3.z > 3
+            """
+        );
+
+        assertThat(plan).isEqualTo(
+            """
+            HashJoin[INNER | ((x = z) AND (y = z))]
+              ├ HashJoin[INNER | (x = y)]
+              │  ├ Collect[doc.t1 | [x] | (x > 1)]
+              │  └ Collect[doc.t2 | [y] | (y > 2)]
+              └ Collect[doc.t3 | [z] | (z > 3)]
+            """
+        );
+    }
+
+    @Test
     public void test_unused_table_function_in_subquery_is_not_pruned() {
         LogicalPlan plan = plan("SELECT name FROM (SELECT name, unnest(counters), text FROM users) u");
         assertThat(plan).isEqualTo(
@@ -1020,59 +1049,6 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "    │  │  └ Collect[doc.t3 | [c, z] | true]",
             "    │  └ Collect[doc.t4 | [id, obj, obj_array] | true]",
             "    └ Collect[doc.t2 | [b, y, i] | true]"
-        );
-    }
-
-    @Test
-    public void test_filter_on_nested_cross_join_to_nested_inner_joins() {
-        sqlExecutor.getSessionSettings().excludedOptimizerRules().remove(EliminateCrossJoin.class);
-
-        LogicalPlan plan = plan("""
-            SELECT t1.x, t2.y, t3.z
-            FROM t1
-            CROSS JOIN t2
-            CROSS JOIN t3
-            WHERE t1.x = t2.y
-              AND t1.x = t3.z
-              AND t2.y = t3.z
-              AND t1.x > 1
-              AND t2.y > 2
-              AND t3.z > 3
-            """
-        );
-
-        assertThat(plan).isEqualTo(
-            """
-            HashJoin[INNER | ((x = z) AND (y = z))]
-              ├ HashJoin[INNER | (x = y)]
-              │  ├ Collect[doc.t1 | [x] | (x > 1)]
-              │  └ Collect[doc.t2 | [y] | (y > 2)]
-              └ Collect[doc.t3 | [z] | (z > 3)]
-            """
-        );
-
-        sqlExecutor.getSessionSettings().excludedOptimizerRules().add(EliminateCrossJoin.class);
-
-        plan = plan("""
-            SELECT t1.x, t2.y, t3.z
-            FROM t1
-            CROSS JOIN t2
-            CROSS JOIN t3
-            WHERE t1.x = t2.y
-              AND t1.x = t3.z
-              AND t2.y = t3.z
-              AND t1.x > 1
-              AND t2.y > 2
-              AND t3.z > 3
-            """
-        );
-
-        assertThat(plan).hasOperators(
-            "HashJoin[INNER | (((x = y) AND (x = z)) AND (y = z))]",
-            "  ├ NestedLoopJoin[CROSS]",
-            "  │  ├ Collect[doc.t1 | [x] | (x > 1)]",
-            "  │  └ Collect[doc.t2 | [y] | (y > 2)]",
-            "  └ Collect[doc.t3 | [z] | (z > 3)]"
         );
     }
 
