@@ -35,6 +35,7 @@ import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
 import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.PostingsEnum;
@@ -117,16 +118,16 @@ final class GroupByOptimizedIterator {
 
     /**
      * This was chosen after benchmarking different ratios with this optimization always enabled:
-     *
+     * <p>
      * Q: select count(*) from (select distinct x from t) t
-     *
+     * <p>
      * cardinality-ratio | mean difference
      * ------------------+-----------------
      *              0.90 |      -5.65%
      *              0.75 |      -5.06%
      *              0.50 |      +1.51%
      *              0.25 |     +38.79%
-     *
+     * <p>
      * (+ being faster, - being slower)
      */
     private static final double CARDINALITY_RATIO_THRESHOLD = 0.5;
@@ -193,6 +194,96 @@ final class GroupByOptimizedIterator {
         );
     }
 
+    /// Returns a batchIterator that reads the BKD points index instead of scanning documents, for:
+    ///
+    ///     `SELECT numKey FROM t GROUP BY numKey`
+    ///
+    /// Only works for a keys-only GROUP BY on a single numeric column and without a WHERE clause.
+    /// Returns null for other queries.
+    @Nullable
+    static BatchIterator<Row> tryUseLooseIndexScan(IndexShard indexShard,
+                                                   RoutedCollectPhase collectPhase,
+                                                   CollectTask collectTask) {
+        GroupProjection groupProjection = singleKeyGroupProjection(collectPhase.projections());
+        if (groupProjection == null) {
+            return null;
+        }
+        if (!groupProjection.values().isEmpty()) {
+            // There are three cases:
+            //   1. count(*),                            e.g. SELECT x, count(*) FROM tbl GROUP BY x
+            //   2. aggregates over the key column,       e.g. SELECT x, avg(x) FROM tbl GROUP BY x
+            //   3. aggregates over a different column,   e.g. SELECT x, avg(y) FROM tbl GROUP BY x
+            //
+            // (1) and (2) can be implemented with just the PointTree, but currently aren't.
+            //
+            // (3) requires doc values, and they cannot be driven from PointValues, because
+            // PointValues is ordered by value: advanceExact requires a doc id >= the current one
+            // (see DocValuesIterator), while a value-ordered traversal hands out doc ids in
+            // arbitrary order.
+            return null;
+        }
+        if (!collectPhase.where().equals(Literal.BOOLEAN_TRUE)) {
+            // In theory a WHERE clause that uses only this key column could be pushed down to the
+            // PointTree, but that's currently not implemented.
+            // Any other WHERE clause, using other columns, cannot work at all.
+            return null;
+        }
+
+        Reference docKeyRef = getKeyRef(collectPhase.toCollect(), groupProjection.keys().getFirst());
+        if (docKeyRef == null) {
+            return null; // group by on a non-reference
+        }
+        final Reference keyRef = DocReferences.docRefToRegularRef(docKeyRef);
+        if (!LooseIndexScan.supportsType(keyRef.valueType())) {
+            return null; // not a type that CrateDB indexes as a single point dimension
+        }
+
+        int bytesPerValue = pointWidth(
+            () -> indexShard.acquireSearcher("loose-index-scan:" + formatSource(collectPhase)), keyRef.storageIdent());
+        if (bytesPerValue < 0) {
+            return null;
+        }
+
+        ShardId shardId = indexShard.shardId();
+        SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
+        var searcherRef = sharedShardContext.acquireSearcher("loose-index-scan:" + formatSource(collectPhase));
+        collectTask.addSearcher(sharedShardContext.readerId(), searcherRef);
+
+        return LooseIndexScan.iterator(
+            searcherRef.item(),
+            keyRef,
+            bytesPerValue,
+            collectTask.getRamAccounting(),
+            new Killable.Token()
+        );
+    }
+
+    /**
+     * The point width of `fieldName`, or -1 if the loose index scan cannot be used because the
+     * column has no points at all, or is indexed with more than one dimension.
+     */
+    static int pointWidth(Supplier<Engine.Searcher> acquireSearcher, String fieldName) {
+        // Acquires a separate searcher for the same reason as hasHighCardinalityRatio: going through
+        // sharedShardContexts() and then bailing out causes issues in the fallback logic later on.
+        try (var searcher = acquireSearcher.get()) {
+            // Enough to inspect only the first segment that contains the values since Lucene makes sure all segments
+            // use the same dimension.
+            // Segments without points for the column are skipped, because:
+            // (1) the column may have been added after they were written, or
+            // (2) the field is indexed with INDEX OFF (getPointIndexDimensionCount() == 0).
+            for (LeafReaderContext leaf : searcher.getIndexReader().leaves()) {
+                FieldInfo fieldInfo = leaf.reader().getFieldInfos().fieldInfo(fieldName);
+                if (fieldInfo == null || fieldInfo.getPointIndexDimensionCount() == 0) {
+                    continue;
+                }
+                return fieldInfo.getPointIndexDimensionCount() == 1
+                    ? fieldInfo.getPointNumBytes()
+                    : -1;
+            }
+            return -1;
+        }
+    }
+
     private static Iterable<Row> countsToRows(ObjectLongHashMap<BytesRef> countsByKey, AggregateMode mode) {
         final Object[] cells = new Object[2];
         final Row row = new RowN(cells);
@@ -248,23 +339,31 @@ final class GroupByOptimizedIterator {
                     ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + sharedKey.length + HASH_MAP_ENTRY_OVERHEAD);
                     countsByKey.put(key, numDocs);
                 }
-                killToken.raiseIfKilled();;
+                killToken.raiseIfKilled();
             }
         }
         if (keyRef.isNullable()) {
-            Query existsQuery = keyRef.hasDocValues() || keyRef.indexType() == IndexType.FULLTEXT
-                ? new FieldExistsQuery(keyStorageIdent)
-                : new ConstantScoreQuery(new TermQuery(new Term(SysColumns.FieldNames.NAME, keyStorageIdent)));
-            Query notNull = Queries.not(existsQuery);
-
-            TotalHitCountCollectorManager topHitCounts = new TotalHitCountCollectorManager(searcher.getSlices());
-            Integer count = searcher.search(notNull, topHitCounts);
+            int count = countNullValues(keyRef, searcher);
             if (count > 0) {
                 ramAccounting.addBytes(HASH_MAP_ENTRY_OVERHEAD);
                 countsByKey.put(null, count);
             }
         }
         return countsByKey;
+    }
+
+    /**
+     * Number of documents that have no value for `keyRef`, i.e. the size of the NULL group.
+     */
+    static int countNullValues(Reference keyRef, IndexSearcher searcher) throws IOException {
+        String keyStorageIdent = keyRef.storageIdent();
+        Query existsQuery = keyRef.hasDocValues() || keyRef.indexType() == IndexType.FULLTEXT
+            ? new FieldExistsQuery(keyStorageIdent)
+            : new ConstantScoreQuery(new TermQuery(new Term(SysColumns.FieldNames.NAME, keyStorageIdent)));
+        Query notNull = Queries.not(existsQuery);
+
+        TotalHitCountCollectorManager topHitCounts = new TotalHitCountCollectorManager(searcher.getSlices());
+        return searcher.search(notNull, topHitCounts);
     }
 
     private static int countFromPostings(PostingsEnum postings, Bits liveDocs) throws IOException {
@@ -820,7 +919,12 @@ final class GroupByOptimizedIterator {
         return null;
     }
 
-    private static GroupProjection getSingleStringKeyGroupProjection(Collection<? extends Projection> projections) {
+    /**
+     * The single shard level GroupProjection with exactly one grouping key of any type, or null if
+     * the projections don't have that shape.
+     */
+    @Nullable
+    private static GroupProjection singleKeyGroupProjection(Collection<? extends Projection> projections) {
         GroupProjection groupProjection = null;
         int shardProjections = 0;
         for (var projection : projections) {
@@ -831,10 +935,17 @@ final class GroupByOptimizedIterator {
                 }
             }
         }
-        if (shardProjections != 1 || groupProjection == null) {
+        if (shardProjections != 1 || groupProjection == null || groupProjection.keys().size() != 1) {
             return null;
         }
-        if (groupProjection.keys().size() != 1 || groupProjection.keys().get(0).valueType().id() != DataTypes.STRING.id()) {
+        return groupProjection;
+    }
+
+    @Nullable
+    private static GroupProjection getSingleStringKeyGroupProjection(Collection<? extends Projection> projections) {
+        GroupProjection groupProjection = singleKeyGroupProjection(projections);
+        if (groupProjection == null
+            || groupProjection.keys().getFirst().valueType().id() != DataTypes.STRING.id()) {
             return null;
         }
         return groupProjection;

@@ -135,6 +135,40 @@ public class GroupByAggregateTest extends IntegTestCase {
     }
 
     @Test
+    public void test_group_by_integer_column_min_and_max_values() throws Exception {
+        assertGroupByWithMinAndMaxValues("integer");
+    }
+
+    @Test
+    public void test_group_by_integer_column_index_off_min_and_max_values() throws Exception {
+        assertGroupByWithMinAndMaxValues("integer index off");
+    }
+
+    private void assertGroupByWithMinAndMaxValues(String columnDefinition) throws Exception {
+        this.setup.groupBySetup(columnDefinition);
+        execute("insert into characters (name, gender, age) values (?, ?, ?)",
+            new Object[][] {
+                new Object[] { "Marvin II", "male", Integer.MIN_VALUE },
+                new Object[] { "Fenchurch", "female", Integer.MIN_VALUE },
+                new Object[] { "Slartibartfast", "male", Integer.MAX_VALUE },
+                new Object[] { "Deep Thought", "male", -1 },
+            });
+        execute("refresh table characters");
+
+        execute("select age from characters group by age order by age nulls last");
+        assertThat(response).hasRows(
+            "-2147483648",
+            "-1",
+            "32",
+            "34",
+            "43",
+            "112",
+            "2147483647",
+            "NULL"  // groupBySetup inserts three characters without an age
+        );
+    }
+
+    @Test
     public void testGroupByOnClusteredByColumnPartOfPrimaryKey() {
         execute("CREATE TABLE tickets ( " +
                 " pk1 long, " +

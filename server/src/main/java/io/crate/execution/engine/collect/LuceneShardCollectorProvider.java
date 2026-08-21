@@ -173,6 +173,14 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         if (it != null) {
             return it;
         }
+        it = GroupByOptimizedIterator.tryUseLooseIndexScan(
+            indexShard,
+            normalizedPhase,
+            collectTask
+        );
+        if (it != null) {
+            return it;
+        }
         it = GroupByOptimizedIterator.tryOptimizeSingleStringKey(
             nodeCtx.functions(),
             referenceResolver,
