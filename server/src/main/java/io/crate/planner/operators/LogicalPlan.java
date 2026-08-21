@@ -21,7 +21,9 @@
 
 package io.crate.planner.operators;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.SequencedCollection;
@@ -248,5 +250,20 @@ public interface LogicalPlan extends Plan {
                 printContext.text(" (rows=" + stats.numDocs() + ")");
             }
         }
+    }
+
+    /**
+     * Returns list of outputs ordered according to outputs of this plan.
+     * @param prunedOutputs is outputs in arbitrary order
+     */
+    default List<Symbol> normalizePrunedOutputs(HashSet<Symbol> prunedOutputs) {
+        List<Symbol> normalizedOutputs = new ArrayList<>();
+        // Some operators (e.g. HashAggregate), do non-trivial work to return outputs, getting them only once.
+        for (Symbol output : this.outputs()) {
+            if (prunedOutputs.contains(output)) {
+                normalizedOutputs.add(output);
+            }
+        }
+        return normalizedOutputs;
     }
 }
