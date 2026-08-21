@@ -102,7 +102,10 @@ Changes
 SQL Statements
 --------------
 
-None
+- `Robert Palmer <https://github.com/robd003>`_ added ``CREATE MATERIALIZED VIEW``,
+  ``REFRESH MATERIALIZED VIEW``, and ``DROP MATERIALIZED VIEW``. Materialized views
+  persist query results for fast reads and can be rebuilt atomically without making
+  the current result unavailable.
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------

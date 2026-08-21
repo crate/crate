@@ -41,10 +41,12 @@ import io.crate.session.Sessions;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.MaterializedViewMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.metadata.table.TableInfo;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTable;
@@ -83,6 +85,19 @@ public final class PgCatalogTableDefinitions {
         Iterable<RelationName> docTableRelationNames =
             () -> InformationSchemaIterables.tablesStream(schemas)
             .filter(x -> x instanceof DocTableInfo).map(RelationInfo::ident).iterator();
+
+        Iterable<DocTableInfo> materializedViews =
+            () -> InformationSchemaIterables.tablesStream(schemas)
+                .filter(DocTableInfo.class::isInstance)
+                .map(DocTableInfo.class::cast)
+                .filter(table -> MaterializedViewMetadata.isMaterialized(table.parameters()))
+                .iterator();
+
+        Iterable<TableInfo> regularTables =
+            () -> InformationSchemaIterables.tablesStream(schemas)
+                .filter(table -> !(table instanceof DocTableInfo docTableInfo)
+                    || !MaterializedViewMetadata.isMaterialized(docTableInfo.parameters()))
+                .iterator();
 
         tableDefinitions = Map.ofEntries(
             Map.entry(PgStatsTable.NAME, new StaticTableDefinition<>(
@@ -232,7 +247,7 @@ public final class PgCatalogTableDefinitions {
             )),
 
             Map.entry(PgTablesTable.IDENT, new StaticTableDefinition<>(
-                informationSchemaIterables::tables,
+                () -> regularTables,
                 (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.ident().fqn()),
                 PgTablesTable.INSTANCE.expressions()
             )),
@@ -265,9 +280,9 @@ public final class PgCatalogTableDefinitions {
                 false
             )),
             Map.entry(PgMatviews.NAME, new StaticTableDefinition<>(
-                () -> completedFuture(emptyList()),
-                PgMatviews.INSTANCE.expressions(),
-                false
+                () -> materializedViews,
+                (user, table) -> roles.hasAnyPrivilege(user, Securable.TABLE, table.ident().fqn()),
+                PgMatviews.INSTANCE.expressions()
             )),
             Map.entry(PgUserTable.IDENT, new StaticTableDefinition<>(
                 () -> completedFuture(

@@ -26,12 +26,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.util.List;
 
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.MaterializedViewMetadata;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -125,5 +127,32 @@ public class CreateTableAsAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         List<DataType<?>> expectedTypes = Lists.map(expected.columns().values(), Symbol::valueType);
         List<DataType<?>> actualTypes = Lists.map(actual.columns().values(), Symbol::valueType);
         assertThat(actualTypes).containsExactlyElementsOf(expectedTypes);
+    }
+
+    @Test
+    public void testMaterializedViewStoresDefinitionInTableSettings() throws IOException {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (a int)");
+
+        AnalyzedCreateTableAs analyzed = e.analyze(
+            "create materialized view cpy as select a from tbl where a > 1"
+        );
+        var bound = analyzed.analyzedCreateTable().bind(
+            new NumberOfShards(clusterService),
+            e.fulltextAnalyzerResolver(),
+            e.nodeCtx,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
+
+        assertThat(MaterializedViewMetadata.definition(bound.settings()))
+            .contains("SELECT \"a\"")
+            .contains("FROM \"tbl\"")
+            .contains("WHERE \"a\" > 1");
+        assertThat(bound.settings().getAsList(MaterializedViewMetadata.SEARCH_PATH))
+            .containsExactly("doc");
+        assertThat(bound.settings().get(MaterializedViewMetadata.OWNER)).isEqualTo("crate");
+        assertThat(bound.settings().getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, null)).isEqualTo(1);
     }
 }

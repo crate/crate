@@ -49,7 +49,7 @@ public final class PgClassTable {
             .add("relnamespace", INTEGER, x -> x.schemaOid)
             .add("reltype", INTEGER, x -> 0)
             .add("reloftype", INTEGER, x -> 0)
-            .add("relowner", INTEGER, x -> 0)
+            .add("relowner", INTEGER, x -> x.ownerOid)
             .add("relam", INTEGER, x -> 0)
             .add("relfilenode", INTEGER, x -> 0)
             .add("reltablespace", INTEGER, x -> 0)
@@ -86,12 +86,14 @@ public final class PgClassTable {
                         int schemaOid,
                         RelationName ident,
                         String name,
+                        int ownerOid,
                         Type type,
                         int numberOfAttributes,
                         boolean hasPrimaryKey) {
 
         public enum Type {
             VIEW("v"),
+            MATERIALIZED_VIEW("m"),
             RELATION("r"),
             INDEX("i"),
             FOREIGN("f");

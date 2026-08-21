@@ -33,6 +33,7 @@ import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.MaterializedViewMetadata;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
@@ -42,6 +43,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropTable;
+import io.crate.sql.tree.DropMaterializedView;
 import io.crate.sql.tree.QualifiedName;
 
 class DropTableAnalyzer {
@@ -57,7 +59,23 @@ class DropTableAnalyzer {
     }
 
     public AnalyzedDropTable<DocTableInfo> analyze(DropTable<?> node, CoordinatorSessionSettings sessionSettings) {
-        return analyze(node.table().getName(), node.dropIfExists(), sessionSettings);
+        return analyze(node.table().getName(), node.dropIfExists(), sessionSettings, Operation.DROP);
+    }
+
+    public AnalyzedDropTable<DocTableInfo> analyze(DropMaterializedView node,
+                                                   CoordinatorSessionSettings sessionSettings) {
+        AnalyzedDropTable<DocTableInfo> drop = analyze(
+            node.name(),
+            node.ifExists(),
+            sessionSettings,
+            Operation.READ
+        );
+        var relation = clusterService.state().metadata().getRelation(drop.tableName());
+        if (relation != null && !MaterializedViewMetadata.isMaterialized(relation.settings())) {
+            throw new IllegalArgumentException(
+                "Relation '" + drop.tableName().fqn() + "' is not a materialized view");
+        }
+        return drop;
     }
 
     public AnalyzedDropTable<BlobTableInfo> analyze(DropBlobTable<?> node, CoordinatorSessionSettings sessionSettings) {
@@ -67,19 +85,20 @@ class DropTableAnalyzer {
         } else {
             QualifiedName name = new QualifiedName(
                 List.of(BlobSchemaInfo.NAME, node.table().getName().getSuffix()));
-            return analyze(name, node.ignoreNonExistentTable(), sessionSettings);
+            return analyze(name, node.ignoreNonExistentTable(), sessionSettings, Operation.DROP);
         }
     }
 
     private <T extends TableInfo> AnalyzedDropTable<T> analyze(QualifiedName name,
                                                                boolean dropIfExists,
-                                                               CoordinatorSessionSettings sessionSettings) {
+                                                               CoordinatorSessionSettings sessionSettings,
+                                                               Operation operation) {
         RelationName tableName;
         int tableOid = OID_UNASSIGNED;
         try {
             TableInfo tableInfo = schemas.findRelation(
                 name,
-                Operation.DROP,
+                operation,
                 sessionSettings.sessionUser(),
                 sessionSettings.searchPath()
             );
