@@ -586,12 +586,11 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(plan).isEqualTo(
             """
-            Eval[a, b, c]
-              └ HashJoin[INNER | (b = c)]
-                ├ HashJoin[INNER | (a = b)]
-                │  ├ Collect[doc.t1 | [a] | true]
-                │  └ Collect[doc.t2 | [b] | true]
-                └ Collect[doc.t3 | [c] | true]
+            HashJoin[INNER | (b = c)]
+              ├ HashJoin[INNER | (a = b)]
+              │  ├ Collect[doc.t1 | [a] | true]
+              │  └ Collect[doc.t2 | [b] | true]
+              └ Collect[doc.t3 | [c] | true]
             """
         );
     }
