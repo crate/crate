@@ -1561,8 +1561,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         );
 
         assertThat(plan).hasOperators(
-            "HashJoin[INNER | (((x = y) AND (x = z)) AND (y = z))]",
-            "  ├ NestedLoopJoin[CROSS]",
+            "HashJoin[INNER | ((x = z) AND (y = z))]",
+            "  ├ HashJoin[INNER | (x = y)]",
             "  │  ├ Collect[doc.t1 | [x] | (x > 1)]",
             "  │  └ Collect[doc.t2 | [y] | (y > 2)]",
             "  └ Collect[doc.t3 | [z] | (z > 3)]"
