@@ -132,3 +132,19 @@ Fixes
         SELECT 2147483648::bigint AS x
     ) AS u
     WHERE x > 2147483647;
+
+- Fixed an issue that caused queries with filtered nested ``CROSS JOIN``s to
+  return incorrect results when ``optimizer_eliminate_cross_join`` was set to
+  ``false`` and a filter above the join tree referenced only one side of the
+  current cross join, e.g.::
+
+    SET optimizer_eliminate_cross_join = false;
+
+    SELECT t1.x, t2.y, t3.z
+    FROM t1
+    CROSS JOIN t2
+    CROSS JOIN t3
+    WHERE t1.x = t2.y
+      AND t1.x = t3.z
+      AND t2.y = t3.z;
+
