@@ -82,3 +82,31 @@ Fixes
 
     SELECT * FROM t JOIN t AS t2 ON t.c = (select 1)
 
+<<<<<<< HEAD
+=======
+
+- Fixed an issue that could cause a correlated subquery inside a join, to
+  ignore a filter on a bare boolean column of the outer relation. As a
+  consequence, it could return rows that should have been filtered out. e.g.::
+
+    SELECT (
+        SELECT count(*)
+        FROM t t1 CROSS JOIN t t2
+        WHERE t1.col = t2.col AND q.flag
+    )
+    FROM t q;
+
+  In this example, the ``q.flag`` filter was dropped.
+  :ref:`array_agg() <aggregation-array-agg>` aggregation function.
+
+- Fixed an issue that caused wrong results when
+  :ref:`array_agg() <aggregation-array-agg>` aggregation function was used with
+  :ref:`window functions <window-functions>` with an explicit window frame,
+  e.g.::
+
+    SELECT array_agg(x) OVER(
+      ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM tbl
+
+- Fixed an issue where :ref:`ALL <sql_all_subquery_expresion>` did not return
+  ``TRUE`` when comparing ``NULL`` values against an empty array.
+>>>>>>> 023a7ccf7f (Fix null = ALL(<empty>) incorrect results)
