@@ -38,11 +38,43 @@ import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 public final class Lists {
 
     private Lists() {
+    }
+
+    /**
+     * Checks whether @param list is a subsequence of @param sequence.
+     */
+    public static <T> boolean isSubsequence(@NonNull List<T> list, @NonNull List<T> sequence) {
+        // Using standard 2 pointers approach to do the check in O(N).
+        Iterator<T> it = list.iterator();
+        Iterator<T> sequenceIt = sequence.iterator();
+        boolean isSubsequence = true; // No iterations -> empty pruned outputs is a subsequence of any list.
+
+        while (it.hasNext()) {
+            boolean matchFound = false;
+            T current = it.next();
+
+            // Move the pointer until we find corresponding element
+            while (sequenceIt.hasNext()) {
+                T currentSeq = sequenceIt.next();
+                if (current.equals(currentSeq)) {
+                    matchFound = true;
+                    break;
+                }
+            }
+
+            if (matchFound == false) {
+                isSubsequence = false;
+                break;
+            }
+        }
+
+        return isSubsequence;
     }
 
     @SuppressWarnings("unchecked")
