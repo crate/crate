@@ -3163,4 +3163,14 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "SELECT * FROM sys.nodes WHERE EXISTS (SELECT FROM sys.nodes WHERE id = 'foo')");
         assertThat(relation.where()).isFunction("_exists");
     }
+
+    @Test
+    public void test_uncorrelated_subquery_in_join_condition() throws IOException {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("create table t (c int)");
+        assertThatThrownBy(() -> executor.analyze(
+            "SELECT * FROM t JOIN t AS tt ON t.c = (SELECT 1)"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("uncorrelated subqueries are not supported in the JOIN ON clause");
+    }
 }

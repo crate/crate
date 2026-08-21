@@ -76,3 +76,22 @@ Fixes
 - Fixed an issue where a node could still shut down when the cluster health
   wait timed out during decommissioning despite
   ``cluster.graceful_stop.force=false``.
+
+- Improved the error message for queries involving an uncorrelated subquery in
+  join condition. e.g::
+
+    SELECT * FROM t JOIN t AS t2 ON t.c = (select 1)
+
+
+- Fixed an issue that could cause a correlated subquery inside a join, to
+  ignore a filter on a bare boolean column of the outer relation. As a
+  consequence, it could return rows that should have been filtered out. e.g.::
+
+    SELECT (
+        SELECT count(*)
+        FROM t t1 CROSS JOIN t t2
+        WHERE t1.col = t2.col AND q.flag
+    )
+    FROM t q;
+
+  In this example, the ``q.flag`` filter was dropped.
