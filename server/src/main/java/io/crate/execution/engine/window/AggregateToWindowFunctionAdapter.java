@@ -132,7 +132,6 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
             }
             Boolean match = filter.value(row);
             if (match != null && match) {
-                //noinspection unchecked
                 accumulatedState = aggregationFunction.removeFromAggregatedState(
                     ramAccounting,
                     accumulatedState,
@@ -183,7 +182,6 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
             }
             Boolean match = filter.value(row);
             if (match != null && match) {
-                //noinspection unchecked
                 accumulatedState = aggregationFunction.iterate(
                     ramAccounting,
                     memoryManager,
