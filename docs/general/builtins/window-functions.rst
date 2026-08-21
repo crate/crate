@@ -7,10 +7,19 @@ Window functions
 ================
 
 Window functions are :ref:`functions <gloss-function>` which perform a
-computation across a set of rows which are related to the current row. This is
-comparable to :ref:`aggregation functions <aggregation-functions>`, but window
-functions do not cause multiple rows to be grouped into a single row.
+computation across a set of rows (the *window*) that are somehow related to a
+row that we call the *current row*.
 
+As CrateDB visits each query row, it builds a window that contains:
+
+- that query row (the current row)
+- other rows related to it based on the :ref:`window definition
+  <window-definition>`.
+
+This is comparable to :ref:`aggregation functions <aggregation-functions>`, but
+there's an important difference. Aggregation functions produce a single result
+row from a multiple query rows (per group or globally), whereas window function
+produce one result row per query row.
 
 .. _window-function-call:
 
