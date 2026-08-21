@@ -744,8 +744,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).hasOperators(
             "Rename[i, avgx] AS vt",
             "  └ Eval[i, avg(x) OVER (ORDER BY i ASC) AS avgx]",
-            "    └ WindowAgg[i, x] | [avg(x) OVER (ORDER BY i ASC)]",
-            "      └ Collect[doc.t1 | [i, x] | true]"
+            "    └ WindowAgg[x, i] | [avg(x) OVER (ORDER BY i ASC)]",
+            "      └ Collect[doc.t1 | [x, i] | true]"
         );
     }
 
