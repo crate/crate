@@ -21,60 +21,13 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
-public class DropUserMapping implements Statement {
-
-    @Nullable
-    private final String userName;
-    private final boolean ifExists;
-    private final String server;
-
-    public DropUserMapping(@Nullable String userName, boolean ifExists, String server) {
-        this.userName = userName;
-        this.ifExists = ifExists;
-        this.server = server;
-    }
-
-    public String userName() {
-        return userName;
-    }
-
-    public boolean ifExists() {
-        return ifExists;
-    }
-
-    public String server() {
-        return server;
-    }
+public record DropUserMapping(@Nullable String userName, boolean ifExists, String server) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitDropUserMapping(this, context);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(userName, ifExists, server);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        DropUserMapping other = (DropUserMapping) obj;
-        return Objects.equals(userName, other.userName)
-            && ifExists == other.ifExists
-            && Objects.equals(server, other.server);
     }
 
     @Override

@@ -23,70 +23,12 @@ package io.crate.sql.tree;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
-public class CreateForeignTable implements Statement {
-
-    private final QualifiedName name;
-    private final boolean ifNotExists;
-    private final List<TableElement<Expression>> tableElements;
-    private final String server;
-    private final Map<String, Expression> options;
-
-    public CreateForeignTable(QualifiedName name,
-                              boolean ifNotExists,
-                              List<TableElement<Expression>> tableElements,
-                              String server,
-                              Map<String, Expression> options) {
-        this.name = name;
-        this.ifNotExists = ifNotExists;
-        this.tableElements = tableElements;
-        this.server = server;
-        this.options = options;
-    }
-
-    public QualifiedName name() {
-        return name;
-    }
-
-    public boolean ifNotExists() {
-        return ifNotExists;
-    }
-
-    public List<TableElement<Expression>> tableElements() {
-        return tableElements;
-    }
-
-    public String server() {
-        return server;
-    }
-
-    public Map<String, Expression> options() {
-        return options;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, ifNotExists, tableElements, server);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        CreateForeignTable other = (CreateForeignTable) obj;
-        return Objects.equals(name, other.name)
-            && ifNotExists == other.ifNotExists
-            && Objects.equals(tableElements, other.tableElements)
-            && Objects.equals(server, other.server);
-    }
+public record CreateForeignTable(QualifiedName name,
+                                 boolean ifNotExists,
+                                 List<TableElement<Expression>> tableElements,
+                                 String server,
+                                 Map<String, Expression> options) implements Statement {
 
     @Override
     public String toString() {

@@ -21,36 +21,7 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
-public class DropSnapshot implements Statement {
-
-    private final QualifiedName name;
-
-    public DropSnapshot(QualifiedName name) {
-        this.name = name;
-    }
-
-    public QualifiedName name() {
-        return name;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        DropSnapshot that = (DropSnapshot) o;
-        return Objects.equals(name, that.name);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name);
-    }
+public record DropSnapshot(QualifiedName name) implements Statement {
 
     @Override
     public String toString() {

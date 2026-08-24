@@ -21,40 +21,9 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
-public class KillStatement<T> implements Statement {
-
-    @Nullable
-    private final T jobId;
-
-    public KillStatement(@Nullable T jobId) {
-        this.jobId = jobId;
-    }
-
-    @Nullable
-    public T jobId() {
-        return jobId;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        KillStatement<?> that = (KillStatement<?>) o;
-        return Objects.equals(jobId, that.jobId);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(jobId);
-    }
+public record KillStatement<T>(@Nullable T jobId) implements Statement {
 
     @Override
     public String toString() {

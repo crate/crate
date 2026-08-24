@@ -21,45 +21,7 @@
 
 package io.crate.sql.tree;
 
-public final class CreateView implements Statement {
-
-    private final QualifiedName name;
-    private final Query query;
-    private final boolean replaceExisting;
-
-    public CreateView(QualifiedName name, Query query, boolean replaceExisting) {
-        this.name = name;
-        this.query = query;
-        this.replaceExisting = replaceExisting;
-    }
-
-    public QualifiedName name() {
-        return name;
-    }
-
-    public Query query() {
-        return query;
-    }
-
-    public boolean replaceExisting() {
-        return replaceExisting;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return o instanceof CreateView that
-            && replaceExisting == that.replaceExisting
-            && name.equals(that.name)
-            && query.equals(that.query);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + query.hashCode();
-        result = 31 * result + (replaceExisting ? 1 : 0);
-        return result;
-    }
+public record CreateView(QualifiedName name, Query query, boolean replaceExisting) implements Statement {
 
     @Override
     public String toString() {

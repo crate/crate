@@ -21,46 +21,11 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
-public class DropPublication implements Statement {
-
-    private final String name;
-    private final boolean ifExists;
-
-    public DropPublication(String name, boolean ifExists) {
-        this.name = name;
-        this.ifExists = ifExists;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    public boolean ifExists() {
-        return ifExists;
-    }
+public record DropPublication(String name, boolean ifExists) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitDropPublication(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        DropPublication that = (DropPublication) o;
-        return ifExists == that.ifExists && name.equals(that.name);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, ifExists);
     }
 
     @Override

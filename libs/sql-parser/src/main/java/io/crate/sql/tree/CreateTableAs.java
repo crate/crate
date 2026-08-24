@@ -21,54 +21,11 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
-public final class CreateTableAs<T> implements Statement {
-
-    private final Table<T> name;
-    private final Query query;
-    private final boolean ifNotExists;
-
-    public CreateTableAs(Table<T> name, Query query, boolean ifNotExists) {
-        this.name = name;
-        this.query = query;
-        this.ifNotExists = ifNotExists;
-    }
-
-    public Table<T> name() {
-        return this.name;
-    }
-
-    public Query query() {
-        return this.query;
-    }
+public record CreateTableAs<T>(Table<T> name, Query query, boolean ifNotExists) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCreateTableAs(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof CreateTableAs)) {
-            return false;
-        }
-        CreateTableAs<?> that = (CreateTableAs<?>) o;
-        return name.equals(that.name) &&
-            query.equals(that.query) &&
-            ifNotExists == that.ifNotExists;
-    }
-
-    public boolean ifNotExists() {
-        return ifNotExists;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, query, ifNotExists);
     }
 
     @Override

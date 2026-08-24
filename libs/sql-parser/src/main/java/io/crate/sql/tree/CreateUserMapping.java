@@ -22,76 +22,17 @@
 package io.crate.sql.tree;
 
 import java.util.Map;
-import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-public class CreateUserMapping implements Statement {
-
-    private final boolean ifNotExists;
-
-    @Nullable
-    private final String userName;
-
-    private final String server;
-    private final Map<String, Expression> options;
-
-    public CreateUserMapping(boolean ifNotExists,
-                             @Nullable String userName,
-                             String server,
-                             Map<String, Expression> options) {
-        this.ifNotExists = ifNotExists;
-        this.userName = userName;
-        this.server = server;
-        this.options = options;
-    }
-
-    /**
-     * Optional user name. Use current user/role if null
-     */
-    @Nullable
-    public String userName() {
-        return userName;
-    }
-
-    public String server() {
-        return server;
-    }
-
-    public Map<String, Expression> options() {
-        return options;
-    }
-
-    public boolean ifNotExists() {
-        return ifNotExists;
-    }
+public record CreateUserMapping(boolean ifNotExists,
+                                @Nullable String userName,
+                                String server,
+                                Map<String, Expression> options) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCreateUserMapping(this, context);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(ifNotExists, userName, server, options);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        CreateUserMapping other = (CreateUserMapping) obj;
-        return ifNotExists == other.ifNotExists
-            && Objects.equals(userName, other.userName)
-            && Objects.equals(server, other.server)
-            && Objects.equals(options, other.options);
     }
 
     @Override

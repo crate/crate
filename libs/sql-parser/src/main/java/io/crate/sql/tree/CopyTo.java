@@ -22,78 +22,14 @@
 package io.crate.sql.tree;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
-public class CopyTo<T> implements Statement {
-
-    private final Table<T> table;
-    private final List<T> columns;
-    private final Optional<T> whereClause;
-    private final boolean directoryUri;
-    private final T targetUri;
-    private final GenericProperties<T> properties;
-
-    public CopyTo(Table<T> table,
-                  List<T> columns,
-                  Optional<T> whereClause,
-                  boolean directoryUri,
-                  T targetUri,
-                  GenericProperties<T> properties) {
-
-        this.table = table;
-        this.directoryUri = directoryUri;
-        this.targetUri = targetUri;
-        this.properties = properties;
-        this.columns = columns;
-        this.whereClause = whereClause;
-    }
-
-    public Table<T> table() {
-        return table;
-    }
-
-    public boolean directoryUri() {
-        return directoryUri;
-    }
-
-    public T targetUri() {
-        return targetUri;
-    }
-
-    public List<T> columns() {
-        return columns;
-    }
-
-    public GenericProperties<T> properties() {
-        return properties;
-    }
-
-    public Optional<T> whereClause() {
-        return whereClause;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        CopyTo<?> copyTo = (CopyTo<?>) o;
-        return directoryUri == copyTo.directoryUri &&
-               Objects.equals(table, copyTo.table) &&
-               Objects.equals(targetUri, copyTo.targetUri) &&
-               Objects.equals(properties, copyTo.properties) &&
-               Objects.equals(columns, copyTo.columns) &&
-               Objects.equals(whereClause, copyTo.whereClause);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(table, directoryUri, targetUri, properties, columns, whereClause);
-    }
+public record CopyTo<T>(Table<T> table,
+                        List<T> columns,
+                        Optional<T> whereClause,
+                        boolean directoryUri,
+                        T targetUri,
+                        GenericProperties<T> properties) implements Statement {
 
     @Override
     public String toString() {

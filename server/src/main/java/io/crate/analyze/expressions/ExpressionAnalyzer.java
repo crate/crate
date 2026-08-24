@@ -330,22 +330,22 @@ public class ExpressionAnalyzer {
             window = unresolvedWindow;
         }
 
-        List<Symbol> partitionSymbols = new ArrayList<>(window.getPartitions().size());
-        for (Expression partition : window.getPartitions()) {
+        List<Symbol> partitionSymbols = new ArrayList<>(window.partitions().size());
+        for (Expression partition : window.partitions()) {
             Symbol symbol = convert(partition, context);
             SemanticSortValidator.validate(symbol, "PARTITION BY");
             partitionSymbols.add(symbol);
         }
 
-        OrderBy orderBy = OrderyByAnalyzer.analyzeSortItems(window.getOrderBy(), sortKey -> {
+        OrderBy orderBy = OrderyByAnalyzer.analyzeSortItems(window.orderBy(), sortKey -> {
             Symbol symbol = convert(sortKey, context);
             SemanticSortValidator.validate(symbol);
             return symbol;
         });
 
         WindowFrameDefinition windowFrameDefinition = WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW;
-        if (window.getWindowFrame().isPresent()) {
-            WindowFrame windowFrame = window.getWindowFrame().get();
+        if (window.windowFrame().isPresent()) {
+            WindowFrame windowFrame = window.windowFrame().get();
             validateFrame(window, windowFrame);
             FrameBound start = windowFrame.getStart();
             FrameBoundDefinition startBound = convertToAnalyzedFrameBound(context, start);
@@ -395,7 +395,7 @@ public class ExpressionAnalyzer {
 
         if (windowFrame.mode() == WindowFrame.Mode.RANGE) {
             if (startType.equals(FrameBound.Type.PRECEDING) && windowFrame.getStart().getValue() != null) {
-                if (window.getOrderBy().size() != 1) {
+                if (window.orderBy().size() != 1) {
                     throw new IllegalStateException("RANGE with offset PRECEDING/FOLLOWING requires exactly one ORDER BY column");
                 }
             }
@@ -410,7 +410,7 @@ public class ExpressionAnalyzer {
 
             if (windowFrame.mode() == WindowFrame.Mode.RANGE) {
                 if (endType.equals(FrameBound.Type.FOLLOWING) && windowFrame.getEnd().get().getValue() != null) {
-                    if (window.getOrderBy().size() != 1) {
+                    if (window.orderBy().size() != 1) {
                         throw new IllegalStateException("RANGE with offset PRECEDING/FOLLOWING requires exactly one ORDER BY column");
                     }
                 }

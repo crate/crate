@@ -22,62 +22,15 @@
 package io.crate.sql.tree;
 
 import java.util.List;
-import java.util.Objects;
 
-public class CreateSubscription<T> implements Statement {
-
-    private final String name;
-    private final T connectionInfo;
-    private final List<String> publications;
-    private final GenericProperties<T> properties;
-
-    public CreateSubscription(String name,
-                              T connectionInfo,
-                              List<String> publications,
-                              GenericProperties<T> properties) {
-        this.name = name;
-        this.connectionInfo = connectionInfo;
-        this.publications = publications;
-        this.properties = properties;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    public T connectionInfo() {
-        return connectionInfo;
-    }
-
-    public List<String> publications() {
-        return publications;
-    }
-
-    public GenericProperties<T> properties() {
-        return properties;
-    }
+public record CreateSubscription<T>(String name,
+                                    T connectionInfo,
+                                    List<String> publications,
+                                    GenericProperties<T> properties) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCreateSubscription(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        CreateSubscription<?> that = (CreateSubscription<?>) o;
-        return name.equals(that.name) && connectionInfo.equals(that.connectionInfo) && publications.equals(that.publications) &&
-               properties.equals(that.properties);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, connectionInfo, publications, properties);
     }
 
     @Override

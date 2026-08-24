@@ -21,52 +21,9 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
-public class CreateRepository<T> implements Statement {
-
-    private final String repository;
-    private final String type;
-    private final GenericProperties<T> properties;
-
-    public CreateRepository(String repository,
-                            String type,
-                            GenericProperties<T> properties) {
-        this.repository = repository;
-        this.type = type;
-        this.properties = properties;
-    }
-
-    public String repository() {
-        return repository;
-    }
-
-    public String type() {
-        return type;
-    }
-
-    public GenericProperties<T> properties() {
-        return properties;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        CreateRepository<?> that = (CreateRepository<?>) o;
-        return Objects.equals(repository, that.repository) &&
-               Objects.equals(type, that.type) &&
-               Objects.equals(properties, that.properties);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(repository, type, properties);
-    }
+public record CreateRepository<T>(String repository,
+                                  String type,
+                                  GenericProperties<T> properties) implements Statement {
 
     @Override
     public String toString() {

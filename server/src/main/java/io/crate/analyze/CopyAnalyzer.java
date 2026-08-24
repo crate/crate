@@ -82,7 +82,7 @@ class CopyAnalyzer {
                                                                                                             exprCtx));
         Symbol uri = exprAnalyzerWithoutFields.convert(node.path(), exprCtx);
 
-        if (node.isReturnSummary()) {
+        if (node.returnSummary()) {
             return new AnalyzedCopyFromReturnSummary(
                 tableInfo,
                 node.columns(),

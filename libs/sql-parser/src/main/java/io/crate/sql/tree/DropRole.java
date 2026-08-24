@@ -21,43 +21,7 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
-public class DropRole implements Statement {
-
-    private final String name;
-    private final boolean ifExists;
-
-    public DropRole(String name, boolean ifExists) {
-        this.name = name;
-        this.ifExists = ifExists;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    public boolean ifExists() {
-        return ifExists;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        DropRole dropRole = (DropRole) o;
-        return ifExists == dropRole.ifExists &&
-               Objects.equals(name, dropRole.name);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, ifExists);
-    }
+public record DropRole(String name, boolean ifExists) implements Statement {
 
     @Override
     public String toString() {

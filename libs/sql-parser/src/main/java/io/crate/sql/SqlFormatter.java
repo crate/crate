@@ -75,7 +75,6 @@ import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateTableAs;
 import io.crate.sql.tree.CreateTableLike;
 import io.crate.sql.tree.CreateUserMapping;
-import io.crate.sql.tree.LikeOption;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.DefaultConstraint;
@@ -116,6 +115,7 @@ import io.crate.sql.tree.JoinCriteria;
 import io.crate.sql.tree.JoinOn;
 import io.crate.sql.tree.JoinType;
 import io.crate.sql.tree.JoinUsing;
+import io.crate.sql.tree.LikeOption;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.NaturalJoin;
 import io.crate.sql.tree.Node;
@@ -368,7 +368,7 @@ public final class SqlFormatter {
                 append(indent, " ");
                 copyFrom.properties().accept(this, indent);
             }
-            if (copyFrom.isReturnSummary()) {
+            if (copyFrom.returnSummary()) {
                 append(indent," RETURN SUMMARY");
             }
             return null;
@@ -403,7 +403,7 @@ public final class SqlFormatter {
                 builder.append(')');
             }
             builder.append(' ');
-            builder.append(formatSql(node.getStatement()));
+            builder.append(formatSql(node.statement()));
             return null;
         }
 
@@ -496,15 +496,15 @@ public final class SqlFormatter {
                 }
                 builder.append(' ');
             }
-            node.whereClause().ifPresent(x -> {
+            node.where().ifPresent(x -> {
                 append(indent, "WHERE");
                 builder.append(' ');
                 x.accept(this, indent);
                 builder.append(' ');
             });
-            if (!node.returningClause().isEmpty()) {
+            if (!node.returning().isEmpty()) {
                 append(indent, "RETURNING");
-                Iterator<SelectItem> returningItems = node.returningClause().iterator();
+                Iterator<SelectItem> returningItems = node.returning().iterator();
                 while (returningItems.hasNext()) {
                     builder.append(' ');
                     returningItems.next().accept(this, indent);
@@ -534,28 +534,28 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitQuery(Query node, Integer indent) {
-            if (node.getWith().isPresent()) {
-                node.getWith().get().accept(this, indent);
+            if (node.with().isPresent()) {
+                node.with().get().accept(this, indent);
             }
 
-            node.getQueryBody().accept(this, indent);
+            node.queryBody().accept(this, indent);
 
-            if (!node.getOrderBy().isEmpty()) {
+            if (!node.orderBy().isEmpty()) {
                 append(indent, " ");
                 append(indent,
-                    "ORDER BY " + node.getOrderBy().stream()
+                    "ORDER BY " + node.orderBy().stream()
                         .map(e -> formatSortItem(e, parameters))
                         .collect(COMMA_JOINER)
                 ).append(newLine);
             }
 
-            if (node.getLimit().isPresent()) {
-                append(indent, "LIMIT " + node.getLimit().get())
+            if (node.limit().isPresent()) {
+                append(indent, "LIMIT " + node.limit().get())
                     .append(newLine);
             }
 
-            if (node.getOffset().isPresent()) {
-                append(indent, "OFFSET " + node.getOffset().get())
+            if (node.offset().isPresent()) {
+                append(indent, "OFFSET " + node.offset().get())
                     .append(newLine);
             }
 
@@ -1465,7 +1465,7 @@ public final class SqlFormatter {
         public Void visitCreatePublication(CreatePublication createPublication, Integer context) {
             builder.append("CREATE PUBLICATION ")
                 .append(quoteIdentifierIfNeeded(createPublication.name()));
-            if (createPublication.isForAllTables()) {
+            if (createPublication.forAllTables()) {
                 builder.append(" FOR ALL TABLES");
             } else if (createPublication.tables().isEmpty() == false) {
                 builder.append(" FOR TABLE ");
@@ -1579,9 +1579,9 @@ public final class SqlFormatter {
             if (window.windowRef() != null) {
                 append(indent, window.windowRef());
             }
-            if (!window.getPartitions().isEmpty()) {
+            if (!window.partitions().isEmpty()) {
                 append(indent, " PARTITION BY ");
-                var partitions = window.getPartitions().iterator();
+                var partitions = window.partitions().iterator();
                 while (partitions.hasNext()) {
                     partitions.next().accept(this, indent);
                     if (partitions.hasNext()) {
@@ -1589,9 +1589,9 @@ public final class SqlFormatter {
                     }
                 }
             }
-            if (!window.getOrderBy().isEmpty()) {
+            if (!window.orderBy().isEmpty()) {
                 append(indent, " ORDER BY ");
-                var sortItems = window.getOrderBy().iterator();
+                var sortItems = window.orderBy().iterator();
                 while (sortItems.hasNext()) {
                     sortItems.next().accept(this, indent);
                     if (sortItems.hasNext()) {
@@ -1599,7 +1599,7 @@ public final class SqlFormatter {
                     }
                 }
             }
-            window.getWindowFrame().map(frame -> frame.accept(this, indent));
+            window.windowFrame().map(frame -> frame.accept(this, indent));
             append(indent, ")");
             return null;
         }

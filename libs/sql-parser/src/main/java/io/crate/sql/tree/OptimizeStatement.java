@@ -22,52 +22,18 @@
 package io.crate.sql.tree;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
 
 import io.crate.common.collections.Lists;
 
-public class OptimizeStatement<T> implements Statement {
-
-    private final List<Table<T>> tables;
-    private final GenericProperties<T> properties;
-
-    public OptimizeStatement(List<Table<T>> tables, GenericProperties<T> properties) {
-        this.tables = tables;
-        this.properties = properties;
-    }
-
-    public List<Table<T>> tables() {
-        return tables;
-    }
-
-    public GenericProperties<T> properties() {
-        return properties;
-    }
+public record OptimizeStatement<T>(List<Table<T>> tables,
+                                   GenericProperties<T> properties) implements Statement {
 
     public <U> OptimizeStatement<U> map(Function<? super T, ? extends U> mapper) {
         return new OptimizeStatement<>(
             Lists.map(tables, x -> x.map(mapper)),
             properties.map(mapper)
         );
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        OptimizeStatement<?> that = (OptimizeStatement<?>) o;
-        return Objects.equals(tables, that.tables) &&
-               Objects.equals(properties, that.properties);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(tables, properties);
     }
 
     @Override
