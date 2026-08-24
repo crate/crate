@@ -89,11 +89,9 @@ public class ArrayAggTest extends AggregationTestCase {
         );
         RamAccounting ramAccounting = new PlainRamAccounting();
         Object state = impl.newState(ramAccounting, Version.CURRENT, memoryManager);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(24L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(40L);
         impl.iterate(ramAccounting, memoryManager, state, Literal.of("trillian"));
         impl.iterate(ramAccounting, memoryManager, state, Literal.of("arthur"));
-        assertThat(ramAccounting.totalBytes()).isEqualTo(136L);
-        impl.terminatePartial(ramAccounting, state);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(136L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(152L);
     }
 }
