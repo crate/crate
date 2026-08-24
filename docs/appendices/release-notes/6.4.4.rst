@@ -92,3 +92,7 @@ Fixes
 
     SELECT array_agg(x) OVER(
       ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM tbl
+
+- Fixed an issue that caused wrong accounting of memory usage for queries using
+  :ref:`string_agg() <aggregation-string-agg>` aggregation function.
+
