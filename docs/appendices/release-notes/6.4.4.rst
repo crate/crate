@@ -121,3 +121,14 @@ Fixes
 
 - Fixed an issue where :ref:`ANY <sql_any_subquery_expression>` did not return
   ``FALSE`` when comparing ``NULL`` against an empty array.
+
+- Fixed an issue when using :ref:`UNION ALL <sql-union>` where types were not
+  cast properly when the different union branches had different types, e.g::
+
+    SELECT count(*) AS cnt
+    FROM (
+        SELECT 1::integer AS x
+        UNION ALL
+        SELECT 2147483648::bigint AS x
+    ) AS u
+    WHERE x > 2147483647;
