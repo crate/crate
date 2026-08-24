@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.List;
 
-public final class DropView extends Statement {
+public final class DropView implements Statement {
 
     private final List<QualifiedName> names;
     private final boolean ifExists;

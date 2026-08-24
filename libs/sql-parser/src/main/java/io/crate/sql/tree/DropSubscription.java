@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class DropSubscription extends Statement {
+public class DropSubscription implements Statement {
 
     private final String name;
     private final boolean ifExists;

@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.function.Consumer;
 
-public abstract class TableElement<T> extends Node {
+public abstract class TableElement<T> implements Node {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {

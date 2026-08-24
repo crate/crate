@@ -25,7 +25,7 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-public class ShowSessionParameter extends Statement {
+public class ShowSessionParameter implements Statement {
 
     @Nullable
     private final QualifiedName parameter;

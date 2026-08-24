@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public final class Insert<T> extends Statement {
+public final class Insert<T> implements Statement {
 
     private final Table<T> table;
     private final DuplicateKeyContext<T> duplicateKeyContext;

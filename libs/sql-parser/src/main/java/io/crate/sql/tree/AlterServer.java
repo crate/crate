@@ -26,7 +26,7 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-public class AlterServer<T> extends Statement {
+public class AlterServer<T> implements Statement {
 
     public enum Operation {
         ADD,

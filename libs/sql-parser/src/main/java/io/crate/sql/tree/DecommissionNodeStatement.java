@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class DecommissionNodeStatement<T> extends Statement {
+public class DecommissionNodeStatement<T> implements Statement {
 
     private final T nodeIdOrName;
 

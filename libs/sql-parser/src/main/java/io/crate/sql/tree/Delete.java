@@ -21,12 +21,12 @@
 
 package io.crate.sql.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Objects;
 import java.util.Optional;
 
-import static java.util.Objects.requireNonNull;
-
-public class Delete extends Statement {
+public class Delete implements Statement {
 
     private final Relation relation;
     private final Optional<Expression> where;

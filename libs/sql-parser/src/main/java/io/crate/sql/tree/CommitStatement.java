@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-public class CommitStatement extends Statement {
+public class CommitStatement implements Statement {
 
     @Override
     public int hashCode() {

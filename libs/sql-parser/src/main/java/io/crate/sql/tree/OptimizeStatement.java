@@ -27,7 +27,7 @@ import java.util.function.Function;
 
 import io.crate.common.collections.Lists;
 
-public class OptimizeStatement<T> extends Statement {
+public class OptimizeStatement<T> implements Statement {
 
     private final List<Table<T>> tables;
     private final GenericProperties<T> properties;

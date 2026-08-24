@@ -21,13 +21,14 @@
 
 package io.crate.sql.tree;
 
-import org.jspecify.annotations.Nullable;
+import static java.util.Objects.requireNonNull;
+
 import java.util.Objects;
 import java.util.Optional;
 
-import static java.util.Objects.requireNonNull;
+import org.jspecify.annotations.Nullable;
 
-public class ShowColumns extends Statement {
+public class ShowColumns implements Statement {
 
     private final QualifiedName table;
     @Nullable

@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public final class SwapTable<T> extends Statement {
+public final class SwapTable<T> implements Statement {
 
     private final QualifiedName source;
     private final QualifiedName target;

@@ -21,12 +21,13 @@
 
 package io.crate.sql.tree;
 
-import org.jspecify.annotations.Nullable;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class CreateBlobTable<T> extends Statement {
+import org.jspecify.annotations.Nullable;
+
+public class CreateBlobTable<T> implements Statement {
 
     private final Table<T> name;
     @Nullable

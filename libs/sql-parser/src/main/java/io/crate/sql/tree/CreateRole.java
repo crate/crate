@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class CreateRole extends Statement {
+public class CreateRole implements Statement {
     private final String name;
     private final boolean isUser;
 

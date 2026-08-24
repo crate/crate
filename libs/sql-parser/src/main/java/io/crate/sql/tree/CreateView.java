@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-public final class CreateView extends Statement {
+public final class CreateView implements Statement {
 
     private final QualifiedName name;
     private final Query query;

@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public class Query extends Statement {
+public class Query implements Statement {
 
     private final Optional<With> with;
     private final QueryBody queryBody;
