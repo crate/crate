@@ -21,41 +21,17 @@
 
 package io.crate.sql.tree;
 
-import org.jspecify.annotations.Nullable;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class CreateBlobTable<T> extends Statement {
+import org.jspecify.annotations.Nullable;
 
-    private final Table<T> name;
-    @Nullable
-    private final ClusteredBy<T> clusteredBy;
-    private final GenericProperties<T> genericProperties;
+public record CreateBlobTable<T>(Table<T> name,
+                                 @Nullable ClusteredBy<T> clusteredBy,
+                                 GenericProperties<T> genericProperties) implements Statement {
 
     public CreateBlobTable(Table<T> name, Optional<ClusteredBy<T>> clusteredBy, GenericProperties<T> properties) {
         this(name, clusteredBy.orElse(null), properties);
-    }
-
-    private CreateBlobTable(Table<T> name,
-                            @Nullable ClusteredBy<T> clusteredBy,
-                            GenericProperties<T> genericProperties) {
-        this.name = name;
-        this.clusteredBy = clusteredBy;
-        this.genericProperties = genericProperties;
-    }
-
-    public Table<T> name() {
-        return name;
-    }
-
-    @Nullable
-    public ClusteredBy<T> clusteredBy() {
-        return clusteredBy;
-    }
-
-    public GenericProperties<T> genericProperties() {
-        return genericProperties;
     }
 
     public <U> CreateBlobTable<U> map(Function<? super T, ? extends U> mapper) {
@@ -64,25 +40,6 @@ public class CreateBlobTable<T> extends Statement {
             clusteredBy == null ? null : clusteredBy.map(mapper),
             genericProperties.map(mapper)
         );
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        CreateBlobTable<?> that = (CreateBlobTable<?>) o;
-        return name.equals(that.name) &&
-               Objects.equals(clusteredBy, that.clusteredBy) &&
-               genericProperties.equals(that.genericProperties);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, clusteredBy, genericProperties);
     }
 
     @Override

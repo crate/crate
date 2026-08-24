@@ -21,11 +21,12 @@
 
 package io.crate.analyze;
 
-import io.crate.execution.ddl.RepositoryService;
-import io.crate.sql.tree.DropSnapshot;
+import java.util.List;
+
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.List;
+import io.crate.execution.ddl.RepositoryService;
+import io.crate.sql.tree.DropSnapshot;
 
 @Singleton
 class DropSnapshotAnalyzer {

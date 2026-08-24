@@ -21,12 +21,12 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.SearchPath;
-import io.crate.sql.tree.DropFunction;
+import static java.util.stream.Collectors.toList;
 
 import java.util.List;
 
-import static java.util.stream.Collectors.toList;
+import io.crate.metadata.SearchPath;
+import io.crate.sql.tree.DropFunction;
 
 class DropFunctionAnalyzer {
 

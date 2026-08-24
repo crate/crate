@@ -22,11 +22,10 @@
 package io.crate.sql.tree;
 
 import java.util.List;
-import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-public class AlterServer<T> extends Statement {
+public record AlterServer<T>(String name, List<Option<T>> options) implements Statement {
 
     public enum Operation {
         ADD,
@@ -35,46 +34,6 @@ public class AlterServer<T> extends Statement {
     }
 
     public record Option<T>(Operation operation, String key, @Nullable T value) {}
-
-
-    private final String name;
-    private final List<Option<T>> options;
-
-    public AlterServer(String name,
-                       List<Option<T>> options) {
-        this.name = name;
-        this.options = options;
-    }
-
-    public String name() {
-        return name;
-    }
-
-
-    public List<Option<T>> options() {
-        return options;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, options);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        AlterServer<?> other = (AlterServer<?>) obj;
-        return Objects.equals(name, other.name)
-                && Objects.equals(options, other.options);
-    }
 
     @Override
     public String toString() {

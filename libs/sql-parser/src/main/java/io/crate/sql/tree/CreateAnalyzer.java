@@ -21,59 +21,16 @@
 
 package io.crate.sql.tree;
 
-import org.jspecify.annotations.Nullable;
 import java.util.List;
-import java.util.Objects;
 
-public class CreateAnalyzer<T> extends Statement {
+import org.jspecify.annotations.Nullable;
 
-    private final String ident;
-    @Nullable
-    private final String extendedAnalyzer;
-    private final List<AnalyzerElement<T>> elements;
-
-    public CreateAnalyzer(String ident,
-                          @Nullable String extendedAnalyzer,
-                          List<AnalyzerElement<T>> elements) {
-        this.ident = ident;
-        this.extendedAnalyzer = extendedAnalyzer;
-        this.elements = elements;
-    }
-
-    public String ident() {
-        return ident;
-    }
-
-    @Nullable
-    public String extendedAnalyzer() {
-        return extendedAnalyzer;
-    }
+public record CreateAnalyzer<T>(String ident,
+                                @Nullable String extendedAnalyzer,
+                                List<AnalyzerElement<T>> elements) implements Statement {
 
     public boolean isExtending() {
         return extendedAnalyzer != null;
-    }
-
-    public List<AnalyzerElement<T>> elements() {
-        return elements;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        CreateAnalyzer<?> that = (CreateAnalyzer<?>) o;
-        return Objects.equals(ident, that.ident) &&
-               Objects.equals(extendedAnalyzer, that.extendedAnalyzer) &&
-               Objects.equals(elements, that.elements);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(ident, extendedAnalyzer, elements);
     }
 
     @Override

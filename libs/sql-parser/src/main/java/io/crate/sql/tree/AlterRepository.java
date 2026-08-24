@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Objects;
 
-public class AlterRepository<T> extends Statement {
+public class AlterRepository<T> implements Statement {
 
     private final String repository;
     private final GenericProperties<T> setProperties;

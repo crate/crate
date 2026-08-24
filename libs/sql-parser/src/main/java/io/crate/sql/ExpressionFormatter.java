@@ -398,16 +398,16 @@ public final class ExpressionFormatter {
             if (node.windowRef() != null) {
                 sb.append(node.windowRef()).append(" ");
             }
-            if (!node.getPartitions().isEmpty()) {
+            if (!node.partitions().isEmpty()) {
                 sb.append("PARTITION BY ");
-                sb.append(joinExpressions(node.getPartitions()));
+                sb.append(joinExpressions(node.partitions()));
                 sb.append(" ");
             }
-            if (!node.getOrderBy().isEmpty()) {
-                sb.append(formatOrderBy(node.getOrderBy(), parameters));
+            if (!node.orderBy().isEmpty()) {
+                sb.append(formatOrderBy(node.orderBy(), parameters));
             }
-            if (node.getWindowFrame().isPresent()) {
-                sb.append(node.getWindowFrame().get().accept(this, parameters));
+            if (node.windowFrame().isPresent()) {
+                sb.append(node.windowFrame().get().accept(this, parameters));
             }
             if (Character.isWhitespace(sb.charAt(sb.length() - 1))) {
                 sb.setLength(sb.length() - 1);

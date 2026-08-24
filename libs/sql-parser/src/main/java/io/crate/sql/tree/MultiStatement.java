@@ -24,50 +24,10 @@ package io.crate.sql.tree;
 
 import java.util.List;
 
-public class MultiStatement extends Statement {
-
-    private final List<Statement> statements;
-
-    public MultiStatement(List<Statement> statements) {
-        this.statements = statements;
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((statements == null) ? 0 : statements.hashCode());
-        return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        MultiStatement other = (MultiStatement) obj;
-        if (statements == null) {
-            if (other.statements != null) {
-                return false;
-            }
-        } else if (!statements.equals(other.statements)) {
-            return false;
-        }
-        return true;
-    }
+public record MultiStatement(List<Statement> statements) implements Statement {
 
     @Override
     public String toString() {
         return "MultiStatement{statements=" + statements + "}";
-    }
-
-    public List<Statement> statements() {
-        return statements;
     }
 }

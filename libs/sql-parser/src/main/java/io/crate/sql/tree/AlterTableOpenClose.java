@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class AlterTableOpenClose<T> extends Statement {
+public class AlterTableOpenClose<T> implements Statement {
 
     private final Table<T> table;
     private final boolean blob;

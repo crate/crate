@@ -23,37 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.List;
 
-public final class DropView extends Statement {
-
-    private final List<QualifiedName> names;
-    private final boolean ifExists;
-
-    public DropView(List<QualifiedName> names, boolean ifExists) {
-        this.names = names;
-        this.ifExists = ifExists;
-    }
-
-    public List<QualifiedName> names() {
-        return names;
-    }
-
-    public boolean ifExists() {
-        return ifExists;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return o instanceof DropView that
-            && ifExists == that.ifExists
-            && names.equals(that.names);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = names.hashCode();
-        result = 31 * result + (ifExists ? 1 : 0);
-        return result;
-    }
+public record DropView(List<QualifiedName> names, boolean ifExists) implements Statement {
 
     @Override
     public String toString() {

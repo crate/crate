@@ -21,17 +21,7 @@
 
 package io.crate.sql.tree;
 
-public class BeginStatement extends Statement {
-
-    @Override
-    public int hashCode() {
-        return 0;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return this == obj;
-    }
+public record BeginStatement() implements Statement {
 
     @Override
     public String toString() {

@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Objects;
 
-public class AlterPublication extends Statement {
+public class AlterPublication implements Statement {
 
     public enum Operation {
         ADD,

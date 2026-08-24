@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class NamedProperties<T> extends Node {
+public class NamedProperties<T> implements Node {
 
     private final String ident;
     private final GenericProperties<T> properties;

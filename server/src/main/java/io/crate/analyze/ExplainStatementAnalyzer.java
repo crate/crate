@@ -53,7 +53,7 @@ public class ExplainStatementAnalyzer {
         var isVerboseActivated = node.isOptionActivated(Explain.Option.VERBOSE);
         var isAnalyzeActivated = node.isOptionActivated(Explain.Option.ANALYZE);
 
-        Statement statement = node.getStatement();
+        Statement statement = node.statement();
         statement.accept(
             isVerboseActivated ? EXPLAIN_VERBOSE_CHECK_VISITOR :
                 (isAnalyzeActivated ? EXPLAIN_ANALYZE_CHECK_VISITOR : EXPLAIN_CHECK_VISITOR),

@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Objects;
 
-public class WithQuery extends Node {
+public class WithQuery implements Node {
 
     private final String name;
     private final Query query;

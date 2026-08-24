@@ -409,19 +409,19 @@ public class TestSqlParser {
     public void test_current_date_time_timestamp() {
         assertExpression("CURRENT_DATE", new CurrentTime(CurrentTime.Type.DATE));
         var stmt = SqlParser.createStatement("SELECT CURRENT_DATE AS CURRENT_DATE");
-        assertThat(((QuerySpecification)((Query) stmt).getQueryBody()).getSelect().getSelectItems()).satisfiesExactly(
+        assertThat(((QuerySpecification)((Query) stmt).queryBody()).getSelect().getSelectItems()).satisfiesExactly(
             s -> assertThat(((SingleColumn) s).getAlias()).isEqualTo("current_date")
         );
 
         assertExpression("CURRENT_TIME", new CurrentTime(CurrentTime.Type.TIME));
         stmt = SqlParser.createStatement("SELECT CURRENT_TIME CURRENT_TIME");
-        assertThat(((QuerySpecification)((Query) stmt).getQueryBody()).getSelect().getSelectItems()).satisfiesExactly(
+        assertThat(((QuerySpecification)((Query) stmt).queryBody()).getSelect().getSelectItems()).satisfiesExactly(
             s -> assertThat(((SingleColumn) s).getAlias()).isEqualTo("current_time")
         );
 
         assertExpression("CURRENT_TIMESTAMP", new CurrentTime(CurrentTime.Type.TIMESTAMP));
         stmt = SqlParser.createStatement("SELECT CURRENT_TIMESTAMP AS CURRENT_TIMESTAMP");
-        assertThat(((QuerySpecification)((Query) stmt).getQueryBody()).getSelect().getSelectItems()).satisfiesExactly(
+        assertThat(((QuerySpecification)((Query) stmt).queryBody()).getSelect().getSelectItems()).satisfiesExactly(
             s -> assertThat(((SingleColumn) s).getAlias()).isEqualTo("current_timestamp")
         );
     }
@@ -431,7 +431,7 @@ public class TestSqlParser {
         assertInstanceOf("CURRENT_SCHEMA", FunctionCall.class);
         assertInstanceOf("CURRENT_SCHEMA()", FunctionCall.class);
         var stmt = SqlParser.createStatement("SELECT CURRENT_SCHEMA AS CURRENT_SCHEMA");
-        assertThat(((QuerySpecification)((Query) stmt).getQueryBody()).getSelect().getSelectItems()).satisfiesExactly(
+        assertThat(((QuerySpecification)((Query) stmt).queryBody()).getSelect().getSelectItems()).satisfiesExactly(
             s -> assertThat(((SingleColumn) s).getAlias()).isEqualTo("current_schema")
         );
     }
@@ -440,7 +440,7 @@ public class TestSqlParser {
     public void testCurrentCatalogFunction() {
         assertInstanceOf("CURRENT_CATALOG", FunctionCall.class);
         var stmt = SqlParser.createStatement("SELECT CURRENT_CATALOG AS \"current_catalog\"");
-        assertThat(((QuerySpecification)((Query) stmt).getQueryBody()).getSelect().getSelectItems()).satisfiesExactly(
+        assertThat(((QuerySpecification)((Query) stmt).queryBody()).getSelect().getSelectItems()).satisfiesExactly(
             s -> assertThat(((SingleColumn) s).getAlias()).isEqualTo("current_catalog")
         );
     }
@@ -643,7 +643,7 @@ public class TestSqlParser {
     @Test
     public void test_select_with_no_columns() {
         Query query = (Query) SqlParser.createStatement("SELECT FROM t");
-        QuerySpecification querySpec = (QuerySpecification) query.getQueryBody();
+        QuerySpecification querySpec = (QuerySpecification) query.queryBody();
         assertThat(querySpec.getSelect().getSelectItems()).isEmpty();
     }
 

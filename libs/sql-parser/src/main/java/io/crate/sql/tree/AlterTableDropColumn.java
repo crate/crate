@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Objects;
 
-public class AlterTableDropColumn<T> extends Statement {
+public class AlterTableDropColumn<T> implements Statement {
 
     private final Table<T> table;
     private final List<DropColumnDefinition<T>> dropColumnDefinitions;

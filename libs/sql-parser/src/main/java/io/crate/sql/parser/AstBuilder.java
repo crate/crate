@@ -141,7 +141,6 @@ import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateTableAs;
 import io.crate.sql.tree.CreateTableLike;
 import io.crate.sql.tree.CreateUserMapping;
-import io.crate.sql.tree.LikeOption;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DeallocateStatement;
@@ -205,6 +204,7 @@ import io.crate.sql.tree.JoinOn;
 import io.crate.sql.tree.JoinType;
 import io.crate.sql.tree.JoinUsing;
 import io.crate.sql.tree.KillStatement;
+import io.crate.sql.tree.LikeOption;
 import io.crate.sql.tree.LikePredicate;
 import io.crate.sql.tree.Literal;
 import io.crate.sql.tree.LogicalBinaryExpression;
@@ -1640,10 +1640,10 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
         return new Query(
             visitIfPresent(context.with(), With.class),
-            body.getQueryBody(),
-            body.getOrderBy(),
-            body.getLimit(),
-            body.getOffset()
+            body.queryBody(),
+            body.orderBy(),
+            body.limit(),
+            body.offset()
         );
     }
 

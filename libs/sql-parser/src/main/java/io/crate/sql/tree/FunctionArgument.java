@@ -25,7 +25,7 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-public class FunctionArgument extends Node {
+public class FunctionArgument implements Node {
 
     @Nullable
     private final String name;

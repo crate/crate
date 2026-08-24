@@ -21,37 +21,12 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
-public class DeallocateStatement extends Statement {
-
-    @Nullable
-    private final Expression preparedStmt;
+public record DeallocateStatement(@Nullable Expression preparedStmt) implements Statement {
 
     public DeallocateStatement() {
         this(null);
-    }
-
-    public DeallocateStatement(@Nullable Expression preparedStmt) {
-        this.preparedStmt = preparedStmt;
-    }
-
-    @Nullable
-    public Expression preparedStmt() {
-        return preparedStmt;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return o instanceof DeallocateStatement that
-            && Objects.equals(preparedStmt, that.preparedStmt);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(preparedStmt);
     }
 
     @Override

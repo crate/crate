@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.Objects;
 import java.util.function.Function;
 
-public class AlterRoleSet<T> extends Statement {
+public class AlterRoleSet<T> implements Statement {
 
     private final GenericProperties<T> properties;
     private final String name;

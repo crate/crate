@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public abstract sealed class PrivilegeStatement extends Statement
+public abstract sealed class PrivilegeStatement implements Statement
     permits GrantPrivilege, RevokePrivilege, DenyPrivilege {
 
     protected final List<String> userNames;
