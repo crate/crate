@@ -22,61 +22,11 @@
 package io.crate.sql.tree;
 
 import java.util.Map;
-import java.util.Objects;
 
-public class CreateServer implements Statement {
-
-    private final String name;
-    private final String fdw;
-    private final boolean ifNotExists;
-    private final Map<String, Expression> options;
-
-    public CreateServer(String name,
-                        String fdw,
-                        boolean ifNotExists,
-                        Map<String, Expression> options) {
-        this.name = name;
-        this.fdw = fdw;
-        this.ifNotExists = ifNotExists;
-        this.options = options;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    public String fdw() {
-        return fdw;
-    }
-
-    public boolean ifNotExists() {
-        return ifNotExists;
-    }
-
-    public Map<String, Expression> options() {
-        return options;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, fdw, options);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        CreateServer other = (CreateServer) obj;
-        return Objects.equals(name, other.name) && Objects.equals(fdw, other.fdw)
-                && Objects.equals(options, other.options);
-    }
+public record CreateServer(String name,
+                           String fdw,
+                           boolean ifNotExists,
+                           Map<String, Expression> options) implements Statement {
 
     @Override
     public String toString() {

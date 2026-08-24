@@ -23,17 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.List;
 
-public class With implements Statement {
-
-    private final List<WithQuery> withQueries;
-
-    public With(List<WithQuery> withQueries) {
-        this.withQueries = withQueries;
-    }
-
-    public List<WithQuery> withQueries() {
-        return withQueries;
-    }
+public record With(List<WithQuery> withQueries) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -45,16 +35,5 @@ public class With implements Statement {
         return "With{" +
             "withQueries=" + withQueries +
             '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return o instanceof With that
-            && withQueries.equals(that.withQueries);
-    }
-
-    @Override
-    public int hashCode() {
-        return withQueries.hashCode();
     }
 }

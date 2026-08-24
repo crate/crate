@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-public final class EmptyStatement implements Statement {
+public class EmptyStatement implements Statement {
 
     public static final EmptyStatement INSTANCE = new EmptyStatement();
 

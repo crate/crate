@@ -150,14 +150,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     protected AnalyzedRelation visitQuery(Query node, StatementAnalysisContext statementContext) {
         // Start scope shared by possible with-queries and the child relation
         statementContext.startRelation();
-        if (node.getWith().isPresent()) {
-            var with = node.getWith().get();
+        if (node.with().isPresent()) {
+            var with = node.with().get();
             with.withQueries().forEach(wq -> wq.accept(this, statementContext));
         }
-        AnalyzedRelation childRelation = node.getQueryBody().accept(this, statementContext);
+        AnalyzedRelation childRelation = node.queryBody().accept(this, statementContext);
         statementContext.endRelation();
 
-        if (node.getOrderBy().isEmpty() && node.getLimit().isEmpty() && node.getOffset().isEmpty()) {
+        if (node.orderBy().isEmpty() && node.limit().isEmpty() && node.offset().isEmpty()) {
             return childRelation;
         }
         // In case of Set Operation (UNION, INTERSECT EXCEPT) or VALUES clause,
@@ -206,21 +206,21 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             null,
             analyzeOrderBy(
                 selectAnalysis,
-                node.getOrderBy(),
+                node.orderBy(),
                 expressionAnalyzer,
                 expressionAnalysisContext,
                 false,
                 false
             ),
             longSymbolOrNull(
-                node.getLimit(),
+                node.limit(),
                 expressionAnalyzer,
                 expressionAnalysisContext,
                 normalizer,
                 coordinatorTxnCtx
             ),
             longSymbolOrNull(
-                node.getOffset(),
+                node.offset(),
                 expressionAnalyzer,
                 expressionAnalysisContext,
                 normalizer,

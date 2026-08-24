@@ -21,43 +21,11 @@
 
 package io.crate.sql.tree;
 
-
-import java.util.Objects;
-
-public class DropTable<T> implements Statement {
-
-    private final Table<T> table;
-    private final boolean dropIfExists;
-
-    public DropTable(Table<T> table, boolean dropIfExists) {
-        this.table = table;
-        this.dropIfExists = dropIfExists;
-    }
-
-    public boolean dropIfExists() {
-        return dropIfExists;
-    }
-
-    public Table<T> table() {
-        return table;
-    }
+public record DropTable<T>(Table<T> table, boolean dropIfExists) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitDropTable(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        DropTable<?> dropTable = (DropTable<?>) o;
-        return dropIfExists == dropTable.dropIfExists &&
-               Objects.equals(table, dropTable.table);
     }
 
     @Override
@@ -66,10 +34,5 @@ public class DropTable<T> implements Statement {
                "table=" + table +
                ", dropIfExists=" + dropIfExists +
                '}';
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(table, dropIfExists);
     }
 }

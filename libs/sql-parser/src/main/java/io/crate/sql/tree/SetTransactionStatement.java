@@ -22,11 +22,10 @@
 package io.crate.sql.tree;
 
 import java.util.List;
-import java.util.Objects;
 
 import io.crate.common.collections.Lists;
 
-public class SetTransactionStatement implements Statement {
+public record SetTransactionStatement(List<TransactionMode> transactionModes) implements Statement {
 
     public interface TransactionMode {
     }
@@ -55,27 +54,6 @@ public class SetTransactionStatement implements Statement {
         public String toString() {
             return not ? "NOT DEFERRABLE" : "DEFERRABLE";
         }
-    }
-
-    private final List<TransactionMode> transactionModes;
-
-    public SetTransactionStatement(List<TransactionMode> transactionModes) {
-        this.transactionModes = transactionModes;
-    }
-
-    public List<TransactionMode> transactionModes() {
-        return transactionModes;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(transactionModes);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return obj instanceof SetTransactionStatement
-            && ((SetTransactionStatement) obj).transactionModes.equals(this.transactionModes);
     }
 
     @Override

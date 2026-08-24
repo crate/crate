@@ -21,49 +21,13 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
-public final class Close implements Statement {
-
-    private final String cursorName;
-
-    /**
-     * @param cursorName name of cursor to close; null implies ALL
-     */
-    public Close(@Nullable String cursorName) {
-        this.cursorName = cursorName;
-    }
-
-    @Nullable
-    public String cursorName() {
-        return cursorName;
-    }
+public record Close(@Nullable String cursorName) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitClose(this, context);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(cursorName);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        Close other = (Close) obj;
-        return Objects.equals(cursorName, other.cursorName);
     }
 
     @Override

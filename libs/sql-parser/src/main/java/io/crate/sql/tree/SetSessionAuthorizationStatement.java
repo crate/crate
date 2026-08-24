@@ -21,27 +21,17 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
-public class SetSessionAuthorizationStatement implements Statement {
+public record SetSessionAuthorizationStatement(@Nullable String user,
+                                               Scope scope) implements Statement {
 
     public enum Scope {
         SESSION, LOCAL
     }
 
-    @Nullable
-    private final String user;
-    private final Scope scope;
-
     public SetSessionAuthorizationStatement(Scope scope) {
         this(null, scope);
-    }
-
-    public SetSessionAuthorizationStatement(@Nullable String user, Scope scope) {
-        this.scope = scope;
-        this.user = user;
     }
 
     /**
@@ -58,24 +48,6 @@ public class SetSessionAuthorizationStatement implements Statement {
 
     public Scope scope() {
         return scope;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        SetSessionAuthorizationStatement that = (SetSessionAuthorizationStatement) o;
-        return Objects.equals(user, that.user) &&
-               scope == that.scope;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(user, scope);
     }
 
     @Override

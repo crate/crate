@@ -130,14 +130,14 @@ public final class UpdateAnalyzer {
             update.assignments(), typeHints, txnCtx, table, normalizer, subqueryAnalyzer, sourceExprAnalyzer, exprCtx);
 
         Symbol query = Objects.requireNonNullElse(
-            sourceExprAnalyzer.generateQuerySymbol(update.whereClause(), exprCtx),
+            sourceExprAnalyzer.generateQuerySymbol(update.where(), exprCtx),
             Literal.BOOLEAN_TRUE
         );
         query = maybeAliasedStatement.maybeMapFields(query);
 
         Symbol normalizedQuery = normalizer.normalize(query, txnCtx);
         SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelectItems(
-            update.returningClause(),
+            update.returning(),
             relCtx.sources(),
             sourceExprAnalyzer,
             exprCtx
