@@ -22,57 +22,14 @@
 package io.crate.sql.tree;
 
 import java.util.List;
-import java.util.Objects;
 
-public class DropForeignTable extends Statement {
-
-    private final List<QualifiedName> names;
-    private final boolean ifExists;
-    private final CascadeMode cascadeMode;
-
-    public DropForeignTable(List<QualifiedName> names, boolean ifExists, CascadeMode cascadeMode) {
-        this.names = names;
-        this.ifExists = ifExists;
-        this.cascadeMode = cascadeMode;
-    }
-
-    public List<QualifiedName> names() {
-        return names;
-    }
-
-    public boolean ifExists() {
-        return ifExists;
-    }
-
-    public CascadeMode cascadeMode() {
-        return cascadeMode;
-    }
+public record DropForeignTable(List<QualifiedName> names,
+                               boolean ifExists,
+                               CascadeMode cascadeMode) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitDropForeignTable(this, context);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(names, ifExists, cascadeMode);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        DropForeignTable other = (DropForeignTable) obj;
-        return Objects.equals(names, other.names)
-            && ifExists == other.ifExists
-            && cascadeMode == other.cascadeMode;
     }
 
     @Override

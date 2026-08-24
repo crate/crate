@@ -25,7 +25,7 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-public class AlterTableAlterColumnDefault<T> extends Statement {
+public class AlterTableAlterColumnDefault<T> implements Statement {
 
     private final Table<T> table;
     private final Expression column;

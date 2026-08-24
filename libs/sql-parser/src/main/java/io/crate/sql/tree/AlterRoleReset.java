@@ -21,46 +21,9 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
-public class AlterRoleReset extends Statement {
-
-    private final String property;
-    private final String name;
-
-    public AlterRoleReset(String name, @Nullable String property) {
-        this.property = property;
-        this.name = name;
-    }
-
-    @Nullable
-    public String property() {
-        return property;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        AlterRoleReset alterRoleReset = (AlterRoleReset) o;
-        return Objects.equals(property, alterRoleReset.property) &&
-               Objects.equals(name, alterRoleReset.name);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(property, name);
-    }
+public record AlterRoleReset(String name, @Nullable String property) implements Statement {
 
     @Override
     public String toString() {

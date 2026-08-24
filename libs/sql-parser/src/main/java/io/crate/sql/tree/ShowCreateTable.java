@@ -21,37 +21,13 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
 import java.util.function.Function;
 
-public class ShowCreateTable<T> extends Statement {
-
-    private final Table<T> table;
+public record ShowCreateTable<T>(Table<T> table) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitShowCreateTable(this, context);
-    }
-
-    public ShowCreateTable(Table<T> table) {
-        this.table = table;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        ShowCreateTable<?> that = (ShowCreateTable<?>) o;
-        return Objects.equals(table, that.table);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(table);
     }
 
     @Override
@@ -59,10 +35,6 @@ public class ShowCreateTable<T> extends Statement {
         return "ShowCreateTable{" +
                "table=" + table +
                '}';
-    }
-
-    public Table<T> table() {
-        return table;
     }
 
     public <U> ShowCreateTable<U> map(Function<? super T, ? extends U> mapper) {

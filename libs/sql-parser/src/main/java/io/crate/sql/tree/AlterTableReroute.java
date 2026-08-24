@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class AlterTableReroute<T> extends Statement {
+public class AlterTableReroute<T> implements Statement {
 
     private final Table<T> table;
     private final RerouteOption rerouteOption;

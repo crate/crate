@@ -22,63 +22,12 @@
 package io.crate.sql.tree;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
-import static java.util.Objects.requireNonNull;
-
-public class Update extends Statement {
-
-    private final Relation relation;
-    private final List<Assignment<Expression>> assignments;
-    private final Optional<Expression> where;
-    private final List<SelectItem> returning;
-
-    public Update(Relation relation,
-                  List<Assignment<Expression>> assignments,
-                  Optional<Expression> where,
-                  List<SelectItem> returning) {
-        this.relation = requireNonNull(relation, "relation is null");
-        this.assignments = assignments;
-        this.where = where;
-        this.returning = returning;
-    }
-
-    public Relation relation() {
-        return relation;
-    }
-
-    public List<Assignment<Expression>> assignments() {
-        return assignments;
-    }
-
-    public Optional<Expression> whereClause() {
-        return where;
-    }
-
-    public List<SelectItem> returningClause() {
-        return returning;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Update update = (Update) o;
-        return Objects.equals(relation, update.relation) &&
-               Objects.equals(assignments, update.assignments) &&
-               Objects.equals(where, update.where) &&
-               Objects.equals(returning, update.returning);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(relation, assignments, where, returning);
-    }
+public record Update(Relation relation,
+                     List<Assignment<Expression>> assignments,
+                     Optional<Expression> where,
+                     List<SelectItem> returning) implements Statement {
 
     @Override
     public String toString() {
@@ -94,5 +43,4 @@ public class Update extends Statement {
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitUpdate(this, context);
     }
-
 }

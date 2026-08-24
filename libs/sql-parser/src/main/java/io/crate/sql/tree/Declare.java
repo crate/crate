@@ -21,77 +21,20 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
-public final class Declare extends Statement {
+public final record Declare(String cursorName,
+                            Hold hold,
+                            boolean binary,
+                            boolean scroll,
+                            Query query) implements Statement {
 
     public enum Hold {
         WITH,
         WITHOUT
     }
 
-    private final String cursorName;
-    private final Hold hold;
-    private final boolean binary;
-    private final boolean scroll;
-    private final Query query;
-
-    public Declare(String cursorName,
-                   Hold hold,
-                   boolean binary,
-                   boolean scroll,
-                   Query query) {
-        this.cursorName = cursorName;
-        this.hold = hold;
-        this.binary = binary;
-        this.scroll = scroll;
-        this.query = query;
-    }
-
-    public String cursorName() {
-        return cursorName;
-    }
-
-    public Hold hold() {
-        return hold;
-    }
-
-    public boolean binary() {
-        return binary;
-    }
-
-    public boolean scroll() {
-        return scroll;
-    }
-
-    public Query query() {
-        return query;
-    }
-
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitDeclare(this, context);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(binary, cursorName, hold, query, scroll);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        Declare other = (Declare) obj;
-        return binary == other.binary && Objects.equals(cursorName, other.cursorName) && hold == other.hold
-                && Objects.equals(query, other.query) && scroll == other.scroll;
     }
 
     @Override

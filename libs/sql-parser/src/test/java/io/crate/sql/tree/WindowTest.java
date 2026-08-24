@@ -51,7 +51,7 @@ public class WindowTest {
         var provided = new Window("w", partitionBy, List.of(), Optional.empty());
 
         var newWindowDef = emptyWindow.merge(provided);
-        assertThat(newWindowDef.getPartitions()).isEqualTo(provided.getPartitions());
+        assertThat(newWindowDef.partitions()).isEqualTo(provided.partitions());
     }
 
     @Test
@@ -60,8 +60,8 @@ public class WindowTest {
         var provided = new Window(null, List.of(), orderBy, Optional.empty());
 
         var newWindowDef = current.merge(provided);
-        assertThat(newWindowDef.getOrderBy()).isEqualTo((orderBy));
-        assertThat(newWindowDef.getWindowFrame()).isEqualTo(Optional.of(frame));
+        assertThat(newWindowDef.orderBy()).isEqualTo((orderBy));
+        assertThat(newWindowDef.windowFrame()).isEqualTo(Optional.of(frame));
     }
 
     @Test

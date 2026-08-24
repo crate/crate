@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class DropAnalyzer extends Statement {
+public class DropAnalyzer implements Statement {
 
     private final String name;
 

@@ -22,33 +22,13 @@
 package io.crate.sql.tree;
 
 import java.util.Map;
-import java.util.Objects;
 
-import static java.util.Objects.requireNonNull;
-
-public class Explain extends Statement {
+public record Explain(Statement statement, Map<Option, Boolean> options) implements Statement {
 
     public enum Option {
         ANALYZE,
         COSTS,
         VERBOSE
-    }
-
-    private final Statement statement;
-    // Possible values for options is `true`, `false`, `null`
-    private final Map<Option, Boolean> options;
-
-    public Explain(Statement statement, Map<Option, Boolean> options) {
-        this.statement = requireNonNull(statement, "statement is null");
-        this.options = options;
-    }
-
-    public Statement getStatement() {
-        return statement;
-    }
-
-    public Map<Option, Boolean> options() {
-        return options;
     }
 
     public boolean isOptionActivated(Explain.Option option) {
@@ -64,24 +44,6 @@ public class Explain extends Statement {
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitExplain(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Explain explain = (Explain) o;
-        return Objects.equals(statement, explain.statement) &&
-            Objects.equals(options, explain.options);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(statement, options);
     }
 
     public String toString() {

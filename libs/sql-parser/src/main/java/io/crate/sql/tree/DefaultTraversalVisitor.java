@@ -65,8 +65,8 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
 
     @Override
     protected R visitQuery(Query node, C context) {
-        node.getQueryBody().accept(this, context);
-        for (SortItem sortItem : node.getOrderBy()) {
+        node.queryBody().accept(this, context);
+        for (SortItem sortItem : node.orderBy()) {
             sortItem.accept(this, context);
         }
 
@@ -295,17 +295,17 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
             assignment.accept(this, context);
         }
 
-        if (node.whereClause().isPresent()) {
-            node.whereClause().get().accept(this, context);
+        if (node.where().isPresent()) {
+            node.where().get().accept(this, context);
         }
 
-        node.returningClause().forEach(x -> x.accept(this, context));
+        node.returning().forEach(x -> x.accept(this, context));
         return null;
     }
 
     @Override
     public R visitDelete(Delete node, C context) {
-        node.getRelation().accept(this, context);
+        node.relation().accept(this, context);
         return null;
     }
 

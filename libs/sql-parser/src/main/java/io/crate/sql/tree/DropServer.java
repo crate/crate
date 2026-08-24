@@ -22,56 +22,14 @@
 package io.crate.sql.tree;
 
 import java.util.List;
-import java.util.Objects;
 
-public class DropServer extends Statement {
-
-    private final List<String> names;
-    private final boolean ifExists;
-    private final CascadeMode cascadeMode;
-
-    public DropServer(List<String> names, boolean ifExists, CascadeMode cascadeMode) {
-        this.names = names;
-        this.ifExists = ifExists;
-        this.cascadeMode = cascadeMode;
-    }
-
-    public List<String> names() {
-        return names;
-    }
-
-    public boolean ifExists() {
-        return ifExists;
-    }
-
-    public CascadeMode cascadeMode() {
-        return cascadeMode;
-    }
+public record DropServer(List<String> names,
+                         boolean ifExists,
+                         CascadeMode cascadeMode) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitDropServer(this, context);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(names, cascadeMode);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        DropServer other = (DropServer) obj;
-        return Objects.equals(names, other.names)
-            && cascadeMode == other.cascadeMode;
     }
 
     @Override

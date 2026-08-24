@@ -21,52 +21,16 @@
 
 package io.crate.sql.tree;
 
-import org.jspecify.annotations.Nullable;
-import java.util.Objects;
 import java.util.Optional;
 
-public class ShowSchemas extends Statement {
+import org.jspecify.annotations.Nullable;
 
-    @Nullable
-    private final String likePattern;
-    private final Optional<Expression> whereExpression;
-
-    public ShowSchemas(@Nullable String likePattern,
-                       Optional<Expression> whereExpr) {
-        this.likePattern = likePattern;
-        this.whereExpression = whereExpr;
-    }
-
-    @Nullable
-    public String likePattern() {
-        return likePattern;
-    }
-
-    public Optional<Expression> whereExpression() {
-        return whereExpression;
-    }
+public record ShowSchemas(@Nullable String likePattern,
+                          Optional<Expression> whereExpression) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitShowSchemas(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        ShowSchemas that = (ShowSchemas) o;
-        return Objects.equals(likePattern, that.likePattern) &&
-               Objects.equals(whereExpression, that.whereExpression);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(likePattern, whereExpression);
     }
 
     @Override

@@ -28,7 +28,7 @@ import java.util.function.Function;
 
 import io.crate.common.collections.Lists;
 
-public class SetStatement<T> extends Statement {
+public class SetStatement<T> implements Statement {
 
     public enum Scope {
         GLOBAL, SESSION, LOCAL, TIME_ZONE

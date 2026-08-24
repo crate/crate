@@ -21,38 +21,13 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
 import org.jspecify.annotations.Nullable;
 
-public class ShowSessionParameter extends Statement {
-
-    @Nullable
-    private final QualifiedName parameter;
-
-    public ShowSessionParameter(@Nullable QualifiedName parameter) {
-        this.parameter = parameter;
-    }
-
-    @Nullable
-    public QualifiedName parameter() {
-        return parameter;
-    }
+public record ShowSessionParameter(@Nullable QualifiedName parameter) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitShowSessionParameter(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return o instanceof ShowSessionParameter that
-            && Objects.equals(parameter, that.parameter);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(parameter);
     }
 
     @Override

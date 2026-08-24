@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class AlterTableRenameTable<T> extends Statement {
+public class AlterTableRenameTable<T> implements Statement {
 
     private final Table<T> table;
     private final boolean blob;

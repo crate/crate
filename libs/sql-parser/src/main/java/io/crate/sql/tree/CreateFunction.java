@@ -22,73 +22,17 @@
 package io.crate.sql.tree;
 
 import java.util.List;
-import java.util.Objects;
 
-public class CreateFunction<T> extends Statement {
-
-    private final QualifiedName name;
-    private final boolean replace;
-    private final List<FunctionArgument> arguments;
-    private final ColumnType<T> returnType;
-    private final T language;
-    private final T definition;
-
-    public CreateFunction(QualifiedName name,
-                          boolean replace,
-                          List<FunctionArgument> arguments,
-                          ColumnType<T> returnType,
-                          T language,
-                          T definition) {
-        this.name = name;
-        this.replace = replace;
-        this.arguments = arguments;
-        this.returnType = returnType;
-        this.language = language;
-        this.definition = definition;
-    }
-
-    public QualifiedName name() {
-        return name;
-    }
-
-    public boolean replace() {
-        return replace;
-    }
-
-    public List<FunctionArgument> arguments() {
-        return arguments;
-    }
-
-    public ColumnType<T> returnType() {
-        return returnType;
-    }
-
-    public T language() {
-        return language;
-    }
-
-    public T definition() {
-        return definition;
-    }
+public record CreateFunction<T>(QualifiedName name,
+                                boolean replace,
+                                List<FunctionArgument> arguments,
+                                ColumnType<T> returnType,
+                                T language,
+                                T definition) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCreateFunction(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return o instanceof CreateFunction<?> that
-            && Objects.equals(this.name, that.name)
-            && Objects.equals(this.replace, that.replace)
-            && Objects.equals(this.arguments, that.arguments)
-            && Objects.equals(this.returnType, that.returnType)
-            && Objects.equals(this.language, that.language);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, replace, arguments, returnType, language);
     }
 
     @Override

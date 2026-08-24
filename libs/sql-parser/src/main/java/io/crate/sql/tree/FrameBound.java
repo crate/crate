@@ -33,7 +33,7 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-public class FrameBound extends Node {
+public class FrameBound implements Node {
 
     public enum Type {
         UNBOUNDED_PRECEDING {

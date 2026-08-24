@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public final class Fetch extends Statement {
+public final class Fetch implements Statement {
 
     /**
      * Normalized direction
