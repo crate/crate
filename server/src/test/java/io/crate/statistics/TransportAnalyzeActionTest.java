@@ -37,6 +37,7 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
+
 public class TransportAnalyzeActionTest extends ESTestCase {
 
     @Test

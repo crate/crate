@@ -163,7 +163,7 @@ public class PlanStats {
             var lhsStats = join.lhs().accept(this, context);
             var rhsStats = join.rhs().accept(this, context);
             Map<ColumnIdent, ColumnStats<?>> statsByColumn = Maps.concat(lhsStats.statsByColumn(),
-                rhsStats.statsByColumn());
+                                                                         rhsStats.statsByColumn());
             if (lhsStats.numDocs() == -1
                 || lhsStats.sizeInBytes() == -1
                 || rhsStats.numDocs() == -1
@@ -207,7 +207,7 @@ public class PlanStats {
             long numRows = Math.max(lhsStats.numDocs(), rhsStats.numDocs());
             long sizeInBytes =
                 (numRows * lhsStats.averageSizePerRowInBytes())
-                    + (numRows * rhsStats.averageSizePerRowInBytes());
+                + (numRows * rhsStats.averageSizePerRowInBytes());
 
             Stats joinStats = new Stats(numRows, sizeInBytes, statsByColumn);
             long estimatedNumRows = SelectivityFunctions.estimateNumRows(
