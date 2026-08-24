@@ -25,12 +25,12 @@ import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Set;
 
 import org.elasticsearch.Version;
@@ -42,6 +42,7 @@ import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.scalar.SubscriptObjectFunction;
@@ -107,6 +108,33 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
                   └ Collect[doc.t1 | [x, y] | true]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
+    }
+
+    @Test
+    public void test_prune_outputs_except_preserves_window_function_order() throws Exception {
+        e.addTable("CREATE TABLE t2 (a int, b int, c int)");
+        LogicalPlan plan = plan("SELECT avg(a) OVER (), min(b) OVER (), max(c) OVER () FROM t2");
+        while (!(plan instanceof WindowAgg windowAgg)) {
+            plan = plan.sources().get(0);
+        }
+
+        assertThat(windowAgg.windowFunctions()).hasSize(3);
+        WindowFunction avg = windowAgg.windowFunctions().get(0);
+        WindowFunction min = windowAgg.windowFunctions().get(1);
+
+        // Drop max(c) (forces the source to actually shrink) and request the
+        // remaining functions in the reverse of their original order.
+        List<Symbol> outputsToKeep = List.of(min, avg);
+        LogicalPlan pruned = windowAgg.pruneOutputsExcept(outputsToKeep);
+
+        assertThat(pruned).isNotSameAs(windowAgg);
+        assertThat(pruned).isExactlyInstanceOf(WindowAgg.class);
+        WindowAgg prunedWindowAgg = (WindowAgg) pruned;
+
+        // Result must follow the original definition order, not the order passed to pruneOutputsExcept.
+        assertThat(prunedWindowAgg.windowFunctions()).containsExactly(avg, min);
+        assertThat(prunedWindowAgg.outputs()).containsExactlyElementsOf(
+            Lists.concat(prunedWindowAgg.source().outputs(), List.of(avg, min)));
     }
 
     @Test

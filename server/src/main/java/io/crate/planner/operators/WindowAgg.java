@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 import static io.crate.execution.dsl.phases.ExecutionPhases.executesOnHandler;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -115,23 +116,31 @@ public class WindowAgg extends ForwardingLogicalPlan {
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
-        ArrayList<WindowFunction> newWindowFunctions = new ArrayList<>();
+        HashSet<WindowFunction> windowFuncsUnordered = new HashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            Symbols.intersection(outputToKeep, windowFunctions, newWindowFunctions::add);
+            Symbols.intersection(outputToKeep, windowFunctions, windowFuncsUnordered::add);
             Symbols.intersection(outputToKeep, standalone, toKeep::add);
         }
-        for (WindowFunction newWindowFunction : newWindowFunctions) {
+        for (WindowFunction newWindowFunction : windowFuncsUnordered) {
             Symbols.intersection(newWindowFunction, source.outputs(), toKeep::add);
         }
         LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
         if (newSource == source) {
             return this;
         }
-        if (newWindowFunctions.isEmpty()) {
+        if (windowFuncsUnordered.isEmpty()) {
             return newSource;
-        } else {
-            return new WindowAgg(newSource, windowDefinition, List.copyOf(newWindowFunctions), newSource.outputs());
         }
+        // NB: this.outputs() = windowFunctions() + newSource.outputs()
+        WindowAgg newWindowAgg = new WindowAgg(newSource,
+            windowDefinition,
+            normalizePrunedOutputs(windowFunctions(), windowFuncsUnordered),
+            newSource.outputs()
+        );
+        boolean isSubsequence = Lists.isSubsequence(newWindowAgg.outputs(), outputs());
+        assert isSubsequence : "pruneOutputsExcept must not shuffle the outputs, it can only remove some of them.";
+
+        return newWindowAgg;
     }
 
     public List<WindowFunction> windowFunctions() {
