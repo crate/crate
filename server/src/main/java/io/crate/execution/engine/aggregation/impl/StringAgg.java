@@ -42,6 +42,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -51,7 +52,7 @@ import io.crate.types.DataTypes;
  */
 public final class StringAgg extends AggregationFunction<StringAgg.StringAggState, String> {
 
-    private static final String NAME = "string_agg";
+    static final String NAME = "string_agg";
     public static final Signature SIGNATURE =
             Signature.builder(NAME, FunctionType.AGGREGATE)
                     .argumentTypes(DataTypes.STRING.getTypeSignature(),
@@ -74,16 +75,18 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
         );
     }
 
-    static class StringAggState implements Writeable {
+    public static class StringAggState implements Writeable {
 
         private final List<String> values;
         private String firstDelimiter;
 
-        public StringAggState() {
+        public static final long SHALLOW_SIZE = ArrayType.ARRAY_LIST_SHALLOW_SIZE;
+
+        private StringAggState() {
             values = new ArrayList<>();
         }
 
-        public StringAggState(StreamInput in) throws IOException {
+        private StringAggState(StreamInput in) throws IOException {
             values = in.readList(StreamInput::readString);
             firstDelimiter = in.readOptionalString();
         }
@@ -157,6 +160,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     public StringAggState newState(RamAccounting ramAccounting,
                                    Version minNodeInCluster,
                                    MemoryManager memoryManager) {
+        ramAccounting.addBytes(StringAggState.SHALLOW_SIZE);
         return new StringAggState();
     }
 
@@ -200,7 +204,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
 
         int indexOfExpression = previousAggState.values.indexOf(expression);
         if (indexOfExpression > -1) {
-            ramAccounting.addBytes(-LIST_ENTRY_OVERHEAD + RamUsageEstimator.sizeOf(expression));
+            ramAccounting.addBytes(-(LIST_ENTRY_OVERHEAD + RamUsageEstimator.sizeOf(expression)));
             if (delimiter != null && indexOfExpression + 1 < previousAggState.values.size()) {
                 String elementNextToExpression = previousAggState.values.get(indexOfExpression + 1);
                 if (elementNextToExpression.equalsIgnoreCase(delimiter)) {
