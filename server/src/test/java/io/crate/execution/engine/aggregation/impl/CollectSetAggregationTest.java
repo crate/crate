@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -118,7 +118,7 @@ public class CollectSetAggregationTest extends AggregationTestCase {
         assertThat(ramAccounting.totalBytes()).isEqualTo(256L);
 
         Object values = aggregationFunction.terminatePartial(ramAccounting, state);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(296L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(280L);
         assertThat((List<Object>) values).containsExactlyInAnyOrder(10L, 20L);
     }
 
@@ -141,7 +141,7 @@ public class CollectSetAggregationTest extends AggregationTestCase {
         assertThat(ramAccounting.totalBytes()).isEqualTo(64L);
 
         Object values = aggregationFunction.terminatePartial(ramAccounting, state);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(104L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(88L);
         assertThat((List<Object>) values).isEmpty();
     }
 
