@@ -691,14 +691,22 @@ public class GroupByAggregateTest extends IntegTestCase {
         assertThat(response).hasRows("5| 3.5953862697246315E307");
     }
 
+    @UseRandomizedOptimizerRules(0)
+    @UseRandomizedSchema(random = false)
     @Test
     public void testGlobalCountDistinctColumnReuse() throws Exception {
-
         execute("select count(distinct good), count(distinct department), count(distinct good) from employees");
         assertThat(response.rowCount()).isEqualTo(1);
         assertThat(response.rows()[0][0]).isEqualTo(2L);
         assertThat(response.rows()[0][1]).isEqualTo(4L);
         assertThat(response.rows()[0][2]).isEqualTo(2L);
+
+        execute("explain (costs false) select count(distinct good), count(distinct department), count(distinct good) from employees");
+        assertThat(response).hasLines(
+            "Eval[count(DISTINCT good), count(DISTINCT department), count(DISTINCT good)]",
+            "  └ HashAggregate[count(DISTINCT good), count(DISTINCT department)]",
+            "    └ Collect[doc.employees | [good, department] | true]"
+        );
     }
 
     @Test
