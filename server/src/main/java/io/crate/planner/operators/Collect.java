@@ -350,7 +350,7 @@ public class Collect implements LogicalPlan {
         for (Symbol outputToKeep : outputsToKeep) {
             Symbols.intersection(outputToKeep, outputs, required::add);
         }
-        List<Symbol> prunedOutputs = normalizePrunedOutputs(required);
+        List<Symbol> prunedOutputs = normalizePrunedOutputs(outputs, required);
         if (prunedOutputs.size() == outputs.size()) {
             return this;
         }

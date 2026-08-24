@@ -182,10 +182,13 @@ public class HashAggregate extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
+        // Collecting pruned outputs, but they can be out of order.
         ArrayList<Function> newAggregates = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
             Symbols.intersection(outputToKeep, aggregates, newAggregates::add);
         }
+        // Trying to prune source with a narrower list of outputs:
+        // outputsToKeep ∩ aggregates ∩ source.outputs()
         LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
         for (Function newAggregate : newAggregates) {
             Symbols.intersection(newAggregate, source.outputs(), toKeep::add);
@@ -194,7 +197,10 @@ public class HashAggregate extends ForwardingLogicalPlan {
         if (source == newSource && newAggregates == aggregates) {
             return this;
         }
-        return new HashAggregate(newSource, newAggregates);
+        List<Function> prunedOutputs = normalizePrunedOutputs(aggregates, newAggregates);
+        boolean isSubsequence = Lists.isSubsequence(prunedOutputs, aggregates);
+        assert isSubsequence : "pruneOutputsExcept must not shuffle the outputs, it can only remove some of them.";
+        return new HashAggregate(newSource, prunedOutputs);
     }
 
     @Override
