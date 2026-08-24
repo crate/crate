@@ -34,7 +34,6 @@ import org.jspecify.annotations.Nullable;
 
 import io.crate.execution.engine.collect.files.FileReadingIterator.LineCursor;
 import io.crate.metadata.ColumnIdent;
-import io.crate.server.xcontent.ParsedXContent;
 import io.crate.server.xcontent.XContentHelper;
 
 public class LineContext {
@@ -65,8 +64,11 @@ public class LineContext {
             if (rawSource != null) {
                 try {
                     // preserve the order of the rawSource
-                    ParsedXContent parsedXContent = XContentHelper.convertToMap(new BytesArray(rawSource), true, XContentType.JSON);
-                    parsedSource = (LinkedHashMap<String, Object>) parsedXContent.map();
+                    parsedSource = (LinkedHashMap<String, Object>) XContentHelper.convertToMap(
+                        new BytesArray(rawSource),
+                        true,
+                        XContentType.JSON
+                    );
                 } catch (ElasticsearchParseException | NotXContentException e) {
                     throw new RuntimeException("JSON parser error: " + e.getMessage(), e);
                 }
