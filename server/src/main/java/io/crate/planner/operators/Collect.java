@@ -26,7 +26,6 @@ import static io.crate.planner.operators.Limit.limitAndOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -346,11 +345,7 @@ public class Collect implements LogicalPlan {
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         // Collecting pruned outputs, but they can be out of order.
-        HashSet<Symbol> required = new HashSet<>();
-        for (Symbol outputToKeep : outputsToKeep) {
-            Symbols.intersection(outputToKeep, outputs, required::add);
-        }
-        List<Symbol> prunedOutputs = normalizePrunedOutputs(required);
+        List<Symbol> prunedOutputs = normalizePrunedOutputs(this.outputs(), outputsToKeep);
         if (prunedOutputs.size() == outputs.size()) {
             return this;
         }

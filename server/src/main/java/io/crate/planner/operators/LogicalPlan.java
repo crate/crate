@@ -39,6 +39,7 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -256,14 +257,19 @@ public interface LogicalPlan extends Plan {
      * Returns list of outputs ordered according to outputs of this plan.
      * @param prunedOutputs is outputs in arbitrary order
      */
-    default List<Symbol> normalizePrunedOutputs(HashSet<Symbol> prunedOutputs) {
-        List<Symbol> normalizedOutputs = new ArrayList<>();
+    default List<Symbol> normalizePrunedOutputs(Collection<Symbol> outputs, SequencedCollection<Symbol> outputsToKeep) {
+        HashSet<Symbol> prunedUnordered = new HashSet<>();
+        for (Symbol outputToKeep : outputsToKeep) {
+            Symbols.intersection(outputToKeep, outputs, prunedUnordered::add);
+        }
+
+        List<Symbol> prunedOrdered = new ArrayList<>();
         // Some operators (e.g. HashAggregate), do non-trivial work to return outputs, getting them only once.
-        for (Symbol output : this.outputs()) {
-            if (prunedOutputs.contains(output)) {
-                normalizedOutputs.add(output);
+        for (Symbol output : outputs) {
+            if (prunedUnordered.contains(output)) {
+                prunedOrdered.add(output);
             }
         }
-        return normalizedOutputs;
+        return prunedOrdered;
     }
 }
