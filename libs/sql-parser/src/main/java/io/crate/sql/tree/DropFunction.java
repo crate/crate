@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.List;
 
-public class DropFunction extends Statement {
+public class DropFunction implements Statement {
 
     private final QualifiedName name;
     private final boolean exists;

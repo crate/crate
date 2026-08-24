@@ -21,8 +21,8 @@
 
 package io.crate.sql.tree;
 
-public class WhenClause
-    extends Expression {
+public class WhenClause extends Expression {
+
     private final Expression operand;
     private final Expression result;
 

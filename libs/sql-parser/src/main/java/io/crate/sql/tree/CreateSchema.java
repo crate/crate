@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-public class CreateSchema extends Statement {
+public class CreateSchema implements Statement {
 
     public final String name;
     public final boolean ifNotExists;

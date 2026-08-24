@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Objects;
 
-public class RestoreSnapshot<T> extends Statement {
+public class RestoreSnapshot<T> implements Statement {
 
     public enum Mode {
         ALL,

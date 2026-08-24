@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class Select extends Node {
+public class Select implements Node {
 
     private final boolean distinct;
     private final List<SelectItem> selectItems;

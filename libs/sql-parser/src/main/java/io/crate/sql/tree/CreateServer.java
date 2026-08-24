@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.Map;
 import java.util.Objects;
 
-public class CreateServer extends Statement {
+public class CreateServer implements Statement {
 
     private final String name;
     private final String fdw;

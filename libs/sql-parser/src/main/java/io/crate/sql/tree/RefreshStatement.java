@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Objects;
 
-public class RefreshStatement<T> extends Statement {
+public class RefreshStatement<T> implements Statement {
 
     private final List<Table<T>> tables;
 

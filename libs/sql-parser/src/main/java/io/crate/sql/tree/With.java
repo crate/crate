@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.List;
 
-public class With extends Statement {
+public class With implements Statement {
 
     private final List<WithQuery> withQueries;
 

@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Objects;
 
-public class CreatePublication extends Statement {
+public class CreatePublication implements Statement {
 
     private final String name;
     private final boolean forAllTables;

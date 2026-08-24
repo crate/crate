@@ -26,7 +26,7 @@ import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
-public final class Window extends Statement {
+public final class Window implements Statement {
 
     private final String windowRef;
     private final List<Expression> partitions;

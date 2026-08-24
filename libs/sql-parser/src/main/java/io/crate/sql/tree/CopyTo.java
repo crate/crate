@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public class CopyTo<T> extends Statement {
+public class CopyTo<T> implements Statement {
 
     private final Table<T> table;
     private final List<T> columns;

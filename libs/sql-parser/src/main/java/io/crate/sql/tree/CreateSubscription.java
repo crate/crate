@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Objects;
 
-public class CreateSubscription<T> extends Statement {
+public class CreateSubscription<T> implements Statement {
 
     private final String name;
     private final T connectionInfo;

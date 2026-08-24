@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Objects;
 
-public class ValuesList extends Node {
+public class ValuesList implements Node {
 
     private final List<Expression> values;
 

@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class SortItem extends Node {
+public class SortItem implements Node {
 
     public enum Ordering {
         ASCENDING, DESCENDING

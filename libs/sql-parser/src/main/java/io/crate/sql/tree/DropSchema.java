@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Objects;
 
-public class DropSchema extends Statement {
+public class DropSchema implements Statement {
 
     private final List<String> names;
     private final boolean ifExists;

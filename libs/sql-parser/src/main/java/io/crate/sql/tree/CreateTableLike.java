@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.Objects;
 import java.util.Set;
 
-public final class CreateTableLike<T> extends Statement {
+public final class CreateTableLike<T> implements Statement {
 
     private final Table<T> name;
     private final QualifiedName likeTableName;

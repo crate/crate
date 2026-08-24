@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Locale;
 
-public final class DiscardStatement extends Statement {
+public final class DiscardStatement implements Statement {
 
     public enum Target {
         ALL,

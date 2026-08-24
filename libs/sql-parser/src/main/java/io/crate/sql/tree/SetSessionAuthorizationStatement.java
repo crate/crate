@@ -21,10 +21,11 @@
 
 package io.crate.sql.tree;
 
-import org.jspecify.annotations.Nullable;
 import java.util.Objects;
 
-public class SetSessionAuthorizationStatement extends Statement {
+import org.jspecify.annotations.Nullable;
+
+public class SetSessionAuthorizationStatement implements Statement {
 
     public enum Scope {
         SESSION, LOCAL

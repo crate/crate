@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public final class CreateTableAs<T> extends Statement {
+public final class CreateTableAs<T> implements Statement {
 
     private final Table<T> name;
     private final Query query;

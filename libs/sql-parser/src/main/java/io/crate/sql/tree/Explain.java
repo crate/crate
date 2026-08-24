@@ -21,12 +21,12 @@
 
 package io.crate.sql.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Map;
 import java.util.Objects;
 
-import static java.util.Objects.requireNonNull;
-
-public class Explain extends Statement {
+public class Explain implements Statement {
 
     public enum Option {
         ANALYZE,

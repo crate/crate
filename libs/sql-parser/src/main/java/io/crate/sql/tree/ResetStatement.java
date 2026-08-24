@@ -27,7 +27,7 @@ import java.util.function.Function;
 
 import io.crate.common.collections.Lists;
 
-public class ResetStatement<T> extends Statement {
+public class ResetStatement<T> implements Statement {
 
     private final List<T> columns;
 

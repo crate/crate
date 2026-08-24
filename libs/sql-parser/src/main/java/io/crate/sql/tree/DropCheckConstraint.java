@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class DropCheckConstraint<T> extends Statement {
+public class DropCheckConstraint<T> implements Statement {
 
     private final Table<T> table;
     private final String name;

@@ -25,7 +25,7 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-public class DropUserMapping extends Statement {
+public class DropUserMapping implements Statement {
 
     @Nullable
     private final String userName;

@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Objects;
 
-public class DropForeignTable extends Statement {
+public class DropForeignTable implements Statement {
 
     private final List<QualifiedName> names;
     private final boolean ifExists;

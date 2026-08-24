@@ -26,7 +26,7 @@ import java.util.Objects;
 
 import io.crate.common.collections.Lists;
 
-public class SetTransactionStatement extends Statement {
+public class SetTransactionStatement implements Statement {
 
     public interface TransactionMode {
     }

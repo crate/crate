@@ -21,11 +21,12 @@
 
 package io.crate.sql.tree;
 
-import org.jspecify.annotations.Nullable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class ShowTables extends Statement {
+import org.jspecify.annotations.Nullable;
+
+public class ShowTables implements Statement {
 
     @Nullable
     private final QualifiedName schema;

@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class DropTable<T> extends Statement {
+public class DropTable<T> implements Statement {
 
     private final Table<T> table;
     private final boolean dropIfExists;

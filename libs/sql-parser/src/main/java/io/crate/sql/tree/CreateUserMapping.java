@@ -26,7 +26,7 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-public class CreateUserMapping extends Statement {
+public class CreateUserMapping implements Statement {
 
     private final boolean ifNotExists;
 

@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public final class Declare extends Statement {
+public final class Declare implements Statement {
 
     public enum Hold {
         WITH,
