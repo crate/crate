@@ -26,6 +26,7 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import java.util.List;
 
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.operators.Filter;
@@ -35,6 +36,8 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public final class MoveFilterBeneathUnion implements Rule<Filter> {
 
@@ -73,7 +76,12 @@ public final class MoveFilterBeneathUnion implements Rule<Filter> {
                     "Field used in filter must be present in its source outputs." +
                     f + " missing in " + filter.source().outputs());
             }
-            return newSource.outputs().get(idx);
+            Symbol newField = newSource.outputs().get(idx);
+            if (!f.valueType().equals(newField.valueType())) {
+                DataType<?> commonType = DataTypes.merge(f.valueType(), newField.valueType());
+                newField = newField.cast(commonType, CastMode.IMPLICIT);
+            }
+            return newField;
         });
         return new Filter(newSource, newQuery);
     }
