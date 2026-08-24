@@ -77,7 +77,6 @@ import io.crate.statistics.ColumnStatsSupport;
 public class ArrayType<T> extends DataType<List<T>> {
 
     public static final ArrayType<Object> ARRAY_OF_UNDEFINED = new ArrayType<>(UndefinedType.INSTANCE);
-    public static final long ARRAY_LIST_SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ArrayList.class);
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ArrayType.class);
 
