@@ -21,65 +21,18 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
 import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
-public class ShowTables implements Statement {
-
-    @Nullable
-    private final QualifiedName schema;
-    @Nullable
-    private final String likePattern;
-    private final Optional<Expression> whereExpression;
-
-    public ShowTables(@Nullable QualifiedName schema,
-                      @Nullable String likePattern,
-                      Optional<Expression> whereExpression) {
-        this.schema = schema;
-        this.whereExpression = whereExpression;
-        this.likePattern = likePattern;
-    }
-
-    @Nullable
-    public QualifiedName schema() {
-        return schema;
-    }
-
-    @Nullable
-    public String likePattern() {
-        return likePattern;
-    }
-
-    public Optional<Expression> whereExpression() {
-        return whereExpression;
-    }
+public record ShowTables(@Nullable QualifiedName schema,
+                         @Nullable String likePattern,
+                         Optional<Expression> whereExpression) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitShowTables(this, context);
     }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        ShowTables that = (ShowTables) o;
-        return Objects.equals(schema, that.schema) &&
-               Objects.equals(likePattern, that.likePattern) &&
-               Objects.equals(whereExpression, that.whereExpression);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(schema, likePattern, whereExpression);
-    }
-
 
     @Override
     public String toString() {

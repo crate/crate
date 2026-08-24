@@ -21,65 +21,16 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
 import java.util.Set;
 
-public final class CreateTableLike<T> implements Statement {
-
-    private final Table<T> name;
-    private final QualifiedName likeTableName;
-    private final boolean ifNotExists;
-    private final Set<LikeOption> includedOptions;
-
-    public CreateTableLike(Table<T> name,
-                           QualifiedName likeTableName,
-                           boolean ifNotExists,
-                           Set<LikeOption> includedOptions) {
-        this.name = name;
-        this.likeTableName = likeTableName;
-        this.ifNotExists = ifNotExists;
-        this.includedOptions = includedOptions;
-    }
-
-    public Table<T> name() {
-        return this.name;
-    }
-
-    public QualifiedName likeTableName() {
-        return this.likeTableName;
-    }
-
-    public boolean ifNotExists() {
-        return ifNotExists;
-    }
-
-    public Set<LikeOption> includedOptions() {
-        return includedOptions;
-    }
+public record CreateTableLike<T>(Table<T> name,
+                                 QualifiedName likeTableName,
+                                 boolean ifNotExists,
+                                 Set<LikeOption> includedOptions) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCreateTableLike(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof CreateTableLike)) {
-            return false;
-        }
-        CreateTableLike<?> that = (CreateTableLike<?>) o;
-        return name.equals(that.name) &&
-            likeTableName.equals(that.likeTableName) &&
-            ifNotExists == that.ifNotExists &&
-            includedOptions.equals(that.includedOptions);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, likeTableName, ifNotExists, includedOptions);
     }
 
     @Override

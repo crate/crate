@@ -21,73 +21,18 @@
 
 package io.crate.sql.tree;
 
-import static java.util.Objects.requireNonNull;
-
-import java.util.Objects;
 import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
-public class ShowColumns implements Statement {
-
-    private final QualifiedName table;
-    @Nullable
-    private final QualifiedName schema;
-    @Nullable
-    private final String likePattern;
-    private final Optional<Expression> where;
-
-    public ShowColumns(QualifiedName table,
-                       @Nullable QualifiedName schema,
-                       Optional<Expression> where,
-                       @Nullable String likePattern) {
-        this.table = requireNonNull(table, "table is null");
-        this.schema = schema;
-        this.likePattern = likePattern;
-        this.where = where;
-    }
-
-    public QualifiedName table() {
-        return table;
-    }
-
-    @Nullable
-    public QualifiedName schema() {
-        return schema;
-    }
-
-    @Nullable
-    public String likePattern() {
-        return likePattern;
-    }
-
-    public Optional<Expression> where() {
-        return where;
-    }
+public record ShowColumns(QualifiedName table,
+                          @Nullable QualifiedName schema,
+                          Optional<Expression> where,
+                          @Nullable String likePattern) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitShowColumns(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        ShowColumns that = (ShowColumns) o;
-        return Objects.equals(table, that.table) &&
-               Objects.equals(schema, that.schema) &&
-               Objects.equals(likePattern, that.likePattern) &&
-               Objects.equals(where, that.where);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(table, schema, likePattern, where);
     }
 
     @Override

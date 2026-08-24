@@ -21,54 +21,13 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
-public final class SwapTable<T> implements Statement {
-
-    private final QualifiedName source;
-    private final QualifiedName target;
-    private final GenericProperties<T> properties;
-
-    public SwapTable(QualifiedName source, QualifiedName target, GenericProperties<T> properties) {
-        this.source = source;
-        this.target = target;
-        this.properties = properties;
-    }
-
-    public QualifiedName source() {
-        return source;
-    }
-
-    public QualifiedName target() {
-        return target;
-    }
-
-    public GenericProperties<T> properties() {
-        return properties;
-    }
+public record SwapTable<T>(QualifiedName source,
+                           QualifiedName target,
+                           GenericProperties<T> properties) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitSwapTable(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        SwapTable<?> swapTable = (SwapTable<?>) o;
-        return Objects.equals(source, swapTable.source) &&
-               Objects.equals(target, swapTable.target) &&
-               Objects.equals(properties, swapTable.properties);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(source, target, properties);
     }
 
     @Override

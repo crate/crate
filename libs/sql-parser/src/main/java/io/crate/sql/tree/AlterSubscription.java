@@ -21,51 +21,16 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
-public class AlterSubscription implements Statement {
+public record AlterSubscription(String name, Mode mode) implements Statement {
 
     public enum Mode {
         ENABLE,
         DISABLE;
     }
 
-    private final String name;
-    private final Mode mode;
-
-    public AlterSubscription(String name, Mode mode) {
-        this.name = name;
-        this.mode = mode;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    public Mode mode() {
-        return mode;
-    }
-
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitAlterSubscription(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        AlterSubscription that = (AlterSubscription) o;
-        return name.equals(that.name) && mode == that.mode;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, mode);
     }
 
     @Override

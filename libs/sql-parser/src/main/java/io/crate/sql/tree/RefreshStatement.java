@@ -22,36 +22,8 @@
 package io.crate.sql.tree;
 
 import java.util.List;
-import java.util.Objects;
 
-public class RefreshStatement<T> implements Statement {
-
-    private final List<Table<T>> tables;
-
-    public RefreshStatement(List<Table<T>> tables) {
-        this.tables = tables;
-    }
-
-    public List<Table<T>> tables() {
-        return tables;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        RefreshStatement<?> that = (RefreshStatement<?>) o;
-        return Objects.equals(tables, that.tables);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(tables);
-    }
+public record RefreshStatement<T>(List<Table<T>> tables) implements Statement {
 
     @Override
     public String toString() {

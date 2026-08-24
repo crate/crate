@@ -21,83 +21,18 @@
 
 package io.crate.sql.tree;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
-public class Query implements Statement {
-
-    private final Optional<With> with;
-    private final QueryBody queryBody;
-    private final List<SortItem> orderBy;
-    private final Optional<Expression> limit;
-    private final Optional<Expression> offset;
-
-    public Query(Optional<With> with,
-                 QueryBody queryBody,
-                 List<SortItem> orderBy,
-                 Optional<Expression> limit,
-                 Optional<Expression> offset) {
-        this.with = requireNonNull(with, "with is null");
-        this.queryBody = requireNonNull(queryBody, "queryBody is null");
-        this.orderBy = orderBy;
-        this.limit = limit;
-        this.offset = offset;
-    }
-
-    public Optional<With> getWith() {
-        return with;
-    }
-
-    public QueryBody getQueryBody() {
-        return queryBody;
-    }
-
-    public List<SortItem> getOrderBy() {
-        return orderBy;
-    }
-
-    public Optional<Expression> getLimit() {
-        return limit;
-    }
-
-    public Optional<Expression> getOffset() {
-        return offset;
-    }
+public record Query(Optional<With> with,
+                    QueryBody queryBody,
+                    List<SortItem> orderBy,
+                    Optional<Expression> limit,
+                    Optional<Expression> offset) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitQuery(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Query query = (Query) o;
-        return Objects.equals(with, query.with) &&
-               Objects.equals(queryBody, query.queryBody) &&
-               Objects.equals(orderBy, query.orderBy) &&
-               Objects.equals(limit, query.limit) &&
-               Objects.equals(offset, query.offset);
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + with.hashCode();
-        result = prime * result + queryBody.hashCode();
-        result = prime * result + orderBy.hashCode();
-        result = prime * result + limit.hashCode();
-        result = prime * result + offset.hashCode();
-        return result;
     }
 
     @Override

@@ -21,48 +21,11 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
-public class DropCheckConstraint<T> implements Statement {
-
-    private final Table<T> table;
-    private final String name;
-
-    public DropCheckConstraint(Table<T> table, String name) {
-        this.table = table;
-        this.name = name;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    public Table<T> table() {
-        return table;
-    }
+public record DropCheckConstraint<T>(Table<T> table, String name) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitDropCheckConstraint(this, context);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(table, name);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (false == obj instanceof DropCheckConstraint) {
-            return false;
-        }
-        DropCheckConstraint<?> that = (DropCheckConstraint<?>) obj;
-        return Objects.equals(name, that.name) &&
-               Objects.equals(table, that.table);
-
     }
 
     @Override

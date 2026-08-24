@@ -22,44 +22,10 @@
 package io.crate.sql.tree;
 
 import java.util.List;
-import java.util.Objects;
 
-public class DropSchema implements Statement {
-
-    private final List<String> names;
-    private final boolean ifExists;
-    private final CascadeMode mode;
-
-    public DropSchema(List<String> names, boolean ifExists, CascadeMode mode) {
-        this.names = names;
-        this.ifExists = ifExists;
-        this.mode = mode;
-    }
-
-    public List<String> names() {
-        return names;
-    }
-
-    public boolean ifExists() {
-        return ifExists;
-    }
-
-    public CascadeMode mode() {
-        return mode;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(names, ifExists, mode);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return obj instanceof DropSchema other
-            && names.equals(other.names)
-            && ifExists == other.ifExists
-            && mode == other.mode;
-    }
+public record DropSchema(List<String> names,
+                         boolean ifExists,
+                         CascadeMode mode) implements Statement {
 
     @Override
     public String toString() {

@@ -26,39 +26,10 @@ import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
-public final class Window implements Statement {
-
-    private final String windowRef;
-    private final List<Expression> partitions;
-    private final List<SortItem> orderBy;
-    private final Optional<WindowFrame> windowFrame;
-
-    public Window(@Nullable String windowRef,
-                  List<Expression> partitions,
-                  List<SortItem> orderBy,
-                  Optional<WindowFrame> windowFrame) {
-        this.partitions = partitions;
-        this.orderBy = orderBy;
-        this.windowFrame = windowFrame;
-        this.windowRef = windowRef;
-    }
-
-    @Nullable
-    public String windowRef() {
-        return windowRef;
-    }
-
-    public List<Expression> getPartitions() {
-        return partitions;
-    }
-
-    public List<SortItem> getOrderBy() {
-        return orderBy;
-    }
-
-    public Optional<WindowFrame> getWindowFrame() {
-        return windowFrame;
-    }
+public record Window(@Nullable String windowRef,
+                     List<Expression> partitions,
+                     List<SortItem> orderBy,
+                     Optional<WindowFrame> windowFrame) implements Statement {
 
     /**
      * Merges the provided window definition into the current one
@@ -86,46 +57,30 @@ public final class Window implements Statement {
             throw new IllegalArgumentException(
                 "Cannot override PARTITION BY clause of window " + this.windowRef);
         } else {
-            partitionBy = that.getPartitions();
+            partitionBy = that.partitions();
         }
 
         final List<SortItem> orderBy;
-        if (that.getOrderBy().isEmpty()) {
-            orderBy = this.getOrderBy();
+        if (that.orderBy().isEmpty()) {
+            orderBy = this.orderBy();
         } else {
-            if (!this.getOrderBy().isEmpty()) {
+            if (!this.orderBy().isEmpty()) {
                 throw new IllegalArgumentException(
                     "Cannot override ORDER BY clause of window " + this.windowRef);
             }
-            orderBy = that.getOrderBy();
+            orderBy = that.orderBy();
         }
 
-        if (that.getWindowFrame().isPresent()) {
+        if (that.windowFrame().isPresent()) {
             throw new IllegalArgumentException(
                 "Cannot copy window " + this.windowRef() + " because it has a frame clause");
         }
 
-        return new Window(that.windowRef, partitionBy, orderBy, this.getWindowFrame());
+        return new Window(that.windowRef, partitionBy, orderBy, this.windowFrame());
     }
 
     private boolean empty() {
         return partitions.isEmpty() && orderBy.isEmpty() && windowFrame.isEmpty();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return o instanceof Window that
-            && partitions.equals(that.partitions)
-            && orderBy.equals(that.orderBy)
-            && windowFrame.equals(that.windowFrame);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = partitions.hashCode();
-        result = 31 * result + orderBy.hashCode();
-        result = 31 * result + windowFrame.hashCode();
-        return result;
     }
 
     @Override

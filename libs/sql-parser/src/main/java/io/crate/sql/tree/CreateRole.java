@@ -21,53 +21,9 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
-public class CreateRole implements Statement {
-    private final String name;
-    private final boolean isUser;
-
-    private final GenericProperties<Expression> properties;
-
-
-    public CreateRole(String name,
-                      boolean isUser,
-                      GenericProperties<Expression> properties) {
-        this.name = name;
-        this.isUser = isUser;
-        this.properties = properties;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    public boolean isUser() {
-        return isUser;
-    }
-
-    public GenericProperties<Expression> properties() {
-        return properties;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        CreateRole that = (CreateRole) o;
-        return Objects.equals(name, that.name) &&
-            isUser == that.isUser &&
-            Objects.equals(properties, that.properties);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, isUser, properties);
-    }
+public record CreateRole(String name,
+                         boolean isUser,
+                         GenericProperties<Expression> properties) implements Statement {
 
     @Override
     public String toString() {

@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import java.util.Objects;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
@@ -39,8 +41,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Delete;
 
-import java.util.Objects;
-
 final class DeleteAnalyzer {
 
     private final NodeContext nodeCtx;
@@ -54,7 +54,7 @@ final class DeleteAnalyzer {
     public AnalyzedDeleteStatement analyze(Delete delete, ParamTypeHints typeHints, CoordinatorTxnCtx txnContext) {
         StatementAnalysisContext stmtCtx = new StatementAnalysisContext(typeHints, Operation.DELETE, txnContext);
         final RelationAnalysisContext relationCtx = stmtCtx.startRelation();
-        AnalyzedRelation relation = relationAnalyzer.analyze(delete.getRelation(), stmtCtx);
+        AnalyzedRelation relation = relationAnalyzer.analyze(delete.relation(), stmtCtx);
         stmtCtx.endRelation();
 
         MaybeAliasedStatement maybeAliasedStatement = MaybeAliasedStatement.analyze(relation);
@@ -80,7 +80,7 @@ final class DeleteAnalyzer {
             new SubqueryAnalyzer(relationAnalyzer, new StatementAnalysisContext(typeHints, Operation.READ, txnContext))
         );
         Symbol query = Objects.requireNonNullElse(
-            expressionAnalyzer.generateQuerySymbol(delete.getWhere(), new ExpressionAnalysisContext(txnContext.sessionSettings())),
+            expressionAnalyzer.generateQuerySymbol(delete.where(), new ExpressionAnalysisContext(txnContext.sessionSettings())),
             Literal.BOOLEAN_TRUE
         );
         query = maybeAliasedStatement.maybeMapFields(query);
