@@ -257,7 +257,7 @@ public interface LogicalPlan extends Plan {
      */
     default <T extends Symbol> List<T> normalizePrunedOutputs(Collection<T> originalOutputs, Collection<T> prunedOutputs) {
         List<T> normalizedOutputs = new ArrayList<>();
-        for (T output: originalOutputs) {
+        for (T output : originalOutputs) {
             if (prunedOutputs.contains(output)) {
                 normalizedOutputs.add(output);
             }
