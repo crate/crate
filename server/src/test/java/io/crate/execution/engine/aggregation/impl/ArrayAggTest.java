@@ -28,6 +28,7 @@ import java.util.List;
 import org.elasticsearch.Version;
 import org.junit.Test;
 
+import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
@@ -89,9 +90,40 @@ public class ArrayAggTest extends AggregationTestCase {
         );
         RamAccounting ramAccounting = new PlainRamAccounting();
         Object state = impl.newState(ramAccounting, Version.CURRENT, memoryManager);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(40L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(24L);
         impl.iterate(ramAccounting, memoryManager, state, Literal.of("trillian"));
         impl.iterate(ramAccounting, memoryManager, state, Literal.of("arthur"));
+        assertThat(ramAccounting.totalBytes()).isEqualTo(136L);
+        impl.terminatePartial(ramAccounting, state);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(136L);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_array_agg_for_window_functions_accounts_memory_for_state() throws Exception {
+        var agg = (AggregationFunction<Object, ?>) nodeCtx.functions().getQualified(
+            Signature.builder(ArrayAgg.NAME, FunctionType.AGGREGATE)
+                .argumentTypes(TypeSignature.E)
+                .returnType(TypeSignature.ARRAY_E)
+                .features(Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(TypeVariableConstraint.E)
+                .build(),
+            List.of(DataTypes.STRING),
+            DataTypes.STRING_ARRAY
+        );
+        var impl = (AggregationFunction<Object, Object>) agg.optimizeForExecutionAsWindowFunction(Version.CURRENT);
+        RamAccounting ramAccounting = new PlainRamAccounting();
+        Object state = impl.newState(ramAccounting, Version.CURRENT, memoryManager);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(24L);
+        impl.iterate(ramAccounting, memoryManager, state, Literal.of("trillian"));
+        impl.iterate(ramAccounting, memoryManager, state, Literal.of("arthur"));
+        impl.iterate(ramAccounting, memoryManager, state, Literal.of("john"));
+        assertThat(ramAccounting.totalBytes()).isEqualTo(184L);
+
+        impl.removeFromAggregatedState(ramAccounting, state, new Input[] { Literal.of("trillian") });
+        assertThat(ramAccounting.totalBytes()).isEqualTo(128L);
+
+        impl.terminatePartial(ramAccounting, state);
         assertThat(ramAccounting.totalBytes()).isEqualTo(152L);
     }
 }

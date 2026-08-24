@@ -182,7 +182,9 @@ None
 Client interfaces
 -----------------
 
-None
+- Increased the PostgreSQL wire protocol version announced to clients from
+  ``14`` to ``15``, since ``14`` is being deprecated in November.
+
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------

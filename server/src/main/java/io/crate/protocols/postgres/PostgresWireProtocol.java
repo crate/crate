@@ -198,8 +198,8 @@ public class PostgresWireProtocol {
     private static final String PASSWORD_AUTH_NAME = "password";
     private static final int AUTH_TIMEOUT_SEC = 30;
 
-    public static final int SERVER_VERSION_NUM = 140000;
-    public static final String PG_SERVER_VERSION = "14.0";
+    public static final int SERVER_VERSION_NUM = 150000;
+    public static final String PG_SERVER_VERSION = "15.0";
 
     public static final List<String> SUPPORTED_STARTUP_PROPERTIES = List.of(
         "user",

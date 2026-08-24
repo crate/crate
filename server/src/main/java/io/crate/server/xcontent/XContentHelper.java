@@ -89,13 +89,11 @@ public class XContentHelper {
     /**
      * Converts the given bytes into a map that is optionally ordered.
      */
-    public static ParsedXContent convertToMap(BytesReference bytes, boolean ordered, XContentType xContentType)
+    public static Map<String, Object> convertToMap(BytesReference bytes, boolean ordered, XContentType xContentType)
         throws ElasticsearchParseException {
         try {
             try (InputStream input = getUncompressedInputStream(bytes)) {
-                return new ParsedXContent(
-                    xContentType,
-                    convertToMap(xContentType.xContent(), input, ordered));
+                return convertToMap(xContentType.xContent(), input, ordered);
             }
         } catch (IOException e) {
             throw new ElasticsearchParseException("Failed to parse content to map", e);

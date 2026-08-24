@@ -95,3 +95,15 @@ Fixes
     FROM t q;
 
   In this example, the ``q.flag`` filter was dropped.
+  :ref:`array_agg() <aggregation-array-agg>` aggregation function.
+
+- Fixed an issue that caused wrong results when
+  :ref:`array_agg() <aggregation-array-agg>` aggregation function was used with
+  :ref:`window functions <window-functions>` with an explicit window frame,
+  e.g.::
+
+    SELECT array_agg(x) OVER(
+      ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM tbl
+
+- Fixed an issue where :ref:`ALL <sql_all_subquery_expresion>` did not return
+  ``TRUE`` when comparing ``NULL`` values against an empty array.
