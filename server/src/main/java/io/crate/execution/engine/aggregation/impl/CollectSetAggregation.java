@@ -94,7 +94,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     }
 
     @Override
-    public AggregationFunction<Map<Object, Long>, List<Object>> optimizeForExecutionAsWindowFunction(Version minNideVersion) {
+    public AggregationFunction<Map<Object, Long>, List<Object>> optimizeForExecutionAsWindowFunction(Version minNodeVersion) {
         return new RemovableCumulativeCollectSet(signature, boundSignature);
     }
 
@@ -147,6 +147,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
 
     @Override
     public List<Object> terminatePartial(RamAccounting ramAccounting, Map<Object, Object> state) {
+        ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(ArrayType.ARRAY_LIST_SHALLOW_SIZE));
         return new ArrayList<>(state.keySet());
     }
 
@@ -265,6 +266,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
 
         @Override
         public List<Object> terminatePartial(RamAccounting ramAccounting, Map<Object, Long> state) {
+            ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(ArrayType.ARRAY_LIST_SHALLOW_SIZE));
             return new ArrayList<>(state.keySet());
         }
 

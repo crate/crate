@@ -21,6 +21,7 @@
 
 package io.crate.metadata.cluster;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 
 import java.util.ArrayList;
@@ -45,6 +46,7 @@ import org.elasticsearch.common.settings.Settings.Builder;
 
 import io.crate.analyze.TableParameters;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
@@ -77,7 +79,20 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         Settings settings = settingsBuilder.build();
 
         Metadata metadata = currentState.metadata();
-        RelationMetadata relation = metadata.getRelation(request.tableIdent());
+        RelationName relationName = request.tableIdent();
+        int tableOid = request.tableOid();
+        RelationMetadata relation;
+        if (tableOid == OID_UNASSIGNED) {
+            relation = metadata.getRelation(relationName);
+        } else {
+            // when table oid is available, get the most up to date relation name
+            relation = metadata.getRelation(tableOid);
+            if (relation == null) {
+                throw new RelationUnknown(
+                    String.format(Locale.ENGLISH, "Relation not found for oid=%s", tableOid));
+            }
+            relationName = relation.name();
+        }
         if (request.partitionValues().isEmpty() && relation instanceof RelationMetadata.Table table) {
             Metadata.Builder newMetadata = Metadata.builder(metadata);
             Builder newSettings = Settings.builder()
@@ -117,7 +132,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                 }
             }
         }
-        List<PartitionName> partitions = partitions(request);
+        List<PartitionName> partitions = partitions(relationName, request);
         if (request.isPartitioned()) {
             if (!request.partitionValues().isEmpty()) {
                 currentState = updateSettings(currentState, settings, partitions);
@@ -140,18 +155,17 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         }
 
         // ensure the new table can still be parsed into a Doc|BlobTableInfo to avoid breaking the table.
-        RelationName relationName = request.tableIdent();
         SchemaInfo schemaInfo = nodeContext.schemas().getOrCreateSchemaInfo(relationName.schema());
         schemaInfo.create(relationName, currentState.metadata());
 
         return currentState;
     }
 
-    private List<PartitionName> partitions(AlterTableRequest request) {
+    private List<PartitionName> partitions(RelationName relationName, AlterTableRequest request) {
         if (request.isPartitioned()) {
-            return List.of(new PartitionName(request.tableIdent(), request.partitionValues()));
+            return List.of(new PartitionName(relationName, request.partitionValues()));
         } else {
-            return List.of(new PartitionName(request.tableIdent(), List.of()));
+            return List.of(new PartitionName(relationName, List.of()));
         }
     }
 

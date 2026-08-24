@@ -131,4 +131,41 @@ class Lists2Test {
         var set = new LinkedHashSet<>(List.of(1, 2));
         assertThat(Lists.equals(list, set)).isFalse();
     }
+
+    @Test
+    void test_is_subsequence_with_elements_in_between() {
+        assertThat(Lists.isSubsequence(List.of(1, 3, 5), List.of(1, 2, 3, 4, 5))).isTrue();
+    }
+
+    @Test
+    void test_is_subsequence_empty_list_is_subsequence_of_anything() {
+        assertThat(Lists.isSubsequence(List.of(), List.of(1, 2, 3))).isTrue();
+        assertThat(Lists.isSubsequence(List.of(), List.of())).isTrue();
+    }
+
+    @Test
+    void test_is_subsequence_sequence_is_empty_but_list_is_not() {
+        assertThat(Lists.isSubsequence(List.of(1), List.of())).isFalse();
+    }
+
+    @Test
+    void test_is_subsequence_elements_out_of_order() {
+        assertThat(Lists.isSubsequence(List.of(3, 1), List.of(1, 2, 3))).isFalse();
+    }
+
+    @Test
+    void test_is_subsequence_list_is_longer_than_sequence() {
+        assertThat(Lists.isSubsequence(List.of(1, 2, 3, 4), List.of(1, 2, 3))).isFalse();
+    }
+
+    @Test
+    void test_is_subsequence_with_identical_lists() {
+        assertThat(Lists.isSubsequence(List.of(1, 2, 3), List.of(1, 2, 3))).isTrue();
+    }
+
+    @Test
+    void test_is_subsequence_with_duplicates() {
+        assertThat(Lists.isSubsequence(List.of(1, 1), List.of(1, 2, 1))).isTrue();
+        assertThat(Lists.isSubsequence(List.of(1, 1, 1), List.of(1, 2, 1))).isFalse();
+    }
 }

@@ -22,6 +22,7 @@
 package io.crate.execution.ddl.tables;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.Arrays;
 import java.util.List;
@@ -36,11 +37,44 @@ import io.crate.metadata.RelationName;
 public class AlterTableRequestTest {
 
     @Test
+    public void test_streaming_table_oids() throws Exception {
+        // streaming to nodes with supported versions
+        RelationName relation = new RelationName("doc", "tbl");
+        int tableOid = 1234;
+        AlterTableRequest request = new AlterTableRequest(
+            relation, tableOid, List.of(), true, false, Settings.EMPTY);
+
+        var out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_5_0);
+        request.writeTo(out);
+
+        var in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_5_0);
+        AlterTableRequest streamed = new AlterTableRequest(in);
+
+        assertThat(streamed.tableOid()).isEqualTo(tableOid);
+
+        // streaming to nodes with unsupported versions
+        request = new AlterTableRequest(
+            relation, tableOid, List.of(), true, false, Settings.EMPTY);
+
+        out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_4_0);
+        request.writeTo(out);
+
+        in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_4_0);
+        streamed = new AlterTableRequest(in);
+
+        assertThat(streamed.tableOid()).isEqualTo(OID_UNASSIGNED);
+    }
+
+    @Test
     public void test_streaming_bwc() throws Exception {
         RelationName tbl = new RelationName("doc", "tbl");
         List<AlterTableRequest> requests = List.of(
-            new AlterTableRequest(tbl, List.of(), true, false, Settings.EMPTY),
-            new AlterTableRequest(tbl, Arrays.asList("1", null, "3"), true, false, Settings.EMPTY)
+            new AlterTableRequest(tbl, OID_UNASSIGNED, List.of(), true, false, Settings.EMPTY),
+            new AlterTableRequest(tbl, OID_UNASSIGNED, Arrays.asList("1", null, "3"), true, false, Settings.EMPTY)
         );
         for (var request : requests) {
             try (var out = new BytesStreamOutput()) {
@@ -62,4 +96,3 @@ public class AlterTableRequestTest {
         }
     }
 }
-

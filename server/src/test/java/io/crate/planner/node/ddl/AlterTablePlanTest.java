@@ -47,13 +47,12 @@ import io.crate.data.Row;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.execution.ddl.tables.AlterTableRequest;
-import io.crate.execution.ddl.tables.GCDanglingArtifactsRequest;
 import io.crate.execution.ddl.tables.TransportAlterTable;
-import io.crate.execution.ddl.tables.TransportGCDanglingArtifacts;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.RelationName;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -169,7 +168,6 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
         e.addTable("create table tbl (x int) clustered into 4 shards with (\"blocks.write\" = true)");
         BoundAlterTable alterTable = analyze(
             "alter table tbl set (number_of_shards = 8) with (timeout = '2s')");
-        assertThat(alterTable).isNotNull();
         NodeClient client = mock(NodeClient.class, Answers.RETURNS_MOCKS);
         AlterTableClient alterTableClient = new AlterTableClient(
             clusterService,
@@ -180,9 +178,6 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
             mock(LogicalReplicationService.class)
         );
-
-        Mockito.verify(client, Mockito.times(0))
-            .execute(Mockito.eq(TransportGCDanglingArtifacts.ACTION), Mockito.any(GCDanglingArtifactsRequest.class));
 
         var reqCaptor = ArgumentCaptor.forClass(ResizeRequest.class);
         alterTableClient.setSettingsOrResize(e.getPlannerContext(), alterTable);
@@ -214,6 +209,57 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
 
         AlterTableRequest req = reqCaptor.getValue();
         assertThat(req.timeout()).isEqualTo(TimeValue.timeValueSeconds(2));
+    }
+
+    @Test
+    public void test_alter_table_request_uses_analyzed_table_oid() throws Exception {
+        BoundAlterTable alterTable = analyze("alter table doc.test set (number_of_replicas = 2)");
+
+        NodeClient client = mock(NodeClient.class, Answers.RETURNS_MOCKS);
+        AlterTableClient alterTableClient = new AlterTableClient(
+            clusterService,
+            client,
+            e.sqlOperations,
+            tasksService,
+            THREAD_POOL,
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            mock(LogicalReplicationService.class)
+        );
+
+        var reqCaptor = ArgumentCaptor.forClass(AlterTableRequest.class);
+        alterTableClient.setSettingsOrResize(e.getPlannerContext(), alterTable);
+        Mockito.verify(client).execute(Mockito.eq(TransportAlterTable.ACTION), reqCaptor.capture());
+
+        int tableOid = clusterService.state().metadata()
+            .getRelation(new RelationName("doc", "test"))
+            .oid();
+        assertThat(reqCaptor.getValue().tableOid()).isEqualTo(tableOid);
+    }
+
+    @Test
+    public void test_resize_request_uses_analyzed_table_oid() throws Exception {
+        e.addTable("create table tbl (x int) clustered into 4 shards with (\"blocks.write\" = true)");
+        BoundAlterTable alterTable = analyze("alter table tbl set (number_of_shards = 8)");
+
+        NodeClient client = mock(NodeClient.class, Answers.RETURNS_MOCKS);
+        AlterTableClient alterTableClient = new AlterTableClient(
+            clusterService,
+            client,
+            e.sqlOperations,
+            tasksService,
+            THREAD_POOL,
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            mock(LogicalReplicationService.class)
+        );
+
+        var reqCaptor = ArgumentCaptor.forClass(ResizeRequest.class);
+        alterTableClient.setSettingsOrResize(e.getPlannerContext(), alterTable);
+        Mockito.verify(client).execute(Mockito.eq(TransportResize.ACTION), reqCaptor.capture());
+
+        int tableOid = clusterService.state().metadata()
+            .getRelation(new RelationName("doc", "tbl"))
+            .oid();
+        assertThat(reqCaptor.getValue().tableOid()).isEqualTo(tableOid);
     }
 
     @Test

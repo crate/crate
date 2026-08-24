@@ -698,13 +698,13 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "    │  └ Union[ai, \"avg(x)\", \"cast(i AS BIGINT)\"]",
             "    │    ├ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
             "    │    │  └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
-            "    │    │    └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '1')]",
+            "    │    │    └ Collect[doc.t1 | [x, cast(a AS INTEGER) AS ai, cast(i AS BIGINT)] | (a = '1')]",
             "    │    └ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
             "    │      └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
-            "    │        └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '2')]",
+            "    │        └ Collect[doc.t1 | [x, cast(a AS INTEGER) AS ai, cast(i AS BIGINT)] | (a = '2')]",
             "    └ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
             "      └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
-            "        └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '3')]"
+            "        └ Collect[doc.t1 | [x, cast(a AS INTEGER) AS ai, cast(i AS BIGINT)] | (a = '3')]"
         );
     }
 
@@ -726,13 +726,13 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "    │  └ Union[ai, \"avg(x)\", \"cast(i AS BIGINT)\"]",
             "    │    ├ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
             "    │    │  └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
-            "    │    │    └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '1')]",
+            "    │    │    └ Collect[doc.t1 | [x, cast(a AS INTEGER) AS ai, cast(i AS BIGINT)] | (a = '1')]",
             "    │    └ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
             "    │      └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
-            "    │        └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '2')]",
+            "    │        └ Collect[doc.t1 | [x, cast(a AS INTEGER) AS ai, cast(i AS BIGINT)] | (a = '2')]",
             "    └ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
             "      └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
-            "        └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '3')]"
+            "        └ Collect[doc.t1 | [x, cast(a AS INTEGER) AS ai, cast(i AS BIGINT)] | (a = '3')]"
         );
     }
 
@@ -744,8 +744,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).hasOperators(
             "Rename[i, avgx] AS vt",
             "  └ Eval[i, avg(x) OVER (ORDER BY i ASC) AS avgx]",
-            "    └ WindowAgg[i, x] | [avg(x) OVER (ORDER BY i ASC)]",
-            "      └ Collect[doc.t1 | [i, x] | true]"
+            "    └ WindowAgg[x, i] | [avg(x) OVER (ORDER BY i ASC)]",
+            "      └ Collect[doc.t1 | [x, i] | true]"
         );
     }
 

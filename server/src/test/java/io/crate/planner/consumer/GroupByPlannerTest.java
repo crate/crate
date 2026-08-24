@@ -24,7 +24,6 @@ package io.crate.planner.consumer;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -54,6 +53,7 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
@@ -708,6 +708,27 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         ExecutionPlan executionPlan = e.plan("select count(*), city from clustered_parted where date=1395874800000 or date=1395961200000 group by city");
         assertThat(executionPlan).isExactlyInstanceOf(Merge.class);
         assertThat(((Merge) executionPlan).subPlan()).isExactlyInstanceOf(Merge.class);
+    }
+
+    @Test
+    public void test_group_by_columns_reversed_order_pruning_keeps_source_column_order() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable("create table doc.t (c0 int, c1 int, c2 int, c3 int)");
+
+        LogicalPlan logicalPlan = e.logicalPlan(
+            """
+            SELECT c0, c1, min(c2) FROM (SELECT c0, c1, c2, c3 FROM doc.t) s GROUP BY c1, c0
+            """);
+        String expectedPlan =
+            """
+            Eval[c0, c1, min(c2)]
+              └ GroupHashAggregate[c1, c0 | min(c2)]
+                └ Rename[c0, c1, c2] AS s
+                  └ Collect[doc.t | [c0, c1, c2] | true]
+            """;
+        assertThat(logicalPlan).isEqualTo(expectedPlan);
     }
 
     @Test

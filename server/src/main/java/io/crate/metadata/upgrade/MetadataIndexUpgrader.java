@@ -183,7 +183,7 @@ public class MetadataIndexUpgrader {
             Map<String, Object> parsedTemplateMapping = XContentHelper.convertToMap(
                 indexTemplateMetadata.mapping().compressedReference(),
                 true,
-                XContentType.JSON).map();
+                XContentType.JSON);
             addIndexColumnSources(Maps.get(parsedTemplateMapping, "properties"), parsedTemplateMapping, "");
         }
     }
@@ -204,7 +204,7 @@ public class MetadataIndexUpgrader {
     }
 
     public static void populateColumnPositionsFromMapping(Map<String, Object> mapping, CompressedXContent mappingToReference) {
-        Map<String, Object> parsedTemplateMapping = XContentHelper.convertToMap(mappingToReference.compressedReference(), true, XContentType.JSON).map();
+        Map<String, Object> parsedTemplateMapping = XContentHelper.convertToMap(mappingToReference.compressedReference(), true, XContentType.JSON);
         populateColumnPositionsImpl(
             Maps.getOrDefault(mapping, "default", mapping),
             Maps.getOrDefault(parsedTemplateMapping, "default", parsedTemplateMapping)

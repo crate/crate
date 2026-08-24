@@ -128,8 +128,8 @@ public class IntervalSumAggregation extends AggregationFunction<Period, Period> 
     }
 
     @Override
-    public AggregationFunction<?, Period> optimizeForExecutionAsWindowFunction(Version minNideVersion) {
-        if (minNideVersion.onOrBefore(Version.V_6_4_2)) {
+    public AggregationFunction<?, Period> optimizeForExecutionAsWindowFunction(Version minNodeVersion) {
+        if (minNodeVersion.onOrBefore(Version.V_6_4_2)) {
             return this;
         }
         return new RemovableCumulativeSum();

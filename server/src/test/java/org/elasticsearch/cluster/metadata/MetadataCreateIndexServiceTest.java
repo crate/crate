@@ -21,6 +21,7 @@ package org.elasticsearch.cluster.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.Collections;
 import java.util.List;
@@ -114,7 +115,7 @@ public class MetadataCreateIndexServiceTest extends CrateDummyClusterServiceUnit
         int newNumShards = 1;
         var resizeIndexTask = new MetadataCreateIndexService.ResizeIndexTask(
             Mockito.mock(AllocationService.class),
-            new ResizeRequest(tbl, List.of(), newNumShards),
+            new ResizeRequest(tbl, OID_UNASSIGNED, List.of(), newNumShards),
             indexUUID,
             UUIDs.randomBase64UUID(),
             Mockito.mock(IndicesService.class),

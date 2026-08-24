@@ -24,6 +24,7 @@ package io.crate.execution.engine.aggregation.impl;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
@@ -37,10 +38,11 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.TypeVariableConstraint;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 
-public final class ArrayAgg extends AggregationFunction<List<Object>, List<Object>> {
+public class ArrayAgg extends AggregationFunction<List<Object>, List<Object>> {
 
     public static final String NAME = "array_agg";
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.AGGREGATE)
@@ -63,7 +65,7 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
     public ArrayAgg(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        this.elementType = (DataType<Object>) boundSignature.argTypes().get(0);
+        this.elementType = (DataType<Object>) boundSignature.argTypes().getFirst();
     }
 
     @Override
@@ -80,6 +82,7 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
     public List<Object> newState(RamAccounting ramAccounting,
                                  Version minNodeInCluster,
                                  MemoryManager memoryManager) {
+        ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(ArrayType.ARRAY_LIST_SHALLOW_SIZE));
         return new ArrayList<>();
     }
 
@@ -108,5 +111,38 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
     @Override
     public DataType<?> partialType() {
         return boundSignature.returnType();
+    }
+
+    @Override
+    public AggregationFunction<?, List<Object>> optimizeForExecutionAsWindowFunction(Version minNodeVersion) {
+        return new ArrayAggWindowFuncs(signature, boundSignature);
+    }
+
+    private final class ArrayAggWindowFuncs extends ArrayAgg {
+
+        public ArrayAggWindowFuncs(Signature signature, BoundSignature boundSignature) {
+            super(signature, boundSignature);
+        }
+
+        @Override
+        public List<Object> terminatePartial(RamAccounting ramAccounting, List<Object> state) {
+            ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(ArrayType.ARRAY_LIST_SHALLOW_SIZE));
+            return new ArrayList<>(state);
+        }
+
+        @Override
+        public boolean isRemovableCumulative() {
+            return true;
+        }
+
+        @Override
+        public List<Object> removeFromAggregatedState(RamAccounting ramAccounting, List<Object> previousAggState, Input<?>[] stateToRemove) {
+            Object value = stateToRemove[0].value();
+
+            Object removed = previousAggState.removeFirst();
+            assert removed.equals(value) : "AggregateToWindowFunctionAdapter should always remove the first state";
+            ramAccounting.addBytes(- elementType.valueBytes(value));
+            return previousAggState;
+        }
     }
 }

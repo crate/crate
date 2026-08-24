@@ -164,10 +164,7 @@ public class OffsetValueFunctions implements WindowFunction {
                 allocateBytes.accept(deltaUsed);
             }
         }
-        sharedRow.cells(row);
-        for (CollectExpression<Row, ?> expression : expressions) {
-            expression.setNextRow(sharedRow);
-        }
+        bindExpressionsToRow(row, expressions);
         return args[0].value();
     }
 
@@ -208,6 +205,13 @@ public class OffsetValueFunctions implements WindowFunction {
         return boundSignature;
     }
 
+    private void bindExpressionsToRow(Object[] row, List<? extends CollectExpression<Row, ?>> expressions) {
+        sharedRow.cells(row);
+        for (CollectExpression<Row, ?> expression : expressions) {
+            expression.setNextRow(sharedRow);
+        }
+    }
+
     @Override
     public Object execute(LongConsumer allocateBytes,
                           int idxInPartition,
@@ -218,6 +222,9 @@ public class OffsetValueFunctions implements WindowFunction {
         boolean ignoreNullsOrFalse = ignoreNulls != null && ignoreNulls;
         final int offset;
         if (args.length > 1) {
+            Object[] row = currentFrame.getRowInPartitionAtIndexOrNull(idxInPartition);
+            assert row != null;
+            bindExpressionsToRow(row, expressions);
             Object offsetValue = args[1].value();
             if (offsetValue != null) {
                 offset = ((Number) offsetValue).intValue();

@@ -22,16 +22,22 @@
 package io.crate.cluster.gracefulstop;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealth;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
@@ -129,5 +135,51 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
         @Override
         protected void removeDecommissioningSetting() {
         }
+    }
+
+    @Test
+    public void test_abort_decommission_if_cluster_health_time_out() {
+        var healthAction = mock(TransportClusterHealth.class);
+        var updateSettingsAction = mock(TransportClusterUpdateSettingsAction.class);
+
+        var healthResponse = mock(ClusterHealthResponse.class);
+        when(healthResponse.isTimedOut()).thenReturn(true);
+
+        when(healthAction.execute(any()))
+            .thenReturn(CompletableFuture.completedFuture(healthResponse));
+
+        when(updateSettingsAction.execute(any()))
+            .thenReturn(CompletableFuture.completedFuture(
+                mock(ClusterUpdateSettingsResponse.class)
+            ));
+
+        // forces the executor service to execute the given runnable immediately:
+        // `executorService.submit(() -> forceStopOrAbort(error));`
+        doAnswer(invocation -> {
+            Runnable runnable = invocation.getArgument(0);
+            runnable.run();
+            return CompletableFuture.completedFuture(null);
+        }).when(executorService).submit(any(Runnable.class));
+
+        var settings = Settings.builder()
+            .put(DecommissioningService.GRACEFUL_STOP_FORCE_SETTING.getKey(), false)
+            .build();
+
+        var decommissioningService = new TestableDecommissioningService(
+            settings,
+            clusterService,
+            jobsLogs,
+            executorService,
+            sqlOperations,
+            () -> exited.set(true),
+            healthAction,
+            updateSettingsAction
+        );
+
+        decommissioningService.decommission().join();
+
+        assertThat(exited.get()).isFalse();
+        assertThat(decommissioningService.forceStopOrAbortCalled).isTrue();
+        verify(sqlOperations).enable();
     }
 }

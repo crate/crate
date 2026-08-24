@@ -54,14 +54,14 @@ import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.process.ProcessService;
 import org.elasticsearch.node.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.StatsTracker;
 import org.elasticsearch.transport.TransportService;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.protocols.ConnectionStats;
 import io.crate.protocols.postgres.PostgresNetty;
 
 @Singleton
@@ -71,12 +71,12 @@ public class NodeStatsContextFieldResolver {
     private final Supplier<DiscoveryNode> localNode;
     private final BooleanSupplier isMaster;
     private final Supplier<TransportAddress> boundHttpAddress;
-    private final Supplier<ConnectionStats> httpStats;
+    private final StatsTracker httpStats;
     private final ThreadPool threadPool;
     private final ExtendedNodeInfo extendedNodeInfo;
-    private final Supplier<ConnectionStats> psqlStats;
+    private final StatsTracker psqlStats;
     private final Supplier<TransportAddress> boundPostgresAddress;
-    private final Supplier<ConnectionStats> transportStats;
+    private final StatsTracker transportStats;
     private final ProcessService processService;
     private final OsService osService;
     private final JvmService jvmService;
@@ -97,10 +97,10 @@ public class NodeStatsContextFieldResolver {
             clusterService::localNode,
             nodeService.getMonitorService(),
             () -> httpServerTransport == null ? null : httpServerTransport.boundAddress().publishAddress(),
-            () -> httpServerTransport == null ? null : httpServerTransport.stats(),
+            httpServerTransport == null ? null : httpServerTransport.stats(),
             threadPool,
             extendedNodeInfo,
-            postgresNetty::stats,
+            postgresNetty.stats(),
             () -> {
                 BoundTransportAddress boundTransportAddress = postgresNetty.boundAddress();
                 if (boundTransportAddress == null) {
@@ -108,7 +108,7 @@ public class NodeStatsContextFieldResolver {
                 }
                 return boundTransportAddress.publishAddress();
             },
-            transportService::stats,
+            transportService.stats(),
             () -> clusterService.state().version()
         );
     }
@@ -118,12 +118,12 @@ public class NodeStatsContextFieldResolver {
                                   Supplier<DiscoveryNode> localNode,
                                   MonitorService monitorService,
                                   Supplier<TransportAddress> boundHttpAddress,
-                                  Supplier<ConnectionStats> httpStats,
+                                  StatsTracker httpStats,
                                   ThreadPool threadPool,
                                   ExtendedNodeInfo extendedNodeInfo,
-                                  Supplier<ConnectionStats> psqlStats,
+                                  StatsTracker psqlStats,
                                   Supplier<TransportAddress> boundPostgresAddress,
-                                  Supplier<ConnectionStats> transportStats,
+                                  StatsTracker transportStats,
                                   LongSupplier clusterStateVersion) {
         this.isMaster = isMaster;
         this.localNode = localNode;
@@ -266,9 +266,9 @@ public class NodeStatsContextFieldResolver {
         entry(SysNodesTableInfo.Columns.CONNECTIONS, new Consumer<>() {
             @Override
             public void accept(NodeStatsContext nodeStatsContext) {
-                nodeStatsContext.httpStats(httpStats.get());
-                nodeStatsContext.psqlStats(psqlStats.get());
-                nodeStatsContext.transportStats(transportStats.get());
+                nodeStatsContext.httpStats(httpStats.stats());
+                nodeStatsContext.psqlStats(psqlStats.stats());
+                nodeStatsContext.transportStats(transportStats.stats());
             }
         }),
         entry(SysNodesTableInfo.Columns.OS, new Consumer<>() {
