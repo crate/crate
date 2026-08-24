@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public abstract sealed class ColumnConstraint<T> extends Node permits
+public abstract sealed class ColumnConstraint<T> implements Node permits
     PrimaryKeyColumnConstraint,
     ColumnStorageDefinition,
     DefaultConstraint,

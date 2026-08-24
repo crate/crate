@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class CreateSnapshot<T> extends Statement {
+public class CreateSnapshot<T> implements Statement {
 
     private final QualifiedName name;
     private final GenericProperties<T> properties;

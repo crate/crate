@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.Objects;
 import java.util.function.Function;
 
-public class ShowCreateTable<T> extends Statement {
+public class ShowCreateTable<T> implements Statement {
 
     private final Table<T> table;
 

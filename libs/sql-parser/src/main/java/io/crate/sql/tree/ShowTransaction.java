@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-public class ShowTransaction extends Statement {
+public class ShowTransaction implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {

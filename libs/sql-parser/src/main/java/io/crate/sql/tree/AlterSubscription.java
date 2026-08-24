@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class AlterSubscription extends Statement {
+public class AlterSubscription implements Statement {
 
     public enum Mode {
         ENABLE,

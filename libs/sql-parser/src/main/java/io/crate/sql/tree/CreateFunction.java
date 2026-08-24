@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Objects;
 
-public class CreateFunction<T> extends Statement {
+public class CreateFunction<T> implements Statement {
 
     private final QualifiedName name;
     private final boolean replace;

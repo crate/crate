@@ -30,7 +30,7 @@ import java.util.function.Function;
 
 import io.crate.common.collections.Lists;
 
-public class Assignment<T> extends Node {
+public class Assignment<T> implements Node {
 
     private final T columnName;
     private final List<T> expressions;

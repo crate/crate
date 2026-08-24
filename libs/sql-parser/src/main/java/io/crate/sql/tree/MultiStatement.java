@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 
 import java.util.List;
 
-public class MultiStatement extends Statement {
+public class MultiStatement implements Statement {
 
     private final List<Statement> statements;
 

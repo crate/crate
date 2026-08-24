@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-public final class GCDanglingArtifacts extends Statement {
+public final class GCDanglingArtifacts implements Statement {
 
     public static final GCDanglingArtifacts INSTANCE = new GCDanglingArtifacts();
 

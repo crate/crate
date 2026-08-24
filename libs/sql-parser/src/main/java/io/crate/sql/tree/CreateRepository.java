@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class CreateRepository<T> extends Statement {
+public class CreateRepository<T> implements Statement {
 
     private final String repository;
     private final String type;

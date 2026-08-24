@@ -25,7 +25,7 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-public final class Close extends Statement {
+public final class Close implements Statement {
 
     private final String cursorName;
 

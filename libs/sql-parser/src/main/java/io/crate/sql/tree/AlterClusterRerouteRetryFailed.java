@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-public class AlterClusterRerouteRetryFailed extends Statement {
+public class AlterClusterRerouteRetryFailed implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {

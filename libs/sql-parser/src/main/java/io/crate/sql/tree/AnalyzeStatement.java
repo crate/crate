@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-public final class AnalyzeStatement extends Statement {
+public final class AnalyzeStatement implements Statement {
 
     @Override
     public int hashCode() {

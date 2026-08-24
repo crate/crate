@@ -25,7 +25,7 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-public class DeallocateStatement extends Statement {
+public class DeallocateStatement implements Statement {
 
     @Nullable
     private final Expression preparedStmt;

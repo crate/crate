@@ -25,7 +25,7 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-public class KillStatement<T> extends Statement {
+public class KillStatement<T> implements Statement {
 
     @Nullable
     private final T jobId;

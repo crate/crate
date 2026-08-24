@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class DropSnapshot extends Statement {
+public class DropSnapshot implements Statement {
 
     private final QualifiedName name;
 

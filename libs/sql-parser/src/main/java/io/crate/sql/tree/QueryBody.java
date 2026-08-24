@@ -21,16 +21,7 @@
 
 package io.crate.sql.tree;
 
-public abstract class QueryBody
-    extends Relation {
-    @Override
-    public abstract int hashCode();
-
-    @Override
-    public abstract boolean equals(Object obj);
-
-    @Override
-    public abstract String toString();
+public abstract class QueryBody extends Relation {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {

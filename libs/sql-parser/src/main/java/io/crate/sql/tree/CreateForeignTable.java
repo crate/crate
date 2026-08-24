@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class CreateForeignTable extends Statement {
+public class CreateForeignTable implements Statement {
 
     private final QualifiedName name;
     private final boolean ifNotExists;

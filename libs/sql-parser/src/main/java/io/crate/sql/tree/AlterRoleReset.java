@@ -25,7 +25,7 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-public class AlterRoleReset extends Statement {
+public class AlterRoleReset implements Statement {
 
     private final String property;
     private final String name;

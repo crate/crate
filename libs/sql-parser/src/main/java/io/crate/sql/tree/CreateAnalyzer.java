@@ -21,11 +21,12 @@
 
 package io.crate.sql.tree;
 
-import org.jspecify.annotations.Nullable;
 import java.util.List;
 import java.util.Objects;
 
-public class CreateAnalyzer<T> extends Statement {
+import org.jspecify.annotations.Nullable;
+
+public class CreateAnalyzer<T> implements Statement {
 
     private final String ident;
     @Nullable
