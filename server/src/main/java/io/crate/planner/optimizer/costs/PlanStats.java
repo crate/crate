@@ -31,6 +31,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.Collect;
@@ -101,6 +102,16 @@ public class PlanStats {
             this.memo = memo;
         }
 
+        private Stats estimateRelationStats(RelationName relationName, Symbol query) {
+            var stats = tableStats.getStats(relationName);
+            if (stats.equals(Stats.EMPTY)) {
+                return stats;
+            } else {
+                var numberOfRows = SelectivityFunctions.estimateNumRows(nodeContext, txnCtx, stats, query, null);
+                return stats.withNumDocs(numberOfRows);
+            }
+        }
+
         @Override
         public Stats visitGroupReference(GroupReference group, Void context) {
             if (memo == null) {
@@ -152,7 +163,7 @@ public class PlanStats {
             var lhsStats = join.lhs().accept(this, context);
             var rhsStats = join.rhs().accept(this, context);
             Map<ColumnIdent, ColumnStats<?>> statsByColumn = Maps.concat(lhsStats.statsByColumn(),
-                                                                         rhsStats.statsByColumn());
+                rhsStats.statsByColumn());
             if (lhsStats.numDocs() == -1
                 || lhsStats.sizeInBytes() == -1
                 || rhsStats.numDocs() == -1
@@ -196,7 +207,7 @@ public class PlanStats {
             long numRows = Math.max(lhsStats.numDocs(), rhsStats.numDocs());
             long sizeInBytes =
                 (numRows * lhsStats.averageSizePerRowInBytes())
-                + (numRows * rhsStats.averageSizePerRowInBytes());
+                    + (numRows * rhsStats.averageSizePerRowInBytes());
 
             Stats joinStats = new Stats(numRows, sizeInBytes, statsByColumn);
             long estimatedNumRows = SelectivityFunctions.estimateNumRows(
@@ -211,14 +222,7 @@ public class PlanStats {
 
         @Override
         public Stats visitCollect(Collect collect, Void context) {
-            var stats = tableStats.getStats(collect.relation().tableInfo().ident());
-            if (stats.equals(Stats.EMPTY)) {
-                return stats;
-            } else {
-                var query = collect.where().queryOrFallback();
-                var numberOfRows = SelectivityFunctions.estimateNumRows(nodeContext, txnCtx, stats, query, null);
-                return stats.withNumDocs(numberOfRows);
-            }
+            return estimateRelationStats(collect.relation().tableInfo().ident(), collect.where().queryOrFallback());
         }
 
         @Override
@@ -271,7 +275,7 @@ public class PlanStats {
 
         @Override
         public Stats visitForeignCollect(ForeignCollect foreignCollect, Void context) {
-            return Stats.EMPTY;
+            return estimateRelationStats(foreignCollect.relation().tableInfo().ident(), foreignCollect.where().queryOrFallback());
         }
 
         @Override

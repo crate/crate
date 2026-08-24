@@ -21,8 +21,6 @@
 
 package io.crate.fdw;
 
-import static org.elasticsearch.threadpool.ThreadPool.Names.SEARCH;
-
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -39,7 +37,6 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
@@ -65,9 +62,13 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.role.Role;
+import io.crate.statistics.Stats;
 
 final class JdbcForeignDataWrapper implements ForeignDataWrapper {
 
+    /**
+     * Functions that any foreign database accessible via jdbc must support
+     */
     private static final Logger LOGGER = LogManager.getLogger(JdbcForeignDataWrapper.class);
     private static final Set<String> SAFE_FUNCTIONS = Set.of(
         AndOperator.NAME,
@@ -100,10 +101,10 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
         foreignPw
     );
 
-    JdbcForeignDataWrapper(Settings settings, InputFactory inputFactory, ThreadPool threadPool) {
+    public JdbcForeignDataWrapper(Settings settings, InputFactory inputFactory, Executor executor) {
         this.settings = settings;
         this.inputFactory = inputFactory;
-        this.executor = threadPool.executor(SEARCH);
+        this.executor = executor;
     }
 
     @Override
@@ -172,7 +173,8 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
             : "ForeignCollect must only have a query where `supportsQueryPushDown` is true";
         var properties = getConnectionProperties(currentUser, server, txnCtx);
         BatchIterator<Row> it = new JdbcBatchIterator(url, properties, refs, query, remoteName);
-        if (!refs.containsAll(collect)) {
+        boolean allReferences = collect.stream().allMatch(s -> s instanceof Reference);
+        if (!allReferences) {
             var sourceRefs = new InputColumns.SourceSymbols(refs);
             List<Symbol> inputColumns = InputColumns.create(collect, sourceRefs);
             Context<CollectExpression<Row, ?>> inputCtx = inputFactory.ctxForInputColumns(txnCtx, inputColumns);
@@ -188,11 +190,11 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
     }
 
     @Override
-    public CompletableFuture<ForeignTableStats> getStats(Role currentUser,
-                                                         Server server,
-                                                         RelationMetadata.ForeignTable foreignTable,
-                                                         TransactionContext txnCtx,
-                                                         List<Reference> columns) {
+    public CompletableFuture<Stats> getStats(Role currentUser,
+                                             Server server,
+                                             RelationMetadata.ForeignTable foreignTable,
+                                             TransactionContext txnCtx,
+                                             List<Reference> columns) {
         return CompletableFutures.supplyAsync(() -> {
             var properties = getConnectionProperties(currentUser, server, txnCtx);
 
@@ -209,7 +211,11 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
             }
 
             JdbcDialect dialect = JdbcDialect.fromUrl(url);
-            return dialect.getStats(url, properties, remoteSchema, remoteTable, LOGGER);
+            try {
+                return dialect.getStats(url, properties, remoteSchema, remoteTable, foreignTable, LOGGER);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }, executor);
     }
 

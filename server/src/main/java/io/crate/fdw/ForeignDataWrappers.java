@@ -74,7 +74,7 @@ public class ForeignDataWrappers implements CollectSource {
         this.clusterService = clusterService;
         this.inputFactory = new InputFactory(nodeContext);
         this.wrappers = Map.of(
-            "jdbc", new JdbcForeignDataWrapper(settings, inputFactory, threadPool)
+            "jdbc", new JdbcForeignDataWrapper(settings, inputFactory, threadPool.executor(ThreadPool.Names.SEARCH))
         );
         this.roles = nodeContext.roles();
     }

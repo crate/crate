@@ -25,6 +25,8 @@ import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Objects;
+
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
@@ -462,5 +464,45 @@ public class ForeignDataWrapperITest extends IntegTestCase {
                 option_name DESC
             """);
         assertThat(response).hasRows(new Object[] { "pg", "url", newUrl });
+    }
+
+    @Test
+    public void test_analyze_foreign_table_generates_stats() throws Exception {
+        execute("create table doc.local_tbl (x int, y int)");
+        execute("insert into doc.local_tbl (x, y) values (1, 1), (2, 2), (42, 42)");
+        execute("refresh table doc.local_tbl");
+        execute("analyze");
+
+        assertBusy(() -> {
+            execute("select reltuples from pg_class where relname = 'local_tbl'");
+            assertThat(response.rowCount()).isEqualTo(1L);
+            assertThat(((Number) response.rows()[0][0]).longValue()).isEqualTo(3L);
+        });
+
+        PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class);
+        int port = Objects.requireNonNull(postgresNetty.boundAddress()).publishAddress().getPort();
+
+        String url = "jdbc:postgresql://127.0.0.1:" + port + "/?user=crate";
+        execute("create server pg foreign data wrapper jdbc options (url ?)", new Object[] { url });
+
+        execute("""
+            CREATE FOREIGN TABLE doc.remote_tbl (x int, y int)
+            SERVER pg
+            OPTIONS (schema_name 'doc', table_name 'local_tbl')
+            """);
+
+        execute("explain select * from doc.remote_tbl");
+        assertThat(response).hasLines(
+            "ForeignCollect[doc.remote_tbl | [x, y] | true] (rows=unknown)"
+        );
+
+        execute("analyze");
+
+        assertBusy(() -> {
+            execute("explain select * from doc.remote_tbl");
+            assertThat(response).hasLines(
+                "ForeignCollect[doc.remote_tbl | [x, y] | true] (rows=3)"
+            );
+        });
     }
 }

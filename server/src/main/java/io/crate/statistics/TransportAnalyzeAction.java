@@ -138,33 +138,13 @@ public final class TransportAnalyzeAction {
         LOGGER.info("ANALYZE: Start collecting samples to update table statistics");
         HashMap<RelationName, Stats> entries = new HashMap<>();
         CompletableFuture<Void> currentFetch = CompletableFuture.completedFuture(null);
-        ServersMetadata servers = clusterService.state().metadata().custom(ServersMetadata.TYPE);
+        ServersMetadata servers = clusterService.state()
+            .metadata()
+            .custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
+        TransactionContext systemTxnCtx = TransactionContext.of(CoordinatorSessionSettings.systemDefaults());
         for (SchemaInfo schema : schemas) {
             for (TableInfo table : schema.getTables()) {
-                if (table instanceof RelationMetadata.ForeignTable foreignTable) {
-                    if (servers == null) continue;
-
-                    ServersMetadata.Server server = servers.get(foreignTable.server());
-
-                    ForeignDataWrapper fdw = foreignDataWrappers.get(server.fdw());
-                    if (fdw == null) continue;
-
-                    TransactionContext systemTxnCtx = TransactionContext.of(CoordinatorSessionSettings.systemDefaults());
-
-                    currentFetch = currentFetch
-                        .thenCompose(ignored -> fdw.getStats(
-                            Role.CRATE_USER,
-                            server,
-                            foreignTable,
-                            systemTxnCtx,
-                            List.of()
-                        ))
-                        .thenAccept(foreignStats -> {
-                            if (foreignStats != null && !foreignStats.isUnknown()) {
-                                entries.put(table.ident(), foreignStats.toStats());
-                            }
-                        });
-                } else if (table instanceof DocTableInfo docTable && !docTable.isClosed()) {
+                if (table instanceof DocTableInfo docTable && !docTable.isClosed()) {
                     List<Reference> primitiveColumns = StreamSupport.stream(docTable.spliterator(), false)
                         .filter(x -> !x.column().isSystemColumn())
                         .filter(x -> DataTypes.isPrimitive(x.valueType()))
@@ -179,6 +159,26 @@ public final class TransportAnalyzeAction {
                         ))
                         .thenAccept(samples -> entries.put(docTable.ident(), samples.createTableStats(primitiveColumns)));
                 }
+            }
+            
+            for (RelationMetadata.ForeignTable foreignTable : schema.getForeignTables()) {
+                ServersMetadata.Server server = servers.get(foreignTable.server());
+
+                ForeignDataWrapper fdw = foreignDataWrappers.get(server.fdw());
+
+                currentFetch = currentFetch
+                    .thenCompose(ignored -> fdw.getStats(
+                        Role.CRATE_USER,
+                        server,
+                        foreignTable,
+                        systemTxnCtx,
+                        List.of()
+                    ))
+                    .thenAccept(foreignStats -> {
+                        if (foreignStats != null && !foreignStats.isEmpty()) {
+                            entries.put(foreignTable.ident(), foreignStats);
+                        }
+                    });
             }
         }
         return currentFetch.thenCompose(ignored -> publishTableStats(entries));
