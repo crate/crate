@@ -107,3 +107,6 @@ Fixes
 
 - Fixed an issue where :ref:`ALL <sql_all_subquery_expresion>` did not return
   ``TRUE`` when comparing ``NULL`` values against an empty array.
+
+- Fixed an issue that caused wrong accounting of memory usage for queries using
+  :ref:`string_agg() <aggregation-string-agg>` aggregation function.
