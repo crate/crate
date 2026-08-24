@@ -38,6 +38,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.TypeVariableConstraint;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 
@@ -81,7 +82,7 @@ public class ArrayAgg extends AggregationFunction<List<Object>, List<Object>> {
     public List<Object> newState(RamAccounting ramAccounting,
                                  Version minNodeInCluster,
                                  MemoryManager memoryManager) {
-        ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(40L)); // ArrayList overhead
+        ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(ArrayType.ARRAY_LIST_SHALLOW_SIZE));
         return new ArrayList<>();
     }
 
@@ -125,7 +126,7 @@ public class ArrayAgg extends AggregationFunction<List<Object>, List<Object>> {
 
         @Override
         public List<Object> terminatePartial(RamAccounting ramAccounting, List<Object> state) {
-            ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(40L)); // ArrayList overhead
+            ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(ArrayType.ARRAY_LIST_SHALLOW_SIZE));
             return new ArrayList<>(state);
         }
 
