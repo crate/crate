@@ -47,6 +47,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.data.SentinelRow;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.metadata.Reference;
 import io.crate.types.ByteType;
