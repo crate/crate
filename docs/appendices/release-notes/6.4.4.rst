@@ -104,3 +104,6 @@ Fixes
     SELECT string_agg(value, delimiter) OVER(
       ORDER BY value ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM tbl
 
+- Fixed an issue where :ref:`ANY <sql_any_subquery_expression>` did not return
+  ``FALSE`` when comparing ``NULL`` against an empty array.
+

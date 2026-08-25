@@ -31,6 +31,8 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.junit.Test;
 
+import io.crate.types.DataTypes;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.testing.QueryTester;
 
@@ -50,6 +52,14 @@ public class AnyEqOperatorTest extends ScalarTestCase {
         assertEvaluateNull("null = ANY(null)");
         assertEvaluateNull("42 = ANY(null)");
         assertEvaluateNull("null = ANY([1])");
+    }
+
+    @Test
+    public void testEmptySubquery() throws Exception {
+        assertEvaluate("null = ANY([])", false);
+        assertEvaluate("1 = ANY([])", false);
+        assertEvaluate("id = ANY([])", false, Literal.of(DataTypes.INTEGER, null));
+        assertEvaluate("['foo', 'bar'] = ANY([])", false);
     }
 
     @Test
