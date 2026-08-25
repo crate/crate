@@ -522,6 +522,135 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         );
     }
 
+
+    @Test
+    public void test_string_agg_with_per_row_delimiter_over_shrinking_frame() throws Throwable {
+        assertEvaluate(
+            """
+                string_agg(cast(x AS text), z) OVER(
+                   ORDER BY x ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
+                )
+            """,
+            new Object[]{"1", "1;2", "2/3", "3~4"},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("z")),
+            new Object[]{1, "|"},
+            new Object[]{2, ";"},
+            new Object[]{3, "/"},
+            new Object[]{4, "~"});
+    }
+
+    @Test
+    public void test_string_agg_with_per_row_delimiter_over_frame_of_three_rows() throws Throwable {
+        assertEvaluate(
+            """
+                string_agg(cast(x AS text), z) OVER(
+                   ORDER BY x ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+                )
+            """,
+            new Object[]{"1", "1;2", "1;2/3", "2/3~4"},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("z")),
+            new Object[]{1, "|"},
+            new Object[]{2, ";"},
+            new Object[]{3, "/"},
+            new Object[]{4, "~"});
+    }
+
+    @Test
+    public void test_string_agg_with_per_row_delimiter_over_sliding_frame() throws Throwable {
+        assertEvaluate(
+            """
+                string_agg(cast(x AS text), z) OVER(
+                   ORDER BY x ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING
+                )
+            """,
+            new Object[]{"1;2", "1;2/3", "2/3~4", "3~4"},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("z")),
+            new Object[]{1, "|"},
+            new Object[]{2, ";"},
+            new Object[]{3, "/"},
+            new Object[]{4, "~"});
+    }
+
+    @Test
+    public void test_string_agg_with_null_delimiter_in_the_middle_over_shrinking_frame() throws Throwable {
+        assertEvaluate(
+            """
+                string_agg(cast(x AS text), z) OVER(
+                   ORDER BY x ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
+                )
+            """,
+            new Object[]{"1", "1;2", "23", "3~4"},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("z")),
+            new Object[]{1, "|"},
+            new Object[]{2, ";"},
+            new Object[]{3, null},
+            new Object[]{4, "~"});
+    }
+
+    @Test
+    public void test_string_agg_with_value_equal_to_a_delimiter_over_shrinking_frame() throws Throwable {
+        assertEvaluate(
+            """
+                string_agg(cast(x AS text), z) OVER(
+                   ORDER BY x ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
+                )
+            """,
+            new Object[]{"1", "112", "2-3", "3-4"},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("z")),
+            new Object[]{1, "-"},
+            new Object[]{2, "1"},
+            new Object[]{3, "-"},
+            new Object[]{4, "-"});
+    }
+
+    @Test
+    public void test_string_agg_over_shrinking_frame_with_duplicate_text_values() throws Throwable {
+        assertEvaluate(
+            """
+                string_agg(z, cast(x AS text)) OVER(
+                   ORDER BY x ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
+                )
+            """,
+            new Object[]{"a", "a2b", "b3a", "a4b"},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("z")),
+            new Object[]{1, "a"},
+            new Object[]{2, "b"},
+            new Object[]{3, "a"},
+            new Object[]{4, "b"});
+    }
+
+    @Test
+    public void test_string_agg_with_delimiters_differing_only_in_case_over_shrinking_frame() throws Throwable {
+        assertEvaluate(
+            """
+                string_agg(cast(x AS text), z) OVER(
+                   ORDER BY x ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
+                )
+            """,
+            new Object[]{"1", "1a2", "2A3", "3a4"},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("z")),
+            new Object[]{1, "A"},
+            new Object[]{2, "a"},
+            new Object[]{3, "A"},
+            new Object[]{4, "a"});
+    }
+
+    @Test
+    public void test_string_agg_with_constant_delimiter_over_shrinking_frame() throws Throwable {
+        assertEvaluate(
+            """
+                string_agg(z, ',') OVER(
+                   ORDER BY x ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
+                )
+            """,
+            new Object[]{"a", "a,b", "b,c", "c,d"},
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("z")),
+            new Object[]{1, "a"},
+            new Object[]{2, "b"},
+            new Object[]{3, "c"},
+            new Object[]{4, "d"});
+    }
+
     @Test
     public void test_array_agg_over_rows_unbounded_preceding_current_row_frame() throws Throwable {
         Object[] expected = new Object[]{

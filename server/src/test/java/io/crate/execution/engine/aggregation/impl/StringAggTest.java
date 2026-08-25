@@ -113,14 +113,17 @@ public class StringAggTest extends AggregationTestCase {
         );
         RamAccounting ramAccounting = new PlainRamAccounting();
         Object state = impl.newState(ramAccounting, Version.CURRENT, memoryManager);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(24L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(48L);
         impl.iterate(ramAccounting, memoryManager, state, Literal.of("trillian"), Literal.of("delim"));
-        impl.iterate(ramAccounting, memoryManager, state, Literal.of("arthur"), Literal.of("delimiter"));
-        assertThat(ramAccounting.totalBytes()).isEqualTo(296L);
-        impl.removeFromAggregatedState(ramAccounting, state,
+        impl.iterate(ramAccounting, memoryManager, state, Literal.of("arthur"), Literal.NULL);
+        impl.iterate(ramAccounting, memoryManager, state, Literal.of("john"), Literal.of("delimiter"));
+        assertThat(ramAccounting.totalBytes()).isEqualTo(488);
+        impl.removeFromAggregatedState(
+            ramAccounting,
+            state,
             new Input[] {Literal.of("trillian"), Literal.of("delim")});
-        assertThat(ramAccounting.totalBytes()).isEqualTo(208L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(312L);
         impl.terminatePartial(ramAccounting, state);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(208L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(312L);
     }
 }
