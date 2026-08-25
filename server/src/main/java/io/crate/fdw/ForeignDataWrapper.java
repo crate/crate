@@ -31,8 +31,10 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.ServersMetadata.Server;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.role.Role;
+import io.crate.statistics.Stats;
 
 public interface ForeignDataWrapper {
 
@@ -64,4 +66,15 @@ public interface ForeignDataWrapper {
                                                       TransactionContext txnCtx,
                                                       List<Symbol> collect,
                                                       Symbol query);
+
+    /**
+     * Fetches or estimates table statistics from the foreign server.
+     */
+    default CompletableFuture<Stats> getStats(Role user,
+                                              Server server,
+                                              ForeignTable foreignTable,
+                                              TransactionContext txnCtx,
+                                              List<Reference> columns) {
+        return CompletableFuture.completedFuture(Stats.EMPTY);
+    }
 }

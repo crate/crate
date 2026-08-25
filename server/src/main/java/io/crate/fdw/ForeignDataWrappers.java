@@ -36,6 +36,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -68,11 +69,12 @@ public class ForeignDataWrappers implements CollectSource {
     @Inject
     public ForeignDataWrappers(Settings settings,
                                ClusterService clusterService,
-                               NodeContext nodeContext) {
+                               NodeContext nodeContext,
+                               ThreadPool threadPool) {
         this.clusterService = clusterService;
         this.inputFactory = new InputFactory(nodeContext);
         this.wrappers = Map.of(
-            "jdbc", new JdbcForeignDataWrapper(settings, inputFactory)
+            "jdbc", new JdbcForeignDataWrapper(settings, inputFactory, threadPool.executor(ThreadPool.Names.SEARCH))
         );
         this.roles = nodeContext.roles();
     }
