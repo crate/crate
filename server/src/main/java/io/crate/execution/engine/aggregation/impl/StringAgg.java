@@ -24,6 +24,7 @@ package io.crate.execution.engine.aggregation.impl;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
@@ -175,13 +176,18 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
         }
         ramAccounting.addBytes(LIST_ENTRY_OVERHEAD + RamUsageEstimator.sizeOf(expression));
         String delimiter = (String) args[1].value();
-        if (delimiter != null) {
-            if (state.firstDelimiter == null && state.values.isEmpty()) {
-                state.firstDelimiter = delimiter;
-            } else {
+        if (delimiter == null) {
+            delimiter = "";
+        }
+        if (state.firstDelimiter == null && state.values.isEmpty()) {
+            state.firstDelimiter = delimiter;
+        } else {
+            if (!delimiter.isEmpty()) {
                 ramAccounting.addBytes(LIST_ENTRY_OVERHEAD + RamUsageEstimator.sizeOf(delimiter));
-                state.values.add(delimiter);
+            } else {
+                ramAccounting.addBytes(LIST_ENTRY_OVERHEAD);
             }
+            state.values.add(delimiter);
         }
         state.values.add(expression);
         return state;
@@ -200,24 +206,23 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
         if (expression == null) {
             return previousAggState;
         }
-        String delimiter = (String) stateToRemove[1].value();
+        String removed = previousAggState.values.removeFirst();
+        assert removed.equals(expression) : "AggregateToWindowFunctionAdapter should always remove the first state";
+        ramAccounting.addBytes(-(LIST_ENTRY_OVERHEAD + RamUsageEstimator.sizeOf(expression)));
 
-        int indexOfExpression = previousAggState.values.indexOf(expression);
-        if (indexOfExpression > -1) {
-            ramAccounting.addBytes(-(LIST_ENTRY_OVERHEAD + RamUsageEstimator.sizeOf(expression)));
-            if (delimiter != null && indexOfExpression + 1 < previousAggState.values.size()) {
-                String elementNextToExpression = previousAggState.values.get(indexOfExpression + 1);
-                if (elementNextToExpression.equalsIgnoreCase(delimiter)) {
-                    previousAggState.values.remove(indexOfExpression + 1);
-                }
-            }
-            if (indexOfExpression == 0) {
-                // First element is removed, so next one will a new first.
-                // Reset state to avoid adding a delimiter before the "new first"
-                previousAggState.firstDelimiter = null;
-            }
-            previousAggState.values.remove(indexOfExpression);
+        String delimiter = (String) stateToRemove[1].value();
+        if (delimiter == null) {
+            delimiter = "";
         }
+        assert Objects.equals(previousAggState.firstDelimiter, delimiter) : "AggregateToWindowFunctionAdapter should always remove the first state";
+
+        if (previousAggState.values.isEmpty()) {
+            previousAggState.firstDelimiter = null;
+        } else {
+            previousAggState.firstDelimiter = previousAggState.values.removeFirst();
+            ramAccounting.addBytes(-(LIST_ENTRY_OVERHEAD + RamUsageEstimator.sizeOf(previousAggState.firstDelimiter)));
+        }
+
         return previousAggState;
     }
 
