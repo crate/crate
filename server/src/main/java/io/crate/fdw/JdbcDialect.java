@@ -47,7 +47,12 @@ enum JdbcDialect {
     POSTGRES {
         @Override
         @SuppressWarnings({"unchecked", "rawtypes"})
-        public Stats getStats(String url, Properties properties, String schema, String table, RelationMetadata.ForeignTable foreignTable, Logger logger) throws Exception {
+        public Stats getStats(String url,
+                              Properties properties,
+                              String schema,
+                              String table,
+                              RelationMetadata.ForeignTable foreignTable,
+                              Logger logger) throws Exception {
             String tableStatsQuery = """
                 SELECT
                     c.reltuples,
@@ -76,9 +81,16 @@ enum JdbcDialect {
                         }
                     }
                 } catch (SQLException e) {
-                    String fallbackQuery = "SELECT c.reltuples FROM pg_class c " +
-                        "JOIN pg_namespace n ON c.relnamespace = n.oid " +
-                        "WHERE n.nspname = ? AND c.relname = ?";
+                    // When connecting to remote CrateDB instances `pg_relation_size` isn't available
+                    String fallbackQuery = """
+                        SELECT
+                            c.reltuples
+                        FROM pg_class c
+                            JOIN pg_namespace n ON c.relnamespace = n.oid
+                        WHERE
+                            n.nspname = ?
+                            AND c.relname = ?
+                        """;
                     try (PreparedStatement stmt = conn.prepareStatement(fallbackQuery)) {
                         stmt.setString(1, schema);
                         stmt.setString(2, table);
@@ -183,12 +195,22 @@ enum JdbcDialect {
 
     GENERIC {
         @Override
-        public Stats getStats(String url, Properties properties, String schema, String table, RelationMetadata.ForeignTable foreignTable, Logger logger) throws Exception {
+        public Stats getStats(String url,
+                              Properties properties,
+                              String schema,
+                              String table,
+                              RelationMetadata.ForeignTable foreignTable,
+                              Logger logger) throws Exception {
             return Stats.EMPTY;
         }
     };
 
-    public abstract Stats getStats(String url, Properties properties, String schema, String table, RelationMetadata.ForeignTable foreignTable, Logger logger) throws Exception;
+    public abstract Stats getStats(String url,
+                                   Properties properties,
+                                   String schema,
+                                   String table,
+                                   RelationMetadata.ForeignTable foreignTable,
+                                   Logger logger) throws Exception;
 
     public static JdbcDialect fromUrl(String url) {
         if (url.startsWith("jdbc:postgresql:")) {
