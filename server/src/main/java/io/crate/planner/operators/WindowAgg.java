@@ -36,10 +36,10 @@ import java.util.function.Function;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.UUIDs;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -134,7 +134,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
         // NB: this.outputs() = windowFunctions() + newSource.outputs()
         WindowAgg newWindowAgg = new WindowAgg(newSource,
             windowDefinition,
-            normalizePrunedOutputs(windowFunctions(), windowFuncsUnordered),
+            Lists.intersection(windowFunctions(), windowFuncsUnordered),
             newSource.outputs()
         );
         boolean isSubsequence = Lists.isSubsequence(newWindowAgg.outputs(), outputs());
