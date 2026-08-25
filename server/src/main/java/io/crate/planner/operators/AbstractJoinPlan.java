@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.jspecify.annotations.Nullable;
@@ -92,6 +93,28 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
             return lhs.outputs();
         } else {
             return Lists.concat(lhs.outputs(), rhs.outputs());
+        }
+    }
+
+    protected final void validateOutputsOrder(List<Symbol> outputsAfterPruning) {
+        boolean isSubsequence = Lists.isSubsequence(outputsAfterPruning, outputs());
+        if (!isSubsequence) {
+            String error = String.format(
+                """
+                Column pruning reshuffled outputs in %s:
+                outputs = %s
+                outputsAfterPruning = %s
+                lhs.outputs() = %s
+                rhs.outputs() = %s
+                """,
+                getClass().getSimpleName(),
+                outputs(),
+                outputsAfterPruning,
+                lhs.outputs(),
+                rhs.outputs(),
+                Locale.ENGLISH
+            );
+            throw new IllegalStateException(error);
         }
     }
 
