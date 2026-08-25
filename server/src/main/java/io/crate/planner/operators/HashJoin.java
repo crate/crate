@@ -218,13 +218,15 @@ public class HashJoin extends AbstractJoinPlan {
             if (newLhs == lhs && newRhs == rhs) {
                 return this;
             }
-            return new HashJoin(
+            HashJoin newHashJoin = new HashJoin(
                 newLhs,
                 newRhs,
                 joinCondition,
                 joinType,
                 lookupJoin
             );
+            validateOutputsOrder(newHashJoin.outputs());
+            return newHashJoin;
         }
     }
 

@@ -252,7 +252,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
         if (newLhs == lhs && newRhs == rhs) {
             return this;
         }
-        return new NestedLoopJoin(
+        NestedLoopJoin newNestedLoopJoin = new NestedLoopJoin(
             newLhs,
             newRhs,
             joinType,
@@ -262,6 +262,8 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             rewriteNestedLoopJoinToHashJoinDone,
             lookupJoin
         );
+        validateOutputsOrder(newNestedLoopJoin.outputs());
+        return newNestedLoopJoin;
     }
 
     @Nullable
