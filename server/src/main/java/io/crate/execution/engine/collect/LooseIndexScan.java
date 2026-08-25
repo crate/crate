@@ -109,7 +109,7 @@ final class LooseIndexScan {
                                        Token killToken) {
         return InMemoryBatchIterator.of(
             rows(searcher, keyRef, bytesPerValue, ramAccounting, killToken),
-            null,
+            SentinelRow.SENTINEL,
             // distinct values loaded lazily from each segment
             true
         );
