@@ -70,8 +70,9 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     static final String WWW_AUTHENTICATE_REALM_MESSAGE = "Basic realm=\"CrateDB Authenticator\"";
 
     private final Authentication authService;
-    private final Settings settings;
     private final boolean checkJwtProperties;
+    private final boolean supportXRealIp;
+    private final String defaultUser;
 
     private final Roles roles;
     private String authorizedUser = null;
@@ -79,8 +80,9 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     public HttpAuthUpstreamHandler(Settings settings, Authentication authService, Roles roles) {
         // do not auto-release reference counted messages which are just in transit here
         super(false);
-        this.settings = settings;
         this.checkJwtProperties = settings.get(AUTH_HOST_BASED_JWT_ISS_SETTING.getKey()) == null;
+        this.supportXRealIp = AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.get(settings);
+        this.defaultUser = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
         this.authService = authService;
         this.roles = roles;
     }
@@ -100,7 +102,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
 
     private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest request) {
         SSLSession session = getSession(ctx.channel());
-        Credentials credentials = credentialsFromRequest(request, session, settings);
+        Credentials credentials = credentialsFromRequest(request, session, defaultUser);
 
         Predicate<Role> rolePredicate = credentials.matchByToken(checkJwtProperties);
         if (rolePredicate != null) {
@@ -183,7 +185,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     }
 
     @VisibleForTesting
-    static Credentials credentialsFromRequest(HttpRequest request, @Nullable SSLSession session, Settings settings) {
+    static Credentials credentialsFromRequest(HttpRequest request, @Nullable SSLSession session, String defaultUser) {
         String username = null;
         String authHeader = request.headers().get(HttpHeaderNames.AUTHORIZATION);
         if (authHeader != null) {
@@ -200,14 +202,13 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                 }
             }
             if (username == null) {
-                username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
+                username = defaultUser;
             }
         }
         return new Credentials(username, null);
     }
 
     private InetAddress addressFromRequestOrChannel(HttpRequest request, Channel channel) {
-        boolean supportXRealIp = AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.get(settings);
         if (supportXRealIp) {
             String realIPHeader = request.headers().get(AuthSettings.HTTP_HEADER_REAL_IP);
             if (realIPHeader == null) {
