@@ -368,7 +368,6 @@
         <versions.plugin.resources>3.5.0</versions.plugin.resources>
         <versions.plugin.install>3.1.4</versions.plugin.install>
         <versions.plugin.compiler>3.15.0</versions.plugin.compiler>
-        <versions.plugin.jar>3.3.0</versions.plugin.jar>
         <versions.plugin.surefire>3.5.6</versions.plugin.surefire>
         <versions.plugin.checkstyle>3.6.0</versions.plugin.checkstyle>
         <versions.plugin.puppycrawl>12.3.1</versions.plugin.puppycrawl>
@@ -380,7 +379,7 @@
         <versions.plugin.download>1.13.0</versions.plugin.download>
         <versions.plugin.git-commit>10.0.0</versions.plugin.git-commit>
         <versions.plugin.shade>3.6.2</versions.plugin.shade>
-        <versions.plugin.jar>3.5.0</versions.plugin.jar>
+        <versions.plugin.jar>3.5.1</versions.plugin.jar>
         <versions.plugin.build-helper>3.6.1</versions.plugin.build-helper>
         <versions.plugin.antlr>4.13.2</versions.plugin.antlr>
         <versions.plugin.os>1.7.0</versions.plugin.os>
