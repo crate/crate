@@ -21,7 +21,6 @@
 
 package io.crate.planner.operators;
 
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.SequencedCollection;
 import java.util.Set;
@@ -34,7 +33,6 @@ import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -142,33 +140,8 @@ public class JoinPlan extends AbstractJoinPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
-        LinkedHashSet<Symbol> lhsToKeep = new LinkedHashSet<>();
-        LinkedHashSet<Symbol> rhsToKeep = new LinkedHashSet<>();
-        for (Symbol outputToKeep : outputsToKeep) {
-            Symbols.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
-            Symbols.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
-        }
-        if (joinCondition != null) {
-            Symbols.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
-            Symbols.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
-        }
-        LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
-        LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
-        if (newLhs == lhs && newRhs == rhs) {
-            return this;
-        }
-        return new JoinPlan(
-            newLhs,
-            newRhs,
-            joinType,
-            joinCondition,
-            isFiltered,
-            rewriteFilterOnOuterJoinToInnerJoinDone,
-            lookUpJoinRuleApplied,
-            moveConstantJoinConditionRuleApplied,
-            eliminateCrossJoinRuleIsApplied,
-            lookupJoin
-        );
+        throw new UnsupportedOperationException(
+            "JoinPlan cannot have outputs pruned directly, it needs to be converted to a NestedLoop/HashJoin");
     }
 
     @Override
