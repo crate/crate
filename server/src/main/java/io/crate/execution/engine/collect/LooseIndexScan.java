@@ -333,13 +333,13 @@ final class LooseIndexScan {
             } else if (current != null && cmp.compare(packed, 0, current, 0) == 0) {
                 return;
             }
-            maybeGrowBuffer();
+            maybeGrowBuffer(1);
             System.arraycopy(packed, 0, buffer, numValues * bytesPerValue, bytesPerValue);
             numValues++;
         }
 
-        private void maybeGrowBuffer() {
-            int required = (numValues + 1) * bytesPerValue;
+        private void maybeGrowBuffer(int numNewValue) {
+            int required = (numValues + numNewValue) * bytesPerValue;
             if (buffer.length < required) {
                 int before = buffer.length;
                 buffer = ArrayUtil.grow(buffer, required);
@@ -390,6 +390,10 @@ final class LooseIndexScan {
                     step();
                 } else if (!tree.moveToChild()) {
                     // No child, so this is a leaf: buffer its points.
+                    // The number of points in a leaf is an int
+                    // (see: org.apache.lucene.util.bkd.BKDConfig.maxPointsInLeafNode),
+                    // so it's safe to cast to `int` here.
+                    maybeGrowBuffer((int) tree.size());
                     tree.visitDocValues(copyLeafValuesVisitor);
                     step();
                 }
