@@ -61,9 +61,9 @@ import re
 import subprocess
 import sys
 from argparse import ArgumentParser
+from collections.abc import Callable
 from pathlib import Path
 from textwrap import fill
-from typing import Callable
 
 VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
 NOTES_DIR = "docs/appendices/release-notes"
@@ -124,7 +124,7 @@ None
 """
 
 
-def run(*args, cwd, capture_output=True):
+def run(*args, cwd, capture_output=True) -> str:
     """Run a given command.
 
     If ``capture_output``, the output of the command is captured and returned.
@@ -135,20 +135,21 @@ def run(*args, cwd, capture_output=True):
     return subprocess.check_output(args, cwd=cwd, text=True).strip()
 
 
-def repo_root(script):
+def repo_root(script: str) -> Path:
     """Root of the checkout the given script file lives in"""
     return Path(run("git", "rev-parse", "--show-toplevel", cwd=Path(script).resolve().parent))
 
 
-def ref_exists(root, ref):
+def ref_exists(root: Path, ref: str) -> bool:
     return subprocess.run(
         ("git", "rev-parse", "--verify", "--quiet", ref),
         cwd=root,
         stdout=subprocess.DEVNULL,
+        check=False,
     ).returncode == 0
 
 
-def fetch_and_check(root, base, branch):
+def fetch_and_check(root: Path, base: str, branch: str) -> None:
     """Verify the checkout is ready to create ``branch`` off ``origin/base``"""
     if run("git", "status", "--porcelain", cwd=root):
         sys.exit("working directory not clean, commit or stash your changes first")
@@ -161,7 +162,7 @@ def fetch_and_check(root, base, branch):
             sys.exit(f"{ref} already exists, delete it or finish that release first")
 
 
-def create_branch(root, branch, base):
+def create_branch(root: Path, branch: str, base: str) -> str:
     """Check out ``branch`` at ``origin/base``, returning the previous branch"""
     print(f"Creating branch {branch} from origin/{base}...")
     previous = run("git", "rev-parse", "--abbrev-ref", "HEAD", cwd=root)
@@ -171,21 +172,21 @@ def create_branch(root, branch, base):
     return previous
 
 
-def commit_and_push(root, branch, message):
+def commit_and_push(root: Path, branch: str, message: str) -> None:
     run("git", "add", "--all", cwd=root)
     run("git", "commit", "-m", message, cwd=root, capture_output=False)
     print(f"Pushing {branch} to origin...")
     run("git", "push", "--set-upstream", "origin", branch, cwd=root, capture_output=False)
 
 
-def open_pull_request(root, base, branch, title):
+def open_pull_request(root: Path, base: str, branch: str, title: str) -> None:
     """Create the pull request of ``branch`` against ``base``"""
     print(f"Creating the pull request of {branch}...")
     run("gh", "pr", "create", "--base", base, "--head", branch,
         "--title", title, "--body", "", cwd=root, capture_output=False)
 
 
-def apply_patch(path, patch_file: Callable[[str], str]):
+def apply_patch(path: Path, patch_file: Callable[[str], str]) -> None:
     """Rewrite ``path`` in place with ``patch_file(text)``"""
     if not path.is_file():
         sys.exit(f"{path} does not exist")
@@ -196,7 +197,7 @@ def apply_patch(path, patch_file: Callable[[str], str]):
     print(f"Updated {path}")
 
 
-def render_release_notes(version, previous_notes):
+def render_release_notes(version: str, previous_notes: str) -> str:
     """Render the "Unreleased" release notes of ``version``
 
     The upgrade requirements cannot be derived from the version, they are taken
@@ -236,7 +237,7 @@ def render_release_notes(version, previous_notes):
     )
 
 
-def patch_index(text, version, previous):
+def patch_index(text: str, version: str, previous: str) -> str:
     """List ``version`` above ``previous`` in the release notes index"""
     entry = f"    {version}\n"
     if entry in text:
@@ -247,7 +248,7 @@ def patch_index(text, version, previous):
     return text.replace(previous_entry, entry + previous_entry, 1)
 
 
-def patch_system_information(text, version, previous):
+def patch_system_information(text: str, version: str, previous: str) -> str:
     """Update the version of the reindex example, keeping the table aligned"""
     cell = re.compile(r"^(\s*\| )(\d+\.\d+\.\d+)( +)\|$", re.MULTILINE)
     matches = cell.findall(text)
@@ -262,7 +263,7 @@ def patch_system_information(text, version, previous):
     return cell.sub(lambda m: f"{m.group(1)}{version.ljust(width)}|", text, count=1)
 
 
-def add_version_constant(text, version, previous):
+def add_version_constant(text: str, version: str, previous: str) -> str:
     """Add a snapshot ``V_<version>`` constant and make it ``CURRENT``"""
     constant = "V_" + version.replace(".", "_")
     previous_constant = "V_" + previous.replace(".", "_")
@@ -295,7 +296,7 @@ def add_version_constant(text, version, previous):
     return current.sub(rf"\g<1>{constant};", text, count=1)
 
 
-def set_pom_version(root, version, previous):
+def set_pom_version(root: Path, version: str, previous: str) -> None:
     """Set the version in all pom.xml files, using the maven versions plugin"""
     pom = (root / "pom.xml").read_text()
     match = re.search(r"^    <version>(\S+)</version>$", pom, re.MULTILINE)
@@ -308,7 +309,7 @@ def set_pom_version(root, version, previous):
     run("./mvnw", "--quiet", "versions:set", f"-DnewVersion={version}", cwd=root, capture_output=False)
 
 
-def bump(version):
+def bump(version: str) -> None:
     major, minor, patch = (int(part) for part in version.split("."))
     if patch == 0:
         sys.exit(f"{version} is not a patch version, bump to x.y.0 versions manually")
@@ -340,14 +341,14 @@ def bump(version):
         for path, content in updates.items():
             (root / path).write_text(content)
             print(f"Updated {path}")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         sys.exit(str(e))
 
     commit_and_push(root, branch, f"Bump version to {version}-SNAPSHOT")
     open_pull_request(root, base, branch, f"Bump version to {version}-SNAPSHOT")
 
 
-def patch_release_notes(text, version, released_on):
+def patch_release_notes(text: str, version: str, released_on: datetime.date) -> str:
     """Turn the "Unreleased" release notes of ``version`` into released notes"""
     title = f"Version {version}"
     unreleased_title = re.compile(
@@ -379,7 +380,7 @@ def patch_release_notes(text, version, released_on):
     return f"{text[:match.start()]}Released on {released_on}.\n{text[match.end():]}"
 
 
-def patch_version_java(text, version):
+def patch_version_java(text: str, version: str) -> str:
     """Clear the snapshot flag of the ``V_<version>`` constant"""
     constant = "V_" + version.replace(".", "_")
     declaration = re.compile(
@@ -402,7 +403,7 @@ def patch_version_java(text, version):
     return f"{text[:match.start()]}{match.group(1)}false{match.group(3)}{text[match.end():]}"
 
 
-def create(version):
+def create(version: str) -> None:
     base = ".".join(version.split(".")[:2])
     branch = f"release-{version}"
     released_on = datetime.datetime.now(tz=datetime.UTC).date()
@@ -419,7 +420,7 @@ def create(version):
     open_pull_request(root, base, branch, f"Release {version}")
 
 
-def main():
+def main() -> None:
     parser = ArgumentParser(description=__doc__.strip().splitlines()[0])
     subparsers = parser.add_subparsers(dest="command", required=True)
 
