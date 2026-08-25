@@ -243,30 +243,28 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
-        HashSet<Symbol> required = new HashSet<>();
+        ArrayList<Symbol> toKeepForSource = new ArrayList<>();
         // We cannot prune groupKeys, even if they are not used in the outputs, because it would change the result semantically
         for (Symbol groupKey : groupKeys) {
-            Symbols.intersection(groupKey, source.outputs(), required::add);
+            Symbols.intersection(groupKey, source.outputs(), toKeepForSource::add);
         }
         ArrayList<Function> newAggregates = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
             Symbols.intersection(outputToKeep, aggregates, newAggregates::add);
         }
+        // Trying to prune source with a narrower list of outputs:
+        // outputsToKeep ∩ groupKeys ∩ source.outputs()
         for (Function newAggregate : newAggregates) {
-            Symbols.intersection(newAggregate, source.outputs(), required::add);
+            Symbols.intersection(newAggregate, source.outputs(), toKeepForSource::add);
         }
-        // Keep the same order of source outputs to follow method's contract.
-        ArrayList<Symbol> toKeep = new ArrayList<>();
-        for (Symbol sourceOutput : source.outputs()) {
-            if (required.contains(sourceOutput)) {
-                toKeep.add(sourceOutput);
-            }
-        }
-        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
+        LogicalPlan newSource = source.pruneOutputsExcept(toKeepForSource);
         if (newSource == source && aggregates.size() == newAggregates.size()) {
             return this;
         }
-        return new GroupHashAggregate(newSource, groupKeys, newAggregates);
+        List<Function> prunedOutputs = Lists.intersection(aggregates, newAggregates);
+        boolean isSubsequence = Lists.isSubsequence(prunedOutputs, aggregates);
+        assert isSubsequence : "pruneOutputsExcept must not shuffle the outputs, it can only remove some of them.";
+        return new GroupHashAggregate(newSource, groupKeys, prunedOutputs);
     }
 
     @Override
