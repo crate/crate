@@ -110,6 +110,8 @@ the user/role to execute the following statements:
 - ``SET GLOBAL``
 - ``RESTORE SNAPSHOT``, if the restored sections include user management
   metadata, see :ref:`sql-restore-snapshot` for details.
+- ``GRANT`` - meaning users with ``AL`` privileges can also give themselves
+  other privileges.
 
 All statements enabled via the ``AL`` privilege operate on a cluster level. So
 granting this on a schema or table level will have no effect.
