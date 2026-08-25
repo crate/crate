@@ -40,6 +40,7 @@ import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.ArrayUtil.ByteArrayComparator;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.RamUsageEstimator;
+import org.apache.lucene.util.bkd.BKDConfig;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.common.concurrent.Killable.Token;
@@ -316,8 +317,24 @@ final class LooseIndexScan {
             this.cmp = ArrayUtil.getUnsignedComparator(bytesPerValue);
             this.ramAccounting = ramAccounting;
             this.killToken = killToken;
-            // the buffer holds 16 values initially, each value needs `bytesPerValue`
-            this.buffer = new byte[bytesPerValue * 16];
+            // Buffer's max size:
+            //
+            // The buffer is always filled with either 1 value (in internal nodes) or with all the values from a leaf.
+            // All the leaves (except for maybe the right-most) have the same size.
+            // This size is never exceeded because, as soon as the buffer is filled with at least one value,
+            // it's not filled again, until all the values have been returned from the cursor.
+            // This implies that the buffer's max size is the size of the first leaf,
+            // which is likely BKDConfig.DEFAULT_MAX_POINTS_IN_LEAF_NODE.
+            // With 4-8 bytes per point, this is currently 2-4kb.
+            //
+            // Buffer's growth:
+            //
+            // Given the above, it's expected to grow once, at most, which is
+            // from the initial size to the number of points in the first leaf.
+            //
+            // With all the above, 2-4kb is a relatively small value for which there will be no buffer growth
+            // in most cases, so we choose that.
+            this.buffer = new byte[bytesPerValue * BKDConfig.DEFAULT_MAX_POINTS_IN_LEAF_NODE];
             // bytesPerValue for the `current` field, which is allocated on the first next()
             ramAccounting.addBytes(buffer.length + bytesPerValue);
         }
