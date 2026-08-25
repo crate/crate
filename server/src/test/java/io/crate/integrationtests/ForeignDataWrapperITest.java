@@ -25,6 +25,8 @@ import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 import org.elasticsearch.common.settings.Settings;
@@ -466,6 +468,7 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         assertThat(response).hasRows(new Object[] { "pg", "url", newUrl });
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void test_analyze_foreign_table_generates_stats() throws Exception {
         execute("create table doc.local_tbl (x int, y int)");
@@ -505,5 +508,31 @@ public class ForeignDataWrapperITest extends IntegTestCase {
                 "ForeignCollect[doc.remote_tbl | [x, y] | true] (rows=3)"
             );
         });
+
+        execute(
+            """
+            select
+                attname,
+                null_frac,
+                avg_width,
+                n_distinct,
+                most_common_vals,
+                most_common_freqs
+            from
+                pg_stats
+            where
+                schemaname = 'doc'
+                and tablename = 'remote_tbl'
+            order by attname
+            """
+        );
+        for (Object[] row : response.rows()) {
+            // for deterministic order in the hasRows assertion below
+            Collections.sort((List<String>) row[4]);
+        }
+        assertThat(response).hasRows(
+            "x| 0.0| 16| 3.0| [1, 2, 42]| [0.33333334, 0.33333334, 0.33333334]",
+            "y| 0.0| 16| 3.0| [1, 2, 42]| [0.33333334, 0.33333334, 0.33333334]"
+        );
     }
 }
