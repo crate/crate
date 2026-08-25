@@ -320,13 +320,13 @@
         <versions.jdk>26.0.2</versions.jdk>
         <versions.jdkbuild>26.0.2+10</versions.jdkbuild>
 
-        <versions.jspecify>1.0.0</versions.jspecify>
+        <versions.jspecify>1.0.1</versions.jspecify>
         <versions.log4j>2.26.1</versions.log4j>
         <versions.assertj>3.27.7</versions.assertj>
-        <versions.junit5>6.1.2</versions.junit5>
+        <versions.junit5>6.1.3</versions.junit5>
         <versions.junit>4.13.2</versions.junit>
         <versions.randomizedrunner>2.9.1</versions.randomizedrunner>
-        <versions.jackson>2.22.1</versions.jackson>
+        <versions.jackson>2.22.2</versions.jackson>
         <versions.fastdoubleparser>2.0.1</versions.fastdoubleparser>
         <versions.jopt_simple>6.0-alpha-3</versions.jopt_simple>
         <versions.antlr>4.13.2</versions.antlr>
@@ -340,11 +340,11 @@
         <versions.datasketches>9.0.0</versions.datasketches>
         <versions.hdrhistogram>2.2.2</versions.hdrhistogram>
         <versions.caffeine>3.2.4</versions.caffeine>
-        <versions.jodatime>2.14.2</versions.jodatime>
+        <versions.jodatime>2.14.3</versions.jodatime>
         <versions.aws>1.12.797</versions.aws>
         <versions.opendal>0.50.1</versions.opendal>
         <versions.commonsmath>3.6.1</versions.commonsmath>
-        <versions.commonscodec>1.22.0</versions.commonscodec>
+        <versions.commonscodec>1.22.1</versions.commonscodec>
         <versions.bigmath>2.3.2</versions.bigmath>
         <versions.jaxb_api>2.3.1</versions.jaxb_api>
         <versions.graalvm>25.1.3</versions.graalvm>
