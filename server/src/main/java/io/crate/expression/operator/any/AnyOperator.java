@@ -21,6 +21,7 @@
 
 package io.crate.expression.operator.any;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.StreamSupport;
@@ -98,6 +99,16 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
         );
     }
 
+    @Override
+    public Symbol normalizeSymbol(Function function, TransactionContext txnCtx, NodeContext nodeCtx) {
+        try {
+            return evaluateIfLiterals(this, txnCtx, nodeCtx, function);
+        } catch (Throwable t) {
+            return function;
+        }
+    }
+
+
     protected static List<?> filterNullValues(Literal<?> literal) {
         assert ArrayType.dimensions(literal.valueType()) == 1 : "The literal must be 1D array";
         return StreamSupport.stream(((Iterable<?>) literal.value()).spliterator(), false)
@@ -127,7 +138,11 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
         assert args[0] != null : "1st argument must not be null";
 
         T item = args[0].value();
-        T items = args[1].value();
+        Collection<T> items = (Collection<T>) args[1].value();
+        if (items != null && items.isEmpty()) {
+            return false;
+        }
+
         if (items == null || item == null) {
             return null;
         }
