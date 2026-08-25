@@ -28,6 +28,7 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isInputColumn;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -93,7 +94,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     private LogicalPlan buildLogicalPlan(QueriedSelectRelation mss, PlannerContext plannerCtx) {
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx, THREAD_POOL),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, plannerCtx));
@@ -536,7 +537,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation mss = e.analyze("select * from t1, t4 order by t1.x");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx, THREAD_POOL),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan operator = logicalPlanner.plan(mss, plannerCtx);
@@ -618,7 +619,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                               "JOIN t3 t3 on t3.c = t2.b");
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx, THREAD_POOL),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
 

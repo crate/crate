@@ -22,6 +22,7 @@
 package io.crate.fdw;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -43,16 +44,19 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.role.Role;
 import io.crate.role.metadata.RolesHelper;
+import io.crate.statistics.Stats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 
 public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
-    public void test_cannot_access_localhost_as_regular_user() throws Exception {
+    public void test_cannot_access_localhost_as_regular_user() {
         Role arthur = RolesHelper.userOf("arthur");
         NodeContext nodeCtx = createNodeContext(List.of(arthur));
-        var fdw = new JdbcForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx));
+
+        var fdw = new JdbcForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx), Runnable::run);
+
         Settings options = Settings.builder()
             .put("url", "jdbc:postgresql://localhost:5432/")
             .build();
@@ -74,10 +78,12 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
     }
 
     @Test
-    public void test_can_access_remote_as_regular_user() throws Exception {
+    public void test_can_access_remote_as_regular_user() {
         Role arthur = RolesHelper.userOf("arthur");
         NodeContext nodeCtx = createNodeContext(List.of(arthur));
-        var fdw = new JdbcForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx));
+
+        var fdw = new JdbcForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx), Runnable::run);
+
         Settings options = Settings.builder()
             .put("url", "jdbc:postgresql://192.0.2.0:5432/postgres")
             .build();
@@ -97,5 +103,23 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
         // validates that no exception is thrown
         fdw.getIterator(arthur, server, foreignTable, txnCtx, List.of(nameRef), Literal.BOOLEAN_TRUE);
     }
-}
 
+    @Test
+    public void test_get_stats_returns_empty_for_generic_jdbc_url() throws Exception {
+        Role arthur = RolesHelper.userOf("arthur");
+        NodeContext nodeCtx = createNodeContext(List.of(arthur));
+
+        var fdw = new JdbcForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx), Runnable::run);
+
+        Settings options = Settings.builder()
+            .put("url", "jdbc:mysql://192.0.2.0:3306/db")
+            .build();
+        Server server = new ServersMetadata.Server("self", "jdbc", "crate", Map.of(), options);
+        CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+        RelationName relationName = new RelationName("secret", "documents");
+        RelationMetadata.ForeignTable foreignTable = new RelationMetadata.ForeignTable(relationName, Map.of(), server.name(), Settings.EMPTY);
+
+        Stats stats = fdw.getStats(arthur, server, foreignTable, txnCtx, List.of()).get();
+        assertThat(stats).isEqualTo(Stats.EMPTY);
+    }
+}
