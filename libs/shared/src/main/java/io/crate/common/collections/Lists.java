@@ -89,10 +89,9 @@ public final class Lists {
         return result;
     }
 
-    @SuppressWarnings("unchecked")
     public static <T> List<T> of(Iterable<? extends T> items) {
-        if (items instanceof Collection<?> collection) {
-            return new ArrayList<>((Collection<T>) collection);
+        if (items instanceof Collection<? extends T> collection) {
+            return new ArrayList<>(collection);
         }
         ArrayList<T> result = new ArrayList<>();
         for (var item : items) {
