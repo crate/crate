@@ -342,7 +342,7 @@ final class LooseIndexScan {
             int required = (numValues + numNewValue) * bytesPerValue;
             if (buffer.length < required) {
                 int before = buffer.length;
-                buffer = ArrayUtil.grow(buffer, required);
+                buffer = ArrayUtil.growExact(buffer, required);
                 ramAccounting.addBytes(buffer.length - before);
             }
         }
