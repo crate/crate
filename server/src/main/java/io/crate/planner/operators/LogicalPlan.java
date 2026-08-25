@@ -21,7 +21,6 @@
 
 package io.crate.planner.operators;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -249,19 +248,5 @@ public interface LogicalPlan extends Plan {
                 printContext.text(" (rows=" + stats.numDocs() + ")");
             }
         }
-    }
-
-    /**
-     * Returns list of outputs ordered according to outputs of this plan.
-     * @param prunedOutputs is outputs in arbitrary order
-     */
-    default <T extends Symbol> List<T> normalizePrunedOutputs(Collection<T> originalOutputs, Collection<T> prunedOutputs) {
-        List<T> normalizedOutputs = new ArrayList<>();
-        for (T output : originalOutputs) {
-            if (prunedOutputs.contains(output)) {
-                normalizedOutputs.add(output);
-            }
-        }
-        return normalizedOutputs;
     }
 }

@@ -32,6 +32,7 @@ import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.RandomAccess;
+import java.util.SequencedCollection;
 import java.util.SequencedSet;
 import java.util.StringJoiner;
 import java.util.function.Function;
@@ -75,6 +76,17 @@ public final class Lists {
         }
 
         return isSubsequence;
+    }
+
+    /// Return a new list with the intersection of `items` and `matches`, based on the iteration order of `items`.
+    public static <T> List<T> intersection(SequencedCollection<T> items, Collection<T> matches) {
+        ArrayList<T> result = new ArrayList<>(matches.size());
+        for (T item : items) {
+            if (matches.contains(item)) {
+                result.add(item);
+            }
+        }
+        return result;
     }
 
     @SuppressWarnings("unchecked")
