@@ -169,9 +169,9 @@ Performance and Resilience Improvements
 
       SELECT count(col) FROM (SELECT col FROM tbl GROUP BY col) tmp
 
-In our benchmarks this improvement made certain queries up to 21x
-faster. The amount of improvement you'll see depends on the data type
-and cardinality.
+  In our benchmarks this improvement made certain queries up to 21x
+  faster. The amount of improvement you'll see depends on the data type
+  and cardinality.
 
 - `Somil Jain <https://github.com/somiljain2006>`_ added support for collecting
   table-level statistics for foreign tables during ``ANALYZE``, enabling the
