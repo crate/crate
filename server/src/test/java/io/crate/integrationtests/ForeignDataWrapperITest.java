@@ -475,8 +475,9 @@ public class ForeignDataWrapperITest extends IntegTestCase {
 
         assertBusy(() -> {
             execute("select reltuples from pg_class where relname = 'local_tbl'");
-            assertThat(response.rowCount()).isEqualTo(1L);
-            assertThat(((Number) response.rows()[0][0]).longValue()).isEqualTo(3L);
+            assertThat(response).hasRows(
+                "3.0"
+            );
         });
 
         PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class);

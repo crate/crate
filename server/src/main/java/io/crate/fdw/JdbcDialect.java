@@ -48,13 +48,17 @@ enum JdbcDialect {
         @Override
         @SuppressWarnings({"unchecked", "rawtypes"})
         public Stats getStats(String url, Properties properties, String schema, String table, RelationMetadata.ForeignTable foreignTable, Logger logger) throws Exception {
-            String tableStatsQuery = "SELECT c.reltuples, pg_relation_size(c.oid) FROM pg_class c " +
-                "JOIN pg_namespace n ON c.relnamespace = n.oid " +
-                "WHERE n.nspname = ? AND c.relname = ?";
-
-            String colStatsQuery = "SELECT attname, null_frac, avg_width, n_distinct, " +
-                "most_common_vals, most_common_freqs, histogram_bounds " +
-                "FROM pg_stats WHERE schemaname = ? AND tablename = ?";
+            String tableStatsQuery = """
+                SELECT
+                    c.reltuples,
+                    pg_relation_size(c.oid)
+                FROM
+                    pg_class c
+                    JOIN pg_namespace n ON c.relnamespace = n.oid
+                    WHERE
+                        n.nspname = ?
+                        AND c.relname = ?
+                """;
 
             try (Connection conn = DriverManager.getConnection(url, properties)) {
                 long numDocs;
@@ -88,6 +92,21 @@ enum JdbcDialect {
                     }
                 }
 
+                String colStatsQuery = """
+                    SELECT
+                        attname,
+                        null_frac,
+                        avg_width,
+                        n_distinct,
+                        most_common_vals,
+                        most_common_freqs,
+                        histogram_bounds
+                    FROM
+                        pg_stats
+                    WHERE
+                        schemaname = ?
+                        AND tablename = ?
+                    """;
                 Map<ColumnIdent, ColumnStats<?>> columnStats = new HashMap<>();
                 try (PreparedStatement stmt = conn.prepareStatement(colStatsQuery)) {
                     stmt.setString(1, schema);
@@ -96,68 +115,67 @@ enum JdbcDialect {
                         while (rs.next()) {
                             String attname = rs.getString(1);
                             ColumnIdent colIdent = ColumnIdent.of(attname);
-                            Reference ref = foreignTable.references().get(colIdent);
+                            Reference ref = foreignTable.getReference(colIdent);
+                            if (ref == null) {
+                                continue;
+                            }
+                            double nullFrac = rs.getDouble(2);
+                            double avgWidth = rs.getDouble(3);
+                            double nDistinct = rs.getDouble(4);
+                            double approxDistinct = nDistinct >= 0 ? nDistinct : -nDistinct * numDocs;
 
-                            if (ref != null) {
-                                double nullFrac = rs.getDouble(2);
-                                double avgWidth = rs.getDouble(3);
-                                double nDistinct = rs.getDouble(4);
-                                double approxDistinct = nDistinct >= 0 ? nDistinct : -nDistinct * numDocs;
+                            List<Object> mcvs = List.of();
+                            double[] frequencies = new double[0];
+                            List<Object> histogram = List.of();
 
-                                List<Object> mcvs = List.of();
-                                double[] mcfs = new double[0];
-                                List<Object> histogram = List.of();
+                            try {
+                                Array mcvSqlArray = rs.getArray(5);
+                                Array mcfSqlArray = rs.getArray(6);
+                                Array histSqlArray = rs.getArray(7);
 
-                                try {
-                                    Array mcvSqlArray = rs.getArray(5);
-                                    Array mcfSqlArray = rs.getArray(6);
-                                    Array histSqlArray = rs.getArray(7);
+                                if (mcvSqlArray != null && mcfSqlArray != null) {
+                                    Object[] mcvValues = (Object[]) mcvSqlArray.getArray();
+                                    Object[] mcfValues = (Object[]) mcfSqlArray.getArray();
 
-                                    if (mcvSqlArray != null && mcfSqlArray != null) {
-                                        Object[] mcvValues = (Object[]) mcvSqlArray.getArray();
-                                        Object[] mcfValues = (Object[]) mcfSqlArray.getArray();
+                                    if (mcvValues.length == mcfValues.length && mcvValues.length > 0) {
+                                        ArrayList<Object> tempMcvs = new ArrayList<>(mcvValues.length);
+                                        double[] tempMcfs = new double[mcfValues.length];
 
-                                        if (mcvValues.length == mcfValues.length && mcvValues.length > 0) {
-                                            List<Object> tempMcvs = new ArrayList<>(mcvValues.length);
-                                            double[] tempMcfs = new double[mcfValues.length];
-
-                                            for (int i = 0; i < mcvValues.length; i++) {
-                                                tempMcvs.add(ref.valueType().implicitCast(mcvValues[i]));
-                                                tempMcfs[i] = ((Number) mcfValues[i]).doubleValue();
-                                            }
-
-                                            mcvs = tempMcvs;
-                                            mcfs = tempMcfs;
+                                        for (int i = 0; i < mcvValues.length; i++) {
+                                            tempMcvs.add(ref.valueType().implicitCast(mcvValues[i]));
+                                            tempMcfs[i] = ((Number) mcfValues[i]).doubleValue();
                                         }
-                                    }
 
-                                    if (histSqlArray != null) {
-                                        Object[] histValues = (Object[]) histSqlArray.getArray();
-                                        if (histValues.length > 0) {
-                                            List<Object> tempHist = new ArrayList<>(histValues.length);
-                                            for (Object histValue : histValues) {
-                                                tempHist.add(ref.valueType().implicitCast(histValue));
-                                            }
-                                            histogram = tempHist;
-                                        }
+                                        mcvs = tempMcvs;
+                                        frequencies = tempMcfs;
                                     }
-                                } catch (SQLException | ClassCastException e) {
-                                    logger.debug("Skipping MCV/histogram stats for column {}. Failed to extract arrays: {}", attname, e.getMessage());
                                 }
 
-                                columnStats.put(colIdent, new ColumnStats(
-                                    nullFrac,
-                                    avgWidth,
-                                    approxDistinct,
-                                    ref.valueType(),
-                                    mcvs.isEmpty() ? MostCommonValues.empty() : new MostCommonValues(mcvs, mcfs),
-                                    histogram
-                                ));
+                                if (histSqlArray != null) {
+                                    Object[] histValues = (Object[]) histSqlArray.getArray();
+                                    if (histValues.length > 0) {
+                                        ArrayList<Object> tempHist = new ArrayList<>(histValues.length);
+                                        for (Object histValue : histValues) {
+                                            tempHist.add(ref.valueType().implicitCast(histValue));
+                                        }
+                                        histogram = tempHist;
+                                    }
+                                }
+                            } catch (SQLException | ClassCastException e) {
+                                logger.debug("Skipping MCV/histogram stats for column {}. Failed to extract arrays: {}", attname, e.getMessage());
                             }
+
+                            columnStats.put(colIdent, new ColumnStats(
+                                nullFrac,
+                                avgWidth,
+                                approxDistinct,
+                                ref.valueType(),
+                                mcvs.isEmpty() ? MostCommonValues.empty() : new MostCommonValues(mcvs, frequencies),
+                                histogram
+                            ));
                         }
                     }
                 }
-
                 return new Stats(numDocs, sizeInBytes, columnStats);
             }
         }
