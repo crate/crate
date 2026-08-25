@@ -30,8 +30,6 @@ import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Set;
 
-import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.PointValues.IntersectVisitor;
@@ -264,10 +262,8 @@ final class LooseIndexScan {
             LeafReader reader = leaf.reader();
             PointValues values = reader.getPointValues(field);
             if (values == null || values.size() == 0) {
-                // The column is absent from this segment, indexed with INDEX OFF,
-                // or has no values at all.
-                FieldInfo fi = reader.getFieldInfos().fieldInfo(field);
-                assert fi == null || fi.getIndexOptions() == IndexOptions.NONE : "can't create segment cursor";
+                // The column is absent from this segment, indexed with INDEX OFF, or has no values
+                // at all.
                 continue;
             }
             cursors.add(new SegmentCursor(values, reader.getLiveDocs(), bytesPerValue, ramAccounting, killToken));
