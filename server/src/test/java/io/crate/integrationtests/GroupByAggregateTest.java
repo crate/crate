@@ -29,9 +29,11 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.stream.Stream;
 
 import org.assertj.core.data.Percentage;
@@ -55,6 +57,8 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class GroupByAggregateTest extends IntegTestCase {
@@ -135,37 +139,81 @@ public class GroupByAggregateTest extends IntegTestCase {
     }
 
     @Test
-    public void test_group_by_integer_column_min_and_max_values() throws Exception {
-        assertGroupByWithMinAndMaxValues("integer");
-    }
+    @UseJdbc(value = 0)
+    public void test_group_by_min_and_max_values() throws Exception {
+        record TestCase(DataType<?> dataType, List<Object> values) { }
 
-    @Test
-    public void test_group_by_integer_column_index_off_min_and_max_values() throws Exception {
-        assertGroupByWithMinAndMaxValues("integer index off");
-    }
-
-    private void assertGroupByWithMinAndMaxValues(String columnDefinition) throws Exception {
-        this.setup.groupBySetup(columnDefinition);
-        execute("insert into characters (name, gender, age) values (?, ?, ?)",
-            new Object[][] {
-                new Object[] { "Marvin II", "male", Integer.MIN_VALUE },
-                new Object[] { "Fenchurch", "female", Integer.MIN_VALUE },
-                new Object[] { "Slartibartfast", "male", Integer.MAX_VALUE },
-                new Object[] { "Deep Thought", "male", -1 },
-            });
-        execute("refresh table characters");
-
-        execute("select age from characters group by age order by age nulls last");
-        assertThat(response).hasRows(
-            "-2147483648",
-            "-1",
-            "32",
-            "34",
-            "43",
-            "112",
-            "2147483647",
-            "NULL"  // groupBySetup inserts three characters without an age
+        // LongIndexer rejects Long.MIN_VALUE/MAX_VALUE outright (reserved sentinels),
+        // so we use the closest extreme values.
+        List<TestCase> testCases = List.of(
+            new TestCase(DataTypes.BYTE, List.of(Byte.MIN_VALUE, Byte.MIN_VALUE, Byte.MAX_VALUE, -1)),
+            new TestCase(DataTypes.SHORT, List.of(Short.MIN_VALUE, Short.MIN_VALUE, Short.MAX_VALUE, -1)),
+            new TestCase(DataTypes.INTEGER, List.of(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, -1)),
+            new TestCase(
+                DataTypes.LONG,
+                List.of(Long.MIN_VALUE + 1, Long.MIN_VALUE + 1, Long.MAX_VALUE - 1, -1)
+            ),
+            new TestCase(DataTypes.FLOAT, List.of(-Float.MAX_VALUE, -Float.MAX_VALUE, Float.MAX_VALUE, -1.23f)),
+            new TestCase(DataTypes.DOUBLE, List.of(-Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE, -1.23d)),
+            new TestCase(DataTypes.DATE, List.of(Long.MIN_VALUE, Long.MIN_VALUE, Long.MAX_VALUE, 0L)),
+            new TestCase(
+                DataTypes.TIMESTAMPZ,
+                List.of(Long.MIN_VALUE + 1, Long.MIN_VALUE + 1, Long.MAX_VALUE - 1, -1)
+            ),
+            new TestCase(
+                DataTypes.TIMESTAMP,
+                List.of(Long.MIN_VALUE + 1, Long.MIN_VALUE + 1, Long.MAX_VALUE - 1, -1)
+            )
         );
+
+        for (TestCase tc : testCases) {
+            for (String indexing : List.of("", "index off")) {
+                assertGroupByMinAndMaxValues(tc.dataType(), indexing, tc.values());
+            }
+        }
+    }
+
+    /// The printed row for each distinct value is derived from `dataType` itself — casting, deduping and
+    /// sorting exactly like GROUP BY would — instead of hardcoding expected strings. That keeps it correct
+    /// across very different `toString()` forms (plain ints, floats in scientific notation, epoch millis)
+    /// without hand-verifying each one, and it stays correct even where the stored value differs from the
+    /// literal inserted (e.g. `date` truncates to the start of the day).
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void assertGroupByMinAndMaxValues(DataType<?> dataType,
+                                              String indexing,
+                                              List<Object> values) throws Exception {
+        String columnType = dataType.getName();
+        String columnDefinition = indexing.isEmpty() ? columnType : columnType + " " + indexing;
+        execute("create table t (v " + columnDefinition + ")");
+
+        // A row with a NULL value is added on top of `values` to check it's grouped separately
+        // and sorted last, regardless of type.
+        Object[][] rows = new Object[values.size() + 1][];
+        for (int i = 0; i < values.size(); i++) {
+            rows[i] = new Object[] { values.get(i) };
+        }
+        rows[values.size()] = new Object[] { null };
+        execute("insert into t (v) values (?)", rows);
+        execute("refresh table t");
+
+        TreeSet<Object> distinctValues = new TreeSet<>((a, b) -> ((DataType) dataType).compare(a, b));
+        for (Object value : values) {
+            distinctValues.add(dataType.implicitCast(value));
+        }
+        List<String> expected = new ArrayList<>();
+        for (Object value : distinctValues) {
+            expected.add(String.valueOf(value));
+        }
+        expected.add("NULL");
+
+        execute("select v from t group by v order by v nulls last");
+        try {
+            assertThat(response).hasRows(expected.toArray(new String[0]));
+        } catch (AssertionError e) {
+            throw new AssertionError("expected different rows for " + columnDefinition + ": " + e.getMessage(), e);
+        }
+
+        execute("drop table t");
     }
 
     @Test
