@@ -40,6 +40,7 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -101,11 +102,18 @@ public final class Eval extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
-        LogicalPlan newSource = source.pruneOutputsExcept(outputsToKeep);
+        ArrayList<Symbol> sourceOutputsToKeep = new ArrayList<>();
+        for (Symbol outputToKeep : outputsToKeep) {
+            Symbols.intersection(outputToKeep, outputs, sourceOutputsToKeep::add);
+        }
+        LogicalPlan newSource = source.pruneOutputsExcept(sourceOutputsToKeep);
         if (source == newSource && outputs.isEmpty()) {
             return this;
         }
-        return new Eval(newSource, List.copyOf(outputsToKeep));
+        List<Symbol> prunedOutputs = Lists.intersection(outputs, sourceOutputsToKeep);
+        boolean isSubsequence = Lists.isSubsequence(prunedOutputs, outputs);
+        assert isSubsequence : "pruneOutputsExcept must not shuffle the outputs, it can only remove some of them.";
+        return new Eval(newSource, prunedOutputs);
     }
 
     @Nullable
