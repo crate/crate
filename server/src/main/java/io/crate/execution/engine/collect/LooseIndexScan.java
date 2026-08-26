@@ -50,6 +50,7 @@ import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.SentinelRow;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -133,7 +134,7 @@ final class LooseIndexScan {
                     returnNull,
                     bytesPerValue,
                     createSegmentCursors(
-                        searcher, keyRef.storageIdent(), bytesPerValue, ramAccounting, killToken
+                        searcher, keyRef, bytesPerValue, ramAccounting, killToken
                     ),
                     ramAccounting
                 );
@@ -252,19 +253,23 @@ final class LooseIndexScan {
         }
     }
 
-    // One cursor per segment that has points for `field`.
+    // One cursor per segment that has points for `keyRef`.
     private static List<SegmentCursor> createSegmentCursors(IndexSearcher searcher,
-                                                            String field,
+                                                            Reference keyRef,
                                                             int bytesPerValue,
                                                             RamAccounting ramAccounting,
                                                             Token killToken) throws IOException {
+        assert keyRef.indexType() != IndexType.NONE
+            : "SegmentCursors can be created only for indexed columns";
+
+        String field = keyRef.storageIdent();
         List<SegmentCursor> cursors = new ArrayList<>(searcher.getLeafContexts().size());
         for (var leaf : searcher.getLeafContexts()) {
             LeafReader reader = leaf.reader();
             PointValues values = reader.getPointValues(field);
             if (values == null || values.size() == 0) {
-                // The column is absent from this segment, indexed with INDEX OFF, or has no values
-                // at all.
+                // The column was added after this segment was written, or every doc in it has a
+                // NULL value, so no points were written for it here.
                 continue;
             }
             cursors.add(new SegmentCursor(values, reader.getLiveDocs(), bytesPerValue, ramAccounting, killToken));

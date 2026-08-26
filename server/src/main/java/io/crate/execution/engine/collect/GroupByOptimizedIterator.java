@@ -258,6 +258,9 @@ final class GroupByOptimizedIterator {
         if (!LooseIndexScan.supportsType(keyRef.valueType())) {
             return null; // not a type that CrateDB indexes as a single point dimension
         }
+        if (keyRef.indexType() == IndexType.NONE) {
+            return null; // INDEX OFF, no points written
+        }
 
         int bytesPerValue = pointWidth(
             () -> indexShard.acquireSearcher("loose-index-scan:" + formatSource(collectPhase)), keyRef.storageIdent());
@@ -287,16 +290,17 @@ final class GroupByOptimizedIterator {
         // Acquires a separate searcher for the same reason as hasHighCardinalityRatio: going through
         // sharedShardContexts() and then bailing out causes issues in the fallback logic later on.
         try (var searcher = acquireSearcher.get()) {
-            // Enough to inspect only the first segment that contains the values since Lucene makes sure all segments
+            // Enough to inspect only the first segment that contains the field since Lucene makes sure all segments
             // use the same dimension.
-            // Segments without points for the column are skipped, because:
-            // (1) the column may have been added after they were written, or
-            // (2) the field is indexed with INDEX OFF (getPointIndexDimensionCount() == 0).
+            // A segment can lack the field entirely if the column was added after it was written, or if every
+            // doc in it has a NULL value.
             for (LeafReaderContext leaf : searcher.getIndexReader().leaves()) {
                 FieldInfo fieldInfo = leaf.reader().getFieldInfos().fieldInfo(fieldName);
-                if (fieldInfo == null || fieldInfo.getPointIndexDimensionCount() == 0) {
+                if (fieldInfo == null) {
                     continue;
                 }
+                assert fieldInfo.getPointIndexDimensionCount() > 0
+                    : "pointWidth() called on a field that has no points (not indexed)";
                 return fieldInfo.getPointIndexDimensionCount() == 1
                     ? fieldInfo.getPointNumBytes()
                     : -1;

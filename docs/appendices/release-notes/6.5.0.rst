@@ -185,7 +185,7 @@ Performance and Resilience Improvements
 
 - Improved the performance of ``GROUP BY`` queries where the grouping key is a
   numeric column by taking advantage of Lucene's BKD trees. The speed up depends
-  on a number of factors, such as a column's cardinality ration, but can range
+  on a number of factors, such as a column's cardinality ratio, but can range
   from 20% up to two orders of magnitude.
 
 Administration and Operations
