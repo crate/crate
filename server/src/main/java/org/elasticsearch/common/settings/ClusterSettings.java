@@ -477,6 +477,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         FsHealthService.REFRESH_INTERVAL_SETTING,
         FsHealthService.SLOW_PATH_LOGGING_THRESHOLD_SETTING,
         ForeignDataWrappers.ALLOW_LOCAL,
-        HTTPFileInputFactory.REDIRECT_SETTING
+        HTTPFileInputFactory.REDIRECT_SETTING,
+        HTTPFileInputFactory.BLOCKED_HOSTS
     );
 }

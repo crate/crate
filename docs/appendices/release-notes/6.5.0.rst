@@ -181,7 +181,10 @@ Performance and Resilience Improvements
 Administration and Operations
 -----------------------------
 
-None
+- Added :ref:`copy_from.http.redirects` and :ref:`copy_from.http.blocked_hosts`
+  settings to allow CrateDB administrators to prevent users from accessing HTTP
+  resources from hosts reachable on an internal network or other arbitrary hosts
+  using :ref:`COPY FROM <sql-copy-from>`.
 
 Client interfaces
 -----------------

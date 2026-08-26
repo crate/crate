@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -607,6 +608,15 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("refresh table names");
         execute("select name from names order by id");
         assertThat(printedTable(response.rows())).isEqualTo("Marvin\nSlartibartfast\n");
+
+
+        execute("set global copy_from.http.blocked_hosts = '_local_'");
+        try {
+            assertSQLError(() -> execute("copy names from ?", new Object[]{urls}))
+                .hasMessageContaining("Host `127.0.0.1` is blocked");
+        } finally {
+            execute("reset global copy_from.http.blocked_hosts");
+        }
     }
 
     @Test
