@@ -43,6 +43,9 @@ public class CopyModule extends AbstractModule {
         MapBinder<String, FileInputFactory> fileInputFactoryMapBinder = MapBinder.newMapBinder(binder(), String.class, FileInputFactory.class);
         MapBinder<String, FileOutputFactory> fileOutputFactoryMapBinder = MapBinder.newMapBinder(binder(), String.class, FileOutputFactory.class);
 
+        for (String scheme : HTTPFileInputFactory.NAMES) {
+            fileInputFactoryMapBinder.addBinding(scheme).to(HTTPFileInputFactory.class).asEagerSingleton();;
+        }
         fileInputFactoryMapBinder.addBinding(LocalFsFileInputFactory.NAME).to(LocalFsFileInputFactory.class).asEagerSingleton();
         fileOutputFactoryMapBinder.addBinding(LocalFsFileOutputFactory.NAME).to(LocalFsFileOutputFactory.class).asEagerSingleton();
 
