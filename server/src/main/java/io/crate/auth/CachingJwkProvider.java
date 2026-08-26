@@ -35,9 +35,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.common.Strings;
-import org.jspecify.annotations.Nullable;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.ElasticsearchParseException;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.server.xcontent.XContentHelper;
+import org.jspecify.annotations.Nullable;
+import org.elasticsearch.common.Strings;
 
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkException;
@@ -61,7 +64,6 @@ public class CachingJwkProvider implements JwkProvider {
     private final ObjectReader reader;
     private final Clock clock;
     private volatile JwkResult cache;
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public CachingJwkProvider(String issuer) {
         this(issuer, Clock.systemUTC());
@@ -92,9 +94,7 @@ public class CachingJwkProvider implements JwkProvider {
             connection.setRequestProperty("Accept", "application/json");
 
             try (InputStream in = connection.getInputStream()) {
-                Map<String, Object> config =
-                    MAPPER.readValue(in, Map.class);
-
+                Map<String, Object> config = XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, in, false);
                 String jwksUri = (String) config.get("jwks_uri");
                 if (jwksUri == null || jwksUri.isBlank()) {
                     throw new IOException("Missing jwks_uri in OpenID configuration");
@@ -103,7 +103,7 @@ public class CachingJwkProvider implements JwkProvider {
                 return new URI(jwksUri).toURL();
             }
 
-        } catch (IOException | URISyntaxException e) {
+        } catch (IOException | URISyntaxException | ElasticsearchParseException e) {
             //  Preserve previous behavior so getKeys() reports: this add secondary requestHandler call 
             //  highlighting the original issuer URL and aprropriate Test case is added to JwtAuthenticationIntegrationTest
             try {
