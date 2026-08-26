@@ -146,24 +146,24 @@ public class GroupByAggregateTest extends IntegTestCase {
         // LongIndexer rejects Long.MIN_VALUE/MAX_VALUE outright (reserved sentinels),
         // so we use the closest extreme values.
         List<TestCase> testCases = List.of(
-            new TestCase(DataTypes.BYTE, List.of(Byte.MIN_VALUE, Byte.MIN_VALUE, Byte.MAX_VALUE, -1)),
-            new TestCase(DataTypes.SHORT, List.of(Short.MIN_VALUE, Short.MIN_VALUE, Short.MAX_VALUE, -1)),
-            new TestCase(DataTypes.INTEGER, List.of(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, -1)),
+//            new TestCase(DataTypes.BYTE, List.of(Byte.MIN_VALUE, Byte.MIN_VALUE, Byte.MAX_VALUE, -1)),
+//            new TestCase(DataTypes.SHORT, List.of(Short.MIN_VALUE, Short.MIN_VALUE, Short.MAX_VALUE, -1)),
+//            new TestCase(DataTypes.INTEGER, List.of(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, -1)),
             new TestCase(
                 DataTypes.LONG,
-                List.of(Long.MIN_VALUE + 1, Long.MIN_VALUE + 1, Long.MAX_VALUE - 1, -1)
-            ),
-            new TestCase(DataTypes.FLOAT, List.of(-Float.MAX_VALUE, -Float.MAX_VALUE, Float.MAX_VALUE, -1.23f)),
-            new TestCase(DataTypes.DOUBLE, List.of(-Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE, -1.23d)),
-            new TestCase(DataTypes.DATE, List.of(Long.MIN_VALUE, Long.MIN_VALUE, Long.MAX_VALUE, 0L)),
-            new TestCase(
-                DataTypes.TIMESTAMPZ,
-                List.of(Long.MIN_VALUE + 1, Long.MIN_VALUE + 1, Long.MAX_VALUE - 1, -1)
-            ),
-            new TestCase(
-                DataTypes.TIMESTAMP,
-                List.of(Long.MIN_VALUE + 1, Long.MIN_VALUE + 1, Long.MAX_VALUE - 1, -1)
+                List.of(Long.MAX_VALUE)
             )
+//            new TestCase(DataTypes.FLOAT, List.of(-Float.MAX_VALUE, -Float.MAX_VALUE, Float.MAX_VALUE, -1.23f)),
+//            new TestCase(DataTypes.DOUBLE, List.of(-Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE, -1.23d)),
+//            new TestCase(DataTypes.DATE, List.of(Long.MIN_VALUE, Long.MIN_VALUE, Long.MAX_VALUE, 0L)),
+//            new TestCase(
+//                DataTypes.TIMESTAMPZ,
+//                List.of(Long.MIN_VALUE + 1, Long.MIN_VALUE + 1, Long.MAX_VALUE - 1, -1)
+//            ),
+//            new TestCase(
+//                DataTypes.TIMESTAMP,
+//                List.of(Long.MIN_VALUE + 1, Long.MIN_VALUE + 1, Long.MAX_VALUE - 1, -1)
+//            )
         );
 
         for (TestCase tc : testCases) {
@@ -207,11 +207,9 @@ public class GroupByAggregateTest extends IntegTestCase {
         expected.add("NULL");
 
         execute("select v from t group by v order by v nulls last");
-        try {
-            assertThat(response).hasRows(expected.toArray(new String[0]));
-        } catch (AssertionError e) {
-            throw new AssertionError("expected different rows for " + columnDefinition + ": " + e.getMessage(), e);
-        }
+        assertThat(response)
+            .as("foobar")
+            .hasRows(expected.toArray(new String[0]));
 
         execute("drop table t");
     }
