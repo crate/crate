@@ -207,12 +207,9 @@ public class GroupByAggregateTest extends IntegTestCase {
         expected.add("NULL");
 
         execute("select v from t group by v order by v nulls last");
-        try {
-            assertThat(response).hasRows(expected.toArray(new String[0]));
-        } catch (AssertionError e) {
-            throw new AssertionError("expected different rows for " + columnDefinition + ": " + e.getMessage(), e);
-        }
-
+        assertThat(response)
+            .as("column definition: " + columnDefinition)
+            .hasRows(expected.toArray(new String[0]));
         execute("drop table t");
     }
 
