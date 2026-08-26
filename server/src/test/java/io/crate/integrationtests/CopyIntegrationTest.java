@@ -626,7 +626,10 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(response).hasRowCount(2L);
         execute("refresh table names");
         execute("select name from names order by id");
-        assertThat(printedTable(response.rows())).isEqualTo("Arthur\nSlartibartfast\n");
+        assertThat(response).hasRows(
+            "Arthur",
+            "Slartibartfast"
+        );
     }
 
     @Test
