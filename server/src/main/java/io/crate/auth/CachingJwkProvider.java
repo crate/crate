@@ -88,7 +88,7 @@ public class CachingJwkProvider implements JwkProvider {
                     ? issuer + ".well-known/openid-configuration"
                     : issuer + "/.well-known/openid-configuration";
 
-            URLConnection connection = new URL(discovery).openConnection();
+            URLConnection connection = new URI(discovery).toURL().openConnection();
             connection.setRequestProperty("Accept", "application/json");
 
             try (InputStream in = connection.getInputStream()) {
@@ -100,15 +100,14 @@ public class CachingJwkProvider implements JwkProvider {
                     throw new IOException("Missing jwks_uri in OpenID configuration");
                 }
 
-                return new URL(jwksUri);
+                return new URI(jwksUri).toURL();
             }
 
-        } catch (IOException e) {
+        } catch (IOException | URISyntaxException e) {
             //  Preserve previous behavior so getKeys() reports: this add secondary requestHandler call 
             //  highlighting the original issuer URL and aprropriate Test case is added to JwtAuthenticationIntegrationTest
             try {
-                final URI uri = new URI(issuer).normalize();
-                return uri.toURL();
+                return new URI(issuer).normalize().toURL();
             } catch (MalformedURLException | URISyntaxException ex) {
                 throw new IllegalArgumentException("Invalid jwks uri", ex);
             }
