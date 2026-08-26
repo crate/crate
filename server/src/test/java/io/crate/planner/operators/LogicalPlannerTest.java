@@ -750,11 +750,14 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = sqlExecutor.logicalPlan("""
             SELECT i, avgx FROM (SELECT a, avg(x) OVER(ORDER BY i) as avgx, i FROM t1) as vt
             """);
+        // x comes first in the plan because window functions picked up first in SplitPointsBuilder.
+        // Then last Eval is added to re-order as user wants.
         assertThat(plan).hasOperators(
-            "Rename[i, avgx] AS vt",
-            "  └ Eval[i, avg(x) OVER (ORDER BY i ASC) AS avgx]",
-            "    └ WindowAgg[x, i] | [avg(x) OVER (ORDER BY i ASC)]",
-            "      └ Collect[doc.t1 | [x, i] | true]"
+            "Eval[i, avgx]",
+            "  └ Rename[avgx, i] AS vt",
+            "    └ Eval[avg(x) OVER (ORDER BY i ASC) AS avgx, i]",
+            "      └ WindowAgg[x, i] | [avg(x) OVER (ORDER BY i ASC)]",
+            "        └ Collect[doc.t1 | [x, i] | true]"
         );
     }
 
@@ -767,11 +770,12 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             """);
         assertThat(plan).isEqualTo(
             """
-                Rename[sumx, umaxx, minx, uavgx] AS vt
-                  └ Eval[sum(x) AS sumx, unnest([max(x)]) AS umaxx, min(x) AS minx, unnest([avg(x)]) AS uavgx]
-                    └ ProjectSet[unnest([min(x)]), unnest([max(x)]), unnest([avg(x)]), unnest([sum(x)]), sum(x), max(x), min(x), avg(x)]
-                      └ HashAggregate[min(x), max(x), avg(x), sum(x)]
-                        └ Collect[doc.t1 | [x] | true]""");
+                Eval[sumx, umaxx, minx, uavgx]
+                  └ Rename[minx, umaxx, uavgx, sumx] AS vt
+                    └ Eval[min(x) AS minx, unnest([max(x)]) AS umaxx, unnest([avg(x)]) AS uavgx, sum(x) AS sumx]
+                      └ ProjectSet[unnest([min(x)]), unnest([max(x)]), unnest([avg(x)]), unnest([sum(x)]), sum(x), max(x), min(x), avg(x)]
+                        └ HashAggregate[min(x), max(x), avg(x), sum(x)]
+                          └ Collect[doc.t1 | [x] | true]""");
     }
 
     @Test
