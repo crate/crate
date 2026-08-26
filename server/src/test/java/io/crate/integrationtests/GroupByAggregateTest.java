@@ -139,8 +139,11 @@ public class GroupByAggregateTest extends IntegTestCase {
     }
 
     @Test
+    // JDBC disabled to have simpler assertions for the timestamp and date columns.
+    // They are inserted as long values, but retrieved as strings via JDBC.
+    // Timestamps and dates are tested thoroughly in other tests.
     @UseJdbc(value = 0)
-    public void test_group_by_min_and_max_values() throws Exception {
+    public void test_group_by_for_types_with_loose_index_scan() throws Exception {
         record TestCase(DataType<?> dataType, List<Object> values) { }
 
         // LongIndexer rejects Long.MIN_VALUE/MAX_VALUE outright (reserved sentinels),
