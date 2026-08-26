@@ -82,6 +82,7 @@ Fixes
 
     SELECT * FROM t JOIN t AS t2 ON t.c = (select 1)
 
+
 - Fixed an issue that could cause a correlated subquery inside a join, to
   ignore a filter on a bare boolean column of the outer relation. As a
   consequence, it could return rows that should have been filtered out. e.g.::
@@ -95,9 +96,6 @@ Fixes
 
   In this example, the ``q.flag`` filter was dropped.
 
-- Fixed an issue where :ref:`ALL <sql_all_subquery_expresion>` did not return
-  ``TRUE`` when comparing ``NULL`` values against an empty array.
-
 - Fixed an issue that caused wrong results when
   :ref:`array_agg() <aggregation-array-agg>` aggregation function was used with
   :ref:`window functions <window-functions>` with an explicit window frame,
@@ -105,6 +103,9 @@ Fixes
 
     SELECT array_agg(x) OVER(
       ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM tbl
+
+- Fixed an issue where :ref:`ALL <sql_all_subquery_expresion>` did not return
+  ``TRUE`` when comparing ``NULL`` values against an empty array.
 
 - Fixed an issue that caused wrong accounting of memory usage for queries using
   :ref:`string_agg() <aggregation-string-agg>` aggregation function.
@@ -119,4 +120,3 @@ Fixes
 
 - Fixed an issue where :ref:`ANY <sql_any_subquery_expression>` did not return
   ``FALSE`` when comparing ``NULL`` against an empty array.
-
