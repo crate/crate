@@ -35,7 +35,7 @@ public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, S
 
     public SQLResponseAssert hasRowCount(long expectedRowCount) {
         isNotNull();
-        assertThat(actual.rowCount()).isEqualTo(expectedRowCount);
+        assertThat(actual.rowCount()).as(info.description()).isEqualTo(expectedRowCount);
         return this;
     }
 
@@ -45,7 +45,7 @@ public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, S
     public SQLResponseAssert hasLines(String ... lines) {
         String result = TestingHelpers.printedTable(actual.rows());
         String[] resultRows = result.split("\n");
-        assertThat(resultRows).containsExactly(lines);
+        assertThat(resultRows).as(info.description()).containsExactly(lines);
         return this;
     }
 
@@ -62,7 +62,7 @@ public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, S
             Object[] row = actual.rows()[i];
             resultRows[i] = TestingHelpers.printRow(row);
         }
-        assertThat(resultRows).containsExactly(rows);
+        assertThat(resultRows).as(info.description()).containsExactly(rows);
         return this;
     }
 
@@ -72,27 +72,27 @@ public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, S
             Object[] row = actual.rows()[i];
             resultRows[i] = TestingHelpers.printRow(row);
         }
-        assertThat(resultRows).containsExactlyInAnyOrder(rows);
+        assertThat(resultRows).as(info.description()).containsExactlyInAnyOrder(rows);
         return this;
     }
 
     public SQLResponseAssert hasRows(Object[] ... rows) {
-        assertThat(List.of(actual.rows())).containsExactly(rows);
+        assertThat(List.of(actual.rows())).as(info.description()).containsExactly(rows);
         return this;
     }
 
     public SQLResponseAssert hasRowsInAnyOrder(Object[] ... rows) {
-        assertThat(List.of(actual.rows())).containsExactlyInAnyOrder(rows);
+        assertThat(List.of(actual.rows())).as(info.description()).containsExactlyInAnyOrder(rows);
         return this;
     }
 
     public SQLResponseAssert hasColumns(String ... names) {
-        assertThat(actual.cols()).containsExactly(names);
+        assertThat(actual.cols()).as(info.description()).containsExactly(names);
         return this;
     }
 
     public SQLResponseAssert isEmpty() {
-        assertThat(actual.rows()).isEmpty();
+        assertThat(actual.rows()).as(info.description()).isEmpty();
         return this;
     }
 }

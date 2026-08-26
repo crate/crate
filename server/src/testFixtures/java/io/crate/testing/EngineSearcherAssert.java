@@ -45,7 +45,7 @@ public class EngineSearcherAssert extends AbstractAssert<EngineSearcherAssert, E
     public EngineSearcherAssert hasTotalHits(Query query, int totalHits) {
         describedAs("total hits of size " + totalHits + " with query " + query);
         try {
-            assertThat(actual.count(query)).isEqualTo(totalHits);
+            assertThat(actual.count(query)).as(info.description()).isEqualTo(totalHits);
         } catch (IOException e) {
             fail(e.getMessage());
         }
