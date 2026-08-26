@@ -702,6 +702,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(outerJoin.joinPhase().joinCondition()).isNull();
         assertThat(outerJoin.joinPhase().projections()).satisfiesExactly(
             p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class),
+            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class),
             p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class));
     }
 
