@@ -29,26 +29,60 @@ import java.net.http.HttpClient.Redirect;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Executor;
 
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
+import io.crate.types.DataTypes;
 
 public class HTTPFileInputFactory implements FileInputFactory {
 
     public static final List<String> NAMES = List.of("http", "https");
-    private final HttpClient client;
+    public static final Setting<Redirect> REDIRECT_SETTING = new Setting<>(
+        "copy_from.http.redirects",
+        "normal",
+        value -> switch (value.toLowerCase(Locale.ENGLISH)) {
+            case "normal" -> Redirect.NORMAL;
+            case "always" -> Redirect.ALWAYS;
+            case "never" -> Redirect.NEVER;
+            default -> throw new IllegalArgumentException(
+                String.format(
+                    Locale.ENGLISH,
+                    "Invalid redirects value '%s'. Expected one of [normal, always, never]",
+                    value
+                ));
+        },
+        DataTypes.STRING,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic,
+        Setting.Property.Exposed
+    );
+
+    @VisibleForTesting
+    volatile HttpClient client;
 
     @Inject
-    public HTTPFileInputFactory(ThreadPool threadPool) {
+    public HTTPFileInputFactory(ClusterSettings clusterSettings, ThreadPool threadPool) {
         Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
+        Redirect redirect = clusterSettings.get(REDIRECT_SETTING);
         this.client = HttpClient.newBuilder()
             .executor(executor)
-            .followRedirects(Redirect.NORMAL)
+            .followRedirects(redirect)
             .build();
+
+        clusterSettings.addSettingsUpdateConsumer(REDIRECT_SETTING, redirectValue -> {
+            this.client = HttpClient.newBuilder()
+                .executor(executor)
+                .followRedirects(redirectValue)
+                .build();
+        });
     }
 
     @Override

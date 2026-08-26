@@ -140,6 +140,9 @@ information about the currently applied cluster settings.
     | settings['cluster']['routing']['allocation']['total_shards_per_node']             | integer      |
     | settings['cluster']['routing']['rebalance']                                       | object       |
     | settings['cluster']['routing']['rebalance']['enable']                             | text         |
+    | settings['copy_from']                                                             | object       |
+    | settings['copy_from']['http']                                                     | object       |
+    | settings['copy_from']['http']['redirects']                                        | text         |
     | settings['fdw']                                                                   | object       |
     | settings['fdw']['allow_local']                                                    | boolean      |
     | settings['gateway']                                                               | object       |

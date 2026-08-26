@@ -103,6 +103,7 @@ import org.elasticsearch.transport.netty4.Netty4Transport;
 import io.crate.auth.AuthSettings;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
+import io.crate.execution.engine.collect.files.HTTPFileInputFactory;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.execution.jobs.NodeLimits;
@@ -475,6 +476,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         FsHealthService.ENABLED_SETTING,
         FsHealthService.REFRESH_INTERVAL_SETTING,
         FsHealthService.SLOW_PATH_LOGGING_THRESHOLD_SETTING,
-        ForeignDataWrappers.ALLOW_LOCAL
+        ForeignDataWrappers.ALLOW_LOCAL,
+        HTTPFileInputFactory.REDIRECT_SETTING
     );
 }

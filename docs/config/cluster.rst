@@ -1518,4 +1518,25 @@ clusters during the recovery.
    cr> RESET GLOBAL "memory.operation_limit"
    RESET OK, 1 row affected (... sec)
 
+
+Copy From
+---------
+
+Copy from operations can be configured with the following settings.
+
+
+.. _copy_from.http.redirects:
+
+**copy_from.http.redirects**
+  | *Default:* ``normal``
+  | *Runtime:* ``yes``
+
+Configures if the HTTP client used for COPY FROM on HTTPS or HTTP urls should
+follow redirects. The supported values are:
+
+- ``normal``: Always follow redirects, except from HTTPS URLs to HTTP URLs
+- ``always``: Always follow redirects with no restriction
+- ``never`` Never follow redirects
+
+
 .. _bootstrap checks: https://cratedb.com/docs/crate/howtos/en/latest/admin/bootstrap-checks.html
