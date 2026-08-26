@@ -1539,4 +1539,29 @@ follow redirects. The supported values are:
 - ``never`` Never follow redirects
 
 
+.. _copy_from.http.blocked_hosts:
+
+**copy_from.http.blocked_hosts**
+  | *Default:* ``[]``
+  | *Runtime:* ``yes``
+
+Sets a list of blocked hosts. By default no hosts are blocked.
+Supports the following special wildcards:
+
+- ``_link_``: Blocks any link local address like ``169.254.169.254``
+- ``_site_``: Blocks any site local address
+- ``_local_``: Blocks any local or loopback addresses
+
+For any literal host, both the hostname and all resolved host addresses are
+verified.
+
+This can be useful to prevent CrateDB users from accessing data from other hosts
+reachable on an internal network.
+
+Note that the blocked hosts are only checked against the initial host in a given
+URI. If an URI redirects to another host, that host name is **not** checked
+against the blocked hosts. Set ``copy_from.http.redirects`` to ``never`` to
+account for that.
+
+
 .. _bootstrap checks: https://cratedb.com/docs/crate/howtos/en/latest/admin/bootstrap-checks.html

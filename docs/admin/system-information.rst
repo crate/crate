@@ -142,6 +142,7 @@ information about the currently applied cluster settings.
     | settings['cluster']['routing']['rebalance']['enable']                             | text         |
     | settings['copy_from']                                                             | object       |
     | settings['copy_from']['http']                                                     | object       |
+    | settings['copy_from']['http']['blocked_hosts']                                    | text_array   |
     | settings['copy_from']['http']['redirects']                                        | text         |
     | settings['fdw']                                                                   | object       |
     | settings['fdw']['allow_local']                                                    | boolean      |

@@ -23,13 +23,16 @@ package io.crate.execution.engine.collect.files;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.net.http.HttpClient.Redirect;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 import org.elasticsearch.common.inject.Inject;
@@ -45,6 +48,9 @@ import io.crate.types.DataTypes;
 public class HTTPFileInputFactory implements FileInputFactory {
 
     public static final List<String> NAMES = List.of("http", "https");
+    public static final String LINK_LOCAL = "_link_";
+    public static final String SITE_LOCAL = "_site_";
+    public static final String LOCAL = "_local_";
     public static final Setting<Redirect> REDIRECT_SETTING = new Setting<>(
         "copy_from.http.redirects",
         "normal",
@@ -65,11 +71,24 @@ public class HTTPFileInputFactory implements FileInputFactory {
         Setting.Property.Exposed
     );
 
+    public static final Setting<List<String>> BLOCKED_HOSTS = Setting.listSetting(
+        "copy_from.http.blocked_hosts",
+        List.of(),
+        v -> v,
+        DataTypes.STRING_ARRAY,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic,
+        Setting.Property.Exposed
+    );
+
+    private final ClusterSettings clusterSettings;
+
     @VisibleForTesting
     volatile HttpClient client;
 
     @Inject
     public HTTPFileInputFactory(ClusterSettings clusterSettings, ThreadPool threadPool) {
+        this.clusterSettings = clusterSettings;
         Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
         Redirect redirect = clusterSettings.get(REDIRECT_SETTING);
         this.client = HttpClient.newBuilder()
@@ -87,17 +106,19 @@ public class HTTPFileInputFactory implements FileInputFactory {
 
     @Override
     public FileInput create(URI uri, Settings withClauseOptions) throws IOException {
-        return new HTTPFileInput(client, uri);
+        return new HTTPFileInput(client, uri, clusterSettings.get(BLOCKED_HOSTS));
     }
 
     static class HTTPFileInput implements FileInput {
 
         private final URI uri;
         private final HttpClient client;
+        private final Set<String> blockedHosts;
 
-        public HTTPFileInput(HttpClient client, URI uri) {
+        public HTTPFileInput(HttpClient client, URI uri, List<String> blockedHosts) {
             this.client = client;
             this.uri = uri;
+            this.blockedHosts = Set.copyOf(blockedHosts);
         }
 
         @Override
@@ -107,12 +128,38 @@ public class HTTPFileInputFactory implements FileInputFactory {
 
         @Override
         public InputStream getStream(URI uri) throws IOException {
+            ensureNotBlocked(uri.getHost());
             HttpRequest request = HttpRequest.newBuilder(uri).build();
             try {
                 return client.send(request, BodyHandlers.ofInputStream()).body();
             } catch (InterruptedException e) {
                 throw Exceptions.toRuntimeException(e);
             }
+        }
+
+        private void ensureNotBlocked(String host) throws UnknownHostException {
+            if (blockedHosts.contains(host)) {
+                raiseBlocked(host);
+            }
+            for (var addr : InetAddress.getAllByName(host)) {
+                String hostAddr = addr.getHostAddress();
+                if (blockedHosts.contains(hostAddr)) {
+                    raiseBlocked(hostAddr);
+                }
+                if ((addr.isAnyLocalAddress() || addr.isLoopbackAddress()) && blockedHosts.contains(LOCAL)) {
+                    raiseBlocked(hostAddr);
+                }
+                if (addr.isSiteLocalAddress() && blockedHosts.contains(SITE_LOCAL)) {
+                    raiseBlocked(hostAddr);
+                }
+                if (addr.isLinkLocalAddress() && blockedHosts.contains(LINK_LOCAL)) {
+                    raiseBlocked(hostAddr);
+                }
+            }
+        }
+
+        private static void raiseBlocked(String host) {
+            throw new IllegalArgumentException("Host `" + host + "` is blocked");
         }
 
         @Override

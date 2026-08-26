@@ -24,6 +24,7 @@ package io.crate.execution.engine.collect.files;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.net.URI;
 import java.net.http.HttpClient.Redirect;
 
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -63,6 +64,69 @@ public class HTTPFileInputFactoryTest {
             .build()
         );
         assertThat(httpFileInputFactory.client.followRedirects()).isEqualTo(Redirect.NEVER);
+    }
+
+    @Test
+    public void test_uri_with_blocked_hostname_raises_errors() throws Exception {
+        var settings = Settings.builder()
+            .put(HTTPFileInputFactory.BLOCKED_HOSTS.getKey(), "example.com,127.0.0.1")
+            .build();
+        var clusterSettings = new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
+        var httpFileInputFactory = new HTTPFileInputFactory(
+            clusterSettings,
+            Mockito.mock(ThreadPool.class, Answers.RETURNS_MOCKS)
+        );
+
+        URI uri = new URI("https://example.com");
+        FileInput fileInput = httpFileInputFactory.create(uri, Settings.EMPTY);
+        assertThatThrownBy(() -> fileInput.getStream(uri))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Host `example.com` is blocked");
+    }
+
+    @Test
+    public void test_uri_with_blocked_resolved_match_raises_error() throws Exception {
+        var settings = Settings.builder()
+            .put(HTTPFileInputFactory.BLOCKED_HOSTS.getKey(), "127.0.0.1")
+            .build();
+        var clusterSettings = new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
+        var httpFileInputFactory = new HTTPFileInputFactory(
+            clusterSettings,
+            Mockito.mock(ThreadPool.class, Answers.RETURNS_MOCKS)
+        );
+
+        URI uri = new URI("https://localhost");
+        FileInput fileInput = httpFileInputFactory.create(uri, Settings.EMPTY);
+        assertThatThrownBy(() -> fileInput.getStream(uri))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Host `127.0.0.1` is blocked");
+    }
+
+    @Test
+    public void test_uri_with_blocked_special_wildcard_match_raises_error() throws Exception {
+        var settings = Settings.builder()
+            .put(HTTPFileInputFactory.BLOCKED_HOSTS.getKey(), "_local_,_site_,_link_")
+            .build();
+        var clusterSettings = new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
+        var httpFileInputFactory = new HTTPFileInputFactory(
+            clusterSettings,
+            Mockito.mock(ThreadPool.class, Answers.RETURNS_MOCKS)
+        );
+
+        {
+            URI uri = new URI("https://localhost");
+            FileInput fileInput = httpFileInputFactory.create(uri, Settings.EMPTY);
+            assertThatThrownBy(() -> fileInput.getStream(uri))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Host `127.0.0.1` is blocked");
+        }
+        {
+            URI uri = new URI("http://169.254.169.254/latest/");
+            FileInput fileInput = httpFileInputFactory.create(uri, Settings.EMPTY);
+            assertThatThrownBy(() -> fileInput.getStream(uri))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Host `169.254.169.254` is blocked");
+        }
     }
 }
 
