@@ -95,12 +95,10 @@ public class CachingJwkProvider implements JwkProvider {
 
             try (InputStream in = connection.getInputStream()) {
                 Map<String, Object> config = XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, in, false);
-                String jwksUri = (String) config.get("jwks_uri");
-                if (jwksUri == null || jwksUri.isBlank()) {
-                    throw new IOException("Missing jwks_uri in OpenID configuration");
+                if (config.get("jwks_uri") instanceof String jwksUri && jwksUri.isBlank() == false) {
+                    return new URI(jwksUri).toURL();
                 }
-
-                return new URI(jwksUri).toURL();
+                throw new IllegalStateException("Missing jwks_uri in OpenID configuration");
             }
 
         } catch (IOException | URISyntaxException | ElasticsearchParseException e) {
