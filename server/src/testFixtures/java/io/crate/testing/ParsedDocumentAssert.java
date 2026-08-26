@@ -41,7 +41,7 @@ public class ParsedDocumentAssert extends AbstractAssert<ParsedDocumentAssert, P
     public void hasSameResolvedFields(Document expected, String fieldName) {
         IndexableField[] expectedFields = expected.getFields(fieldName);
         IndexableField[] actualFields = actual.doc().getFields(fieldName);
-        assertThat(actualFields).hasSize(expectedFields.length);
+        assertThat(actualFields).as(info.description()).hasSize(expectedFields.length);
         for (int i = 0; i < expectedFields.length; i++) {
             var field1 = actualFields[i];
             var field2 = expectedFields[i];

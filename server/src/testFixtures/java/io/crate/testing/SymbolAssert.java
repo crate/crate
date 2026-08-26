@@ -62,9 +62,9 @@ public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
     public SymbolAssert hasValue(Object expectedValue) {
         Object value = ((Input<?>) actual).value();
         if (expectedValue == null) {
-            assertThat(value).isNull();
+            assertThat(value).as(info.description()).isNull();
         } else {
-            assertThat(value).isEqualTo(expectedValue);
+            assertThat(value).as(info.description()).isEqualTo(expectedValue);
         }
         return this;
     }
@@ -191,7 +191,7 @@ public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
             .isEqualTo(expectedName);
 
         if (expectedArgumentTypes != null) {
-            assertThat(f.arguments()).hasSize(expectedArgumentTypes.size());
+            assertThat(f.arguments()).as(info.description()).hasSize(expectedArgumentTypes.size());
             for (int i = 0; i < expectedArgumentTypes.size(); i++) {
                 assertThat(f.arguments().get(i).valueType())
                     .as("Argument pos: " + i)
@@ -205,7 +205,7 @@ public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
     public final SymbolAssert isFunction(final String name, Consumer<Symbol>... argMatchers) {
         isFunction(name);
         if (argMatchers != null) {
-            assertThat(((Function) actual).arguments()).satisfiesExactly(argMatchers);
+            assertThat(((Function) actual).arguments()).as(info.description()).satisfiesExactly(argMatchers);
         }
         return this;
     }
@@ -244,14 +244,14 @@ public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
     public final SymbolAssert isAggregation(final String name, Consumer<Symbol>... argMatchers) {
         isAggregation(name);
         if (argMatchers != null) {
-            assertThat(((Aggregation) actual).inputs()).satisfiesExactly(argMatchers);
+            assertThat(((Aggregation) actual).inputs()).as(info.description()).satisfiesExactly(argMatchers);
         }
         return this;
     }
 
     public SymbolAssert isSQL(final String expectedStmt) {
         isNotNull();
-        assertThat(SQLPrinter.print(actual)).isEqualTo(expectedStmt);
+        assertThat(SQLPrinter.print(actual)).as(info.description()).isEqualTo(expectedStmt);
         return this;
     }
 

@@ -52,22 +52,23 @@ public class LogicalPlanAssert extends AbstractAssert<LogicalPlanAssert, Logical
 
     public LogicalPlanAssert isEqualTo(String expectedPlan) {
         isNotNull();
-        assertThat(expectedPlan).isNotNull();
-        assertThat(printPlan(actual)).isEqualTo(expectedPlan.strip());
+        assertThat(expectedPlan).as(info.description()).isNotNull();
+        assertThat(printPlan(actual)).as(info.description()).isEqualTo(expectedPlan.strip());
         return this;
     }
 
     public LogicalPlanAssert hasOperators(String ... operator) {
         isNotNull();
         assertThat(printPlan(actual).split("\n"))
+            .as(info.description())
             .containsExactly(operator);
         return this;
     }
 
     public LogicalPlanAssert isEqualTo(LogicalPlan expectedPlan) {
         isNotNull();
-        assertThat(expectedPlan).isNotNull();
-        assertThat(printPlan(actual)).isEqualTo(printPlan(expectedPlan));
+        assertThat(expectedPlan).as(info.description()).isNotNull();
+        assertThat(printPlan(actual)).as(info.description()).isEqualTo(printPlan(expectedPlan));
         return this;
     }
 }
