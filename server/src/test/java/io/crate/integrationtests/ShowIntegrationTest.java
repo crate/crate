@@ -416,6 +416,7 @@ public class ShowIntegrationTest extends IntegTestCase {
             "optimizer_equi_join_to_lookup_join| false| Indicates if the optimizer rule EquiJoinToLookupJoin is activated.",
             "optimizer_merge_aggregate_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateAndCollectToCount is activated.",
             "optimizer_merge_aggregate_rename_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateRenameAndCollectToCount is activated.",
+            "optimizer_merge_eval_into_fetch| true| Indicates if the optimizer rule MergeEvalIntoFetch is activated.",
             "optimizer_merge_filter_and_collect| true| Indicates if the optimizer rule MergeFilterAndCollect is activated.",
             "optimizer_merge_filter_and_foreign_collect| true| Indicates if the optimizer rule MergeFilterAndForeignCollect is activated.",
             "optimizer_merge_filters| true| Indicates if the optimizer rule MergeFilters is activated.",

@@ -143,8 +143,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertSQL(((RoutedCollectPhase) right.collectPhase()).orderBy(), "doc.t2.b");
         assertThat(right.collectPhase().projections()).satisfiesExactly(
             isLimitAndOffset(5, 5),
-            exactlyInstanceOf(FetchProjection.class),
-            exactlyInstanceOf(EvalProjection.class)); // strips `b` used in order by from the outputs
+            exactlyInstanceOf(FetchProjection.class)); // FetchProjection itself strips `b` used in order by from the outputs
     }
 
     @Test

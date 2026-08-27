@@ -597,18 +597,18 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         // This used to have an Eval with a `CASE WHEN (event_time = first_event_time)` beneath
         // the Limit because the ReorderHashJoin rule adds a `Eval` node to retain output order
         // This resulted in an `Can't handle Symbol [SimpleReference: event_time]` error because `event_time` is not an output of the Join, but is fetched
+        // The Eval on top of the Fetch is folded into the Fetch itself by MergeEvalIntoFetch.
         assertThat(plan).hasOperators(
             "Rename[user_type, domain] AS doc.user_session_visitortype",
-            "  └ Eval[CASE WHEN (event_time = first_event_time) THEN 'new_user' ELSE 'returning_user' END AS user_type, domain]",
-            "    └ Fetch[event_time, domain, first_event_time]",
-            "      └ Limit[1::bigint;0]",
-            "        └ Eval[_fetchid, first_event_time]",
-            "          └ HashJoin[INNER | (user_id = user_id)]",
-            "            ├ Rename[user_id, first_event_time] AS first_visit",
-            "            │  └ Eval[user_id, min(event_time) AS first_event_time]",
-            "            │    └ GroupHashAggregate[user_id | min(event_time)]",
-            "            │      └ Collect[doc.user_session | [event_time, user_id] | true]",
-            "            └ Collect[doc.user_session | [_fetchid, user_id] | (domain = 'example.com')]"
+            "  └ Fetch[CASE WHEN (event_time = first_event_time) THEN 'new_user' ELSE 'returning_user' END AS user_type, domain]",
+            "    └ Limit[1::bigint;0]",
+            "      └ Eval[_fetchid, first_event_time]",
+            "        └ HashJoin[INNER | (user_id = user_id)]",
+            "          ├ Rename[user_id, first_event_time] AS first_visit",
+            "          │  └ Eval[user_id, min(event_time) AS first_event_time]",
+            "          │    └ GroupHashAggregate[user_id | min(event_time)]",
+            "          │      └ Collect[doc.user_session | [event_time, user_id] | true]",
+            "          └ Collect[doc.user_session | [_fetchid, user_id] | (domain = 'example.com')]"
         );
     }
 

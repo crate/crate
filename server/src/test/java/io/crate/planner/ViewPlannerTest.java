@@ -118,15 +118,14 @@ public class ViewPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(logicalPlan).hasOperators(
             "Rename[new_name, ts, val] AS doc.v",
-            "  └ Eval[name AS new_name, ts, val]",
-            "    └ Fetch[ts, val, id, name, id]",
-            "      └ Limit[100::bigint;0]",
-            "        └ OrderBy[ts ASC name AS new_name ASC]",
-            "          └ HashJoin[INNER | (id = id)]",
-            "            ├ Rename[x._fetchid, ts, id] AS x",
-            "            │  └ Collect[doc.tbl1 | [_fetchid, ts, id] | true]",
-            "            └ Rename[name, id] AS y",
-            "              └ Collect[doc.tbl2 | [name, id] | true]"
+            "  └ Fetch[name AS new_name, ts, val]",
+            "    └ Limit[100::bigint;0]",
+            "      └ OrderBy[ts ASC name AS new_name ASC]",
+            "        └ HashJoin[INNER | (id = id)]",
+            "          ├ Rename[x._fetchid, ts, id] AS x",
+            "          │  └ Collect[doc.tbl1 | [_fetchid, ts, id] | true]",
+            "          └ Rename[name, id] AS y",
+            "            └ Collect[doc.tbl2 | [name, id] | true]"
         );
     }
 }

@@ -103,6 +103,7 @@ import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeAggregateRenameAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.MergeFilterAndForeignCollect;
+import io.crate.planner.optimizer.rule.MergeEvalIntoFetch;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveConstantJoinConditionsBeneathJoin;
 import io.crate.planner.optimizer.rule.MoveEquiJoinFilterIntoInnerJoin;
@@ -201,7 +202,8 @@ public class LogicalPlanner {
     public static final List<Rule<?>> FETCH_OPTIMIZER_RULES = List.of(
         new RemoveRedundantEval(),
         new MergeFilterAndCollect(),
-        new RewriteToQueryThenFetch()
+        new RewriteToQueryThenFetch(),
+        new MergeEvalIntoFetch()
     );
 
     public static final List<Rule<?>> WRITE_OPTIMIZER_RULES = List.of(

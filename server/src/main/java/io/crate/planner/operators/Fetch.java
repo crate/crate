@@ -102,6 +102,18 @@ public final class Fetch extends ForwardingLogicalPlan {
         return outputs;
     }
 
+    public Map<Symbol, Symbol> replacedOutputs() {
+        return replacedOutputs;
+    }
+
+    public List<Reference> fetchRefs() {
+        return fetchRefs;
+    }
+
+    public Map<RelationName, FetchSource> fetchSourceByRelation() {
+        return fetchSourceByRelation;
+    }
+
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         return this;

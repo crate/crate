@@ -476,15 +476,14 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(plan).isEqualTo(
             """
-            Eval[i, a, i]
-              └ Fetch[i, a, x, i, y]
-                └ Limit[5::bigint;0]
-                  └ Filter[(x > y)]
-                    └ HashJoin[INNER | (i = i)]
-                      ├ MultiPhase
-                      │  └ Collect[doc.t1 | [_fetchid, i, x] | (i = ANY((doc.t2)))]
-                      │  └ Collect[doc.t2 | [i] | true]
-                      └ Collect[doc.t2 | [i, y] | true]
+            Fetch[i, a, i]
+              └ Limit[5::bigint;0]
+                └ Filter[(x > y)]
+                  └ HashJoin[INNER | (i = i)]
+                    ├ MultiPhase
+                    │  └ Collect[doc.t1 | [_fetchid, i, x] | (i = ANY((doc.t2)))]
+                    │  └ Collect[doc.t2 | [i] | true]
+                    └ Collect[doc.t2 | [i, y] | true]
             """
         );
     }
@@ -673,11 +672,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan.dependencies().entrySet()).hasSize(1);
         LogicalPlan subPlan = plan.dependencies().keySet().iterator().next();
         assertThat(subPlan).hasOperators(
-            "Eval[x]",
-            "  └ Fetch[x, a]",
-            "    └ Limit[10::bigint;0]",
-            "      └ OrderBy[a DESC]",
-            "        └ Collect[doc.t1 | [_fetchid, a] | true]"
+            "Fetch[x]",
+            "  └ Limit[10::bigint;0]",
+            "    └ OrderBy[a DESC]",
+            "      └ Collect[doc.t1 | [_fetchid, a] | true]"
         );
     }
 
