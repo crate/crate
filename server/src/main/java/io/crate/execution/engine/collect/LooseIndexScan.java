@@ -124,12 +124,20 @@ final class LooseIndexScan {
                                       int bytesPerValue,
                                       RamAccounting ramAccounting,
                                       Token killToken) {
+        // moveToStart() re-invokes this Iterable. Without closing the previous pass first, each
+        // rewind would account the same memory again.
+        ShardDistinctValues[] previous = new ShardDistinctValues[1];
         return () -> {
             try {
+                if (previous[0] != null) {
+                    previous[0].close();
+                    previous[0] = null;
+                }
+
                 boolean returnNull = keyRef.isNullable()
                     && GroupByOptimizedIterator.countNullValues(keyRef, searcher) > 0;
 
-                return new ShardDistinctValues(
+                ShardDistinctValues distinctValues = new ShardDistinctValues(
                     keyRef,
                     returnNull,
                     bytesPerValue,
@@ -138,6 +146,8 @@ final class LooseIndexScan {
                     ),
                     ramAccounting
                 );
+                previous[0] = distinctValues;
+                return distinctValues;
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -161,6 +171,8 @@ final class LooseIndexScan {
         private final StorageSupport<?> storageSupport;
         private final Object[] cells = new Object[1];
         private final Row row = new RowN(cells);
+        private final RamAccounting ramAccounting;
+        private final long accountedBytes;
 
         private byte[] current;
         /// A value sits in `current`, not yet handed out by `next()`.
@@ -180,10 +192,10 @@ final class LooseIndexScan {
             assert supportsType(keyRef.valueType())
                 : "ShardDistinctValues can only be used with types that decode points";
 
+            this.ramAccounting = ramAccounting;
             // bytesPerValue for the `current` field
-            ramAccounting.addBytes(
-                bytesPerValue + (long) cursors.size() * RamUsageEstimator.NUM_BYTES_OBJECT_REF
-            );
+            this.accountedBytes = bytesPerValue + (long) cursors.size() * RamUsageEstimator.NUM_BYTES_OBJECT_REF;
+            ramAccounting.addBytes(accountedBytes);
             this.returnNull = returnNull;
             this.queue = new PriorityQueue<>(
                 Math.max(1, cursors.size()),
@@ -194,6 +206,17 @@ final class LooseIndexScan {
                 if (c.next()) {
                     queue.add(c);
                 }
+            }
+        }
+
+        /**
+         * Releases the bytes accounted for this instance, and closes every cursor still in the queue.
+         * A cursor that had already exhausted itself was closed by {@link #advance()} already.
+         */
+        void close() {
+            ramAccounting.addBytes(-accountedBytes);
+            while (!queue.isEmpty()) {
+                queue.poll().close();
             }
         }
 
@@ -242,6 +265,9 @@ final class LooseIndexScan {
 
                 if (cursor.next()) {
                     queue.add(cursor);
+                } else {
+                    // Exhausted, so we can close it/release used memory right away.
+                    cursor.close();
                 }
 
                 if (!found) {
@@ -307,6 +333,8 @@ final class LooseIndexScan {
         private int numValues;
         private int nextValueIndex;
         private boolean treeFullyVisited;
+        // Running total of bytes accounted via `ramAccounting`, including buffer growth.
+        private long accountedBytes;
 
         private final CopyLeafValuesVisitor copyLeafValuesVisitor = new CopyLeafValuesVisitor();
         private final LiveDocVisitor liveDocVisitor = new LiveDocVisitor();
@@ -341,7 +369,8 @@ final class LooseIndexScan {
             // in most cases, so we choose that.
             this.buffer = new byte[bytesPerValue * BKDConfig.DEFAULT_MAX_POINTS_IN_LEAF_NODE];
             // bytesPerValue for the `current` field, which is allocated on the first next()
-            ramAccounting.addBytes(buffer.length + bytesPerValue);
+            this.accountedBytes = buffer.length + bytesPerValue;
+            ramAccounting.addBytes(accountedBytes);
         }
 
         // Appends a value unless it's not already in the buffer.
@@ -365,8 +394,19 @@ final class LooseIndexScan {
             if (buffer.length < required) {
                 int before = buffer.length;
                 buffer = ArrayUtil.growExact(buffer, required);
-                ramAccounting.addBytes(buffer.length - before);
+                long grown = buffer.length - before;
+                accountedBytes += grown;
+                ramAccounting.addBytes(grown);
             }
+        }
+
+        /**
+         * Releases the bytes this cursor accounted for via {@code ramAccounting}, including any
+         * buffer growth since construction.
+         */
+        void close() {
+            ramAccounting.addBytes(-accountedBytes);
+            accountedBytes = 0;
         }
 
         // Advances to the next distinct value. Returns false once the segment is exhausted.
