@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.SequencedCollection;
 import java.util.Set;
@@ -217,6 +218,24 @@ public interface LogicalPlan extends Plan {
     }
 
     <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context);
+
+    default void validateOutputsOrder(List<Symbol> outputsAfterPruning) {
+        boolean isSubsequence = Lists.isSubsequence(outputsAfterPruning, outputs());
+        if (!isSubsequence) {
+            String error = String.format(
+                Locale.ENGLISH,
+                """
+                Column pruning reshuffled outputs in %s:
+                outputs = %s
+                outputsAfterPruning = %s
+                """,
+                getClass().getSimpleName(),
+                outputs(),
+                outputsAfterPruning
+            );
+            throw new IllegalStateException(error);
+        }
+    }
 
     default StatementType type() {
         return StatementType.SELECT;
