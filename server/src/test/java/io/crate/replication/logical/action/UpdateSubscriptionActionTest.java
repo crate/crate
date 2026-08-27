@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -35,6 +36,10 @@ import io.crate.replication.logical.metadata.Subscription;
 
 public class UpdateSubscriptionActionTest {
 
+    private static TableOrPartition target(String table) {
+        return new TableOrPartition(RelationName.fromIndexName(table), null);
+    }
+
     @Test
     public void test_existing_same_state_is_not_overridden() throws Exception {
         var oldSubscription = new Subscription(
@@ -43,7 +48,7 @@ public class UpdateSubscriptionActionTest {
             List.of("some_publication", "another_publication"),
             Settings.builder().put("enable", "true").build(),
             Map.of(
-                RelationName.fromIndexName("doc.t1"),
+                target("doc.t1"),
                 new Subscription.RelationState(Subscription.State.FAILED, "Subscription failed on restore")
             )
         );
@@ -53,7 +58,7 @@ public class UpdateSubscriptionActionTest {
             oldSubscription.publications(),
             oldSubscription.settings(),
             Map.of(
-                RelationName.fromIndexName("doc.t1"),
+                target("doc.t1"),
                 new Subscription.RelationState(Subscription.State.FAILED, "Some other reason")
             )
         );

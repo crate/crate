@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.AbstractScopedSettings;
@@ -96,8 +97,8 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
     @Test
     public void test_removes_dangling_publication_tables_only_on_node_start() throws Exception {
         e.addTable("create table doc.t (x int)");
-        RelationName existing = new RelationName("doc", "t");
-        RelationName missing = new RelationName("doc", "missing");
+        TableOrPartition existing = new TableOrPartition(new RelationName("doc", "t"), null);
+        TableOrPartition missing = new TableOrPartition(new RelationName("doc", "missing"), null);
         PublicationsMetadata publications = new PublicationsMetadata(Map.of(
             "pub", new Publication("crate", false, List.of(existing, missing)),
             "pub_missing", new Publication("crate", false, List.of(missing)),
@@ -113,10 +114,10 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
         upgraded = metadataUpgradeService.upgradeMetadata(metadata, true);
         PublicationsMetadata updated = upgraded.custom(PublicationsMetadata.TYPE);
         assertThat(updated.publications()).containsOnlyKeys("pub", "pub_missing", "pub_all");
-        assertThat(updated.publications().get("pub").tables()).containsExactly(existing);
+        assertThat(updated.publications().get("pub").tables()).containsExactly(existing.table());
         assertThat(updated.publications().get("pub_missing").tables()).isEmpty();
         assertThat(updated.publications().get("pub_all")).isEqualTo(publications.publications().get("pub_all"));
-        assertThat(publications.publications().get("pub").tables()).containsExactly(existing, missing);
+        assertThat(publications.publications().get("pub").tables()).containsExactly(existing.table(), missing.table());
     }
 
     @Test

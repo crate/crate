@@ -31,6 +31,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.common.settings.AbstractScopedSettings;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -258,7 +259,9 @@ public class MetadataUpgradeService {
                 continue;
             }
             var tables = publication.tables().stream()
-                .filter(table -> metadata.getRelation(table) instanceof RelationMetadata.Table)
+                .map(relationName -> (RelationMetadata) metadata.getRelation(relationName))
+                .filter(table -> table instanceof RelationMetadata.Table)
+                .map(table -> new TableOrPartition(table.name(), null))
                 .toList();
             if (tables.size() != publication.tables().size()) {
                 updated.publications().put(entry.getKey(), new Publication(publication.owner(), false, tables));

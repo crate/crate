@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
@@ -37,6 +38,10 @@ import io.crate.metadata.RelationName;
 
 public class SubscriptionsMetadataTest extends ESTestCase {
 
+    private static TableOrPartition target(String table) {
+        return new TableOrPartition(RelationName.fromIndexName(table), null);
+    }
+
     public static SubscriptionsMetadata createMetadata() {
         Map<String, Subscription> map = Map.of(
             "sub1",
@@ -46,7 +51,7 @@ public class SubscriptionsMetadataTest extends ESTestCase {
                 List.of("pub1"),
                 Settings.EMPTY,
                 Map.of(
-                    RelationName.fromIndexName("doc.t1"),
+                    target("doc.t1"),
                     new Subscription.RelationState(Subscription.State.INITIALIZING, null)
                 )
             ),
@@ -57,7 +62,7 @@ public class SubscriptionsMetadataTest extends ESTestCase {
                 List.of("some_publication", "another_publication"),
                 Settings.builder().put("enable", "true").build(),
                 Map.of(
-                    RelationName.fromIndexName("doc.t1"),
+                    target("doc.t1"),
                     new Subscription.RelationState(Subscription.State.FAILED, "Subscription failed on restore")
                 )
             )
