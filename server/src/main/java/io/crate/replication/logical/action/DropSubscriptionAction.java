@@ -25,6 +25,7 @@ import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATIO
 
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -150,7 +151,13 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
                         assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
                         mdBuilder.putCustom(SubscriptionsMetadata.TYPE, newMetadata);
 
-                        return removeSubscriptionSetting(subscription.relations().keySet(), currentState, mdBuilder);
+                        return removeSubscriptionSetting(
+                            subscription.relations().keySet().stream()
+                                .map(target -> target.table())
+                                .collect(Collectors.toSet()),
+                            currentState,
+                            mdBuilder
+                        );
                     } else if (request.ifExists() == false) {
                         throw new SubscriptionUnknownException(request.name());
                     }

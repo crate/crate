@@ -237,9 +237,9 @@ public final class MetadataTracker implements Closeable {
                     subscriptionName
                 );
                 LOGGER.error(msg);
-                return replicationService.updateSubscriptionState(
+                return replicationService.updateSubscriptionTargetsState(
                     subscriptionName,
-                    existingTables,
+                    existingTables.stream().map(table -> new TableOrPartition(table, null)).toList(),
                     Subscription.State.FAILED,
                     // Table name is not included, as this message included for every row of pg_subscriptions_rel which already has table name.
                     "Relation already exists"
@@ -264,11 +264,11 @@ public final class MetadataTracker implements Closeable {
                 return CompletableFuture.completedFuture(true);
             }
 
-            CompletableFuture<Boolean> updateState = restoreDiff.relationsForStateUpdate.isEmpty()
+            CompletableFuture<Boolean> updateState = restoreDiff.targetsForStateUpdate.isEmpty()
                 ? CompletableFuture.completedFuture(true)
-                : replicationService.updateSubscriptionState(
+                : replicationService.updateSubscriptionTargetsState(
                     subscriptionName,
-                    restoreDiff.relationsForStateUpdate,
+                    restoreDiff.targetsForStateUpdate,
                     Subscription.State.INITIALIZING,
                     null
                 );
@@ -353,7 +353,8 @@ public final class MetadataTracker implements Closeable {
         var updateClusterState = false;
         Metadata subscriberMetadata = subscriberClusterState.metadata();
         Metadata publisherMetadata = publicationsState.metadata();
-        for (var followedTable : subscription.relations().keySet()) {
+        for (var followedTarget : subscription.relations().keySet()) {
+            RelationName followedTable = followedTarget.table();
             RelationMetadata.Table publisherTable = publisherMetadata.getRelation(followedTable);
             if (publisherTable == null) {
                 // Dropped relations are handled separately, see processDroppedTablesOrPartitions(...)
@@ -439,7 +440,10 @@ public final class MetadataTracker implements Closeable {
         // Table existence check is done on a subscription creation but
         // there are cases when attempt to subscribe to existing table happens later during the replication.
         var metadata = subscriberClusterState.metadata();
-        Set<RelationName> currentlyReplicatedTables = subscription.relations().keySet();
+        Set<RelationName> currentlyReplicatedTables = subscription.relations().keySet()
+            .stream()
+            .map(TableOrPartition::table)
+            .collect(Collectors.toSet());
 
         return publisherStateResponse.metadata().relations(RelationMetadata.Table.class).stream()
             .map(RelationMetadata.Table::name)
@@ -449,7 +453,7 @@ public final class MetadataTracker implements Closeable {
     }
 
     record RestoreDiff(List<TableOrPartition> toRestore,
-                       Set<RelationName> relationsForStateUpdate) {
+                       Set<TableOrPartition> targetsForStateUpdate) {
 
         public boolean isEmpty() {
             return toRestore.isEmpty();
@@ -460,8 +464,8 @@ public final class MetadataTracker implements Closeable {
     static RestoreDiff getRestoreDiff(Subscription subscription,
                                       ClusterState subscriberState,
                                       PublicationsStateAction.Response stateResponse) {
-        Map<RelationName, RelationState> subscribedRelations = subscription.relations();
-        HashSet<RelationName> relationNamesForStateUpdate = new HashSet<>();
+        Map<TableOrPartition, RelationState> subscribedRelations = subscription.relations();
+        HashSet<TableOrPartition> targetsForStateUpdate = new HashSet<>();
         HashSet<TableOrPartition> toRestore = new HashSet<>();
         Metadata subscriberMetadata = subscriberState.metadata();
         Metadata publisherMetadata = stateResponse.metadata();
@@ -469,8 +473,12 @@ public final class MetadataTracker implements Closeable {
             RelationName relationName = table.name();
             for (IndexMetadata indexMetadata : publisherMetadata.getIndices(relationName, List.of(), false, x -> x)) {
                 String indexName = indexMetadata.getIndex().name();
-                if (subscribedRelations.get(relationName) == null) {
-                    relationNamesForStateUpdate.add(relationName);
+                String partitionIdent = indexMetadata.partitionValues().isEmpty()
+                    ? null
+                    : PartitionName.encodeIdent(indexMetadata.partitionValues());
+                var target = new TableOrPartition(relationName, partitionIdent);
+                if (subscribedRelations.get(target) == null) {
+                    targetsForStateUpdate.add(target);
                 }
                 if (REPLICATION_INDEX_ROUTING_ACTIVE.get(indexMetadata.getSettings()) == false) {
                     // If the index is not active, we cannot restore it
@@ -481,23 +489,23 @@ public final class MetadataTracker implements Closeable {
                 }
                 String indexUUID = subscriberMetadata.getIndex(relationName, indexMetadata.partitionValues(), false, IndexMetadata::getIndexUUID);
                 if (indexUUID == null) {
-                    String partitionIdent = PartitionName.encodeIdent(indexMetadata.partitionValues());
-                    toRestore.add(new TableOrPartition(relationName, partitionIdent));
-                    relationNamesForStateUpdate.add(relationName);
+                    toRestore.add(target);
+                    targetsForStateUpdate.add(target);
                 }
             }
             if (table.indexUUIDs().isEmpty() && table.partitionedBy().isEmpty() == false) {
                 // If the table is partitioned, we need to restore the table itself
                 if (subscriberMetadata.getRelation(relationName) == null) {
-                    toRestore.add(new TableOrPartition(relationName, null));
-                    relationNamesForStateUpdate.add(relationName);
+                    var target = new TableOrPartition(relationName, null);
+                    toRestore.add(target);
+                    targetsForStateUpdate.add(target);
                 }
             }
         }
         if (toRestore.isEmpty()) {
-            relationNamesForStateUpdate.clear();
+            targetsForStateUpdate.clear();
         }
-        return new RestoreDiff(toRestore.stream().toList(), relationNamesForStateUpdate);
+        return new RestoreDiff(toRestore.stream().toList(), targetsForStateUpdate);
     }
 
     private ClusterState processDroppedTablesOrPartitions(String subscriptionName,
@@ -508,7 +516,8 @@ public final class MetadataTracker implements Closeable {
         HashSet<Index> partitionsToRemove = new HashSet<>();
         Metadata subscriberMetadata = subscriberClusterState.metadata();
         Metadata.Builder updatedMetadataBuilder = Metadata.builder(subscriberMetadata);
-        for (var relationName : subscription.relations().keySet()) {
+        for (var target : subscription.relations().keySet()) {
+            RelationName relationName = target.table();
             RelationMetadata.Table publisherTable = publisherMetadata.getRelation(relationName);
             if (publisherTable == null) {
                 changedRelations.add(relationName);
@@ -543,12 +552,12 @@ public final class MetadataTracker implements Closeable {
 
         }
         if (changedRelations.isEmpty() == false) {
-            HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
+            HashMap<TableOrPartition, Subscription.RelationState> relations = new HashMap<>();
             for (var entry : subscription.relations().entrySet()) {
-                var relationName = entry.getKey();
+                var relationName = entry.getKey().table();
                 if (changedRelations.contains(relationName) == false) {
                     RelationState state = entry.getValue();
-                    relations.put(relationName, state);
+                    relations.put(entry.getKey(), state);
                 }
             }
             updatedClusterState = DropSubscriptionAction.removeSubscriptionSetting(

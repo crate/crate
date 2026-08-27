@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.indices.InvalidRelationName;
@@ -91,7 +92,14 @@ public class AlterTableRenameTableAnalyzerTest extends CrateDummyClusterServiceU
     }
 
     private ClusterService clusterServiceWithPublicationMetadata(boolean allTablesPublished, RelationName... tables) {
-        var publications = Map.of("pub1", new Publication("user1", allTablesPublished, Arrays.asList(tables)));
+        var publications = Map.of(
+            "pub1",
+            new Publication(
+                "user1",
+                allTablesPublished,
+                Arrays.stream(tables).map(table -> new TableOrPartition(table, null)).toList()
+            )
+        );
         var publicationsMetadata = new PublicationsMetadata(publications);
         var metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED).putCustom(PublicationsMetadata.TYPE, publicationsMetadata).build();
         return createClusterService(additionalClusterSettings(), metadata, Version.CURRENT);

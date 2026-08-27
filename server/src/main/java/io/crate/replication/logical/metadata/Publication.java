@@ -29,8 +29,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -41,6 +43,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 
 import io.crate.metadata.RelationName;
+import io.crate.metadata.PartitionName;
 import io.crate.role.Permission;
 import io.crate.role.Role;
 import io.crate.role.Roles;
@@ -51,22 +54,26 @@ public class Publication implements Writeable {
     private static final Logger LOGGER = LogManager.getLogger(Publication.class);
     private final String owner;
     private final boolean forAllTables;
-    private final List<RelationName> tables;
+    private final List<TableOrPartition> targets;
 
-    public Publication(String owner, boolean forAllTables, List<RelationName> tables) {
-        assert !forAllTables || (forAllTables && tables.isEmpty()) : "If forAllTables is true, tables must be empty";
+    public Publication(String owner, boolean forAllTables, List<TableOrPartition> targets) {
+        assert !forAllTables || (forAllTables && targets.isEmpty()) : "If forAllTables is true, targets must be empty";
         this.owner = owner;
         this.forAllTables = forAllTables;
-        this.tables = tables;
+        this.targets = targets;
     }
 
     Publication(StreamInput in) throws IOException {
         owner = in.readString();
         forAllTables = in.readBoolean();
         int size = in.readVInt();
-        tables = new ArrayList<>(size);
+        targets = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            tables.add(RelationName.fromIndexName(in.readString()));
+            if (in.getVersion().before(Version.V_6_5_0)) {
+                targets.add(new TableOrPartition(RelationName.fromIndexName(in.readString()), null));
+            } else {
+                targets.add(new TableOrPartition(in));
+            }
         }
     }
 
@@ -78,17 +85,32 @@ public class Publication implements Writeable {
         return forAllTables;
     }
 
+    public List<TableOrPartition> targets() {
+        return targets;
+    }
+
     public List<RelationName> tables() {
-        return tables;
+        return targets.stream().map(TableOrPartition::table).toList();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(owner);
         out.writeBoolean(forAllTables);
-        out.writeVInt(tables.size());
-        for (var table : tables) {
-            out.writeString(table.indexNameOrAlias());
+        if (out.getVersion().before(Version.V_6_5_0)) {
+            for (var target : targets) {
+                if (target.partitionIdent() != null) {
+                    throw new IllegalStateException("Cannot write partition publication target to a node before " + Version.V_6_5_0);
+                }
+            }
+        }
+        out.writeVInt(targets.size());
+        for (var target : targets) {
+            if (out.getVersion().before(Version.V_6_5_0)) {
+                out.writeString(target.table().indexNameOrAlias());
+            } else {
+                target.writeTo(out);
+            }
         }
     }
 
@@ -101,17 +123,17 @@ public class Publication implements Writeable {
             return false;
         }
         Publication that = (Publication) o;
-        return forAllTables == that.forAllTables && owner.equals(that.owner) && tables.equals(that.tables);
+        return forAllTables == that.forAllTables && owner.equals(that.owner) && targets.equals(that.targets);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(owner, tables, forAllTables);
+        return Objects.hash(owner, targets, forAllTables);
     }
 
     @Override
     public String toString() {
-        return "Publication{forAllTables=" + forAllTables + ", owner=" + owner + ", tables=" + tables + "}";
+        return "Publication{forAllTables=" + forAllTables + ", owner=" + owner + ", targets=" + targets + "}";
     }
 
     public Metadata.Builder resolveCurrentRelations(ClusterState state,
@@ -147,7 +169,8 @@ public class Publication implements Writeable {
                 addRelation(metadata, metadataBuilder, table, indexFilter);
             }
         } else {
-            for (RelationName relationName : tables) {
+            for (TableOrPartition target : targets) {
+                RelationName relationName = target.table();
                 if (relationFilter.test(relationName) == false) {
                     continue;
                 }
@@ -158,11 +181,38 @@ public class Publication implements Writeable {
                     }
                     continue;
                 }
-                addRelation(metadata, metadataBuilder, table, indexFilter);
+                addTarget(metadata, metadataBuilder, table, target, indexFilter);
             }
         }
 
         return metadataBuilder;
+    }
+
+    private static void addTarget(Metadata currentMetadata,
+                                  Metadata.Builder metadataBuilder,
+                                  org.elasticsearch.cluster.metadata.RelationMetadata.Table table,
+                                  TableOrPartition target,
+                                  Predicate<Index> indexFilter) {
+        if (target.partitionIdent() == null) {
+            addRelation(currentMetadata, metadataBuilder, table, indexFilter);
+            return;
+        }
+
+        List<String> partitionValues = PartitionName.decodeIdent(target.partitionIdent());
+        List<IndexMetadata> indices = currentMetadata.getIndices(table.name(), partitionValues, false, im -> im);
+        if (indices.isEmpty()) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Partition {} of table {} not found in metadata, skipping publication resolution for it.",
+                    target.partitionIdent(),
+                    table.name());
+            }
+            return;
+        }
+
+        metadataBuilder.setRelation(table.withIndexUUIDs(indices.stream().map(IndexMetadata::getIndexUUID).toList()));
+        for (IndexMetadata indexMetadata : indices) {
+            addIndex(metadataBuilder, indexMetadata, indexFilter);
+        }
     }
 
     private static void addRelation(Metadata currentMetadata,
@@ -171,19 +221,25 @@ public class Publication implements Writeable {
                                     Predicate<Index> indexFilter) {
         metadataBuilder.setRelation(table);
         for (IndexMetadata indexMetadata : currentMetadata.getIndices(table.name(), List.of(), true, im -> im)) {
-            var publishedIndexMetadata = IndexMetadata.builder(indexMetadata);
-            if (indexFilter.test(indexMetadata.getIndex()) == false) {
-                publishedIndexMetadata.settings(
-                    Settings.builder()
-                        .put(indexMetadata.getSettings())
-                        .put(REPLICATION_INDEX_ROUTING_ACTIVE.getKey(), false)
-                );
-            }
-            // Add empty dummy mapping given that we're faking responses from
-            // old nodes which would have some mapping
-            publishedIndexMetadata.putMapping("{}");
-            metadataBuilder.put(publishedIndexMetadata);
+            addIndex(metadataBuilder, indexMetadata, indexFilter);
         }
+    }
+
+    private static void addIndex(Metadata.Builder metadataBuilder,
+                                 IndexMetadata indexMetadata,
+                                 Predicate<Index> indexFilter) {
+        var publishedIndexMetadata = IndexMetadata.builder(indexMetadata);
+        if (indexFilter.test(indexMetadata.getIndex()) == false) {
+            publishedIndexMetadata.settings(
+                Settings.builder()
+                    .put(indexMetadata.getSettings())
+                    .put(REPLICATION_INDEX_ROUTING_ACTIVE.getKey(), false)
+            );
+        }
+        // Add empty dummy mapping given that we're faking responses from
+        // old nodes which would have some mapping
+        publishedIndexMetadata.putMapping("{}");
+        metadataBuilder.put(publishedIndexMetadata);
     }
 
     private static boolean subscriberCanRead(Roles roles, RelationName relationName, Role subscriber, String publicationName) {
