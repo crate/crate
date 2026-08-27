@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -559,7 +560,9 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                 var metadata = SubscriptionsMetadata.get(currentMetadata);
                 var subscription = metadata.subscription().get(subscriptionName);
                 if (subscription != null) {
-                    var currentState = subscription.relations().get(RelationName.fromIndexName("doc.t1")).state();
+                    var currentState = subscription.relations()
+                        .get(new TableOrPartition(RelationName.fromIndexName("doc.t1"), null))
+                        .state();
                     synchronized (subscriptionStates) {
                         var size = subscriptionStates.size();
                         if (size == 0 || subscriptionStates.get(size - 1).equals(currentState) == false) {
