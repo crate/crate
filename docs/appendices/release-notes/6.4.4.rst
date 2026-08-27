@@ -1,0 +1,150 @@
+.. _version_6.4.4:
+
+==========================
+Version 6.4.4 - Unreleased
+==========================
+
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+.. NOTE::
+
+    In development. 6.4.4 isn't released yet. These are the release notes for
+    the upcoming release.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 5.0.0 or higher
+    before you upgrade to 6.4.4.
+
+    We recommend that you upgrade to the latest 6.3 release before moving to
+    6.4.4.
+
+    A rolling upgrade from >= 6.3.0 to 6.4.4 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 5.x will not function with 6.x
+    and must be recreated before moving to 6.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://cratedb.com/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_6.4.0` release notes for a full list of changes in the 6.4
+series.
+
+Fixes
+=====
+
+- Fixed an issue that caused a ``UNION ALL`` inside a sub-select to return an
+  additional column, or to fail with ``Index x out of bounds for length y``, if
+  the outer query used an ``ORDER BY`` on a column which was not selected and
+  the sub-select contained further columns which were neither selected nor used
+  by the ``ORDER BY``. e.g::
+
+    SELECT c3 FROM (SELECT * FROM tbl UNION ALL SELECT * FROM tbl) x ORDER BY c1;
+
+- Fixed an issue that could return wrong results if a ``WHERE`` clause contained
+  a non-deterministic function, like :ref:`random() <scalar-random>`, and was
+  applied on a virtual relation which uses
+  :ref:`window functions <window-functions>`, :ref:`GROUP BY <sql_dql_group_by>`
+  or :ref:`table functions <table-functions>`. Prevent the push down for such
+  filters, as they can produce different results than if applied after those
+  operations as intended.
+
+- Fixed an issue that caused under-accounting of memory usage for queries using
+  :ref:`array_agg() <aggregation-array-agg>` aggregation function and
+  aggregation queries using ``DISTINCT``.
+
+- Fixed an issue that caused ``~`` and ``~*``
+  :ref:`regular expression operators <sql_dql_regexp>` to not match any rows
+  when used in the ``WHERE`` clause of a query on column with
+  :ref:`INDEX OFF <sql_ddl_index_off>`, e.g.::
+
+    SELECT * FROM tbl WHERE no_index_col ~ '[a-z]'
+
+- Fixed an issue where a node could still shut down when the cluster health
+  wait timed out during decommissioning despite
+  ``cluster.graceful_stop.force=false``.
+
+- Improved the error message for queries involving an uncorrelated subquery in
+  join condition. e.g::
+
+    SELECT * FROM t JOIN t AS t2 ON t.c = (select 1)
+
+
+- Fixed an issue that could cause a correlated subquery inside a join, to
+  ignore a filter on a bare boolean column of the outer relation. As a
+  consequence, it could return rows that should have been filtered out. e.g.::
+
+    SELECT (
+        SELECT count(*)
+        FROM t t1 CROSS JOIN t t2
+        WHERE t1.col = t2.col AND q.flag
+    )
+    FROM t q;
+
+  In this example, the ``q.flag`` filter was dropped.
+  :ref:`array_agg() <aggregation-array-agg>` aggregation function.
+
+- Fixed an issue that caused wrong results when
+  :ref:`array_agg() <aggregation-array-agg>` aggregation function was used with
+  :ref:`window functions <window-functions>` with an explicit window frame,
+  e.g.::
+
+    SELECT array_agg(x) OVER(
+      ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM tbl
+
+- Fixed an issue where :ref:`ALL <sql_all_subquery_expresion>` did not return
+  ``TRUE`` when comparing ``NULL`` values against an empty array.
+
+- Fixed an issue that caused wrong accounting of memory usage for queries using
+  :ref:`string_agg() <aggregation-string-agg>` aggregation function.
+
+- Fixed an issue that caused wrong results when
+  :ref:`string_agg() <aggregation-string-agg>` aggregation function was used with
+  :ref:`window functions <window-functions>` with a dynamic ``delimeter`` and an
+  explicit window frame, e.g.::
+
+    SELECT string_agg(value, delimiter) OVER(
+      ORDER BY value ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM tbl
+
+- Fixed an issue where :ref:`ANY <sql_any_subquery_expression>` did not return
+  ``FALSE`` when comparing ``NULL`` against an empty array.
+
+- Fixed an issue when using :ref:`UNION ALL <sql-union>` where types were not
+  cast properly when the different union branches had different types, e.g::
+
+    SELECT count(*) AS cnt
+    FROM (
+        SELECT 1::integer AS x
+        UNION ALL
+        SELECT 2147483648::bigint AS x
+    ) AS u
+    WHERE x > 2147483647;
+
+- Fixed an issue that caused queries with filtered nested ``CROSS JOIN``s to
+  return incorrect results when ``optimizer_eliminate_cross_join`` was set to
+  ``false`` and a filter above the join tree referenced only one side of the
+  current cross join, e.g.::
+
+    SET optimizer_eliminate_cross_join = false;
+
+    SELECT t1.x, t2.y, t3.z
+    FROM t1
+    CROSS JOIN t2
+    CROSS JOIN t3
+    WHERE t1.x = t2.y
+      AND t1.x = t3.z
+      AND t2.y = t3.z;
+

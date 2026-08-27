@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -32,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -40,6 +40,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
+import io.crate.data.Paging;
 import io.crate.execution.engine.join.RamBlockSizeCalculator;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
@@ -1617,11 +1618,12 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("explain (costs false) " + stmt);
 
         assertThat(response).hasLines(
-            "HashJoin[INNER | ((a = c) AND (b = c))]",
-            "  ├ HashJoin[INNER | ((a = b) AND (x = y))]",
-            "  │  ├ Collect[doc.t1 | [a, x] | true]",
-            "  │  └ Collect[doc.t2 | [b, y] | true]",
-            "  └ Collect[doc.t3 | [c] | true]"
+            "Eval[a, x, b, y, c]",
+            "  └ HashJoin[INNER | (((b = c) AND (a = b)) AND (x = y))]",
+            "    ├ HashJoin[INNER | (a = c)]",
+            "    │  ├ Collect[doc.t1 | [a, x] | true]",
+            "    │  └ Collect[doc.t3 | [c] | true]",
+            "    └ Collect[doc.t2 | [b, y] | true]"
         );
 
         execute(stmt);
@@ -1843,5 +1845,53 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         execute(query);
         assertThat(response.rows()).isEmpty();
+    }
+
+    @Test
+    @UseHashJoins(1)
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    public void test_nested_hash_join_with_inputs_spanning_multiple_pages() throws Exception {
+        // A nested join must not be executed distributed, otherwise its output has to be re-shuffled
+        // for the parent join, which can lead to a deadlock once the inputs span more than one page.
+        // See PlanHint.AVOID_DISTRIBUTED_JOIN
+        int originalPageSize = Paging.PAGE_SIZE;
+        Paging.PAGE_SIZE = 2;
+        try {
+            execute("create table t1 (x int) clustered into 2 shards with (number_of_replicas = 0)");
+            execute("create table t2 (x int) clustered into 2 shards with (number_of_replicas = 0)");
+            execute("create table t3 (x int) clustered into 2 shards with (number_of_replicas = 0)");
+
+            Object[][] bulkArgs = new Object[20][];
+            for (int i = 0; i < bulkArgs.length; i++) {
+                bulkArgs[i] = new Object[] { i };
+            }
+            execute("insert into t1 (x) values (?)", bulkArgs);
+            execute("insert into t2 (x) values (?)", bulkArgs);
+            execute("insert into t3 (x) values (?)", bulkArgs);
+            execute("refresh table t1, t2, t3");
+
+            String stmt = """
+                SELECT count(*)
+                FROM t1
+                    INNER JOIN t2 ON t2.x = t1.x
+                    INNER JOIN t3 ON t3.x = t2.x
+                """;
+            // ensure that the query is using the execution plan we want to test
+            // This should prevent the test case from becoming invalid
+            execute("EXPLAIN (COSTS FALSE)" + stmt);
+            String plan = Arrays.stream(response.rows())
+                .map(row -> (String) row[0])
+                .collect(Collectors.joining("\n"));
+            assertThat(plan.lines().filter(line -> line.contains("Join[")).count())
+                .as("the query must be executed as a join nested inside another join, but was:%n%s", plan)
+                .isEqualTo(2);
+
+            // Without the fix this query never completes and fails with a timeout
+            execute(stmt);
+            assertThat(response).hasRows("20");
+        } finally {
+            Paging.PAGE_SIZE = originalPageSize;
+        }
     }
 }

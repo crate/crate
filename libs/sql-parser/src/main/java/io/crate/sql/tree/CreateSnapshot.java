@@ -21,60 +21,15 @@
 
 package io.crate.sql.tree;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
-public class CreateSnapshot<T> extends Statement {
-
-    private final QualifiedName name;
-    private final GenericProperties<T> properties;
-    private final List<Table<T>> tables;
+public record CreateSnapshot<T>(QualifiedName name,
+                                List<Table<T>> tables,
+                                GenericProperties<T> properties) implements Statement {
 
     public CreateSnapshot(QualifiedName name,
                           GenericProperties<T> properties) {
-        this.name = name;
-        this.properties = properties;
-        this.tables = Collections.emptyList();
-    }
-
-    public CreateSnapshot(QualifiedName name,
-                          List<Table<T>> tables,
-                          GenericProperties<T> properties) {
-        this.name = name;
-        this.tables = tables;
-        this.properties = properties;
-    }
-
-    public QualifiedName name() {
-        return this.name;
-    }
-
-    public GenericProperties<T> properties() {
-        return properties;
-    }
-
-    public List<Table<T>> tables() {
-        return tables;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        CreateSnapshot<?> that = (CreateSnapshot<?>) o;
-        return Objects.equals(name, that.name) &&
-               Objects.equals(properties, that.properties) &&
-               Objects.equals(tables, that.tables);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, properties, tables);
+        this(name, List.of(), properties);
     }
 
     @Override

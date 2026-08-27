@@ -86,6 +86,10 @@ Breaking Changes
   symmetrical join conditions (i.e. ``a = b`` is identical to ``b = a``).
   Query results are not affected.
 
+- Removed the ``USERS`` and ``PRIVILEGES`` keywords for the
+  :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>` statement, which have been
+  deprecated since :ref:`5.6.0 <version_6.5.0>`. Use ``USERMANAGEMENT`` instead.
+
 Deprecations
 ============
 
@@ -147,8 +151,10 @@ Performance and Resilience Improvements
   :ref:`DROP COLUMN <sql-alter-table-drop-column>`,
   :ref:`ADD COLUMN <sql-alter-table-add-column>`,
   :ref:`RENAME COLUMN <sql-alter-table-rename-column>`,
-  :ref:`SET/DROP DEFAULT <SQL-alter-table-alter-column-default>` and
-  :ref:`DROP CONSTRAINT <sql-alter-drop-constraint>`
+  :ref:`SET/DROP DEFAULT <SQL-alter-table-alter-column-default>`,
+  :ref:`DROP CONSTRAINT <sql-alter-drop-constraint>`,
+  :ref:`SET/RESET <sql-alter-table-set-reset>` and
+  :ref:`REROUTE <sql-alter-table-reroute>`
   such that concurrent :ref:`SWAP TABLE <alter_cluster_swap_table>`
   cannot affect aforementioned queries already in progress.
 
@@ -166,20 +172,29 @@ Performance and Resilience Improvements
 
       SELECT count(col) FROM (SELECT col FROM tbl GROUP BY col) tmp
 
-In our benchmarks this improvement made certain queries up to 21x
-faster. The amount of improvement you'll see depends on the data type
-and cardinality.
+  In our benchmarks this improvement made certain queries up to 21x
+  faster. The amount of improvement you'll see depends on the data type
+  and cardinality.
 
+- `Somil Jain <https://github.com/somiljain2006>`_ added support for collecting
+  table-level statistics for foreign tables during ``ANALYZE``, enabling the
+  query planner to make better decisions based on estimated row counts and table
+  sizes.
 
 Administration and Operations
 -----------------------------
 
-None
+- Added :ref:`copy_from.http.redirects` and :ref:`copy_from.http.blocked_hosts`
+  settings to allow CrateDB administrators to prevent users from accessing HTTP
+  resources from hosts reachable on an internal network or other arbitrary hosts
+  using :ref:`COPY FROM <sql-copy-from>`.
 
 Client interfaces
 -----------------
 
-None
+- Increased the PostgreSQL wire protocol version announced to clients from
+  ``14`` to ``15``, since ``14`` is being deprecated in November.
+
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
@@ -187,3 +202,7 @@ SQL Standard and PostgreSQL Compatibility
 - `Somil Jain <https://github.com/somiljain2006>`_ added the
   ``information_schema.constraint_column_usage`` view to improve PostgreSQL
   compatibility with tools that introspect database metadata.
+
+- `Somil Jain <https://github.com/somiljain2006>`_ added support for
+  concatenating :ref:`bitstrings <data-types-bit-strings>` using the
+  :ref:`concat function <scalar-concat>` or the ``||`` operator.

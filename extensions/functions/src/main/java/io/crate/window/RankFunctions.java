@@ -47,7 +47,7 @@ public class RankFunctions implements WindowFunction {
 
     private final Signature signature;
     private final BoundSignature boundSignature;
-    private int seenLastUpperBound = -1;
+    private int seenLastPeerGroupEnd = -1;
     private int rank;
     private final IntBinaryOperator rankIncrementor;
 
@@ -79,12 +79,12 @@ public class RankFunctions implements WindowFunction {
         }
         if (idxInPartition == 0) {
             rank = 1;
-            seenLastUpperBound = currentFrame.upperBoundExclusive();
+            seenLastPeerGroupEnd = currentFrame.peerGroupWithinPartitionEndExclusive();
         }
 
-        if (currentFrame.upperBoundExclusive() != seenLastUpperBound) {
-            rank = rankIncrementor.applyAsInt(rank, seenLastUpperBound);
-            seenLastUpperBound = currentFrame.upperBoundExclusive();
+        if (currentFrame.peerGroupWithinPartitionEndExclusive() != seenLastPeerGroupEnd) {
+            rank = rankIncrementor.applyAsInt(rank, seenLastPeerGroupEnd);
+            seenLastPeerGroupEnd = currentFrame.peerGroupWithinPartitionEndExclusive();
         }
 
         return rank;

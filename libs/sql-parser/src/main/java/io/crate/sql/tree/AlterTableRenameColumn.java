@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class AlterTableRenameColumn<T> extends Statement {
+public class AlterTableRenameColumn<T> implements Statement {
 
     private final Table<T> table;
     private final Expression column;

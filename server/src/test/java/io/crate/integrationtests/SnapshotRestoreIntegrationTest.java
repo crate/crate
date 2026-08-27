@@ -30,7 +30,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
@@ -796,7 +795,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
     }
 
     /**
-     * Restoring USERS will result in restoring custom metadata only and NO global settings.
+     * Restoring USERMANAGEMENT will result in restoring custom metadata only and NO global settings.
      * This test a regression which resulted in restoring the custom metadata only if global settings
      * were also marked to be restored.
      */
@@ -804,7 +803,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
     public void test_restore_custom_metadata_only() throws Exception {
         createSnapshotWithTablesAndMetadata();
 
-        execute("RESTORE SNAPSHOT " + snapshotName() + " USERS WITH (wait_for_completion=true)");
+        execute("RESTORE SNAPSHOT " + snapshotName() + " USERMANAGEMENT WITH (wait_for_completion=true)");
         waitNoPendingTasksOnAll();
 
         execute("SELECT name FROM sys.users WHERE name = 'my_user'");
@@ -1094,7 +1093,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         // CREATE USER "John";
         // GRANT DQL ON SCHEMA "sys" TO "John";
         // GRANT AL TO "Ford";
-        execute("RESTORE SNAPSHOT users_repo.usersnap USERS with (wait_for_completion=true)");
+        execute("RESTORE SNAPSHOT users_repo.usersnap USERMANAGEMENT with (wait_for_completion=true)");
 
         execute("SELECT name, granted_roles, password, superuser FROM sys.users ORDER BY name");
         assertThat(response).hasRows(

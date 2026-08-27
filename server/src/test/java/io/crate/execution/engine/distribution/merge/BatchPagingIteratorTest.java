@@ -71,16 +71,18 @@ public class BatchPagingIteratorTest {
         List<Object[]> expectedResult = StreamSupport.stream(rows.spliterator(), false)
             .map(Row::materialize)
             .collect(Collectors.toList());
-        var tester = BatchIteratorTester.forRows(() -> {
-            PassThroughPagingIterator<Integer, Row> pagingIterator = PassThroughPagingIterator.repeatable();
-            pagingIterator.merge(singletonList(new KeyIterable<>(0, rows)));
-            return new BatchPagingIterator<>(
-                pagingIterator,
-                exhaustedIt -> CompletableFuture.failedStage(new IllegalStateException("upstreams exhausted")),
-                () -> true,
-                throwable -> {}
-            );
-        }, ResultOrder.EXACT);
+        var tester = BatchIteratorTester.forRows(
+            () -> {
+                PassThroughPagingIterator<Integer, Row> pagingIterator = PassThroughPagingIterator.repeatable();
+                pagingIterator.merge(singletonList(new KeyIterable<>(0, rows)));
+                return new BatchPagingIterator<>(
+                    pagingIterator,
+                    exhaustedIt -> CompletableFuture.failedStage(new IllegalStateException("upstreams exhausted")),
+                    () -> true,
+                    throwable -> {});
+            },
+            ResultOrder.EXACT,
+            false);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -127,7 +129,7 @@ public class BatchPagingIteratorTest {
                 }
             );
         };
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT, false);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 

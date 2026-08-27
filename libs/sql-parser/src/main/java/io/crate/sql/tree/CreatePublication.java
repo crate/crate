@@ -22,52 +22,14 @@
 package io.crate.sql.tree;
 
 import java.util.List;
-import java.util.Objects;
 
-public class CreatePublication extends Statement {
-
-    private final String name;
-    private final boolean forAllTables;
-    private final List<QualifiedName> tables;
-
-    public CreatePublication(String name, boolean forAllTables, List<QualifiedName> tables) {
-        this.name = name;
-        this.forAllTables = forAllTables;
-        this.tables = tables;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    public boolean isForAllTables() {
-        return forAllTables;
-    }
-
-    public List<QualifiedName> tables() {
-        return tables;
-    }
+public record CreatePublication(String name,
+                                boolean forAllTables,
+                                List<QualifiedName> tables) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCreatePublication(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        CreatePublication that = (CreatePublication) o;
-        return forAllTables == that.forAllTables && name.equals(that.name) && tables.equals(that.tables);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, forAllTables, tables);
     }
 
     @Override

@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-public class AlterTable<T> extends Statement {
+public class AlterTable<T> implements Statement {
 
     private final Table<T> table;
     private final GenericProperties<T> setProperties;

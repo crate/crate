@@ -260,6 +260,42 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
     }
 
     @Test
+    public void test_create_optimized_iterator_for_keys_only_group_by() throws Exception {
+        GroupProjection groupProjection = new GroupProjection(
+            List.of(new InputColumn(0, DataTypes.STRING)),
+            List.of(),
+            AggregateMode.ITER_PARTIAL,
+            RowGranularity.SHARD
+        );
+        var reference = new SimpleReference(
+            new RelationName("doc", "test"),
+            ColumnIdent.of("x"),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            IndexType.PLAIN,
+            true,
+            true,
+            0,
+            111,
+            false,
+            null
+        );
+        IndexShard shard = newStartedPrimaryShard(
+            TestingHelpers.createNodeContext(),
+            List.of(reference),
+            THREAD_POOL
+        );
+        var collectPhase = createCollectPhase(List.of(reference), List.of(groupProjection));
+        var collectTask = createCollectTask(shard, collectPhase, Version.CURRENT);
+
+        var it = GroupByOptimizedIterator.tryUseTermDictionary(shard, collectPhase, collectTask);
+        assertThat(it).isNotNull();
+
+        collectTask.kill(JobKilledException.of(null));
+        closeShard(shard);
+    }
+
+    @Test
     public void test_create_optimized_iterator_for_single_string_key_using_doc_value_agg_iter_partial() throws Exception {
         assertOptimizedIteratorForSingleStringKeyUsingDocValueAgg(AggregateMode.ITER_PARTIAL);
     }

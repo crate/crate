@@ -21,7 +21,7 @@ package org.elasticsearch.common.metrics;
 
 import java.util.concurrent.atomic.LongAdder;
 
-public class MeanMetric implements Metric {
+public class MeanMetric {
 
     private final LongAdder counter = new LongAdder();
     private final LongAdder sum = new LongAdder();

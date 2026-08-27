@@ -21,30 +21,7 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
-public class DropRepository extends Statement {
-
-    private final String name;
-
-    public DropRepository(String name) {
-        this.name = name;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(name);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return obj instanceof DropRepository that
-            && name.equals(that.name);
-    }
+public record DropRepository(String name) implements Statement {
 
     @Override
     public String toString() {

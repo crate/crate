@@ -722,7 +722,7 @@ public class Node implements Closeable {
                 new NumberOfShards(clusterService),
                 new CreateTableClient(client),
                 rolesManager,
-                new ForeignDataWrappers(settings, clusterService, nodeContext),
+                new ForeignDataWrappers(settings, clusterService, nodeContext, threadPool),
                 sessionSettingRegistry
             );
             RepositoryService repositoryService = new RepositoryService(clusterService, client);

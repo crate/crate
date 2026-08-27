@@ -27,7 +27,7 @@ import java.util.function.Function;
 
 import io.crate.common.collections.Lists;
 
-public final class PartitionedBy<T> extends Node {
+public final class PartitionedBy<T> implements Node {
 
     private final List<T> columns;
 

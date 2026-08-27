@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Objects;
 
-public class AlterTableAddColumn<T> extends Statement {
+public class AlterTableAddColumn<T> implements Statement {
 
     private final Table<T> table;
     private final List<AddColumnDefinition<T>> addColumnDefinitions;

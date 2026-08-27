@@ -53,7 +53,7 @@ import org.jspecify.annotations.Nullable;
  * d=[1, 2, 3, 'abc']
  * </code>
  */
-public class GenericProperties<T> extends Node implements Iterable<Entry<String, T>> {
+public class GenericProperties<T> implements Node, Iterable<Entry<String, T>> {
 
     private static final GenericProperties<?> EMPTY = new GenericProperties<>(Map.of());
 

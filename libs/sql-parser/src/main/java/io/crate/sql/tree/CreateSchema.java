@@ -21,35 +21,7 @@
 
 package io.crate.sql.tree;
 
-public class CreateSchema extends Statement {
-
-    public final String name;
-    public final boolean ifNotExists;
-
-    public CreateSchema(String name, boolean ifNotExists) {
-        this.name = name;
-        this.ifNotExists = ifNotExists;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    public boolean ifNotExists() {
-        return ifNotExists;
-    }
-
-    @Override
-    public int hashCode() {
-        return 31 * name.hashCode() + (ifNotExists ? 1231 : 1237);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return obj instanceof CreateSchema other
-            && name.equals(other.name)
-            && ifNotExists == other.ifNotExists;
-    }
+public record CreateSchema(String name, boolean ifNotExists) implements Statement {
 
     @Override
     public String toString() {

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,11 +19,21 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.server.xcontent;
+package io.crate.fdw;
 
-import java.util.Map;
+import static io.crate.fdw.JdbcDialect.POSTGRES;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import org.elasticsearch.common.xcontent.XContentType;
+import org.junit.Test;
 
-public record ParsedXContent(XContentType type, Map<String, Object> map) {
+public class JdbcDialectTest {
+
+    @Test
+    public void test_from_url_resolves_correct_dialect() {
+        assertThat(JdbcDialect.fromUrl("jdbc:postgresql://localhost:5432/db"))
+            .isEqualTo(POSTGRES);
+
+        assertThat(JdbcDialect.fromUrl("jdbc:mysql://localhost:3306/db"))
+            .isEqualTo(JdbcDialect.GENERIC);
+    }
 }

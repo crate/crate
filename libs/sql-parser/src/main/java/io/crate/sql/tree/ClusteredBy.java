@@ -25,7 +25,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
-public final class ClusteredBy<T> extends Node {
+public final class ClusteredBy<T> implements Node {
 
     private final Optional<T> column;
     private final Optional<T> numberOfShards;

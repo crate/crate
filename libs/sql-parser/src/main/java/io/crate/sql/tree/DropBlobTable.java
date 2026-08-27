@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public class DropBlobTable<T> extends Statement {
+public class DropBlobTable<T> implements Statement {
 
     private final Table<T> table;
 

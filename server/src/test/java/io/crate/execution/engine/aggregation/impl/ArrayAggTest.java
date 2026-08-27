@@ -25,12 +25,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.junit.Test;
 
+import io.crate.data.Input;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.FunctionType;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.operation.aggregation.AggregationTestCase;
+import io.crate.testing.PlainRamAccounting;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
 
 
 public class ArrayAggTest extends AggregationTestCase {
@@ -62,5 +73,57 @@ public class ArrayAggTest extends AggregationTestCase {
             DataTypes.BIGINT_ARRAY
         ).boundSignature().returnType();
         assertThat(returnType).isEqualTo(DataTypes.BIGINT_ARRAY);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_array_agg_accounts_memory_for_state() throws Exception {
+        var impl = (AggregationFunction<Object, ?>) nodeCtx.functions().getQualified(
+            Signature.builder(ArrayAgg.NAME, FunctionType.AGGREGATE)
+                .argumentTypes(TypeSignature.E)
+                .returnType(TypeSignature.ARRAY_E)
+                .features(Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(TypeVariableConstraint.E)
+                .build(),
+            List.of(DataTypes.STRING),
+            DataTypes.STRING_ARRAY
+        );
+        RamAccounting ramAccounting = new PlainRamAccounting();
+        Object state = impl.newState(ramAccounting, Version.CURRENT, memoryManager);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(24L);
+        impl.iterate(ramAccounting, memoryManager, state, Literal.of("trillian"));
+        impl.iterate(ramAccounting, memoryManager, state, Literal.of("arthur"));
+        assertThat(ramAccounting.totalBytes()).isEqualTo(136L);
+        impl.terminatePartial(ramAccounting, state);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(136L);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_array_agg_for_window_functions_accounts_memory_for_state() throws Exception {
+        var agg = (AggregationFunction<Object, ?>) nodeCtx.functions().getQualified(
+            Signature.builder(ArrayAgg.NAME, FunctionType.AGGREGATE)
+                .argumentTypes(TypeSignature.E)
+                .returnType(TypeSignature.ARRAY_E)
+                .features(Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(TypeVariableConstraint.E)
+                .build(),
+            List.of(DataTypes.STRING),
+            DataTypes.STRING_ARRAY
+        );
+        var impl = (AggregationFunction<Object, Object>) agg.optimizeForExecutionAsWindowFunction(Version.CURRENT);
+        RamAccounting ramAccounting = new PlainRamAccounting();
+        Object state = impl.newState(ramAccounting, Version.CURRENT, memoryManager);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(24L);
+        impl.iterate(ramAccounting, memoryManager, state, Literal.of("trillian"));
+        impl.iterate(ramAccounting, memoryManager, state, Literal.of("arthur"));
+        impl.iterate(ramAccounting, memoryManager, state, Literal.of("john"));
+        assertThat(ramAccounting.totalBytes()).isEqualTo(184L);
+
+        impl.removeFromAggregatedState(ramAccounting, state, new Input[] { Literal.of("trillian") });
+        assertThat(ramAccounting.totalBytes()).isEqualTo(128L);
+
+        impl.terminatePartial(ramAccounting, state);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(152L);
     }
 }

@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Optional;
 
-public class WindowFrame extends Node {
+public class WindowFrame implements Node {
 
     public enum Mode {
         RANGE,

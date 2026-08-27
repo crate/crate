@@ -66,6 +66,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.optimizer.rule.EquiJoinToLookupJoin;
+import io.crate.planner.optimizer.rule.EliminateCrossJoin;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.statistics.Stats;
@@ -84,6 +85,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
+            .addTable(T3.T3_DEFINITION)
             .addView(new RelationName("doc", "v2"), "SELECT a, x FROM doc.t1")
             .addView(new RelationName("doc", "v3"), "SELECT a, x FROM doc.t1");
     }
@@ -569,6 +571,35 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_filter_on_nested_cross_join_to_nested_inner_joins() {
+        sqlExecutor.getSessionSettings().excludedOptimizerRules().add(EliminateCrossJoin.class);
+
+        LogicalPlan plan = plan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1
+            CROSS JOIN t2
+            CROSS JOIN t3
+            WHERE t1.x = t2.y
+              AND t1.x = t3.z
+              AND t2.y = t3.z
+              AND t1.x > 1
+              AND t2.y > 2
+              AND t3.z > 3
+            """
+        );
+
+        assertThat(plan).isEqualTo(
+            """
+            HashJoin[INNER | ((x = z) AND (y = z))]
+              ├ HashJoin[INNER | (x = y)]
+              │  ├ Collect[doc.t1 | [x] | (x > 1)]
+              │  └ Collect[doc.t2 | [y] | (y > 2)]
+              └ Collect[doc.t3 | [z] | (z > 3)]
+            """
+        );
+    }
+
+    @Test
     public void test_unused_table_function_in_subquery_is_not_pruned() {
         LogicalPlan plan = plan("SELECT name FROM (SELECT name, unnest(counters), text FROM users) u");
         assertThat(plan).isEqualTo(
@@ -698,13 +729,13 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "    │  └ Union[ai, \"avg(x)\", \"cast(i AS BIGINT)\"]",
             "    │    ├ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
             "    │    │  └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
-            "    │    │    └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '1')]",
+            "    │    │    └ Collect[doc.t1 | [x, cast(a AS INTEGER) AS ai, cast(i AS BIGINT)] | (a = '1')]",
             "    │    └ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
             "    │      └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
-            "    │        └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '2')]",
+            "    │        └ Collect[doc.t1 | [x, cast(a AS INTEGER) AS ai, cast(i AS BIGINT)] | (a = '2')]",
             "    └ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
             "      └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
-            "        └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '3')]"
+            "        └ Collect[doc.t1 | [x, cast(a AS INTEGER) AS ai, cast(i AS BIGINT)] | (a = '3')]"
         );
     }
 
@@ -726,13 +757,13 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "    │  └ Union[ai, \"avg(x)\", \"cast(i AS BIGINT)\"]",
             "    │    ├ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
             "    │    │  └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
-            "    │    │    └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '1')]",
+            "    │    │    └ Collect[doc.t1 | [x, cast(a AS INTEGER) AS ai, cast(i AS BIGINT)] | (a = '1')]",
             "    │    └ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
             "    │      └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
-            "    │        └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '2')]",
+            "    │        └ Collect[doc.t1 | [x, cast(a AS INTEGER) AS ai, cast(i AS BIGINT)] | (a = '2')]",
             "    └ Eval[cast(a AS INTEGER) AS ai, avg(x), cast(i AS BIGINT)]",
             "      └ GroupHashAggregate[cast(a AS INTEGER) AS ai, cast(i AS BIGINT) | avg(x)]",
-            "        └ Collect[doc.t1 | [cast(a AS INTEGER) AS ai, cast(i AS BIGINT), x] | (a = '3')]"
+            "        └ Collect[doc.t1 | [x, cast(a AS INTEGER) AS ai, cast(i AS BIGINT)] | (a = '3')]"
         );
     }
 
@@ -744,8 +775,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).hasOperators(
             "Rename[i, avgx] AS vt",
             "  └ Eval[i, avg(x) OVER (ORDER BY i ASC) AS avgx]",
-            "    └ WindowAgg[i, x] | [avg(x) OVER (ORDER BY i ASC)]",
-            "      └ Collect[doc.t1 | [i, x] | true]"
+            "    └ WindowAgg[x, i] | [avg(x) OVER (ORDER BY i ASC)]",
+            "      └ Collect[doc.t1 | [x, i] | true]"
         );
     }
 

@@ -40,7 +40,7 @@ public final class DocKeyAssert extends AbstractAssert<DocKeyAssert, DocKeys.Doc
     public DocKeyAssert isDocKey(Object... expectedKeyValues) {
         isNotNull();
         List<Object> docKeyValues = Lists.map(actual.values(), s -> ((Literal<?>) s).value());
-        assertThat(docKeyValues).containsExactly(expectedKeyValues);
+        assertThat(docKeyValues).as(info.description()).containsExactly(expectedKeyValues);
         return this;
     }
 }

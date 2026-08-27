@@ -30,11 +30,15 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
+import io.crate.common.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.InputColumns;
@@ -58,12 +62,14 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.role.Role;
+import io.crate.statistics.Stats;
 
 final class JdbcForeignDataWrapper implements ForeignDataWrapper {
 
     /**
      * Functions that any foreign database accessible via jdbc must support
      */
+    private static final Logger LOGGER = LogManager.getLogger(JdbcForeignDataWrapper.class);
     private static final Set<String> SAFE_FUNCTIONS = Set.of(
         AndOperator.NAME,
         OrOperator.NAME,
@@ -77,6 +83,7 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
 
     private final InputFactory inputFactory;
     private final Settings settings;
+    private final Executor executor;
     private final Setting<String> urlSetting = Setting.simpleString("url");
     private final List<Setting<?>> mandatoryServerOptions = List.of(urlSetting);
 
@@ -94,9 +101,10 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
         foreignPw
     );
 
-    JdbcForeignDataWrapper(Settings settings, InputFactory inputFactory) {
+    public JdbcForeignDataWrapper(Settings settings, InputFactory inputFactory, Executor executor) {
         this.settings = settings;
         this.inputFactory = inputFactory;
+        this.executor = executor;
     }
 
     @Override
@@ -121,19 +129,6 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
                                                              TransactionContext txnCtx,
                                                              List<Symbol> collect,
                                                              Symbol query) {
-        SessionSettings sessionSettings = txnCtx.sessionSettings();
-        Settings userOptions = server.users().get(currentUser.name());
-        if (userOptions == null) {
-            userOptions = Settings.EMPTY;
-        }
-        String user = foreignUser.get(userOptions);
-        String password = foreignPw.get(userOptions);
-        var properties = new Properties();
-        properties.setProperty("user", user.isEmpty() ? sessionSettings.userName() : user);
-        if (!password.isEmpty()) {
-            properties.setProperty("password", password);
-        }
-
         // It's unknown if/what kind of scalars are supported by the remote.
         // Evaluate them locally and only fetch columns
         List<Reference> refs = new ArrayList<>(collect.size());
@@ -176,8 +171,10 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
 
         assert supportsQueryPushdown(query)
             : "ForeignCollect must only have a query where `supportsQueryPushDown` is true";
+        var properties = getConnectionProperties(currentUser, server, txnCtx);
         BatchIterator<Row> it = new JdbcBatchIterator(url, properties, refs, query, remoteName);
-        if (!refs.containsAll(collect)) {
+        boolean allReferences = collect.stream().allMatch(s -> s instanceof Reference);
+        if (!allReferences) {
             var sourceRefs = new InputColumns.SourceSymbols(refs);
             List<Symbol> inputColumns = InputColumns.create(collect, sourceRefs);
             Context<CollectExpression<Row, ?>> inputCtx = inputFactory.ctxForInputColumns(txnCtx, inputColumns);
@@ -190,5 +187,52 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
     @Override
     public boolean supportsQueryPushdown(Symbol query) {
         return !query.any(x -> x instanceof Function fn && !SAFE_FUNCTIONS.contains(fn.name()));
+    }
+
+    @Override
+    public CompletableFuture<Stats> getStats(Role currentUser,
+                                             Server server,
+                                             RelationMetadata.ForeignTable foreignTable,
+                                             TransactionContext txnCtx,
+                                             List<Reference> columns) {
+        return CompletableFutures.supplyAsync(() -> {
+            var properties = getConnectionProperties(currentUser, server, txnCtx);
+
+            Settings options = server.options();
+            String url = urlSetting.get(options);
+
+            String remoteSchema = schemaName.get(foreignTable.settings());
+            String remoteTable = tableName.get(foreignTable.settings());
+            if (remoteSchema.isEmpty()) {
+                remoteSchema = foreignTable.name().schema();
+            }
+            if (remoteTable.isEmpty()) {
+                remoteTable = foreignTable.name().name();
+            }
+
+            JdbcDialect dialect = JdbcDialect.fromUrl(url);
+            try {
+                return dialect.getStats(url, properties, remoteSchema, remoteTable, foreignTable, LOGGER);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }, executor);
+    }
+
+    private Properties getConnectionProperties(Role currentUser, Server server, TransactionContext txnCtx) {
+        SessionSettings sessionSettings = txnCtx.sessionSettings();
+        Settings userOptions = server.users().get(currentUser.name());
+        if (userOptions == null) {
+            userOptions = Settings.EMPTY;
+        }
+
+        String user = foreignUser.get(userOptions);
+        String password = foreignPw.get(userOptions);
+        var properties = new Properties();
+        properties.setProperty("user", user.isEmpty() ? sessionSettings.userName() : user);
+        if (!password.isEmpty()) {
+            properties.setProperty("password", password);
+        }
+        return properties;
     }
 }

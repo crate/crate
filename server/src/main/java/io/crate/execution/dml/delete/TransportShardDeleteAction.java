@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -47,6 +48,7 @@ import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.delete.ShardDeleteRequest.Item;
 import io.crate.execution.jobs.TasksService;
+import io.crate.metadata.RelationName;
 
 @Singleton
 public class TransportShardDeleteAction extends TransportShardAction<
@@ -86,7 +88,12 @@ public class TransportShardDeleteAction extends TransportShardAction<
         ShardResponse shardResponse = new ShardResponse();
         Translog.Location translogLocation = null;
         boolean debugEnabled = logger.isDebugEnabled();
-        ShardDeleteRequest replicaRequest = new ShardDeleteRequest(request.shardId(), request.jobId());
+        ShardId shardId = request.shardId();
+        ShardDeleteRequest replicaRequest = new ShardDeleteRequest(shardId, request.jobId());
+        RelationMetadata relation = clusterService.state().metadata().getRelation(shardId.getIndexUUID());
+        RelationName relationName = relation == null
+            ? null
+            : relation.name();
         for (ShardDeleteRequest.Item item : request.items()) {
             int location = item.location();
             if (killed.get()) {
@@ -106,7 +113,7 @@ public class TransportShardDeleteAction extends TransportShardAction<
                 );
                 Exception failure = deleteResult.getFailure();
                 if (debugEnabled) {
-                    logResult("primary", request.shardId(), item.id(), deleteResult);
+                    logResult("primary", shardId, item.id(), deleteResult);
                 }
                 if (failure == null) {
                     Translog.Location newTranslogLocation = deleteResult.getTranslogLocation();
@@ -127,11 +134,18 @@ public class TransportShardDeleteAction extends TransportShardAction<
                         shardResponse.add(location, item.id(), ex, false);
                     }
                 } else {
+                    boolean versionConflict;
+                    if (failure instanceof VersionConflictEngineException ex) {
+                        versionConflict = true;
+                        ex.setRelationName(relationName);
+                    } else {
+                        versionConflict = false;
+                    }
                     shardResponse.add(
                         location,
                         item.id(),
                         failure,
-                        (failure instanceof VersionConflictEngineException)
+                        versionConflict
                     );
                 }
             } catch (Exception e) {
@@ -142,11 +156,18 @@ public class TransportShardDeleteAction extends TransportShardAction<
                         logger.debug("shardId={} failed to execute delete for id={}: {}",
                                      request.shardId(), item.id(), e);
                     }
+                    boolean versionConflict;
+                    if (e instanceof VersionConflictEngineException ex) {
+                        versionConflict = true;
+                        ex.setRelationName(relationName);
+                    } else {
+                        versionConflict = false;
+                    }
                     shardResponse.add(
                         location,
                         item.id(),
                         e,
-                        (e instanceof VersionConflictEngineException)
+                        versionConflict
                     );
                 }
             }

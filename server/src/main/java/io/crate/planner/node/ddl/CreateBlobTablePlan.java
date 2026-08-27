@@ -28,13 +28,13 @@ import java.util.function.Function;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.TableParameters;
 import io.crate.analyze.TableProperties;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;

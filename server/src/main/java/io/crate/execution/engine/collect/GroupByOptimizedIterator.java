@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
-import java.util.stream.StreamSupport;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
@@ -65,8 +64,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jspecify.annotations.Nullable;
 
-import com.carrotsearch.hppc.ObjectLongHashMap;
-
 import io.crate.common.MutableLong;
 import io.crate.common.concurrent.Killable;
 import io.crate.common.concurrent.Killable.Token;
@@ -82,6 +79,8 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.execution.engine.aggregation.GroupByMaps;
+import io.crate.execution.engine.aggregation.ResizeAwareMap;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.execution.jobs.SharedShardContext;
@@ -117,34 +116,34 @@ final class GroupByOptimizedIterator {
 
     /**
      * This was chosen after benchmarking different ratios with this optimization always enabled:
-     *
+     * <p>
      * Q: select count(*) from (select distinct x from t) t
-     *
+     * <p>
      * cardinality-ratio | mean difference
      * ------------------+-----------------
      *              0.90 |      -5.65%
      *              0.75 |      -5.06%
      *              0.50 |      +1.51%
      *              0.25 |     +38.79%
-     *
+     * <p>
      * (+ being faster, - being slower)
      */
     private static final double CARDINALITY_RATIO_THRESHOLD = 0.5;
     private static final long HASH_MAP_ENTRY_OVERHEAD = 32; // see private RamUsageEstimator.shallowSizeOfInstance(HashMap.Node.class)
 
-
-
-    /// Returns a batchIterator that uses termFrequences for queries like:
+    /// Returns a BatchIterator that reads the term dictionary of a single string key column instead
+    /// of scanning documents, for group-by queries without a WHERE clause:
     ///
-    ///     SELECT strKey, count(*) GROUP BY strKey`
+    ///     `SELECT strKey GROUP BY strKey`            (keys only)
+    ///     `SELECT strKey, count(*) GROUP BY strKey`  (with an unfiltered count(*))
     ///
-    /// Only works if the key is not nullable and if there is no WHERE clause
-    /// and no aggregate filter.
-    /// Returns null for other queries.
+    /// Terms of deleted documents linger in the dictionary until segments merge, so each term is
+    /// checked against live docs. A NULL group is added for nullable columns that have null docs.
+    /// Returns null for queries that don't match this shape.
     @Nullable
-    static BatchIterator<Row> tryUseTermFrequencies(IndexShard indexShard,
-                                                    RoutedCollectPhase collectPhase,
-                                                    CollectTask collectTask) {
+    static BatchIterator<Row> tryUseTermDictionary(IndexShard indexShard,
+                                                   RoutedCollectPhase collectPhase,
+                                                   CollectTask collectTask) {
         GroupProjection groupProjection = getSingleStringKeyGroupProjection(collectPhase.projections());
         if (groupProjection == null) {
             return null;
@@ -158,13 +157,16 @@ final class GroupByOptimizedIterator {
         }
 
         List<Aggregation> values = groupProjection.values();
-        if (values.size() != 1 || !values.getFirst().signature().equals(CountAggregation.COUNT_STAR_SIGNATURE)) {
-            return null;
-        }
-
-        Symbol aggregateFilter = values.getFirst().filter();
-        if (!aggregateFilter.equals(Literal.BOOLEAN_TRUE)) {
-            return null;
+        boolean keysOnly = values.isEmpty();
+        if (!keysOnly) {
+            // The only aggregate we can serve straight from the term dictionary is an unfiltered count(*).
+            if (values.size() != 1 || !values.getFirst().signature().equals(CountAggregation.COUNT_STAR_SIGNATURE)) {
+                return null;
+            }
+            Symbol aggregateFilter = values.getFirst().filter();
+            if (!aggregateFilter.equals(Literal.BOOLEAN_TRUE)) {
+                return null;
+            }
         }
 
         Symbol where = collectPhase.where();
@@ -185,15 +187,34 @@ final class GroupByOptimizedIterator {
         IndexSearcher searcher = searcherRef.item();
 
         Token killToken = new Killable.Token();
+        RamAccounting ramAccounting = collectTask.getRamAccounting();
+        if (keysOnly) {
+            return CollectingBatchIterator.newInstance(
+                killToken,
+                () -> keysToRows(getCountsByKey(ramAccounting, keyRef, searcher, killToken)),
+                true
+            );
+        }
         AggregateMode mode = groupProjection.mode();
         return CollectingBatchIterator.newInstance(
             killToken,
-            () -> countsToRows(getCountsByKey(collectTask.getRamAccounting(), keyRef, searcher, killToken), mode),
+            () -> countsToRows(getCountsByKey(ramAccounting, keyRef, searcher, killToken), mode),
             true
         );
     }
 
-    private static Iterable<Row> countsToRows(ObjectLongHashMap<BytesRef> countsByKey, AggregateMode mode) {
+    private static Iterable<Row> keysToRows(Map<String, Long> countsByKey) {
+        final Object[] cells = new Object[1];
+        final Row row = new RowN(cells);
+        return () -> countsByKey.keySet().stream()
+            .map(key -> {
+                cells[0] = key;
+                return row;
+            })
+            .iterator();
+    }
+
+    private static Iterable<Row> countsToRows(Map<String, Long> countsByKey, AggregateMode mode) {
         final Object[] cells = new Object[2];
         final Row row = new RowN(cells);
         LongFunction<Object> wrapCount = switch (mode) {
@@ -202,23 +223,27 @@ final class GroupByOptimizedIterator {
             case PARTIAL_FINAL -> throw new UnsupportedOperationException(
                 "Shard level projection cannot start at PARTIAL");
         };
-        return () -> StreamSupport.stream(countsByKey.spliterator(), false)
-            .map(cursor -> {
-                BytesRef key = cursor.key;
-                long count = cursor.value;
+        return () -> countsByKey.entrySet().stream()
+            .map(entry -> {
                 // See GroupProjection.outputs(): keys always come first, aggregations second
-                cells[0] = key == null ? null : key.utf8ToString();
-                cells[1] = wrapCount.apply(count);
+                cells[0] = entry.getKey();
+                cells[1] = wrapCount.apply(entry.getValue());
                 return row;
             })
             .iterator();
     }
 
-    private static ObjectLongHashMap<BytesRef> getCountsByKey(RamAccounting ramAccounting,
-                                                              Reference keyRef,
-                                                              IndexSearcher searcher,
-                                                              Token killToken) throws IOException {
-        ObjectLongHashMap<BytesRef> countsByKey = new ObjectLongHashMap<>();
+    private static Map<String, Long> getCountsByKey(RamAccounting ramAccounting,
+                                                    Reference keyRef,
+                                                    IndexSearcher searcher,
+                                                    Token killToken) throws IOException {
+        // Using `String` keys instead of `BytesRef`
+        // BytesRef would allow to avoid utf8->utf16 conversations for values that already exist in the map
+        // but for values that do not exist in the map, BytesRef needs deepCopy + utf8->utf16.
+        //
+        // Benchmarks showed that this has significant cost (~35%).
+        // Given that high cardinality cases are the more expensive ones, we optimize for them instead of the low cardinality cases.
+        ResizeAwareMap<String, Long> countsByKey = GroupByMaps.wrapperForJDKMap(new HashMap<>());
         String keyStorageIdent = keyRef.storageIdent();
         PostingsEnum postings = null;
         for (var leaf : searcher.getLeafContexts()) {
@@ -228,12 +253,14 @@ final class GroupByOptimizedIterator {
                 continue;
             }
             TermsEnum termsEnum = terms.iterator();
+
             Bits liveDocs = reader.getLiveDocs();
             while (true) {
                 BytesRef sharedKey = termsEnum.next();
                 if (sharedKey == null) {
                     break;
                 }
+
                 int numDocs;
                 if (liveDocs == null) {
                     numDocs = termsEnum.docFreq();
@@ -241,30 +268,45 @@ final class GroupByOptimizedIterator {
                     postings = termsEnum.postings(postings, PostingsEnum.NONE);
                     numDocs = countFromPostings(postings, liveDocs);
                 }
-                if (countsByKey.containsKey(sharedKey)) {
-                    countsByKey.addTo(sharedKey, numDocs);
-                } else {
-                    BytesRef key = BytesRef.deepCopyOf(sharedKey);
-                    ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + sharedKey.length + HASH_MAP_ENTRY_OVERHEAD);
-                    countsByKey.put(key, numDocs);
+
+                if (numDocs != 0) {
+                    String keyStr = sharedKey.utf8ToString();
+                    countsByKey.compute(keyStr, (k, count) -> {
+                        if (count == null) {
+                            long capacityIncreaseBytes =
+                                (long) RamUsageEstimator.NUM_BYTES_OBJECT_REF * countsByKey.expectedCapacityIncrease();
+                            ramAccounting.addBytes(
+                                RamUsageEstimator.sizeOf(keyStr) + HASH_MAP_ENTRY_OVERHEAD + capacityIncreaseBytes);
+                            return (long) numDocs;
+                        }
+                        return count + numDocs;
+                    });
                 }
-                killToken.raiseIfKilled();;
+
+                killToken.raiseIfKilled();
             }
         }
-        if (keyRef.isNullable()) {
-            Query existsQuery = keyRef.hasDocValues() || keyRef.indexType() == IndexType.FULLTEXT
-                ? new FieldExistsQuery(keyStorageIdent)
-                : new ConstantScoreQuery(new TermQuery(new Term(SysColumns.FieldNames.NAME, keyStorageIdent)));
-            Query notNull = Queries.not(existsQuery);
 
-            TotalHitCountCollectorManager topHitCounts = new TotalHitCountCollectorManager(searcher.getSlices());
-            Integer count = searcher.search(notNull, topHitCounts);
+        if (keyRef.isNullable()) {
+            int count = countNullValues(keyRef, searcher);
             if (count > 0) {
                 ramAccounting.addBytes(HASH_MAP_ENTRY_OVERHEAD);
-                countsByKey.put(null, count);
+                countsByKey.put(null, Long.valueOf(count));
             }
         }
+
         return countsByKey;
+    }
+
+    private static int countNullValues(Reference keyRef, IndexSearcher searcher) throws IOException {
+        String keyStorageIdent = keyRef.storageIdent();
+        Query existsQuery = keyRef.hasDocValues() || keyRef.indexType() == IndexType.FULLTEXT
+            ? new FieldExistsQuery(keyStorageIdent)
+            : new ConstantScoreQuery(new TermQuery(new Term(SysColumns.FieldNames.NAME, keyStorageIdent)));
+        Query notNull = Queries.not(existsQuery);
+
+        TotalHitCountCollectorManager topHitCounts = new TotalHitCountCollectorManager(searcher.getSlices());
+        return searcher.search(notNull, topHitCounts);
     }
 
     private static int countFromPostings(PostingsEnum postings, Bits liveDocs) throws IOException {

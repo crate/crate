@@ -114,6 +114,8 @@ The operator returns ``NULL`` if:
       e.g. ``(x,y) = ANY (select x, y from t)``
 
 
+.. _sql_all_subquery_expresion:
+
 ``ALL (subquery)``
 ------------------
 

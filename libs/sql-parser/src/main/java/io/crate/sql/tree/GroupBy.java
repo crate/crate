@@ -21,12 +21,12 @@
 
 package io.crate.sql.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.List;
 import java.util.Objects;
 
-import static java.util.Objects.requireNonNull;
-
-public class GroupBy extends Node {
+public class GroupBy implements Node {
 
     private final boolean isAll;
     private final List<Expression> expressions;

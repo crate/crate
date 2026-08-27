@@ -229,11 +229,13 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
         LAZY_ATTRIBUTES,
 
         /**
-         * Function returns null if any argument is null.
+         * Function returns null if and only if any argument is null
+         * Note, that "if and only if" turns weaker implication arg null => f null
+         * to a stronger equivalence: arg null <==> f null
          * <p>
          *
          * Not set for functions that return null under special conditions - e.g. null only if all
-         * arguments are null
+         * arguments are null, or if array argument has null, e.g 5 in [1, null] -> NULL.
          * </p>
          **/
         STRICTNULL,

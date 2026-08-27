@@ -22,13 +22,20 @@ package org.elasticsearch.index.engine;
 import java.io.IOException;
 
 import org.elasticsearch.Assertions;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
+import org.jspecify.annotations.Nullable;
 
+import io.crate.metadata.RelationName;
 import io.crate.rest.action.HttpErrorStatus;
 
 public class VersionConflictEngineException extends EngineException {
+
+    @Nullable
+    private RelationName relationName;
 
     public VersionConflictEngineException(ShardId shardId, Engine.Operation op, long currentVersion, boolean deleted) {
         this(shardId, op.id(), op.versionType().explainConflictForWrites(currentVersion, op.version(), deleted));
@@ -59,6 +66,28 @@ public class VersionConflictEngineException extends EngineException {
 
     public VersionConflictEngineException(StreamInput in) throws IOException {
         super(in);
+        if (in.getVersion().onOrAfter(Version.V_6_4_0)) {
+            relationName = in.readOptionalWriteable(RelationName::new);
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_6_4_0)) {
+            out.writeOptionalWriteable(relationName);
+        }
+    }
+
+    public void setRelationName(RelationName relationName) {
+        this.relationName = relationName;
+    }
+
+    @SuppressWarnings("deprecation")
+    public RelationName relationName() {
+        return relationName == null
+            ? RelationName.fromIndexName(getShardId().getIndexName())
+            : relationName;
     }
 
     @Override

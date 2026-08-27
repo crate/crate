@@ -26,8 +26,8 @@ import static io.crate.planner.operators.Limit.limitAndOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.SequencedCollection;
@@ -345,18 +345,18 @@ public class Collect implements LogicalPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
-        LinkedHashSet<Symbol> newOutputs = new LinkedHashSet<>();
+        // Collecting pruned outputs, but they can be out of order.
+        HashSet<Symbol> required = new HashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            Symbols.intersection(outputToKeep, outputs, needle -> {
-                int index = outputs.indexOf(needle);
-                assert index != -1 : "Consumer is called only when intersection is found";
-                newOutputs.add(outputs.get(index));
-            });
+            Symbols.intersection(outputToKeep, outputs, required::add);
         }
-        if (newOutputs.size() == outputs.size() && newOutputs.containsAll(outputs)) {
+        List<Symbol> prunedOutputs = Lists.intersection(outputs, required);
+        if (prunedOutputs.size() == outputs.size()) {
             return this;
         }
-        return withOutputs(List.copyOf(newOutputs));
+        boolean isSubsequence = Lists.isSubsequence(prunedOutputs, outputs);
+        assert isSubsequence : "pruneOutputsExcept must not shuffle the outputs, it can only remove some of them.";
+        return withOutputs(prunedOutputs);
     }
 
     @Nullable

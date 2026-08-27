@@ -23,49 +23,13 @@ package io.crate.sql.tree;
 
 import java.util.List;
 
-public class DropFunction extends Statement {
-
-    private final QualifiedName name;
-    private final boolean exists;
-    private final List<FunctionArgument> arguments;
-
-    public DropFunction(QualifiedName name, boolean exists, List<FunctionArgument> arguments) {
-        this.name = name;
-        this.exists = exists;
-        this.arguments = arguments;
-    }
-
-    public QualifiedName name() {
-        return name;
-    }
-
-    public boolean exists() {
-        return exists;
-    }
-
-    public List<FunctionArgument> arguments() {
-        return arguments;
-    }
+public record DropFunction(QualifiedName name,
+                           boolean exists,
+                           List<FunctionArgument> arguments) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitDropFunction(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return o instanceof DropFunction that
-            && exists == that.exists
-            && name.equals(that.name)
-            && arguments.equals(that.arguments);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + (exists ? 1 : 0);
-        result = 31 * result + arguments.hashCode();
-        return result;
     }
 
     @Override

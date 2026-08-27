@@ -591,6 +591,50 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         } finally {
             respBuf.release();
         }
+
+        channel.advanceTimeBy(35, TimeUnit.SECONDS);
+        channel.runScheduledPendingTasks();
+        assertThat(channel.isOpen()).isTrue();
+    }
+
+    @Test
+    public void test_closes_channel_if_authentication_takes_too_long() throws Exception {
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sessions,
+                new SessionSettingRegistry(Set.of()),
+                _ -> AccessControl.DISABLED,
+                _ -> {},
+                (_, _) -> new AuthenticationMethod() {
+                    @Override
+                    public Role authenticate(Credentials credentials, ConnectionProperties connProperties) {
+                        return RolesHelper.userOf("dummy");
+                    }
+
+                    @Override
+                    public String name() {
+                        return "password";
+                    }
+                },
+                () -> null
+            );
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        ByteBuf respBuf;
+        ByteBuf buffer = Unpooled.buffer();
+        ClientMessages.sendStartupMessage(buffer, "doc", Map.of("user", "crate"));
+        channel.writeInbound(buffer);
+
+        respBuf = channel.readOutbound();
+        try {
+            assertThat((char) respBuf.readByte()).isEqualTo('R'); // AuthenticationCleartextPassword
+        } finally {
+            respBuf.release();
+        }
+
+        channel.advanceTimeBy(35, TimeUnit.SECONDS);
+        channel.runScheduledPendingTasks();
+        assertThat(channel.isOpen()).isFalse();
     }
 
     @Test
@@ -774,6 +818,49 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         channel.releaseInbound();
 
         assertErrorResponse(channel, PGError.Severity.FATAL, "invalid length of startup packet");
+    }
+
+    @Test
+    public void test_throw_error_after_startup_on_too_large_unauthenticated_message() throws Exception {
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sessions,
+                new SessionSettingRegistry(Set.of()),
+                _ -> AccessControl.DISABLED,
+                _ -> {},
+                (_, _) -> new AuthenticationMethod() {
+                    @Override
+                    public Role authenticate(Credentials credentials, ConnectionProperties connProperties) {
+                        return RolesHelper.userOf("dummy");
+                    }
+
+                    @Override
+                    public String name() {
+                        return "password";
+                    }
+                },
+                () -> null
+            );
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        ByteBuf buffer = Unpooled.buffer();
+
+        ClientMessages.sendStartupMessage(buffer, "doc", Map.of("user", "arthur"));
+
+        int length = PgDecoder.MAX_STARTUP_LENGTH + 1;
+        buffer.writeChar('Q');
+        buffer.writeInt(length);
+        channel.writeInbound(buffer);
+        channel.releaseInbound();
+
+        ByteBuf respBuf = channel.readOutbound();
+        try {
+            assertThat((char) respBuf.readByte()).isEqualTo('R'); // AuthenticationCleartextPassword
+        } finally {
+            respBuf.release();
+        }
+
+        assertErrorResponse(channel, PGError.Severity.FATAL, "Message too large for unauthenticated user");
     }
 
     @Test

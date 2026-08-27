@@ -21,50 +21,13 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
 import java.util.Optional;
 
-import static java.util.Objects.requireNonNull;
-
-public class Delete extends Statement {
-
-    private final Relation relation;
-    private final Optional<Expression> where;
-
-    public Delete(Relation relation, Optional<Expression> where) {
-        this.relation = requireNonNull(relation, "relation is null");
-        this.where = where;
-    }
-
-    public Relation getRelation() {
-        return relation;
-    }
-
-    public Optional<Expression> getWhere() {
-        return where;
-    }
+public record Delete(Relation relation, Optional<Expression> where) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitDelete(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Delete delete = (Delete) o;
-        return Objects.equals(relation, delete.relation) &&
-               Objects.equals(where, delete.where);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(relation, where);
     }
 
     @Override

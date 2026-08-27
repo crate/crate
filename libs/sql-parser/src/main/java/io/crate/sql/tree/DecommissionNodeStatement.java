@@ -21,36 +21,7 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
-public class DecommissionNodeStatement<T> extends Statement {
-
-    private final T nodeIdOrName;
-
-    public DecommissionNodeStatement(T nodeIdOrName) {
-        this.nodeIdOrName = nodeIdOrName;
-    }
-
-    public T nodeIdOrName() {
-        return nodeIdOrName;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        DecommissionNodeStatement<?> that = (DecommissionNodeStatement<?>) o;
-        return Objects.equals(nodeIdOrName, that.nodeIdOrName);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(nodeIdOrName);
-    }
+public record DecommissionNodeStatement<T>(T nodeIdOrName) implements Statement {
 
     @Override
     public String toString() {

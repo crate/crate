@@ -24,6 +24,7 @@ package io.crate.planner;
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.List;
@@ -233,7 +234,7 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         var context = e.getPlannerContext();
         var logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
-            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx, THREAD_POOL),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         var plan = logicalPlanner.plan(e.analyze(stmt), context);
@@ -297,13 +298,16 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
             ORDER BY name
             """;
         LogicalPlan logicalPlan = e.logicalPlan(stmt);
+        // `name` is not selected but the sources keep it to be able to sort on it, therefore the
+        // union must keep it as an output as well; the `Eval` on top removes it from the result.
         assertThat(logicalPlan).isEqualTo("""
-            Rename[id] AS u
-              └ Union[id]
-                ├ OrderBy[name ASC]
-                │  └ Collect[doc.users | [id, name] | true]
-                └ OrderBy[name ASC]
-                  └ Collect[doc.users | [id, name] | true]
+            Eval[id]
+              └ Rename[id, name] AS u
+                └ Union[id, name]
+                  ├ OrderBy[name ASC]
+                  │  └ Collect[doc.users | [id, name] | true]
+                  └ OrderBy[name ASC]
+                    └ Collect[doc.users | [id, name] | true]
             """
         );
 
@@ -350,6 +354,21 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
                 .as("rhs of the union must be aligned with its outputs, " + orderBy)
                 .isEqualTo(outputTypes);
         }
+    }
+
+    // https://github.com/crate/crate/issues/19852
+    @Test
+    public void test_union_with_aliased_output_and_order_by_on_non_selected_symbol() {
+        ExecutionPlan plan = e.plan("""
+            SELECT name AS n FROM (
+                SELECT id, other_id, name FROM users
+                UNION ALL
+                SELECT id, other_id, name FROM users
+                ) u
+            ORDER BY id
+            """);
+        assertThat(plan.resultDescription().numOutputs()).isEqualTo(1);
+        assertThat(plan.resultDescription().streamOutputs()).containsExactly(DataTypes.STRING);
     }
 
     @Nullable

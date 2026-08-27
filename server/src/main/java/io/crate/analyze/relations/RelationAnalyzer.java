@@ -60,9 +60,11 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
 import io.crate.expression.scalar.cast.CastMode;
+import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.GroupAndAggregateSemantics;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
 import io.crate.expression.tablefunctions.TableFunctionFactory;
@@ -148,14 +150,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     protected AnalyzedRelation visitQuery(Query node, StatementAnalysisContext statementContext) {
         // Start scope shared by possible with-queries and the child relation
         statementContext.startRelation();
-        if (node.getWith().isPresent()) {
-            var with = node.getWith().get();
+        if (node.with().isPresent()) {
+            var with = node.with().get();
             with.withQueries().forEach(wq -> wq.accept(this, statementContext));
         }
-        AnalyzedRelation childRelation = node.getQueryBody().accept(this, statementContext);
+        AnalyzedRelation childRelation = node.queryBody().accept(this, statementContext);
         statementContext.endRelation();
 
-        if (node.getOrderBy().isEmpty() && node.getLimit().isEmpty() && node.getOffset().isEmpty()) {
+        if (node.orderBy().isEmpty() && node.limit().isEmpty() && node.offset().isEmpty()) {
             return childRelation;
         }
         // In case of Set Operation (UNION, INTERSECT EXCEPT) or VALUES clause,
@@ -204,21 +206,21 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             null,
             analyzeOrderBy(
                 selectAnalysis,
-                node.getOrderBy(),
+                node.orderBy(),
                 expressionAnalyzer,
                 expressionAnalysisContext,
                 false,
                 false
             ),
             longSymbolOrNull(
-                node.getLimit(),
+                node.limit(),
                 expressionAnalyzer,
                 expressionAnalysisContext,
                 normalizer,
                 coordinatorTxnCtx
             ),
             longSymbolOrNull(
-                node.getOffset(),
+                node.offset(),
                 expressionAnalyzer,
                 expressionAnalysisContext,
                 normalizer,
@@ -277,6 +279,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     new SubqueryAnalyzer(this, statementContext));
                 var expressionAnalysisContext = statementContext.currentRelationContext().expressionAnalysisContext();
                 joinCondition = expressionAnalyzer.convert(expression, expressionAnalysisContext);
+                rejectUncorrelatedSubqueriesInJoinCondition(joinCondition);
             } catch (RelationUnknown e) {
                 throw new RelationValidationException(
                     e.getTableIdents(),
@@ -883,5 +886,21 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         context.currentRelationContext().addSourceRelation(relation);
         context.endRelation();
         return relation;
+    }
+
+    private void rejectUncorrelatedSubqueriesInJoinCondition(Symbol joinCondition) {
+        if (joinCondition != null) {
+            joinCondition.accept(
+                new DefaultTraversalSymbolVisitor<Void, Void>() {
+                    @Override
+                    public Void visitSelectSymbol(SelectSymbol selectSymbol, Void context) {
+                        if (!selectSymbol.isCorrelated()) {
+                            throw new UnsupportedOperationException("uncorrelated subqueries are not supported in the JOIN ON clause");
+                        }
+                        return null;
+                    }
+                }, null
+            );
+        }
     }
 }

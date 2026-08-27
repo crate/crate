@@ -106,7 +106,7 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
      * performant. This attempts to compile a new implementation that will be optimized for the window functions
      * scenario (eg. a function might use a different execution path in order to become removable cumulative)
      */
-    public AggregationFunction<?, TFinal> optimizeForExecutionAsWindowFunction(Version minNideVersion) {
+    public AggregationFunction<?, TFinal> optimizeForExecutionAsWindowFunction(Version minNodeVersion) {
         return this;
     }
 

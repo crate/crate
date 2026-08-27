@@ -217,6 +217,14 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(scoreQuery.getQuery()).isExactlyInstanceOf(RegexpQuery.class);
     }
 
+    @Test
+    public void test_regex_query_without_index() throws Exception {
+        Query query = convert("text_no_index ~ '[a-z]'");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        query = convert("text_no_index ~* '[a-z]'");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+    }
+
     /**
      * When using PCRE features, switch to different
      * regex implementation on top of java.util.regex.
@@ -225,6 +233,14 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testRegexQueryPcre() throws Exception {
         Query query = convert("name ~ '\\D'");
         assertThat(query).isExactlyInstanceOf(RegexQuery.class);
+    }
+
+    @Test
+    public void test_regex_query_pcre_without_index() throws Exception {
+        Query query = convert("text_no_index ~ '\\D'");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        query = convert("text_no_index ~* '\\D'");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
     }
 
     @Test

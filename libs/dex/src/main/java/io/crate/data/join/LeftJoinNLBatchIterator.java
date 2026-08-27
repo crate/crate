@@ -52,6 +52,12 @@ public class LeftJoinNLBatchIterator<L, R, C> extends JoinBatchIterator<L, R, C>
     }
 
     @Override
+    public void moveToStart() {
+        super.moveToStart();
+        hadMatch = false;
+    }
+
+    @Override
     public boolean moveNext() {
         while (true) {
             if (activeIt == left) {

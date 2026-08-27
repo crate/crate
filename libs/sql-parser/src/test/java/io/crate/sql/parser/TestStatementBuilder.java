@@ -2133,9 +2133,9 @@ public class TestStatementBuilder {
         printStatement("RESTORE SNAPSHOT repo1.snap1 ALL WITH (wait_for_completion = true)");
         printStatement("RESTORE SNAPSHOT repo1.snap1 TABLE t PARTITION (parted_col = ?)");
         printStatement("RESTORE SNAPSHOT repo1.snap1 METADATA");
-        printStatement("RESTORE SNAPSHOT repo1.snap1 USERS WITH (some_option = true)");
-        printStatement("RESTORE SNAPSHOT repo1.snap1 USERS, PRIVILEGES");
-        printStatement("RESTORE SNAPSHOT repo1.snap1 TABLES, PRIVILEGES");
+        printStatement("RESTORE SNAPSHOT repo1.snap1 USERMANAGEMENT WITH (some_option = true)");
+        printStatement("RESTORE SNAPSHOT repo1.snap1 USERMANAGEMENT, UDFS");
+        printStatement("RESTORE SNAPSHOT repo1.snap1 TABLES, USERMANAGEMENT");
     }
 
     @Test

@@ -277,7 +277,7 @@ public class InformationSchemaIterables {
             .flatMap(s -> sequentialStream(s.getTables()));
     }
 
-    private static Stream<RelationMetadata.ForeignTable> foreignTablesStream(Schemas schemas) {
+    public static Stream<RelationMetadata.ForeignTable> foreignTablesStream(Schemas schemas) {
         return sequentialStream(schemas)
             .flatMap(schema -> sequentialStream(schema.getForeignTables()));
     }

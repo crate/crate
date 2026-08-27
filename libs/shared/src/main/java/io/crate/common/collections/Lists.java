@@ -32,12 +32,14 @@ import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.RandomAccess;
+import java.util.SequencedCollection;
 import java.util.SequencedSet;
 import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 public final class Lists {
@@ -45,10 +47,51 @@ public final class Lists {
     private Lists() {
     }
 
-    @SuppressWarnings("unchecked")
+    /**
+     * Checks whether @param list is a subsequence of @param sequence.
+     */
+    public static <T> boolean isSubsequence(@NonNull List<T> list, @NonNull List<T> sequence) {
+        // Using standard 2 pointers approach to do the check in O(N).
+        Iterator<T> it = list.iterator();
+        Iterator<T> sequenceIt = sequence.iterator();
+        boolean isSubsequence = true; // No iterations -> empty pruned outputs is a subsequence of any list.
+
+        while (it.hasNext()) {
+            boolean matchFound = false;
+            T current = it.next();
+
+            // Move the pointer until we find corresponding element
+            while (sequenceIt.hasNext()) {
+                T currentSeq = sequenceIt.next();
+                if (current.equals(currentSeq)) {
+                    matchFound = true;
+                    break;
+                }
+            }
+
+            if (matchFound == false) {
+                isSubsequence = false;
+                break;
+            }
+        }
+
+        return isSubsequence;
+    }
+
+    /// Return a new list with the intersection of `items` and `matches`, based on the iteration order of `items`.
+    public static <T> List<T> intersection(SequencedCollection<T> items, Collection<T> matches) {
+        ArrayList<T> result = new ArrayList<>(matches.size());
+        for (T item : items) {
+            if (matches.contains(item)) {
+                result.add(item);
+            }
+        }
+        return result;
+    }
+
     public static <T> List<T> of(Iterable<? extends T> items) {
-        if (items instanceof Collection<?> collection) {
-            return new ArrayList<>((Collection<T>) collection);
+        if (items instanceof Collection<? extends T> collection) {
+            return new ArrayList<>(collection);
         }
         ArrayList<T> result = new ArrayList<>();
         for (var item : items) {

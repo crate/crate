@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -46,7 +45,7 @@ public class DisruptedRestSQLActionITest extends SQLHttpIntegrationTest {
 
     @Test
     public void test_bulk_insert_from_values_reports_errors_per_item_on_unavailable_shard_failurs() throws Exception {
-        execute("CREATE TABLE doc.tbl (x INT) CLUSTERED INTO 4 SHARDS with (number_of_replicas = 0)");
+        execute("CREATE TABLE doc.tbl (x INT) CLUSTERED BY(x) INTO 4 SHARDS with (number_of_replicas = 0)");
         ensureGreen();
         ensureStableCluster(3);
         execute("set global \"cluster.routing.allocation.enable\" = 'none'");
@@ -60,7 +59,7 @@ public class DisruptedRestSQLActionITest extends SQLHttpIntegrationTest {
         var body = """
             {
               "stmt": "INSERT INTO doc.tbl (x) VALUES (?)",
-              "bulk_args": [[1], [2], [3], [4], [5], [6]]
+              "bulk_args": [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
             }
             """;
         var response = post(body);

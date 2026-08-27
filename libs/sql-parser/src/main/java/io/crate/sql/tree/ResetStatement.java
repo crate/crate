@@ -22,44 +22,14 @@
 package io.crate.sql.tree;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
 
 import io.crate.common.collections.Lists;
 
-public class ResetStatement<T> extends Statement {
-
-    private final List<T> columns;
-
-    public ResetStatement(List<T> columns) {
-        this.columns = columns;
-    }
-
-    public List<T> columns() {
-        return columns;
-    }
+public record ResetStatement<T>(List<T> columns) implements Statement {
 
     public <U> ResetStatement<U> map(Function<? super T, ? extends U> mapper) {
-        return new ResetStatement<>(
-            Lists.map(columns, mapper)
-        );
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        ResetStatement<?> that = (ResetStatement<?>) o;
-        return Objects.equals(columns, that.columns);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(columns);
+        return new ResetStatement<>(Lists.map(columns, mapper));
     }
 
     @Override
