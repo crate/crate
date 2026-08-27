@@ -170,23 +170,21 @@ public class GroupByAggregateTest extends IntegTestCase {
         );
 
         for (TestCase tc : testCases) {
-            for (String indexing : List.of("", "index off")) {
+            for (boolean indexing : List.of(true, false)) {
                 assertGroupByMinAndMaxValues(tc.dataType(), indexing, tc.values());
             }
         }
     }
 
-    /// The printed row for each distinct value is derived from `dataType` itself — casting, deduping and
-    /// sorting exactly like GROUP BY would — instead of hardcoding expected strings. That keeps it correct
-    /// across very different `toString()` forms (plain ints, floats in scientific notation, epoch millis)
-    /// without hand-verifying each one, and it stays correct even where the stored value differs from the
-    /// literal inserted (e.g. `date` truncates to the start of the day).
+    /// Asserts that `GROUP BY` returns correct results when `values` are
+    /// inserted into a column of type `dataType`. Indexing can be enabled
+    /// or disabled with `indexing`.
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void assertGroupByMinAndMaxValues(DataType<?> dataType,
-                                              String indexing,
-                                              List<Object> values) throws Exception {
+                                              boolean indexing,
+                                              List<Object> values) {
         String columnType = dataType.getName();
-        String columnDefinition = indexing.isEmpty() ? columnType : columnType + " " + indexing;
+        String columnDefinition = indexing ? columnType : columnType + " index off";
         execute("create table t (v " + columnDefinition + ")");
 
         // A row with a NULL value is added on top of `values` to check it's grouped separately
@@ -199,6 +197,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("insert into t (v) values (?)", rows);
         execute("refresh table t");
 
+        // De-duplicate
         TreeSet<Object> distinctValues = new TreeSet<>((a, b) -> ((DataType) dataType).compare(a, b));
         for (Object value : values) {
             distinctValues.add(dataType.implicitCast(value));
