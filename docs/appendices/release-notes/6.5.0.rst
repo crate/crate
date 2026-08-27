@@ -178,6 +178,10 @@ Performance and Resilience Improvements
   query planner to make better decisions based on estimated row counts and table
   sizes.
 
+- `Somil Jain <https://github.com/somiljain2006>`_ added an optimization to
+  remove redundant ``HAVING COUNT(*) > 0`` predicates from queries with an
+  explicit ``GROUP BY`` clause.
+
 Administration and Operations
 -----------------------------
 
