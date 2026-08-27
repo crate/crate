@@ -278,7 +278,7 @@ final class GroupByOptimizedIterator {
             keyRef,
             bytesPerValue,
             collectTask.getRamAccounting(),
-            new Killable.Token()
+            collectTask.killToken()
         );
     }
 
