@@ -21,6 +21,8 @@
 
 package io.crate.replication.logical.plan;
 
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
+
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -55,7 +57,9 @@ public class CreatePublicationPlan implements Plan {
             plannerContext.transactionContext().sessionSettings().sessionUser().name(),
             analyzedCreatePublication.name(),
             analyzedCreatePublication.isForAllTables(),
-            analyzedCreatePublication.tables()
+            analyzedCreatePublication.tables().stream()
+                .map(table -> new TableOrPartition(table, null))
+                .toList()
         );
 
         dependencies.client().execute(TransportCreatePublication.ACTION, request)

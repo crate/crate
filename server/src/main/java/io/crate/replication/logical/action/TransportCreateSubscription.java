@@ -30,6 +30,7 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
@@ -48,7 +49,6 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.metadata.RelationName;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
@@ -199,11 +199,11 @@ public class TransportCreateSubscription extends TransportMasterNodeAction<Creat
                     throw new SubscriptionAlreadyExistsException(request.name());
                 }
 
-                HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
+                HashMap<TableOrPartition, Subscription.RelationState> relations = new HashMap<>();
                 Metadata publisherMetadata = publicationsStateResponse.metadata();
                 for (RelationMetadata.Table table : publisherMetadata.relations(RelationMetadata.Table.class)) {
                     relations.put(
-                        table.name(),
+                        new TableOrPartition(table.name(), null),
                         new Subscription.RelationState(Subscription.State.INITIALIZING, null)
                     );
                 }

@@ -37,7 +37,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -259,21 +258,21 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     }
 
     /**
-     * Restore new subscribed relations using the {@link RestoreService} and update the
-     * {@link Subscription.RelationState} of each given {@link RelationName} based on the result.
+     * Restore new subscribed targets using the {@link RestoreService} and update the
+     * {@link Subscription.RelationState} of each given {@link TableOrPartition} based on the result.
      *
      * @param subscriptionName      The name of the subscription relations will be restored for
      * @param restoreSettings       The restore settings needed by the {@link RestoreService}
-     * @param tablesToRestore       List of {@link TableOrPartition}'s to update their {@link Subscription.RelationState}
+     * @param targetsToRestore      List of {@link TableOrPartition}'s to update their {@link Subscription.RelationState}
      */
     public CompletableFuture<Boolean> restore(String subscriptionName,
                                               Settings restoreSettings,
-                                              List<TableOrPartition> tablesToRestore) {
+                                              List<TableOrPartition> targetsToRestore) {
         var publisherClusterRepoName = LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX + subscriptionName;
         final var restoreRequest = new RestoreSnapshotRequest(
             publisherClusterRepoName,
             LogicalReplicationRepository.LATEST,
-            tablesToRestore,
+            targetsToRestore,
             restoreSettings,
             true,
             false,
@@ -285,25 +284,26 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
 
         FutureActionListener<RestoreService.RestoreCompletionResponse> restoreListener = new FutureActionListener<>();
         activeOperations.incrementAndGet();
-        Set<RelationName> relationNames = tablesToRestore.stream()
-            .map(TableOrPartition::table)
-            .collect(Collectors.toUnmodifiableSet());
         var restoreFuture = restoreListener
             .whenComplete((_, _) -> activeOperations.decrementAndGet())
             // Update subscription state, we want to wait until this update is done before proceeding
-            .thenCompose(_ -> updateSubscriptionState(
+            .thenCompose(_ -> updateSubscriptionTargetsState(
                 subscriptionName,
-                relationNames,
+                targetsToRestore,
                 Subscription.State.RESTORING,
                 null
             ))
-            .thenCompose(_ -> afterReplicationStarted(subscriptionName, restoreListener.join(), relationNames));
+            .thenCompose(_ -> afterReplicationStarted(
+                subscriptionName,
+                restoreListener.join(),
+                targetsToRestore
+            ));
 
         try {
             threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(
                 () -> {
                     try {
-                        restoreService.restoreSnapshot(restoreRequest, tablesToRestore, restoreListener);
+                        restoreService.restoreSnapshot(restoreRequest, targetsToRestore, restoreListener);
                     } catch (Exception e) {
                         restoreListener.onFailure(e);
                     }
@@ -318,13 +318,13 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
 
     private CompletableFuture<Boolean> afterReplicationStarted(String subscriptionName,
                                                                RestoreService.RestoreCompletionResponse response,
-                                                               Collection<RelationName> relationNames) {
+                                                               Collection<TableOrPartition> targets) {
         Function<RestoreInfo, CompletableFuture<Boolean>> onRestoreInfo = restoreInfo -> {
             if (restoreInfo == null || restoreInfo.failedShards() == 0) {
                 LOGGER.debug("Restore success, following will start once shards are active");
-                return updateSubscriptionState(
+                return updateSubscriptionTargetsState(
                     subscriptionName,
-                    relationNames,
+                    targets,
                     Subscription.State.MONITORING,
                     null
                 );
@@ -352,17 +352,17 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         }
     }
 
-    public CompletableFuture<Boolean> updateSubscriptionState(String subscriptionName,
-                                                              Collection<RelationName> relationNames,
-                                                              Subscription.State newState,
-                                                              @Nullable String failureReason) {
+    public CompletableFuture<Boolean> updateSubscriptionTargetsState(String subscriptionName,
+                                                                     Collection<TableOrPartition> targets,
+                                                                     Subscription.State newState,
+                                                                     @Nullable String failureReason) {
         var oldSubscription = subscriptions().get(subscriptionName);
         if (oldSubscription == null) {
             return CompletableFuture.completedFuture(false);
         }
-        HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>(oldSubscription.relations());
-        for (var relationName : relationNames) {
-            relations.put(relationName, new Subscription.RelationState(newState, failureReason));
+        HashMap<TableOrPartition, Subscription.RelationState> relations = new HashMap<>(oldSubscription.relations());
+        for (var target : targets) {
+            relations.put(target, new Subscription.RelationState(newState, failureReason));
         }
         return updateSubscriptionState(subscriptionName, oldSubscription, relations);
     }
@@ -374,7 +374,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         if (oldSubscription == null) {
             return CompletableFuture.completedFuture(false);
         }
-        HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
+        HashMap<TableOrPartition, Subscription.RelationState> relations = new HashMap<>();
         for (var entry : oldSubscription.relations().entrySet()) {
             relations.put(entry.getKey(), new Subscription.RelationState(newState, failureReason));
         }
@@ -383,7 +383,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
 
     private CompletableFuture<Boolean> updateSubscriptionState(String subscriptionName,
                                                                Subscription subscription,
-                                                               Map<RelationName, Subscription.RelationState> relations) {
+                                                               Map<TableOrPartition, Subscription.RelationState> relations) {
         var newSubscription = new Subscription(
             subscription.owner(),
             subscription.connectionInfo(),

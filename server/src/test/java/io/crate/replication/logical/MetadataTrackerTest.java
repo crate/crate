@@ -284,7 +284,10 @@ public class MetadataTrackerTest extends ESTestCase {
                 publications,
                 Settings.EMPTY,
                 replicatingRelations.stream().map(RelationName::fromIndexName)
-                    .collect(Collectors.toMap(rn -> rn, _ -> new Subscription.RelationState(Subscription.State.MONITORING, null)))
+                    .collect(Collectors.toMap(
+                        rn -> new TableOrPartition(rn, null),
+                        _ -> new Subscription.RelationState(Subscription.State.MONITORING, null)
+                    ))
             );
             var subscriptionsMetadata = SubscriptionsMetadata.newInstance(
                 clusterState.metadata().custom(SubscriptionsMetadata.TYPE));
@@ -303,7 +306,9 @@ public class MetadataTrackerTest extends ESTestCase {
             var publication = new Publication(
                 "user",
                 relations.isEmpty(),
-                relations.stream().map(RelationName::fromIndexName).toList()
+                relations.stream()
+                    .map(relation -> new TableOrPartition(RelationName.fromIndexName(relation), null))
+                    .toList()
             );
             var publicationsMetadata = PublicationsMetadata.newInstance(
                 clusterState.metadata().custom(PublicationsMetadata.TYPE));
@@ -541,7 +546,7 @@ public class MetadataTrackerTest extends ESTestCase {
             subscriberClusterState,
             publisherStateResponse
         );
-        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(newRelation);
+        assertThat(restoreDiff.targetsForStateUpdate()).containsExactly(new TableOrPartition(newRelation, null));
         assertThat(restoreDiff.toRestore()).containsExactly(new TableOrPartition(p1, null));
     }
 
@@ -566,7 +571,7 @@ public class MetadataTrackerTest extends ESTestCase {
             publisherStateResponse
         );
 
-        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(newRelation);
+        assertThat(restoreDiff.targetsForStateUpdate()).containsExactly(new TableOrPartition(newRelation, newPartitionName.ident()));
         assertThat(restoreDiff.toRestore()).containsExactly(new TableOrPartition(newRelation, newPartitionName.ident()));
     }
 
@@ -592,7 +597,7 @@ public class MetadataTrackerTest extends ESTestCase {
             publisherStateResponse
         );
 
-        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(relationName);
+        assertThat(restoreDiff.targetsForStateUpdate()).containsExactly(new TableOrPartition(relationName, newPartitionName.ident()));
         assertThat(restoreDiff.toRestore()).containsExactly(new TableOrPartition(relationName, newPartitionName.ident()));
     }
 
@@ -642,7 +647,7 @@ public class MetadataTrackerTest extends ESTestCase {
             subscriberClusterState,
             publisherStateResponse
         );
-        assertThat(restoreDiff.relationsForStateUpdate()).isEmpty();
+        assertThat(restoreDiff.targetsForStateUpdate()).isEmpty();
         assertThat(restoreDiff.toRestore()).isEmpty();
     }
 }

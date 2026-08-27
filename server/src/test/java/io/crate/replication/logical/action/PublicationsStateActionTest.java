@@ -34,6 +34,7 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
@@ -66,6 +67,19 @@ import io.crate.testing.SQLExecutor;
 public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTest {
 
     private MockLogAppender appender;
+
+    private static TableOrPartition target(RelationName relationName) {
+        return new TableOrPartition(relationName, null);
+    }
+
+    private static TableOrPartition target(String relationName) {
+        return target(RelationName.fromIndexName(relationName));
+    }
+
+    private static TableOrPartition target(String relationName, List<String> partitionValues) {
+        RelationName table = RelationName.fromIndexName(relationName);
+        return new TableOrPartition(table, new PartitionName(table, partitionValues).ident());
+    }
 
     @Before
     public void appendLogger() throws Exception {
@@ -197,8 +211,8 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             .startShards("doc.t1", "doc.t2");
         var publication = new Publication("publisher", false,
             List.of(
-                RelationName.of(QualifiedName.of("t1"), DocSchemaInfo.NAME),
-                RelationName.of(QualifiedName.of("t2"), DocSchemaInfo.NAME)
+                target(RelationName.of(QualifiedName.of("t1"), DocSchemaInfo.NAME)),
+                target(RelationName.of(QualifiedName.of("t2"), DocSchemaInfo.NAME))
             )
         );
 
@@ -280,7 +294,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         var publication = new Publication(
             "some_user",
             false,
-            List.of(RelationName.fromIndexName("t1"), RelationName.fromIndexName("doc.t2"))
+            List.of(target("t1"), target("doc.t2"))
         );
 
         Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
@@ -364,7 +378,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         var publication = new Publication(
             "some_user",
             false,
-            List.of(RelationName.fromIndexName("p1"))
+            List.of(target("p1"))
         );
 
         Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
