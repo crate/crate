@@ -42,6 +42,7 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.DependencyCarrier;
@@ -136,10 +137,16 @@ public final class TableFunction implements LogicalPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
-        if (toCollect.size() == outputsToKeep.size() && outputsToKeep.containsAll(toCollect)) {
+        ArrayList<Symbol> toKeep = new ArrayList<>();
+        for (Symbol outputToKeep : outputsToKeep) {
+            Symbols.intersection(outputToKeep, toCollect, toKeep::add);
+        }
+        List<Symbol> newToCollect = Lists.intersection(toCollect, toKeep);
+        if (newToCollect.size() == toCollect.size()) {
             return this;
         }
-        return new TableFunction(relation, List.copyOf(outputsToKeep), where);
+        validateOutputsOrder(newToCollect);
+        return new TableFunction(relation, newToCollect, where);
     }
 
     @Override

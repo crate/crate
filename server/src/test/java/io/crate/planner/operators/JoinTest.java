@@ -907,9 +907,10 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                   │  └ Collect[doc.c | [x] | true]
                   └ Collect[doc.d | [] | true]
                 └ SubPlan
-                  └ Limit[2::bigint;0::bigint]
-                    └ Filter[(((x = 1) AND (x = 1)) AND (x = 1))]
-                      └ TableFunction[empty_row | [1] | true]
+                  └ Eval[1]
+                    └ Limit[2::bigint;0::bigint]
+                      └ Filter[(((x = 1) AND (x = 1)) AND (x = 1))]
+                        └ TableFunction[empty_row | [] | true]
             """
         );
     }
@@ -951,7 +952,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "  │  ├ Collect[doc.t1 | [a, x, i] | true]",
             "  │  └ Collect[doc.t2 | [b, y, i] | true]",
             "  └ Rename[foo] AS temp",
-            "    └ TableFunction[empty_row | [1 AS foo] | true]"
+            "    └ Eval[1 AS foo]",
+            "      └ TableFunction[empty_row | [] | true]"
         );
     }
 
@@ -1015,8 +1017,10 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "    │    └ Collect[pg_catalog.pg_attrdef | [adbin, adrelid, adnum] | true]",
             "    └ Rename[oid, attnum] AS vals",
             "      └ Union[oid, attnum]",
-            "        ├ TableFunction[empty_row | [-2002935028 AS oid, 1 AS attnum] | true]",
-            "        └ TableFunction[empty_row | [-2002935028, 2] | true]"
+            "        ├ Eval[-2002935028 AS oid, 1 AS attnum]",
+            "        │  └ TableFunction[empty_row | [] | true]",
+            "        └ Eval[-2002935028, 2]",
+            "          └ TableFunction[empty_row | [] | true]"
         );
 
     }

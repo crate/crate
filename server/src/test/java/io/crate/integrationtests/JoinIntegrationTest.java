@@ -1822,7 +1822,8 @@ public class JoinIntegrationTest extends IntegTestCase {
             "  └ NestedLoopJoin[RIGHT | true] (rows=unknown)",
             "    ├ Collect[doc.t1 | [c0] | true] (rows=unknown)",
             "    └ Rename[\"1\"] AS sub0 (rows=unknown)",
-            "      └ TableFunction[empty_row | [1] | true] (rows=unknown)"
+            "      └ Eval[1] (rows=unknown)",
+            "        └ TableFunction[empty_row | [] | true] (rows=unknown)"
         );
 
         execute(query);
