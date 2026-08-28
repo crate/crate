@@ -411,5 +411,14 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>dev.hardwood</groupId>
+            <artifactId>hardwood-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.luben</groupId>
+        <artifactId>zstd-jni</artifactId>
+    </dependency>
+
     </dependencies>
 </project>
