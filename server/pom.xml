@@ -417,8 +417,12 @@
         </dependency>
         <dependency>
             <groupId>com.github.luben</groupId>
-        <artifactId>zstd-jni</artifactId>
-    </dependency>
+            <artifactId>zstd-jni</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.xerial.snappy</groupId>
+            <artifactId>snappy-java</artifactId>
+        </dependency>
 
     </dependencies>
 </project>

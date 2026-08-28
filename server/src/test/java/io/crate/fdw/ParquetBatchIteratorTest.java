@@ -21,12 +21,12 @@
 
 package io.crate.fdw;
 
-
 import java.util.List;
 
 import org.junit.Test;
 
 import java.net.URISyntaxException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import io.crate.metadata.ColumnIdent;
@@ -36,22 +36,22 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
 public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
-    private final String parquetFilePath =
-        Paths.get(getClass().getResource("/essetup/data/parquet").toURI()).toUri().toString();
+    private final Path parquetFile = Paths.get(getClass().getResource("/essetup/data/parquet").toURI())
+            .resolve("yellow_tripdata_2026-10rows.parquet");
 
-    public ParquetBatchIteratorTest() throws URISyntaxException {}
+    public ParquetBatchIteratorTest() throws URISyntaxException {
+    }
 
     @Test
     public void test_reads_all_records() throws Exception {
         var e = SQLExecutor.of(clusterService)
-            .addTable("create table doc.taxi (trip_distance double)");
+                .addTable("create table doc.taxi (trip_distance double)");
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
-            table.getReadReference(ColumnIdent.of("trip_distance"))
-        );
-        ParquetBatchIterator it = new ParquetBatchIterator(parquetFilePath + "yellow_tripdata_2026-10rows.parquet", columns);
-
+                table.getReadReference(ColumnIdent.of("trip_distance")));
+        ParquetBatchIterator it = new ParquetBatchIterator(parquetFile, columns);
+        it.loadNextBatch();
+        it.moveNext();
 
     }
 }
-

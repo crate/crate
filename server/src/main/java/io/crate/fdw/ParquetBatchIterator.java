@@ -21,9 +21,16 @@
 
 package io.crate.fdw;
 
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import dev.hardwood.InputFile;
+import dev.hardwood.reader.ParquetFileReader;
+import dev.hardwood.reader.RowReader;
+import dev.hardwood.schema.ColumnProjection;
+
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -31,7 +38,6 @@ import java.util.concurrent.CompletionStage;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-
 import io.crate.metadata.Reference;
 
 public class ParquetBatchIterator implements BatchIterator<Row> {
@@ -40,12 +46,16 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
 
     private final Object[] cells;
     private final Row row;
-    private final List<Reference> columns;
-    private final String parquetFilePath;
+    private ParquetFileReader reader;
+    private RowReader rowReader;
+    private final String[] columns;
+    private final Path parquetFile;
 
-    public ParquetBatchIterator(String parquetFilePath, List<Reference> columns) {
-        this.parquetFilePath = parquetFilePath;
-        this.columns = columns;
+    public ParquetBatchIterator(Path parquetFile, List<Reference> columns) {
+        this.parquetFile = parquetFile;
+        this.columns = columns.stream()
+                .map(ref -> ref.column().fqn())
+                .toArray(String[]::new);
         this.cells = new Object[columns.size()];
         this.row = new RowN(cells);
     }
@@ -62,6 +72,12 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
 
     @Override
     public boolean moveNext() {
+        while (rowReader.hasNext()) {
+            rowReader.next();
+            double val = rowReader.getDouble(columns[0]);
+            System.out.println("val: " + val);
+            LOGGER.info("val: " + val);
+        }
         return true;
     }
 
@@ -70,7 +86,16 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
     }
 
     @Override
-    public void close() {}
+    public void close() {
+        if (reader != null) {
+            try {
+                reader.close();
+            } catch (IOException e) {
+                // Placeholder error
+                throw new Error("Could not close: " + e.getMessage());
+            }
+        }
+    }
 
     @Override
     public boolean allLoaded() {
@@ -84,8 +109,13 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
 
     @Override
     public CompletionStage<?> loadNextBatch() throws Exception {
+        if (reader == null) {
+            reader = ParquetFileReader.open(InputFile.of(parquetFile));
+            reader.buildRowReader()
+                    .projection(ColumnProjection.columns(columns))
+                    .build();
+            System.out.println("Loaded reader");
+        }
         return CompletableFuture.completedFuture(null);
     }
-
-
 }
