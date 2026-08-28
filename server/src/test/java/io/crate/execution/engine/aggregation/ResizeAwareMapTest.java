@@ -28,7 +28,11 @@ import static org.mockito.Mockito.when;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.junit.Test;
+
+import io.crate.types.DataTypes;
+import io.netty.util.collection.IntObjectHashMap;
 
 public class ResizeAwareMapTest {
 
@@ -47,12 +51,53 @@ public class ResizeAwareMapTest {
     }
 
     @Test
+    public void test_jdk_map_accounts_only_object_ref_per_slot() {
+        Map<Integer, Integer> map = new HashMap<>();
+        ResizeAwareMap<Integer, Integer> resizeAwareMap = GroupByMaps.wrapperForJDKMap(map);
+        int defaultCapacity = 16; // HashMap.DEFAULT_INITIAL_CAPACITY
+        float defaultLoadFactor = 0.75f; // HashMap.DEFAULT_LOAD_FACTOR
+        int threshold = (int) (defaultCapacity * defaultLoadFactor);
+        int prevCapacity = resizeAwareMap.currentCapacity();
+        for (int i = 0; i < threshold ; i++) {
+            resizeAwareMap.put(i, i);
+        }
+
+        // Get prediction before put
+        long predictedBytes = resizeAwareMap.expectedCapacityIncreaseBytes();
+        resizeAwareMap.put(threshold, threshold); // trigger resize
+        int newCapacity = resizeAwareMap.currentCapacity();
+
+        long deltaInBytes = (long) (newCapacity - prevCapacity) * RamUsageEstimator.NUM_BYTES_OBJECT_REF;
+        assertThat(predictedBytes).isEqualTo(deltaInBytes);
+    }
+
+    @Test
+    public void test_netty_map_accounts_object_ref_and_primitive_per_slot() {
+        ResizeAwareMap<Integer, Object> resizeAwareMap = GroupByMaps.mapForType(DataTypes.INTEGER).get();
+        int defaultCapacity = IntObjectHashMap.DEFAULT_CAPACITY;
+        float defaultLoadFactor = IntObjectHashMap.DEFAULT_LOAD_FACTOR;
+        int threshold = (int) (defaultCapacity * defaultLoadFactor);
+        int prevCapacity = resizeAwareMap.currentCapacity();
+        for (int i = 0; i < threshold ; i++) {
+            resizeAwareMap.put(i, i);
+        }
+
+        // Get prediction before put
+        long predictedBytes = resizeAwareMap.expectedCapacityIncreaseBytes();
+        resizeAwareMap.put(threshold, threshold); // trigger resize
+        int newCapacity = resizeAwareMap.currentCapacity();
+
+        long deltaInBytes = (long) (newCapacity - prevCapacity) * (Integer.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF);
+        assertThat(predictedBytes).isEqualTo(deltaInBytes);
+    }
+
+    @Test
     public void test_put_initial_capacity_power_of_two() {
         Map<Integer, Integer> delegate = new HashMap<>();
         int capacity = 4;
         float loadFactor = 0.75f;
         int threshold = (int) (capacity * loadFactor);
-        ResizeAwareMap<Integer, Integer> map = new ResizeAwareMap<>(delegate, capacity, loadFactor, false);
+        ResizeAwareMap<Integer, Integer> map = new ResizeAwareMap<>(delegate, capacity, loadFactor, false, RamUsageEstimator.NUM_BYTES_OBJECT_REF);
 
         for (int i = 0; i < threshold; i++) {
             assertThat(map.expectedCapacityIncrease()).isEqualTo(0);
@@ -64,7 +109,7 @@ public class ResizeAwareMapTest {
     @Test
     public void test_put_initial_capacity_is_rounded_up_to_the_next_power_of_two() {
         Map<Integer, Integer> delegate = new HashMap<>();
-        ResizeAwareMap<Integer, Integer> map = new ResizeAwareMap<>(delegate, 5, 0.75f, false);
+        ResizeAwareMap<Integer, Integer> map = new ResizeAwareMap<>(delegate, 5, 0.75f, false, RamUsageEstimator.NUM_BYTES_OBJECT_REF);
         // 5 is rounded up to 8, hence threshold is 8*0.75 = 6
         for (int i = 0; i < 6; i++) {
             assertThat(map.expectedCapacityIncrease()).isEqualTo(0);
@@ -79,7 +124,7 @@ public class ResizeAwareMapTest {
         int capacity = 4;
         float loadFactor = 0.75f;
         int threshold = (int) (capacity * loadFactor);
-        ResizeAwareMap<Integer, Integer> map = new ResizeAwareMap<>(delegate, capacity, loadFactor, false);
+        ResizeAwareMap<Integer, Integer> map = new ResizeAwareMap<>(delegate, capacity, loadFactor, false, RamUsageEstimator.NUM_BYTES_OBJECT_REF);
 
         for (int i = 0; i < threshold + 1; i++) {
             map.expectedCapacityIncrease();
@@ -95,7 +140,7 @@ public class ResizeAwareMapTest {
         Map<Integer, Integer> delegate = mock(Map.class);
         when(delegate.size()).thenReturn(Integer.MAX_VALUE - 1);
 
-        ResizeAwareMap<Integer, Integer> map = new ResizeAwareMap<>(delegate, maximumCapacity, 0.75f, false);
+        ResizeAwareMap<Integer, Integer> map = new ResizeAwareMap<>(delegate, maximumCapacity, 0.75f, false, RamUsageEstimator.NUM_BYTES_OBJECT_REF);
         assertThat(map.expectedCapacityIncrease()).isEqualTo(0);
     }
 
@@ -105,7 +150,7 @@ public class ResizeAwareMapTest {
         int capacity = 4;
         float loadFactor = 0.75f;
         int threshold = (int) (capacity * loadFactor);
-        ResizeAwareMap<Integer, Integer> map = new ResizeAwareMap<>(delegate, capacity, loadFactor, false);
+        ResizeAwareMap<Integer, Integer> map = new ResizeAwareMap<>(delegate, capacity, loadFactor, false, RamUsageEstimator.NUM_BYTES_OBJECT_REF);
 
         // Bringing to the point where it's about to resize.
         for (int i = 0; i < threshold; i++) {
