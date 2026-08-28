@@ -17,6 +17,13 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>dev.hardwood</groupId>
+                <artifactId>hardwood-bom</artifactId>
+                <version>1.0.0.Final</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -71,7 +78,7 @@
                 <version>${versions.plugin.surefire}</version>
                 <configuration>
                     <parallel>suites</parallel>
-                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <redirectTestOutputToFile>false</redirectTestOutputToFile>
                     <includes>
                         <include>**/Test*.java</include>
                         <include>**/*IT.java</include>
