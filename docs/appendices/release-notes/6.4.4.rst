@@ -147,3 +147,6 @@ Fixes
       AND t1.x = t3.z
       AND t2.y = t3.z;
 
+- Fixed a regression introduced with :ref:`version_6.4.3`, causing queries
+  with aggregations to fail with false positive ``CircuitBreakerException``.
+
