@@ -38,6 +38,7 @@ import java.util.concurrent.CompletionStage;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.exceptions.ConversionException;
 import io.crate.metadata.Reference;
 
 public class ParquetBatchIterator implements BatchIterator<Row> {
@@ -48,14 +49,12 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
     private final Row row;
     private ParquetFileReader reader;
     private RowReader rowReader;
-    private final String[] columns;
+    private final List<Reference> columns;
     private final Path parquetFile;
 
     public ParquetBatchIterator(Path parquetFile, List<Reference> columns) {
         this.parquetFile = parquetFile;
-        this.columns = columns.stream()
-                .map(ref -> ref.column().fqn())
-                .toArray(String[]::new);
+        this.columns = columns;
         this.cells = new Object[columns.size()];
         this.row = new RowN(cells);
     }
@@ -72,13 +71,26 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
 
     @Override
     public boolean moveNext() {
+        assert (rowReader != null);
         while (rowReader.hasNext()) {
             rowReader.next();
-            double val = rowReader.getDouble(columns[0]);
-            System.out.println("val: " + val);
-            LOGGER.info("val: " + val);
+            for (int i = 0; i < columns.size(); i++) {
+                Reference ref = columns.get(i);
+                // TODO: do we need something like getObject from ResultSetParser? Something to map between the object
+                // from Hardwood/parquet and what Crate uses internally
+                // TODO: need a way to know method to call on rowReader (getDouble, or getString or whatever)
+                double val = rowReader.getDouble(columns.get(0).toString());
+                try {
+                    cells[i] = ref.valueType().implicitCast(val);
+                } catch (ClassCastException | IllegalArgumentException e) {
+                    var conversionException = new ConversionException(val, ref.valueType());
+                    conversionException.addSuppressed(e);
+                    throw conversionException;
+                }
+            }
+            return true;
         }
-        return true;
+        return false;
     }
 
     @Override
@@ -111,8 +123,10 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
     public CompletionStage<?> loadNextBatch() throws Exception {
         if (reader == null) {
             reader = ParquetFileReader.open(InputFile.of(parquetFile));
-            reader.buildRowReader()
-                    .projection(ColumnProjection.columns(columns))
+            rowReader = reader.buildRowReader()
+                    .projection(ColumnProjection.columns(columns.stream()
+                            .map(ref -> ref.column().fqn())
+                            .toArray(String[]::new)))
                     .build();
             System.out.println("Loaded reader");
         }

@@ -51,7 +51,10 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                 table.getReadReference(ColumnIdent.of("trip_distance")));
         ParquetBatchIterator it = new ParquetBatchIterator(parquetFile, columns);
         it.loadNextBatch();
-        it.moveNext();
+        while (it.moveNext()) {
+            System.out.println("Current row: " + it.currentElement());
+        }
+        it.close();
 
     }
 }
