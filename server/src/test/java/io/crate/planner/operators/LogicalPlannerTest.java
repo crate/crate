@@ -1001,7 +1001,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "    └ NestedLoopJoin[INNER | CASE WHEN (col0 = col0) THEN awesome ELSE false END]",
                 "      ├ Collect[doc.users | [awesome] | true]",
                 "      └ Rename[col0] AS sub0",
-                "        └ TableFunction[empty_row | [1 AS col0] | true]"
+                "        └ Eval[1 AS col0]",
+                "          └ TableFunction[empty_row | [] | true]"
             );
     }
 }

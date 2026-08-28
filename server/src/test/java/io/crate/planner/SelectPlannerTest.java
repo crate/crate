@@ -1260,8 +1260,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             Eval[unnest, sum(unnest) OVER (ORDER BY power(unnest, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]
               └ WindowAgg[unnest, power(unnest, 2.0)] | [sum(unnest) OVER (ORDER BY power(unnest, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]
                 └ Eval[unnest, power(unnest, 2.0)]
-                  └ Rename[unnest, unnest] AS t
-                    └ TableFunction[unnest | [unnest, unnest] | true]
+                  └ Rename[unnest] AS t
+                    └ TableFunction[unnest | [unnest] | true]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
     }
@@ -1671,11 +1671,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         // Used to hang in the value range validation in FloatType.implicitCast.
         LogicalPlan logicalPlan = e.logicalPlan("SELECT EXP(-1110102730.1852759636)::float");
-        assertThat(logicalPlan).hasOperators("TableFunction[empty_row | [0.0] | true]");
+        assertThat(logicalPlan).hasOperators("Eval[0.0]", "  └ TableFunction[empty_row | [] | true]");
 
         // Used to hang in the value range validation in DoubleType.implicitCast.
         logicalPlan = e.logicalPlan("SELECT EXP(-1110102730.1852759636)::double");
-        assertThat(logicalPlan).hasOperators("TableFunction[empty_row | [0.0] | true]");
+        assertThat(logicalPlan).hasOperators("Eval[0.0]", "  └ TableFunction[empty_row | [] | true]");
     }
 
     // tracks a bug: https://github.com/crate/crate/issues/17266

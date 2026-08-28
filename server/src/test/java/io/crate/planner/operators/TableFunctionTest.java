@@ -44,10 +44,13 @@ public class TableFunctionTest extends CrateDummyClusterServiceUnitTest {
         Symbol a = e.asSymbol("a");
         Symbol b = e.asSymbol("b");
 
+        // `a` and `b` aren't outputs of this table function, so pruneOutputsExcept must not
+        // grow its outputs to contain them.
+        // Instead, pruning does normalization which gets back initial empty outputs.
         LogicalPlan tableFunction = TableFunction.create(mock(TableFunctionRelation.class), List.of(), WhereClause.MATCH_ALL);
         assertThat(tableFunction.outputs()).isEmpty();
         var prunedTableFunction = tableFunction.pruneOutputsExcept(List.of(a, b));
-        assertThat(prunedTableFunction.outputs()).containsExactly(a, b);
+        assertThat(prunedTableFunction.outputs()).isEmpty();
     }
 
     @Test
