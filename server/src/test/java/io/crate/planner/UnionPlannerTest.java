@@ -204,7 +204,8 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         UnionExecutionPlan union = e.plan("SELECT null UNION ALL SELECT id FROM users");
         Collect left = (Collect) union.left();
         assertThat(left.collectPhase().projections()).satisfiesExactly(
-            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class) // returns NULL
+            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class), // returns NULL
+            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class) // casts NULL to the union's output type
         );
         Collect right = (Collect) union.right();
         assertThat(left.streamOutputs()).isEqualTo(right.streamOutputs());
@@ -217,7 +218,8 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(left.streamOutputs()).isEqualTo(right.streamOutputs());
         assertThat(right.streamOutputs()).satisfiesExactly(o -> assertThat(o).isEqualTo(DataTypes.LONG));
         assertThat(right.collectPhase().projections()).satisfiesExactly(
-            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class) // returns NULL
+            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class), // returns NULL
+            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class) // casts NULL to the union's output type
         );
     }
 
@@ -263,7 +265,8 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
                     │    │  └ Collect[doc.users | [id] | true]
                     │    └ Rename[id] AS y
                     │      └ Collect[doc.users | [id] | true]
-                    └ TableFunction[empty_row | [1, 1] | true]
+                    └ Eval[1, 1]
+                      └ TableFunction[empty_row | [] | true]
                 """
         );
     }
