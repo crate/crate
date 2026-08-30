@@ -49,6 +49,7 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.metadata.PartitionName;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
@@ -132,15 +133,30 @@ public class TransportCreateSubscription extends TransportMasterNodeAction<Creat
                     Metadata metadata = state.metadata();
                     Metadata publisherMetadata = response.metadata();
                     for (RelationMetadata.Table table : publisherMetadata.relations(RelationMetadata.Table.class)) {
-                        if (metadata.getRelation(table.name()) != null) {
-                            var message = String.format(
-                                Locale.ENGLISH,
-                                "Subscription '%s' cannot be created as included relation '%s' already exists",
-                                request.name(),
-                                table.name()
-                            );
-                            throw new RelationAlreadyExists(table.name(), message);
-
+                        for (var target : publishedTargets(publisherMetadata, table)) {
+                            if (target.partitionIdent() == null) {
+                                if (metadata.getRelation(target.table()) != null) {
+                                    var message = String.format(
+                                        Locale.ENGLISH,
+                                        "Subscription '%s' cannot be created as included relation '%s' already exists",
+                                        request.name(),
+                                        target.table()
+                                    );
+                                    throw new RelationAlreadyExists(target.table(), message);
+                                }
+                            } else {
+                                List<String> partitionValues = PartitionName.decodeIdent(target.partitionIdent());
+                                if (metadata.getIndex(target.table(), partitionValues, false, x -> x) != null) {
+                                    var message = String.format(
+                                        Locale.ENGLISH,
+                                        "Subscription '%s' cannot be created as included relation '%s' partition '%s' already exists",
+                                        request.name(),
+                                        target.table(),
+                                        target.partitionIdent()
+                                    );
+                                    throw new RelationAlreadyExists(target.table(), message);
+                                }
+                            }
                         }
                         checkVersionCompatibility(
                             table.name().fqn(),
@@ -202,10 +218,12 @@ public class TransportCreateSubscription extends TransportMasterNodeAction<Creat
                 HashMap<TableOrPartition, Subscription.RelationState> relations = new HashMap<>();
                 Metadata publisherMetadata = publicationsStateResponse.metadata();
                 for (RelationMetadata.Table table : publisherMetadata.relations(RelationMetadata.Table.class)) {
-                    relations.put(
-                        new TableOrPartition(table.name(), null),
-                        new Subscription.RelationState(Subscription.State.INITIALIZING, null)
-                    );
+                    for (var target : publishedTargets(publisherMetadata, table)) {
+                        relations.put(
+                            target,
+                            new Subscription.RelationState(Subscription.State.INITIALIZING, null)
+                        );
+                    }
                 }
 
                 Subscription subscription = new Subscription(
@@ -233,6 +251,21 @@ public class TransportCreateSubscription extends TransportMasterNodeAction<Creat
 
         clusterService.submitStateUpdateTask(source, task);
         return task.completionFuture();
+    }
+
+    private static List<TableOrPartition> publishedTargets(Metadata publisherMetadata, RelationMetadata.Table table) {
+        List<IndexMetadata> indices = publisherMetadata.getIndices(table.name(), List.of(), false, x -> x);
+        if (indices.isEmpty()) {
+            return List.of(new TableOrPartition(table.name(), null));
+        }
+        return indices.stream()
+            .map(indexMetadata -> {
+                String partitionIdent = indexMetadata.partitionValues().isEmpty()
+                    ? null
+                    : PartitionName.encodeIdent(indexMetadata.partitionValues());
+                return new TableOrPartition(table.name(), partitionIdent);
+            })
+            .toList();
     }
 
     @Override

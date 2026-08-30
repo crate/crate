@@ -228,8 +228,8 @@ public final class MetadataTracker implements Closeable {
 
             // We cannot use replicationService.verifyTablesDoNotExist(subscriptionName, stateResponse)
             // as it uses cluster metadata for comparison and will fail on the second round of every replication.
-            Set<RelationName> existingTables = getExistingLocallyTables(subscription, subscriberState, response);
-            if (!existingTables.isEmpty()) {
+            Set<TableOrPartition> existingTargets = getExistingLocallyTargets(subscription, subscriberState, response);
+            if (!existingTargets.isEmpty()) {
                 var msg = String.format(
                     Locale.ENGLISH,
                     "Tracking of metadata failed for subscription '" + subscriptionName + "'" + ", stopping tracking. Some relation(s) already exist. " +
@@ -239,7 +239,7 @@ public final class MetadataTracker implements Closeable {
                 LOGGER.error(msg);
                 return replicationService.updateSubscriptionTargetsState(
                     subscriptionName,
-                    existingTables.stream().map(table -> new TableOrPartition(table, null)).toList(),
+                    existingTargets,
                     Subscription.State.FAILED,
                     // Table name is not included, as this message included for every row of pg_subscriptions_rel which already has table name.
                     "Relation already exists"
@@ -434,22 +434,43 @@ public final class MetadataTracker implements Closeable {
      * These tables will be reported
      * and will be visible in pg_subscriptions_rel table.
      */
-    private static Set<RelationName> getExistingLocallyTables(Subscription subscription,
-                                                               ClusterState subscriberClusterState,
-                                                               Response publisherStateResponse) {
+    private static Set<TableOrPartition> getExistingLocallyTargets(Subscription subscription,
+                                                                   ClusterState subscriberClusterState,
+                                                                   Response publisherStateResponse) {
         // Table existence check is done on a subscription creation but
         // there are cases when attempt to subscribe to existing table happens later during the replication.
         var metadata = subscriberClusterState.metadata();
-        Set<RelationName> currentlyReplicatedTables = subscription.relations().keySet()
-            .stream()
-            .map(TableOrPartition::table)
-            .collect(Collectors.toSet());
-
-        return publisherStateResponse.metadata().relations(RelationMetadata.Table.class).stream()
-            .map(RelationMetadata.Table::name)
-            .filter(relationName -> metadata.getRelation(relationName) != null)
-            .filter(relationName -> currentlyReplicatedTables.contains(relationName) == false)
-            .collect(Collectors.toSet());
+        Set<TableOrPartition> currentlyReplicatedTargets = subscription.relations().keySet();
+        HashSet<TableOrPartition> existingTargets = new HashSet<>();
+        Metadata publisherMetadata = publisherStateResponse.metadata();
+        for (RelationMetadata.Table table : publisherMetadata.relations(RelationMetadata.Table.class)) {
+            RelationName relationName = table.name();
+            List<IndexMetadata> indices = publisherMetadata.getIndices(relationName, List.of(), false, x -> x);
+            if (indices.isEmpty()) {
+                var target = new TableOrPartition(relationName, null);
+                if (metadata.getRelation(relationName) != null && currentlyReplicatedTargets.contains(target) == false) {
+                    existingTargets.add(target);
+                }
+                continue;
+            }
+            for (IndexMetadata indexMetadata : indices) {
+                String partitionIdent = indexMetadata.partitionValues().isEmpty()
+                    ? null
+                    : PartitionName.encodeIdent(indexMetadata.partitionValues());
+                var target = new TableOrPartition(relationName, partitionIdent);
+                if (currentlyReplicatedTargets.contains(target)) {
+                    continue;
+                }
+                if (partitionIdent == null) {
+                    if (metadata.getRelation(relationName) != null) {
+                        existingTargets.add(target);
+                    }
+                } else if (metadata.getIndex(relationName, indexMetadata.partitionValues(), false, x -> x) != null) {
+                    existingTargets.add(target);
+                }
+            }
+        }
+        return existingTargets;
     }
 
     record RestoreDiff(List<TableOrPartition> toRestore,

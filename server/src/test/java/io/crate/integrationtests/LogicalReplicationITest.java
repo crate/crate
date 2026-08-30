@@ -274,6 +274,31 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
     }
 
     @Test
+    public void test_subscribing_to_publication_for_concrete_partition() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        createSubscription("sub1", "pub1");
+
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        var response = executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id");
+        assertThat(response).hasRows("1| 1");
+
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (3, 1), (4, 2)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var res = executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1| 1", "3| 1");
+        }, 10, TimeUnit.SECONDS);
+    }
+
+    @Test
     public void test_subscribing_to_publication_containing_index_with_non_active_shards_wont_be_restored() throws Exception {
         // Create two tables, one should be restored successfully, ensuring that the restore works correctly
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 10 shards WITH(" +
