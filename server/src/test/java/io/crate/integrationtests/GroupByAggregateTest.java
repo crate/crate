@@ -29,9 +29,11 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.stream.Stream;
 
 import org.assertj.core.data.Percentage;
@@ -55,6 +57,8 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class GroupByAggregateTest extends IntegTestCase {
@@ -132,6 +136,83 @@ public class GroupByAggregateTest extends IntegTestCase {
 
         execute("select count(*), name from t group by name, x limit 2");
         assertThat(response).hasRowCount(2L);
+    }
+
+    @Test
+    // JDBC disabled to have simpler assertions for the timestamp and date columns.
+    // They are inserted as long values, but retrieved as strings via JDBC.
+    // Timestamps and dates are tested thoroughly in other tests.
+    @UseJdbc(value = 0)
+    public void test_group_by_for_types_with_loose_index_scan() throws Exception {
+        record TestCase(DataType<?> dataType, List<Object> values) { }
+
+        // LongIndexer rejects Long.MIN_VALUE/MAX_VALUE outright (reserved sentinels),
+        // so we use the closest extreme values.
+        List<TestCase> testCases = List.of(
+            new TestCase(DataTypes.BYTE, List.of(Byte.MIN_VALUE, Byte.MIN_VALUE, Byte.MAX_VALUE, -1)),
+            new TestCase(DataTypes.SHORT, List.of(Short.MIN_VALUE, Short.MIN_VALUE, Short.MAX_VALUE, -1)),
+            new TestCase(DataTypes.INTEGER, List.of(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, -1)),
+            new TestCase(
+                DataTypes.LONG,
+                List.of(Long.MIN_VALUE + 1, Long.MIN_VALUE + 1, Long.MAX_VALUE - 1, -1)
+            ),
+            new TestCase(DataTypes.FLOAT, List.of(-Float.MAX_VALUE, -Float.MAX_VALUE, Float.MAX_VALUE, -1.23f)),
+            new TestCase(DataTypes.DOUBLE, List.of(-Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE, -1.23d)),
+            new TestCase(DataTypes.DATE, List.of(Long.MIN_VALUE, Long.MIN_VALUE, Long.MAX_VALUE, 0L)),
+            new TestCase(
+                DataTypes.TIMESTAMPZ,
+                List.of(Long.MIN_VALUE + 1, Long.MIN_VALUE + 1, Long.MAX_VALUE - 1, -1)
+            ),
+            new TestCase(
+                DataTypes.TIMESTAMP,
+                List.of(Long.MIN_VALUE + 1, Long.MIN_VALUE + 1, Long.MAX_VALUE - 1, -1)
+            )
+        );
+
+        for (TestCase tc : testCases) {
+            for (boolean indexing : List.of(true, false)) {
+                assertGroupByMinAndMaxValues(tc.dataType(), indexing, tc.values());
+            }
+        }
+    }
+
+    /// Asserts that `GROUP BY` returns correct results when `values` are
+    /// inserted into a column of type `dataType`. Indexing can be enabled
+    /// or disabled with `indexing`.
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void assertGroupByMinAndMaxValues(DataType<?> dataType,
+                                              boolean indexing,
+                                              List<Object> values) {
+        String columnType = dataType.getName();
+        String columnDefinition = indexing ? columnType : columnType + " index off";
+        execute("create table t (v " + columnDefinition + ")");
+
+        // A row with a NULL value is added on top of `values` to check it's grouped separately
+        // and sorted last, regardless of type.
+        Object[][] rows = new Object[values.size() + 1][];
+        for (int i = 0; i < values.size(); i++) {
+            rows[i] = new Object[] { values.get(i) };
+        }
+        rows[values.size()] = new Object[] { null };
+        execute("insert into t (v) values (?)", rows);
+        execute("refresh table t");
+
+        // De-duplicate
+        TreeSet<Object> distinctValues = new TreeSet<>((a, b) -> ((DataType) dataType).compare(a, b));
+        for (Object value : values) {
+            distinctValues.add(dataType.implicitCast(value));
+        }
+        List<String> expected = new ArrayList<>();
+        for (Object value : distinctValues) {
+            expected.add(String.valueOf(value));
+        }
+        expected.add("NULL");
+
+        execute("select v from t group by v order by v nulls last");
+        assertThat(response)
+            .as("column definition: " + columnDefinition)
+            .hasRows(expected.toArray(new String[0]));
+        execute("drop table t");
     }
 
     @Test
