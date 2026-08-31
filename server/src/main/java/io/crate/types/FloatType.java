@@ -134,6 +134,11 @@ public class FloatType extends NumberType<Float> implements Streamer<Float>, Fix
         public Float decode(DataType<Float> type, XContentParser parser) throws IOException {
             return parser.floatValue();
         }
+
+        @Override
+        public Float decode(byte[] packedPoint) {
+            return NumericUtils.sortableIntToFloat(NumericUtils.sortableBytesToInt(packedPoint, 0));
+        }
     };
 
     private static final BigDecimal MAX = BigDecimal.valueOf(Float.MAX_VALUE);
