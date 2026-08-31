@@ -32,6 +32,7 @@ import java.time.temporal.TemporalAccessor;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -95,6 +96,11 @@ public class DateType extends DataType<Long>
         @Override
         public Long decode(DataType<Long> type, XContentParser parser) throws IOException {
             return parser.longValue();
+        }
+
+        @Override
+        public Long decode(byte[] packedPoint) {
+            return NumericUtils.sortableBytesToLong(packedPoint, 0);
         }
     };
 

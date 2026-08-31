@@ -134,6 +134,11 @@ public class DoubleType extends NumberType<Double> implements FixedWidthType, St
         public Double decode(DataType<Double> type, XContentParser parser) throws IOException {
             return parser.doubleValue();
         }
+
+        @Override
+        public Double decode(byte[] packedPoint) {
+            return NumericUtils.sortableLongToDouble(NumericUtils.sortableBytesToLong(packedPoint, 0));
+        }
     };
 
     private static final BigDecimal DOUBLE_MAX = BigDecimal.valueOf(Double.MAX_VALUE);

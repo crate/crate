@@ -109,6 +109,11 @@ Performance and Resilience Improvements
   Previously, the resulting logical plan would contain 1 inner join and 2 cross
   joins. Now, the logical plan has 2 inner joins and 1 cross join.
 
+- Improved the performance of ``GROUP BY`` queries where the grouping key is a
+  numeric column by taking advantage of Lucene's BKD trees. The speed up depends
+  on a number of factors, such as a column's cardinality ratio, but can range
+  from 20% up to two orders of magnitude.
+
 Administration and Operations
 -----------------------------
 

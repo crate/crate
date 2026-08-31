@@ -26,6 +26,7 @@ import java.math.BigDecimal;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -72,6 +73,12 @@ public class ByteType extends IntegralType<Byte> implements Streamer<Byte>, Fixe
         @Override
         public Byte decode(DataType<Number> type, XContentParser parser) throws IOException {
             return (byte) parser.intValue();
+        }
+
+        // byte is indexed by IntIndexer, so its points are 4 bytes wide.
+        @Override
+        public Byte decode(byte[] packedPoint) {
+            return (byte) NumericUtils.sortableBytesToInt(packedPoint, 0);
         }
     };
 
