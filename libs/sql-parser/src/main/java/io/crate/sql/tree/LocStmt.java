@@ -19,15 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-
 package io.crate.sql.tree;
 
-import java.util.List;
+import org.antlr.v4.runtime.Token;
 
-public record MultiStatement(List<LocStmt> statements) implements Statement {
+public record LocStmt(Token start, Token stop, Statement stmt) {
 
-    @Override
-    public String toString() {
-        return "MultiStatement{statements=" + statements + "}";
+
+    /// Given a full multi statement that this statement is a part of, it
+    /// returns the query text for this individual stmt.
+    public String querySubset(String multiStatement) {
+        return multiStatement.substring(start.getStartIndex(), stop.getStopIndex() + 1);
     }
 }
