@@ -23,9 +23,10 @@ String functions
 --------------------------------------------------------
 
 Concatenates a variable number of arguments into a single string. It ignores
-``NULL`` values.
+``NULL`` values. The ``concat`` function also supports concatenating
+:ref:`bit strings <data-types-bit-strings>`.
 
-Returns: ``text``
+Returns: ``text`` or ``bit string``
 
 ::
 
@@ -37,7 +38,18 @@ Returns: ``text``
     +--------+
     SELECT 1 row in set (... sec)
 
-You can also use the ``||`` :ref:`operator <gloss-operator>`::
+::
+
+    cr> select concat(B'101', B'0101') AS col;
+    +------------+
+    | col        |
+    +------------+
+    | B'1010101' |
+    +------------+
+    SELECT 1 row in set (... sec)
+
+You can also use the ``||`` :ref:`operator <gloss-operator>` to concatenate
+strings and bit strings::
 
     cr> select 'foo' || 'bar' AS col;
     +--------+

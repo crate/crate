@@ -39,8 +39,8 @@ public final class ProjectionAssert extends AbstractAssert<ProjectionAssert, Pro
     public ProjectionAssert isLimitAndOffset(int expectedLimit, int expectedOffset) {
         isNotNull();
         isExactlyInstanceOf(LimitAndOffsetProjection.class);
-        assertThat(((LimitAndOffsetProjection) actual).limit()).isEqualTo(expectedLimit);
-        assertThat(((LimitAndOffsetProjection) actual).offset()).isEqualTo(expectedOffset);
+        assertThat(((LimitAndOffsetProjection) actual).limit()).as(info.description()).isEqualTo(expectedLimit);
+        assertThat(((LimitAndOffsetProjection) actual).offset()).as(info.description()).isEqualTo(expectedOffset);
         return this;
     }
 

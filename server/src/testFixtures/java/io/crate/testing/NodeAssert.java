@@ -43,14 +43,14 @@ public final class NodeAssert extends AbstractAssert<NodeAssert, Node> {
     public NodeAssert isColumnType(String expectedTypeName) {
         assertColumnType(expectedTypeName);
         isExactlyInstanceOf(ColumnType.class);
-        assertThat(((ColumnType<?>) actual).parameters()).isEmpty();
+        assertThat(((ColumnType<?>) actual).parameters()).as(info.description()).isEmpty();
         return this;
     }
 
     public NodeAssert isColumnType(String expectedTypeName, Integer... expectedParams) {
         assertColumnType(expectedTypeName);
         isExactlyInstanceOf(ColumnType.class);
-        assertThat(((ColumnType<?>) actual).parameters()).containsExactly(expectedParams);
+        assertThat(((ColumnType<?>) actual).parameters()).as(info.description()).containsExactly(expectedParams);
         return this;
     }
 
@@ -59,8 +59,8 @@ public final class NodeAssert extends AbstractAssert<NodeAssert, Node> {
         isExactlyInstanceOf(CollectionColumnType.class);
         CollectionColumnType<?> collectionColumnType = (CollectionColumnType<?>) actual;
 
-        assertThat(collectionColumnType.parameters()).isEmpty();
-        assertThat(collectionColumnType.innerType()).satisfies(innerTypeMatcher);
+        assertThat(collectionColumnType.parameters()).as(info.description()).isEmpty();
+        assertThat(collectionColumnType.innerType()).as(info.description()).satisfies(innerTypeMatcher);
         return this;
     }
 
@@ -69,9 +69,9 @@ public final class NodeAssert extends AbstractAssert<NodeAssert, Node> {
         isExactlyInstanceOf(ObjectColumnType.class);
         ObjectColumnType<?> objectColumnType = (ObjectColumnType<?>) actual;
 
-        assertThat(objectColumnType.parameters()).isEmpty();
-        assertThat(objectColumnType.nestedColumns()).isEmpty();
-        assertThat(objectColumnType.columnPolicy()).isNotEmpty()
+        assertThat(objectColumnType.parameters()).as(info.description()).isEmpty();
+        assertThat(objectColumnType.nestedColumns()).as(info.description()).isEmpty();
+        assertThat(objectColumnType.columnPolicy()).as(info.description()).isNotEmpty()
             .get().as("columnPolicy").satisfies(columnPolicyMatcher);
         return this;
     }
@@ -83,9 +83,9 @@ public final class NodeAssert extends AbstractAssert<NodeAssert, Node> {
         isExactlyInstanceOf(ObjectColumnType.class);
         ObjectColumnType<?> objectColumnType = (ObjectColumnType<?>) actual;
 
-        assertThat(objectColumnType.parameters()).isEmpty();
-        assertThat(objectColumnType.nestedColumns()).satisfies(nestedColumnsMatcher);
-        assertThat(objectColumnType.columnPolicy()).isNotEmpty()
+        assertThat(objectColumnType.parameters()).as(info.description()).isEmpty();
+        assertThat(objectColumnType.nestedColumns()).as(info.description()).satisfies(nestedColumnsMatcher);
+        assertThat(objectColumnType.columnPolicy()).as(info.description()).isNotEmpty()
             .get().as("columnPolicy").satisfies(columnPolicyMatcher);
         return this;
     }
@@ -95,8 +95,8 @@ public final class NodeAssert extends AbstractAssert<NodeAssert, Node> {
         isExactlyInstanceOf(ColumnDefinition.class);
         ColumnDefinition<?> columnDefinition = (ColumnDefinition<?>) actual;
 
-        assertThat(columnDefinition.ident()).isEqualTo(expectedIdent);
-        assertThat(columnDefinition.constraints()).isEmpty();
+        assertThat(columnDefinition.ident()).as(info.description()).isEqualTo(expectedIdent);
+        assertThat(columnDefinition.constraints()).as(info.description()).isEmpty();
         assertThat(columnDefinition.type()).as("columnType").satisfies(columnTypeMatcher);
         return this;
     }

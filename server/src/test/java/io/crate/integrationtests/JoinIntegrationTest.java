@@ -1618,11 +1618,12 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("explain (costs false) " + stmt);
 
         assertThat(response).hasLines(
-            "HashJoin[INNER | ((a = c) AND (b = c))]",
-            "  ├ HashJoin[INNER | ((a = b) AND (x = y))]",
-            "  │  ├ Collect[doc.t1 | [a, x] | true]",
-            "  │  └ Collect[doc.t2 | [b, y] | true]",
-            "  └ Collect[doc.t3 | [c] | true]"
+            "Eval[a, x, b, y, c]",
+            "  └ HashJoin[INNER | (((b = c) AND (a = b)) AND (x = y))]",
+            "    ├ HashJoin[INNER | (a = c)]",
+            "    │  ├ Collect[doc.t1 | [a, x] | true]",
+            "    │  └ Collect[doc.t3 | [c] | true]",
+            "    └ Collect[doc.t2 | [b, y] | true]"
         );
 
         execute(stmt);
@@ -1821,7 +1822,8 @@ public class JoinIntegrationTest extends IntegTestCase {
             "  └ NestedLoopJoin[RIGHT | true] (rows=unknown)",
             "    ├ Collect[doc.t1 | [c0] | true] (rows=unknown)",
             "    └ Rename[\"1\"] AS sub0 (rows=unknown)",
-            "      └ TableFunction[empty_row | [1] | true] (rows=unknown)"
+            "      └ Eval[1] (rows=unknown)",
+            "        └ TableFunction[empty_row | [] | true] (rows=unknown)"
         );
 
         execute(query);

@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 
@@ -29,6 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedOptimizerRules;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 1)
 public class UnionIntegrationTest extends IntegTestCase {
@@ -331,5 +333,36 @@ public class UnionIntegrationTest extends IntegTestCase {
     public void test_null_literal_union_null_literal() {
         execute("select null from unnest([1, 2]) union select null from unnest([1])");
         assertThat(response).hasRows("NULL");
+    }
+
+    /**
+     * https://github.com/crate/crate/issues/20022
+     */
+    @UseRandomizedOptimizerRules(0)
+    @Test
+    public void test_union_filter_pushdown_cast_different_branch_types() throws Exception {
+        String query = "SELECT count(*) AS cnt FROM ( SELECT 1::integer AS x UNION ALL SELECT 2147483648::bigint AS x) AS u WHERE x > 2147483647";
+        // The left branch has the row as integer and the right branch has the row as bigint. Should cast the int up to bigint
+        execute("EXPLAIN (costs false) " + query);
+        assertThat(response).hasRows("""
+                Eval[count(*) AS cnt]
+                  └ HashAggregate[count(*)]
+                    └ Rename[] AS u
+                      └ Union[]
+                        ├ Filter[(1 AS x > 2147483647::bigint)]
+                        │  └ TableFunction[empty_row | [] | true]
+                        └ Filter[(2147483648::bigint AS x > 2147483647::bigint)]
+                          └ TableFunction[empty_row | [] | true]""");
+        execute(query);
+        assertThat(response).hasRows("1");
+    }
+
+    @UseRandomizedOptimizerRules(0)
+    @UseJdbc(0)
+    @Test
+    public void test_raises_if_cannot_cast_different_branch_types() throws Exception {
+        assertSQLError(() -> execute(
+                "SELECT count(*) AS cnt FROM ( SELECT 1::integer AS x UNION ALL SELECT 'cratedb' AS x) AS u WHERE x > 2147483647"))
+                .hasMessage("Cannot cast value `cratedb` to type `integer`");
     }
 }

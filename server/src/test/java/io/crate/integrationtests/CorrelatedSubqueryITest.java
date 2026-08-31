@@ -67,8 +67,9 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "    └ Rename[1, mountain] AS t\n" +
             "      └ Collect[sys.summits | [1, mountain] | true]\n" +
             "    └ SubPlan\n" +
-            "      └ Limit[2::bigint;0::bigint]\n" +
-            "        └ TableFunction[empty_row | [mountain] | true]\n"
+            "      └ Eval[mountain]\n" +
+            "        └ Limit[2::bigint;0::bigint]\n" +
+            "          └ TableFunction[empty_row | [] | true]\n"
         );
         execute("SELECT 1, (SELECT t.mountain) FROM sys.summits t");
         Comparator<Object[]> compareMountain = Comparator.comparing((Object[] row) -> (String) row[1]);
@@ -119,8 +120,9 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "        └ Rename[1, mountain] AS t\n" +
             "          └ Collect[sys.summits | [1, mountain] | true]\n" +
             "        └ SubPlan\n" +
-            "          └ Limit[2::bigint;0::bigint]\n" +
-            "            └ TableFunction[empty_row | [mountain] | true]\n"
+            "          └ Eval[mountain]\n" +
+            "            └ Limit[2::bigint;0::bigint]\n" +
+            "              └ TableFunction[empty_row | [] | true]\n"
         );
         execute(statement);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
@@ -227,8 +229,9 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "      └ Rename[x] AS t\n" +
             "        └ TableFunction[generate_series | [generate_series] | true]\n" +
             "      └ SubPlan\n" +
-            "        └ Limit[1;0]\n" +
-            "          └ TableFunction[empty_row | [x] | true]\n");
+            "        └ Eval[x]\n" +
+            "          └ Limit[1;0]\n" +
+            "            └ TableFunction[empty_row | [] | true]\n");
         execute(stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "1\n" +
@@ -250,8 +253,9 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "          └ Rename[mountain, region, height] AS t\n" +
             "            └ Collect[sys.summits | [mountain, region, height] | true]\n" +
             "          └ SubPlan\n" +
-            "            └ Limit[2::bigint;0::bigint]\n" +
-            "              └ TableFunction[empty_row | [mountain] | true]\n"
+            "            └ Eval[mountain]\n" +
+            "              └ Limit[2::bigint;0::bigint]\n" +
+            "                └ TableFunction[empty_row | [] | true]\n"
         );
         execute(stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
@@ -376,8 +380,9 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "                    ├ Collect[pg_catalog.pg_class | [oid, relnamespace] | (relname = table_name)]\n" +
             "                    └ Collect[pg_catalog.pg_namespace | [oid] | (nspname = table_schema)]\n" +
             "          └ SubPlan\n" +
-            "            └ Limit[2::bigint;0::bigint]\n" +
-            "              └ TableFunction[empty_row | [attrelid] | true]\n"
+            "            └ Eval[attrelid]\n" +
+            "              └ Limit[2::bigint;0::bigint]\n" +
+            "                └ TableFunction[empty_row | [] | true]\n"
         );
         execute(stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(

@@ -95,7 +95,6 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
         }
     }
 
-
     @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
         Map<LogicalPlan, SelectSymbol> leftDeps = lhs.dependencies();

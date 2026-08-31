@@ -25,6 +25,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+import io.crate.common.annotations.VisibleForTesting;
+
 /**
  * Wrapper for maps containing large number of elements.
  *
@@ -39,17 +41,27 @@ public class ResizeAwareMap<K, V> implements Map<K, V> {
     private final Map<K, V> delegate;
     private final float loadFactor;
     private final boolean openAddressing;
+    private final long singleItemBytes;
 
     private int currentCapacity;
 
+    /**
+     * @param openAddressing represents if it's a Netty map (true) or JDK map (false)
+     *
+     * @param singleItemBytes represents bytes per additional capacity slot on resize.
+     * JDK maps only store an object reference per slot, regardless of the key type.
+     * Netty maps additionally keep a primitive key array.
+     */
     public ResizeAwareMap(Map<K, V> delegate,
                           int initialCapacity,
                           float loadFactor,
-                          boolean openAddressing) {
+                          boolean openAddressing,
+                          long singleItemBytes) {
         this.delegate = delegate;
         this.currentCapacity = tableSizeFor(initialCapacity);
         this.loadFactor = loadFactor;
         this.openAddressing = openAddressing;
+        this.singleItemBytes = singleItemBytes;
     }
 
     @Override
@@ -118,12 +130,17 @@ public class ResizeAwareMap<K, V> implements Map<K, V> {
      * @return internal capacity increase
      * after the next put() which will add a new unique key.
      */
-    public int expectedCapacityIncrease() {
+    @VisibleForTesting
+    int expectedCapacityIncrease() {
         int capacity = currentCapacity;
         while (capacity < MAXIMUM_CAPACITY && delegate.size() + 1 > resizeThreshold(capacity)) {
             capacity = capacity << 1;
         }
         return capacity - currentCapacity;
+    }
+
+    public long expectedCapacityIncreaseBytes() {
+        return singleItemBytes * expectedCapacityIncrease();
     }
 
     public int currentCapacity() {

@@ -66,6 +66,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.optimizer.rule.EquiJoinToLookupJoin;
+import io.crate.planner.optimizer.rule.EliminateCrossJoin;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.statistics.Stats;
@@ -84,6 +85,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
+            .addTable(T3.T3_DEFINITION)
             .addView(new RelationName("doc", "v2"), "SELECT a, x FROM doc.t1")
             .addView(new RelationName("doc", "v3"), "SELECT a, x FROM doc.t1");
     }
@@ -569,6 +571,35 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_filter_on_nested_cross_join_to_nested_inner_joins() {
+        sqlExecutor.getSessionSettings().excludedOptimizerRules().add(EliminateCrossJoin.class);
+
+        LogicalPlan plan = plan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1
+            CROSS JOIN t2
+            CROSS JOIN t3
+            WHERE t1.x = t2.y
+              AND t1.x = t3.z
+              AND t2.y = t3.z
+              AND t1.x > 1
+              AND t2.y > 2
+              AND t3.z > 3
+            """
+        );
+
+        assertThat(plan).isEqualTo(
+            """
+            HashJoin[INNER | ((x = z) AND (y = z))]
+              ├ HashJoin[INNER | (x = y)]
+              │  ├ Collect[doc.t1 | [x] | (x > 1)]
+              │  └ Collect[doc.t2 | [y] | (y > 2)]
+              └ Collect[doc.t3 | [z] | (z > 3)]
+            """
+        );
+    }
+
+    @Test
     public void test_unused_table_function_in_subquery_is_not_pruned() {
         LogicalPlan plan = plan("SELECT name FROM (SELECT name, unnest(counters), text FROM users) u");
         assertThat(plan).isEqualTo(
@@ -741,11 +772,14 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = sqlExecutor.logicalPlan("""
             SELECT i, avgx FROM (SELECT a, avg(x) OVER(ORDER BY i) as avgx, i FROM t1) as vt
             """);
+        // x comes first in the plan because window functions picked up first in SplitPointsBuilder.
+        // Then last Eval is added to re-order as user wants.
         assertThat(plan).hasOperators(
-            "Rename[i, avgx] AS vt",
-            "  └ Eval[i, avg(x) OVER (ORDER BY i ASC) AS avgx]",
-            "    └ WindowAgg[x, i] | [avg(x) OVER (ORDER BY i ASC)]",
-            "      └ Collect[doc.t1 | [x, i] | true]"
+            "Eval[i, avgx]",
+            "  └ Rename[avgx, i] AS vt",
+            "    └ Eval[avg(x) OVER (ORDER BY i ASC) AS avgx, i]",
+            "      └ WindowAgg[x, i] | [avg(x) OVER (ORDER BY i ASC)]",
+            "        └ Collect[doc.t1 | [x, i] | true]"
         );
     }
 
@@ -758,11 +792,12 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             """);
         assertThat(plan).isEqualTo(
             """
-                Rename[sumx, umaxx, minx, uavgx] AS vt
-                  └ Eval[sum(x) AS sumx, unnest([max(x)]) AS umaxx, min(x) AS minx, unnest([avg(x)]) AS uavgx]
-                    └ ProjectSet[unnest([min(x)]), unnest([max(x)]), unnest([avg(x)]), unnest([sum(x)]), sum(x), max(x), min(x), avg(x)]
-                      └ HashAggregate[min(x), max(x), avg(x), sum(x)]
-                        └ Collect[doc.t1 | [x] | true]""");
+                Eval[sumx, umaxx, minx, uavgx]
+                  └ Rename[minx, umaxx, uavgx, sumx] AS vt
+                    └ Eval[min(x) AS minx, unnest([max(x)]) AS umaxx, unnest([avg(x)]) AS uavgx, sum(x) AS sumx]
+                      └ ProjectSet[unnest([min(x)]), unnest([max(x)]), unnest([avg(x)]), unnest([sum(x)]), sum(x), max(x), min(x), avg(x)]
+                        └ HashAggregate[min(x), max(x), avg(x), sum(x)]
+                          └ Collect[doc.t1 | [x] | true]""");
     }
 
     @Test
@@ -988,7 +1023,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "    └ NestedLoopJoin[INNER | CASE WHEN (col0 = col0) THEN awesome ELSE false END]",
                 "      ├ Collect[doc.users | [awesome] | true]",
                 "      └ Rename[col0] AS sub0",
-                "        └ TableFunction[empty_row | [1 AS col0] | true]"
+                "        └ Eval[1 AS col0]",
+                "          └ TableFunction[empty_row | [] | true]"
             );
     }
 }

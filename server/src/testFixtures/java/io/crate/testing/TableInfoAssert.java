@@ -41,7 +41,7 @@ public class TableInfoAssert extends AbstractAssert<TableInfoAssert, TableInfo> 
     }
 
     public TableInfoAssert hasSize(int size) {
-        Assertions.assertThat(actual).hasSize(size);
+        Assertions.assertThat(actual).as(info.description()).hasSize(size);
         return this;
     }
 

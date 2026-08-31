@@ -273,10 +273,10 @@ final class GroupByOptimizedIterator {
                     String keyStr = sharedKey.utf8ToString();
                     countsByKey.compute(keyStr, (k, count) -> {
                         if (count == null) {
-                            long capacityIncreaseBytes =
-                                (long) RamUsageEstimator.NUM_BYTES_OBJECT_REF * countsByKey.expectedCapacityIncrease();
                             ramAccounting.addBytes(
-                                RamUsageEstimator.sizeOf(keyStr) + HASH_MAP_ENTRY_OVERHEAD + capacityIncreaseBytes);
+                                RamUsageEstimator.sizeOf(keyStr)
+                                    + HASH_MAP_ENTRY_OVERHEAD
+                                    + countsByKey.expectedCapacityIncreaseBytes());
                             return (long) numDocs;
                         }
                         return count + numDocs;

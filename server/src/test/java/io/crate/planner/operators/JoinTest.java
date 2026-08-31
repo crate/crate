@@ -28,7 +28,6 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isInputColumn;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -600,14 +599,16 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         // This resulted in an `Can't handle Symbol [SimpleReference: event_time]` error because `event_time` is not an output of the Join, but is fetched
         assertThat(plan).hasOperators(
             "Rename[user_type, domain] AS doc.user_session_visitortype",
-            "  └ Fetch[CASE WHEN (event_time = first_event_time) THEN 'new_user' ELSE 'returning_user' END AS user_type, domain]",
-            "    └ Limit[1::bigint;0]",
-            "      └ HashJoin[INNER | (user_id = user_id)]",
-            "        ├ Rename[first_event_time, user_id] AS first_visit",
-            "        │  └ Eval[min(event_time) AS first_event_time, user_id]",
-            "        │    └ GroupHashAggregate[user_id | min(event_time)]",
-            "        │      └ Collect[doc.user_session | [event_time, user_id] | true]",
-            "        └ Collect[doc.user_session | [_fetchid, user_id] | (domain = 'example.com')]"
+            "  └ Eval[CASE WHEN (event_time = first_event_time) THEN 'new_user' ELSE 'returning_user' END AS user_type, domain]",
+            "    └ Fetch[event_time, domain, first_event_time]",
+            "      └ Limit[1::bigint;0]",
+            "        └ Eval[_fetchid, first_event_time]",
+            "          └ HashJoin[INNER | (user_id = user_id)]",
+            "            ├ Rename[user_id, first_event_time] AS first_visit",
+            "            │  └ Eval[user_id, min(event_time) AS first_event_time]",
+            "            │    └ GroupHashAggregate[user_id | min(event_time)]",
+            "            │      └ Collect[doc.user_session | [event_time, user_id] | true]",
+            "            └ Collect[doc.user_session | [_fetchid, user_id] | (domain = 'example.com')]"
         );
     }
 
@@ -906,9 +907,10 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                   │  └ Collect[doc.c | [x] | true]
                   └ Collect[doc.d | [] | true]
                 └ SubPlan
-                  └ Limit[2::bigint;0::bigint]
-                    └ Filter[(((x = 1) AND (x = 1)) AND (x = 1))]
-                      └ TableFunction[empty_row | [1] | true]
+                  └ Eval[1]
+                    └ Limit[2::bigint;0::bigint]
+                      └ Filter[(((x = 1) AND (x = 1)) AND (x = 1))]
+                        └ TableFunction[empty_row | [] | true]
             """
         );
     }
@@ -950,7 +952,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "  │  ├ Collect[doc.t1 | [a, x, i] | true]",
             "  │  └ Collect[doc.t2 | [b, y, i] | true]",
             "  └ Rename[foo] AS temp",
-            "    └ TableFunction[empty_row | [1 AS foo] | true]"
+            "    └ Eval[1 AS foo]",
+            "      └ TableFunction[empty_row | [] | true]"
         );
     }
 
@@ -1014,8 +1017,10 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "    │    └ Collect[pg_catalog.pg_attrdef | [adbin, adrelid, adnum] | true]",
             "    └ Rename[oid, attnum] AS vals",
             "      └ Union[oid, attnum]",
-            "        ├ TableFunction[empty_row | [-2002935028 AS oid, 1 AS attnum] | true]",
-            "        └ TableFunction[empty_row | [-2002935028, 2] | true]"
+            "        ├ Eval[-2002935028 AS oid, 1 AS attnum]",
+            "        │  └ TableFunction[empty_row | [] | true]",
+            "        └ Eval[-2002935028, 2]",
+            "          └ TableFunction[empty_row | [] | true]"
         );
 
     }

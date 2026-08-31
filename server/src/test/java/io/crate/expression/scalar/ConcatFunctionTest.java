@@ -33,6 +33,7 @@ import java.util.Map;
 import org.junit.Test;
 
 import io.crate.exceptions.UnsupportedFunctionException;
+import io.crate.sql.tree.BitString;
 import io.crate.types.DataTypes;
 
 public class ConcatFunctionTest extends ScalarTestCase {
@@ -149,5 +150,73 @@ public class ConcatFunctionTest extends ScalarTestCase {
     @Test
     public void test_concat_operator_with_element_and_array() {
         assertEvaluate("1 || [2]", List.of(1, 2));
+    }
+
+    @Test
+    public void test_concat_operator_with_bit_strings() {
+        assertNormalize(
+            "B'1001' || B'10001'",
+            isLiteral(BitString.ofRawBits("100110001"))
+        );
+    }
+
+    @Test
+    public void test_concat_operator_with_bit_strings_of_different_lengths() {
+        assertNormalize(
+            "B'101' || B'01010'",
+            isLiteral(BitString.ofRawBits("10101010"))
+        );
+    }
+
+    @Test
+    public void test_concat_operator_with_empty_bit_strings() {
+        assertNormalize(
+            "B'' || B'101'",
+            isLiteral(BitString.ofRawBits("101"))
+        );
+        assertNormalize(
+            "B'101' || B''",
+            isLiteral(BitString.ofRawBits("101"))
+        );
+    }
+
+    @Test
+    public void test_concat_operator_with_null_bit_strings() {
+        assertNormalize("NULL::bit(1) || B'101'", isLiteral(null));
+        assertNormalize("B'101' || NULL::bit(1)", isLiteral(null));
+    }
+
+    @Test
+    public void test_concat_function_with_bit_strings() {
+        assertNormalize(
+            "concat(B'1001', B'10001')",
+            isLiteral(BitString.ofRawBits("100110001"))
+        );
+    }
+
+    @Test
+    public void test_concat_function_with_bit_strings_of_different_lengths() {
+        assertNormalize(
+            "concat(B'101', B'01010')",
+            isLiteral(BitString.ofRawBits("10101010"))
+        );
+    }
+
+    @Test
+    public void test_concat_function_with_empty_bit_strings() {
+        assertNormalize(
+            "concat(B'', B'101')",
+            isLiteral(BitString.ofRawBits("101"))
+        );
+        assertNormalize(
+            "concat(B'101', B'')",
+            isLiteral(BitString.ofRawBits("101"))
+        );
+    }
+
+    @Test
+    public void test_concat_function_with_null_bit_strings() {
+        assertNormalize("concat(NULL::bit(1), B'101')", isLiteral(BitString.ofRawBits("101")));
+        assertNormalize("concat(B'101', NULL::bit(1))", isLiteral(BitString.ofRawBits("101")));
     }
 }
