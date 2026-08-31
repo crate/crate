@@ -207,6 +207,7 @@ import io.crate.sql.tree.JoinUsing;
 import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.LikePredicate;
 import io.crate.sql.tree.Literal;
+import io.crate.sql.tree.LocStmt;
 import io.crate.sql.tree.LogicalBinaryExpression;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.MatchPredicate;
@@ -310,7 +311,15 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitStatements(StatementsContext ctx) {
-        return new MultiStatement(visitCollection(ctx.statement(), Statement.class));
+        List<StatementContext> statements = ctx.statement();
+        ArrayList<LocStmt> result = new ArrayList<>(statements.size());
+        for (StatementContext statement : statements) {
+            Token start = statement.getStart();
+            Token stop = statement.getStop();
+            Statement stmt = (Statement) visit(statement);
+            result.add(new LocStmt(start, stop, stmt));
+        }
+        return new MultiStatement(result);
     }
 
     @Override
