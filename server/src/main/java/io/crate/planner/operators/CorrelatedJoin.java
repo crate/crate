@@ -158,12 +158,19 @@ public class CorrelatedJoin implements LogicalPlan {
         if (inputPlan == newInputPlan) {
             return this;
         }
-        return new CorrelatedJoin(
+        CorrelatedJoin correlatedJoin = new CorrelatedJoin(
             newInputPlan,
             selectSymbol,
             subQueryPlan,
             Lists.concat(newInputPlan.outputs(), selectSymbol)
         );
+        // New outputs based on source pruning and selectSymbol.
+        // Source pruning order is taken care of source plan itself and
+        // adding select symbol at the end matches original order in constructor.
+        // Hence, we can validate outputs after the pruning,
+        // but don't have to normalize own outputs.
+        validateOutputsOrder(correlatedJoin.outputs());
+        return correlatedJoin;
     }
 
     @Override
