@@ -227,17 +227,12 @@ public class Get implements LogicalPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
-        ArrayList<Symbol> newOutputs = new ArrayList<>();
-        boolean excludedAny = false;
-        for (Symbol output : outputs) {
-            if (outputsToKeep.contains(output)) {
-                newOutputs.add(output);
-            } else {
-                excludedAny = true;
-            }
-        }
-        if (excludedAny) {
-            return new Get(tableRelation, docKeys, query, newOutputs, queryHasPkSymbolsOnly);
+        // TODO: It's possible to improve pruning by doing deep intersection
+        List<Symbol> newOutputs = Lists.intersection(outputs, outputsToKeep);
+        if (newOutputs.size() != outputs.size()) {
+            Get newPlan = new Get(tableRelation, docKeys, query, newOutputs, queryHasPkSymbolsOnly);
+            validateOutputsOrder(newPlan.outputs());
+            return newPlan;
         }
         return this;
     }
