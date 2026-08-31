@@ -296,6 +296,13 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             var res = executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id");
             assertThat(res).hasRows("1| 1", "3| 1");
         }, 10, TimeUnit.SECONDS);
+
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (4, 1)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var res = executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1| 1", "3| 1", "4| 1");
+        }, 10, TimeUnit.SECONDS);
     }
 
     @Test
