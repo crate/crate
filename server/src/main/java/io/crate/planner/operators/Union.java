@@ -290,7 +290,11 @@ public class Union implements LogicalPlan {
         if (newLhsIndices == null || newLhsIndices.equals(newRhsIndices) == false) {
             return this;
         }
-        return new Union(newLhs, newRhs, outputsAt(outputs, newLhsIndices));
+        // Union takes care of outputs ordering in outputsAt.
+        // Hence, we only validate outputs after the pruning.
+        Union newPlan = new Union(newLhs, newRhs, outputsAt(outputs, newLhsIndices));
+        validateOutputsOrder(newPlan.outputs());
+        return newPlan;
     }
 
     @Override
