@@ -186,6 +186,18 @@ Administration and Operations
   resources from hosts reachable on an internal network or other arbitrary hosts
   using :ref:`COPY FROM <sql-copy-from>`.
 
+- Added support for `OpenID Connect Discovery
+  <https://openid.net/specs/openid-connect-discovery-1_0.html>`_ to the
+  :ref:`JWT authentication method <auth_jwt>`. The ``iss`` value of a
+  :ref:`user's JWT properties <create-user-jwt>` or of the
+  :ref:`jwt_defaults` can now be the issuer identifier of a standard OpenID
+  Connect provider, instead of the URL of its JWK endpoint. CrateDB then
+  requests ``<iss>/.well-known/openid-configuration`` and reads the JWK
+  endpoint URL from the ``jwks_uri`` field of the discovery document.
+
+  Issuers that do not serve a discovery document are unaffected: CrateDB
+  falls back to using ``iss`` as the JWK endpoint URL directly.
+
 Client interfaces
 -----------------
 
