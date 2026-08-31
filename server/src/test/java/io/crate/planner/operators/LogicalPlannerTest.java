@@ -795,7 +795,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 Eval[sumx, umaxx, minx, uavgx]
                   └ Rename[minx, umaxx, uavgx, sumx] AS vt
                     └ Eval[min(x) AS minx, unnest([max(x)]) AS umaxx, unnest([avg(x)]) AS uavgx, sum(x) AS sumx]
-                      └ ProjectSet[unnest([min(x)]), unnest([max(x)]), unnest([avg(x)]), unnest([sum(x)]), sum(x), max(x), min(x), avg(x)]
+                      └ ProjectSet[unnest([min(x)]), unnest([max(x)]), unnest([avg(x)]), unnest([sum(x)]), min(x), max(x), avg(x), sum(x)]
                         └ HashAggregate[min(x), max(x), avg(x), sum(x)]
                           └ Collect[doc.t1 | [x] | true]""");
     }
