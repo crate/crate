@@ -354,9 +354,9 @@ public class Collect implements LogicalPlan {
         if (prunedOutputs.size() == outputs.size()) {
             return this;
         }
-        boolean isSubsequence = Lists.isSubsequence(prunedOutputs, outputs);
-        assert isSubsequence : "pruneOutputsExcept must not shuffle the outputs, it can only remove some of them.";
-        return withOutputs(prunedOutputs);
+        Collect newPlan = withOutputs(prunedOutputs);
+        validateOutputsOrder(newPlan.outputs());
+        return newPlan;
     }
 
     @Nullable
