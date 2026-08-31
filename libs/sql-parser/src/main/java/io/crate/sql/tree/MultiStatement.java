@@ -26,9 +26,9 @@ import java.util.List;
 
 public class MultiStatement extends Statement {
 
-    private final List<Statement> statements;
+    private final List<LocStmt> statements;
 
-    public MultiStatement(List<Statement> statements) {
+    public MultiStatement(List<LocStmt> statements) {
         this.statements = statements;
     }
 
@@ -67,7 +67,7 @@ public class MultiStatement extends Statement {
         return "MultiStatement{statements=" + statements + "}";
     }
 
-    public List<Statement> statements() {
+    public List<LocStmt> statements() {
         return statements;
     }
 }

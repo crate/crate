@@ -46,6 +46,11 @@ series.
 Fixes
 =====
 
+- Fixed ``command`` tags sent to PostgreSQL wire protocol clients when using the
+  simple query mode to execute multiple statements at once. Previously the
+  command tag was always based on the first statement, now each command tag is
+  derived from the corresponding individual statement.
+
 - Fixed an issue that caused a ``UNION ALL`` inside a sub-select to return an
   additional column, or to fail with ``Index x out of bounds for length y``, if
   the outer query used an ``ORDER BY`` on a column which was not selected and

@@ -95,6 +95,7 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.Declare.Hold;
 import io.crate.sql.tree.DiscardStatement.Target;
+import io.crate.sql.tree.LocStmt;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 
@@ -626,7 +627,7 @@ public class Session implements AutoCloseable {
         }
     }
 
-    public List<Statement> simpleQuery(String queryString) {
+    public List<LocStmt> simpleQuery(String queryString) {
         try {
             return SqlParser.createStatementsForSimpleQuery(
                 queryString,

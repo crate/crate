@@ -680,9 +680,11 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testHandleMultipleSimpleQueries() {
-        submitQueriesThroughSimpleQueryMode("select 'first'; select 'second';");
+        Session session = submitQueriesThroughSimpleQueryMode("select 'first'; select 'second';");
         readReadyForQueryMessage(channel);
         assertThat(channel.outboundMessages()).isEmpty();
+        String query = session.getQuery("");
+        assertThat(query).isEqualTo("select 'second'");
     }
 
     @Test
@@ -1068,15 +1070,15 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         }
     }
 
-    private void submitQueriesThroughSimpleQueryMode(String statements) {
-        submitQueriesThroughSimpleQueryMode(statements, null, null);
+    private Session submitQueriesThroughSimpleQueryMode(String statements) {
+        return submitQueriesThroughSimpleQueryMode(statements, null, null);
     }
 
     private void submitQueriesThroughSimpleQueryMode(String statements, Throwable failure) {
         submitQueriesThroughSimpleQueryMode(statements, failure, null);
     }
 
-    private void submitQueriesThroughSimpleQueryMode(String statements,
+    private Session submitQueriesThroughSimpleQueryMode(String statements,
                                                      @Nullable Throwable failure,
                                                      @Nullable CompletableFuture<?> future) {
         Sessions sqlOperations = Mockito.mock(Sessions.class);
@@ -1130,6 +1132,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         } finally {
             query.release();
         }
+        return session;
     }
 
     private static void sendStartupMessage(EmbeddedChannel channel) {
