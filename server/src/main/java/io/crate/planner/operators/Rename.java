@@ -120,12 +120,14 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
         for (Symbol sourceOutput : newSource.outputs()) {
             newOutputs.add(childToParentMap.get(sourceOutput));
         }
-        return new Rename(
+        Rename newPlan = new Rename(
             newOutputs,
             name,
             fieldResolver,
             newSource
         );
+        validateOutputsOrder(newPlan.outputs());
+        return newPlan;
     }
 
     @Nullable
