@@ -157,11 +157,14 @@ public class ProjectSet extends ForwardingLogicalPlan {
             Symbols.intersection(tableFunction, source.outputs(), toKeep::add);
         }
         toKeep.addAll(newStandalone);
+        List<Symbol> prunedOutputs = Lists.intersection(standalone, newStandalone);
         LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
         if (newSource == source) {
             return this;
         }
-        return new ProjectSet(newSource, tableFunctions, List.copyOf(newStandalone));
+        ProjectSet newPlan = new ProjectSet(newSource, tableFunctions, prunedOutputs);
+        validateOutputsOrder(newPlan.outputs());
+        return newPlan;
     }
 
     @Override
