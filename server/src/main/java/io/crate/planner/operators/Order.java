@@ -102,7 +102,13 @@ public class Order extends ForwardingLogicalPlan {
         if (newSource == source) {
             return this;
         }
-        return replaceSources(List.of(newSource));
+        LogicalPlan newPlan = replaceSources(List.of(newSource));
+        // Order doesn't create a new instance based on some f(outputsToKeep),
+        // it only calls source pruning.
+        // Hence, we can validate outputs after the pruning,
+        // but don't have to normalize own outputs.
+        validateOutputsOrder(newPlan.outputs());
+        return newPlan;
     }
 
     @Nullable
