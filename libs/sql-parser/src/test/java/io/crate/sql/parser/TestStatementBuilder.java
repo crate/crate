@@ -69,6 +69,7 @@ import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.KillStatement;
+import io.crate.sql.tree.LocStmt;
 import io.crate.sql.tree.MatchPredicate;
 import io.crate.sql.tree.NegativeExpression;
 import io.crate.sql.tree.ObjectLiteral;
@@ -97,41 +98,74 @@ public class TestStatementBuilder {
 
     @Test
     public void testMultipleStatements() {
-        List<Statement> statements = SqlParser.createStatementsForSimpleQuery("BEGIN; END;", str -> str);
+        String sql = "BEGIN; END;";
+        List<LocStmt> statements = SqlParser.createStatementsForSimpleQuery(sql, str -> str);
         assertThat(statements).hasSize(2);
-        assertThat(statements.get(0)).isExactlyInstanceOf(BeginStatement.class);
-        assertThat(statements.get(1)).isExactlyInstanceOf(CommitStatement.class);
+        LocStmt fst = statements.get(0);
+        assertThat(fst.querySubset(sql)).isEqualTo("BEGIN");
+        assertThat(fst.stmt()).isExactlyInstanceOf(BeginStatement.class);
+        LocStmt snd = statements.get(1);
+        assertThat(snd.stmt()).isExactlyInstanceOf(CommitStatement.class);
+        assertThat(snd.querySubset(sql)).isEqualTo("END");
 
         statements = SqlParser.createStatementsForSimpleQuery("BEGIN; END", str -> str);
         assertThat(statements).hasSize(2);
-        assertThat(statements.get(0)).isExactlyInstanceOf(BeginStatement.class);
-        assertThat(statements.get(1)).isExactlyInstanceOf(CommitStatement.class);
+        LocStmt assertion2 = statements.get(0);
+        assertThat(assertion2.stmt()).isExactlyInstanceOf(BeginStatement.class);
+        LocStmt assertion5 = statements.get(1);
+        assertThat(assertion5.stmt()).isExactlyInstanceOf(CommitStatement.class);
 
         statements = SqlParser.createStatementsForSimpleQuery("BEGIN", str -> str);
         assertThat(statements).hasSize(1);
-        assertThat(statements.get(0)).isExactlyInstanceOf(BeginStatement.class);
+        LocStmt assertion3 = statements.get(0);
+        assertThat(assertion3.stmt()).isExactlyInstanceOf(BeginStatement.class);
 
         statements = SqlParser.createStatementsForSimpleQuery("SET extra_float_digits = 3", str -> str);
         assertThat(statements).hasSize(1);
-        assertThat(statements.get(0)).isExactlyInstanceOf(SetStatement.class);
+        LocStmt assertion4 = statements.get(0);
+        assertThat(assertion4.stmt()).isExactlyInstanceOf(SetStatement.class);
 
-        assertThat(SqlParser.createStatementsForSimpleQuery("; select 1", x -> x))
-            .hasSize(1)
-            .hasOnlyElementsOfType(Query.class);
+        assertThat(SqlParser.createStatementsForSimpleQuery("; select 1", x -> x)).satisfiesExactly(
+            x -> assertThat(x.stmt()).isExactlyInstanceOf(Query.class)
+        );
 
-        assertThat(SqlParser.createStatementsForSimpleQuery(";;; select 1", x -> x))
-            .hasSize(1)
-            .hasOnlyElementsOfType(Query.class);
+        assertThat(SqlParser.createStatementsForSimpleQuery(";;; select 1", x -> x)).satisfiesExactly(
+            x -> assertThat(x.stmt()).isExactlyInstanceOf(Query.class)
+        );
 
-        assertThat(SqlParser.createStatementsForSimpleQuery("select 1;;;", x -> x))
-            .hasSize(1)
-            .hasOnlyElementsOfType(Query.class);
+        assertThat(SqlParser.createStatementsForSimpleQuery("select 1;;;", x -> x)).satisfiesExactly(
+            x -> assertThat(x.stmt()).isExactlyInstanceOf(Query.class)
+        );
 
-        assertThat(SqlParser.createStatementsForSimpleQuery("; select 1; select 2;", x -> x))
-            .hasSize(2)
-            .hasOnlyElementsOfType(Query.class);
+        assertThat(SqlParser.createStatementsForSimpleQuery("; select 1; select 2;", x -> x)).satisfiesExactly(
+            x -> assertThat(x.stmt()).isExactlyInstanceOf(Query.class),
+            x -> assertThat(x.stmt()).isExactlyInstanceOf(Query.class)
+        );
 
         assertThat(SqlParser.createStatementsForSimpleQuery(";;;;", x -> x)).isEmpty();
+
+        String sql2 =
+            """
+            CREATE TABLE tbl (
+                x int,
+                y int
+            );
+            SELECT 1
+            """;
+        statements = SqlParser.createStatementsForSimpleQuery(
+            sql2,
+            str -> str
+        );
+        assertThat(statements).satisfiesExactly(
+            x -> assertThat(x.querySubset(sql2)).isEqualTo(
+                """
+                CREATE TABLE tbl (
+                    x int,
+                    y int
+                )"""
+            ),
+            x -> assertThat(x.querySubset(sql2)).isEqualTo("SELECT 1")
+        );
     }
 
     @Test
