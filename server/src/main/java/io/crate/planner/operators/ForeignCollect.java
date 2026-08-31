@@ -21,6 +21,7 @@
 
 package io.crate.planner.operators;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.SequencedCollection;
@@ -38,6 +39,7 @@ import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.fdw.ForeignDataWrapper;
 import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.RelationName;
@@ -130,10 +132,17 @@ public class ForeignCollect implements LogicalPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
-        if (outputsToKeep.containsAll(toCollect)) {
+        ArrayList<Symbol> toKeep = new ArrayList<>();
+        for (Symbol outputToKeep : outputsToKeep) {
+            Symbols.intersection(outputToKeep, toCollect, toKeep::add);
+        }
+        List<Symbol> newToCollect = Lists.intersection(toCollect, toKeep);
+        if (newToCollect.size() == toCollect.size()) {
             return this;
         }
-        return new ForeignCollect(fdw, relation, List.copyOf(outputsToKeep), where, executeAs);
+        ForeignCollect foreignCollect = new ForeignCollect(fdw, relation, newToCollect, where, executeAs);
+        validateOutputsOrder(foreignCollect.outputs());
+        return foreignCollect;
     }
 
     public String executeAs() {
