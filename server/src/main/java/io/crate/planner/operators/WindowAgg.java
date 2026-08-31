@@ -137,9 +137,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
             Lists.intersection(windowFunctions(), windowFuncsUnordered),
             newSource.outputs()
         );
-        boolean isSubsequence = Lists.isSubsequence(newWindowAgg.outputs(), outputs());
-        assert isSubsequence : "pruneOutputsExcept must not shuffle the outputs, it can only remove some of them.";
-
+        validateOutputsOrder(newWindowAgg.outputs());
         return newWindowAgg;
     }
 
