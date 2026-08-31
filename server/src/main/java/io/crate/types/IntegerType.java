@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.function.Function;
 
+import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -57,6 +58,12 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
         public Integer decode(int input) {
             return input;
         }
+
+        @Override
+        public Integer decode(byte[] packedPoint) {
+            return NumericUtils.sortableBytesToInt(packedPoint, 0);
+        }
+
     };
 
     private IntegerType() {

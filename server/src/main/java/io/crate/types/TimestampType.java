@@ -38,6 +38,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -85,6 +86,12 @@ public final class TimestampType extends DataType<Long>
                                                Function<ColumnIdent, Reference> getRef) {
             return new LongIndexer(ref);
         }
+
+        @Override
+        public Long decode(byte[] packedPoint) {
+            return NumericUtils.sortableBytesToLong(packedPoint, 0);
+        }
+
     };
 
     private final int id;

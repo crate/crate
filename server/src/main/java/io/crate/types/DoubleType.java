@@ -118,6 +118,12 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
                                                  Function<ColumnIdent, Reference> getRef) {
             return new DoubleIndexer(ref);
         }
+
+        @Override
+        public Double decode(byte[] packedPoint) {
+            return NumericUtils.sortableLongToDouble(NumericUtils.sortableBytesToLong(packedPoint, 0));
+        }
+
     };
 
     private static final BigDecimal DOUBLE_MAX = BigDecimal.valueOf(Double.MAX_VALUE);
