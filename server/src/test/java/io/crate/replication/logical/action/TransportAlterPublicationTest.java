@@ -24,10 +24,13 @@ package io.crate.replication.logical.action;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.IOException;
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import io.crate.exceptions.RelationUnknown;
@@ -114,5 +117,58 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
         var newPublication = TransportAlterPublication.updatePublication(request, metadata, oldPublication);
         assertThat(newPublication).isNotEqualTo(oldPublication);
         assertThat(newPublication.tables()).containsExactly(RelationName.fromIndexName("t1"));
+    }
+
+    @Test
+    public void test_streaming_partition_targets() throws IOException {
+        var target = new TableOrPartition(new RelationName("doc", "t1"), "04132");
+        var request = new TransportAlterPublication.Request(
+            "pub1",
+            AlterPublication.Operation.ADD,
+            List.of(target)
+        );
+        var out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_5_0);
+        request.writeTo(out);
+
+        var in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_5_0);
+        var streamed = new TransportAlterPublication.Request(in);
+
+        assertThat(streamed).usingRecursiveComparison().isEqualTo(request);
+    }
+
+    @Test
+    public void test_streaming_table_targets_to_older_version() throws IOException {
+        var target = new TableOrPartition(new RelationName("doc", "t1"), null);
+        var request = new TransportAlterPublication.Request(
+            "pub1",
+            AlterPublication.Operation.ADD,
+            List.of(target)
+        );
+        var out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_4_0);
+        request.writeTo(out);
+
+        var in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_4_0);
+        var streamed = new TransportAlterPublication.Request(in);
+
+        assertThat(streamed).usingRecursiveComparison().isEqualTo(request);
+    }
+
+    @Test
+    public void test_cannot_stream_partition_targets_to_older_version() {
+        var request = new TransportAlterPublication.Request(
+            "pub1",
+            AlterPublication.Operation.ADD,
+            List.of(new TableOrPartition(new RelationName("doc", "t1"), "04132"))
+        );
+        var out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_4_0);
+
+        assertThatThrownBy(() -> request.writeTo(out))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Cannot write partition publication target to a node before");
     }
 }

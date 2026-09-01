@@ -22,11 +22,13 @@
 package io.crate.replication.logical.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -65,5 +67,58 @@ public class PublicationsMetadataTest extends ESTestCase {
         PublicationsMetadata pubs2 = new PublicationsMetadata(in);
         assertThat(pubs2).isEqualTo(pubs);
 
+    }
+
+    @Test
+    public void test_streaming_partition_targets() throws IOException {
+        var target = new TableOrPartition(new RelationName("doc", "t1"), "04132");
+        var publication = new Publication(
+            "user1",
+            false,
+            List.of(target)
+        );
+        var out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_5_0);
+        publication.writeTo(out);
+
+        var in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_5_0);
+        var streamed = new Publication(in);
+
+        assertThat(streamed.targets()).containsExactly(target);
+    }
+
+    @Test
+    public void test_streaming_table_targets_to_older_version() throws IOException {
+        var target = new TableOrPartition(new RelationName("doc", "t1"), null);
+        var publication = new Publication(
+            "user1",
+            false,
+            List.of(target)
+        );
+        var out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_4_0);
+        publication.writeTo(out);
+
+        var in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_4_0);
+        var streamed = new Publication(in);
+
+        assertThat(streamed.targets()).containsExactly(target);
+    }
+
+    @Test
+    public void test_cannot_stream_partition_targets_to_older_version() {
+        var publication = new Publication(
+            "user1",
+            false,
+            List.of(new TableOrPartition(new RelationName("doc", "t1"), "04132"))
+        );
+        var out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_4_0);
+
+        assertThatThrownBy(() -> publication.writeTo(out))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Cannot write partition publication target to a node before");
     }
 }

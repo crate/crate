@@ -22,11 +22,13 @@
 package io.crate.replication.logical.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -80,5 +82,65 @@ public class SubscriptionsMetadataTest extends ESTestCase {
         var subs2 = new SubscriptionsMetadata(in);
         assertThat(subs2).isEqualTo(subs);
 
+    }
+
+    @Test
+    public void test_streaming_partition_targets() throws IOException {
+        var target = new TableOrPartition(new RelationName("doc", "t1"), "04132");
+        var subscription = new Subscription(
+            "user1",
+            ConnectionInfo.fromURL("crate://example.com:4310"),
+            List.of("pub1"),
+            Settings.EMPTY,
+            Map.of(target, new Subscription.RelationState(Subscription.State.INITIALIZING, null))
+        );
+        var out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_5_0);
+        subscription.writeTo(out);
+
+        var in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_5_0);
+        var streamed = new Subscription(in);
+
+        assertThat(streamed.relations()).containsOnlyKeys(target);
+    }
+
+    @Test
+    public void test_streaming_table_targets_to_older_version() throws IOException {
+        var target = new TableOrPartition(new RelationName("doc", "t1"), null);
+        var subscription = new Subscription(
+            "user1",
+            ConnectionInfo.fromURL("crate://example.com:4310"),
+            List.of("pub1"),
+            Settings.EMPTY,
+            Map.of(target, new Subscription.RelationState(Subscription.State.INITIALIZING, null))
+        );
+        var out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_4_0);
+        subscription.writeTo(out);
+
+        var in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_4_0);
+        var streamed = new Subscription(in);
+
+        assertThat(streamed.relations()).containsOnlyKeys(target);
+    }
+
+    @Test
+    public void test_cannot_stream_partition_targets_to_older_version() {
+        var target = new TableOrPartition(new RelationName("doc", "t1"), "04132");
+        var subscription = new Subscription(
+            "user1",
+            ConnectionInfo.fromURL("crate://example.com:4310"),
+            List.of("pub1"),
+            Settings.EMPTY,
+            Map.of(target, new Subscription.RelationState(Subscription.State.INITIALIZING, null))
+        );
+        var out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_4_0);
+
+        assertThatThrownBy(() -> subscription.writeTo(out))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Cannot write partition subscription target to a node before");
     }
 }
