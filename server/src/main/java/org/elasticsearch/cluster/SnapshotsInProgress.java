@@ -202,39 +202,6 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             return true;
         }
 
-        public Entry(Snapshot snapshot,
-                     boolean includeGlobalState,
-                     boolean partial,
-                     State state,
-                     List<IndexId> indices,
-                     List<RelationName> relationNames,
-                     long startTime,
-                     long repositoryStateId,
-                     Map<ShardId, ShardSnapshotStatus> shards,
-                     Version version) {
-            this(snapshot, includeGlobalState, partial, state, indices, relationNames, startTime, repositoryStateId, shards, null, version);
-        }
-
-        public Entry(Entry entry,
-                     State state,
-                     List<IndexId> indices,
-                     long repositoryStateId,
-                     Map<ShardId, ShardSnapshotStatus> shards,
-                     Version version,
-                     String failure) {
-            this(
-                entry.snapshot,
-                entry.includeGlobalState,
-                entry.partial,
-                state,
-                indices,
-                entry.relationNames,
-                entry.startTime,
-                repositoryStateId, shards,
-                failure,
-                version);
-        }
-
         public Entry withRepoGen(long newRepoGen) {
             assert newRepoGen > repositoryStateId : "Updated repository generation [" + newRepoGen
                     + "] must be higher than current generation [" + repositoryStateId + "]";

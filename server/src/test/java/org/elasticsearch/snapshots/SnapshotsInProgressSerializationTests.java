@@ -89,6 +89,7 @@ public class SnapshotsInProgressSerializationTests extends AbstractDiffableWireS
             startTime,
             repositoryStateId,
             shards,
+            null,
             VersionUtils.randomVersion(random())
         );
     }
