@@ -21,6 +21,11 @@
 
 package io.crate.fdw;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -28,13 +33,6 @@ import dev.hardwood.InputFile;
 import dev.hardwood.reader.ParquetFileReader;
 import dev.hardwood.reader.RowReader;
 import dev.hardwood.schema.ColumnProjection;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -50,10 +48,10 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
     private ParquetFileReader reader;
     private RowReader rowReader;
     private final List<Reference> columns;
-    private final Path parquetFile;
+    private final InputFile inputFile;
 
-    public ParquetBatchIterator(Path parquetFile, List<Reference> columns) {
-        this.parquetFile = parquetFile;
+    public ParquetBatchIterator(InputFile inputFile, List<Reference> columns) {
+        this.inputFile = inputFile;
         this.columns = columns;
         this.cells = new Object[columns.size()];
         this.row = new RowN(cells);
@@ -122,7 +120,7 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
     @Override
     public CompletionStage<?> loadNextBatch() throws Exception {
         if (reader == null) {
-            reader = ParquetFileReader.open(InputFile.of(parquetFile));
+            reader = ParquetFileReader.open(inputFile);
             rowReader = reader.buildRowReader()
                     .projection(ColumnProjection.columns(columns.stream()
                             .map(ref -> ref.column().fqn())
