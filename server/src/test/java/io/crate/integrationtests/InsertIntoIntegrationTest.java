@@ -57,6 +57,8 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
+import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
@@ -2876,4 +2878,28 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows("0");
     }
 
+    // Ensures PK lookup is used
+    @UseRandomizedOptimizerRules(alwaysKeep = {
+        OptimizeCollectWhereClauseAccess.class,
+        MergeFilterAndCollect.class
+    })
+    @Test
+    public void test_routes_to_shard_based_on_clustered_by_with_default_value() throws Exception {
+        execute("create table tbl (x boolean primary key default true, y int)");
+        execute("insert into tbl (y) values (1)");
+        execute("select x, y from tbl where x = true");
+        assertThat(response).hasRows(
+            "true| 1"
+        );
+
+        execute("create table tb (x boolean default true, y int) clustered by (x)");
+        execute("insert into tb (x, y) values (true, 1)");
+        execute("insert into tb (y) values (2)");
+        execute("refresh table tb");
+        execute("select x, y from tb where x = true order by 2");
+        assertThat(response).hasRows(
+            "true| 1",
+            "true| 2"
+        );
+    }
 }
