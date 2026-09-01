@@ -46,6 +46,16 @@ series.
 Fixes
 =====
 
+- Fixed an issue that could cause inserts to be routed to the wrong shards if
+  writing to a table with more than one shard and a primary key column that has
+  a default clause and omitting that column in the INSERT INTO statement. Those
+  incorrectly routed records were then not found using ``SELECT`` statements
+  containing a ``WHERE`` clause with an equal expression on the primary key
+  column - which get optimized to do a primary key lookup.
+
+  Note that the fix doesn't repair already incorrectly routed records. It
+  prevents new records from being routed incorrectly.
+
 - Fixed ``command`` tags sent to PostgreSQL wire protocol clients when using the
   simple query mode to execute multiple statements at once. Previously the
   command tag was always based on the first statement, now each command tag is
