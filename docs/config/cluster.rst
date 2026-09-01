@@ -1528,7 +1528,7 @@ Copy from operations can be configured with the following settings.
 .. _copy_from.http.redirects:
 
 **copy_from.http.redirects**
-  | *Default:* ``normal``
+  | *Default:* ``normal`` (``never`` in the default crate.yml)
   | *Runtime:* ``yes``
 
 Configures if the HTTP client used for COPY FROM on HTTPS or HTTP urls should
@@ -1542,7 +1542,7 @@ follow redirects. The supported values are:
 .. _copy_from.http.blocked_hosts:
 
 **copy_from.http.blocked_hosts**
-  | *Default:* ``[]``
+  | *Default:* ``[]`` (``[_local_, _site_, _link_]`` in the default crate.yml)
   | *Runtime:* ``yes``
 
 Sets a list of blocked hosts. By default no hosts are blocked.

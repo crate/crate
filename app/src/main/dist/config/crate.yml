@@ -111,6 +111,15 @@ auth:
 #  trust:
 #    http_default_user: dustin
 
+
+# Restrict hosts that can be accessed via HTTP using COPY FROM and disables following redirects
+# This prevents users with DML permission from accessing data on internal networks
+# or gaining access as `crate` user by accessing localhost:4200
+copy_from:
+  http:
+    blocked_hosts: "_local_,_site_,_link_"
+    redirects: "never"
+
 #///////////////////////// User Defined Functions ////////////////////////////
 
 # To disable Javascript language for user defined functions, you can set it as

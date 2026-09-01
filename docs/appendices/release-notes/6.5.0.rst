@@ -90,6 +90,22 @@ Breaking Changes
   :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>` statement, which have been
   deprecated since :ref:`5.6.0 <version_6.5.0>`. Use ``USERMANAGEMENT`` instead.
 
+
+- Added :ref:`copy_from.http.redirects` and :ref:`copy_from.http.blocked_hosts`
+  settings to allow CrateDB administrators to prevent users from accessing HTTP
+  resources from hosts reachable on an internal network or other arbitrary hosts
+  using :ref:`COPY FROM <sql-copy-from>`.
+
+  The ``crate.yml`` shipped with the CrateDB tarball sets the blocked hosts to
+  ``_local_,_site_,_link_`` and disables redirects by default. On new
+  installations ``COPY FROM`` statements trying to access these blocked hosts
+  will therefore fail.
+
+  Existing installations aren't affected unless the ``crate.yml`` configuration
+  file is changed as part of the update - which we do recommend for improved
+  security.
+
+
 Deprecations
 ============
 
@@ -190,11 +206,6 @@ Performance and Resilience Improvements
 
 Administration and Operations
 -----------------------------
-
-- Added :ref:`copy_from.http.redirects` and :ref:`copy_from.http.blocked_hosts`
-  settings to allow CrateDB administrators to prevent users from accessing HTTP
-  resources from hosts reachable on an internal network or other arbitrary hosts
-  using :ref:`COPY FROM <sql-copy-from>`.
 
 - Added support for `OpenID Connect Discovery
   <https://openid.net/specs/openid-connect-discovery-1_0.html>`_ to the
