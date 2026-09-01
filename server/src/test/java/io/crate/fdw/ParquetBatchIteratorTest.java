@@ -21,14 +21,18 @@
 
 package io.crate.fdw;
 
-import java.util.List;
-
-import org.junit.Test;
-
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
+import org.apache.opendal.AsyncExecutor;
+import org.apache.opendal.AsyncOperator;
+import org.apache.opendal.Operator;
+import org.apache.opendal.ServiceConfig;
+import org.junit.Test;
+
+import dev.hardwood.InputFile;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
@@ -49,12 +53,38 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("trip_distance")));
-        ParquetBatchIterator it = new ParquetBatchIterator(parquetFile, columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.of(parquetFile), columns);
         it.loadNextBatch();
         while (it.moveNext()) {
             System.out.println("Current row: " + it.currentElement());
         }
         it.close();
 
+    }
+
+    @Test
+    public void test_read_from_s3() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+                .addTable("create table doc.taxi (trip_distance double)");
+        DocTableInfo table = e.resolveTableInfo("doc.taxi");
+        List<Reference> columns = List.of(
+                table.getReadReference(ColumnIdent.of("trip_distance")));
+
+        try (AsyncExecutor tokioExecutor = AsyncExecutor.createTokioExecutor(1)) {
+            ServiceConfig.S3 s3 = ServiceConfig.S3.builder()
+                .bucket("debug")
+                .disableConfigLoad(true)
+                .disableEc2Metadata(true)
+                .region("garage")
+                .build();
+            Operator operator = AsyncOperator.of(s3, tokioExecutor).blocking();
+            InputFile inputFile = new OpenDALInputFile(operator, "yellow_tripdata_2026-10rows.parquet");
+            ParquetBatchIterator it = new ParquetBatchIterator(inputFile, columns);
+            it.loadNextBatch();
+            while (it.moveNext()) {
+                System.out.println("Current row: " + it.currentElement());
+            }
+            it.close();
+        }
     }
 }
