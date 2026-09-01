@@ -23,9 +23,12 @@ package io.crate.fdw;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -73,9 +76,12 @@ public class ForeignDataWrappers implements CollectSource {
                                ThreadPool threadPool) {
         this.clusterService = clusterService;
         this.inputFactory = new InputFactory(nodeContext);
-        this.wrappers = Map.of(
-            "jdbc", new JdbcForeignDataWrapper(settings, inputFactory, threadPool.executor(ThreadPool.Names.SEARCH))
-        );
+        this.wrappers = new HashMap<>();
+        Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
+        for (var fdwProvider : ServiceLoader.load(FdwProvider.class)) {
+            ForeignDataWrapper wrapper = fdwProvider.create(settings, inputFactory, executor);
+            wrappers.put(fdwProvider.name(), wrapper);
+        }
         this.roles = nodeContext.roles();
     }
 
