@@ -30,6 +30,7 @@ import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.Literal;
 import io.crate.sql.tree.NumericLiteral;
@@ -308,5 +309,13 @@ public class LiteralsTest {
         Literal literal = Literal.fromObject(v);
         assertThat(literal).isExactlyInstanceOf(NumericLiteral.class);
         assertThat(((NumericLiteral) literal).value()).isEqualTo(v);
+    }
+
+    @Test
+    public void test_literal_from_bitstring() throws Exception {
+        BitString value = BitString.ofRawBits("0101");
+        Literal literal = Literal.fromObject(value);
+        assertThat(literal).isExactlyInstanceOf(BitString.class);
+        assertThat(literal).isEqualTo(value);
     }
 }

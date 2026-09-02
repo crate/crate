@@ -26,6 +26,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Locale;
@@ -41,6 +42,7 @@ import org.junit.Test;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.protocols.postgres.PGErrorStatus;
+import io.crate.sql.tree.BitString;
 import io.crate.testing.Asserts;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
@@ -80,6 +82,16 @@ public class ViewsITest extends IntegTestCase {
             RelationMetadata view = clusterService.state().metadata().getRelation(RelationName.fromIndexName(sqlExecutor.getCurrentSchema() + ".v1"));
             assertThat(view).isNull();
         }
+    }
+
+    @Test
+    public void test_can_use_bitstring_parameter_in_view_definition() throws Exception {
+        BitString value = BitString.ofRawBits("0001");
+        execute("create view v1 as select ?::bit(4)", $(value));
+        execute("select * from v1");
+        assertThat(response).hasRows(
+            "B'0001'"
+        );
     }
 
     @Test
