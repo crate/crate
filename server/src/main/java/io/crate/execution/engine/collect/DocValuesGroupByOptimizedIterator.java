@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
@@ -346,9 +347,15 @@ final class DocValuesGroupByOptimizedIterator {
         }
 
         /**
-         * Runs one task per leaf (segment) on {@code executor} -- a pool dedicated to this kind
-         * of fan-out, distinct from the SEARCH pool this whole batch-iterator pipeline already
-         * runs on, so blocking here on the joined result can't self-deadlock that pool.
+         * One map per THREAD, not per leaf -- mirrors ClickHouse's per-thread AggregatedDataVariants,
+         * which persists across every block (here: every leaf) that thread happens to process.
+         * Leaves are pre-partitioned into one group per available thread; each group's task builds
+         * a single map and accumulates every leaf in its group into it, so leaves that land on the
+         * same thread converge for free instead of each demanding their own merge input.
+         *
+         * Runs on {@code executor} -- a pool dedicated to this kind of fan-out, distinct from the
+         * SEARCH pool this whole batch-iterator pipeline already runs on, so blocking here on the
+         * joined result can't self-deadlock that pool.
          */
         @SuppressWarnings("rawtypes")
         private static <K> TwoLevelHashMap<K, Object[]> collectGroupedByKey(
@@ -364,21 +371,29 @@ final class DocValuesGroupByOptimizedIterator {
             Killable.Token killToken,
             ThreadPoolExecutor executor
         ) throws IOException {
+            List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
+            if (leaves.isEmpty()) {
+                return new TwoLevelHashMap<>();
+            }
             Weight weight = indexSearcher.createWeight(
                 indexSearcher.rewrite(query),
                 ScoreMode.COMPLETE_NO_SCORES,
                 1f
             );
-            List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
-            List<Supplier<TwoLevelHashMap<K, Object[]>>> tasks = new ArrayList<>(leaves.size());
-            for (var leaf : leaves) {
+            int idleThreads = ThreadPools.numIdleThreads(executor, Runtime.getRuntime().availableProcessors()).getAsInt();
+            int groupCount = Math.max(1, Math.min(idleThreads, leaves.size()));
+            int leavesPerGroup = (leaves.size() + groupCount - 1) / groupCount;
+            List<List<LeafReaderContext>> leafGroups = Lists.partition(leaves, leavesPerGroup);
+
+            List<Supplier<LeafGroupResult<K>>> tasks = new ArrayList<>(leafGroups.size());
+            for (var leafGroup : leafGroups) {
                 tasks.add(() -> {
                     try {
-                        return processLeaf(
+                        return processLeafGroup(
                             leafStateFactory.get(),
                             ramAccountingFactory.get(),
                             weight,
-                            leaf,
+                            leafGroup,
                             numberOfAggregates,
                             minNodeVersion,
                             accountForNewKeyEntryFactory,
@@ -390,13 +405,11 @@ final class DocValuesGroupByOptimizedIterator {
                     }
                 });
             }
-            List<TwoLevelHashMap<K, Object[]>> leafResults;
+            List<LeafGroupResult<K>> groupResults;
             try {
-                leafResults = ThreadPools.runWithAvailableThreads(
-                    executor,
-                    ThreadPools.numIdleThreads(executor, Runtime.getRuntime().availableProcessors()),
-                    tasks
-                ).join();
+                // groupCount was already sized to <= idleThreads, so this dispatches 1 task per
+                // thread directly instead of ThreadPools re-bundling multiple groups onto one.
+                groupResults = ThreadPools.runWithAvailableThreads(executor, () -> leafGroups.size(), tasks).join();
             } catch (CompletionException e) {
                 RuntimeException re = Exceptions.toRuntimeException(e);
                 if (re instanceof UncheckedIOException uio) {
@@ -404,23 +417,44 @@ final class DocValuesGroupByOptimizedIterator {
                 }
                 throw re;
             }
-            return mergeLeafResults(leafResults, reducers, ramAccountingFactory, executor);
+            return mergeGroupResults(groupResults, reducers, ramAccountingFactory, executor);
+        }
+
+        /**
+         * Below this many distinct keys, a thread's map stays flat -- cheap, no bucket-array/hash-mix
+         * overhead per op, no 256 up-front HashMap allocations. Only threads that actually accumulate
+         * past this get promoted to a {@link TwoLevelHashMap}, mid-scan, once. Mirrors ClickHouse's
+         * single-level -> two-level promotion instead of always paying the two-level cost.
+         */
+        private static final int TWO_LEVEL_PROMOTION_THRESHOLD = 10_000;
+
+        /** Either {@code twoLevel} or {@code flat} is set, never both -- see {@link #isTwoLevel()}. */
+        private record LeafGroupResult<K>(@Nullable TwoLevelHashMap<K, Object[]> twoLevel, @Nullable Map<K, Object[]> flat) {
+            static <K> LeafGroupResult<K> twoLevel(TwoLevelHashMap<K, Object[]> map) {
+                return new LeafGroupResult<>(map, null);
+            }
+
+            static <K> LeafGroupResult<K> flat(Map<K, Object[]> map) {
+                return new LeafGroupResult<>(null, map);
+            }
+
+            boolean isTwoLevel() {
+                return twoLevel != null;
+            }
         }
 
         @SuppressWarnings("rawtypes")
-        private static <K> TwoLevelHashMap<K, Object[]> processLeaf(
+        private static <K> LeafGroupResult<K> processLeafGroup(
             LeafState leafState,
             RamAccounting ramAccounting,
             Weight weight,
-            LeafReaderContext leaf,
+            List<LeafReaderContext> leafGroup,
             int numberOfAggregates,
             Version minNodeVersion,
             Function<RamAccounting, TriConsumer<ResizeAwareMap<K, Object[]>, K, Object[]>> accountForNewKeyEntryFactory,
             Function<List<? extends LuceneCollectorExpression<?>>, K> keyExtractor,
             Killable.Token killToken
         ) throws IOException {
-            killToken.raiseIfKilled();
-
             List<DocValueAggregator> aggregators = leafState.aggregators();
             List<LuceneCollectorExpression<?>> keyExpressions = leafState.keyExpressions();
             MemoryManager memoryManager = leafState.memoryManager();
@@ -429,90 +463,156 @@ final class DocValuesGroupByOptimizedIterator {
                 keyExpressions.get(i).startCollect(collectorContext);
             }
 
-            Scorer scorer = weight.scorer(leaf);
-            if (scorer == null) {
-                return new TwoLevelHashMap<>();
-            }
-
             TriConsumer<ResizeAwareMap<K, Object[]>, K, Object[]> accountForNewKeyEntry =
                 accountForNewKeyEntryFactory.apply(ramAccounting);
-            // Accumulate directly into the bucketed map (routing each key via its own bucket's
-            // ResizeAwareMap wrapper) instead of building a flat HashMap and copying it into a
-            // TwoLevelHashMap afterwards -- that copy would double the insert cost per leaf.
-            TwoLevelHashMap<K, Object[]> statesByKey = new TwoLevelHashMap<>();
-            @SuppressWarnings("unchecked")
-            ResizeAwareMap<K, Object[]>[] bucketWrappers = new ResizeAwareMap[statesByKey.numBuckets()];
-            for (int i = 0; i < bucketWrappers.length; i++) {
-                bucketWrappers[i] = GroupByMaps.wrapperForJDKMap(statesByKey.bucket(i));
-            }
 
-            for (int i = 0; i < keyExpressions.size(); i++) {
-                keyExpressions.get(i).setNextReader(new ReaderContext(leaf));
-            }
-            for (int i = 0; i < aggregators.size(); i++) {
-                aggregators.get(i).loadDocValues(leaf);
-            }
+            ResizeAwareMap<K, Object[]> flatStates = GroupByMaps.wrapperForJDKMap(new HashMap<>());
+            TwoLevelHashMap<K, Object[]> twoLevelStates = null;
+            ResizeAwareMap<K, Object[]>[] bucketWrappers = null;
 
-            DocIdSetIterator docs = scorer.iterator();
-            Bits liveDocs = leaf.reader().getLiveDocs();
-            for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
+            for (var leaf : leafGroup) {
                 killToken.raiseIfKilled();
-                if (docDeleted(liveDocs, doc)) {
+                Scorer scorer = weight.scorer(leaf);
+                if (scorer == null) {
                     continue;
                 }
 
                 for (int i = 0; i < keyExpressions.size(); i++) {
-                    keyExpressions.get(i).setNextDocId(doc);
+                    keyExpressions.get(i).setNextReader(new ReaderContext(leaf));
                 }
-                K key = keyExtractor.apply(keyExpressions);
-                ResizeAwareMap<K, Object[]> bucketMap = bucketWrappers[statesByKey.bucketIndex(key)];
+                for (int i = 0; i < aggregators.size(); i++) {
+                    aggregators.get(i).loadDocValues(leaf);
+                }
 
-                Object[] states = bucketMap.get(key);
-                if (states == null) {
-                    states = new Object[aggregators.size()];
-                    for (int i = 0; i < aggregators.size(); i++) {
-                        var aggregator = aggregators.get(i);
-
-                        Object state = aggregator.initialState(ramAccounting, memoryManager, minNodeVersion);
-
-                        //noinspection unchecked
-                        state = aggregator.apply(ramAccounting, doc, state);
-                        states[i] = state;
+                DocIdSetIterator docs = scorer.iterator();
+                Bits liveDocs = leaf.reader().getLiveDocs();
+                for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
+                    killToken.raiseIfKilled();
+                    if (docDeleted(liveDocs, doc)) {
+                        continue;
                     }
-                    accountForNewKeyEntry.accept(bucketMap, key, states);
-                    bucketMap.put(key, states);
-                } else {
-                    for (int i = 0; i < aggregators.size(); i++) {
-                        //noinspection unchecked
-                        states[i] = aggregators.get(i).apply(ramAccounting, doc, states[i]);
+
+                    for (int i = 0; i < keyExpressions.size(); i++) {
+                        keyExpressions.get(i).setNextDocId(doc);
+                    }
+                    K key = keyExtractor.apply(keyExpressions);
+                    ResizeAwareMap<K, Object[]> bucketMap = twoLevelStates == null
+                        ? flatStates
+                        : bucketWrappers[twoLevelStates.bucketIndex(key)];
+
+                    Object[] states = bucketMap.get(key);
+                    if (states == null) {
+                        states = new Object[aggregators.size()];
+                        for (int i = 0; i < aggregators.size(); i++) {
+                            var aggregator = aggregators.get(i);
+
+                            Object state = aggregator.initialState(ramAccounting, memoryManager, minNodeVersion);
+
+                            //noinspection unchecked
+                            state = aggregator.apply(ramAccounting, doc, state);
+                            states[i] = state;
+                        }
+                        accountForNewKeyEntry.accept(bucketMap, key, states);
+                        bucketMap.put(key, states);
+
+                        if (twoLevelStates == null && flatStates.size() >= TWO_LEVEL_PROMOTION_THRESHOLD) {
+                            twoLevelStates = toTwoLevel(flatStates);
+                            bucketWrappers = wrapBuckets(twoLevelStates);
+                            flatStates = null;
+                        }
+                    } else {
+                        for (int i = 0; i < aggregators.size(); i++) {
+                            //noinspection unchecked
+                            states[i] = aggregators.get(i).apply(ramAccounting, doc, states[i]);
+                        }
                     }
                 }
             }
 
+            Iterable<Map.Entry<K, Object[]>> finalEntries = twoLevelStates != null ? twoLevelStates : flatStates.entrySet();
             // Overwrite each entry's states array in place with its partial result -- same keys,
             // same buckets, so this needs no re-insertion/rehashing, just a value-array mutation.
-            for (var entry : statesByKey) {
+            for (var entry : finalEntries) {
                 Object[] rawStates = entry.getValue();
                 for (int i = 0; i < numberOfAggregates; i++) {
                     //noinspection unchecked
                     rawStates[i] = aggregators.get(i).partialResult(ramAccounting, rawStates[i]);
                 }
             }
-            return statesByKey;
+            return twoLevelStates != null ? LeafGroupResult.twoLevel(twoLevelStates) : LeafGroupResult.flat(flatStates);
+        }
+
+        private static <K> TwoLevelHashMap<K, Object[]> toTwoLevel(Map<K, Object[]> flat) {
+            TwoLevelHashMap<K, Object[]> result = new TwoLevelHashMap<>();
+            for (var entry : flat.entrySet()) {
+                result.put(entry.getKey(), entry.getValue());
+            }
+            return result;
+        }
+
+        @SuppressWarnings("unchecked")
+        private static <K> ResizeAwareMap<K, Object[]>[] wrapBuckets(TwoLevelHashMap<K, Object[]> map) {
+            ResizeAwareMap<K, Object[]>[] wrappers = new ResizeAwareMap[map.numBuckets()];
+            for (int i = 0; i < wrappers.length; i++) {
+                wrappers[i] = GroupByMaps.wrapperForJDKMap(map.bucket(i));
+            }
+            return wrappers;
         }
 
         /**
-         * Bucket index depends only on the key's hash, so bucket N of every leaf result and of
+         * If no thread's map ever promoted, merge the flat maps directly -- total size is bounded
+         * by threadCount * TWO_LEVEL_PROMOTION_THRESHOLD, too small for a parallel bucket-merge to
+         * pay for itself, and matches ClickHouse skipping the two-level path entirely in that case.
+         * Otherwise every group needs the same bucket shape to merge buckets independently in
+         * parallel, so any group that stayed flat gets cheaply promoted first (it's small, at most
+         * TWO_LEVEL_PROMOTION_THRESHOLD entries).
+         */
+        @SuppressWarnings("rawtypes")
+        private static <K> TwoLevelHashMap<K, Object[]> mergeGroupResults(List<LeafGroupResult<K>> groupResults,
+                                                                          List<AggregationFunction> reducers,
+                                                                          Supplier<RamAccounting> ramAccountingFactory,
+                                                                          ThreadPoolExecutor executor) {
+            if (groupResults.size() == 1) {
+                var only = groupResults.get(0);
+                return only.isTwoLevel() ? only.twoLevel() : toTwoLevel(only.flat());
+            }
+            boolean anyTwoLevel = false;
+            for (var groupResult : groupResults) {
+                if (groupResult.isTwoLevel()) {
+                    anyTwoLevel = true;
+                    break;
+                }
+            }
+            if (!anyTwoLevel) {
+                RamAccounting ramAccounting = ramAccountingFactory.get();
+                Map<K, Object[]> merged = new HashMap<>();
+                for (var groupResult : groupResults) {
+                    for (var entry : groupResult.flat().entrySet()) {
+                        merged.merge(entry.getKey(), entry.getValue(), (a, b) -> reduce(reducers, ramAccounting, a, b));
+                    }
+                }
+                return toTwoLevel(merged);
+            }
+
+            List<TwoLevelHashMap<K, Object[]>> bucketed = new ArrayList<>(groupResults.size());
+            for (var groupResult : groupResults) {
+                bucketed.add(groupResult.isTwoLevel() ? groupResult.twoLevel() : toTwoLevel(groupResult.flat()));
+            }
+            return mergeBucketedResults(bucketed, reducers, ramAccountingFactory, executor);
+        }
+
+        /**
+         * Bucket index depends only on the key's hash, so bucket N of every input and of
          * {@code result} all hold the exact same set of possible keys -- merging bucket N is
          * independent of every other bucket and can run on its own thread.
          */
         @SuppressWarnings("rawtypes")
-        private static <K> TwoLevelHashMap<K, Object[]> mergeLeafResults(List<TwoLevelHashMap<K, Object[]>> leafResults,
-                                                                          List<AggregationFunction> reducers,
-                                                                          Supplier<RamAccounting> ramAccountingFactory,
-                                                                          ThreadPoolExecutor executor) {
-            if (leafResults.size() <= 1) {
-                return leafResults.isEmpty() ? new TwoLevelHashMap<>() : leafResults.get(0);
+        private static <K> TwoLevelHashMap<K, Object[]> mergeBucketedResults(List<TwoLevelHashMap<K, Object[]>> bucketed,
+                                                                              List<AggregationFunction> reducers,
+                                                                              Supplier<RamAccounting> ramAccountingFactory,
+                                                                              ThreadPoolExecutor executor) {
+            if (bucketed.size() <= 1) {
+                return bucketed.isEmpty() ? new TwoLevelHashMap<>() : bucketed.get(0);
             }
             TwoLevelHashMap<K, Object[]> result = new TwoLevelHashMap<>();
             int numBuckets = result.numBuckets();
@@ -520,7 +620,7 @@ final class DocValuesGroupByOptimizedIterator {
             for (int b = 0; b < numBuckets; b++) {
                 int bucketIdx = b;
                 tasks.add(() -> {
-                    mergeBucket(bucketIdx, result, leafResults, reducers, ramAccountingFactory.get());
+                    mergeBucket(bucketIdx, result, bucketed, reducers, ramAccountingFactory.get());
                     return null;
                 });
             }
@@ -539,23 +639,26 @@ final class DocValuesGroupByOptimizedIterator {
         @SuppressWarnings("rawtypes")
         private static <K> void mergeBucket(int bucketIdx,
                                             TwoLevelHashMap<K, Object[]> result,
-                                            List<TwoLevelHashMap<K, Object[]>> leafResults,
+                                            List<TwoLevelHashMap<K, Object[]>> bucketed,
                                             List<AggregationFunction> reducers,
                                             RamAccounting ramAccounting) {
             Map<K, Object[]> target = result.bucket(bucketIdx);
-            for (var leafResult : leafResults) {
-                Map<K, Object[]> source = leafResult.bucket(bucketIdx);
+            for (var input : bucketed) {
+                Map<K, Object[]> source = input.bucket(bucketIdx);
                 for (var entry : source.entrySet()) {
-                    target.merge(entry.getKey(), entry.getValue(), (a, b) -> {
-                        Object[] out = new Object[reducers.size()];
-                        for (int j = 0; j < reducers.size(); j++) {
-                            //noinspection unchecked
-                            out[j] = reducers.get(j).reduce(ramAccounting, a[j], b[j]);
-                        }
-                        return out;
-                    });
+                    target.merge(entry.getKey(), entry.getValue(), (a, b) -> reduce(reducers, ramAccounting, a, b));
                 }
             }
+        }
+
+        @SuppressWarnings("rawtypes")
+        private static Object[] reduce(List<AggregationFunction> reducers, RamAccounting ramAccounting, Object[] a, Object[] b) {
+            Object[] out = new Object[reducers.size()];
+            for (int j = 0; j < reducers.size(); j++) {
+                //noinspection unchecked
+                out[j] = reducers.get(j).reduce(ramAccounting, a[j], b[j]);
+            }
+            return out;
         }
 
         private static boolean docDeleted(@Nullable Bits liveDocs, int doc) {
