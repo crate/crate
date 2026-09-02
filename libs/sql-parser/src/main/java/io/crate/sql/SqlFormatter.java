@@ -743,11 +743,9 @@ public final class SqlFormatter {
             builder.append(formatQualifiedName(node.getName()));
             if (!node.partitionProperties().isEmpty()) {
                 builder.append(" PARTITION (");
-                for (var assignment : node.partitionProperties()) {
-                    builder.append(assignment.columnName().toString());
-                    builder.append("=");
-                    builder.append(assignment.expression().toString());
-                }
+                builder.append(node.partitionProperties().stream()
+                    .map(assignment -> assignment.columnName().toString() + "=" + assignment.expression().toString())
+                    .collect(COMMA_JOINER));
                 builder.append(")");
             }
             return null;
@@ -1469,11 +1467,19 @@ public final class SqlFormatter {
                 builder.append(" FOR ALL TABLES");
             } else if (createPublication.tables().isEmpty() == false) {
                 builder.append(" FOR TABLE ");
-                builder.append(
-                    createPublication.tables().stream()
-                        .map(Formatter::formatQualifiedName)
-                        .collect(COMMA_JOINER)
-                );
+                builder.append(createPublication.tables().stream()
+                    .map(table -> {
+                        var formattedTable = new StringBuilder(formatQualifiedName(table.getName()));
+                        if (!table.partitionProperties().isEmpty()) {
+                            formattedTable.append(" PARTITION (")
+                                .append(table.partitionProperties().stream()
+                                    .map(assignment -> assignment.columnName().toString() + "=" + assignment.expression().toString())
+                                    .collect(COMMA_JOINER))
+                                .append(")");
+                        }
+                        return formattedTable;
+                    })
+                    .collect(COMMA_JOINER));
             }
             return null;
         }
