@@ -21,12 +21,22 @@
 
 package io.crate.replication.logical.plan;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 
+import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -53,13 +63,38 @@ public class CreatePublicationPlan implements Plan {
                               PlannerContext plannerContext,
                               RowConsumer consumer,
                               Row params, SubQueryResults subQueryResults) throws Exception {
+        Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
+            plannerContext.transactionContext(),
+            dependencies.nodeContext(),
+            x,
+            params,
+            subQueryResults
+        );
+        List<TableOrPartition> targets = new ArrayList<>(analyzedCreatePublication.tables().size());
+        var sessionSettings = plannerContext.transactionContext().sessionSettings();
+        for (var table : analyzedCreatePublication.tables()) {
+            DocTableInfo tableInfo = dependencies.schemas().findRelation(
+                table.getName(),
+                Operation.CREATE_PUBLICATION,
+                sessionSettings.sessionUser(),
+                sessionSettings.searchPath()
+            );
+            String partitionIdent = null;
+            if (table.partitionProperties().isEmpty() == false) {
+                var partitionProperties = Lists.map(table.partitionProperties(), x -> x.map(eval));
+                partitionIdent = PartitionName.ofAssignments(
+                    tableInfo,
+                    partitionProperties,
+                    plannerContext.clusterState().metadata()
+                ).ident();
+            }
+            targets.add(new TableOrPartition(tableInfo.ident(), partitionIdent));
+        }
         var request = new CreatePublicationRequest(
-            plannerContext.transactionContext().sessionSettings().sessionUser().name(),
+            sessionSettings.sessionUser().name(),
             analyzedCreatePublication.name(),
             analyzedCreatePublication.isForAllTables(),
-            analyzedCreatePublication.tables().stream()
-                .map(table -> new TableOrPartition(table, null))
-                .toList()
+            targets
         );
 
         dependencies.client().execute(TransportCreatePublication.ACTION, request)
