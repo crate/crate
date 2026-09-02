@@ -21,6 +21,9 @@
 
 package io.crate.replication.logical.analyze;
 
+import java.util.HashSet;
+import java.util.List;
+
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -29,7 +32,9 @@ import io.crate.common.collections.Lists;
 import io.crate.exceptions.InvalidArgumentException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnauthorizedException;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
@@ -44,12 +49,14 @@ import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsExceptio
 import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
 import io.crate.sql.tree.AlterPublication;
 import io.crate.sql.tree.AlterSubscription;
+import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.Table;
 
 public class LogicalReplicationAnalyzer {
 
@@ -69,17 +76,47 @@ public class LogicalReplicationAnalyzer {
         if (logicalReplicationService.publications().containsKey(createPublication.name())) {
             throw new PublicationAlreadyExistsException(createPublication.name());
         }
-        var tables = Lists.map(
+        var sessionSettings = txnCtx.sessionSettings();
+        var exprCtx = new ExpressionAnalysisContext(sessionSettings);
+        var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
+            txnCtx, nodeCtx, ParamTypeHints.EMPTY, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
+        List<Table<Symbol>> tables = Lists.map(
             createPublication.tables(),
-            q -> {
-                CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
+            table -> {
                 DocTableInfo tableInfo = schemas.findRelation(
-                    q,
+                    table.getName(),
                     Operation.CREATE_PUBLICATION,
                     sessionSettings.sessionUser(),
                     sessionSettings.searchPath()
                 );
-                return tableInfo.ident();
+                Table<Symbol> analyzedTable = table
+                    // include schema names to AnalyzedCreatePublication
+                    .withName(tableInfo.ident().toQualifiedName())
+                    .map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
+                var partitionProperties = analyzedTable.partitionProperties();
+                if (partitionProperties.isEmpty() == false) {
+                    if (tableInfo.isPartitioned() == false) {
+                        throw new IllegalArgumentException("table '" + tableInfo.ident().fqn() + "' is not partitioned");
+                    }
+                    if (partitionProperties.size() != tableInfo.partitionedBy().size()) {
+                        throw new IllegalArgumentException(
+                            "The table \"" + tableInfo.ident().fqn() + "\" is partitioned by " +
+                                tableInfo.partitionedBy().size() + " columns but the PARTITION clause contains " +
+                                partitionProperties.size() + " columns"
+                        );
+                    }
+                    HashSet<ColumnIdent> seenPartitionColumns = new HashSet<>();
+                    for (Assignment<Symbol> assignment : partitionProperties) {
+                        ColumnIdent column = ColumnIdent.fromPath((String) ((Literal<?>) assignment.columnName()).value());
+                        if (seenPartitionColumns.add(column) == false) {
+                            throw new IllegalArgumentException("column \"" + column.sqlFqn() + "\" specified more than once");
+                        }
+                        if (tableInfo.partitionedBy().contains(column) == false) {
+                            throw new IllegalArgumentException("\"" + column.sqlFqn() + "\" is not a partition column");
+                        }
+                    }
+                }
+                return analyzedTable;
             }
         );
 

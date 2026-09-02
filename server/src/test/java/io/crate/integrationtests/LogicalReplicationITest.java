@@ -41,10 +41,12 @@ import org.junit.Test;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.CreateSubscriptionException;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.role.Role;
@@ -163,6 +165,46 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             " JOIN pg_publication_tables t ON p.pubname = t.pubname" +
             " ORDER BY p.pubname, schemaname, tablename");
         assertThat(response).hasRows("-119974068| pub1| -450373579| false| doc| t1| true| true| true");
+    }
+
+    @Test
+    public void test_create_publication_for_concrete_partition() {
+        executeOnPublisher(
+            "CREATE TABLE doc.parted (id INT, p INT) " +
+            "PARTITIONED BY (p) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
+        executeOnPublisher("INSERT INTO doc.parted (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("REFRESH TABLE doc.parted");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.parted PARTITION (p = 1)");
+
+        PublicationsMetadata publicationsMetadata = publisherCluster.getInstance(ClusterService.class)
+            .state()
+            .metadata()
+            .custom(PublicationsMetadata.TYPE);
+        var publication = publicationsMetadata.publications().get("pub1");
+        var relationName = new RelationName("doc", "parted");
+        assertThat(publication.targets()).containsExactly(
+            new TableOrPartition(relationName, new PartitionName(relationName, List.of("1")).ident()));
+    }
+
+    @Test
+    public void test_create_publication_for_concrete_partition_with_parameter() {
+        executeOnPublisher(
+            "CREATE TABLE doc.parted (id INT, p INT) " +
+            "PARTITIONED BY (p) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
+        executeOnPublisher("INSERT INTO doc.parted (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("REFRESH TABLE doc.parted");
+        publisherSqlExecutor.exec(
+            "CREATE PUBLICATION pub1 FOR TABLE doc.parted PARTITION (p = ?)",
+            new Object[] { 1 });
+
+        PublicationsMetadata publicationsMetadata = publisherCluster.getInstance(ClusterService.class)
+            .state()
+            .metadata()
+            .custom(PublicationsMetadata.TYPE);
+        var publication = publicationsMetadata.publications().get("pub1");
+        var relationName = new RelationName("doc", "parted");
+        assertThat(publication.targets()).containsExactly(
+            new TableOrPartition(relationName, new PartitionName(relationName, List.of("1")).ident()));
     }
 
     @Test

@@ -21,8 +21,11 @@
 
 package io.crate.replication.logical.analyze;
 
+import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.List;
 
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
@@ -60,6 +63,79 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
 
         assertThatThrownBy(() -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE doc.t1"))
             .isExactlyInstanceOf(PublicationAlreadyExistsException.class);
+    }
+
+    @Test
+    public void test_create_publication_accepts_multiple_partition_targets() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.t1 (id int, p int) PARTITIONED BY (p)", List.of("1"), List.of("2"))
+            .addTable("CREATE TABLE doc.t2 (id int, p int) PARTITIONED BY (p)", List.of("1"));
+
+        AnalyzedCreatePublication stmt = e.analyze(
+            "CREATE PUBLICATION pub1 " +
+            "FOR TABLE doc.t1 PARTITION (p = 1), " +
+            "doc.t1 PARTITION (p = 2), " +
+            "doc.t2 PARTITION (p = 1)");
+
+        assertThat(stmt.tables()).satisfiesExactly(
+            t -> {
+                assertThat(t.getName().toString()).isEqualTo("doc.t1");
+                assertThat(t.partitionProperties()).hasSize(1);
+                assertThat(t.partitionProperties().get(0).columnName()).satisfies(isLiteral("p"));
+                assertThat(t.partitionProperties().get(0).expressions()).satisfiesExactly(isLiteral(1));
+            },
+            t -> {
+                assertThat(t.getName().toString()).isEqualTo("doc.t1");
+                assertThat(t.partitionProperties()).hasSize(1);
+                assertThat(t.partitionProperties().get(0).columnName()).satisfies(isLiteral("p"));
+                assertThat(t.partitionProperties().get(0).expressions()).satisfiesExactly(isLiteral(2));
+            },
+            t -> {
+                assertThat(t.getName().toString()).isEqualTo("doc.t2");
+                assertThat(t.partitionProperties()).hasSize(1);
+                assertThat(t.partitionProperties().get(0).columnName()).satisfies(isLiteral("p"));
+                assertThat(t.partitionProperties().get(0).expressions()).satisfiesExactly(isLiteral(1));
+            });
+    }
+
+    @Test
+    public void test_create_publication_for_partition_on_non_partitioned_table_raises_error() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.t1 (id int, p int)");
+
+        assertThatThrownBy(() -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("table 'doc.t1' is not partitioned");
+    }
+
+    @Test
+    public void test_create_publication_for_unknown_partition_column_raises_error() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.t1 (id int, p int) PARTITIONED BY (p)", List.of("1"));
+
+        assertThatThrownBy(() -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (q = 1)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("\"q\" is not a partition column");
+    }
+
+    @Test
+    public void test_create_publication_for_incomplete_partition_clause_raises_error() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.t1 (id int, p1 int, p2 int) PARTITIONED BY (p1, p2)", List.of("1", "2"));
+
+        assertThatThrownBy(() -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p1 = 1)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The table \"doc.t1\" is partitioned by 2 columns but the PARTITION clause contains 1 columns");
+    }
+
+    @Test
+    public void test_create_publication_for_partition_with_duplicate_partition_column_raises_error() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.t1 (id int, p1 int, p2 int) PARTITIONED BY (p1, p2)", List.of("1", "2"));
+
+        assertThatThrownBy(() -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p1 = 1, p1 = 1)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("column \"p1\" specified more than once");
     }
 
     /**
