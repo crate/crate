@@ -1083,25 +1083,25 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitLongLiteral(LongLiteral node, Integer indent) {
-            builder.append(node.getValue());
+            builder.append(node.value());
             return null;
         }
 
         @Override
         protected Void visitIntegerLiteral(IntegerLiteral node, Integer indent) {
-            builder.append(node.getValue());
+            builder.append(node.value());
             return null;
         }
 
         @Override
         protected Void visitStringLiteral(StringLiteral node, Integer indent) {
-            builder.append(Literals.quoteStringLiteral(node.getValue()));
+            builder.append(Literals.quoteStringLiteral(node.value()));
             return null;
         }
 
         @Override
         protected Void visitEscapedCharStringLiteral(EscapedCharStringLiteral node, Integer context) {
-            builder.append(Literals.quoteEscapedStringLiteral(node.getRawValue()));
+            builder.append(Literals.quoteEscapedStringLiteral(node.rawValue()));
             return null;
         }
 

@@ -564,25 +564,25 @@ public class TestSqlParser {
 
     @Test
     public void test_dollar_quoted_strings_with_valid_tags() {
-        assertThat(((StringLiteral) SqlParser.createExpression("$$$$")).getValue()).isEmpty();
-        assertThat(((StringLiteral) SqlParser.createExpression("$a$ a$a $a$")).getValue()).isEqualTo(" a$a ");
-        assertThat(((StringLiteral) SqlParser.createExpression("$a$$a$")).getValue()).isEmpty();
-        assertThat(((StringLiteral) SqlParser.createExpression("$_$$_$")).getValue()).isEmpty();
-        assertThat(((StringLiteral) SqlParser.createExpression("$_$string, content,\n!@#$_$")).getValue()).isEqualTo("string, content,\n!@#");
+        assertThat(((StringLiteral) SqlParser.createExpression("$$$$")).value()).isEmpty();
+        assertThat(((StringLiteral) SqlParser.createExpression("$a$ a$a $a$")).value()).isEqualTo(" a$a ");
+        assertThat(((StringLiteral) SqlParser.createExpression("$a$$a$")).value()).isEmpty();
+        assertThat(((StringLiteral) SqlParser.createExpression("$_$$_$")).value()).isEmpty();
+        assertThat(((StringLiteral) SqlParser.createExpression("$_$string, content,\n!@#$_$")).value()).isEqualTo("string, content,\n!@#");
     }
 
     @Test
     public void test_comma_separated_dollar_quoted_strings() {
         // tests that '$$a$$, $$b$$' is not interpreted as 'a$$, $$b'
         var arrayLiteral = (ArrayLiteral) SqlParser.createExpression("[$$a$$, $$b,$$, $a$abc$a$]");
-        var actual = arrayLiteral.values().stream().map(expr -> (StringLiteral) expr).map(StringLiteral::getValue).toList();
+        var actual = arrayLiteral.values().stream().map(expr -> (StringLiteral) expr).map(StringLiteral::value).toList();
         assertThat(actual).isEqualTo(List.of("a", "b,", "abc"));
     }
 
     @Test
     public void test_dollar_quoted_positional_parameters() {
-        assertThat(((StringLiteral) SqlParser.createExpression("$$$1$$")).getValue()).isEqualTo("$1");
-        assertThat(((StringLiteral) SqlParser.createExpression("$$$1$2$3$$")).getValue()).isEqualTo("$1$2$3");
+        assertThat(((StringLiteral) SqlParser.createExpression("$$$1$$")).value()).isEqualTo("$1");
+        assertThat(((StringLiteral) SqlParser.createExpression("$$$1$2$3$$")).value()).isEqualTo("$1$2$3");
     }
 
     @Test

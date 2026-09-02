@@ -23,17 +23,9 @@ package io.crate.sql.tree;
 
 import java.math.BigDecimal;
 
-public final class NumericLiteral extends Literal {
+import io.crate.sql.ExpressionFormatter;
 
-    private final BigDecimal value;
-
-    public NumericLiteral(BigDecimal value) {
-        this.value = value;
-    }
-
-    public BigDecimal value() {
-        return value;
-    }
+public record NumericLiteral(BigDecimal value) implements Literal {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -41,13 +33,7 @@ public final class NumericLiteral extends Literal {
     }
 
     @Override
-    public int hashCode() {
-        return value.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return obj instanceof NumericLiteral num
-            && value.equals(num.value);
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

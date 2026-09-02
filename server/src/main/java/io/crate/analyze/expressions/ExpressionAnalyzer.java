@@ -1032,12 +1032,12 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitBooleanLiteral(BooleanLiteral node, ExpressionAnalysisContext context) {
-            return Literal.of(node.getValue());
+            return Literal.of(node.value());
         }
 
         @Override
         protected Symbol visitStringLiteral(StringLiteral node, ExpressionAnalysisContext context) {
-            return Literal.of(node.getValue());
+            return Literal.of(node.value());
         }
 
         @Override
@@ -1048,22 +1048,22 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitEscapedCharStringLiteral(EscapedCharStringLiteral node, ExpressionAnalysisContext context) {
-            return Literal.of(node.getValue());
+            return Literal.of(node.value());
         }
 
         @Override
         protected Symbol visitDoubleLiteral(DoubleLiteral node, ExpressionAnalysisContext context) {
-            return Literal.of(node.getValue());
+            return Literal.of(node.value());
         }
 
         @Override
         protected Symbol visitLongLiteral(LongLiteral node, ExpressionAnalysisContext context) {
-            return Literal.of(node.getValue());
+            return Literal.of(node.value());
         }
 
         @Override
         protected Symbol visitIntegerLiteral(IntegerLiteral node, ExpressionAnalysisContext context) {
-            return Literal.of(node.getValue());
+            return Literal.of(node.value());
         }
 
         @Override
@@ -1133,14 +1133,14 @@ public class ExpressionAnalyzer {
 
         @Override
         public Symbol visitIntervalLiteral(IntervalLiteral node, ExpressionAnalysisContext context) {
-            String value = node.getValue();
+            String value = node.value();
 
-            IntervalParser.Precision start = INTERVAL_FIELDS.get(node.getStartField());
-            IntervalParser.Precision end = node.getEndField() == null ? null : INTERVAL_FIELDS.get(node.getEndField());
+            IntervalParser.Precision start = INTERVAL_FIELDS.get(node.start());
+            IntervalParser.Precision end = node.end() == null ? null : INTERVAL_FIELDS.get(node.end());
 
             Period period = IntervalParser.apply(value, start, end);
 
-            if (node.getSign() == IntervalLiteral.Sign.MINUS) {
+            if (node.sign() == IntervalLiteral.Sign.MINUS) {
                 period = period.negated();
             }
             return Literal.newInterval(period);

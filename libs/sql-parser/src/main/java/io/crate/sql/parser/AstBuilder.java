@@ -450,7 +450,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         }
 
         return new IntervalLiteral(
-            ((StringLiteral) visit(context.stringLiteral())).getValue(),
+            ((StringLiteral) visit(context.stringLiteral())).value(),
             sign,
             startField,
             endField);
@@ -1092,7 +1092,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             assert userNameLiteral instanceof StringLiteral
                 : "username must be a StringLiteral because " +
                 "the parser grammar is restricted to string literals";
-            var userName = ((StringLiteral) userNameLiteral).getValue();
+            var userName = ((StringLiteral) userNameLiteral).value();
             return new SetSessionAuthorizationStatement(userName, scope);
         }
     }
@@ -1149,7 +1149,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         if (context.booleanLiteral() == null) {
             return null;
         } else {
-            return ((BooleanLiteral) visitBooleanLiteral(context.booleanLiteral())).getValue();
+            return ((BooleanLiteral) visitBooleanLiteral(context.booleanLiteral())).value();
         }
     }
 
@@ -1835,7 +1835,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     private String getIdentText(SqlBaseParser.@Nullable IdentContext ident) {
         if (ident != null) {
             StringLiteral literal = (StringLiteral) ident.accept(this);
-            return literal.getValue();
+            return literal.value();
         }
         return null;
     }
@@ -2230,7 +2230,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     public Node visitExtract(SqlBaseParser.ExtractContext context) {
         Expression expression = (Expression) visit(context.expr());
         StringLiteral stringLiteral = (StringLiteral) visit(context.stringLiteralOrIdentifier());
-        Field field = Extract.Field.valueOf(stringLiteral.getValue().toUpperCase(Locale.ENGLISH));
+        Field field = Extract.Field.valueOf(stringLiteral.value().toUpperCase(Locale.ENGLISH));
         return new Extract(expression, field);
     }
 
@@ -2531,13 +2531,13 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             var literal = visit(param);
             int val;
             if (literal instanceof LongLiteral l) {
-                val = Math.toIntExact(l.getValue());
+                val = Math.toIntExact(l.value());
             } else {
-                val = ((IntegerLiteral) literal).getValue();
+                val = ((IntegerLiteral) literal).value();
             }
             parameters.add(val);
         }
-        return new ColumnType<>(name.getValue(), parameters);
+        return new ColumnType<>(name.value(), parameters);
     }
 
     @Override

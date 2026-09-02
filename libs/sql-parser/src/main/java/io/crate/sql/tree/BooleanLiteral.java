@@ -21,22 +21,12 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
+import io.crate.sql.ExpressionFormatter;
 
-public class BooleanLiteral extends Literal {
+public record BooleanLiteral(boolean value) implements Literal {
 
     public static final BooleanLiteral TRUE_LITERAL = new BooleanLiteral(true);
     public static final BooleanLiteral FALSE_LITERAL = new BooleanLiteral(false);
-
-    private final boolean value;
-
-    private BooleanLiteral(boolean value) {
-        this.value = value;
-    }
-
-    public boolean getValue() {
-        return value;
-    }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -44,19 +34,7 @@ public class BooleanLiteral extends Literal {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        BooleanLiteral that = (BooleanLiteral) o;
-        return value == that.value;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value);
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

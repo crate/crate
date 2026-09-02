@@ -21,22 +21,22 @@
 
 package io.crate.sql.tree;
 
+import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.Literals;
 
-public class EscapedCharStringLiteral extends StringLiteral {
-    private final String rawValue;
+public record EscapedCharStringLiteral(String rawValue, String value) implements Literal {
 
     public EscapedCharStringLiteral(String rawValue) {
-        super(Literals.replaceEscapedChars(rawValue));
-        this.rawValue = rawValue;
-    }
-
-    public String getRawValue() {
-        return rawValue;
+        this(rawValue, Literals.replaceEscapedChars(rawValue));
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitEscapedCharStringLiteral(this, context);
+    }
+
+    @Override
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

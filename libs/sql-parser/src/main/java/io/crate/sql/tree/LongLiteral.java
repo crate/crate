@@ -21,17 +21,9 @@
 
 package io.crate.sql.tree;
 
-public class LongLiteral extends Literal {
+import io.crate.sql.ExpressionFormatter;
 
-    private final long value;
-
-    public LongLiteral(long value) {
-        this.value = value;
-    }
-
-    public long getValue() {
-        return value;
-    }
+public record LongLiteral(long value) implements Literal {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -39,19 +31,7 @@ public class LongLiteral extends Literal {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        LongLiteral that = (LongLiteral) o;
-        return value == that.value;
-    }
-
-    @Override
-    public int hashCode() {
-        return (int) (value ^ (value >>> 32));
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

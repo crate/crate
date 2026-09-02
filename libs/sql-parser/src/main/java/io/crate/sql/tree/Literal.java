@@ -26,18 +26,23 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.crate.sql.ExpressionFormatter;
-
-public abstract class Literal implements Expression {
+public sealed interface Literal extends Expression permits
+        NullLiteral,
+        NumericLiteral,
+        DoubleLiteral,
+        IntegerLiteral,
+        LongLiteral,
+        BooleanLiteral,
+        ArrayLiteral,
+        ObjectLiteral,
+        StringLiteral,
+        EscapedCharStringLiteral,
+        BitString,
+        IntervalLiteral {
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    default <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitLiteral(this, context);
-    }
-
-    @Override
-    public String toString() {
-        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 
     public static Literal fromObject(Object value) {
