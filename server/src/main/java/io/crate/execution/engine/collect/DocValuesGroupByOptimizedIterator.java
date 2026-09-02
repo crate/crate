@@ -25,13 +25,17 @@ import static io.crate.execution.dsl.projection.Projections.shardProjections;
 import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.formatSource;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -51,6 +55,7 @@ import io.crate.common.TriConsumer;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.common.concurrent.Killable;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
@@ -59,11 +64,13 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.GroupByMaps;
 import io.crate.execution.engine.aggregation.ResizeAwareMap;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.execution.jobs.SharedShardContext;
+import io.crate.execution.support.ThreadPools;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
@@ -84,7 +91,22 @@ import io.crate.types.DataType;
 
 final class DocValuesGroupByOptimizedIterator {
 
+    /**
+     * DocValueAggregator/LuceneCollectorExpression instances carry per-leaf mutable state
+     * (e.g. the current segment's docValues), so each concurrently processed leaf needs its
+     * own instances. This bundle is what {@link Supplier#get()} builds fresh, once per leaf.
+     */
+    @SuppressWarnings("rawtypes")
+    record LeafState(
+        List<DocValueAggregator> aggregators,
+        List<LuceneCollectorExpression<?>> keyExpressions,
+        MemoryManager memoryManager,
+        CollectorContext collectorContext
+    ) {
+    }
+
     @Nullable
+    @SuppressWarnings("rawtypes")
     static BatchIterator<Row> tryOptimize(Functions functions,
                                           LuceneReferenceResolver referenceResolver,
                                           IndexShard indexShard,
@@ -93,7 +115,8 @@ final class DocValuesGroupByOptimizedIterator {
                                           LuceneQueryBuilder luceneQueryBuilder,
                                           DocInputFactory docInputFactory,
                                           RoutedCollectPhase collectPhase,
-                                          CollectTask collectTask) {
+                                          CollectTask collectTask,
+                                          ThreadPoolExecutor executor) {
         if (Symbols.hasColumn(collectPhase.toCollect(), SysColumns.SCORE)
             || collectPhase.where().hasColumn(SysColumns.SCORE)) {
             return null;
@@ -121,7 +144,7 @@ final class DocValuesGroupByOptimizedIterator {
 
         Version shardCreatedVersion = indexShard.getVersionCreated();
 
-        List<DocValueAggregator> aggregators = DocValuesAggregates.createAggregators(
+        Supplier<List<DocValueAggregator>> aggregatorsFactory = () -> DocValuesAggregates.createAggregators(
             functions,
             referenceResolver,
             groupProjection.values(),
@@ -129,8 +152,15 @@ final class DocValuesGroupByOptimizedIterator {
             table,
             shardCreatedVersion
         );
+        List<DocValueAggregator> aggregators = aggregatorsFactory.get();
         if (aggregators == null) {
             return null;
+        }
+        // Safe to cast: createAggregators above already resolved each aggregation to an
+        // AggregationFunction (it throws otherwise), so re-resolving here cannot fail.
+        List<AggregationFunction> reducers = new ArrayList<>(groupProjection.values().size());
+        for (var aggregation : groupProjection.values()) {
+            reducers.add((AggregationFunction) functions.getQualified(aggregation));
         }
 
         ShardId shardId = indexShard.shardId();
@@ -139,12 +169,21 @@ final class DocValuesGroupByOptimizedIterator {
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
         IndexService indexService = sharedShardContext.indexService();
 
-        InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx
-            = docInputFactory.getCtx(collectTask.txnCtx());
-        List<LuceneCollectorExpression<?>> keyExpressions = new ArrayList<>();
-        for (var keyRef : columnKeyRefs) {
-            keyExpressions.add((LuceneCollectorExpression<?>) docCtx.add(keyRef));
-        }
+        Supplier<List<LuceneCollectorExpression<?>>> keyExpressionsFactory = () -> {
+            InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = docInputFactory.getCtx(collectTask.txnCtx());
+            List<LuceneCollectorExpression<?>> exprs = new ArrayList<>(columnKeyRefs.size());
+            for (var keyRef : columnKeyRefs) {
+                exprs.add((LuceneCollectorExpression<?>) ctx.add(keyRef));
+            }
+            return exprs;
+        };
+        Supplier<RamAccounting> ramAccountingFactory = collectTask::getRamAccounting;
+        Supplier<LeafState> leafStateFactory = () -> new LeafState(
+            aggregatorsFactory.get(),
+            keyExpressionsFactory.get(),
+            collectTask.memoryManager(),
+            new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, partitionValues))
+        );
 
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
@@ -159,27 +198,25 @@ final class DocValuesGroupByOptimizedIterator {
 
         if (columnKeyRefs.size() == 1) {
             return GroupByIterator.forSingleKey(
-                aggregators,
+                leafStateFactory,
+                ramAccountingFactory,
+                reducers,
                 searcher.item(),
                 columnKeyRefs.get(0),
-                keyExpressions,
-                collectTask.getRamAccounting(),
-                collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, partitionValues))
+                executor
             );
         } else {
             return GroupByIterator.forManyKeys(
-                aggregators,
+                leafStateFactory,
+                ramAccountingFactory,
+                reducers,
                 searcher.item(),
                 columnKeyRefs,
-                keyExpressions,
-                collectTask.getRamAccounting(),
-                collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, partitionValues))
+                executor
             );
         }
     }
@@ -190,54 +227,49 @@ final class DocValuesGroupByOptimizedIterator {
 
         @SuppressWarnings("rawtypes")
         @VisibleForTesting
-        static BatchIterator<Row> forSingleKey(List<DocValueAggregator> aggregators,
+        static BatchIterator<Row> forSingleKey(Supplier<LeafState> leafStateFactory,
+                                               Supplier<RamAccounting> ramAccountingFactory,
+                                               List<AggregationFunction> reducers,
                                                IndexSearcher indexSearcher,
                                                Reference keyReference,
-                                               List<? extends LuceneCollectorExpression<?>> keyExpressions,
-                                               RamAccounting ramAccounting,
-                                               MemoryManager memoryManager,
                                                Version minNodeVersion,
                                                Query query,
-                                               CollectorContext collectorContext) {
+                                               ThreadPoolExecutor executor) {
             //noinspection unchecked
             DataType<Object> valueType = (DataType<Object>) keyReference.valueType();
             return GroupByIterator.getIterator(
-                aggregators,
+                leafStateFactory,
+                ramAccountingFactory,
+                reducers,
                 indexSearcher,
-                keyExpressions,
-                ramAccounting,
-                memoryManager,
+                1,
                 minNodeVersion,
-                GroupByMaps.accountForNewEntry(ramAccounting, valueType),
+                ra -> GroupByMaps.accountForNewEntry(ra, valueType),
                 (expressions) -> expressions.get(0).value(),
                 (key, cells) -> cells[0] = key,
                 query,
-                collectorContext
+                executor
             );
         }
 
         @SuppressWarnings("rawtypes")
         @VisibleForTesting
-        static BatchIterator<Row> forManyKeys(List<DocValueAggregator> aggregators,
+        static BatchIterator<Row> forManyKeys(Supplier<LeafState> leafStateFactory,
+                                              Supplier<RamAccounting> ramAccountingFactory,
+                                              List<AggregationFunction> reducers,
                                               IndexSearcher indexSearcher,
                                               List<Reference> keyColumnRefs,
-                                              List<? extends LuceneCollectorExpression<?>> keyExpressions,
-                                              RamAccounting ramAccounting,
-                                              MemoryManager memoryManager,
                                               Version minNodeVersion,
                                               Query query,
-                                              CollectorContext collectorContext) {
+                                              ThreadPoolExecutor executor) {
             return GroupByIterator.getIterator(
-                aggregators,
+                leafStateFactory,
+                ramAccountingFactory,
+                reducers,
                 indexSearcher,
-                keyExpressions,
-                ramAccounting,
-                memoryManager,
+                keyColumnRefs.size(),
                 minNodeVersion,
-                GroupByMaps.accountForNewEntry(
-                    ramAccounting,
-                    Lists.map(keyColumnRefs, Reference::valueType)
-                ),
+                ra -> GroupByMaps.accountForNewEntry(ra, Lists.map(keyColumnRefs, Reference::valueType)),
                 (expressions) -> {
                     ArrayList<Object> key = new ArrayList<>(keyColumnRefs.size());
                     for (int i = 0; i < expressions.size(); i++) {
@@ -251,148 +283,233 @@ final class DocValuesGroupByOptimizedIterator {
                     }
                 },
                 query,
-                collectorContext
+                executor
             );
         }
 
         @SuppressWarnings("rawtypes")
         @VisibleForTesting
-        static <K> BatchIterator<Row> getIterator(List<DocValueAggregator> aggregators,
+        static <K> BatchIterator<Row> getIterator(Supplier<LeafState> leafStateFactory,
+                                                  Supplier<RamAccounting> ramAccountingFactory,
+                                                  List<AggregationFunction> reducers,
                                                   IndexSearcher indexSearcher,
-                                                  List<? extends LuceneCollectorExpression<?>> keyExpressions,
-                                                  RamAccounting ramAccounting,
-                                                  MemoryManager memoryManager,
+                                                  int numberOfKeys,
                                                   Version minNodeVersion,
-                                                  TriConsumer<ResizeAwareMap<K, Object[]>, K, Object[]> accountForNewKeyEntry,
+                                                  Function<RamAccounting, TriConsumer<ResizeAwareMap<K, Object[]>, K, Object[]>> accountForNewKeyEntryFactory,
                                                   Function<List<? extends LuceneCollectorExpression<?>>, K> keyExtractor,
                                                   BiConsumer<K, Object[]> applyKeyToCells,
                                                   Query query,
-                                                  CollectorContext collectorContext) {
-            for (int i = 0; i < keyExpressions.size(); i++) {
-                keyExpressions.get(i).startCollect(collectorContext);
-            }
-
+                                                  ThreadPoolExecutor executor) {
             Killable.Token killToken = new Killable.Token();
+            int numberOfAggregates = reducers.size();
             return CollectingBatchIterator.newInstance(
                 killToken,
                 () -> getRows(
-                    applyAggregatesGroupedByKey(
-                        aggregators,
+                    collectGroupedByKey(
+                        leafStateFactory,
+                        ramAccountingFactory,
+                        reducers,
                         indexSearcher,
-                        keyExpressions,
-                        accountForNewKeyEntry,
-                        keyExtractor,
-                        ramAccounting,
-                        memoryManager,
+                        numberOfAggregates,
                         minNodeVersion,
+                        accountForNewKeyEntryFactory,
+                        keyExtractor,
                         query,
-                        killToken
+                        killToken,
+                        executor
                     ),
-                    keyExpressions.size(),
+                    numberOfKeys,
                     applyKeyToCells,
-                    aggregators,
-                    ramAccounting
+                    numberOfAggregates
                 ),
                 true
             );
         }
 
-        @SuppressWarnings("rawtypes")
-        private static <K> Iterable<Row> getRows(Map<K, Object[]> groupedStates,
-                                                 int numberOfKeys,
-                                                 BiConsumer<K, Object[]> applyKeyToCells,
-                                                 List<DocValueAggregator> aggregators,
-                                                 RamAccounting ramAccounting) {
+        private static <K> Iterable<Row> getRows(Map<K, Object[]> groupedPartialsByKey,
+                                                  int numberOfKeys,
+                                                  BiConsumer<K, Object[]> applyKeyToCells,
+                                                  int numberOfAggregates) {
             return () -> {
-                Object[] cells = new Object[numberOfKeys + aggregators.size()];
+                Object[] cells = new Object[numberOfKeys + numberOfAggregates];
                 RowN row = new RowN(cells);
                 Function<Map.Entry<K, Object[]>, Row> mapper = entry -> {
                     K key = entry.getKey();
                     applyKeyToCells.accept(key, cells);
-
-                    Object[] states = entry.getValue();
-                    int c = numberOfKeys;
-                    for (int i = 0; i < states.length; i++) {
-                        //noinspection unchecked
-                        cells[c] = aggregators.get(i).partialResult(ramAccounting, states[i]);
-                        c++;
-                    }
+                    Object[] partials = entry.getValue();
+                    System.arraycopy(partials, 0, cells, numberOfKeys, partials.length);
                     return row;
                 };
-                return groupedStates.entrySet().stream().map(mapper).iterator();
+                return groupedPartialsByKey.entrySet().stream().map(mapper).iterator();
             };
         }
 
+        /**
+         * Runs one task per leaf (segment) on {@code executor} -- a pool dedicated to this kind
+         * of fan-out, distinct from the SEARCH pool this whole batch-iterator pipeline already
+         * runs on, so blocking here on the joined result can't self-deadlock that pool.
+         */
         @SuppressWarnings("rawtypes")
-        private static <K> Map<K, Object[]> applyAggregatesGroupedByKey(
-            List<DocValueAggregator> aggregators,
+        private static <K> Map<K, Object[]> collectGroupedByKey(
+            Supplier<LeafState> leafStateFactory,
+            Supplier<RamAccounting> ramAccountingFactory,
+            List<AggregationFunction> reducers,
             IndexSearcher indexSearcher,
-            List<? extends LuceneCollectorExpression<?>> keyExpressions,
-            TriConsumer<ResizeAwareMap<K, Object[]>, K, Object[]> accountForNewKeyEntry,
-            Function<List<? extends LuceneCollectorExpression<?>>, K> keyExtractor,
-            RamAccounting ramAccounting,
-            MemoryManager memoryManager,
+            int numberOfAggregates,
             Version minNodeVersion,
+            Function<RamAccounting, TriConsumer<ResizeAwareMap<K, Object[]>, K, Object[]>> accountForNewKeyEntryFactory,
+            Function<List<? extends LuceneCollectorExpression<?>>, K> keyExtractor,
             Query query,
-            Killable.Token killToken
+            Killable.Token killToken,
+            ThreadPoolExecutor executor
         ) throws IOException {
-
-            ResizeAwareMap<K, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(new HashMap<>());
             Weight weight = indexSearcher.createWeight(
                 indexSearcher.rewrite(query),
                 ScoreMode.COMPLETE_NO_SCORES,
                 1f
             );
             List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
+            List<Supplier<Map<K, Object[]>>> tasks = new ArrayList<>(leaves.size());
             for (var leaf : leaves) {
+                tasks.add(() -> {
+                    try {
+                        return processLeaf(
+                            leafStateFactory.get(),
+                            ramAccountingFactory.get(),
+                            weight,
+                            leaf,
+                            numberOfAggregates,
+                            minNodeVersion,
+                            accountForNewKeyEntryFactory,
+                            keyExtractor,
+                            killToken
+                        );
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                });
+            }
+            List<Map<K, Object[]>> leafResults;
+            try {
+                leafResults = ThreadPools.runWithAvailableThreads(
+                    executor,
+                    ThreadPools.numIdleThreads(executor, Runtime.getRuntime().availableProcessors()),
+                    tasks
+                ).join();
+            } catch (CompletionException e) {
+                RuntimeException re = Exceptions.toRuntimeException(e);
+                if (re instanceof UncheckedIOException uio) {
+                    throw uio.getCause();
+                }
+                throw re;
+            }
+            return mergeLeafResults(leafResults, reducers, ramAccountingFactory.get());
+        }
+
+        @SuppressWarnings("rawtypes")
+        private static <K> Map<K, Object[]> processLeaf(
+            LeafState leafState,
+            RamAccounting ramAccounting,
+            Weight weight,
+            LeafReaderContext leaf,
+            int numberOfAggregates,
+            Version minNodeVersion,
+            Function<RamAccounting, TriConsumer<ResizeAwareMap<K, Object[]>, K, Object[]>> accountForNewKeyEntryFactory,
+            Function<List<? extends LuceneCollectorExpression<?>>, K> keyExtractor,
+            Killable.Token killToken
+        ) throws IOException {
+            killToken.raiseIfKilled();
+
+            List<DocValueAggregator> aggregators = leafState.aggregators();
+            List<LuceneCollectorExpression<?>> keyExpressions = leafState.keyExpressions();
+            MemoryManager memoryManager = leafState.memoryManager();
+            CollectorContext collectorContext = leafState.collectorContext();
+            for (int i = 0; i < keyExpressions.size(); i++) {
+                keyExpressions.get(i).startCollect(collectorContext);
+            }
+
+            Scorer scorer = weight.scorer(leaf);
+            if (scorer == null) {
+                return Map.of();
+            }
+
+            TriConsumer<ResizeAwareMap<K, Object[]>, K, Object[]> accountForNewKeyEntry =
+                accountForNewKeyEntryFactory.apply(ramAccounting);
+            ResizeAwareMap<K, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(new HashMap<>());
+
+            for (int i = 0; i < keyExpressions.size(); i++) {
+                keyExpressions.get(i).setNextReader(new ReaderContext(leaf));
+            }
+            for (int i = 0; i < aggregators.size(); i++) {
+                aggregators.get(i).loadDocValues(leaf);
+            }
+
+            DocIdSetIterator docs = scorer.iterator();
+            Bits liveDocs = leaf.reader().getLiveDocs();
+            for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
                 killToken.raiseIfKilled();
-                Scorer scorer = weight.scorer(leaf);
-                if (scorer == null) {
+                if (docDeleted(liveDocs, doc)) {
                     continue;
                 }
+
                 for (int i = 0; i < keyExpressions.size(); i++) {
-                    keyExpressions.get(i).setNextReader(new ReaderContext(leaf));
+                    keyExpressions.get(i).setNextDocId(doc);
                 }
-                for (int i = 0; i < aggregators.size(); i++) {
-                    aggregators.get(i).loadDocValues(leaf);
-                }
+                K key = keyExtractor.apply(keyExpressions);
 
-                DocIdSetIterator docs = scorer.iterator();
-                Bits liveDocs = leaf.reader().getLiveDocs();
-                for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
-                    killToken.raiseIfKilled();
-                    if (docDeleted(liveDocs, doc)) {
-                        continue;
+                Object[] states = statesByKey.get(key);
+                if (states == null) {
+                    states = new Object[aggregators.size()];
+                    for (int i = 0; i < aggregators.size(); i++) {
+                        var aggregator = aggregators.get(i);
+
+                        Object state = aggregator.initialState(ramAccounting, memoryManager, minNodeVersion);
+
+                        //noinspection unchecked
+                        state = aggregator.apply(ramAccounting, doc, state);
+                        states[i] = state;
                     }
-
-                    for (int i = 0; i < keyExpressions.size(); i++) {
-                        keyExpressions.get(i).setNextDocId(doc);
-                    }
-                    K key = keyExtractor.apply(keyExpressions);
-
-                    Object[] states = statesByKey.get(key);
-                    if (states == null) {
-                        states = new Object[aggregators.size()];
-                        for (int i = 0; i < aggregators.size(); i++) {
-                            var aggregator = aggregators.get(i);
-
-                            Object state = aggregator.initialState(ramAccounting, memoryManager, minNodeVersion);
-
-                            //noinspection unchecked
-                            state = aggregator.apply(ramAccounting, doc, state);
-                            states[i] = state;
-                        }
-                        accountForNewKeyEntry.accept(statesByKey, key, states);
-                        statesByKey.put(key, states);
-                    } else {
-                        for (int i = 0; i < aggregators.size(); i++) {
-                            //noinspection unchecked
-                            states[i] = aggregators.get(i).apply(ramAccounting, doc, states[i]);
-                        }
+                    accountForNewKeyEntry.accept(statesByKey, key, states);
+                    statesByKey.put(key, states);
+                } else {
+                    for (int i = 0; i < aggregators.size(); i++) {
+                        //noinspection unchecked
+                        states[i] = aggregators.get(i).apply(ramAccounting, doc, states[i]);
                     }
                 }
             }
-            return statesByKey;
+
+            Map<K, Object[]> partials = new HashMap<>();
+            for (var entry : statesByKey.entrySet()) {
+                Object[] rawStates = entry.getValue();
+                Object[] partial = new Object[numberOfAggregates];
+                for (int i = 0; i < numberOfAggregates; i++) {
+                    //noinspection unchecked
+                    partial[i] = aggregators.get(i).partialResult(ramAccounting, rawStates[i]);
+                }
+                partials.put(entry.getKey(), partial);
+            }
+            return partials;
+        }
+
+        @SuppressWarnings("rawtypes")
+        private static <K> Map<K, Object[]> mergeLeafResults(List<Map<K, Object[]>> leafResults,
+                                                              List<AggregationFunction> reducers,
+                                                              RamAccounting ramAccounting) {
+            Map<K, Object[]> merged = new HashMap<>();
+            for (var leafResult : leafResults) {
+                for (var entry : leafResult.entrySet()) {
+                    merged.merge(entry.getKey(), entry.getValue(), (a, b) -> {
+                        Object[] out = new Object[reducers.size()];
+                        for (int j = 0; j < reducers.size(); j++) {
+                            //noinspection unchecked
+                            out[j] = reducers.get(j).reduce(ramAccounting, a[j], b[j]);
+                        }
+                        return out;
+                    });
+                }
+            }
+            return merged;
         }
 
         private static boolean docDeleted(@Nullable Bits liveDocs, int doc) {
