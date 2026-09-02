@@ -1618,12 +1618,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("explain (costs false) " + stmt);
 
         assertThat(response).hasLines(
-            "Eval[a, x, b, y, c]",
-            "  └ HashJoin[INNER | ((c = b) AND ((a = b) AND (x = y)))]",
-            "    ├ HashJoin[INNER | (c = a)]",
-            "    │  ├ Collect[doc.t1 | [a, x] | true]",
-            "    │  └ Collect[doc.t3 | [c] | true]",
-            "    └ Collect[doc.t2 | [b, y] | true]"
+            "HashJoin[INNER | ((c = a) AND (c = b))]",
+            "  ├ HashJoin[INNER | ((a = b) AND (x = y))]",
+            "  │  ├ Collect[doc.t1 | [a, x] | true]",
+            "  │  └ Collect[doc.t2 | [b, y] | true]",
+            "  └ Collect[doc.t3 | [c] | true]"
         );
 
         execute(stmt);

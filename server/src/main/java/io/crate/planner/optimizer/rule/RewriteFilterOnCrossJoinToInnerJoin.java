@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 
 import io.crate.analyze.relations.QuerySplitter;
-import io.crate.common.collections.Sets;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
@@ -72,8 +71,7 @@ public final class RewriteFilterOnCrossJoinToInnerJoin implements Rule<Filter> {
         JoinPlan crossJoin = captures.get(joinCapture);
 
         Map<Set<RelationName>, Symbol> filterQuery = QuerySplitter.split(equiJoinConditionFilter.query());
-        HashSet<RelationName> lhsRelations = new HashSet<>(crossJoin.lhs().relationNames());
-        HashSet<RelationName> rhsRelations = new HashSet<>(crossJoin.rhs().relationNames());
+        HashSet<RelationName> relationNamesInFilterQuery = new HashSet<>();
 
         ArrayList<Symbol> newJoinCondition = new ArrayList<>();
         ArrayList<Symbol> newFilterQuery = new ArrayList<>();
@@ -81,16 +79,19 @@ public final class RewriteFilterOnCrossJoinToInnerJoin implements Rule<Filter> {
         for (var entry : filterQuery.entrySet()) {
             Set<RelationName> key = entry.getKey();
             Symbol value = entry.getValue();
-            boolean referencesLhs = Sets.intersection(key, lhsRelations).isEmpty() == false;
-            boolean referencesRhs = Sets.intersection(key, rhsRelations).isEmpty() == false;
-            if (EquiJoinDetector.isEquiJoin(value) && referencesLhs && referencesRhs) {
+            if (EquiJoinDetector.isEquiJoin(value)) {
+                relationNamesInFilterQuery.addAll(key);
                 newJoinCondition.add(value);
             } else {
                 newFilterQuery.add(value);
             }
         }
 
-        if (newJoinCondition.isEmpty() == false) {
+        HashSet<RelationName> sources = new HashSet<>();
+        sources.addAll(crossJoin.lhs().relationNames());
+        sources.addAll(crossJoin.rhs().relationNames());
+
+        if (sources.containsAll(relationNamesInFilterQuery)) {
             return Filter.create(
                 new JoinPlan(
                     crossJoin.lhs(),

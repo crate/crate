@@ -120,7 +120,9 @@ public final class MoveFilterBeneathJoin implements Rule<Filter> {
         }
         var splitQueries = QuerySplitter.split(query);
         final int initialParts = splitQueries.size();
-
+        if (splitQueries.size() == 1 && splitQueries.keySet().iterator().next().size() > 1) {
+            return null;
+        }
         var lhs = join.lhs();
         var rhs = join.rhs();
 
