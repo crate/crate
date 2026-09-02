@@ -19,19 +19,23 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.sql.tree;
+package io.crate.fdw;
 
-import io.crate.sql.ExpressionFormatter;
+import java.util.concurrent.Executor;
 
-public record WhenClause(Expression operand, Expression result) implements Expression {
+import org.elasticsearch.common.settings.Settings;
+
+import io.crate.expression.InputFactory;
+
+public class JdbcFdwProvider implements FdwProvider {
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitWhenClause(this, context);
+    public String name() {
+        return "jdbc";
     }
 
     @Override
-    public final String toString() {
-        return ExpressionFormatter.formatStandaloneExpression(this);
+    public ForeignDataWrapper create(Settings settings, InputFactory inputFactory, Executor executor) {
+        return new JdbcForeignDataWrapper(settings, inputFactory, executor);
     }
 }

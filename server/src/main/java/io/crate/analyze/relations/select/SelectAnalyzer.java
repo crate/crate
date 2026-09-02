@@ -67,7 +67,7 @@ public final class SelectAnalyzer {
             Symbol symbol = context.toSymbol(expression);
             String alias = node.getAlias();
             if (alias == null) {
-                String name = expression instanceof FunctionCall fn ? fn.getName().getSuffix() : null;
+                String name = expression instanceof FunctionCall fn ? fn.name().getSuffix() : null;
                 context.add(ColumnIdent.of(OutputNameFormatter.format(expression)), symbol, name);
             } else {
                 context.add(ColumnIdent.of(alias), new AliasSymbol(alias, symbol), alias);

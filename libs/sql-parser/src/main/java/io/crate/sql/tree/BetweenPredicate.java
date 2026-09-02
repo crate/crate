@@ -21,33 +21,11 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
+import io.crate.sql.ExpressionFormatter;
 
-import static java.util.Objects.requireNonNull;
-
-public class BetweenPredicate
-    extends Expression {
-    private final Expression value;
-    private final Expression min;
-    private final Expression max;
-
-    public BetweenPredicate(Expression value, Expression min, Expression max) {
-        this.value = requireNonNull(value, "value is null");
-        this.min = requireNonNull(min, "min is null");
-        this.max = requireNonNull(max, "max is null");
-    }
-
-    public Expression getValue() {
-        return value;
-    }
-
-    public Expression getMin() {
-        return min;
-    }
-
-    public Expression getMax() {
-        return max;
-    }
+public record BetweenPredicate(Expression value,
+                               Expression min,
+                               Expression max) implements Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -55,21 +33,7 @@ public class BetweenPredicate
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        BetweenPredicate that = (BetweenPredicate) o;
-        return Objects.equals(value, that.value) &&
-               Objects.equals(min, that.min) &&
-               Objects.equals(max, that.max);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value, min, max);
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

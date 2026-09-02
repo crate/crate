@@ -21,21 +21,9 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
+import io.crate.sql.ExpressionFormatter;
 
-import static java.util.Objects.requireNonNull;
-
-public class ExistsPredicate extends Expression {
-
-    private final Query subquery;
-
-    public ExistsPredicate(Query subquery) {
-        this.subquery = requireNonNull(subquery, "subquery is null");
-    }
-
-    public Query getSubquery() {
-        return subquery;
-    }
+public record ExistsPredicate(Query subquery) implements Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -43,19 +31,7 @@ public class ExistsPredicate extends Expression {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        ExistsPredicate that = (ExistsPredicate) o;
-        return Objects.equals(subquery, that.subquery);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(subquery);
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

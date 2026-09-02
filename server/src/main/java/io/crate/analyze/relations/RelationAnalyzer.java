@@ -551,10 +551,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                                                                       ExpressionAnalysisContext expressionAnalysisContext) {
         int ord = -1;
         if (expression instanceof IntegerLiteral intLiteral) {
-            ord = intLiteral.getValue();
+            ord = intLiteral.value();
         } else if (expression instanceof LongLiteral longLiteral) {
             try {
-                ord = DataTypes.INTEGER.sanitizeValue(longLiteral.getValue());
+                ord = DataTypes.INTEGER.sanitizeValue(longLiteral.value());
             } catch (ClassCastException | IllegalArgumentException e) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
@@ -569,7 +569,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Nullable
     private static Symbol tryGetFromSelectList(QualifiedNameReference expression, SelectAnalysis selectAnalysis) {
-        List<String> parts = expression.getName().getParts();
+        List<String> parts = expression.name().getParts();
         if (parts.size() == 1) {
             return SelectListFieldProvider.getOneOrAmbiguous(selectAnalysis.outputMultiMap(), getOnlyElement(parts));
         }

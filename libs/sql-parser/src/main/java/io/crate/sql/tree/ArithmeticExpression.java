@@ -21,8 +21,12 @@
 
 package io.crate.sql.tree;
 
-public class ArithmeticExpression
-    extends Expression {
+import io.crate.sql.ExpressionFormatter;
+
+public record ArithmeticExpression(Type type,
+                                   Expression left,
+                                   Expression right) implements Expression {
+
     public enum Type {
         ADD("+"),
         SUBTRACT("-"),
@@ -41,62 +45,13 @@ public class ArithmeticExpression
         }
     }
 
-    private final Type type;
-    private final Expression left;
-    private final Expression right;
-
-    public ArithmeticExpression(Type type, Expression left, Expression right) {
-        this.type = type;
-        this.left = left;
-        this.right = right;
-    }
-
-    public Type getType() {
-        return type;
-    }
-
-    public Expression getLeft() {
-        return left;
-    }
-
-    public Expression getRight() {
-        return right;
-    }
-
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitArithmeticExpression(this, context);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        ArithmeticExpression that = (ArithmeticExpression) o;
-
-        if (!left.equals(that.left)) {
-            return false;
-        }
-        if (!right.equals(that.right)) {
-            return false;
-        }
-        if (type != that.type) {
-            return false;
-        }
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = type.hashCode();
-        result = 31 * result + left.hashCode();
-        result = 31 * result + right.hashCode();
-        return result;
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

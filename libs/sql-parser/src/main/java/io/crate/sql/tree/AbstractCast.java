@@ -23,7 +23,10 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-public abstract class AbstractCast extends Expression {
+import io.crate.sql.ExpressionFormatter;
+
+public abstract class AbstractCast implements Expression {
+
     private final Expression expression;
     private final ColumnType<?> type;
 
@@ -49,6 +52,11 @@ public abstract class AbstractCast extends Expression {
 
     public boolean isIntegerOnly() {
         return isIntegerOnly;
+    }
+
+    @Override
+    public String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 
     @Override

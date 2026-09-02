@@ -27,17 +27,17 @@ import org.junit.Test;
 
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.Literal;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.sql.tree.StringLiteral;
 
 public class AtTimezoneSyntaxFunctionTest {
 
     @Test
     public void test_at_time_zone_is_parsed_as_timezone_function_call() {
         FunctionCall func = (FunctionCall) SqlParser.createExpression("'1978-02-28T10:00:00+01:00' AT TIME ZONE 'Europe/Madrid'");
-        assertThat(QualifiedName.of("timezone")).isEqualTo(func.getName());
-        assertThat(2).isEqualTo(func.getArguments().size());
-        assertThat(StringLiteral.fromObject("Europe/Madrid")).isEqualTo(func.getArguments().get(0));
-        assertThat(StringLiteral.fromObject("1978-02-28T10:00:00+01:00")).isEqualTo(func.getArguments().get(1));
+        assertThat(QualifiedName.of("timezone")).isEqualTo(func.name());
+        assertThat(2).isEqualTo(func.arguments().size());
+        assertThat(Literal.fromObject("Europe/Madrid")).isEqualTo(func.arguments().get(0));
+        assertThat(Literal.fromObject("1978-02-28T10:00:00+01:00")).isEqualTo(func.arguments().get(1));
     }
 }

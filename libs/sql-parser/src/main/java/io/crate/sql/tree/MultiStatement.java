@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 
 import java.util.List;
 
-public record MultiStatement(List<Statement> statements) implements Statement {
+public record MultiStatement(List<LocStmt> statements) implements Statement {
 
     @Override
     public String toString() {

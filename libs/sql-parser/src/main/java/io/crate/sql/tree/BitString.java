@@ -23,7 +23,9 @@ package io.crate.sql.tree;
 
 import java.util.BitSet;
 
-public class BitString extends Literal implements Comparable<BitString> {
+import io.crate.sql.ExpressionFormatter;
+
+public record BitString(BitSet bitSet, int length) implements Literal, Comparable<BitString> {
 
     public static BitString ofBitString(String bitString) {
         assert bitString.startsWith("B'") : "Bitstring must start with B'";
@@ -53,22 +55,6 @@ public class BitString extends Literal implements Comparable<BitString> {
             bitSet.set(i, value);
         }
         return bitSet;
-    }
-
-    private final BitSet bitSet;
-    private final int length;
-
-    public BitString(BitSet bitSet, int length) {
-        this.bitSet = bitSet;
-        this.length = length;
-    }
-
-    public BitSet bitSet() {
-        return bitSet;
-    }
-
-    public int length() {
-        return length;
     }
 
     /**
@@ -108,27 +94,8 @@ public class BitString extends Literal implements Comparable<BitString> {
     }
 
     @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + bitSet.hashCode();
-        result = prime * result + length;
-        return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        BitString other = (BitString) obj;
-        return bitSet.equals(other.bitSet) && length == other.length;
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 
     @Override

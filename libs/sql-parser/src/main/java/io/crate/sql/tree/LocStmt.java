@@ -21,17 +21,14 @@
 
 package io.crate.sql.tree;
 
-import io.crate.sql.ExpressionFormatter;
+import org.antlr.v4.runtime.Token;
 
-public record WhenClause(Expression operand, Expression result) implements Expression {
+public record LocStmt(Token start, Token stop, Statement stmt) {
 
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitWhenClause(this, context);
-    }
 
-    @Override
-    public final String toString() {
-        return ExpressionFormatter.formatStandaloneExpression(this);
+    /// Given a full multi statement that this statement is a part of, it
+    /// returns the query text for this individual stmt.
+    public String querySubset(String multiStatement) {
+        return multiStatement.substring(start.getStartIndex(), stop.getStopIndex() + 1);
     }
 }

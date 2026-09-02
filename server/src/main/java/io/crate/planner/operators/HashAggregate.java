@@ -222,9 +222,9 @@ public class HashAggregate extends ForwardingLogicalPlan {
             return this;
         }
         List<Function> prunedOutputs = Lists.intersection(aggregates, newAggregates);
-        boolean isSubsequence = Lists.isSubsequence(prunedOutputs, aggregates);
-        assert isSubsequence : "pruneOutputsExcept must not shuffle the outputs, it can only remove some of them.";
-        return new HashAggregate(newSource, prunedOutputs, rewriteDistinct);
+        HashAggregate newPlan = new HashAggregate(newSource, prunedOutputs, rewriteDistinct);
+        validateOutputsOrder(newPlan.outputs());
+        return newPlan;
     }
 
     @Override

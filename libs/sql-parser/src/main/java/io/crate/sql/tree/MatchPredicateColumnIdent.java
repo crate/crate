@@ -22,12 +22,11 @@
 package io.crate.sql.tree;
 
 import org.jspecify.annotations.Nullable;
-import java.util.Objects;
 
-public class MatchPredicateColumnIdent extends Expression {
+import io.crate.sql.ExpressionFormatter;
 
-    private final Expression ident;
-    private final Expression boost;
+public record MatchPredicateColumnIdent(Expression ident,
+                                        Expression boost) implements Expression {
 
     public MatchPredicateColumnIdent(Expression ident, @Nullable Expression boost) {
         this.ident = ident;
@@ -42,30 +41,9 @@ public class MatchPredicateColumnIdent extends Expression {
         this.boost = boost == null ? NullLiteral.INSTANCE : boost;
     }
 
-    public Expression columnIdent() {
-        return ident;
-    }
-
-    public Expression boost() {
-        return boost;
-    }
-
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        MatchPredicateColumnIdent that = (MatchPredicateColumnIdent) o;
-        return Objects.equals(ident, that.ident) &&
-               Objects.equals(boost, that.boost);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(ident, boost);
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 
     @Override

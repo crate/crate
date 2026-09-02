@@ -63,7 +63,7 @@ public class HasFunctionPrivilegeFunction {
         if (expr instanceof FunctionCall == false) {
             throw new IllegalArgumentException("Not a valid function call");
         }
-        QualifiedName qualifiedName = ((FunctionCall) expr).getName();
+        QualifiedName qualifiedName = ((FunctionCall) expr).name();
         String schema = null;
         String function = qualifiedName.getParts().get(0);
         if (qualifiedName.getParts().size() == 2) {

@@ -69,32 +69,48 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
     private static final String KID = "1";
 
     /**
-     * Imitates a JWK endpoint response with pre-generated public key.
-     * Public key format is aligned with
-     * https://console.cratedb-dev.cloud/api/v2/meta/jwk/
-     * https://login.microsoftonline.com/common/discovery/v2.0/keys
-     * https://www.googleapis.com/oauth2/v3/certs
-     * and looks like:
-     * {
-     *   "keys":[
-     *     {
-     *       "e":"...",
-     *       "kid":"...",
-     *       "kty":"RSA",
-     *        "n":"..."
-     *     }
-     *    ]
-     * }
+     * Imitates both the { /.well-known/openid-configuration} discovery endpoint and the
+     * jwks endpoint it points to {#io.crate.auth.CachingJwkProvider#resolveJwksUrlForDomain}:
+     * <ul>
+     *     <li>a request ending in { /.well-known/openid-configuration} is answered with a
+     *     discovery document pointing to {#jwksUri}, unless {#wellKnownAvailable} is
+     *     {false}, in which case the request fails so callers fall back to using the issuer
+     *     url directly as the jwks endpoint</li>
+     *     <li>any other request is answered with the jwk keys document</li>
+     * </ul>
+     * Invocations of each endpoint are tracked independently so tests can assert on discovery vs.
+     * jwks-fetch call counts.
      */
-
     private final class RequestHandler implements BiConsumer<io.netty.handler.codec.http.HttpRequest, JsonGenerator> {
 
-        AtomicInteger numberOfInvocation = new AtomicInteger(0);
+        private static final String WELL_KNOWN_PATH = "/.well-known/openid-configuration";
+
+        final AtomicInteger wellKnownInvocations = new AtomicInteger(0);
+        final AtomicInteger jwksInvocations = new AtomicInteger(0);
+
+        private final boolean wellKnownAvailable;
+        volatile String jwksUri;
+
+        RequestHandler(boolean wellKnownAvailable) {
+            this.wellKnownAvailable = wellKnownAvailable;
+        }
 
         @Override
         public void accept(io.netty.handler.codec.http.HttpRequest httpRequest, com.fasterxml.jackson.core.JsonGenerator generator) {
             try {
-                numberOfInvocation.incrementAndGet();
+                if (httpRequest.uri().endsWith(WELL_KNOWN_PATH)) {
+                    wellKnownInvocations.incrementAndGet();
+                    if (wellKnownAvailable == false) {
+                        throw new IllegalStateException("OpenID discovery endpoint not available");
+                    }
+                    generator.writeStartObject();
+                    generator.writeStringField("jwks_uri", jwksUri);
+                    generator.writeEndObject();
+                    generator.close();
+                    return;
+                }
+
+                jwksInvocations.incrementAndGet();
                 KeyFactory keyFactory = KeyFactory.getInstance("RSA");
                 EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(BASE_64_DECODER.decode(PUBLIC_KEY_256));
                 RSAPublicKey publicKey = (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
@@ -114,7 +130,7 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
                 generator.writeEndObject();
                 generator.close();
             } catch (Exception e) {
-                throw new RuntimeException(e.getCause());
+                throw new RuntimeException(e.getCause() != null ? e.getCause() : e);
             }
         }
     }
@@ -184,11 +200,13 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_can_authenticate_with_jwt_token() throws Exception {
-        testServer = new HttpTestServer(0, false, new RequestHandler(), Map.of(HttpHeaderNames.CACHE_CONTROL.toString(), "max-age=1000"));
+        RequestHandler requestHandler = new RequestHandler(true);
+        testServer = new HttpTestServer(0, false, requestHandler, Map.of(HttpHeaderNames.CACHE_CONTROL.toString(), "max-age=1000"));
         testServer.run();
+        requestHandler.jwksUri = String.format(Locale.ENGLISH, "http://localhost:%d/keys", testServer.boundPort());
 
         String appUsername = "cloud_user";
-        String iss = String.format(Locale.ENGLISH, "http://localhost:%d/keys",testServer.boundPort());
+        String iss = String.format(Locale.ENGLISH, "http://localhost:%d", testServer.boundPort());
         String jwt = jwt(appUsername, iss, privateKey);
 
         // Important to surround name with quotes if name used in HBA is not in lowercase
@@ -212,12 +230,13 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_can_authenticate_with_jwt_token_cached() throws Exception {
-        RequestHandler requestHandler = new RequestHandler();
+        RequestHandler requestHandler = new RequestHandler(true);
         testServer = new HttpTestServer(0, false, requestHandler, Map.of(HttpHeaderNames.CACHE_CONTROL.toString(), "max-age=1000"));
         testServer.run();
+        requestHandler.jwksUri = String.format(Locale.ENGLISH, "http://localhost:%d/keys", testServer.boundPort());
 
         String appUsername = "cloud_user";
-        String iss = String.format(Locale.ENGLISH, "http://localhost:%d/keys",testServer.boundPort());
+        String iss = String.format(Locale.ENGLISH, "http://localhost:%d", testServer.boundPort());
         String jwt = jwt(appUsername, iss, privateKey);
 
         // Important to surround name with quotes if name used in HBA is not in lowercase
@@ -237,7 +256,10 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
                   "status" : 200
                   """);
 
-        assertThat(requestHandler.numberOfInvocation.get()).isEqualTo(1);
+        // The discovery document is fetched once to resolve jwks_uri, then the keys are fetched
+        // from that jwks_uri.
+        assertThat(requestHandler.wellKnownInvocations.get()).isEqualTo(1);
+        assertThat(requestHandler.jwksInvocations.get()).isEqualTo(1);
 
         // Now try a second time, same domain different user
         appUsername = "cloud_user_1";
@@ -254,8 +276,43 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
                   "status" : 200
                   """);
 
-        assertThat(requestHandler.numberOfInvocation.get()).isEqualTo(1);
+        // The resolved jwks_uri and the fetched keys are cached for the lifetime of the provider,
+        // so re-authenticating against the same issuer must not trigger any new requests.
+        assertThat(requestHandler.wellKnownInvocations.get()).isEqualTo(1);
+        assertThat(requestHandler.jwksInvocations.get()).isEqualTo(1);
+    }
 
+    @Test
+    public void test_can_authenticate_with_jwt_token_falls_back_to_issuer_when_well_known_unavailable() throws Exception {
+        // Discovery document is unavailable: resolveJwksUrlForDomain() falls back to treating the
+        // issuer url itself as the jwks endpoint.
+        RequestHandler requestHandler = new RequestHandler(false);
+        testServer = new HttpTestServer(0, false, requestHandler, Map.of(HttpHeaderNames.CACHE_CONTROL.toString(), "max-age=1000"));
+        testServer.run();
+
+        String appUsername = "cloud_user";
+        String iss = String.format(Locale.ENGLISH, "http://localhost:%d/keys", testServer.boundPort());
+        String jwt = jwt(appUsername, iss, privateKey);
+
+        execute("CREATE USER \"John\" " +
+            "WITH (jwt = {\"iss\" = '" + iss + "', \"username\" = '" + appUsername + "'})"
+        );
+
+        HttpServerTransport httpTransport = cluster().getInstance(HttpServerTransport.class);
+        InetSocketAddress address = httpTransport.boundAddress().publishAddress().address();
+        URI uri = URI.create(String.format(Locale.ENGLISH, "http://%s:%s/", address.getHostName(), address.getPort()));
+
+        var resp = sendRequest(uri, jwt);
+        assertThat(resp.body()).containsIgnoringWhitespaces("""
+                {
+                  "ok" : true,
+                  "status" : 200
+                  """);
+
+        // The discovery document was attempted once and failed.
+        assertThat(requestHandler.wellKnownInvocations.get()).isEqualTo(1);
+        // causing a single, direct fallback request to the issuer url to fetch the keys.
+        assertThat(requestHandler.jwksInvocations.get()).isEqualTo(1);
     }
 
     @Test

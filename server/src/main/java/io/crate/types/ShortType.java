@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.function.Function;
 
+import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -57,6 +58,13 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
         public Short decode(int input) {
             return (short) input;
         }
+
+        // smallint is indexed by IntIndexer, so its points are 4 bytes wide.
+        @Override
+        public Short decode(byte[] packedPoint) {
+            return (short) NumericUtils.sortableBytesToInt(packedPoint, 0);
+        }
+
     };
 
     private ShortType() {

@@ -161,9 +161,9 @@ public final class ExpressionFormatter {
 
         @Override
         public String visitArrayComparisonExpression(ArrayComparisonExpression node, @Nullable List<Expression> parameters) {
-            String array = node.getRight().accept(this, parameters);
-            String left = node.getLeft().accept(this, parameters);
-            String type = node.getType().getValue();
+            String array = node.rhsArray().accept(this, parameters);
+            String left = node.lhsExpression().accept(this, parameters);
+            String type = node.type().getValue();
             String quantifier = node.quantifier().name();
 
             return "(" + left + " " + type + " " + quantifier + "(" + array + "))";
@@ -171,7 +171,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitArraySubQueryExpression(ArraySubQueryExpression node, @Nullable List<Expression> parameters) {
-            String subqueryExpression = node.subqueryExpression().accept(this, parameters);
+            String subqueryExpression = node.subquery().accept(this, parameters);
             assert subqueryExpression.startsWith("(") : "subqueryExpression must be enclosed in parenthesis";
             return "ARRAY" + subqueryExpression;
         }
@@ -179,7 +179,7 @@ public final class ExpressionFormatter {
         @Override
         protected String visitCurrentTime(CurrentTime node, @Nullable List<Expression> parameters) {
             StringBuilder builder = new StringBuilder();
-            switch (node.getType()) {
+            switch (node.type()) {
                 case TIME:
                     builder.append("current_time");
                     break;
@@ -190,12 +190,13 @@ public final class ExpressionFormatter {
                     builder.append("current_timestamp");
                     break;
                 default:
-                    throw new UnsupportedOperationException("not yet implemented: " + node.getType());
+                    throw new UnsupportedOperationException("not yet implemented: " + node.type());
             }
 
-            if (node.getPrecision().isPresent()) {
+            Integer precision = node.precision();
+            if (precision != null) {
                 builder.append('(')
-                    .append(node.getPrecision().get())
+                    .append(precision)
                     .append(')');
             }
 
@@ -204,12 +205,12 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitExtract(Extract node, @Nullable List<Expression> parameters) {
-            return "EXTRACT(" + node.getField() + " FROM " + node.getExpression().accept(this, parameters) + ")";
+            return "EXTRACT(" + node.field() + " FROM " + node.expression().accept(this, parameters) + ")";
         }
 
         @Override
         protected String visitBooleanLiteral(BooleanLiteral node, @Nullable List<Expression> parameters) {
-            return String.valueOf(node.getValue());
+            return String.valueOf(node.value());
         }
 
         @Override
@@ -220,9 +221,9 @@ public final class ExpressionFormatter {
         @Override
         protected String visitArraySliceExpression(ArraySliceExpression node,
                                                    List<Expression> context) {
-            return node.getBase() +
-                   "[" + node.getFrom().map(Expression::toString).orElse("") + ":" +
-                   node.getTo().map(Expression::toString).orElse("") + "]";
+            return node.base() +
+                   "[" + node.from().map(Expression::toString).orElse("") + ":" +
+                   node.to().map(Expression::toString).orElse("") + "]";
         }
 
         @Override
@@ -242,7 +243,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitStringLiteral(StringLiteral node, @Nullable List<Expression> parameters) {
-            return Literals.quoteStringLiteral(node.getValue());
+            return Literals.quoteStringLiteral(node.value());
         }
 
         @Override
@@ -252,17 +253,17 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitEscapedCharStringLiteral(EscapedCharStringLiteral node, @Nullable List<Expression> parameters) {
-            return Literals.quoteEscapedStringLiteral(node.getRawValue());
+            return Literals.quoteEscapedStringLiteral(node.rawValue());
         }
 
         @Override
         protected String visitLongLiteral(LongLiteral node, @Nullable List<Expression> parameters) {
-            return Long.toString(node.getValue());
+            return Long.toString(node.value());
         }
 
         @Override
         protected String visitIntegerLiteral(IntegerLiteral node, @Nullable List<Expression> parameters) {
-            return Integer.toString(node.getValue());
+            return Integer.toString(node.value());
         }
 
         @Override
@@ -272,7 +273,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitDoubleLiteral(DoubleLiteral node, @Nullable List<Expression> parameters) {
-            return Double.toString(node.getValue());
+            return Double.toString(node.value());
         }
 
         @Override
@@ -323,17 +324,17 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitSubqueryExpression(SubqueryExpression node, @Nullable List<Expression> parameters) {
-            return "(" + formatSql(node.getQuery()) + ")";
+            return "(" + formatSql(node.query()) + ")";
         }
 
         @Override
         protected String visitExists(ExistsPredicate node, @Nullable List<Expression> parameters) {
-            return "EXISTS (" + formatSql(node.getSubquery()) + ")";
+            return "EXISTS (" + formatSql(node.subquery()) + ")";
         }
 
         @Override
         protected String visitQualifiedNameReference(QualifiedNameReference node, @Nullable List<Expression> parameters) {
-            return node.getName().getParts().stream()
+            return node.name().getParts().stream()
                 .map(Formatter::formatIdentifier)
                 .collect(Collectors.joining("."));
         }
@@ -342,31 +343,31 @@ public final class ExpressionFormatter {
         protected String visitFunctionCall(FunctionCall node, @Nullable List<Expression> parameters) {
             StringBuilder builder = new StringBuilder();
 
-            String arguments = joinExpressions(node.getArguments());
-            if (node.getArguments().isEmpty() && "count".equalsIgnoreCase(node.getName().getSuffix())) {
+            String arguments = joinExpressions(node.arguments());
+            if (node.arguments().isEmpty() && "count".equalsIgnoreCase(node.name().getSuffix())) {
                 arguments = "*";
             }
-            if (node.isDistinct()) {
+            if (node.distinct()) {
                 arguments = "DISTINCT " + arguments;
             }
 
-            var nonFqnName = node.getName().getSuffix();
+            var nonFqnName = node.name().getSuffix();
             if (nonFqnName.startsWith("op_")) {
                 return formatBinaryExpression(
                     nonFqnName.substring("op_".length()),
-                    node.getArguments().get(0),
-                    node.getArguments().get(1),
+                    node.arguments().get(0),
+                    node.arguments().get(1),
                     parameters
                 );
             }
 
-            var name = node.getName().getParts();
+            var name = node.name().getParts();
             for (int i = 0; i < name.size() - 1; i++) {
                 builder.append(Identifiers.quoteIfNeeded(name.get(i)));
                 builder.append(".");
             }
             builder.append(Identifiers.quoteFunctionIfNeeded(name.getLast()));
-            if (!Identifiers.PARENTHESIS_LESS_FUNCTIONS.contains(node.getName().toString())) {
+            if (!Identifiers.PARENTHESIS_LESS_FUNCTIONS.contains(node.name().toString())) {
                 builder.append('(').append(arguments).append(')');
             }
 
@@ -384,7 +385,7 @@ public final class ExpressionFormatter {
                 }
             }
 
-            node.getWindow()
+            node.window()
                 .ifPresent(window -> builder
                     .append(" OVER ")
                     .append(visitWindow(window, parameters)));
@@ -466,9 +467,9 @@ public final class ExpressionFormatter {
         @Override
         protected String visitLogicalBinaryExpression(LogicalBinaryExpression node, @Nullable List<Expression> parameters) {
             return formatBinaryExpression(
-                node.getType().toString(),
-                node.getLeft(),
-                node.getRight(),
+                node.type().toString(),
+                node.left(),
+                node.right(),
                 parameters
             );
         }
@@ -476,48 +477,48 @@ public final class ExpressionFormatter {
         @Override
         protected String visitBitwiseExpression(BitwiseExpression node, @Nullable List<Expression> parameters) {
             return formatBinaryExpression(
-                node.getType().getValue(),
-                node.getLeft(),
-                node.getRight(),
+                node.type().getValue(),
+                node.left(),
+                node.right(),
                 parameters
             );
         }
 
         @Override
         protected String visitNotExpression(NotExpression node, @Nullable List<Expression> parameters) {
-            return "(NOT " + node.getValue().accept(this, parameters) + ")";
+            return "(NOT " + node.value().accept(this, parameters) + ")";
         }
 
         @Override
         protected String visitComparisonExpression(ComparisonExpression node, @Nullable List<Expression> parameters) {
             return formatBinaryExpression(
-                node.getType().getValue(),
-                node.getLeft(),
-                node.getRight(),
+                node.type().getValue(),
+                node.left(),
+                node.right(),
                 parameters
             );
         }
 
         @Override
         protected String visitIsNullPredicate(IsNullPredicate node, @Nullable List<Expression> parameters) {
-            return "(" + node.getValue().accept(this, parameters) + " IS NULL)";
+            return "(" + node.value().accept(this, parameters) + " IS NULL)";
         }
 
         @Override
         protected String visitIsNotNullPredicate(IsNotNullPredicate node, @Nullable List<Expression> parameters) {
-            return "(" + node.getValue().accept(this, parameters) + " IS NOT NULL)";
+            return "(" + node.value().accept(this, parameters) + " IS NOT NULL)";
         }
 
         @Override
         protected String visitIfExpression(IfExpression node, @Nullable List<Expression> parameters) {
             StringBuilder builder = new StringBuilder();
             builder.append("IF(")
-                .append(node.getCondition().accept(this, parameters))
+                .append(node.condition().accept(this, parameters))
                 .append(", ")
-                .append(node.getTrueValue().accept(this, parameters));
-            if (node.getFalseValue().isPresent()) {
+                .append(node.trueValue().accept(this, parameters));
+            if (node.falseValue().isPresent()) {
                 builder.append(", ")
-                    .append(node.getFalseValue().get().accept(this, parameters));
+                    .append(node.falseValue().get().accept(this, parameters));
             }
             builder.append(")");
             return builder.toString();
@@ -525,15 +526,15 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitNegativeExpression(NegativeExpression node, @Nullable List<Expression> parameters) {
-            return "- " + node.getValue().accept(this, parameters);
+            return "- " + node.value().accept(this, parameters);
         }
 
         @Override
         protected String visitArithmeticExpression(ArithmeticExpression node, @Nullable List<Expression> parameters) {
             return formatBinaryExpression(
-                node.getType().getValue(),
-                node.getLeft(),
-                node.getRight(),
+                node.type().getValue(),
+                node.left(),
+                node.right(),
                 parameters);
         }
 
@@ -542,13 +543,13 @@ public final class ExpressionFormatter {
             StringBuilder builder = new StringBuilder();
 
             builder.append('(')
-                .append(node.getValue().accept(this, parameters))
+                .append(node.value().accept(this, parameters))
                 .append(node.ignoreCase() ? " ILIKE " : " LIKE ")
-                .append(node.getPattern().accept(this, parameters));
+                .append(node.pattern().accept(this, parameters));
 
-            if (node.getEscape() != null) {
+            if (node.escape() != null) {
                 builder.append(" ESCAPE ")
-                    .append(node.getEscape().accept(this, parameters));
+                    .append(node.escape().accept(this, parameters));
             }
 
             builder.append(')');
@@ -560,16 +561,16 @@ public final class ExpressionFormatter {
         public String visitArrayLikePredicate(ArrayLikePredicate node, @Nullable List<Expression> parameters) {
             StringBuilder builder = new StringBuilder();
             builder.append('(')
-                .append(node.getPattern().accept(this, parameters))
+                .append(node.lhsPattern().accept(this, parameters))
                 .append(node.inverse() ? " NOT" : "")
                 .append(node.ignoreCase() ? " ILIKE " : " LIKE ")
                 .append(node.quantifier().name())
                 .append(" (")
-                .append(node.getValue().accept(this, parameters))
+                .append(node.rhsArray().accept(this, parameters))
                 .append(") ");
-            if (node.getEscape() != null) {
+            if (node.escape() != null) {
                 builder.append("ESCAPE ")
-                    .append(node.getEscape().accept(this, parameters));
+                    .append(node.escape().accept(this, parameters));
             }
             builder.append(')');
             return builder.toString();
@@ -580,7 +581,7 @@ public final class ExpressionFormatter {
             StringBuilder builder = new StringBuilder();
             builder.append("MATCH (");
             if (node.idents().size() == 1) {
-                builder.append(node.idents().get(0).columnIdent().accept(this, parameters));
+                builder.append(node.idents().get(0).ident().accept(this, parameters));
             } else {
                 builder.append("(");
                 List<MatchPredicateColumnIdent> idents = node.idents();
@@ -606,7 +607,7 @@ public final class ExpressionFormatter {
 
         @Override
         public String visitMatchPredicateColumnIdent(MatchPredicateColumnIdent node, @Nullable List<Expression> parameters) {
-            String column = node.columnIdent().accept(this, null);
+            String column = node.ident().accept(this, null);
             if (!(node.boost() instanceof NullLiteral)) {
                 column = column + " " + node.boost().toString();
             }
@@ -648,12 +649,12 @@ public final class ExpressionFormatter {
         protected String visitSearchedCaseExpression(SearchedCaseExpression node, @Nullable List<Expression> parameters) {
             var parts = new StringJoiner(" ", "(", ")");
             parts.add("CASE");
-            for (WhenClause whenClause : node.getWhenClauses()) {
+            for (WhenClause whenClause : node.whenClauses()) {
                 parts.add(whenClause.accept(this, parameters));
             }
-            if (node.getDefaultValue() != null) {
+            if (node.defaultValue() != null) {
                 parts.add("ELSE");
-                parts.add(node.getDefaultValue().accept(this, parameters));
+                parts.add(node.defaultValue().accept(this, parameters));
             }
             parts.add("END");
             return parts.toString();
@@ -663,13 +664,13 @@ public final class ExpressionFormatter {
         protected String visitSimpleCaseExpression(SimpleCaseExpression node, @Nullable List<Expression> parameters) {
             var parts = new StringJoiner(" ", "(", ")");
             parts.add("CASE");
-            parts.add(node.getOperand().accept(this, parameters));
-            for (WhenClause whenClause : node.getWhenClauses()) {
+            parts.add(node.operand().accept(this, parameters));
+            for (WhenClause whenClause : node.whenClauses()) {
                 parts.add(whenClause.accept(this, parameters));
             }
-            if (node.getDefaultValue() != null) {
+            if (node.defaultValue() != null) {
                 parts.add("ELSE");
-                parts.add(node.getDefaultValue().accept(this, parameters));
+                parts.add(node.defaultValue().accept(this, parameters));
             }
             parts.add("END");
             return parts.toString();
@@ -677,26 +678,26 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitWhenClause(WhenClause node, @Nullable List<Expression> parameters) {
-            return "WHEN " + node.getOperand().accept(this, parameters) + " THEN " +
-                   node.getResult().accept(this, parameters);
+            return "WHEN " + node.operand().accept(this, parameters) + " THEN " +
+                   node.result().accept(this, parameters);
         }
 
         @Override
         protected String visitBetweenPredicate(BetweenPredicate node, @Nullable List<Expression> parameters) {
-            return "(" + node.getValue().accept(this, parameters) + " BETWEEN " +
-                   node.getMin().accept(this, parameters) + " AND " +
-                   node.getMax().accept(this, parameters) + ")";
+            return "(" + node.value().accept(this, parameters) + " BETWEEN " +
+                   node.min().accept(this, parameters) + " AND " +
+                   node.max().accept(this, parameters) + ")";
         }
 
         @Override
         protected String visitInPredicate(InPredicate node, @Nullable List<Expression> parameters) {
-            return "(" + node.getValue().accept(this, parameters) + " IN " +
-                   node.getValueList().accept(this, parameters) + ")";
+            return "(" + node.value().accept(this, parameters) + " IN " +
+                   node.valueList().accept(this, parameters) + ")";
         }
 
         @Override
         protected String visitInListExpression(InListExpression node, @Nullable List<Expression> parameters) {
-            return "(" + joinExpressions(node.getValues()) + ")";
+            return "(" + joinExpressions(node.values()) + ")";
         }
 
         @Override

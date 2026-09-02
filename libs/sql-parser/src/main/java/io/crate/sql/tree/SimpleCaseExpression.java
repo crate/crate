@@ -21,35 +21,11 @@
 
 package io.crate.sql.tree;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
-import static java.util.Objects.requireNonNull;
+import io.crate.sql.ExpressionFormatter;
 
-public class SimpleCaseExpression extends Expression {
-
-    private final Expression operand;
-    private final List<WhenClause> whenClauses;
-    private final Expression defaultValue;
-
-    public SimpleCaseExpression(Expression operand, List<WhenClause> whenClauses, Expression defaultValue) {
-        this.operand = requireNonNull(operand, "operand is null");
-        this.whenClauses = Collections.unmodifiableList(whenClauses);
-        this.defaultValue = defaultValue;
-    }
-
-    public Expression getOperand() {
-        return operand;
-    }
-
-    public List<WhenClause> getWhenClauses() {
-        return whenClauses;
-    }
-
-    public Expression getDefaultValue() {
-        return defaultValue;
-    }
+public record SimpleCaseExpression(Expression operand, List<WhenClause> whenClauses, Expression defaultValue) implements Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -57,21 +33,7 @@ public class SimpleCaseExpression extends Expression {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        SimpleCaseExpression that = (SimpleCaseExpression) o;
-        return Objects.equals(operand, that.operand) &&
-               Objects.equals(whenClauses, that.whenClauses) &&
-               Objects.equals(defaultValue, that.defaultValue);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(operand, whenClauses, defaultValue);
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

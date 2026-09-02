@@ -24,13 +24,17 @@ package io.crate.integrationtests;
 import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.planner.optimizer.rule.MoveFilterBeneathUnion;
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
+import io.netty.handler.codec.http.HttpResponseStatus;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 1)
 public class UnionIntegrationTest extends IntegTestCase {
@@ -357,12 +361,13 @@ public class UnionIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows("1");
     }
 
-    @UseRandomizedOptimizerRules(0)
-    @UseJdbc(0)
+    @UseRandomizedOptimizerRules(alwaysKeep = MoveFilterBeneathUnion.class)
     @Test
     public void test_raises_if_cannot_cast_different_branch_types() throws Exception {
         assertSQLError(() -> execute(
                 "SELECT count(*) AS cnt FROM ( SELECT 1::integer AS x UNION ALL SELECT 'cratedb' AS x) AS u WHERE x > 2147483647"))
-                .hasMessage("Cannot cast value `cratedb` to type `integer`");
+            .hasPGError(PGErrorStatus.INTERNAL_ERROR)
+            .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000)
+            .hasMessageContaining("Cannot cast value `cratedb` to type `integer`");
     }
 }

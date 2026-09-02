@@ -23,17 +23,9 @@ package io.crate.sql.tree;
 
 import java.util.Map;
 
-public class ObjectLiteral extends Literal {
+import io.crate.sql.ExpressionFormatter;
 
-    private final Map<String, Expression> values;
-
-    public ObjectLiteral(Map<String, Expression> values) {
-        this.values = values;
-    }
-
-    public Map<String, Expression> values() {
-        return values;
-    }
+public record ObjectLiteral(Map<String, Expression> values) implements Literal {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -41,13 +33,7 @@ public class ObjectLiteral extends Literal {
     }
 
     @Override
-    public boolean equals(Object o) {
-        return o instanceof ObjectLiteral that
-            && values.equals(that.values);
-    }
-
-    @Override
-    public int hashCode() {
-        return values.hashCode();
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

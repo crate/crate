@@ -26,11 +26,22 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class Literal
-    extends Expression {
+public sealed interface Literal extends Expression permits
+        NullLiteral,
+        NumericLiteral,
+        DoubleLiteral,
+        IntegerLiteral,
+        LongLiteral,
+        BooleanLiteral,
+        ArrayLiteral,
+        ObjectLiteral,
+        StringLiteral,
+        EscapedCharStringLiteral,
+        BitString,
+        IntervalLiteral {
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    default <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitLiteral(this, context);
     }
 

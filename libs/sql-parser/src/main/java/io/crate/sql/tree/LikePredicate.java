@@ -21,63 +21,20 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
+import io.crate.sql.ExpressionFormatter;
 
-import static java.util.Objects.requireNonNull;
+public record LikePredicate(Expression value,
+                            Expression pattern,
+                            Expression escape,
+                            boolean ignoreCase) implements Expression {
 
-public class LikePredicate extends Expression {
-
-    private final Expression value;
-    private final Expression pattern;
-    private final Expression escape;
-    private final boolean ignoreCase;
-
-    public LikePredicate(Expression value, Expression pattern, Expression escape, boolean ignoreCase) {
-
-        this.value = requireNonNull(value, "value is null");
-        this.pattern = requireNonNull(pattern, "pattern is null");
-        this.escape = escape;
-        this.ignoreCase = ignoreCase;
-    }
-
-    public Expression getValue() {
-        return value;
-    }
-
-    public Expression getPattern() {
-        return pattern;
-    }
-
-    public Expression getEscape() {
-        return escape;
-    }
-
-    public boolean ignoreCase() {
-        return ignoreCase;
+    @Override
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitLikePredicate(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        LikePredicate that = (LikePredicate) o;
-        return ignoreCase == that.ignoreCase &&
-               Objects.equals(value, that.value) &&
-               Objects.equals(pattern, that.pattern) &&
-               Objects.equals(escape, that.escape);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value, pattern, escape, ignoreCase);
     }
 }

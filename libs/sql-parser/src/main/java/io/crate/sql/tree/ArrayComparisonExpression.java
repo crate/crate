@@ -21,9 +21,12 @@
 
 package io.crate.sql.tree;
 
+import io.crate.sql.ExpressionFormatter;
+import io.crate.sql.tree.ComparisonExpression.Type;
+
 /**
  * <pre>
- *      expression cmpOp quantifier ( arrayExpression )
+ *      lhsExpression cmpOp quantifier ( rhsArray )
  * </pre>
  * <p>
  * E.g.
@@ -31,25 +34,11 @@ package io.crate.sql.tree;
  *      x = ANY ([1, 2, 3])
  * </pre>
  * <p>
- * Use {@link #getLeft()} to access expression.
- * Use {@link #getRight()} to access arrayExpression
  */
-public class ArrayComparisonExpression extends ComparisonExpression implements ArrayComparison {
-
-    private final Quantifier quantifier;
-
-    public ArrayComparisonExpression(Type type,
-                                     Quantifier quantifier,
-                                     Expression expression,
-                                     Expression arrayExpression) {
-        super(type, expression, arrayExpression);
-        this.quantifier = quantifier;
-    }
-
-    @Override
-    public Quantifier quantifier() {
-        return quantifier;
-    }
+public record ArrayComparisonExpression(Type type,
+                                        Quantifier quantifier,
+                                        Expression lhsExpression,
+                                        Expression rhsArray) implements Expression, ArrayComparison {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -57,15 +46,7 @@ public class ArrayComparisonExpression extends ComparisonExpression implements A
     }
 
     @Override
-    public boolean equals(Object o) {
-        return o instanceof ArrayComparisonExpression cmp
-            && quantifier == cmp.quantifier;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + (quantifier != null ? quantifier.hashCode() : 0);
-        return result;
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

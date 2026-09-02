@@ -53,6 +53,7 @@ import io.crate.sql.parser.antlr.SqlBaseLexer;
 import io.crate.sql.parser.antlr.SqlBaseParser;
 import io.crate.sql.parser.antlr.SqlBaseParserBaseListener;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.LocStmt;
 import io.crate.sql.tree.MultiStatement;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.QualifiedNameReference;
@@ -97,7 +98,7 @@ public class SqlParser {
         return INSTANCE.generateStatement(sql);
     }
 
-    public static List<Statement> createStatementsForSimpleQuery(String sql, Function<String, Object> stringLiteralParser) {
+    public static List<LocStmt> createStatementsForSimpleQuery(String sql, Function<String, Object> stringLiteralParser) {
         return ((MultiStatement) INSTANCE.invokeParser(
                 "statements",
                 sql,
@@ -130,7 +131,7 @@ public class SqlParser {
     public static List<String> parseLeadingQualifiedName(String input) {
         Node node = INSTANCE.invokeParser("qualifiedName", input, SqlBaseParser::qname, null);
         if (node instanceof QualifiedNameReference ref) {
-            List<String> parts = ref.getName().getParts();
+            List<String> parts = ref.name().getParts();
             for (String part : parts) {
                 if (part.isEmpty()) {
                     throw new ParsingException("Input does not start with a valid identifier: " + input);

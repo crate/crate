@@ -21,37 +21,13 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
+import io.crate.sql.ExpressionFormatter;
 
-import static java.util.Objects.requireNonNull;
-
-public class NotExpression extends Expression {
-
-    private final Expression value;
-
-    public NotExpression(Expression value) {
-        this.value = requireNonNull(value, "value is null");
-    }
-
-    public Expression getValue() {
-        return value;
-    }
+public record NotExpression(Expression value) implements Expression {
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        NotExpression that = (NotExpression) o;
-        return Objects.equals(value, that.value);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value);
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 
     @Override

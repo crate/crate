@@ -25,7 +25,9 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Objects;
 
-public class ColumnType<T> extends Expression {
+import io.crate.sql.ExpressionFormatter;
+
+public class ColumnType<T> implements Expression {
 
     private final String name;
     private final List<Integer> parameters;
@@ -54,6 +56,11 @@ public class ColumnType<T> extends Expression {
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitColumnType(this, context);
+    }
+
+    @Override
+    public String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 
     @Override

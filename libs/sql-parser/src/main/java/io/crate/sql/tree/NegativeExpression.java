@@ -21,13 +21,9 @@
 
 package io.crate.sql.tree;
 
-public class NegativeExpression
-    extends Expression {
-    private final Expression value;
+import io.crate.sql.ExpressionFormatter;
 
-    public NegativeExpression(Expression value) {
-        this.value = value;
-    }
+public record NegativeExpression(Expression value) implements Expression {
 
     /**
      * @return o * -1
@@ -43,35 +39,13 @@ public class NegativeExpression
         }
     }
 
-    public Expression getValue() {
-        return value;
-    }
-
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitNegativeExpression(this, context);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        NegativeExpression that = (NegativeExpression) o;
-
-        if (!value.equals(that.value)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return value.hashCode();
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

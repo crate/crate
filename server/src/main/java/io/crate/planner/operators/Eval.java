@@ -111,9 +111,9 @@ public final class Eval extends ForwardingLogicalPlan {
             return this;
         }
         List<Symbol> prunedOutputs = Lists.intersection(outputs, sourceOutputsToKeep);
-        boolean isSubsequence = Lists.isSubsequence(prunedOutputs, outputs);
-        assert isSubsequence : "pruneOutputsExcept must not shuffle the outputs, it can only remove some of them.";
-        return new Eval(newSource, prunedOutputs);
+        Eval newPlan = new Eval(newSource, prunedOutputs);
+        validateOutputsOrder(newPlan.outputs());
+        return newPlan;
     }
 
     @Nullable

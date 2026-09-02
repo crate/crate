@@ -21,6 +21,7 @@
 
 package io.crate.sql.tree;
 
+import io.crate.sql.ExpressionFormatter;
 
 /**
  * <pre>
@@ -34,23 +35,7 @@ package io.crate.sql.tree;
  * }
  * </pre>
  */
-public class SubscriptExpression extends Expression {
-
-    private final Expression base;
-    private final Expression index;
-
-    public SubscriptExpression(Expression base, Expression index) {
-        this.base = base;
-        this.index = index;
-    }
-
-    public Expression base() {
-        return base;
-    }
-
-    public Expression index() {
-        return index;
-    }
+public record SubscriptExpression(Expression base, Expression index) implements Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -58,16 +43,7 @@ public class SubscriptExpression extends Expression {
     }
 
     @Override
-    public int hashCode() {
-        int result = base.hashCode();
-        result = 31 * result + index.hashCode();
-        return result;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return o instanceof SubscriptExpression that
-            && index.equals(that.index)
-            && base.equals(that.base);
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

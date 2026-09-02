@@ -21,7 +21,9 @@
 
 package io.crate.sql.tree;
 
-public class DefaultColumnValue extends Expression {
+import io.crate.sql.ExpressionFormatter;
+
+public class DefaultColumnValue implements Expression {
 
     public static final DefaultColumnValue INSTANCE = new DefaultColumnValue();
 
@@ -34,18 +36,7 @@ public class DefaultColumnValue extends Expression {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return DefaultColumnValue.class.hashCode();
+    public String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

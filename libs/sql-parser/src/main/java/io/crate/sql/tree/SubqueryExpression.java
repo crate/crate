@@ -21,17 +21,9 @@
 
 package io.crate.sql.tree;
 
-public class SubqueryExpression
-    extends Expression {
-    private final Query query;
+import io.crate.sql.ExpressionFormatter;
 
-    public SubqueryExpression(Query query) {
-        this.query = query;
-    }
-
-    public Query getQuery() {
-        return query;
-    }
+public record SubqueryExpression(Query query) implements Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -39,25 +31,7 @@ public class SubqueryExpression
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        SubqueryExpression that = (SubqueryExpression) o;
-
-        if (!query.equals(that.query)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return query.hashCode();
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

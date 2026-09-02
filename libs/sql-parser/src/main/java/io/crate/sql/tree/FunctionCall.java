@@ -21,62 +21,22 @@
 
 package io.crate.sql.tree;
 
-import org.jspecify.annotations.Nullable;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
-public class FunctionCall extends Expression {
+import org.jspecify.annotations.Nullable;
 
-    private final QualifiedName name;
-    private final boolean distinct;
-    private final List<Expression> arguments;
-    private final Optional<Window> window;
-    private final Optional<Expression> filter;
-    @Nullable
-    private final Boolean ignoreNulls;
+import io.crate.sql.ExpressionFormatter;
+
+public record FunctionCall(QualifiedName name,
+                           boolean distinct,
+                           List<Expression> arguments,
+                           Optional<Window> window,
+                           Optional<Expression> filter,
+                           @Nullable Boolean ignoreNulls) implements Expression {
 
     public FunctionCall(QualifiedName name, List<Expression> arguments) {
         this(name, false, arguments, Optional.empty(), Optional.empty(), null);
-    }
-
-    public FunctionCall(QualifiedName name,
-                        boolean distinct,
-                        List<Expression> arguments,
-                        Optional<Window> window,
-                        Optional<Expression> filter,
-                        @Nullable Boolean ignoreNulls) {
-        this.name = name;
-        this.distinct = distinct;
-        this.arguments = arguments;
-        this.window = window;
-        this.filter = filter;
-        this.ignoreNulls = ignoreNulls;
-    }
-
-    public QualifiedName getName() {
-        return name;
-    }
-
-    public boolean isDistinct() {
-        return distinct;
-    }
-
-    public List<Expression> getArguments() {
-        return arguments;
-    }
-
-    public Optional<Window> getWindow() {
-        return window;
-    }
-
-    public Optional<Expression> filter() {
-        return filter;
-    }
-
-    @Nullable
-    public Boolean ignoreNulls() {
-        return ignoreNulls;
     }
 
     @Override
@@ -85,24 +45,7 @@ public class FunctionCall extends Expression {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        FunctionCall that = (FunctionCall) o;
-        return distinct == that.distinct &&
-               Objects.equals(name, that.name) &&
-               Objects.equals(arguments, that.arguments) &&
-               Objects.equals(window, that.window) &&
-               Objects.equals(filter, that.filter) &&
-               Objects.equals(ignoreNulls, that.ignoreNulls);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, distinct, arguments, window, filter, ignoreNulls);
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

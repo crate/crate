@@ -108,6 +108,8 @@ public final class Filter extends ForwardingLogicalPlan {
         if (newSource == source) {
             return this;
         }
+        // Filter's outputs is it's source's outputs.
+        validateOutputsOrder(newSource.outputs());
         return new Filter(newSource, query);
     }
 

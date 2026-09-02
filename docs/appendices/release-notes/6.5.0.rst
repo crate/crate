@@ -90,6 +90,22 @@ Breaking Changes
   :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>` statement, which have been
   deprecated since :ref:`5.6.0 <version_6.5.0>`. Use ``USERMANAGEMENT`` instead.
 
+
+- Added :ref:`copy_from.http.redirects` and :ref:`copy_from.http.blocked_hosts`
+  settings to allow CrateDB administrators to prevent users from accessing HTTP
+  resources from hosts reachable on an internal network or other arbitrary hosts
+  using :ref:`COPY FROM <sql-copy-from>`.
+
+  The ``crate.yml`` shipped with the CrateDB tarball sets the blocked hosts to
+  ``_local_,_site_,_link_`` and disables redirects by default. On new
+  installations ``COPY FROM`` statements trying to access these blocked hosts
+  will therefore fail.
+
+  Existing installations aren't affected unless the ``crate.yml`` configuration
+  file is changed as part of the update - which we do recommend for improved
+  security.
+
+
 Deprecations
 ============
 
@@ -181,14 +197,31 @@ Performance and Resilience Improvements
 - `Somil Jain <https://github.com/somiljain2006>`_ added an optimization to
   remove redundant ``HAVING COUNT(*) > 0`` predicates from queries with an
   explicit ``GROUP BY`` clause.
+  
+- Optimized keys-only ``GROUP BY`` queries for text columns without a filter
+  (e.g. ``SELECT text_column from tbl GROUP BY text_column``) by utilizing
+  Lucene's term dictionary. Such queries now take 41% less time to complete in
+  our benchmark for high-cardinality columns.
+
+- Improved the performance of ``GROUP BY`` queries where the grouping key is a
+  numeric column by taking advantage of Lucene's BKD trees. The speed up depends
+  on a number of factors, such as a column's cardinality ratio, but can range
+  from 20% up to two orders of magnitude.
 
 Administration and Operations
 -----------------------------
 
-- Added :ref:`copy_from.http.redirects` and :ref:`copy_from.http.blocked_hosts`
-  settings to allow CrateDB administrators to prevent users from accessing HTTP
-  resources from hosts reachable on an internal network or other arbitrary hosts
-  using :ref:`COPY FROM <sql-copy-from>`.
+- Added support for `OpenID Connect Discovery
+  <https://openid.net/specs/openid-connect-discovery-1_0.html>`_ to the
+  :ref:`JWT authentication method <auth_jwt>`. The ``iss`` value of a
+  :ref:`user's JWT properties <create-user-jwt>` or of the
+  :ref:`jwt_defaults` can now be the issuer identifier of a standard OpenID
+  Connect provider, instead of the URL of its JWK endpoint. CrateDB then
+  requests ``<iss>/.well-known/openid-configuration`` and reads the JWK
+  endpoint URL from the ``jwks_uri`` field of the discovery document.
+
+  Issuers that do not serve a discovery document are unaffected: CrateDB
+  falls back to using ``iss`` as the JWK endpoint URL directly.
 
 Client interfaces
 -----------------

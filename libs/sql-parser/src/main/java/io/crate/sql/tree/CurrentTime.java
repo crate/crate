@@ -22,13 +22,10 @@
 package io.crate.sql.tree;
 
 import org.jspecify.annotations.Nullable;
-import java.util.Objects;
-import java.util.Optional;
 
-public class CurrentTime extends Expression {
+import io.crate.sql.ExpressionFormatter;
 
-    private final Type type;
-    private final Optional<Integer> precision;
+public record CurrentTime(Type type, @Nullable Integer precision) implements Expression {
 
     public enum Type {
         TIME,
@@ -40,39 +37,13 @@ public class CurrentTime extends Expression {
         this(type, null);
     }
 
-    public CurrentTime(Type type, @Nullable Integer precision) {
-        this.type = type;
-        this.precision = Optional.ofNullable(precision);
-    }
-
-    public Type getType() {
-        return type;
-    }
-
-    public Optional<Integer> getPrecision() {
-        return precision;
-    }
-
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCurrentTime(this, context);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        CurrentTime that = (CurrentTime) o;
-        return type == that.type &&
-               Objects.equals(precision, that.precision);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(type, precision);
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

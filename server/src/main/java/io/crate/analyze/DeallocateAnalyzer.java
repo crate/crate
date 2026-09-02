@@ -36,9 +36,9 @@ public final class DeallocateAnalyzer {
         String preparedStmt = null;
         if (preparedStmtExpression != null) {
             if (preparedStmtExpression instanceof StringLiteral) {
-                preparedStmt = ((StringLiteral) preparedStmtExpression).getValue();
+                preparedStmt = ((StringLiteral) preparedStmtExpression).value();
             } else if (preparedStmtExpression instanceof QualifiedNameReference) {
-                preparedStmt = ((QualifiedNameReference) preparedStmtExpression).getName().toString();
+                preparedStmt = ((QualifiedNameReference) preparedStmtExpression).name().toString();
             } else {
                 throw new AssertionError("Expression " + preparedStmtExpression.toString() + " not supported as " +
                                          "preparedStmt expression for DEALLOCATE");

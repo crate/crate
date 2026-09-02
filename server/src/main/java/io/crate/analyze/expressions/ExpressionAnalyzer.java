@@ -274,13 +274,13 @@ public class ExpressionAnalyzer {
     }
 
     private Symbol convertFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
-        List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
-        for (Expression expression : node.getArguments()) {
+        List<Symbol> arguments = new ArrayList<>(node.arguments().size());
+        for (Expression expression : node.arguments()) {
             Symbol argSymbol = expression.accept(innerAnalyzer, context);
             arguments.add(argSymbol);
         }
 
-        List<String> parts = node.getName().getParts();
+        List<String> parts = node.name().getParts();
         // We don't set a default schema here because no supplied schema
         // means that we first try to lookup builtin functions, followed
         // by a lookup in the default schema for UDFs.
@@ -297,7 +297,7 @@ public class ExpressionAnalyzer {
             .map(expression -> convert(expression, context))
             .orElse(null);
 
-        if (node.isDistinct() && arguments.size() > 1) {
+        if (node.distinct() && arguments.size() > 1) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "%s(DISTINCT x) does not accept more than one argument", name));
         }
@@ -308,8 +308,8 @@ public class ExpressionAnalyzer {
             arguments,
             filter,
             node.ignoreNulls(),
-            node.isDistinct(),
-            getWindowDefinition(node.getWindow(), context),
+            node.distinct(),
+            getWindowDefinition(node.window(), context),
             context
         );
     }
@@ -465,7 +465,7 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitCurrentTime(CurrentTime node, ExpressionAnalysisContext context) {
             String funcName = CurrentTimestampFunction.NAME;
-            switch (node.getType()) {
+            switch (node.type()) {
                 case TIMESTAMP:
                     break;
 
@@ -480,21 +480,22 @@ public class ExpressionAnalyzer {
                 default:
                     visitExpression(node, context);
             }
-            Optional<Integer> p = node.getPrecision();
+            Integer p = node.precision();
             return allocateFunction(
                 funcName,
-                p.isPresent() ? List.of(Literal.ofUnchecked(DataTypes.INTEGER, p.get())) : List.of(),
-                context);
+                p == null ? List.of() : List.of(Literal.of(p)),
+                context
+            );
         }
 
         @Override
         protected Symbol visitIfExpression(IfExpression node, ExpressionAnalysisContext context) {
             // check for global operand
-            Optional<Expression> defaultExpression = node.getFalseValue();
+            Optional<Expression> defaultExpression = node.falseValue();
             List<Symbol> arguments = new ArrayList<>(defaultExpression.isPresent() ? 3 : 2);
 
-            arguments.add(node.getCondition().accept(innerAnalyzer, context));
-            arguments.add(node.getTrueValue().accept(innerAnalyzer, context));
+            arguments.add(node.condition().accept(innerAnalyzer, context));
+            arguments.add(node.trueValue().accept(innerAnalyzer, context));
             if (defaultExpression.isPresent()) {
                 arguments.add(defaultExpression.get().accept(innerAnalyzer, context));
             }
@@ -505,21 +506,21 @@ public class ExpressionAnalyzer {
         protected Symbol visitFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
             // If it's subscript function then use the special handling
             // and validation that is used for the subscript operator `[]`
-            if (node.getName().toString().equalsIgnoreCase(SubscriptFunction.NAME)) {
-                assert node.getArguments().size() == 2 : "Number of arguments for subscript function must be 2";
+            if (node.name().toString().equalsIgnoreCase(SubscriptFunction.NAME)) {
+                assert node.arguments().size() == 2 : "Number of arguments for subscript function must be 2";
                 return visitSubscriptExpression(
-                    new SubscriptExpression(node.getArguments().get(0), node.getArguments().get(1)), context);
+                    new SubscriptExpression(node.arguments().get(0), node.arguments().get(1)), context);
             }
             return convertFunctionCall(node, context);
         }
 
         @Override
         protected Symbol visitSimpleCaseExpression(SimpleCaseExpression node, ExpressionAnalysisContext context) {
-            var whenClauses = node.getWhenClauses();
+            var whenClauses = node.whenClauses();
             // For each whenClause we create two values `boolean, T` and two more for the default value.
             var arguments = new ArrayList<Symbol>(whenClauses.size() * 2 + 2);
 
-            var defaultValue = node.getDefaultValue();
+            var defaultValue = node.defaultValue();
             // See {@link CaseFunction} for why true
             arguments.add(BooleanLiteral.TRUE_LITERAL.accept(this, context));
 
@@ -532,10 +533,10 @@ public class ExpressionAnalyzer {
             for (WhenClause whenClause : whenClauses) {
                 arguments.add(allocateFunction(
                     EqOperator.NAME,
-                    List.of(convert(node.getOperand(), context), convert(whenClause.getOperand(), context)),
+                    List.of(convert(node.operand(), context), convert(whenClause.operand(), context)),
                     context)
                 );
-                arguments.add(whenClause.getResult().accept(this, context));
+                arguments.add(whenClause.result().accept(this, context));
             }
             ensureResultTypesMatch(arguments);
             return allocateFunction(CaseFunction.NAME, arguments, context);
@@ -543,11 +544,11 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitSearchedCaseExpression(SearchedCaseExpression node, ExpressionAnalysisContext context) {
-            var whenClauses = node.getWhenClauses();
+            var whenClauses = node.whenClauses();
             // For each whenClause we create two values `boolean, T` and two more for the default value.
             var arguments = new ArrayList<Symbol>(whenClauses.size() * 2 + 2);
 
-            var defaultValue = node.getDefaultValue();
+            var defaultValue = node.defaultValue();
             // See {@link CaseFunction} for why true
             arguments.add(BooleanLiteral.TRUE_LITERAL.accept(this, context));
 
@@ -558,8 +559,8 @@ public class ExpressionAnalyzer {
             }
 
             for (var whenClause : whenClauses) {
-                arguments.add(whenClause.getOperand().accept(innerAnalyzer, context));
-                arguments.add(whenClause.getResult().accept(innerAnalyzer, context));
+                arguments.add(whenClause.operand().accept(innerAnalyzer, context));
+                arguments.add(whenClause.result().accept(innerAnalyzer, context));
             }
             ensureResultTypesMatch(arguments);
             return allocateFunction(CaseFunction.NAME, arguments, context);
@@ -605,9 +606,9 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitExtract(Extract node, ExpressionAnalysisContext context) {
-            Symbol expression = node.getExpression().accept(this, context);
+            Symbol expression = node.expression().accept(this, context);
             return allocateFunction(
-                ExtractFunctions.functionNameFrom(node.getField()),
+                ExtractFunctions.functionNameFrom(node.field()),
                 List.of(expression),
                 context);
         }
@@ -626,31 +627,31 @@ public class ExpressionAnalyzer {
              *      x = ANY(select x from t)
              */
             final Expression arrayExpression;
-            Expression valueList = node.getValueList();
+            Expression valueList = node.valueList();
             if (valueList instanceof InListExpression inListExpression) {
-                List<Expression> expressions = inListExpression.getValues();
+                List<Expression> expressions = inListExpression.values();
                 arrayExpression = new ArrayLiteral(expressions);
             } else {
-                arrayExpression = node.getValueList();
+                arrayExpression = node.valueList();
             }
             ArrayComparisonExpression arrayComparisonExpression =
                 new ArrayComparisonExpression(ComparisonExpression.Type.EQUAL,
                     ArrayComparison.Quantifier.ANY,
-                    node.getValue(),
+                    node.value(),
                     arrayExpression);
             return arrayComparisonExpression.accept(this, context);
         }
 
         @Override
         protected Symbol visitArraySubQueryExpression(ArraySubQueryExpression node, ExpressionAnalysisContext context) {
-            SubqueryExpression subqueryExpression = node.subqueryExpression();
+            SubqueryExpression subqueryExpression = node.subquery();
             context.registerArrayChild(subqueryExpression);
             return subqueryExpression.accept(this, context);
         }
 
         @Override
         protected Symbol visitIsNotNullPredicate(IsNotNullPredicate node, ExpressionAnalysisContext context) {
-            Symbol argument = node.getValue().accept(this, context);
+            Symbol argument = node.value().accept(this, context);
             return allocateFunction(
                 NotPredicate.NAME,
                 List.of(
@@ -666,7 +667,7 @@ public class ExpressionAnalyzer {
             if (subQueryAnalyzer == null) {
                 throw new UnsupportedOperationException("Subquery not supported in this statement");
             }
-            var relation = subQueryAnalyzer.analyze(node.getSubquery());
+            var relation = subQueryAnalyzer.analyze(node.subquery());
             List<Symbol> fields = relation.outputs();
             // For EXISTS, we only care about whether rows exist, not the actual column types.
             // If outputs is empty (e.g., SELECT FROM table), use integer as a placeholder type.
@@ -826,28 +827,28 @@ public class ExpressionAnalyzer {
         protected Symbol visitArraySliceExpression(ArraySliceExpression node,
                                                    ExpressionAnalysisContext context) {
 
-            Symbol base = node.getBase().accept(this, context);
-            Symbol from = node.getFrom().map(f -> f.accept(this, context)).orElse(Literal.NULL);
-            Symbol to = node.getTo().map(f -> f.accept(this, context)).orElse(Literal.NULL);
+            Symbol base = node.base().accept(this, context);
+            Symbol from = node.from().map(f -> f.accept(this, context)).orElse(Literal.NULL);
+            Symbol to = node.to().map(f -> f.accept(this, context)).orElse(Literal.NULL);
             return allocateFunction(ArraySliceFunction.NAME, List.of(base, from, to), context);
         }
 
         @Override
         protected Symbol visitLogicalBinaryExpression(LogicalBinaryExpression node, ExpressionAnalysisContext context) {
-            final String name = switch (node.getType()) {
+            final String name = switch (node.type()) {
                 case AND -> AndOperator.NAME;
                 case OR -> OrOperator.NAME;
             };
             List<Symbol> arguments = List.of(
-                node.getLeft().accept(this, context),
-                node.getRight().accept(this, context)
+                node.left().accept(this, context),
+                node.right().accept(this, context)
             );
             return allocateFunction(name, arguments, context);
         }
 
         @Override
         protected Symbol visitNotExpression(NotExpression node, ExpressionAnalysisContext context) {
-            Symbol argument = node.getValue().accept(this, context);
+            Symbol argument = node.value().accept(this, context);
             return allocateFunction(
                 NotPredicate.NAME,
                 List.of(argument),
@@ -856,20 +857,20 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitComparisonExpression(ComparisonExpression node, ExpressionAnalysisContext context) {
-            Symbol left = node.getLeft().accept(this, context);
-            Symbol right = node.getRight().accept(this, context);
+            Symbol left = node.left().accept(this, context);
+            Symbol right = node.right().accept(this, context);
 
-            Comparison comparison = new Comparison(coordinatorTxnCtx, nodeCtx, node.getType(), left, right);
+            Comparison comparison = new Comparison(coordinatorTxnCtx, nodeCtx, node.type(), left, right);
             comparison.normalize(context);
             return allocateFunction(comparison.operatorName, comparison.arguments(), context);
         }
 
         @Override
         public Symbol visitArrayComparisonExpression(ArrayComparisonExpression node, ExpressionAnalysisContext context) {
-            context.registerArrayChild(node.getRight());
+            context.registerArrayChild(node.rhsArray());
             context.parentIsOrderSensitive(false);
-            Symbol leftSymbol = node.getLeft().accept(this, context);
-            Symbol arraySymbol = node.getRight().accept(this, context);
+            Symbol leftSymbol = node.lhsExpression().accept(this, context);
+            Symbol arraySymbol = node.rhsArray().accept(this, context);
 
             // Automatically unnest right side to required number of dimensions
             // E.g. `1 = ANY([ [1, 2], [3, 4] ])` behaves like `1 = ANY([1, 2, 3, 4])`
@@ -881,7 +882,7 @@ public class ExpressionAnalyzer {
             arraySymbol = ArrayUnnestFunction.unnest(arraySymbol, diff - 1);
 
             context.parentIsOrderSensitive(true);
-            ComparisonExpression.Type operationType = node.getType();
+            ComparisonExpression.Type operationType = node.type();
             final String operatorName = switch (node.quantifier()) {
                 case ANY -> AnyOperator.OPERATOR_PREFIX + operationType.getValue();
                 case ALL -> AllOperator.OPERATOR_PREFIX + operationType.getValue();
@@ -894,27 +895,27 @@ public class ExpressionAnalyzer {
 
         @Override
         public Symbol visitArrayLikePredicate(ArrayLikePredicate node, ExpressionAnalysisContext context) {
-            if (node.getEscape() != null) {
+            if (node.escape() != null) {
                 throw new UnsupportedOperationException("ESCAPE is not supported.");
             }
-            Symbol value = node.getValue().accept(this, context);
-            Symbol pattern = node.getPattern().accept(this, context);
-            int valueDimensions = ArrayType.dimensions(value.valueType());
+            Symbol array = node.rhsArray().accept(this, context);
+            Symbol pattern = node.lhsPattern().accept(this, context);
+            int valueDimensions = ArrayType.dimensions(array.valueType());
             int patternDimensions = ArrayType.dimensions(pattern.valueType());
             int diff = valueDimensions - patternDimensions;
-            value = ArrayUnnestFunction.unnest(value, diff - 1);
+            array = ArrayUnnestFunction.unnest(array, diff - 1);
             return allocateFunction(
                 LikeOperators.arrayOperatorName(node.quantifier(), node.inverse(), node.ignoreCase()),
-                List.of(pattern, value),
+                List.of(pattern, array),
                 context);
         }
 
         @Override
         protected Symbol visitLikePredicate(LikePredicate node, ExpressionAnalysisContext context) {
-            Symbol expression = node.getValue().accept(this, context);
-            Symbol pattern = node.getPattern().accept(this, context);
-            if (node.getEscape() != null) {
-                Symbol escape = node.getEscape().accept(this, context);
+            Symbol expression = node.value().accept(this, context);
+            Symbol pattern = node.pattern().accept(this, context);
+            if (node.escape() != null) {
+                Symbol escape = node.escape().accept(this, context);
                 return allocateFunction(
                     LikeOperators.likeOperatorName(node.ignoreCase()),
                     List.of(expression, pattern, escape),
@@ -932,7 +933,7 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitIsNullPredicate(IsNullPredicate node, ExpressionAnalysisContext context) {
-            Symbol value = node.getValue().accept(this, context);
+            Symbol value = node.value().accept(this, context);
 
             return allocateFunction(io.crate.expression.predicate.IsNullPredicate.NAME, List.of(value), context);
         }
@@ -941,7 +942,7 @@ public class ExpressionAnalyzer {
         protected Symbol visitNegativeExpression(NegativeExpression node, ExpressionAnalysisContext context) {
             // `-1` in the AST is represented as NegativeExpression(LiteralInteger)
             // -> negate the inner value
-            Symbol value = node.getValue().accept(this, context);
+            Symbol value = node.value().accept(this, context);
             var returnSymbol = NegateLiterals.negate(value);
             if (returnSymbol != null) {
                 return returnSymbol;
@@ -951,22 +952,22 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitArithmeticExpression(ArithmeticExpression node, ExpressionAnalysisContext context) {
-            Symbol left = node.getLeft().accept(this, context);
-            Symbol right = node.getRight().accept(this, context);
+            Symbol left = node.left().accept(this, context);
+            Symbol right = node.right().accept(this, context);
 
             return allocateFunction(
-                node.getType().name().toLowerCase(Locale.ENGLISH),
+                node.type().name().toLowerCase(Locale.ENGLISH),
                 List.of(left, right),
                 context);
         }
 
         @Override
         protected Symbol visitBitwiseExpression(BitwiseExpression node, ExpressionAnalysisContext context) {
-            Symbol left = node.getLeft().accept(this, context);
-            Symbol right = node.getRight().accept(this, context);
+            Symbol left = node.left().accept(this, context);
+            Symbol right = node.right().accept(this, context);
 
             return allocateFunction(
-                node.getType().name().toLowerCase(Locale.ENGLISH),
+                node.type().name().toLowerCase(Locale.ENGLISH),
                 List.of(left, right),
                 context);
         }
@@ -987,7 +988,7 @@ public class ExpressionAnalyzer {
             }
             List<String> path = Lists.reverse(reversedPath);
             if (base instanceof QualifiedNameReference qnr) {
-                QualifiedName name = qnr.getName();
+                QualifiedName name = qnr.name();
                 try {
                     return fieldProvider.resolveField(name, path, operation, context.errorOnUnknownObjectKey());
                 } catch (ColumnUnknownException e) {
@@ -1016,7 +1017,7 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
-            var qualifiedName = node.getName();
+            var qualifiedName = node.name();
             var parts = qualifiedName.getParts();
             var columnName = parts.getLast();
 
@@ -1026,17 +1027,17 @@ public class ExpressionAnalyzer {
                 return visitSubscriptExpression(maybeQuotedSubscript, context);
             }
 
-            return fieldProvider.resolveField(node.getName(), null, operation, context.errorOnUnknownObjectKey());
+            return fieldProvider.resolveField(node.name(), null, operation, context.errorOnUnknownObjectKey());
         }
 
         @Override
         protected Symbol visitBooleanLiteral(BooleanLiteral node, ExpressionAnalysisContext context) {
-            return Literal.of(node.getValue());
+            return Literal.of(node.value());
         }
 
         @Override
         protected Symbol visitStringLiteral(StringLiteral node, ExpressionAnalysisContext context) {
-            return Literal.of(node.getValue());
+            return Literal.of(node.value());
         }
 
         @Override
@@ -1047,22 +1048,22 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitEscapedCharStringLiteral(EscapedCharStringLiteral node, ExpressionAnalysisContext context) {
-            return Literal.of(node.getValue());
+            return Literal.of(node.value());
         }
 
         @Override
         protected Symbol visitDoubleLiteral(DoubleLiteral node, ExpressionAnalysisContext context) {
-            return Literal.of(node.getValue());
+            return Literal.of(node.value());
         }
 
         @Override
         protected Symbol visitLongLiteral(LongLiteral node, ExpressionAnalysisContext context) {
-            return Literal.of(node.getValue());
+            return Literal.of(node.value());
         }
 
         @Override
         protected Symbol visitIntegerLiteral(IntegerLiteral node, ExpressionAnalysisContext context) {
-            return Literal.of(node.getValue());
+            return Literal.of(node.value());
         }
 
         @Override
@@ -1132,14 +1133,14 @@ public class ExpressionAnalyzer {
 
         @Override
         public Symbol visitIntervalLiteral(IntervalLiteral node, ExpressionAnalysisContext context) {
-            String value = node.getValue();
+            String value = node.value();
 
-            IntervalParser.Precision start = INTERVAL_FIELDS.get(node.getStartField());
-            IntervalParser.Precision end = node.getEndField() == null ? null : INTERVAL_FIELDS.get(node.getEndField());
+            IntervalParser.Precision start = INTERVAL_FIELDS.get(node.start());
+            IntervalParser.Precision end = node.end() == null ? null : INTERVAL_FIELDS.get(node.end());
 
             Period period = IntervalParser.apply(value, start, end);
 
-            if (node.getSign() == IntervalLiteral.Sign.MINUS) {
+            if (node.sign() == IntervalLiteral.Sign.MINUS) {
                 period = period.negated();
             }
             return Literal.newInterval(period);
@@ -1154,9 +1155,9 @@ public class ExpressionAnalyzer {
         protected Symbol visitBetweenPredicate(BetweenPredicate node, ExpressionAnalysisContext context) {
             // <value> between <min> and <max>
             // -> <value> >= <min> and <value> <= max
-            Symbol value = node.getValue().accept(this, context);
-            Symbol min = node.getMin().accept(this, context);
-            Symbol max = node.getMax().accept(this, context);
+            Symbol value = node.value().accept(this, context);
+            Symbol min = node.min().accept(this, context);
+            Symbol max = node.max().accept(this, context);
 
             Comparison gte = new Comparison(coordinatorTxnCtx, nodeCtx, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, value, min);
             Comparison normalizedGte = gte.normalize(context);
@@ -1183,7 +1184,7 @@ public class ExpressionAnalyzer {
             DataType<?> columnType = null;
             HashSet<RelationName> relationsInColumns = new HashSet<>();
             for (MatchPredicateColumnIdent ident : node.idents()) {
-                Symbol column = ident.columnIdent().accept(this, context);
+                Symbol column = ident.ident().accept(this, context);
                 if (columnType == null) {
                     columnType = column.valueType();
                 }
@@ -1222,7 +1223,7 @@ public class ExpressionAnalyzer {
             /* note: This does not support analysis columns in the subquery which belong to the parent relation
              * this would require {@link StatementAnalysisContext#startRelation} to somehow inherit the parent context
              */
-            AnalyzedRelation relation = subQueryAnalyzer.analyze(node.getQuery());
+            AnalyzedRelation relation = subQueryAnalyzer.analyze(node.query());
             List<Symbol> fields = relation.outputs();
             if (fields.size() > 1) {
                 throw new UnsupportedOperationException("Subqueries with more than 1 column are not supported.");

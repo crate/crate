@@ -44,26 +44,10 @@ import io.netty.util.collection.ShortObjectHashMap;
 public final class GroupByMaps {
 
     public static <K, V> TriConsumer<ResizeAwareMap<K, V>, K, Object[]> accountForNewEntry(RamAccounting ramAccounting, DataType<K> type) {
-        long singleItemBytes = singleItemBytes(type);
         return (map, key, states) -> {
             long keyBytes = RamUsageEstimator.alignObjectSize(type.valueBytes(key) + 36);
             long statesShallowBytes = RamUsageEstimator.shallowSizeOf(states);
-            long capacityIncreaseBytes = singleItemBytes * map.expectedCapacityIncrease();
-            ramAccounting.addBytes(keyBytes + statesShallowBytes + capacityIncreaseBytes);
-        };
-    }
-
-    /**
-     * Netty maps keep a primitive key array alongside the  Object[] array.
-     */
-    private static long singleItemBytes(DataType<?> type) {
-        return switch (type.id()) {
-            case ByteType.ID -> Byte.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF;
-            case ShortType.ID -> Short.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF;
-            case IntegerType.ID -> Integer.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF;
-            case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ ->
-                Long.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF;
-            default -> RamUsageEstimator.NUM_BYTES_OBJECT_REF;
+            ramAccounting.addBytes(keyBytes + statesShallowBytes + map.expectedCapacityIncreaseBytes());
         };
     }
 
@@ -80,8 +64,7 @@ public final class GroupByMaps {
             }
             long keyBytes = RamUsageEstimator.alignObjectSize(size + 36);
             long statesShallowBytes = RamUsageEstimator.shallowSizeOf(states);
-            long capacityIncreaseBytes = (long) RamUsageEstimator.NUM_BYTES_OBJECT_REF * map.expectedCapacityIncrease();
-            ramAccounting.addBytes(keyBytes + statesShallowBytes + capacityIncreaseBytes);
+            ramAccounting.addBytes(keyBytes + statesShallowBytes + map.expectedCapacityIncreaseBytes());
         };
     }
 
@@ -92,21 +75,24 @@ public final class GroupByMaps {
                 new PrimitiveMapWithNulls<>(new ByteObjectHashMap<>()),
                 ByteObjectHashMap.DEFAULT_CAPACITY,
                 ByteObjectHashMap.DEFAULT_LOAD_FACTOR,
-                true
+                true,
+                Byte.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF
             );
 
             case ShortType.ID -> () -> (ResizeAwareMap<K, V>) new ResizeAwareMap<>(
                 new PrimitiveMapWithNulls<>(new ShortObjectHashMap<>()),
                 ShortObjectHashMap.DEFAULT_CAPACITY,
                 ShortObjectHashMap.DEFAULT_LOAD_FACTOR,
-                true
+                true,
+                Short.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF
             );
 
             case IntegerType.ID -> () -> (ResizeAwareMap<K, V>) new ResizeAwareMap<>(
                 new PrimitiveMapWithNulls<>(new IntObjectHashMap<>()),
                 IntObjectHashMap.DEFAULT_CAPACITY,
                 IntObjectHashMap.DEFAULT_LOAD_FACTOR,
-                true
+                true,
+                Integer.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF
             );
 
             case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ ->
@@ -114,7 +100,8 @@ public final class GroupByMaps {
                     new PrimitiveMapWithNulls<>(new LongObjectHashMap<>()),
                     LongObjectHashMap.DEFAULT_CAPACITY,
                     LongObjectHashMap.DEFAULT_LOAD_FACTOR,
-                    true
+                    true,
+                    Long.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF
                 );
 
             default -> () -> wrapperForJDKMap(new HashMap<>());
@@ -126,7 +113,8 @@ public final class GroupByMaps {
             map,
             16, // HashMap.DEFAULT_INITIAL_CAPACITY
             0.75f, // HashMap.DEFAULT_LOAD_FACTOR
-            false
+            false,
+            RamUsageEstimator.NUM_BYTES_OBJECT_REF
         );
     }
 

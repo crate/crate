@@ -176,6 +176,7 @@ import io.crate.sql.tree.ExistsPredicate;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Extract;
+import io.crate.sql.tree.Extract.Field;
 import io.crate.sql.tree.Fetch;
 import io.crate.sql.tree.Fetch.ScrollMode;
 import io.crate.sql.tree.FrameBound;
@@ -207,6 +208,7 @@ import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.LikeOption;
 import io.crate.sql.tree.LikePredicate;
 import io.crate.sql.tree.Literal;
+import io.crate.sql.tree.LocStmt;
 import io.crate.sql.tree.LogicalBinaryExpression;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.MatchPredicate;
@@ -310,7 +312,15 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitStatements(StatementsContext ctx) {
-        return new MultiStatement(visitCollection(ctx.statement(), Statement.class));
+        List<StatementContext> statements = ctx.statement();
+        ArrayList<LocStmt> result = new ArrayList<>(statements.size());
+        for (StatementContext statement : statements) {
+            Token start = statement.getStart();
+            Token stop = statement.getStop();
+            Statement stmt = (Statement) visit(statement);
+            result.add(new LocStmt(start, stop, stmt));
+        }
+        return new MultiStatement(result);
     }
 
     @Override
@@ -440,7 +450,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         }
 
         return new IntervalLiteral(
-            ((StringLiteral) visit(context.stringLiteral())).getValue(),
+            ((StringLiteral) visit(context.stringLiteral())).value(),
             sign,
             startField,
             endField);
@@ -897,11 +907,11 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             table = (Table<?>) node;
         } catch (ClassCastException e) {
             TableFunction tf = (TableFunction) node;
-            for (Expression ex : tf.functionCall().getArguments()) {
-                if (ex instanceof QualifiedNameReference ref && ref.getName().getParts().size() > 1) {
+            for (Expression ex : tf.functionCall().arguments()) {
+                if (ex instanceof QualifiedNameReference ref && ref.name().getParts().size() > 1) {
                     throw new IllegalArgumentException(
                         "Column references used in INSERT INTO <tbl> (...) must use the column name. " +
-                            "They cannot qualify catalog, schema or table. Got `" + ref.getName().toString() + "`");
+                            "They cannot qualify catalog, schema or table. Got `" + ref.name().toString() + "`");
                 } else {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "Invalid column reference %s used in INSERT INTO statement",
@@ -1082,7 +1092,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             assert userNameLiteral instanceof StringLiteral
                 : "username must be a StringLiteral because " +
                 "the parser grammar is restricted to string literals";
-            var userName = ((StringLiteral) userNameLiteral).getValue();
+            var userName = ((StringLiteral) userNameLiteral).value();
             return new SetSessionAuthorizationStatement(userName, scope);
         }
     }
@@ -1139,7 +1149,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         if (context.booleanLiteral() == null) {
             return null;
         } else {
-            return ((BooleanLiteral) visitBooleanLiteral(context.booleanLiteral())).getValue();
+            return ((BooleanLiteral) visitBooleanLiteral(context.booleanLiteral())).value();
         }
     }
 
@@ -1825,7 +1835,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     private String getIdentText(SqlBaseParser.@Nullable IdentContext ident) {
         if (ident != null) {
             StringLiteral literal = (StringLiteral) ident.accept(this);
-            return literal.getValue();
+            return literal.value();
         }
         return null;
     }
@@ -2218,8 +2228,10 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitExtract(SqlBaseParser.ExtractContext context) {
-        return new Extract((Expression) visit(context.expr()),
-            (StringLiteral) visit(context.stringLiteralOrIdentifier()));
+        Expression expression = (Expression) visit(context.expr());
+        StringLiteral stringLiteral = (StringLiteral) visit(context.stringLiteralOrIdentifier());
+        Field field = Extract.Field.valueOf(stringLiteral.value().toUpperCase(Locale.ENGLISH));
+        return new Extract(expression, field);
     }
 
     @Override
@@ -2519,13 +2531,13 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             var literal = visit(param);
             int val;
             if (literal instanceof LongLiteral l) {
-                val = Math.toIntExact(l.getValue());
+                val = Math.toIntExact(l.value());
             } else {
-                val = ((IntegerLiteral) literal).getValue();
+                val = ((IntegerLiteral) literal).value();
             }
             parameters.add(val);
         }
-        return new ColumnType<>(name.getValue(), parameters);
+        return new ColumnType<>(name.value(), parameters);
     }
 
     @Override
