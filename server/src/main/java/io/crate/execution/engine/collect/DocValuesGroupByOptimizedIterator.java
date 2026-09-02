@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
@@ -437,7 +436,15 @@ final class DocValuesGroupByOptimizedIterator {
 
             TriConsumer<ResizeAwareMap<K, Object[]>, K, Object[]> accountForNewKeyEntry =
                 accountForNewKeyEntryFactory.apply(ramAccounting);
-            ResizeAwareMap<K, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(new HashMap<>());
+            // Accumulate directly into the bucketed map (routing each key via its own bucket's
+            // ResizeAwareMap wrapper) instead of building a flat HashMap and copying it into a
+            // TwoLevelHashMap afterwards -- that copy would double the insert cost per leaf.
+            TwoLevelHashMap<K, Object[]> statesByKey = new TwoLevelHashMap<>();
+            @SuppressWarnings("unchecked")
+            ResizeAwareMap<K, Object[]>[] bucketWrappers = new ResizeAwareMap[statesByKey.numBuckets()];
+            for (int i = 0; i < bucketWrappers.length; i++) {
+                bucketWrappers[i] = GroupByMaps.wrapperForJDKMap(statesByKey.bucket(i));
+            }
 
             for (int i = 0; i < keyExpressions.size(); i++) {
                 keyExpressions.get(i).setNextReader(new ReaderContext(leaf));
@@ -458,8 +465,9 @@ final class DocValuesGroupByOptimizedIterator {
                     keyExpressions.get(i).setNextDocId(doc);
                 }
                 K key = keyExtractor.apply(keyExpressions);
+                ResizeAwareMap<K, Object[]> bucketMap = bucketWrappers[statesByKey.bucketIndex(key)];
 
-                Object[] states = statesByKey.get(key);
+                Object[] states = bucketMap.get(key);
                 if (states == null) {
                     states = new Object[aggregators.size()];
                     for (int i = 0; i < aggregators.size(); i++) {
@@ -471,8 +479,8 @@ final class DocValuesGroupByOptimizedIterator {
                         state = aggregator.apply(ramAccounting, doc, state);
                         states[i] = state;
                     }
-                    accountForNewKeyEntry.accept(statesByKey, key, states);
-                    statesByKey.put(key, states);
+                    accountForNewKeyEntry.accept(bucketMap, key, states);
+                    bucketMap.put(key, states);
                 } else {
                     for (int i = 0; i < aggregators.size(); i++) {
                         //noinspection unchecked
@@ -481,17 +489,16 @@ final class DocValuesGroupByOptimizedIterator {
                 }
             }
 
-            TwoLevelHashMap<K, Object[]> partials = new TwoLevelHashMap<>();
-            for (var entry : statesByKey.entrySet()) {
+            // Overwrite each entry's states array in place with its partial result -- same keys,
+            // same buckets, so this needs no re-insertion/rehashing, just a value-array mutation.
+            for (var entry : statesByKey) {
                 Object[] rawStates = entry.getValue();
-                Object[] partial = new Object[numberOfAggregates];
                 for (int i = 0; i < numberOfAggregates; i++) {
                     //noinspection unchecked
-                    partial[i] = aggregators.get(i).partialResult(ramAccounting, rawStates[i]);
+                    rawStates[i] = aggregators.get(i).partialResult(ramAccounting, rawStates[i]);
                 }
-                partials.put(entry.getKey(), partial);
             }
-            return partials;
+            return statesByKey;
         }
 
         /**

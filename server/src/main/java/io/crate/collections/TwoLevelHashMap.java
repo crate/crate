@@ -56,7 +56,8 @@ public class TwoLevelHashMap<K, V> implements Iterable<Map.Entry<K, V>> {
     /** Fibonacci hashing: spreads entropy into the high bits regardless of the input distribution. */
     private static final int MIX_CONSTANT = 0x9E3779B1;
 
-    private int bucketIndex(Object key) {
+    /** Exposed so callers can route entries into {@link #bucket(int)} directly, bypassing {@link #put}/{@link #get}. */
+    public int bucketIndex(Object key) {
         int mixed = key.hashCode() * MIX_CONSTANT;
         return mixed >>> (32 - bitsForBucket);
     }
