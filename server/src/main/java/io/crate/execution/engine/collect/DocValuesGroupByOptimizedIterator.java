@@ -36,6 +36,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.StreamSupport;
 
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -51,6 +52,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.collections.TwoLevelHashMap;
 import io.crate.common.TriConsumer;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
@@ -326,7 +328,7 @@ final class DocValuesGroupByOptimizedIterator {
             );
         }
 
-        private static <K> Iterable<Row> getRows(Map<K, Object[]> groupedPartialsByKey,
+        private static <K> Iterable<Row> getRows(TwoLevelHashMap<K, Object[]> groupedPartialsByKey,
                                                   int numberOfKeys,
                                                   BiConsumer<K, Object[]> applyKeyToCells,
                                                   int numberOfAggregates) {
@@ -340,7 +342,7 @@ final class DocValuesGroupByOptimizedIterator {
                     System.arraycopy(partials, 0, cells, numberOfKeys, partials.length);
                     return row;
                 };
-                return groupedPartialsByKey.entrySet().stream().map(mapper).iterator();
+                return StreamSupport.stream(groupedPartialsByKey.spliterator(), false).map(mapper).iterator();
             };
         }
 
@@ -350,7 +352,7 @@ final class DocValuesGroupByOptimizedIterator {
          * runs on, so blocking here on the joined result can't self-deadlock that pool.
          */
         @SuppressWarnings("rawtypes")
-        private static <K> Map<K, Object[]> collectGroupedByKey(
+        private static <K> TwoLevelHashMap<K, Object[]> collectGroupedByKey(
             Supplier<LeafState> leafStateFactory,
             Supplier<RamAccounting> ramAccountingFactory,
             List<AggregationFunction> reducers,
@@ -369,7 +371,7 @@ final class DocValuesGroupByOptimizedIterator {
                 1f
             );
             List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
-            List<Supplier<Map<K, Object[]>>> tasks = new ArrayList<>(leaves.size());
+            List<Supplier<TwoLevelHashMap<K, Object[]>>> tasks = new ArrayList<>(leaves.size());
             for (var leaf : leaves) {
                 tasks.add(() -> {
                     try {
@@ -389,7 +391,7 @@ final class DocValuesGroupByOptimizedIterator {
                     }
                 });
             }
-            List<Map<K, Object[]>> leafResults;
+            List<TwoLevelHashMap<K, Object[]>> leafResults;
             try {
                 leafResults = ThreadPools.runWithAvailableThreads(
                     executor,
@@ -403,11 +405,11 @@ final class DocValuesGroupByOptimizedIterator {
                 }
                 throw re;
             }
-            return mergeLeafResults(leafResults, reducers, ramAccountingFactory.get());
+            return mergeLeafResults(leafResults, reducers, ramAccountingFactory, executor);
         }
 
         @SuppressWarnings("rawtypes")
-        private static <K> Map<K, Object[]> processLeaf(
+        private static <K> TwoLevelHashMap<K, Object[]> processLeaf(
             LeafState leafState,
             RamAccounting ramAccounting,
             Weight weight,
@@ -430,7 +432,7 @@ final class DocValuesGroupByOptimizedIterator {
 
             Scorer scorer = weight.scorer(leaf);
             if (scorer == null) {
-                return Map.of();
+                return new TwoLevelHashMap<>();
             }
 
             TriConsumer<ResizeAwareMap<K, Object[]>, K, Object[]> accountForNewKeyEntry =
@@ -479,7 +481,7 @@ final class DocValuesGroupByOptimizedIterator {
                 }
             }
 
-            Map<K, Object[]> partials = new HashMap<>();
+            TwoLevelHashMap<K, Object[]> partials = new TwoLevelHashMap<>();
             for (var entry : statesByKey.entrySet()) {
                 Object[] rawStates = entry.getValue();
                 Object[] partial = new Object[numberOfAggregates];
@@ -492,14 +494,52 @@ final class DocValuesGroupByOptimizedIterator {
             return partials;
         }
 
+        /**
+         * Bucket index depends only on the key's hash, so bucket N of every leaf result and of
+         * {@code result} all hold the exact same set of possible keys -- merging bucket N is
+         * independent of every other bucket and can run on its own thread.
+         */
         @SuppressWarnings("rawtypes")
-        private static <K> Map<K, Object[]> mergeLeafResults(List<Map<K, Object[]>> leafResults,
-                                                              List<AggregationFunction> reducers,
-                                                              RamAccounting ramAccounting) {
-            Map<K, Object[]> merged = new HashMap<>();
+        private static <K> TwoLevelHashMap<K, Object[]> mergeLeafResults(List<TwoLevelHashMap<K, Object[]>> leafResults,
+                                                                          List<AggregationFunction> reducers,
+                                                                          Supplier<RamAccounting> ramAccountingFactory,
+                                                                          ThreadPoolExecutor executor) {
+            if (leafResults.size() <= 1) {
+                return leafResults.isEmpty() ? new TwoLevelHashMap<>() : leafResults.get(0);
+            }
+            TwoLevelHashMap<K, Object[]> result = new TwoLevelHashMap<>();
+            int numBuckets = result.numBuckets();
+            List<Supplier<Void>> tasks = new ArrayList<>(numBuckets);
+            for (int b = 0; b < numBuckets; b++) {
+                int bucketIdx = b;
+                tasks.add(() -> {
+                    mergeBucket(bucketIdx, result, leafResults, reducers, ramAccountingFactory.get());
+                    return null;
+                });
+            }
+            try {
+                ThreadPools.runWithAvailableThreads(
+                    executor,
+                    ThreadPools.numIdleThreads(executor, Runtime.getRuntime().availableProcessors()),
+                    tasks
+                ).join();
+            } catch (CompletionException e) {
+                throw Exceptions.toRuntimeException(e);
+            }
+            return result;
+        }
+
+        @SuppressWarnings("rawtypes")
+        private static <K> void mergeBucket(int bucketIdx,
+                                            TwoLevelHashMap<K, Object[]> result,
+                                            List<TwoLevelHashMap<K, Object[]>> leafResults,
+                                            List<AggregationFunction> reducers,
+                                            RamAccounting ramAccounting) {
+            Map<K, Object[]> target = result.bucket(bucketIdx);
             for (var leafResult : leafResults) {
-                for (var entry : leafResult.entrySet()) {
-                    merged.merge(entry.getKey(), entry.getValue(), (a, b) -> {
+                Map<K, Object[]> source = leafResult.bucket(bucketIdx);
+                for (var entry : source.entrySet()) {
+                    target.merge(entry.getKey(), entry.getValue(), (a, b) -> {
                         Object[] out = new Object[reducers.size()];
                         for (int j = 0; j < reducers.size(); j++) {
                             //noinspection unchecked
@@ -509,7 +549,6 @@ final class DocValuesGroupByOptimizedIterator {
                     });
                 }
             }
-            return merged;
         }
 
         private static boolean docDeleted(@Nullable Bits liveDocs, int doc) {
