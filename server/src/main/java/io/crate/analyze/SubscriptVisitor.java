@@ -75,7 +75,7 @@ public final class SubscriptVisitor {
 
         @Override
         protected Void visitQualifiedNameReference(QualifiedNameReference node, SubscriptContext context) {
-            context.qualifiedName(node.getName());
+            context.qualifiedName(node.name());
             return null;
         }
 

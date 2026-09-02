@@ -21,67 +21,20 @@
 
 package io.crate.sql.tree;
 
-import org.jspecify.annotations.Nullable;
 import java.util.List;
-import java.util.Objects;
 
-import static java.util.Objects.requireNonNull;
+import org.jspecify.annotations.Nullable;
 
-public class MatchPredicate extends Expression {
+import io.crate.sql.ExpressionFormatter;
 
-    private final List<MatchPredicateColumnIdent> idents;
-    private final Expression value;
-    private final GenericProperties<Expression> properties;
-    private final String matchType;
-
-    public MatchPredicate(List<MatchPredicateColumnIdent> idents,
-                          Expression value,
-                          @Nullable String matchType,
-                          GenericProperties<Expression> properties) {
+public record MatchPredicate(List<MatchPredicateColumnIdent> idents,
+                             Expression value,
+                             @Nullable String matchType,
+                             GenericProperties<Expression> properties) implements Expression {
+    public MatchPredicate {
         if (idents.isEmpty()) {
             throw new IllegalArgumentException("at least one ident must be given");
         }
-        this.idents = idents;
-        this.value = requireNonNull(value, "query_term is null");
-        this.matchType = matchType;
-        this.properties = properties;
-    }
-
-    public List<MatchPredicateColumnIdent> idents() {
-        return idents;
-    }
-
-    public Expression value() {
-        return value;
-    }
-
-    @Nullable
-    public String matchType() {
-        return matchType;
-    }
-
-    public GenericProperties<Expression> properties() {
-        return properties;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        MatchPredicate that = (MatchPredicate) o;
-        return Objects.equals(idents, that.idents) &&
-               Objects.equals(value, that.value) &&
-               Objects.equals(properties, that.properties) &&
-               Objects.equals(matchType, that.matchType);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(idents, value, properties, matchType);
     }
 
     @Override
@@ -89,4 +42,9 @@ public class MatchPredicate extends Expression {
         return visitor.visitMatchPredicate(this, context);
     }
 
+
+    @Override
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
+    }
 }

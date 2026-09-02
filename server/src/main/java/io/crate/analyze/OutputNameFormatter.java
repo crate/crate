@@ -21,15 +21,15 @@
 
 package io.crate.analyze;
 
+import java.util.List;
+import java.util.NoSuchElementException;
+
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.SubqueryExpression;
 import io.crate.sql.tree.SubscriptExpression;
-
-import java.util.List;
-import java.util.NoSuchElementException;
 
 public class OutputNameFormatter {
 
@@ -42,9 +42,9 @@ public class OutputNameFormatter {
     private static class InnerOutputNameFormatter extends ExpressionFormatter.Formatter {
         @Override
         protected String visitQualifiedNameReference(QualifiedNameReference node, List<Expression> parameters) {
-            List<String> parts = node.getName().getParts();
+            List<String> parts = node.name().getParts();
             if (parts.isEmpty()) {
-                throw new NoSuchElementException("Parts of QualifiedNameReference are empty: " + node.getName());
+                throw new NoSuchElementException("Parts of QualifiedNameReference are empty: " + node.name());
             }
             return parts.get(parts.size() - 1);
         }
@@ -56,10 +56,10 @@ public class OutputNameFormatter {
 
         @Override
         public String visitArrayComparisonExpression(ArrayComparisonExpression node, List<Expression> parameters) {
-            return node.getLeft().accept(this, null) + ' ' +
-                   node.getType().getValue() + ' ' +
+            return node.lhsExpression().accept(this, null) + ' ' +
+                   node.type().getValue() + ' ' +
                    node.quantifier().name() + '(' +
-                   node.getRight().accept(this, null) + ')';
+                   node.rhsArray().accept(this, null) + ')';
         }
 
         @Override

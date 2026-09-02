@@ -176,6 +176,7 @@ import io.crate.sql.tree.ExistsPredicate;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Extract;
+import io.crate.sql.tree.Extract.Field;
 import io.crate.sql.tree.Fetch;
 import io.crate.sql.tree.Fetch.ScrollMode;
 import io.crate.sql.tree.FrameBound;
@@ -906,11 +907,11 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             table = (Table<?>) node;
         } catch (ClassCastException e) {
             TableFunction tf = (TableFunction) node;
-            for (Expression ex : tf.functionCall().getArguments()) {
-                if (ex instanceof QualifiedNameReference ref && ref.getName().getParts().size() > 1) {
+            for (Expression ex : tf.functionCall().arguments()) {
+                if (ex instanceof QualifiedNameReference ref && ref.name().getParts().size() > 1) {
                     throw new IllegalArgumentException(
                         "Column references used in INSERT INTO <tbl> (...) must use the column name. " +
-                            "They cannot qualify catalog, schema or table. Got `" + ref.getName().toString() + "`");
+                            "They cannot qualify catalog, schema or table. Got `" + ref.name().toString() + "`");
                 } else {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "Invalid column reference %s used in INSERT INTO statement",
@@ -2227,8 +2228,10 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitExtract(SqlBaseParser.ExtractContext context) {
-        return new Extract((Expression) visit(context.expr()),
-            (StringLiteral) visit(context.stringLiteralOrIdentifier()));
+        Expression expression = (Expression) visit(context.expr());
+        StringLiteral stringLiteral = (StringLiteral) visit(context.stringLiteralOrIdentifier());
+        Field field = Extract.Field.valueOf(stringLiteral.getValue().toUpperCase(Locale.ENGLISH));
+        return new Extract(expression, field);
     }
 
     @Override

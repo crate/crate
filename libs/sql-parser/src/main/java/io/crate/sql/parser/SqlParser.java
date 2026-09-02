@@ -131,7 +131,7 @@ public class SqlParser {
     public static List<String> parseLeadingQualifiedName(String input) {
         Node node = INSTANCE.invokeParser("qualifiedName", input, SqlBaseParser::qname, null);
         if (node instanceof QualifiedNameReference ref) {
-            List<String> parts = ref.getName().getParts();
+            List<String> parts = ref.name().getParts();
             for (String part : parts) {
                 if (part.isEmpty()) {
                     throw new ParsingException("Input does not start with a valid identifier: " + input);

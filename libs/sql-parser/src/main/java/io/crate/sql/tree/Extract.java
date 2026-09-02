@@ -21,15 +21,9 @@
 
 package io.crate.sql.tree;
 
-import static java.util.Objects.requireNonNull;
+import io.crate.sql.ExpressionFormatter;
 
-import java.util.Locale;
-import java.util.Objects;
-
-public class Extract extends Expression {
-
-    private final Expression expression;
-    private final Field field;
+public record Extract(Expression expression, Field field) implements Expression {
 
     public enum Field {
         CENTURY,
@@ -51,40 +45,13 @@ public class Extract extends Expression {
         EPOCH
     }
 
-    public Extract(Expression expression, StringLiteral field) {
-        // field: ident is converted to StringLiteral in SqlBase.g
-        this.expression = requireNonNull(expression, "expression is null");
-        this.field = Field.valueOf(field.getValue().toUpperCase(Locale.ENGLISH));
-    }
-
-    public Expression getExpression() {
-        return expression;
-    }
-
-    public Field getField() {
-        return field;
-    }
-
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitExtract(this, context);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Extract extract = (Extract) o;
-        return Objects.equals(expression, extract.expression) &&
-               field == extract.field;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(expression, field);
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

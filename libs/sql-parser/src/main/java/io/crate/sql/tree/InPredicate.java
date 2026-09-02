@@ -21,23 +21,9 @@
 
 package io.crate.sql.tree;
 
-public class InPredicate
-    extends Expression {
-    private final Expression value;
-    private final Expression valueList;
+import io.crate.sql.ExpressionFormatter;
 
-    public InPredicate(Expression value, Expression valueList) {
-        this.value = value;
-        this.valueList = valueList;
-    }
-
-    public Expression getValue() {
-        return value;
-    }
-
-    public Expression getValueList() {
-        return valueList;
-    }
+public record InPredicate(Expression value, Expression valueList) implements Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -45,30 +31,7 @@ public class InPredicate
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        InPredicate that = (InPredicate) o;
-
-        if (!value.equals(that.value)) {
-            return false;
-        }
-        if (!valueList.equals(that.valueList)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = value.hashCode();
-        result = 31 * result + valueList.hashCode();
-        return result;
+    public final String toString() {
+        return ExpressionFormatter.formatExpression(this);
     }
 }

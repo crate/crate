@@ -32,7 +32,7 @@ public class TableFunction extends QueryBody {
     }
 
     public String name() {
-        return functionCall.getName().toString();
+        return functionCall.name().toString();
     }
 
     public FunctionCall functionCall() {

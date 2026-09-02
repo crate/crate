@@ -21,23 +21,9 @@
 
 package io.crate.sql.tree;
 
-public class WhenClause extends Expression {
+import io.crate.sql.ExpressionFormatter;
 
-    private final Expression operand;
-    private final Expression result;
-
-    public WhenClause(Expression operand, Expression result) {
-        this.operand = operand;
-        this.result = result;
-    }
-
-    public Expression getOperand() {
-        return operand;
-    }
-
-    public Expression getResult() {
-        return result;
-    }
+public record WhenClause(Expression operand, Expression result) implements Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -45,30 +31,7 @@ public class WhenClause extends Expression {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        WhenClause that = (WhenClause) o;
-
-        if (!operand.equals(that.operand)) {
-            return false;
-        }
-        if (!result.equals(that.result)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result1 = operand.hashCode();
-        result1 = 31 * result1 + result.hashCode();
-        return result1;
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

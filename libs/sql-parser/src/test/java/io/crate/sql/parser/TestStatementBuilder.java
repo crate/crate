@@ -1684,10 +1684,10 @@ public class TestStatementBuilder {
     @Test
     public void testSafeSubscriptExpression() {
         MatchPredicate matchPredicate = (MatchPredicate) SqlParser.createExpression("match (a['1']['2'], 'abc')");
-        assertThat(matchPredicate.idents().get(0).columnIdent()).hasToString("\"a\"['1']['2']");
+        assertThat(matchPredicate.idents().get(0).ident()).hasToString("\"a\"['1']['2']");
 
         matchPredicate = (MatchPredicate) SqlParser.createExpression("match (a['1']['2']['4'], 'abc')");
-        assertThat(matchPredicate.idents().get(0).columnIdent()).hasToString("\"a\"['1']['2']['4']");
+        assertThat(matchPredicate.idents().get(0).ident()).hasToString("\"a\"['1']['2']['4']");
 
         assertThatThrownBy(
             () -> SqlParser.createExpression("match ([1]['1']['2'], 'abc')"))
@@ -1698,17 +1698,17 @@ public class TestStatementBuilder {
     @Test
     public void testCaseSensitivity() {
         Expression expression = SqlParser.createExpression("\"firstName\" = 'myName'");
-        QualifiedNameReference nameRef = (QualifiedNameReference) ((ComparisonExpression) expression).getLeft();
-        StringLiteral myName = (StringLiteral) ((ComparisonExpression) expression).getRight();
-        assertThat(nameRef.getName().getSuffix()).isEqualTo("firstName");
+        QualifiedNameReference nameRef = (QualifiedNameReference) ((ComparisonExpression) expression).left();
+        StringLiteral myName = (StringLiteral) ((ComparisonExpression) expression).right();
+        assertThat(nameRef.name().getSuffix()).isEqualTo("firstName");
         assertThat(myName.getValue()).isEqualTo("myName");
 
         expression = SqlParser.createExpression("FIRSTNAME = 'myName'");
-        nameRef = (QualifiedNameReference) ((ComparisonExpression) expression).getLeft();
-        assertThat(nameRef.getName().getSuffix()).isEqualTo("firstname");
+        nameRef = (QualifiedNameReference) ((ComparisonExpression) expression).left();
+        assertThat(nameRef.name().getSuffix()).isEqualTo("firstname");
 
         expression = SqlParser.createExpression("ABS(1)");
-        QualifiedName functionName = ((FunctionCall) expression).getName();
+        QualifiedName functionName = ((FunctionCall) expression).name();
         assertThat(functionName.getSuffix()).isEqualTo("abs");
     }
 
@@ -1718,22 +1718,22 @@ public class TestStatementBuilder {
         assertThat(anyExpression).isExactlyInstanceOf(ArrayComparisonExpression.class);
         ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
         assertThat(arrayComparisonExpression.quantifier()).isEqualTo(ArrayComparisonExpression.Quantifier.ANY);
-        assertThat(arrayComparisonExpression.getLeft()).isExactlyInstanceOf(IntegerLiteral.class);
-        assertThat(arrayComparisonExpression.getRight()).isExactlyInstanceOf(QualifiedNameReference.class);
+        assertThat(arrayComparisonExpression.lhsExpression()).isExactlyInstanceOf(IntegerLiteral.class);
+        assertThat(arrayComparisonExpression.rhsArray()).isExactlyInstanceOf(QualifiedNameReference.class);
 
         Expression someExpression = SqlParser.createExpression("1 = SOME (arrayColumnRef)");
         assertThat(someExpression).isExactlyInstanceOf(ArrayComparisonExpression.class);
         ArrayComparisonExpression someArrayComparison = (ArrayComparisonExpression) someExpression;
         assertThat(someArrayComparison.quantifier()).isEqualTo(ArrayComparisonExpression.Quantifier.ANY);
-        assertThat(someArrayComparison.getLeft()).isExactlyInstanceOf(IntegerLiteral.class);
-        assertThat(someArrayComparison.getRight()).isExactlyInstanceOf(QualifiedNameReference.class);
+        assertThat(someArrayComparison.lhsExpression()).isExactlyInstanceOf(IntegerLiteral.class);
+        assertThat(someArrayComparison.rhsArray()).isExactlyInstanceOf(QualifiedNameReference.class);
 
         Expression allExpression = SqlParser.createExpression("'StringValue' = ALL (arrayColumnRef)");
         assertThat(allExpression).isExactlyInstanceOf(ArrayComparisonExpression.class);
         ArrayComparisonExpression allArrayComparison = (ArrayComparisonExpression) allExpression;
         assertThat(allArrayComparison.quantifier()).isEqualTo(ArrayComparisonExpression.Quantifier.ALL);
-        assertThat(allArrayComparison.getLeft()).isExactlyInstanceOf(StringLiteral.class);
-        assertThat(allArrayComparison.getRight()).isExactlyInstanceOf(QualifiedNameReference.class);
+        assertThat(allArrayComparison.lhsExpression()).isExactlyInstanceOf(StringLiteral.class);
+        assertThat(allArrayComparison.rhsArray()).isExactlyInstanceOf(QualifiedNameReference.class);
     }
 
     @Test
@@ -1742,16 +1742,16 @@ public class TestStatementBuilder {
         assertThat(anyExpression).isExactlyInstanceOf(ArrayComparisonExpression.class);
         ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
         assertThat(arrayComparisonExpression.quantifier()).isEqualTo(ArrayComparisonExpression.Quantifier.ANY);
-        assertThat(arrayComparisonExpression.getLeft()).isExactlyInstanceOf(IntegerLiteral.class);
-        assertThat(arrayComparisonExpression.getRight()).isExactlyInstanceOf(SubqueryExpression.class);
+        assertThat(arrayComparisonExpression.lhsExpression()).isExactlyInstanceOf(IntegerLiteral.class);
+        assertThat(arrayComparisonExpression.rhsArray()).isExactlyInstanceOf(SubqueryExpression.class);
 
         // It's possible to omit the parenthesis
         anyExpression = SqlParser.createExpression("1 = ANY (SELECT 5)");
         assertThat(anyExpression).isExactlyInstanceOf(ArrayComparisonExpression.class);
         arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
         assertThat(arrayComparisonExpression.quantifier()).isEqualTo(ArrayComparisonExpression.Quantifier.ANY);
-        assertThat(arrayComparisonExpression.getLeft()).isExactlyInstanceOf(IntegerLiteral.class);
-        assertThat(arrayComparisonExpression.getRight()).isExactlyInstanceOf(SubqueryExpression.class);
+        assertThat(arrayComparisonExpression.lhsExpression()).isExactlyInstanceOf(IntegerLiteral.class);
+        assertThat(arrayComparisonExpression.rhsArray()).isExactlyInstanceOf(SubqueryExpression.class);
     }
 
     @Test
@@ -1760,17 +1760,17 @@ public class TestStatementBuilder {
         assertThat(expression).isExactlyInstanceOf(ArrayLikePredicate.class);
         ArrayLikePredicate arrayLikePredicate = (ArrayLikePredicate) expression;
         assertThat(arrayLikePredicate.inverse()).isFalse();
-        assertThat(arrayLikePredicate.getEscape()).isNull();
-        assertThat(arrayLikePredicate.getPattern()).hasToString("'books%'");
-        assertThat(arrayLikePredicate.getValue()).hasToString("\"race\"['interests']");
+        assertThat(arrayLikePredicate.escape()).isNull();
+        assertThat(arrayLikePredicate.lhsPattern()).hasToString("'books%'");
+        assertThat(arrayLikePredicate.rhsArray()).hasToString("\"race\"['interests']");
 
         expression = SqlParser.createExpression("'b%' NOT LIKE ANY(race)");
         assertThat(expression).isExactlyInstanceOf(ArrayLikePredicate.class);
         arrayLikePredicate = (ArrayLikePredicate) expression;
         assertThat(arrayLikePredicate.inverse()).isTrue();
-        assertThat(arrayLikePredicate.getEscape()).isNull();
-        assertThat(arrayLikePredicate.getPattern()).hasToString("'b%'");
-        assertThat(arrayLikePredicate.getValue()).hasToString("\"race\"");
+        assertThat(arrayLikePredicate.escape()).isNull();
+        assertThat(arrayLikePredicate.lhsPattern()).hasToString("'b%'");
+        assertThat(arrayLikePredicate.rhsArray()).hasToString("\"race\"");
     }
 
     @Test
@@ -1778,8 +1778,8 @@ public class TestStatementBuilder {
         Expression expression = SqlParser.createExpression("[1] && [2]");
         assertThat(expression).isExactlyInstanceOf(FunctionCall.class);
         FunctionCall functionCall = (FunctionCall) expression;
-        assertThat(functionCall.getName().toString()).isEqualTo("array_overlap");
-        assertThat(functionCall.getArguments()).hasSize(2);
+        assertThat(functionCall.name().toString()).isEqualTo("array_overlap");
+        assertThat(functionCall.arguments()).hasSize(2);
     }
 
     @Test

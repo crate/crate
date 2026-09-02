@@ -569,7 +569,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Nullable
     private static Symbol tryGetFromSelectList(QualifiedNameReference expression, SelectAnalysis selectAnalysis) {
-        List<String> parts = expression.getName().getParts();
+        List<String> parts = expression.name().getParts();
         if (parts.size() == 1) {
             return SelectListFieldProvider.getOneOrAmbiguous(selectAnalysis.outputMultiMap(), getOnlyElement(parts));
         }

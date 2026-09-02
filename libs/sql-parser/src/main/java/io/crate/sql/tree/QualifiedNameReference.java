@@ -21,17 +21,9 @@
 
 package io.crate.sql.tree;
 
-public class QualifiedNameReference
-    extends Expression {
-    private final QualifiedName name;
+import io.crate.sql.ExpressionFormatter;
 
-    public QualifiedNameReference(QualifiedName name) {
-        this.name = name;
-    }
-
-    public QualifiedName getName() {
-        return name;
-    }
+public record QualifiedNameReference(QualifiedName name) implements Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -39,25 +31,7 @@ public class QualifiedNameReference
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        QualifiedNameReference that = (QualifiedNameReference) o;
-
-        if (!name.equals(that.name)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return name.hashCode();
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

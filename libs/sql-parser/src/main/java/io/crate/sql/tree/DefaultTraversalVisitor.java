@@ -25,7 +25,7 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
 
     @Override
     protected R visitExtract(Extract node, C context) {
-        return node.getExpression().accept(this, context);
+        return node.expression().accept(this, context);
     }
 
     @Override
@@ -40,25 +40,25 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
 
     @Override
     protected R visitArithmeticExpression(ArithmeticExpression node, C context) {
-        node.getLeft().accept(this, context);
-        node.getRight().accept(this, context);
+        node.left().accept(this, context);
+        node.right().accept(this, context);
 
         return null;
     }
 
     @Override
     protected R visitBetweenPredicate(BetweenPredicate node, C context) {
-        node.getValue().accept(this, context);
-        node.getMin().accept(this, context);
-        node.getMax().accept(this, context);
+        node.value().accept(this, context);
+        node.min().accept(this, context);
+        node.max().accept(this, context);
 
         return null;
     }
 
     @Override
     protected R visitComparisonExpression(ComparisonExpression node, C context) {
-        node.getLeft().accept(this, context);
-        node.getRight().accept(this, context);
+        node.left().accept(this, context);
+        node.right().accept(this, context);
 
         return null;
     }
@@ -91,23 +91,23 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
 
     @Override
     protected R visitWhenClause(WhenClause node, C context) {
-        node.getOperand().accept(this, context);
-        node.getResult().accept(this, context);
+        node.operand().accept(this, context);
+        node.result().accept(this, context);
 
         return null;
     }
 
     @Override
     protected R visitInPredicate(InPredicate node, C context) {
-        node.getValue().accept(this, context);
-        node.getValueList().accept(this, context);
+        node.value().accept(this, context);
+        node.valueList().accept(this, context);
 
         return null;
     }
 
     @Override
     protected R visitFunctionCall(FunctionCall node, C context) {
-        for (Expression argument : node.getArguments()) {
+        for (Expression argument : node.arguments()) {
             argument.accept(this, context);
         }
 
@@ -116,12 +116,12 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
 
     @Override
     protected R visitSimpleCaseExpression(SimpleCaseExpression node, C context) {
-        node.getOperand().accept(this, context);
-        for (WhenClause clause : node.getWhenClauses()) {
+        node.operand().accept(this, context);
+        for (WhenClause clause : node.whenClauses()) {
             clause.accept(this, context);
         }
-        if (node.getDefaultValue() != null) {
-            node.getDefaultValue().accept(this, context);
+        if (node.defaultValue() != null) {
+            node.defaultValue().accept(this, context);
         }
 
         return null;
@@ -129,7 +129,7 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
 
     @Override
     protected R visitInListExpression(InListExpression node, C context) {
-        for (Expression value : node.getValues()) {
+        for (Expression value : node.values()) {
             value.accept(this, context);
         }
 
@@ -138,10 +138,10 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
 
     @Override
     protected R visitIfExpression(IfExpression node, C context) {
-        node.getCondition().accept(this, context);
-        node.getTrueValue().accept(this, context);
-        if (node.getFalseValue().isPresent()) {
-            node.getFalseValue().get().accept(this, context);
+        node.condition().accept(this, context);
+        node.trueValue().accept(this, context);
+        if (node.falseValue().isPresent()) {
+            node.falseValue().get().accept(this, context);
         }
 
         return null;
@@ -149,20 +149,20 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
 
     @Override
     protected R visitNegativeExpression(NegativeExpression node, C context) {
-        return node.getValue().accept(this, context);
+        return node.value().accept(this, context);
     }
 
     @Override
     protected R visitNotExpression(NotExpression node, C context) {
-        return node.getValue().accept(this, context);
+        return node.value().accept(this, context);
     }
 
     @Override
     protected R visitSearchedCaseExpression(SearchedCaseExpression node, C context) {
-        for (WhenClause clause : node.getWhenClauses()) {
+        for (WhenClause clause : node.whenClauses()) {
             clause.accept(this, context);
         }
-        Expression defaultValue = node.getDefaultValue();
+        Expression defaultValue = node.defaultValue();
         if (defaultValue != null) {
             defaultValue.accept(this, context);
         }
@@ -172,9 +172,9 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
 
     @Override
     protected R visitLikePredicate(LikePredicate node, C context) {
-        node.getValue().accept(this, context);
-        node.getPattern().accept(this, context);
-        Expression escape = node.getEscape();
+        node.value().accept(this, context);
+        node.pattern().accept(this, context);
+        Expression escape = node.escape();
         if (escape != null) {
             escape.accept(this, context);
         }
@@ -184,25 +184,25 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
 
     @Override
     protected R visitIsNotNullPredicate(IsNotNullPredicate node, C context) {
-        return node.getValue().accept(this, context);
+        return node.value().accept(this, context);
     }
 
     @Override
     protected R visitIsNullPredicate(IsNullPredicate node, C context) {
-        return node.getValue().accept(this, context);
+        return node.value().accept(this, context);
     }
 
     @Override
     protected R visitLogicalBinaryExpression(LogicalBinaryExpression node, C context) {
-        node.getLeft().accept(this, context);
-        node.getRight().accept(this, context);
+        node.left().accept(this, context);
+        node.right().accept(this, context);
 
         return null;
     }
 
     @Override
     protected R visitSubqueryExpression(SubqueryExpression node, C context) {
-        return node.getQuery().accept(this, context);
+        return node.query().accept(this, context);
     }
 
     @Override
@@ -364,7 +364,7 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
     @Override
     public R visitMatchPredicate(MatchPredicate node, C context) {
         for (MatchPredicateColumnIdent columnIdent : node.idents()) {
-            columnIdent.columnIdent().accept(this, context);
+            columnIdent.ident().accept(this, context);
             columnIdent.boost().accept(this, context);
         }
         node.value().accept(this, context);
