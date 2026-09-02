@@ -46,6 +46,12 @@ series.
 Fixes
 =====
 
+- Fixed an issue that caused ``CREATE VIEW`` statements to fail if their query
+  contained a parameter placeholder (``?``) for a ``bit`` value with an error
+  like::
+
+    Cannot cast `'B''0101'''` of type `text` to type `bit(4)`
+
 - Fixed an issue that could cause inserts to be routed to the wrong shards if
   writing to a table with more than one shard and a primary key column that has
   a default clause and omitting that column in the INSERT INTO statement. Those

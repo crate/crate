@@ -70,6 +70,7 @@ public sealed interface Literal extends Expression permits
                 }
                 yield new ObjectLiteral(map);
             }
+            case BitString val -> val;
             default -> new StringLiteral(value.toString());
         };
     }

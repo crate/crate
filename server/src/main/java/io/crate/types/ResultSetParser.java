@@ -41,6 +41,7 @@ import org.postgresql.util.PGobject;
 
 import io.crate.protocols.postgres.types.PGArray;
 import io.crate.protocols.postgres.types.PgOidVectorType;
+import io.crate.sql.tree.BitString;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
@@ -112,6 +113,9 @@ public class ResultSetParser {
                 ByteBuf buf = Unpooled.wrappedBuffer(bytes);
                 value = PGArray.BIT_ARRAY.readTextValue(buf, bytes.length, null);
                 buf.release();
+                break;
+            case "bit":
+                value = BitString.ofRawBits(resultSet.getString(columnIndex));
                 break;
 
             default:
