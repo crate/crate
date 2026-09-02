@@ -66,6 +66,7 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.io.IOUtils;
 
 /**
@@ -243,11 +244,32 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
         }
     }
 
-    private void startNewShards(SnapshotsInProgress.Entry entry, Map<ShardId, IndexShardSnapshotStatus> startedShards) {
+    @VisibleForTesting
+    void startNewShards(SnapshotsInProgress.Entry entry, Map<ShardId, IndexShardSnapshotStatus> startedShards) {
         threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(() -> {
             final Snapshot snapshot = entry.snapshot();
-            final Map<String, IndexId> indicesMap =
-                entry.indices().stream().collect(Collectors.toMap(IndexId::getName, Function.identity()));
+            final Map<String, IndexId> indicesMap;
+            try {
+                indicesMap = entry.indices().stream().collect(Collectors.toMap(IndexId::getName, Function.identity()));
+            } catch (Exception e) {
+                // Before https://github.com/crate/crate/pull/19734 it was possible to end up
+                // with duplicate index names in the cluster.
+                // A swapped table before the fix can still experience this issue.
+                // We must report failure instead of failing silently.
+                // Otherwise, snapshot in progress entry will be kept in cluster state,
+                // reported in sys.snapshots with IN_PROGRESS state
+                // and prevent next snapshots operations even after applying mitigation -
+                // because mitigation fixes duplicate index name and doesn't fix SnapshotsInProgress.
+                LOGGER.warn("[{}] failed to start shard snapshots", snapshot, e);
+                final String failure = summarizeFailure(e);
+                for (Map.Entry<ShardId, IndexShardSnapshotStatus> shardEntry : startedShards.entrySet()) {
+                    final ShardId shardId = shardEntry.getKey();
+                    final IndexShardSnapshotStatus snapshotStatus = shardEntry.getValue();
+                    snapshotStatus.moveToFailed(threadPool.absoluteTimeInMillis(), failure);
+                    notifyFailedSnapshotShard(snapshot, shardId, failure);
+                }
+                return;
+            }
             for (final Map.Entry<ShardId, IndexShardSnapshotStatus> shardEntry : startedShards.entrySet()) {
                 final ShardId shardId = shardEntry.getKey();
                 final IndexShardSnapshotStatus snapshotStatus = shardEntry.getValue();
