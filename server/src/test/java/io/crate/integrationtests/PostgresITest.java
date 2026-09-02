@@ -964,7 +964,7 @@ public class PostgresITest extends IntegTestCase {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             Statement statement = conn.createStatement();
             statement.execute("set search_path to 'hoschi';" +
-                              "create table t (id int);" +
+                              "create table t (\nid int\n);" +
                               "insert into t values (42);" +
                               "refresh table t");
 

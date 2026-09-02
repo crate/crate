@@ -71,6 +71,7 @@ import io.crate.session.DescribeResult;
 import io.crate.session.ResultReceiver;
 import io.crate.session.Session;
 import io.crate.session.Sessions;
+import io.crate.sql.tree.LocStmt;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import io.netty.buffer.ByteBuf;
@@ -828,7 +829,7 @@ public class PostgresWireProtocol {
         String queryString = readCString(buffer);
         assert queryString != null : "query must not be nulL";
 
-        List<Statement> statements;
+        List<LocStmt> statements;
         try {
             statements = session.simpleQuery(queryString);
         } catch (Exception ex) {
@@ -843,8 +844,10 @@ public class PostgresWireProtocol {
         }
         timeoutToken.check("handleSimpleQuery");
         CompletableFuture<?> composedFuture = CompletableFuture.completedFuture(null);
-        for (var statement : statements) {
-            composedFuture = composedFuture.thenCompose(_ -> handleSingleQuery(statement, queryString, channel, timeoutToken));
+        for (var locStmt : statements) {
+            Statement stmt = locStmt.stmt();
+            String query = locStmt.querySubset(queryString);
+            composedFuture = composedFuture.thenCompose(_ -> handleSingleQuery(stmt, query, channel, timeoutToken));
         }
         composedFuture.whenComplete(new ReadyForQueryCallback(channel, TransactionState.IDLE));
     }

@@ -118,6 +118,12 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
                                                 Function<ColumnIdent, Reference> getRef) {
             return new FloatIndexer(ref);
         }
+
+        @Override
+        public Float decode(byte[] packedPoint) {
+            return NumericUtils.sortableIntToFloat(NumericUtils.sortableBytesToInt(packedPoint, 0));
+        }
+
     };
 
     private static final BigDecimal MAX = BigDecimal.valueOf(Float.MAX_VALUE);

@@ -61,8 +61,9 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
                       └ CorrelatedJoin[mountain, (SELECT mountain FROM (empty_row))]
                         └ Collect[sys.summits | [mountain] | true]
                         └ SubPlan
-                          └ Limit[2::bigint;0::bigint]
-                            └ TableFunction[empty_row | [mountain] | true]"""
+                          └ Eval[mountain]
+                            └ Limit[2::bigint;0::bigint]
+                              └ TableFunction[empty_row | [] | true]"""
         );
     }
 
@@ -78,8 +79,9 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
                     └ Rename[mountain] AS t
                       └ Collect[sys.summits | [mountain] | true]
                     └ SubPlan
-                      └ Limit[2::bigint;0::bigint]
-                        └ TableFunction[empty_row | [mountain] | true]"""
+                      └ Eval[mountain]
+                        └ Limit[2::bigint;0::bigint]
+                          └ TableFunction[empty_row | [] | true]"""
         );
     }
 

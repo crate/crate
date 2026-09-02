@@ -166,7 +166,12 @@ public final class LimitDistinct extends ForwardingLogicalPlan {
         if (prunedSource == source) {
             return this;
         }
-        return new LimitDistinct(prunedSource, limit, offset, outputs);
+        // Outputs are take as is, pruning only called on source.
+        // Hence, we can validate outputs after the pruning,
+        // but don't have to normalize own outputs.
+        LimitDistinct newPlan = new LimitDistinct(prunedSource, limit, offset, outputs);
+        validateOutputsOrder(newPlan.outputs());
+        return newPlan;
     }
 
     @Override

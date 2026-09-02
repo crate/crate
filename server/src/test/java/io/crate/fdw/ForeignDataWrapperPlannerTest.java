@@ -37,6 +37,7 @@ import io.crate.planner.CreateForeignTablePlan;
 import io.crate.planner.CreateServerPlan;
 import io.crate.planner.CreateUserMappingPlan;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -187,6 +188,25 @@ public class ForeignDataWrapperPlannerTest extends CrateDummyClusterServiceUnitT
         var query = ((ForeignCollectPhase) collect.collectPhase()).query();
         // Without any logic (e.g. using the EvaluationNormalizer) to remove aliases, the query would be `(some_alias = 1)`
         assertThat(query.toString()).isEqualTo("(id = 1)");
+    }
+
+    @Test
+    public void test_pruning_preserves_outputs_order() throws Exception {
+        Settings options = Settings.builder()
+            .put("url", "jdbc:postgresql://localhost:5432/")
+            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addServer("pg", "jdbc", "crate", options)
+            .addForeignTable("CREATE FOREIGN TABLE tbl (a int, b int, c int) SERVER pg OPTIONS (schema_name 'doc')");
+
+        var stmt = "SELECT x2, x1 FROM (SELECT a AS x1, b AS x2, c AS x3 FROM tbl) sub";
+        LogicalPlan plan = e.logicalPlan(stmt);
+        assertThat(plan).isEqualTo(
+            """
+            Eval[x2, x1]
+              └ Rename[x1, x2] AS sub
+                └ ForeignCollect[doc.tbl | [a AS x1, b AS x2] | true]
+            """);
     }
 
 
