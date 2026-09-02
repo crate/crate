@@ -59,6 +59,7 @@ public abstract class Literal
                 }
                 yield new ObjectLiteral(map);
             }
+            case BitString val -> val;
             default -> new StringLiteral(value.toString());
         };
     }
