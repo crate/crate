@@ -21,7 +21,10 @@
 
 package io.crate.sql.tree;
 
-public class NullLiteral extends Literal {
+import io.crate.sql.ExpressionFormatter;
+
+public final class NullLiteral implements Literal {
+
     public static final NullLiteral INSTANCE = new NullLiteral();
 
     private NullLiteral() {
@@ -33,19 +36,7 @@ public class NullLiteral extends Literal {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return 0;
+    public String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

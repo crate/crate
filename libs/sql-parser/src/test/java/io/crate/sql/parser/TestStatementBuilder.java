@@ -1669,7 +1669,7 @@ public class TestStatementBuilder {
         assertThat(expression).isExactlyInstanceOf(SubscriptExpression.class);
         SubscriptExpression subscript = (SubscriptExpression) expression;
         assertThat(subscript.index()).isExactlyInstanceOf(StringLiteral.class);
-        assertThat(((StringLiteral) subscript.index()).getValue()).isEqualTo("sub");
+        assertThat(((StringLiteral) subscript.index()).value()).isEqualTo("sub");
 
         assertThat(subscript.base()).isExactlyInstanceOf(QualifiedNameReference.class);
 
@@ -1677,7 +1677,7 @@ public class TestStatementBuilder {
         assertThat(expression).isExactlyInstanceOf(SubscriptExpression.class);
         subscript = (SubscriptExpression) expression;
         assertThat(subscript.index()).isExactlyInstanceOf(IntegerLiteral.class);
-        assertThat(((IntegerLiteral) subscript.index()).getValue()).isEqualTo(1);
+        assertThat(((IntegerLiteral) subscript.index()).value()).isEqualTo(1);
         assertThat(subscript.base()).isExactlyInstanceOf(ArrayLiteral.class);
     }
 
@@ -1701,7 +1701,7 @@ public class TestStatementBuilder {
         QualifiedNameReference nameRef = (QualifiedNameReference) ((ComparisonExpression) expression).left();
         StringLiteral myName = (StringLiteral) ((ComparisonExpression) expression).right();
         assertThat(nameRef.name().getSuffix()).isEqualTo("firstName");
-        assertThat(myName.getValue()).isEqualTo("myName");
+        assertThat(myName.value()).isEqualTo("myName");
 
         expression = SqlParser.createExpression("FIRSTNAME = 'myName'");
         nameRef = (QualifiedNameReference) ((ComparisonExpression) expression).left();
@@ -1795,7 +1795,7 @@ public class TestStatementBuilder {
         };
         for (String s : testString) {
             Expression expr = SqlParser.createExpression(Literals.quoteStringLiteral(s));
-            assertThat(((StringLiteral) expr).getValue()).isEqualTo(s);
+            assertThat(((StringLiteral) expr).value()).isEqualTo(s);
         }
     }
 
@@ -1805,8 +1805,8 @@ public class TestStatementBuilder {
         String expectedValue = "this is a triple-a:aaa";
         Expression expr = SqlParser.createExpression(Literals.quoteEscapedStringLiteral(input));
         EscapedCharStringLiteral escapedCharStringLiteral = (EscapedCharStringLiteral) expr;
-        assertThat(escapedCharStringLiteral.getRawValue()).isEqualTo(input);
-        assertThat(escapedCharStringLiteral.getValue()).isEqualTo(expectedValue);
+        assertThat(escapedCharStringLiteral.rawValue()).isEqualTo(input);
+        assertThat(escapedCharStringLiteral.value()).isEqualTo(expectedValue);
     }
 
     @Test

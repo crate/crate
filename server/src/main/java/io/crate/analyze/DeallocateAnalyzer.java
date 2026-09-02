@@ -36,7 +36,7 @@ public final class DeallocateAnalyzer {
         String preparedStmt = null;
         if (preparedStmtExpression != null) {
             if (preparedStmtExpression instanceof StringLiteral) {
-                preparedStmt = ((StringLiteral) preparedStmtExpression).getValue();
+                preparedStmt = ((StringLiteral) preparedStmtExpression).value();
             } else if (preparedStmtExpression instanceof QualifiedNameReference) {
                 preparedStmt = ((QualifiedNameReference) preparedStmtExpression).name().toString();
             } else {

@@ -551,10 +551,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                                                                       ExpressionAnalysisContext expressionAnalysisContext) {
         int ord = -1;
         if (expression instanceof IntegerLiteral intLiteral) {
-            ord = intLiteral.getValue();
+            ord = intLiteral.value();
         } else if (expression instanceof LongLiteral longLiteral) {
             try {
-                ord = DataTypes.INTEGER.sanitizeValue(longLiteral.getValue());
+                ord = DataTypes.INTEGER.sanitizeValue(longLiteral.value());
             } catch (ClassCastException | IllegalArgumentException e) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,

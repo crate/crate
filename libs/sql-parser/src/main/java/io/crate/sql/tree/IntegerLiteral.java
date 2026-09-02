@@ -21,17 +21,9 @@
 
 package io.crate.sql.tree;
 
-public class IntegerLiteral extends Literal {
+import io.crate.sql.ExpressionFormatter;
 
-    private final int value;
-
-    public IntegerLiteral(int value) {
-        this.value = value;
-    }
-
-    public int getValue() {
-        return value;
-    }
+public record IntegerLiteral(int value) implements Literal {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -39,19 +31,7 @@ public class IntegerLiteral extends Literal {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        IntegerLiteral that = (IntegerLiteral) o;
-        return value == that.value;
-    }
-
-    @Override
-    public int hashCode() {
-        return value;
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

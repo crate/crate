@@ -21,20 +21,14 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
-
 import static java.util.Objects.requireNonNull;
 
-public class StringLiteral extends Literal {
+import io.crate.sql.ExpressionFormatter;
 
-    private final String value;
+public record StringLiteral(String value) implements Literal {
 
-    public StringLiteral(String value) {
-        this.value = requireNonNull(value, "value is null");
-    }
-
-    public String getValue() {
-        return value;
+    public StringLiteral {
+        requireNonNull(value, "value is null");
     }
 
     @Override
@@ -43,19 +37,7 @@ public class StringLiteral extends Literal {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        StringLiteral that = (StringLiteral) o;
-        return Objects.equals(value, that.value);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value);
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

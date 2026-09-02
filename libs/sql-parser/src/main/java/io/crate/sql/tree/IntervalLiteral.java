@@ -22,12 +22,16 @@
 package io.crate.sql.tree;
 
 import org.jspecify.annotations.Nullable;
-import java.util.Objects;
+
+import io.crate.sql.ExpressionFormatter;
 
 /**
  * INTERVAL sign=(PLUS | MINUS)? stringLiteral from=intervalField (TO to=intervalField)?
  */
-public class IntervalLiteral extends Literal {
+public record IntervalLiteral(String value,
+                              Sign sign,
+                              IntervalField start,
+                              @Nullable IntervalField end) implements Literal {
 
     public enum Sign {
         PLUS,
@@ -44,46 +48,16 @@ public class IntervalLiteral extends Literal {
         MILLISECOND
     }
 
-    private final String value;
-    private final Sign sign;
-    private final IntervalField startField;
-    @Nullable
-    private final IntervalField endField;
-
-    public IntervalLiteral(String value, Sign sign, IntervalField startField, @Nullable IntervalField endField) {
-        this.value = value;
-        this.sign = sign;
-        this.startField = startField;
-        this.endField = endField;
-    }
-
-    public String getValue() {
-        return value;
-    }
-
-    public Sign getSign() {
-        return sign;
-    }
-
-    public IntervalField getStartField() {
-        return startField;
-    }
-
-    @Nullable
-    public IntervalField getEndField() {
-        return endField;
-    }
-
     public static String format(IntervalLiteral i) {
         StringBuilder builder = new StringBuilder("INTERVAL ");
-        if (i.getSign() == IntervalLiteral.Sign.MINUS) {
+        if (i.sign() == IntervalLiteral.Sign.MINUS) {
             builder.append("- ");
         }
         builder.append("'");
-        builder.append(i.getValue());
+        builder.append(i.value());
         builder.append("' ")
-            .append(i.getStartField().name());
-        IntervalLiteral.IntervalField endField = i.getEndField();
+            .append(i.start().name());
+        IntervalLiteral.IntervalField endField = i.end();
         if (endField != null) {
             builder.append(" TO ").append(endField.name());
         }
@@ -91,23 +65,8 @@ public class IntervalLiteral extends Literal {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(value, sign, startField, endField);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null || getClass() != obj.getClass()) {
-            return false;
-        }
-        IntervalLiteral other = (IntervalLiteral) obj;
-        return Objects.equals(this.value, other.value) &&
-               Objects.equals(this.sign, other.sign) &&
-               Objects.equals(this.startField, other.startField) &&
-               Objects.equals(this.endField, other.endField);
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 
     @Override

@@ -210,7 +210,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitBooleanLiteral(BooleanLiteral node, @Nullable List<Expression> parameters) {
-            return String.valueOf(node.getValue());
+            return String.valueOf(node.value());
         }
 
         @Override
@@ -243,7 +243,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitStringLiteral(StringLiteral node, @Nullable List<Expression> parameters) {
-            return Literals.quoteStringLiteral(node.getValue());
+            return Literals.quoteStringLiteral(node.value());
         }
 
         @Override
@@ -253,17 +253,17 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitEscapedCharStringLiteral(EscapedCharStringLiteral node, @Nullable List<Expression> parameters) {
-            return Literals.quoteEscapedStringLiteral(node.getRawValue());
+            return Literals.quoteEscapedStringLiteral(node.rawValue());
         }
 
         @Override
         protected String visitLongLiteral(LongLiteral node, @Nullable List<Expression> parameters) {
-            return Long.toString(node.getValue());
+            return Long.toString(node.value());
         }
 
         @Override
         protected String visitIntegerLiteral(IntegerLiteral node, @Nullable List<Expression> parameters) {
-            return Integer.toString(node.getValue());
+            return Integer.toString(node.value());
         }
 
         @Override
@@ -273,7 +273,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitDoubleLiteral(DoubleLiteral node, @Nullable List<Expression> parameters) {
-            return Double.toString(node.getValue());
+            return Double.toString(node.value());
         }
 
         @Override
