@@ -723,7 +723,7 @@ public final class SqlFormatter {
         public Void visitTableFunction(TableFunction node, Integer context) {
             builder.append(node.name());
             builder.append("(");
-            Iterator<Expression> iterator = node.functionCall().getArguments().iterator();
+            Iterator<Expression> iterator = node.functionCall().arguments().iterator();
             while (iterator.hasNext()) {
                 Expression expression = iterator.next();
                 expression.accept(this, context);

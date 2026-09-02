@@ -115,7 +115,7 @@ public class ParseIdentFunction extends Scalar<List<String>, Object> {
         }
 
         if (expression instanceof QualifiedNameReference ref) {
-            List<String> parts = ref.getName().getParts();
+            List<String> parts = ref.name().getParts();
             for (String part : parts) {
                 if (part.isEmpty()) {
                     throw new IllegalArgumentException(
@@ -127,7 +127,7 @@ public class ParseIdentFunction extends Scalar<List<String>, Object> {
 
         if (!strict) {
             if (expression instanceof FunctionCall func) {
-                return func.getName().getParts();
+                return func.name().getParts();
             }
             return tryParseLeadingIdent(input);
         }

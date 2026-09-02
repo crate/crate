@@ -21,26 +21,11 @@
 
 package io.crate.sql.tree;
 
-import java.util.Collections;
 import java.util.List;
 
-public class SearchedCaseExpression
-    extends Expression {
-    private final List<WhenClause> whenClauses;
-    private final Expression defaultValue;
+import io.crate.sql.ExpressionFormatter;
 
-    public SearchedCaseExpression(List<WhenClause> whenClauses, Expression defaultValue) {
-        this.whenClauses = Collections.unmodifiableList(whenClauses);
-        this.defaultValue = defaultValue;
-    }
-
-    public List<WhenClause> getWhenClauses() {
-        return whenClauses;
-    }
-
-    public Expression getDefaultValue() {
-        return defaultValue;
-    }
+public record SearchedCaseExpression(List<WhenClause> whenClauses, Expression defaultValue) implements Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -48,30 +33,7 @@ public class SearchedCaseExpression
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        SearchedCaseExpression that = (SearchedCaseExpression) o;
-
-        if (defaultValue != null ? !defaultValue.equals(that.defaultValue) : that.defaultValue != null) {
-            return false;
-        }
-        if (!whenClauses.equals(that.whenClauses)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = whenClauses.hashCode();
-        result = 31 * result + (defaultValue != null ? defaultValue.hashCode() : 0);
-        return result;
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

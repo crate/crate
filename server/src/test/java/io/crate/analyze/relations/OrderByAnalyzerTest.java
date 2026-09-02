@@ -22,6 +22,7 @@
 package io.crate.analyze.relations;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -59,7 +60,7 @@ public class OrderByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         sortItems.add(second);
 
         OrderBy orderBy = OrderyByAnalyzer.analyzeSortItems(sortItems,
-            e -> Literal.of(((QualifiedNameReference) e).getName().toString()));
+            e -> Literal.of(((QualifiedNameReference) e).name().toString()));
 
         assertThat(orderBy).isNotNull();
         List<Symbol> orderBySymbols = orderBy.orderBySymbols();

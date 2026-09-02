@@ -44,17 +44,17 @@ public class JoinUsingTests {
             for (int i = 0; i < n - 2; i++) {
                 assertThat(e).isExactlyInstanceOf(LogicalBinaryExpression.class);
                 LogicalBinaryExpression and = (LogicalBinaryExpression) e;
-                assertThat(and.getLeft()).isExactlyInstanceOf(ComparisonExpression.class);
-                assertThat(and.getRight()).isExactlyInstanceOf(LogicalBinaryExpression.class);
-                e = and.getRight();
+                assertThat(and.left()).isExactlyInstanceOf(ComparisonExpression.class);
+                assertThat(and.right()).isExactlyInstanceOf(LogicalBinaryExpression.class);
+                e = and.right();
             }
             if (1 == n) {
                 assertThat(e).isExactlyInstanceOf(ComparisonExpression.class);
             } else {
                 assertThat(e).isExactlyInstanceOf(LogicalBinaryExpression.class);
                 LogicalBinaryExpression and = (LogicalBinaryExpression) e;
-                assertThat(and.getLeft()).isExactlyInstanceOf(ComparisonExpression.class);
-                assertThat(and.getRight()).isExactlyInstanceOf(ComparisonExpression.class);
+                assertThat(and.left()).isExactlyInstanceOf(ComparisonExpression.class);
+                assertThat(and.right()).isExactlyInstanceOf(ComparisonExpression.class);
             }
         }
     }

@@ -23,17 +23,9 @@ package io.crate.sql.tree;
 
 import java.util.List;
 
-public class InListExpression
-    extends Expression {
-    private final List<Expression> values;
+import io.crate.sql.ExpressionFormatter;
 
-    public InListExpression(List<Expression> values) {
-        this.values = values;
-    }
-
-    public List<Expression> getValues() {
-        return values;
-    }
+public record InListExpression(List<Expression> values) implements Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -41,25 +33,7 @@ public class InListExpression
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        InListExpression that = (InListExpression) o;
-
-        if (!values.equals(that.values)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return values.hashCode();
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

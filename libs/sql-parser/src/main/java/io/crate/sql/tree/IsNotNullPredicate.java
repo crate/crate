@@ -21,21 +21,9 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
+import io.crate.sql.ExpressionFormatter;
 
-import static java.util.Objects.requireNonNull;
-
-public class IsNotNullPredicate
-    extends Expression {
-    private final Expression value;
-
-    public IsNotNullPredicate(Expression value) {
-        this.value = requireNonNull(value, "value is null");
-    }
-
-    public Expression getValue() {
-        return value;
-    }
+public record IsNotNullPredicate(Expression value) implements Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -43,19 +31,7 @@ public class IsNotNullPredicate
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        IsNotNullPredicate that = (IsNotNullPredicate) o;
-        return Objects.equals(value, that.value);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value);
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

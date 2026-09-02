@@ -21,14 +21,9 @@
 
 package io.crate.sql.tree;
 
+import io.crate.sql.ExpressionFormatter;
 
-public class ParameterExpression extends Expression {
-
-    private final int position;
-
-    public ParameterExpression(int position) {
-        this.position = position;
-    }
+public record ParameterExpression(int position) implements Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -36,18 +31,8 @@ public class ParameterExpression extends Expression {
     }
 
     @Override
-    public boolean equals(Object o) {
-        return o instanceof ParameterExpression that
-            && position == that.position;
-    }
-
-    @Override
-    public int hashCode() {
-        return position;
-    }
-
-    public int position() {
-        return position;
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 
     public int index() {

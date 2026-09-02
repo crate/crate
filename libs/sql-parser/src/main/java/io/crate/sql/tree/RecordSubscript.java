@@ -21,23 +21,9 @@
 
 package io.crate.sql.tree;
 
-public final class RecordSubscript extends Expression {
+import io.crate.sql.ExpressionFormatter;
 
-    private final Expression base;
-    private final String field;
-
-    public RecordSubscript(Expression base, String field) {
-        this.base = base;
-        this.field = field;
-    }
-
-    public Expression base() {
-        return base;
-    }
-
-    public String field() {
-        return field;
-    }
+public record RecordSubscript(Expression base, String field) implements Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -45,26 +31,7 @@ public final class RecordSubscript extends Expression {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        RecordSubscript that = (RecordSubscript) o;
-
-        if (!base.equals(that.base)) {
-            return false;
-        }
-        return field.equals(that.field);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = base.hashCode();
-        result = 31 * result + field.hashCode();
-        return result;
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

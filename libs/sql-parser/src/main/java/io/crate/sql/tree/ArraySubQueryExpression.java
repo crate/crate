@@ -21,33 +21,17 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
+import io.crate.sql.ExpressionFormatter;
 
-public class ArraySubQueryExpression extends Expression {
-
-    private final SubqueryExpression subqueryExpression;
-
-    public ArraySubQueryExpression(SubqueryExpression subqueryExpression) {
-        this.subqueryExpression = subqueryExpression;
-    }
-
-    public SubqueryExpression subqueryExpression() {
-        return subqueryExpression;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(subqueryExpression);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return obj instanceof ArraySubQueryExpression other
-            && Objects.equals(subqueryExpression, other.subqueryExpression);
-    }
+public record ArraySubQueryExpression(SubqueryExpression subquery) implements Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitArraySubQueryExpression(this, context);
+    }
+
+    @Override
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

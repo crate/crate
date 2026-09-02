@@ -21,16 +21,10 @@
 
 package io.crate.sql.tree;
 
-import io.crate.sql.ExpressionFormatter;
-
-public abstract class Expression implements Node {
+public interface Expression extends Node {
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+    default <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitExpression(this, context);
-    }
-
-    public final String toString() {
-        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

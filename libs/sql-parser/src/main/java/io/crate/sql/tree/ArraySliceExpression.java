@@ -22,8 +22,9 @@
 package io.crate.sql.tree;
 
 
-import java.util.Objects;
 import java.util.Optional;
+
+import io.crate.sql.ExpressionFormatter;
 
 /**
  * <pre>
@@ -39,52 +40,17 @@ import java.util.Optional;
  * }
  * </pre>
  */
-public class ArraySliceExpression extends Expression {
-
-    private final Expression base;
-    private final Optional<Expression> from;
-    private final Optional<Expression> to;
-
-    public ArraySliceExpression(Expression base, Optional<Expression> from, Optional<Expression> to) {
-        this.base = base;
-        this.from = from;
-        this.to = to;
-    }
+public record ArraySliceExpression(Expression base,
+                                   Optional<Expression> from,
+                                   Optional<Expression> to) implements Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitArraySliceExpression(this, context);
     }
 
-    public Expression getBase() {
-        return base;
-    }
-
-    public Optional<Expression> getFrom() {
-        return from;
-    }
-
-    public Optional<Expression> getTo() {
-        return to;
-    }
-
     @Override
-    public int hashCode() {
-        return Objects.hash(base, from, to);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        ArraySliceExpression other = (ArraySliceExpression) obj;
-        return Objects.equals(base, other.base) && Objects.equals(from, other.from) && Objects.equals(to, other.to);
+    public final String toString() {
+        return ExpressionFormatter.formatExpression(this);
     }
 }

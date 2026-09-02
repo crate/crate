@@ -21,37 +21,16 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
 import java.util.Optional;
 
-import static java.util.Objects.requireNonNull;
+import io.crate.sql.ExpressionFormatter;
 
 /**
  * IF(v1,v2[,v3]): CASE WHEN v1 THEN v2 [ELSE v3] END
  */
-public class IfExpression extends Expression {
-
-    private final Expression condition;
-    private final Expression trueValue;
-    private final Optional<Expression> falseValue;
-
-    public IfExpression(Expression condition, Expression trueValue, Optional<Expression> falseValue) {
-        this.condition = requireNonNull(condition, "condition is null");
-        this.trueValue = requireNonNull(trueValue, "trueValue is null");
-        this.falseValue = falseValue;
-    }
-
-    public Expression getCondition() {
-        return condition;
-    }
-
-    public Expression getTrueValue() {
-        return trueValue;
-    }
-
-    public Optional<Expression> getFalseValue() {
-        return falseValue;
-    }
+public record IfExpression(Expression condition,
+                           Expression trueValue,
+                           Optional<Expression> falseValue) implements Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -59,21 +38,7 @@ public class IfExpression extends Expression {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        IfExpression that = (IfExpression) o;
-        return Objects.equals(condition, that.condition) &&
-               Objects.equals(trueValue, that.trueValue) &&
-               Objects.equals(falseValue, that.falseValue);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(condition, trueValue, falseValue);
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

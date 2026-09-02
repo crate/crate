@@ -21,75 +21,25 @@
 
 package io.crate.sql.tree;
 
-/**
- * ATTENTION! pattern and value swapped. use left and right
- * because they appear on wrong order in ANY LIKE predicate.
- * <p>
- * <code>&lt;PATTERN&gt; LIKE (&lt;COLUMN&gt;) [ ESCAPE &lt;ESCAPE_VALUE&gt; ]</code>
- * </p>
- * <p>
- * left is pattern <br>
- * right is the array expression
- */
-public class ArrayLikePredicate extends LikePredicate implements ArrayComparison {
+import io.crate.sql.ExpressionFormatter;
 
-    private final Quantifier quantifier;
-    private final boolean inverse;
-    private final boolean ignoreCase;
-
-    /**
-     * @param quantifier      quantifier of comparison operation
-     * @param arrayExpression array/set expression to apply the like operation on
-     * @param pattern         the like pattern used
-     * @param escape          the escape value
-     * @param inverse         if true, inverse the operation for every single comparison
-     * @param ignoreCase      if true, the operation is case insensitive
-     */
-    public ArrayLikePredicate(Quantifier quantifier,
-                              Expression arrayExpression,
-                              Expression pattern,
-                              Expression escape,
-                              boolean inverse,
-                              boolean ignoreCase) {
-        super(pattern, arrayExpression, escape, false);
-        this.quantifier = quantifier;
-        this.inverse = inverse;
-        this.ignoreCase = ignoreCase;
-    }
-
-    public Quantifier quantifier() {
-        return quantifier;
-    }
-
-    public boolean inverse() {
-        return inverse;
-    }
-
-    @Override
-    public boolean ignoreCase() {
-        return ignoreCase;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return super.equals(o)
-            && o instanceof ArrayLikePredicate that
-            && inverse == that.inverse
-            && quantifier == that.quantifier
-            && ignoreCase == that.ignoreCase;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + quantifier.hashCode();
-        result = 31 * result + (inverse ? 1 : 0);
-        result = 31 * result + (ignoreCase ? 1 : 0);
-        return result;
-    }
+/// ```
+/// <lhsPattern> LIKE ANY (<rhsArray>) [ ESCAPE <escape> ]
+/// ```
+public record ArrayLikePredicate(Quantifier quantifier,
+                                 Expression lhsPattern,
+                                 Expression rhsArray,
+                                 Expression escape,
+                                 boolean inverse,
+                                 boolean ignoreCase) implements Expression, ArrayComparison {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitArrayLikePredicate(this, context);
+    }
+
+    @Override
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

@@ -21,36 +21,14 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
+import io.crate.sql.ExpressionFormatter;
 
-import static java.util.Objects.requireNonNull;
-
-public class LogicalBinaryExpression extends Expression {
+public record LogicalBinaryExpression(Type type,
+                                      Expression left,
+                                      Expression right) implements Expression {
 
     public enum Type {
         AND, OR
-    }
-
-    private final Type type;
-    private final Expression left;
-    private final Expression right;
-
-    public LogicalBinaryExpression(Type type, Expression left, Expression right) {
-        this.type = type;
-        this.left = requireNonNull(left, "left is null");
-        this.right = requireNonNull(right, "right is null");
-    }
-
-    public Type getType() {
-        return type;
-    }
-
-    public Expression getLeft() {
-        return left;
-    }
-
-    public Expression getRight() {
-        return right;
     }
 
     @Override
@@ -59,21 +37,7 @@ public class LogicalBinaryExpression extends Expression {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        LogicalBinaryExpression that = (LogicalBinaryExpression) o;
-        return type == that.type &&
-               Objects.equals(left, that.left) &&
-               Objects.equals(right, that.right);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(type, left, right);
+    public final String toString() {
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }
