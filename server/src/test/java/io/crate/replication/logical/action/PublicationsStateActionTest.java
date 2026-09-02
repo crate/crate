@@ -398,6 +398,51 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_resolve_relation_names_for_concrete_partition_includes_only_target_partition() throws Exception {
+        var user = userOf("dummy");
+        Roles roles = new Roles() {
+            @Override
+            public Collection<Role> roles() {
+                return List.of(user);
+            }
+
+            @Override
+            public boolean hasPrivilege(Role user, Permission permission, Securable securable, @Nullable String ident) {
+                return true; // This test case doesn't check privileges.
+            }
+        };
+
+        var relationName = new RelationName("doc", "p1");
+        var partitionName = new PartitionName(relationName, List.of("1"));
+        SQLExecutor.of(clusterService)
+            .addTable(
+                "CREATE TABLE doc.p1 (id int, p int) PARTITIONED BY (p)",
+                List.of("1"),
+                List.of("2")
+            )
+            .startShards("doc.p1");
+        var publication = new Publication(
+            "some_user",
+            false,
+            List.of(target("p1", List.of("1")))
+        );
+
+        Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
+        publication.resolveCurrentRelations(
+            clusterService.state(),
+            roles,
+            user,
+            user,
+            "dummy",
+            metadataBuilder
+        );
+        Metadata metadata = metadataBuilder.build();
+
+        List<IndexMetadata> indices = metadata.getIndices(relationName, List.of(), true, im -> im);
+        assertThat(indices.stream().map(im -> im.getIndex().name()).toList()).containsExactly(partitionName.asIndexName());
+    }
+
+    @Test
     public void test_bwc_streaming_5() throws Exception {
         var publicationOwner = userOf("publisher");
         var subscriber = userOf("subscriber");

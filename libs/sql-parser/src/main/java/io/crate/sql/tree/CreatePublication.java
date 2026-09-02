@@ -25,7 +25,7 @@ import java.util.List;
 
 public record CreatePublication(String name,
                                 boolean forAllTables,
-                                List<QualifiedName> tables) implements Statement {
+                                List<Table<Expression>> tables) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {

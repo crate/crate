@@ -2175,6 +2175,9 @@ public class TestStatementBuilder {
         printStatement("CREATE PUBLICATION \"myPublication\" FOR TABLE t1");
         printStatement("CREATE PUBLICATION pub1 FOR TABLE s1.t1");
         printStatement("CREATE PUBLICATION pub1 FOR TABLE t1, s2.t2");
+        printStatement("CREATE PUBLICATION pub1 FOR TABLE t1 PARTITION (p = 1)");
+        printStatement("CREATE PUBLICATION pub1 FOR TABLE t1 PARTITION (p1 = 1, p2 = 2)");
+        printStatement("CREATE PUBLICATION pub1 FOR TABLE t1 PARTITION (p = 1), t1 PARTITION (p = 2), t2 PARTITION (p = 1)");
         printStatement("CREATE PUBLICATION pub1");
     }
 
