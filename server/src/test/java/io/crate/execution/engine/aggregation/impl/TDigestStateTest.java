@@ -23,9 +23,11 @@ package io.crate.execution.engine.aggregation.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.lang.reflect.Field;
 import java.util.Iterator;
 import java.util.stream.IntStream;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.assertj.core.data.Offset;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -33,10 +35,39 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import com.tdunning.math.stats.Centroid;
+import com.tdunning.math.stats.MergingDigest;
 
 import io.crate.Streamer;
 
 public class TDigestStateTest {
+
+    @Test
+    public void test_initial_size_different_compressions_matches_internal_size() throws Exception {
+        for (int compression = 0; compression <= TDigestState.DEFAULT_COMPRESSION; compression++) {
+            TDigestState state = new TDigestState(compression, new double[]{});
+
+            Field weightField = MergingDigest.class.getDeclaredField("weight");
+            weightField.setAccessible(true);
+            Field tempWeightField = MergingDigest.class.getDeclaredField("tempWeight");
+            tempWeightField.setAccessible(true);
+            Field orderField = MergingDigest.class.getDeclaredField("order");
+            orderField.setAccessible(true);
+
+            double[] weight = (double[]) weightField.get(state);
+            double[] tempWeight = (double[]) tempWeightField.get(state);
+            int[] order = (int[]) orderField.get(state);
+
+            long expected = TDigestState.SHALLOW_SIZE
+                + RamUsageEstimator.sizeOf(state.fractions())
+                + 2 * RamUsageEstimator.sizeOf(weight) // mean has the same size as weight.
+                + 2 * RamUsageEstimator.sizeOf(tempWeight) // tempMean has the same size as tempWeight.
+                + RamUsageEstimator.sizeOf(order);
+
+            assertThat(state.initialSize())
+                .as("mismatch on compression = %s", compression)
+                .isEqualTo(expected);
+        }
+    }
 
     @Test
     public void testStreaming() throws Exception {
