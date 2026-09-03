@@ -23,10 +23,13 @@ package io.crate.planner.operators;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.SequencedSet;
 import java.util.Set;
 import java.util.UUID;
@@ -516,16 +519,46 @@ public class LogicalPlanner {
             return List.copyOf(result);
         }
 
+        private record CorrelatedSubQueryPhases(Map<SelectSymbol, LogicalPlan> toApplyBeforeGrouping, Map<SelectSymbol, LogicalPlan> toApplyAfterGrouping) {}
 
+        private CorrelatedSubQueryPhases getCorrelatedSubqueryPhases(QueriedSelectRelation relation, SubQueries subQueries) {
+            // If a relation has a Group By and a correlated subquery, we need to apply the subqueries after the group by
+            // operation so that the subqueries operate on the grouped rows
+            Map<SelectSymbol, LogicalPlan> toApplyBeforeGrouping = new HashMap<>(subQueries.correlated());
+            Map<SelectSymbol, LogicalPlan> toApplyAfterGrouping;
+            Set<SelectSymbol> correlatedSubqueriesInSelect = new HashSet<>();
+
+            if (!relation.groupBy().isEmpty()) {
+                for (Symbol output : relation.outputs()) {
+                    output.visit(SelectSymbol.class, selectSymbol -> {
+                        if (selectSymbol.isCorrelated() && subQueries.correlated().containsKey(selectSymbol)) {
+                            correlatedSubqueriesInSelect.add(selectSymbol);
+                        }
+                    });
+                }
+                toApplyAfterGrouping = new HashMap<>(subQueries.correlated());
+                toApplyBeforeGrouping.keySet().removeAll(correlatedSubqueriesInSelect);
+                toApplyAfterGrouping.keySet().removeAll(toApplyBeforeGrouping.keySet());
+            } else {
+                toApplyAfterGrouping = Collections.emptyMap();
+            }
+            return new CorrelatedSubQueryPhases(toApplyBeforeGrouping, toApplyAfterGrouping);
+        }
 
         @Override
         public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation relation, List<Symbol> outputs) {
             SplitPoints splitPoints = SplitPointsBuilder.create(relation);
             SubQueries subQueries = subqueryPlanner.planSubQueries(relation);
+            CorrelatedSubQueryPhases correlatedSubQueries = getCorrelatedSubqueryPhases(relation, subQueries);
+
+            SubQueries preGroupingSubQueries = new SubQueries(
+                subQueries.uncorrelated(),
+                correlatedSubQueries.toApplyBeforeGrouping
+            );
             LogicalPlan source = buildImplicitJoins(
                 relation.from(),
                 relation.where(),
-                subQueries,
+                preGroupingSubQueries,
                 rel -> {
                     // Need to pass along the `splitPoints.toCollect` symbols to the relation the symbols belong to
                     // We could get rid of `SplitPoints` and the logic here if we
@@ -552,13 +585,16 @@ public class LogicalPlanner {
                                 ProjectSet.create(
                                     WindowAgg.create(
                                         Filter.create(
-                                            groupByOrAggregate(
-                                                ProjectSet.create(
-                                                    source,
-                                                    splitPoints.tableFunctionsBelowGroupBy()
+                                            applyPostGroupingSubQueries(
+                                                groupByOrAggregate(
+                                                    ProjectSet.create(
+                                                        source,
+                                                        splitPoints.tableFunctionsBelowGroupBy()
+                                                    ),
+                                                    relation.groupBy(),
+                                                    splitPoints.aggregates()
                                                 ),
-                                                relation.groupBy(),
-                                                splitPoints.aggregates()
+                                                correlatedSubQueries.toApplyAfterGrouping
                                             ),
                                             having
                                         ),
@@ -606,6 +642,17 @@ public class LogicalPlanner {
         }
         LogicalPlan correlatedJoin = subQueries.applyCorrelatedJoin(logicalPlan);
         return Filter.create(correlatedJoin, whereClause);
+    }
+
+    private static LogicalPlan applyPostGroupingSubQueries(LogicalPlan source, Map<SelectSymbol, LogicalPlan> subQueriesToApplyAfterGrouping) {
+        if (!subQueriesToApplyAfterGrouping.isEmpty()) {
+            for (Map.Entry<SelectSymbol, LogicalPlan> entry : subQueriesToApplyAfterGrouping.entrySet()) {
+                SelectSymbol selectSymbol = entry.getKey();
+                LogicalPlan subPlan = entry.getValue();
+                source = new CorrelatedJoin(source, selectSymbol, subPlan);
+            }
+        }
+        return source;
     }
 
     private static LogicalPlan groupByOrAggregate(LogicalPlan source,

@@ -581,4 +581,26 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         );
         assertThat(response).hasRows("1773736312002| debug| true");
     }
+
+
+    /**
+     * Related to https://github.com/crate/crate/issues/20120
+     */
+    @Test
+    public void test_correlated_subquery_in_select_with_group_by() throws Exception {
+        execute("CREATE TABLE source_symbols_t (c1 INTEGER)");
+        execute("INSERT INTO source_symbols_t (c1) VALUES (1), (2)");
+        execute("REFRESH TABLE source_symbols_t");
+        assertThat(execute("""
+                    SELECT o.c1,
+                           (SELECT i.c1
+                            FROM source_symbols_t AS i
+                            WHERE i.c1 > o.c1
+                            ORDER BY i.c1
+                            LIMIT 1) AS next_c1
+                    FROM source_symbols_t AS o
+                    GROUP BY o.c1
+                    ORDER BY o.c1
+                """)).hasRows("1| 2", "2| NULL");
+    }
 }

@@ -997,4 +997,92 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "          └ TableFunction[empty_row | [] | true]"
             );
     }
+
+    /**
+     * Related to https://github.com/crate/crate/issues/20120
+     */
+    @Test
+    public void test_correlated_subquery_in_select_with_group_by_applied_after_group_by() throws Exception {
+        LogicalPlan plan = sqlExecutor.logicalPlan("""
+            SELECT o.x, (SELECT i.x FROM t1 AS i WHERE i.x > o.x ORDER BY i.x LIMIT 1) AS next_x FROM t1 AS o
+            GROUP BY o.x
+            """
+        );
+
+        assertThat(plan).isEqualTo(
+            """
+            Eval[x, (SELECT x FROM (i)) AS next_x]
+              └ CorrelatedJoin[x, (SELECT x FROM (i))]
+                └ GroupHashAggregate[x]
+                  └ Rename[x] AS o
+                    └ Collect[doc.t1 | [x] | true]
+                └ SubPlan
+                  └ Rename[x] AS i
+                    └ Limit[2::bigint;0::bigint]
+                      └ Limit[1::bigint;0]
+                        └ OrderBy[x ASC]
+                          └ Collect[doc.t1 | [x] | (x > x)]
+            """
+        );
+    }
+
+    @Test
+    public void test_correlated_subquery_in_where_applied_before_group_by() throws Exception {
+        LogicalPlan plan = sqlExecutor.logicalPlan("""
+            SELECT o.x
+            FROM t1 AS o
+            WHERE o.x = (SELECT MIN(t.x) FROM t1 AS t WHERE t.x > o.x)
+            GROUP BY o.x
+            """
+        );
+
+        assertThat(plan).isEqualTo(
+            """
+           GroupHashAggregate[x]
+             └ Filter[(x = (SELECT min(x) FROM (t)))]
+               └ CorrelatedJoin[x, (SELECT min(x) FROM (t))]
+                 └ Rename[x] AS o
+                   └ Collect[doc.t1 | [x] | true]
+                 └ SubPlan
+                   └ Limit[2::bigint;0::bigint]
+                     └ HashAggregate[min(x)]
+                       └ Rename[x] AS t
+                         └ Collect[doc.t1 | [x] | (x > x)]
+            """
+        );
+    }
+
+    @Test
+    public void test_correlated_subqueries_in_where_and_in_select_with_group_by() throws Exception {
+        LogicalPlan plan = sqlExecutor.logicalPlan("""
+            SELECT o.x, (SELECT i.x FROM t1 AS i WHERE i.x > o.x ORDER BY i.x LIMIT 1) AS next_x
+            FROM t1 AS o
+            WHERE o.x = (SELECT MIN(t.x) FROM t1 AS t WHERE t.x = o.x)
+            GROUP BY o.x
+            """
+        );
+
+        assertThat(plan).isEqualTo(
+            """
+            Eval[x, (SELECT x FROM (i)) AS next_x]
+              └ CorrelatedJoin[x, (SELECT x FROM (i))]
+                └ GroupHashAggregate[x]
+                  └ Filter[(x = (SELECT min(x) FROM (t)))]
+                    └ CorrelatedJoin[x, (SELECT min(x) FROM (t))]
+                      └ Rename[x] AS o
+                        └ Collect[doc.t1 | [x] | true]
+                      └ SubPlan
+                        └ Limit[2::bigint;0::bigint]
+                          └ HashAggregate[min(x)]
+                            └ Rename[x] AS t
+                              └ Collect[doc.t1 | [x] | (x = x)]
+                └ SubPlan
+                  └ Rename[x] AS i
+                    └ Limit[2::bigint;0::bigint]
+                      └ Limit[1::bigint;0]
+                        └ OrderBy[x ASC]
+                          └ Collect[doc.t1 | [x] | (x > x)]
+            """
+        );
+    }
 }
