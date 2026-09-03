@@ -129,6 +129,19 @@ public final class MoveFilterBeneathJoin implements Rule<Filter> {
         var lhsRelations = new HashSet<>(lhs.relationNames());
         var rhsRelations = new HashSet<>(rhs.relationNames());
 
+        // This can happen only if RewriteDistinctAggOnDifferentColumnsToJoin was applied,
+        // and the query has a filter/HAVING clause, for example:
+        //
+        //   select count(distinct good), count(distinct department)
+        //   from employees
+        //   having count(distinct department) > 0;
+        //
+        // In this case, pushing down this filter makes no sense.
+        // Self-joins aren't affected, because in those cases aliases must be present,
+        // and the aliases need to be different.
+        if (lhsRelations.equals(rhsRelations)) {
+            return null;
+        }
         var leftQuery = splitQueries.remove(lhsRelations);
         var rightQuery = splitQueries.remove(rhsRelations);
 

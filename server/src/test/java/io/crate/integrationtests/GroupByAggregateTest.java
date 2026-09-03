@@ -789,13 +789,14 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("explain (costs false) " + query);
         assertThat(response).hasLines(
             "Eval[count(DISTINCT good), count(DISTINCT department), count(DISTINCT good)]",
-            "  └ NestedLoopJoin[CROSS]",
-            "    ├ HashAggregate[count(DISTINCT good)]",
-            "    │  └ GroupHashAggregate[good]",
-            "    │    └ Collect[doc.employees | [good] | true]",
-            "    └ HashAggregate[count(DISTINCT department)]",
-            "      └ GroupHashAggregate[department]",
-            "        └ Collect[doc.employees | [department] | true]"
+            "  └ Filter[(count(DISTINCT department) > 0::bigint)]",
+            "    └ NestedLoopJoin[CROSS]",
+            "      ├ HashAggregate[count(DISTINCT good)]",
+            "      │  └ GroupHashAggregate[good]",
+            "      │    └ Collect[doc.employees | [good] | true]",
+            "      └ HashAggregate[count(DISTINCT department)]",
+            "        └ GroupHashAggregate[department]",
+            "          └ Collect[doc.employees | [department] | true]"
         );
     }
 
