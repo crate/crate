@@ -57,6 +57,7 @@ import org.elasticsearch.cluster.health.Health;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.ESTestCase;
 import org.jspecify.annotations.Nullable;
+import org.postgresql.util.PGobject;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 
@@ -83,6 +84,7 @@ import io.crate.session.DescribeResult;
 import io.crate.session.ResultReceiver;
 import io.crate.session.Session;
 import io.crate.session.Sessions;
+import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -419,6 +421,16 @@ public class SQLTransportExecutor {
     public static Object toJdbcCompatObject(Connection connection, Object arg) {
         if (arg == null) {
             return arg;
+        }
+        if (arg instanceof BitString bitString) {
+            PGobject pgObject = new PGobject();
+            try {
+                pgObject.setValue(bitString.asRawBitString());
+            } catch (SQLException e) {
+                throw Exceptions.toRuntimeException(e);
+            }
+            pgObject.setType("bit");
+            return pgObject;
         }
         if (arg instanceof Map) {
             return DataTypes.STRING.implicitCast(arg);

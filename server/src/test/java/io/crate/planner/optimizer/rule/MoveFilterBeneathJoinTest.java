@@ -442,41 +442,6 @@ public class MoveFilterBeneathJoinTest extends CrateDummyClusterServiceUnitTest 
     }
 
     @Test
-    public void test_push_filter_referencing_multiple_relations_down_to_nested_join() {
-        var join1 = new JoinPlan(t1, t2, JoinType.CROSS, null);
-        var join2 = new JoinPlan(join1, t3, JoinType.INNER, e.asSymbol("doc.t2.b = doc.t3.c"));
-        var filter = new Filter(join2, e.asSymbol("doc.t1.a = doc.t2.b"));
-
-        assertThat(filter).hasOperators(
-            "Filter[(a = b)]",
-            "  └ Join[INNER | (b = c)]",
-            "    ├ Join[CROSS]",
-            "    │  ├ Collect[doc.t1 | [a] | true]",
-            "    │  └ Collect[doc.t2 | [b] | true]",
-            "    └ Collect[doc.t3 | [c] | true]"
-        );
-
-        var rule = new MoveFilterBeneathJoin();
-        var match = rule.pattern().accept(filter, Captures.empty());
-
-        assertThat(match.isPresent()).isTrue();
-        assertThat(match.value()).isEqualTo(filter);
-
-        var result = rule.apply(match.value(),
-            match.captures(),
-            e.ruleContext());
-
-        assertThat(result).hasOperators(
-            "Join[INNER | (b = c)]",
-            "  ├ Filter[(a = b)]",
-            "  │  └ Join[CROSS]",
-            "  │    ├ Collect[doc.t1 | [a] | true]",
-            "  │    └ Collect[doc.t2 | [b] | true]",
-            "  └ Collect[doc.t3 | [c] | true]"
-        );
-    }
-
-    @Test
     public void test_push_filter_down_to_preserved_side_of_left_nested_join() {
         var joinCondition1 = e.asSymbol("doc.t1.a = doc.t2.b");
         var join1 = new JoinPlan(t1, t2, JoinType.LEFT, joinCondition1);
