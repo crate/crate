@@ -22,12 +22,35 @@
 package io.crate.planner.optimizer.rule;
 
 import java.util.List;
+import java.util.Set;
 
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
+import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.planner.operators.LogicalPlan;
 
 public final class Util {
 
     private Util() {}
+
+    /// Aggregate functions for which a `distinct` rewrite to `GROUP BY` is supported.
+    ///
+    /// The default implementation of distinct functions is limited to the ones below
+    /// (because it needs a matching `collection_*` scalar function), hence rules
+    /// rewriting `distinct` aggregates are limited to those as well. Otherwise, we'd
+    /// have a situation where an optimization enables more functions.
+    static final Set<String> DISTINCT_REWRITE_SUPPORTED_AGGREGATES = Set.of(
+        CountAggregation.NAME,
+        AverageAggregation.NAMES[0],
+        AverageAggregation.NAMES[1]
+    );
+
+    static boolean hasNoFilter(Function aggregate) {
+        Symbol filter = aggregate.filter();
+        return filter == null || filter.equals(Literal.BOOLEAN_TRUE);
+    }
 
     /**
      * @return a new Plan where parent-child (A-B-C) are exchanged to child-parent (B-A-C)

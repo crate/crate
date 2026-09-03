@@ -24,12 +24,8 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.List;
-import java.util.Set;
 
-import io.crate.execution.engine.aggregation.impl.CountAggregation;
-import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.planner.operators.GroupHashAggregate;
@@ -56,15 +52,6 @@ import io.crate.planner.optimizer.matcher.Pattern;
 /// However, we set a flag in the `HashAggregate`, so that it doesn't use the default implementation of `distinct`
 /// (the replacement with `collection_agg(collect_set(x))`).
 public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
-    /// Generally, the rule doesn't care about which aggregate functions are present.
-    /// However, the default implementation of distinct functions is limited to the ones below
-    /// (because it needs a matching `collection_*` scalar function), hence the rule is limited
-    /// to those as well. Otherwise, we'd have a situation where an optimization enables more functions.
-    private static final Set<String> SUPPORTED_AGGREGATES = Set.of(
-        CountAggregation.NAME,
-        AverageAggregation.NAMES[0],
-        AverageAggregation.NAMES[1]
-    );
 
     private final Pattern<HashAggregate> pattern;
 
@@ -87,16 +74,11 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
 
         return aggregates.stream().allMatch(fn ->
             fn.distinct() &&
-                !hasFilter(fn) &&
-                SUPPORTED_AGGREGATES.contains(fn.name()) &&
+                Util.hasNoFilter(fn) &&
+                Util.DISTINCT_REWRITE_SUPPORTED_AGGREGATES.contains(fn.name()) &&
                 // NB: distinct functions can have one and only one argument
                 fn.arguments().get(0).equals(column)
         );
-    }
-
-    private static boolean hasFilter(Function aggregate) {
-        Symbol filter = aggregate.filter();
-        return filter != null && !filter.equals(Literal.BOOLEAN_TRUE);
     }
 
     @Override
