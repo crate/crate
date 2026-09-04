@@ -610,4 +610,48 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .hasMessage(
                 "Cannot convert VALUES element in row 2 of type `text_array` to `text` for `name`");
     }
+
+    @Test
+    public void testOnConflictDoUpdateCanAssignPrimaryKeyToExcludedPrimaryKey() {
+        e.analyze("""
+            insert into users (id, name)
+            values (1, 'Varun')
+            on conflict (id)
+            do update set id = excluded.id
+            """);
+    }
+
+    @Test
+    public void testOnConflictDoUpdateCanAssignPrimaryKeyToExcludedPrimaryKeyWithAnotherField() {
+        e.analyze("""
+            insert into users (id, name)
+            values (1, 'Virat')
+            on conflict (id)
+            do update set id = excluded.id, name = excluded.name
+            """);
+    }
+
+    @Test
+    public void testOnConflictDoUpdateCannotChangePrimaryKeyWithAnotherField() {
+        assertThatThrownBy(() -> e.analyze("""
+            insert into users (id, name)
+            values (1, 'Varun')
+            on conflict (id)
+            do update set id = 2, name = excluded.name
+            """))
+                .isInstanceOf(ColumnValidationException.class)
+                .hasMessageContaining("Updating a primary key is not supported");
+    }
+
+    @Test
+    public void testOnConflictDoUpdateCannotChangePrimaryKey() {
+        assertThatThrownBy(() -> e.analyze("""
+            insert into users (id, name)
+            values (1, 'Varun')
+            on conflict (id)
+            do update set id = 2
+            """))
+                .isInstanceOf(ColumnValidationException.class)
+                .hasMessageContaining("Updating a primary key is not supported");
+    }
 }
