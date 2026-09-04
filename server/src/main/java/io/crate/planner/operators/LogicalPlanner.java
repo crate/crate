@@ -23,10 +23,13 @@ package io.crate.planner.operators;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.SequencedSet;
 import java.util.Set;
 import java.util.UUID;
@@ -522,10 +525,33 @@ public class LogicalPlanner {
         public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation relation, List<Symbol> outputs) {
             SplitPoints splitPoints = SplitPointsBuilder.create(relation);
             SubQueries subQueries = subqueryPlanner.planSubQueries(relation);
+
+            Set<SelectSymbol> correlatedSubqueriesInSelect = new HashSet<>();
+            boolean hasGroupBy = !relation.groupBy().isEmpty();
+            if (hasGroupBy) {
+                for (Symbol output : relation.outputs()) {
+                    output.visit(SelectSymbol.class, selectSymbol -> {
+                        if (selectSymbol.isCorrelated() && subQueries.correlated().containsKey(selectSymbol)) {
+                            correlatedSubqueriesInSelect.add(selectSymbol);
+                        }
+                    });
+                }
+            }
+
+            Map<SelectSymbol, LogicalPlan> correlatedSubqueriesToApplyBeforeGrouping = new LinkedHashMap<>(subQueries.correlated());
+            correlatedSubqueriesToApplyBeforeGrouping.keySet().removeAll(correlatedSubqueriesInSelect);
+
+            Map<SelectSymbol, LogicalPlan> correlatedSubqueriesToApplyAfterGrouping = new LinkedHashMap<>(subQueries.correlated());
+            correlatedSubqueriesToApplyAfterGrouping.keySet().removeAll(correlatedSubqueriesToApplyBeforeGrouping.keySet());
+
+            SubQueries subQueriesForJoins = new SubQueries(
+                subQueries.uncorrelated(),
+                correlatedSubqueriesToApplyBeforeGrouping
+            );
             LogicalPlan source = buildImplicitJoins(
                 relation.from(),
                 relation.where(),
-                subQueries,
+                subQueriesForJoins,
                 rel -> {
                     // Need to pass along the `splitPoints.toCollect` symbols to the relation the symbols belong to
                     // We could get rid of `SplitPoints` and the logic here if we
@@ -543,6 +569,19 @@ public class LogicalPlanner {
             if (having != null && having.any(Symbol.IS_CORRELATED_SUBQUERY)) {
                 throw new UnsupportedOperationException("Cannot use correlated subquery in HAVING clause");
             }
+
+            LogicalPlan groupedSource = groupByOrAggregate(
+                ProjectSet.create(source, splitPoints.tableFunctionsBelowGroupBy()),
+                relation.groupBy(),
+                splitPoints.aggregates()
+            );
+
+            for (Map.Entry<SelectSymbol, LogicalPlan> entry : correlatedSubqueriesToApplyAfterGrouping.entrySet()) {
+                SelectSymbol selectSymbol = entry.getKey();
+                LogicalPlan subPlan = entry.getValue();
+                groupedSource = new CorrelatedJoin(groupedSource, selectSymbol, subPlan);
+            }
+
             return MultiPhase.createIfNeeded(
                 subQueries.uncorrelated(),
                 Eval.create(
@@ -552,14 +591,7 @@ public class LogicalPlanner {
                                 ProjectSet.create(
                                     WindowAgg.create(
                                         Filter.create(
-                                            groupByOrAggregate(
-                                                ProjectSet.create(
-                                                    source,
-                                                    splitPoints.tableFunctionsBelowGroupBy()
-                                                ),
-                                                relation.groupBy(),
-                                                splitPoints.aggregates()
-                                            ),
+                                            groupedSource,
                                             having
                                         ),
                                         splitPoints.windowFunctions()
