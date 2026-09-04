@@ -189,6 +189,21 @@ Performance and Resilience Improvements
   faster. The amount of improvement you'll see depends on the data type
   and cardinality.
 
+  If multiple such aggregates reference different columns, each one is
+  deduplicated on its own, e.g.::
+
+      SELECT count(DISTINCT "cCode"), count(DISTINCT "sourceIP")
+      FROM uservisits
+
+  is executed like::
+
+      SELECT a.c, b.c
+      FROM (SELECT count("cCode")   AS c
+            FROM (SELECT "cCode"   FROM uservisits GROUP BY "cCode")   d1) a
+      CROSS JOIN
+           (SELECT count("sourceIP") AS c
+            FROM (SELECT "sourceIP" FROM uservisits GROUP BY "sourceIP") d2) b
+
 - `Somil Jain <https://github.com/somiljain2006>`_ added support for collecting
   table-level statistics for foreign tables during ``ANALYZE``, enabling the
   query planner to make better decisions based on estimated row counts and table

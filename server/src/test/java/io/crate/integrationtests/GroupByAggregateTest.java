@@ -776,17 +776,53 @@ public class GroupByAggregateTest extends IntegTestCase {
     @UseRandomizedSchema(random = false)
     @Test
     public void testGlobalCountDistinctColumnReuse() throws Exception {
-        execute("select count(distinct good), count(distinct department), count(distinct good) from employees");
-        assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.rows()[0][0]).isEqualTo(2L);
-        assertThat(response.rows()[0][1]).isEqualTo(4L);
-        assertThat(response.rows()[0][2]).isEqualTo(2L);
+        String query = "select count(distinct good), count(distinct department), count(distinct good) " +
+            "from employees " +
+            "having count(distinct department) > 0";
 
-        execute("explain (costs false) select count(distinct good), count(distinct department), count(distinct good) from employees");
+        execute(query);
+        assertThat(response)
+            .hasRowCount(1)
+            .hasRows(new Object[]{2L, 4L, 2L});
+
+        execute("explain (costs false) " + query);
         assertThat(response).hasLines(
             "Eval[count(DISTINCT good), count(DISTINCT department), count(DISTINCT good)]",
-            "  └ HashAggregate[count(DISTINCT good), count(DISTINCT department)]",
-            "    └ Collect[doc.employees | [good, department] | true]"
+            "  └ Filter[(count(DISTINCT department) > 0::bigint)]",
+            "    └ NestedLoopJoin[CROSS]",
+            "      ├ HashAggregate[count(DISTINCT good)]",
+            "      │  └ GroupHashAggregate[good]",
+            "      │    └ Collect[doc.employees | [good] | true]",
+            "      └ HashAggregate[count(DISTINCT department)]",
+            "        └ GroupHashAggregate[department]",
+            "          └ Collect[doc.employees | [department] | true]"
+        );
+    }
+
+    @UseRandomizedOptimizerRules(0)
+    @UseRandomizedSchema(random = false)
+    @Test
+    public void test_global_count_distinct_three_columns() throws Exception {
+        String query = "select count(distinct good), count(distinct department), count(distinct name) from employees";
+
+        execute(query);
+        assertThat(response)
+            .hasRowCount(1)
+            .hasRows(new Object[]{2L, 4L, 6L});
+
+        execute("explain (costs false) " + query);
+        assertThat(response).hasLines(
+            "NestedLoopJoin[CROSS]",
+            "  ├ NestedLoopJoin[CROSS]",
+            "  │  ├ HashAggregate[count(DISTINCT good)]",
+            "  │  │  └ GroupHashAggregate[good]",
+            "  │  │    └ Collect[doc.employees | [good] | true]",
+            "  │  └ HashAggregate[count(DISTINCT department)]",
+            "  │    └ GroupHashAggregate[department]",
+            "  │      └ Collect[doc.employees | [department] | true]",
+            "  └ HashAggregate[count(DISTINCT name)]",
+            "    └ GroupHashAggregate[name]",
+            "      └ Collect[doc.employees | [name] | true]"
         );
     }
 
