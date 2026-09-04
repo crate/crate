@@ -295,6 +295,7 @@ public class PgCatalogITest extends IntegTestCase {
             "optimizer_optimize_collect_where_clause_access| true| Indicates if the optimizer rule OptimizeCollectWhereClauseAccess is activated.| NULL| NULL",
             "optimizer_remove_order_beneath_insert| true| Indicates if the optimizer rule RemoveOrderBeneathInsert is activated.| NULL| NULL",
             "optimizer_remove_redundant_eval| true| Indicates if the optimizer rule RemoveRedundantEval is activated.| NULL| NULL",
+            "optimizer_remove_redundant_having_count| true| Indicates if the optimizer rule RemoveRedundantHavingCount is activated.| NULL| NULL",
             "optimizer_reorder_hash_join| true| Indicates if the optimizer rule ReorderHashJoin is activated.| NULL| NULL",
             "optimizer_reorder_nested_loop_join| true| Indicates if the optimizer rule ReorderNestedLoopJoin is activated.| NULL| NULL",
             "optimizer_rewrite_distinct_agg_to_group_by| true| Indicates if the optimizer rule RewriteDistinctAggToGroupBy is activated.| NULL| NULL",

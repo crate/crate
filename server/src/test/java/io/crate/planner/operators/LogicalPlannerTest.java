@@ -996,4 +996,15 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "          └ TableFunction[empty_row | [] | true]"
             );
     }
+
+    @Test
+    public void test_redundant_having_count_is_removed() {
+        LogicalPlan plan = plan(
+            "SELECT a FROM t1 GROUP BY a HAVING count(*) > 0"
+        );
+        assertThat(plan).isEqualTo(
+            "GroupHashAggregate[a]\n" +
+                "  └ Collect[doc.t1 | [a] | true]"
+        );
+    }
 }

@@ -194,6 +194,10 @@ Performance and Resilience Improvements
   query planner to make better decisions based on estimated row counts and table
   sizes.
 
+- `Somil Jain <https://github.com/somiljain2006>`_ added an optimization to
+  remove redundant ``HAVING COUNT(*) > 0`` predicates from queries with an
+  explicit ``GROUP BY`` clause.
+  
 - Optimized keys-only ``GROUP BY`` queries for text columns without a filter
   (e.g. ``SELECT text_column from tbl GROUP BY text_column``) by utilizing
   Lucene's term dictionary. Such queries now take 41% less time to complete in

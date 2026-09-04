@@ -1611,4 +1611,16 @@ public class GroupByAggregateTest extends IntegTestCase {
             }
         });
     }
+
+    @Test
+    public void test_redundant_having_count_greater_than_zero() throws Exception {
+        execute("create table tbl (x int)");
+        execute("insert into tbl (x) values (1), (1), (2)");
+        execute("refresh table tbl");
+        execute("select x, count(*) from tbl group by x having count(*) > 0 order by x");
+        assertThat(response).hasRows(
+            "1| 2",
+            "2| 1"
+        );
+    }
 }
