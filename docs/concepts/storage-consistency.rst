@@ -253,6 +253,59 @@ flow for an ``ALTER TABLE`` statement which changes the schema of a table:
 #. Every node might take some local action depending on the type of cluster
    state change.
 
+.. _concept-filesystem-assumptions:
+
+Filesystem and storage assumptions
+==================================
+
+The durability and consistency guarantees described above depend on a
+few assumptions about the underlying storage:
+
+- **Local-filesystem semantics.** CrateDB expects the filesystem under
+  :ref:`path.data` to behave like a local filesystem, including correct file
+  locking and atomic file creation/rename. A correctly configured network
+  filesystem *can* provide these guarantees, but this isn't automatic —
+  see the locking note below — and CrateDB does not test or certify any
+  network-filesystem configuration.
+- **Native filesystem locking.** Each shard's Lucene index is protected by
+  an exclusive write lock so that only one process ever writes to it at a
+  time. By default Lucene acquires this using the JVM's native
+  ``java.nio.channels.FileLock`` APIs (``NativeFSLockFactory``), which ask
+  the operating system itself to hold the lock — the OS then also
+  guarantees the lock is released if CrateDB exits abnormally, so a
+  crashed node doesn't leave a shard permanently locked. Lucene's own
+  documentation for this lock factory warns that "on certain NFS
+  environments the java.nio.* locks will fail (the lock can incorrectly
+  be double acquired)." In practice this is not a property of NFS as a
+  protocol so much as of specific configurations: NFSv3's separate NLM
+  locking protocol (and any NFS mount using a ``nolock``-style option
+  that disables locking outright) is the documented failure mode —
+  this can be solved by switching a mount from ``vers=3`` to ``vers=4``,
+  since NFSv4 has locking built into the protocol itself. So: a
+  *correctly configured* NFSv4 mount, with locking enabled, is not known
+  to have this problem; an NFSv3 mount, or any mount with locking
+  disabled, is. Either way, CrateDB has not run its own verification of this —
+  Lucene ships a ``VerifyingLockFactory``/``LockStressTest`` specifically for
+  operators who want to check their own storage before trusting it.
+- **Durable fsync.** The translog's crash-recovery guarantee (see
+  "Durability Guarantees" above) assumes that a completed fsync means the
+  data is actually durable on stable storage. Storage that acknowledges
+  writes before they are durable (some write-back caching layers) weakens
+  this guarantee.
+- **Low, consistent write latency.** Because a write is only acknowledged
+  after the primary shard and a quorum of replicas persist it, storage latency
+  is additive to write latency cluster-wide, and *variance* in storage latency
+  (common on some network-attached and multi-tenant storage) shows up directly
+  as write-latency variance.
+
+These are architectural assumptions rather than enforced checks — CrateDB
+does not currently validate them at startup — so violating them tends to
+surface as hard-to-diagnose corruption or latency issues rather than a
+clear error. See `Going into production`_ for concrete hardware recommendations
+that follow from these assumptions.
+
 .. _Elasticsearch: https://www.elastic.co
 .. _Lucene: https://lucene.apache.org/core/
 .. _WAL: https://en.wikipedia.org/wiki/Write-ahead_logging
+.. _Going into production: https://cratedb.com/docs/guide/admin/going-into-production.html
+.. _NativeFSLockFactory.java: https://github.com/apache/lucene/blob/main/lucene/core/src/java/org/apache/lucene/store/NativeFSLockFactory.java

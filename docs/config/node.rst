@@ -369,6 +369,16 @@ Paths
   When CrateDB finds striped shards at the provided locations (from CrateDB
   <0.55.0), these shards will be migrated automatically on startup.
 
+  .. NOTE::
+
+    ``path.data`` should point at local, POSIX-compliant storage (see
+    `Going into production - Storage hardware`_
+    and :ref:`filesystem assumptions <concept-filesystem-assumptions>`).
+    Network filesystems (NFS) and distributed filesystems are discouraged
+    by default for this path — a correctly configured NFSv4 mount with
+    locking enabled can work, but CrateDB does not test or certify any
+    such configuration, so treat it as expert-only.
+
 .. _path.logs:
 
 **path.logs**
@@ -1012,3 +1022,4 @@ Custom attributes are not validated by CrateDB, unlike core node attributes.
 .. _Nagle's algorithm: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
 .. _SO_RCVBUF: https://docs.oracle.com/javase/7/docs/api/java/net/StandardSocketOptions.html#SO_RCVBUF
 .. _SO_SNDBUF: https://docs.oracle.com/javase/7/docs/api/java/net/StandardSocketOptions.html#SO_SNDBUF
+.. _Going into production - Storage hardware: https://cratedb.com/docs/guide/admin/going-into-production.html
