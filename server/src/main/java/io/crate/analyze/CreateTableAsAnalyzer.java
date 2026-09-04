@@ -30,12 +30,15 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.common.collections.Lists;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateTableAs;
+import io.crate.sql.tree.CreateMaterializedView;
+import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Insert;
@@ -59,6 +62,13 @@ public final class CreateTableAsAnalyzer {
     public AnalyzedCreateTableAs analyze(CreateTableAs<Expression> createTableAs,
                                          ParamTypeHints paramTypeHints,
                                          CoordinatorTxnCtx txnCtx) {
+        return analyze(createTableAs, paramTypeHints, txnCtx, Operation.INSERT);
+    }
+
+    private AnalyzedCreateTableAs analyze(CreateTableAs<Expression> createTableAs,
+                                          ParamTypeHints paramTypeHints,
+                                          CoordinatorTxnCtx txnCtx,
+                                          Operation targetOperation) {
 
         RelationName relationName = RelationName.of(
             createTableAs.name().getName(),
@@ -98,7 +108,7 @@ public final class CreateTableAsAnalyzer {
                 Collections.emptyList(),
                 Insert.DuplicateKeyContext.none());
 
-            return insertAnalyzer.analyze(insert, paramTypeHints, txnCtx);
+            return insertAnalyzer.analyze(insert, paramTypeHints, txnCtx, targetOperation);
         };
 
         return new AnalyzedCreateTableAs(
@@ -107,5 +117,52 @@ public final class CreateTableAsAnalyzer {
             postponedInsertAnalysis
         );
     }
-}
 
+    public AnalyzedCreateTableAs analyze(CreateMaterializedView createMaterializedView,
+                                         ParamTypeHints paramTypeHints,
+                                         CoordinatorTxnCtx txnCtx) {
+        return analyze(
+            createMaterializedView,
+            paramTypeHints,
+            txnCtx,
+            txnCtx.sessionSettings().sessionUser().name()
+        );
+    }
+
+    AnalyzedCreateTableAs analyze(CreateMaterializedView createMaterializedView,
+                                  ParamTypeHints paramTypeHints,
+                                  CoordinatorTxnCtx txnCtx,
+                                  String owner) {
+        var createTableAs = new CreateTableAs<Expression>(
+            new io.crate.sql.tree.Table<>(createMaterializedView.name()),
+            createMaterializedView.query(),
+            createMaterializedView.ifNotExists()
+        );
+        AnalyzedCreateTableAs analyzed = analyze(
+            createTableAs,
+            paramTypeHints,
+            txnCtx,
+            Operation.READ
+        );
+        AnalyzedCreateTable table = analyzed.analyzedCreateTable();
+        AnalyzedCreateTable materializedViewTable = new AnalyzedCreateTable(
+            table.relationName(),
+            table.ifNotExists(),
+            table.columns(),
+            table.checks(),
+            table.properties(),
+            table.partitionedBy(),
+            Optional.of(new ClusteredBy<>(Optional.empty(), Optional.of(Literal.of(1)))),
+            new AnalyzedMaterializedViewDefinition(
+                createMaterializedView.query(),
+                txnCtx.sessionSettings().searchPath(),
+                owner
+            )
+        );
+        return new AnalyzedCreateTableAs(
+            materializedViewTable,
+            analyzed.sourceRelation(),
+            analyzed::analyzePostponedInsertStatement
+        );
+    }
+}

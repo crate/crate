@@ -35,6 +35,7 @@ import io.crate.common.collections.MapBuilder;
 import io.crate.common.collections.Sets;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.RelationInfo;
+import io.crate.metadata.MaterializedViewMetadata;
 
 public enum Operation {
     READ("READ"),
@@ -120,6 +121,9 @@ public enum Operation {
                 continue;
             }
             operations = Sets.intersection(entry.getValue(), operations);
+        }
+        if (MaterializedViewMetadata.isMaterialized(settings)) {
+            operations = Sets.intersection(SYS_READ_ONLY, operations);
         }
         return EnumSet.copyOf(operations);
     }

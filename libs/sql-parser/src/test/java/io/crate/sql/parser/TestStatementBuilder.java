@@ -2113,6 +2113,15 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testMaterializedViewParsing() {
+        printStatement("CREATE MATERIALIZED VIEW myView AS SELECT * FROM foobar");
+        printStatement("CREATE MATERIALIZED VIEW IF NOT EXISTS doc.myView AS (SELECT * FROM foobar)");
+        printStatement("REFRESH MATERIALIZED VIEW doc.myView");
+        printStatement("DROP MATERIALIZED VIEW myView");
+        printStatement("DROP MATERIALIZED VIEW IF EXISTS doc.myView");
+    }
+
+    @Test
     public void testDropViewParsing() {
         printStatement("DROP VIEW myView");
         printStatement("DROP VIEW v1, v2, x.v3");
