@@ -384,11 +384,18 @@ public class ShardReplicationChangesTracker implements Closeable {
 
     @Override
     public void close() throws IOException {
+        close(true);
+    }
+
+    public void close(boolean removeRetentionLease) throws IOException {
         closed = true;
         Cancellable currentCancellable = cancellable;
         if (currentCancellable != null) {
             currentCancellable.cancel();
             cancellable = null;
+        }
+        if (removeRetentionLease == false) {
+            return;
         }
         shardReplicationService.getRemoteClusterClient(remoteShardId.getIndex(), subscriptionName)
             .thenAccept(client -> RetentionLeaseHelper.attemptRetentionLeaseRemoval(

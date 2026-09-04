@@ -99,7 +99,8 @@ public class TransportCreatePublication extends AbstractDDLTransportAction<Creat
                 }
 
                 // Ensure tables exists
-                for (var relation : request.tables()) {
+                for (var target : request.targets()) {
+                    var relation = target.table();
                     RelationMetadata.Table table = currentMetadata.getRelation(relation);
                     if (table == null) {
                         throw new RelationUnknown(relation);
@@ -110,7 +111,7 @@ public class TransportCreatePublication extends AbstractDDLTransportAction<Creat
                 var newMetadata = PublicationsMetadata.newInstance(oldMetadata);
                 newMetadata.publications().put(
                     request.name(),
-                    new Publication(request.owner(), request.isForAllTables(), request.tables())
+                    new Publication(request.owner(), request.isForAllTables(), request.targets())
                 );
                 assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
                 mdBuilder.putCustom(PublicationsMetadata.TYPE, newMetadata);
