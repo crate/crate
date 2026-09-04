@@ -129,7 +129,7 @@ public final class MoveFilterBeneathJoin implements Rule<Filter> {
         var lhsRelations = new HashSet<>(lhs.relationNames());
         var rhsRelations = new HashSet<>(rhs.relationNames());
 
-        // This can happen only if RewriteDistinctAggOnDifferentColumnsToJoin was applied,
+        // This can happen only if RewriteDistinctAggToGroupBy's different-columns split was applied,
         // and the query has a filter/HAVING clause, for example:
         //
         //   select count(distinct good), count(distinct department)
