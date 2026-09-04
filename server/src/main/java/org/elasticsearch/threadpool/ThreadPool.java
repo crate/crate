@@ -72,6 +72,7 @@ public class ThreadPool implements Scheduler {
         public static final String FETCH_SHARD_STARTED = "fetch_shard_started";
         public static final String FETCH_SHARD_STORE = "fetch_shard_store";
         public static final String LOGICAL_REPLICATION = "logical_replication";
+        public static final String GROUP_BY = "group_by";
     }
 
     public enum ThreadPoolType {
@@ -147,7 +148,8 @@ public class ThreadPool implements Scheduler {
             new ScalingExecutorBuilder(Names.FETCH_SHARD_STARTED, 1, 2 * availableProcessors, TimeValue.timeValueMinutes(5)),
             new FixedExecutorBuilder(settings, Names.FORCE_MERGE, oneEightOfProcessors(availableProcessors), -1),
             new ScalingExecutorBuilder(Names.FETCH_SHARD_STORE, 1, 2 * availableProcessors, TimeValue.timeValueMinutes(5)),
-            new FixedExecutorBuilder(settings, Names.LOGICAL_REPLICATION, searchThreadPoolSize(availableProcessors), 100)
+            new FixedExecutorBuilder(settings, Names.LOGICAL_REPLICATION, searchThreadPoolSize(availableProcessors), 100),
+            new FixedExecutorBuilder(settings, Names.GROUP_BY, searchThreadPoolSize(availableProcessors), 100)
         );
         HashMap<String, ExecutorHolder> executors = HashMap.newHashMap(builders.size() + 1);
         for (ExecutorBuilder builder : builders) {

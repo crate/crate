@@ -22,6 +22,7 @@
 package io.crate.execution.engine.collect;
 
 import java.util.Map;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
@@ -74,6 +75,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     private final DocInputFactory docInputFactory;
     private final BigArrays bigArrays;
     private final ClusterService clusterService;
+    private final ThreadPool threadPool;
 
     private final LuceneReferenceResolver referenceResolver;
 
@@ -117,6 +119,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         this.docInputFactory = new DocInputFactory(nodeCtx, referenceResolver);
         this.bigArrays = bigArrays;
         this.clusterService = clusterService;
+        this.threadPool = threadPool;
     }
 
     @Override
@@ -206,7 +209,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             luceneQueryBuilder,
             docInputFactory,
             normalizedPhase,
-            collectTask
+            collectTask,
+            (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.GROUP_BY)
         );
         if (it != null) {
             return it;

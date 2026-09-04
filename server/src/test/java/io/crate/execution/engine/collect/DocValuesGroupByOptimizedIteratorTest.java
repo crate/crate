@@ -33,6 +33,7 @@ import static org.mockito.Mockito.mock;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -49,6 +50,7 @@ import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -142,9 +144,15 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             Version.CURRENT,
             List.of()
         );
-        var keyExpressions = List.of(new LongColumnReference("y"));
         var it = DocValuesGroupByOptimizedIterator.GroupByIterator.forSingleKey(
-            List.of(sumDocValuesAggregator),
+            () -> new DocValuesGroupByOptimizedIterator.LeafState(
+                List.of(sumDocValuesAggregator),
+                List.of(new LongColumnReference("y")),
+                null,
+                new CollectorContext(() -> null)
+            ),
+            () -> RamAccounting.NO_ACCOUNTING,
+            List.of(sumAggregation),
             indexSearcher,
             new SimpleReference(
                 RelationName.fromIndexName("test"),
@@ -159,12 +167,9 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 false,
                 null
             ),
-            keyExpressions,
-            RamAccounting.NO_ACCOUNTING,
-            null,
             null,
             MatchAllDocsQuery.INSTANCE,
-            new CollectorContext(() -> null)
+            (ThreadPoolExecutor) THREAD_POOL.executor(ThreadPool.Names.GROUP_BY)
         );
 
         var rowConsumer = new TestingRowConsumer();
@@ -203,7 +208,6 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             Version.CURRENT,
             List.of()
         );
-        var keyExpressions = List.of(new StringColumnReference("x"), new LongColumnReference("y"));
         var keyRefs = List.<Reference>of(
             new SimpleReference(
                 RelationName.fromIndexName("test"),
@@ -233,15 +237,19 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             )
         );
         var it = DocValuesGroupByOptimizedIterator.GroupByIterator.forManyKeys(
-            List.of(sumDocValuesAggregator),
+            () -> new DocValuesGroupByOptimizedIterator.LeafState(
+                List.of(sumDocValuesAggregator),
+                List.of(new StringColumnReference("x"), new LongColumnReference("y")),
+                null,
+                new CollectorContext(() -> null)
+            ),
+            () -> RamAccounting.NO_ACCOUNTING,
+            List.of(sumAggregation),
             indexSearcher,
             keyRefs,
-            keyExpressions,
-            RamAccounting.NO_ACCOUNTING,
-            null,
             null,
             MatchAllDocsQuery.INSTANCE,
-            new CollectorContext(() -> null)
+            (ThreadPoolExecutor) THREAD_POOL.executor(ThreadPool.Names.GROUP_BY)
         );
 
         var rowConsumer = new TestingRowConsumer();
@@ -295,7 +303,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 referenceResolver
             ),
             collectPhase,
-            collectTask
+            collectTask,
+            (ThreadPoolExecutor) THREAD_POOL.executor(ThreadPool.Names.GROUP_BY)
         );
         assertThat(it).isNotNull();
 
@@ -351,29 +360,34 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
 
     private BatchIterator<Row> createBatchIterator(Runnable onNextReader) {
         return DocValuesGroupByOptimizedIterator.GroupByIterator.getIterator(
+            () -> new DocValuesGroupByOptimizedIterator.LeafState(
+                List.of(),
+                List.of(new LuceneCollectorExpression<>() {
+
+                    @Override
+                    public void setNextReader(ReaderContext context) throws IOException {
+                        onNextReader.run();
+                    }
+
+                    @Override
+                    public Object value() {
+                        return null;
+                    }
+                }),
+                null,
+                new CollectorContext(() -> null)
+            ),
+            () -> null,
             List.of(),
             indexSearcher,
-            List.of(new LuceneCollectorExpression<>() {
-
-                @Override
-                public void setNextReader(ReaderContext context) throws IOException {
-                    onNextReader.run();
-                }
-
-                @Override
-                public Object value() {
-                    return null;
-                }
-            }),
+            1,
             null,
-            null,
-            null,
-            (_, states, key) -> {
+            ra -> (_, states, key) -> {
             },
             (expressions) -> expressions.get(0).value(),
             (key, cells) -> cells[0] = key,
             MatchAllDocsQuery.INSTANCE,
-            new CollectorContext(() -> null)
+            (ThreadPoolExecutor) THREAD_POOL.executor(ThreadPool.Names.GROUP_BY)
         );
     }
 }
