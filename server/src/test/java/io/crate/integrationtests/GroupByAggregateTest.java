@@ -781,10 +781,9 @@ public class GroupByAggregateTest extends IntegTestCase {
             "having count(distinct department) > 0";
 
         execute(query);
-        assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.rows()[0][0]).isEqualTo(2L);
-        assertThat(response.rows()[0][1]).isEqualTo(4L);
-        assertThat(response.rows()[0][2]).isEqualTo(2L);
+        assertThat(response)
+            .hasRowCount(1)
+            .hasRows(new Object[]{2L, 4L, 2L});
 
         execute("explain (costs false) " + query);
         assertThat(response).hasLines(
@@ -807,10 +806,9 @@ public class GroupByAggregateTest extends IntegTestCase {
         String query = "select count(distinct good), count(distinct department), count(distinct name) from employees";
 
         execute(query);
-        assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.rows()[0][0]).isEqualTo(2L);
-        assertThat(response.rows()[0][1]).isEqualTo(4L);
-        assertThat(response.rows()[0][2]).isEqualTo(6L);
+        assertThat(response)
+            .hasRowCount(1)
+            .hasRows(new Object[]{2L, 4L, 6L});
 
         execute("explain (costs false) " + query);
         assertThat(response).hasLines(
