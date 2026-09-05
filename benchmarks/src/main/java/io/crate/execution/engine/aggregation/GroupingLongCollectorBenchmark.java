@@ -76,6 +76,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.netty.util.collection.LongObjectHashMap;
 
@@ -143,6 +144,7 @@ public class GroupingLongCollectorBenchmark {
             RamAccounting.NO_ACCOUNTING,
             memoryManager,
             Version.CURRENT,
+            new DataType[] { sumAgg.partialType() },
             keyInputs.getFirst(),
             DataTypes.LONG
         );

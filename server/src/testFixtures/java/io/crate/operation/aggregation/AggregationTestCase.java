@@ -24,6 +24,7 @@ package io.crate.operation.aggregation;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.withinPercentage;
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
 import static org.mockito.Mockito.mock;
@@ -248,13 +249,23 @@ public abstract class AggregationTestCase extends ESTestCase {
                 var resultWithDocValues = assertAndGetMergedIterAndPartial(
                     aggregationFunction, terminatePartialAggFunction, partialResultWithDocValues.get(0).get(0));
 
-                assertThat(resultWithoutDocValues).isEqualTo(resultWithDocValues);
+                // Welford's parallel merge is order-sensitive in the last ULP: the iterate and
+                // doc-value paths accumulate values in different orders, so their floating-point
+                // stddev/variance results can differ by an ULP. Tolerate that tiny relative
+                // difference while still catching real regressions; other result types must match
+                // exactly. See PR #19760 / #19885.
+                if (resultWithoutDocValues instanceof Double d1 && resultWithDocValues instanceof Double d2) {
+                    assertThat(d1).isCloseTo(d2, withinPercentage(1e-9));
+                } else {
+                    assertThat(resultWithoutDocValues).isEqualTo(resultWithDocValues);
+                }
             } else {
                 var docValueAggregator = aggregationFunction.getDocValueAggregator(
                     refResolver,
                     targetColumns,
                     mock(DocTableInfo.class),
                     Version.CURRENT,
+                    aggregationFunction.partialType(),
                     List.of()
                 );
                 if (docValueAggregator != null) {
@@ -624,6 +635,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             toReference(argumentTypes),
             mock(DocTableInfo.class),
             Version.CURRENT,
+            aggregationFunction.partialType(),
             List.of()
         );
     }

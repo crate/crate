@@ -164,6 +164,35 @@ public class StdDevSampAggregationTest extends AggregationTestCase {
     }
 
     @Test
+    public void test_new_state_follows_the_plan_chosen_partial_type() throws Exception {
+        // The plan's chosen partial type - not a locally re-read node version - decides the state
+        // layout, so a producing node's accumulator can never diverge from the streamed wire format
+        // during a rolling upgrade. Pairing each partial type with the "wrong" version proves the
+        // partial type wins. See PR #19885.
+        var func = (io.crate.execution.engine.aggregation.AggregationFunction<?, ?>) nodeCtx.functions().get(
+            null,
+            StandardDeviationSampAggregation.NAMES.get(0),
+            List.of(Literal.of(DataTypes.DOUBLE, null)),
+            SearchPath.pathWithPGCatalogAndDoc());
+        var legacy = (io.crate.execution.engine.aggregation.statistics.Variance) func.newState(
+            io.crate.data.breaker.RamAccounting.NO_ACCOUNTING,
+            StandardDeviationSampAggregation.StdDevSampStateType.INSTANCE,
+            org.elasticsearch.Version.CURRENT,
+            null);
+        assertThat(legacy.isLegacy()).isTrue();
+        var welford = (io.crate.execution.engine.aggregation.statistics.Variance) func.newState(
+            io.crate.data.breaker.RamAccounting.NO_ACCOUNTING,
+            StandardDeviationSampAggregation.StdDevSampStateTypeWelford.INSTANCE,
+            org.elasticsearch.Version.V_6_4_0,
+            null);
+        assertThat(welford.isLegacy()).isFalse();
+        assertThat(func.partialType(org.elasticsearch.Version.V_6_4_0).id())
+            .isEqualTo(StandardDeviationSampAggregation.StdDevSampStateType.ID);
+        assertThat(func.partialType(org.elasticsearch.Version.CURRENT).id())
+            .isEqualTo(StandardDeviationSampAggregation.StdDevSampStateTypeWelford.ID);
+    }
+
+    @Test
     public void testUnsupportedType() {
         assertThatThrownBy(() -> executeAggregation(DataTypes.GEO_POINT, new Object[][]{}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
