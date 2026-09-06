@@ -1220,10 +1220,9 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public Node visitCreatePublication(SqlBaseParser.CreatePublicationContext ctx) {
-        List<QualifiedName> tables = ctx.qname().stream()
-            .map(this::getQualifiedName)
-            .toList();
+        List<Table<Expression>> tables = (List) visitCollection(ctx.tableWithPartition(), Table.class);
         return new CreatePublication(getIdentText(ctx.name), ctx.ALL() != null, tables);
     }
 

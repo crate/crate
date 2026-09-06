@@ -21,7 +21,8 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.metadata.RelationName;
+import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -30,18 +31,20 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.crate.metadata.RelationName;
+
 public class CreatePublicationRequest extends AcknowledgedRequest<CreatePublicationRequest> {
 
     private final String owner;
     private final String name;
     private final boolean forAllTables;
-    private final List<RelationName> tables;
+    private final List<TableOrPartition> targets;
 
-    public CreatePublicationRequest(String owner, String name, boolean forAllTables, List<RelationName> tables) {
+    public CreatePublicationRequest(String owner, String name, boolean forAllTables, List<TableOrPartition> targets) {
         this.owner = owner;
         this.name = name;
         this.forAllTables = forAllTables;
-        this.tables = tables;
+        this.targets = targets;
     }
 
     public CreatePublicationRequest(StreamInput in) throws IOException {
@@ -50,11 +53,15 @@ public class CreatePublicationRequest extends AcknowledgedRequest<CreatePublicat
         this.name = in.readString();
         this.forAllTables = in.readBoolean();
         int size = in.readVInt();
-        var t = new ArrayList<RelationName>(size);
+        var t = new ArrayList<TableOrPartition>(size);
         for (var i = 0; i < size; i++) {
-            t.add(new RelationName(in));
+            if (in.getVersion().before(Version.V_6_5_0)) {
+                t.add(new TableOrPartition(new RelationName(in), null));
+            } else {
+                t.add(new TableOrPartition(in));
+            }
         }
-        this.tables = List.copyOf(t);
+        this.targets = List.copyOf(t);
     }
 
     public String owner() {
@@ -69,8 +76,8 @@ public class CreatePublicationRequest extends AcknowledgedRequest<CreatePublicat
         return forAllTables;
     }
 
-    public List<RelationName> tables() {
-        return tables;
+    public List<TableOrPartition> targets() {
+        return targets;
     }
 
     @Override
@@ -79,9 +86,16 @@ public class CreatePublicationRequest extends AcknowledgedRequest<CreatePublicat
         out.writeString(owner);
         out.writeString(name);
         out.writeBoolean(forAllTables);
-        out.writeVInt(tables.size());
-        for (var table : tables) {
-            table.writeTo(out);
+        out.writeVInt(targets.size());
+        for (var target : targets) {
+            if (out.getVersion().before(Version.V_6_5_0)) {
+                if (target.partitionIdent() != null) {
+                    throw new IllegalStateException("Cannot write partition publication target to a node before " + Version.V_6_5_0);
+                }
+                target.table().writeTo(out);
+            } else {
+                target.writeTo(out);
+            }
         }
     }
 }

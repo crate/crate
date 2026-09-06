@@ -69,17 +69,22 @@ public class LogicalReplicationAnalyzer {
         if (logicalReplicationService.publications().containsKey(createPublication.name())) {
             throw new PublicationAlreadyExistsException(createPublication.name());
         }
+        var sessionSettings = txnCtx.sessionSettings();
+        var exprCtx = new ExpressionAnalysisContext(sessionSettings);
+        var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
+            txnCtx, nodeCtx, ParamTypeHints.EMPTY, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
         var tables = Lists.map(
             createPublication.tables(),
-            q -> {
-                CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
+            table -> {
                 DocTableInfo tableInfo = schemas.findRelation(
-                    q,
+                    table.getName(),
                     Operation.CREATE_PUBLICATION,
                     sessionSettings.sessionUser(),
                     sessionSettings.searchPath()
                 );
-                return tableInfo.ident();
+                return table
+                    .withName(tableInfo.ident().toQualifiedName())
+                    .map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
             }
         );
 

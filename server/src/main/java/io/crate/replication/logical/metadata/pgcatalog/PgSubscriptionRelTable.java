@@ -55,15 +55,18 @@ public class PgSubscriptionRelTable {
                     (e, c) -> {
                         var sub = e.getValue();
                         sub.relations().forEach(
-                            (r, rs) -> c.accept(
-                                new PgSubscriptionRelRow(
-                                    OidHash.subscriptionOid(e.getKey(), sub),
-                                    new Regclass(logicalReplicationService.getsubscriberTableOid(r), r.fqn()),
-                                    sub.owner(),
-                                    rs.state().pg_state(),
-                                    rs.reason()
-                                )
-                            )
+                            (target, rs) -> {
+                                var relationName = target.table();
+                                c.accept(
+                                    new PgSubscriptionRelRow(
+                                        OidHash.subscriptionOid(e.getKey(), sub),
+                                        new Regclass(logicalReplicationService.getsubscriberTableOid(relationName), relationName.fqn()),
+                                        sub.owner(),
+                                        rs.state().pg_state(),
+                                        rs.reason()
+                                    )
+                                );
+                            }
                         );
                     }
                 );
