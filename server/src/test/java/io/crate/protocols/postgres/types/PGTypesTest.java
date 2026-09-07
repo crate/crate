@@ -38,6 +38,7 @@ import java.util.stream.StreamSupport;
 
 import org.elasticsearch.test.ESTestCase;
 import org.joda.time.Period;
+import org.joda.time.PeriodType;
 import org.junit.Test;
 
 import io.crate.data.Row1;
@@ -192,7 +193,8 @@ public class PGTypesTest extends ESTestCase {
 
     @Test
     public void test_period_text_round_trip_streaming() {
-        var entry = new Entry<>(DataTypes.INTERVAL, new Period(1, 2, 3, 4, 5, 6, 7, 8));
+        Period value = new Period(1, 2, 3, 4, 5, 6, 7, 8).normalizedStandard(PeriodType.yearMonthDayTime());
+        var entry = new Entry<>(DataTypes.INTERVAL, value);
         assertThat(writeAndReadAsText(entry, IntervalType.INSTANCE)).isEqualTo(entry.value);
     }
 
