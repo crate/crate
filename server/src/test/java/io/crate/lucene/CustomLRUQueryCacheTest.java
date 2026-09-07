@@ -23,12 +23,15 @@ import static org.apache.lucene.util.RamUsageEstimator.LINKED_HASHTABLE_RAM_BYTE
 import static org.apache.lucene.util.RamUsageEstimator.QUERY_DEFAULT_RAM_BYTES_USED;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -37,9 +40,13 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.index.RandomIndexWriter;
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
 import org.junit.Test;
 
-public class CustomLRUQueryCacheTest extends CrateLuceneTestCase {
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.QueryTester;
+
+public class CustomLRUQueryCacheTest extends CrateDummyClusterServiceUnitTest {
 
     private static final QueryCachingPolicy ALWAYS_CACHE =
         new QueryCachingPolicy() {
@@ -109,6 +116,69 @@ public class CustomLRUQueryCacheTest extends CrateLuceneTestCase {
             assertThat(queryCache.cachedQueries().size()).isEqualTo(1);
             assertThat(queryCache.ramBytesUsed()).isGreaterThanOrEqualTo(queryInBytes);
             reader.close();
+        }
+    }
+
+    @Test
+    public void test_standalone_generic_function_query_is_cached_as_small_cacheable_query() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (a int, b int)"
+        );
+        builder.indexValues(List.of("a", "b"), 1, 1);
+        try (QueryTester tester = builder.build()) {
+            Query query = tester.toQuery("abs(a) * abs(b) = 1");
+            assertThat(query).isInstanceOf(GenericFunctionQuery.class);
+
+            IndexSearcher searcher = tester.searcher();
+            CustomLRUQueryCache queryCache =
+                new CustomLRUQueryCache(1000000, 10000000, _ -> true, Float.POSITIVE_INFINITY);
+            searcher.setQueryCache(queryCache);
+            searcher.setQueryCachingPolicy(ALWAYS_CACHE);
+            searcher.count(query);
+
+            assertThat(queryCache.getUniqueQueries()).hasSize(1);
+            Query cachedQuery = queryCache.getUniqueQueries().keySet().iterator().next();
+            assertThat(cachedQuery).isInstanceOf(GenericFunctionQuery.SmallCacheableQuery.class);
+        }
+    }
+
+    @Test
+    public void test_generic_function_query_in_boolean_query_is_cached_as_small_cacheable_query() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (a int, b int)"
+        );
+        builder.indexValues(List.of("a", "b"), 1, 1);
+        try (QueryTester tester = builder.build()) {
+            Query query = tester.toQuery("abs(a) = 1 AND abs(b) = 1");
+            assertThat(query).isInstanceOf(BooleanQuery.class);
+            for (BooleanClause clause : ((BooleanQuery) query).clauses()) {
+                assertThat(clause.query()).isInstanceOf(GenericFunctionQuery.class);
+            }
+
+            IndexSearcher searcher = tester.searcher();
+            CustomLRUQueryCache queryCache =
+                new CustomLRUQueryCache(1000000, 10000000, _ -> true, Float.POSITIVE_INFINITY);
+            searcher.setQueryCache(queryCache);
+            searcher.setQueryCachingPolicy(ALWAYS_CACHE);
+            searcher.count(query);
+
+            // Cache has 3 entries: 1 composite BooleanQuery from IndexSearcher.createWeight
+            // and 2 leaf queries created in BooleanWeight ctor.
+            for (Query cachedQuery : queryCache.getUniqueQueries().keySet()) {
+                if (cachedQuery instanceof BooleanQuery booleanQuery) {
+                    for (BooleanClause clause : booleanQuery.clauses()) {
+                        assertThat(clause.query()).isInstanceOf(GenericFunctionQuery.SmallCacheableQuery.class);
+                    }
+                } else {
+                    assertThat(cachedQuery).isInstanceOf(GenericFunctionQuery.SmallCacheableQuery.class);
+                }
+            }
         }
     }
 
