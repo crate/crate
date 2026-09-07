@@ -85,6 +85,10 @@ public class GenericFunctionQuery extends Query implements Accountable {
         return function.hashCode();
     }
 
+    public Query smallCacheableQuery() {
+        return smallCacheableQuery;
+    }
+
     /**
      * @return memory usage of the part that is actually passed to the cache.
      * LRUCache uses SmallCacheableQuery's memory accounting directly.
