@@ -36,6 +36,7 @@ import java.util.stream.Stream;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.test.IntegTestCase;
+import org.joda.time.Period;
 import org.junit.After;
 import org.junit.Test;
 
@@ -91,6 +92,16 @@ public class ViewsITest extends IntegTestCase {
         execute("select * from v1");
         assertThat(response).hasRows(
             "B'0001'"
+        );
+    }
+
+    @Test
+    public void test_can_use_period_parameter_in_view_definition() throws Exception {
+        Period value = new Period(200);
+        execute("create view v1 as select ?::interval", $(value));
+        execute("select * from v1");
+        assertThat(response).hasRows(
+            "PT0.200S"
         );
     }
 

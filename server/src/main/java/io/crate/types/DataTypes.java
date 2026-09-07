@@ -44,6 +44,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.io.stream.Writeable.Reader;
+import org.joda.time.Period;
 import org.jspecify.annotations.Nullable;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.locationtech.spatial4j.shape.jts.JtsPoint;
@@ -306,7 +307,8 @@ public final class DataTypes {
         entry(Character.class, STRING),
         entry(BitString.class, BitStringType.INSTANCE_ONE),
         entry(TimeTZ.class, TimeTZType.INSTANCE),
-        entry(UUID.class, UUIDType.INSTANCE)
+        entry(UUID.class, UUIDType.INSTANCE),
+        entry(Period.class, IntervalType.INSTANCE)
     );
 
     public static DataType<?> guessType(Object value) {
