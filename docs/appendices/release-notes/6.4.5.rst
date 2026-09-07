@@ -46,5 +46,8 @@ series.
 Fixes
 =====
 
+- Fixed decoding of ``interval`` values sent from PostgreSQL wire protocol
+  clients using text format in the ``x hours y minutes ...`` style.
+
 - Fixed an issue that could lead to out of memory errors if using the
   ``percentile`` aggregation.
