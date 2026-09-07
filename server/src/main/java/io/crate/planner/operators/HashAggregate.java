@@ -62,18 +62,35 @@ public class HashAggregate extends ForwardingLogicalPlan {
     private static final String MERGE_PHASE_NAME = "mergeOnHandler";
     final List<Function> aggregates;
 
-    /// The `distinct` flag in the functions might still need to be rewritten, if an optimizer rule
-    /// didn't already take care of it by deduplicating the source.
-    private final boolean rewriteDistinct;
-
-    public HashAggregate(LogicalPlan source, List<Function> aggregates) {
-        this(source, aggregates, true);
+    /// How the `distinct` flag in `aggregates` is implemented in the **execution** plan.
+    /// The `aggregates`/`outputs()` are unaffected by this in every case.
+    public enum DistinctMode {
+        /// Default: `build()` rewrites `agg(DISTINCT x)` to `collection_agg(collect_set(x))`.
+        COLLECT_SET,
+        /// `source` is a [GroupHashAggregate] that deduplicates the distinct argument.
+        /// There are also non-distinct aggregates, for which we calculate a partial value (per group),
+        /// and then merge the partial values into the final value. This is done in `build()`.
+        /// See: [io.crate.planner.optimizer.rule.RewriteMixedDistinctAggToGroupBy].
+        SPLIT_AND_MERGE,
+        /// `source` already deduplicates the distinct argument.
+        /// See: [io.crate.planner.optimizer.rule.RewriteDistinctAggToGroupBy].
+        NONE
     }
 
-    public HashAggregate(LogicalPlan source, List<Function> aggregates, boolean rewriteDistinct) {
+    private final DistinctMode distinctMode;
+
+    public HashAggregate(LogicalPlan source, List<Function> aggregates) {
+        this(source, aggregates, DistinctMode.COLLECT_SET);
+    }
+
+    public HashAggregate(LogicalPlan source, List<Function> aggregates, DistinctMode distinctMode) {
         super(source);
         this.aggregates = aggregates;
-        this.rewriteDistinct = rewriteDistinct;
+        this.distinctMode = distinctMode;
+    }
+
+    public DistinctMode distinctMode() {
+        return distinctMode;
     }
 
     @Override
@@ -99,14 +116,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         AggregationOutputValidator.validateOutputs(aggregates);
         var paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
-        DistinctRewriter.Result rewritten = rewriteDistinct
-            ? DistinctRewriter.rewrite(
-                aggregates,
-                aggregates,
-                paramBinder,
-                plannerContext.transactionContext(),
-                plannerContext.nodeContext())
-            : DistinctRewriter.noop(aggregates);
+        DistinctRewriter.Result rewritten = rewriteAggregates(plannerContext, paramBinder);
 
         var sourceOutputs = source.outputs();
         if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {
@@ -190,6 +200,23 @@ public class HashAggregate extends ForwardingLogicalPlan {
         );
     }
 
+    private DistinctRewriter.Result rewriteAggregates(PlannerContext plannerContext, SubQueryAndParamBinder paramBinder) {
+        return switch (distinctMode) {
+            case COLLECT_SET -> DistinctRewriter.rewrite(
+                aggregates,
+                aggregates,
+                paramBinder,
+                plannerContext.transactionContext(),
+                plannerContext.nodeContext());
+            case SPLIT_AND_MERGE -> SplitDistinctAggregate.rewriteForGroupBy(
+                aggregates,
+                paramBinder,
+                plannerContext.transactionContext(),
+                plannerContext.nodeContext());
+            case NONE -> DistinctRewriter.noop(aggregates);
+        };
+    }
+
     public List<Function> aggregates() {
         return aggregates;
     }
@@ -201,7 +228,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new HashAggregate(Lists.getOnlyElement(sources), aggregates, rewriteDistinct);
+        return new HashAggregate(Lists.getOnlyElement(sources), aggregates, distinctMode);
     }
 
     @Override
@@ -210,6 +237,19 @@ public class HashAggregate extends ForwardingLogicalPlan {
         ArrayList<Function> newAggregates = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
             Symbols.intersection(outputToKeep, aggregates, newAggregates::add);
+        }
+        if (distinctMode == DistinctMode.SPLIT_AND_MERGE) {
+            // `source` is a `GroupHashAggregate` producing the partials this operator recombines.
+            // `avg(x)`'s argument `x` doesn't appear in `source.outputs()` any more, only
+            // the `sum(x)`/`count(x)` partials do.
+            // So leave `source` untouched instead of pruning it.
+            if (newAggregates.size() == aggregates.size()) {
+                return this;
+            }
+            List<Function> prunedOutputs = Lists.intersection(aggregates, newAggregates);
+            HashAggregate newPlan = new HashAggregate(source, prunedOutputs, distinctMode);
+            validateOutputsOrder(newPlan.outputs());
+            return newPlan;
         }
         // Trying to prune source with a narrower list of outputs:
         // outputsToKeep ∩ aggregates ∩ source.outputs()
@@ -222,7 +262,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
             return this;
         }
         List<Function> prunedOutputs = Lists.intersection(aggregates, newAggregates);
-        HashAggregate newPlan = new HashAggregate(newSource, prunedOutputs, rewriteDistinct);
+        HashAggregate newPlan = new HashAggregate(newSource, prunedOutputs, distinctMode);
         validateOutputsOrder(newPlan.outputs());
         return newPlan;
     }
