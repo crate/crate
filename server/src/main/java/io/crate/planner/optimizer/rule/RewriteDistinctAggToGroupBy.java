@@ -105,7 +105,7 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
     /// However, the default implementation of distinct functions is limited to the ones below
     /// (because it needs a matching `collection_*` scalar function), hence the rule is limited
     /// to those as well. Otherwise, we'd have a situation where an optimization enables more functions.
-    private static final Set<String> SUPPORTED_AGGREGATES = Set.of(
+    static final Set<String> SUPPORTED_AGGREGATES = Set.of(
         CountAggregation.NAME,
         AverageAggregation.NAMES[0],
         AverageAggregation.NAMES[1]
@@ -175,7 +175,7 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
         }
 
         GroupHashAggregate dedup = new GroupHashAggregate(source, List.of(groupKey), List.of());
-        return new HashAggregate(dedup, aggregate.aggregates(), false);
+        return new HashAggregate(dedup, aggregate.aggregates(), HashAggregate.DistinctMode.NONE);
     }
 
     /// True if `plan` already groups by `groupKey`, i.e., a `GROUP BY` isn't needed.
