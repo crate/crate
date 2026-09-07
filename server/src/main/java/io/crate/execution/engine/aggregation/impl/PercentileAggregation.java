@@ -212,8 +212,9 @@ class PercentileAggregation<T> extends AggregationFunction<TDigestState, Object>
     public TDigestState newState(RamAccounting ramAccounting,
                                  Version minNodeInCluster,
                                  MemoryManager memoryManager) {
-        ramAccounting.addBytes(TDigestState.SHALLOW_SIZE);
-        return TDigestState.createEmptyState();
+        var state = TDigestState.createEmptyState();
+        ramAccounting.addBytes(state.initialSize());
+        return state;
     }
 
     @Override
@@ -225,16 +226,17 @@ class PercentileAggregation<T> extends AggregationFunction<TDigestState, Object>
             Object fractionValue = args[1].value();
             if (args.length > 2) {
                 Double compression = DataTypes.DOUBLE.sanitizeValue(args[2].value());
+                long previousInitialSize = state.initialSize();
                 state = new TDigestState(compression, new double[]{});
+                // reflect replacement of the default-compression state.
+                ramAccounting.addBytes(state.initialSize() - previousInitialSize);
             }
             initState(state, fractionValue, ramAccounting);
         }
         T value = valueType.sanitizeValue(args[0].value());
         if (value != null) {
-            int delta = state.addGetSizeDelta(valueToDouble.applyAsDouble(value));
-            if (delta > 0) {
-                ramAccounting.addBytes(delta);
-            }
+            state.add(valueToDouble.applyAsDouble(value));
+            state.compress();
         }
         return state;
     }

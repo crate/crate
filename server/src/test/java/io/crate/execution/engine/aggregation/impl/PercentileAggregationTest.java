@@ -278,11 +278,51 @@ public class PercentileAggregationTest extends AggregationTestCase {
         );
         RamAccounting ramAccounting = new PlainRamAccounting();
         Object state = impl.newState(ramAccounting, Version.CURRENT, memoryManager);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(120L);
+        long newStateBytes = ((TDigestState ) state).initialSize();
+        assertThat(ramAccounting.totalBytes()).isEqualTo(newStateBytes);
         Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), DataTypes.DOUBLE_ARRAY);
         impl.iterate(ramAccounting, memoryManager, state, Literal.of(10L), fractions);
         impl.iterate(ramAccounting, memoryManager, state, Literal.of(20L), fractions);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(192L);
+        // + 47776 bytes for the initial state
+        // + 8 bytes for the single fraction value
+        assertThat(ramAccounting.totalBytes()).isEqualTo(47776 + 8);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_custom_compression_releases_discarded_default_state() throws Exception {
+        var signature = Signature.builder(PercentileAggregation.NAME, FunctionType.AGGREGATE)
+            .argumentTypes(
+                DataTypes.DOUBLE.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature())
+            .returnType(DataTypes.DOUBLE.getTypeSignature())
+            .features(Scalar.Feature.DETERMINISTIC)
+            .build();
+        var impl = (AggregationFunction<Object, ?>) nodeCtx.functions().getQualified(
+            signature,
+            signature.getArgumentDataTypes(),
+            signature.getReturnType().createType()
+        );
+
+        RamAccounting ramAccounting = new PlainRamAccounting();
+        Object state = impl.newState(ramAccounting, Version.CURRENT, memoryManager);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(47776L); // default compression
+
+        double customCompression = 300.0;
+        TDigestState stateAfterIterate = (TDigestState) impl.iterate(
+            ramAccounting,
+            memoryManager,
+            state,
+            Literal.of(1.0),
+            Literal.of(0.5),
+            Literal.of(customCompression)
+        );
+
+        // Replaced instance with default compression must have its bytes released
+        // to reflect re-creation of a new instance with a custom compression
+        assertThat(stateAfterIterate.initialSize()).isEqualTo(70984); // Custom compression. 47776L are subtracted
+        assertThat(ramAccounting.totalBytes()).isEqualTo(stateAfterIterate.initialSize());
     }
 
     @Test

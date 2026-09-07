@@ -32,6 +32,6 @@ public record InPredicate(Expression value, Expression valueList) implements Exp
 
     @Override
     public final String toString() {
-        return ExpressionFormatter.formatExpression(this);
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

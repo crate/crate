@@ -418,12 +418,15 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
         );
         io.crate.testing.PlainRamAccounting ramAccounting = new io.crate.testing.PlainRamAccounting();
         TDigestState state = impl.newState(ramAccounting, Version.CURRENT, memoryManager);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(120L);
+        long newStateBytes = state.initialSize();
+        assertThat(ramAccounting.totalBytes()).isEqualTo(newStateBytes);
         Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), DataTypes.DOUBLE_ARRAY);
         impl.iterate(ramAccounting, memoryManager, state,
             Literal.of(DataTypes.INTERVAL, Period.hours(10)), fractions);
         impl.iterate(ramAccounting, memoryManager, state,
             Literal.of(DataTypes.INTERVAL, Period.hours(20)), fractions);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(192L);
+        // + 47776 bytes for the initial state
+        // + 8 bytes for the single fraction value
+        assertThat(ramAccounting.totalBytes()).isEqualTo(47776 + 8);
     }
 }

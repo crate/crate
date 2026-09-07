@@ -34,9 +34,11 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.joda.time.Period;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.postgresql.geometric.PGpoint;
+import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGobject;
 
 import io.crate.protocols.postgres.types.PGArray;
@@ -117,6 +119,27 @@ public class ResultSetParser {
             case "bit":
                 value = BitString.ofRawBits(resultSet.getString(columnIndex));
                 break;
+
+            case "interval":
+                PGInterval interval = (PGInterval) resultSet.getObject(columnIndex);
+                if (interval == null) {
+                    value = null;
+                } else {
+                    int weeks = 0;
+                    int millis = interval.getMicroSeconds() / 1000;
+                    value = new Period(
+                        interval.getYears(),
+                        interval.getMonths(),
+                        weeks,
+                        interval.getDays(),
+                        interval.getHours(),
+                        interval.getMinutes(),
+                        interval.getWholeSeconds(),
+                        millis
+                    );
+                }
+                break;
+
 
             default:
                 value = resultSet.getObject(columnIndex);

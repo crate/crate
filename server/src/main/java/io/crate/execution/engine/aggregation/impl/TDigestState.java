@@ -21,6 +21,9 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static org.apache.lucene.util.RamUsageEstimator.NUM_BYTES_ARRAY_HEADER;
+import static org.apache.lucene.util.RamUsageEstimator.alignObjectSize;
+
 import java.io.IOException;
 import java.util.Collection;
 
@@ -39,11 +42,71 @@ class TDigestState extends MergingDigest {
 
     private double[] fractions;
 
-    private int lastByteSize = 0;
+    private long mergingDigestState = 0;
 
     TDigestState(double compression, double[] fractions) {
+        // mergingDigestState relies on the fact that only single argument ctor of the parent class is used.
+        // If we change it, we need to update its implementation.
         super(compression);
+        mergingDigestState = mergingDigestState(compression, -1, -1);
         this.fractions = fractions;
+    }
+
+    /**
+     * Accounts for arrays of the parent class MergingDigest.
+     * As stated in its javadocs, no allocation is required after initialization,
+     * so we can mirror sizes of arrays allocated for the given compression in the ctor.
+     * Note, that data and tempData are always null, as we don't use recordAllData().
+     */
+    private static long mergingDigestState(double compression, int bufferSize, int size) {
+        if (compression < 10) {
+            compression = 10;
+        }
+
+        double sizeFudge = 0;
+        // Reference code has if (useWeightLimit) check that is always true here.
+        sizeFudge = 10;
+        if (compression < 30) {
+            sizeFudge += 20;
+        }
+
+        size = (int) Math.max(2 * compression + sizeFudge, size);
+
+        // Reference code has if (bufferSize == -1) check that is always true here.
+        bufferSize = 5 * size;
+
+        if (bufferSize <= 2 * size) {
+            bufferSize = 2 * size;
+        }
+
+        // Reference code resets scale to 1 if (!useTwoLevelCompression), but can't happen here.
+        double scale = Math.max(1, bufferSize / size - 1);
+
+        double publicCompression = compression;
+        compression = Math.sqrt(scale) * publicCompression;
+
+        // changing the compression could cause buffers to be too small, readjust if so
+        if (size < compression + sizeFudge) {
+            size = (int) Math.ceil(compression + sizeFudge);
+        }
+
+        if (bufferSize <= 2 * size) {
+            bufferSize = 2 * size;
+        }
+
+        /**
+        weight = new double[size];
+        mean = new double[size];
+
+        tempWeight = new double[bufferSize];
+        tempMean = new double[bufferSize];
+        order = new int[bufferSize];
+        **/
+
+        long weightAndMeanSize = 2 * (NUM_BYTES_ARRAY_HEADER + (long) Double.BYTES * size);
+        long tempArraysSize = 2 * (NUM_BYTES_ARRAY_HEADER + (long) Double.BYTES * bufferSize);
+        long orderSize = NUM_BYTES_ARRAY_HEADER + (long) Integer.BYTES * bufferSize;
+        return alignObjectSize(weightAndMeanSize + tempArraysSize + orderSize);
     }
 
     static TDigestState createEmptyState() {
@@ -61,15 +124,6 @@ class TDigestState extends MergingDigest {
     void fractions(double[] fractions) {
         this.fractions = fractions;
     }
-
-    int addGetSizeDelta(double value) {
-        add(value);
-        int newByteSize = byteSize();
-        int delta = newByteSize - lastByteSize;
-        lastByteSize = newByteSize;
-        return delta;
-    }
-
 
     public static void write(TDigestState state, StreamOutput out) throws IOException {
         out.writeDouble(state.compression());
@@ -91,5 +145,12 @@ class TDigestState extends MergingDigest {
             state.add(in.readDouble(), in.readVInt());
         }
         return state;
+    }
+
+    /**
+     * Must be accounted only once per state.
+     */
+    public long initialSize() {
+        return SHALLOW_SIZE + RamUsageEstimator.sizeOf(fractions) + mergingDigestState;
     }
 }

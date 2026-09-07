@@ -97,6 +97,8 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
             return null;
         } else if (value instanceof String strValue) {
             return IntervalParser.apply(strValue);
+        } else if (value instanceof Period period) {
+            return period;
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }

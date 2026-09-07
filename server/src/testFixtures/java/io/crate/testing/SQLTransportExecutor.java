@@ -56,7 +56,9 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.Health;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.ESTestCase;
+import org.joda.time.Period;
 import org.jspecify.annotations.Nullable;
+import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGobject;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
@@ -431,6 +433,14 @@ public class SQLTransportExecutor {
             }
             pgObject.setType("bit");
             return pgObject;
+        }
+        if (arg instanceof Period period) {
+            try {
+                var interval = new PGInterval(period.toString());
+                return interval;
+            } catch (SQLException e) {
+                throw Exceptions.toRuntimeException(e);
+            }
         }
         if (arg instanceof Map) {
             return DataTypes.STRING.implicitCast(arg);
