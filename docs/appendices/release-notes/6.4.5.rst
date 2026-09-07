@@ -51,3 +51,6 @@ Fixes
 
 - Fixed an issue that could lead to out of memory errors if using the
   ``percentile`` aggregation.
+
+- Fixed an issue causing cache to retain some heavy structures, potentially
+  leading to an ``OutOfMemoryError``.
