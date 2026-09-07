@@ -51,6 +51,6 @@ public record ArraySliceExpression(Expression base,
 
     @Override
     public final String toString() {
-        return ExpressionFormatter.formatExpression(this);
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }
