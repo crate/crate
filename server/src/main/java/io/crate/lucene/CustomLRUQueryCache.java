@@ -40,6 +40,8 @@ import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.index.TieredMergePolicy;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.BulkScorer;
 import org.apache.lucene.search.ConstantScoreQuery;
@@ -492,8 +494,7 @@ public class CustomLRUQueryCache implements QueryCache, Accountable {
         while (weight instanceof CachingWrapperWeight) {
             weight = ((CachingWrapperWeight) weight).in;
         }
-
-        return new CachingWrapperWeight(weight, policy);
+        return new CachingWrapperWeight(weight, toCacheKeyQuery(weight.getQuery()), policy);
     }
 
     @Override
@@ -544,6 +545,26 @@ public class CustomLRUQueryCache implements QueryCache, Accountable {
             0,
             DocIdSetIterator.NO_MORE_DOCS);
         return new CacheAndCount(new BitDocIdSet(bitSet, count[0]), count[0]);
+    }
+
+    /**
+     * @param query is a query that potentially can retain heavy references.
+     * @return query with each inner GenericFunctionQuery instance replaced with its SmallCacheableQuery.
+     */
+    private static Query toCacheKeyQuery(Query query) {
+        // GenericFunctionQuery is only used directly or as a part of BooleanQuery.
+        if (query instanceof GenericFunctionQuery gfc) {
+            return gfc.smallCacheableQuery();
+        }
+        if (query instanceof BooleanQuery bq) {
+            BooleanQuery.Builder builder = new BooleanQuery.Builder()
+                .setMinimumNumberShouldMatch(bq.getMinimumNumberShouldMatch());
+            for (BooleanClause clause : bq.clauses()) {
+                builder.add(toCacheKeyQuery(clause.query()), clause.occur());
+            }
+            return builder.build();
+        }
+        return query;
     }
 
     private static CacheAndCount cacheIntoRoaringDocIdSet(BulkScorer scorer, int maxDoc)
@@ -708,8 +729,8 @@ public class CustomLRUQueryCache implements QueryCache, Accountable {
         // threads when IndexSearcher is created with threads
         private final AtomicBoolean used;
 
-        CachingWrapperWeight(Weight in, QueryCachingPolicy policy) {
-            super(in.getQuery(), 1f);
+        CachingWrapperWeight(Weight in, Query cacheKeyQuery, QueryCachingPolicy policy) {
+            super(cacheKeyQuery, 1f);
             this.in = in;
             this.policy = policy;
             used = new AtomicBoolean(false);
@@ -768,17 +789,17 @@ public class CustomLRUQueryCache implements QueryCache, Accountable {
 
             CacheAndCount cached;
             try {
-                cached = get(in.getQuery(), cacheHelper);
+                cached = get(getQuery(), cacheHelper);
             } finally {
                 readLock.unlock();
             }
 
             int maxDoc = context.reader().maxDoc();
             if (cached == null) {
-                if (policy.shouldCache(in.getQuery())) {
+                if (policy.shouldCache(getQuery())) {
                     final ScorerSupplier supplier = in.scorerSupplier(context);
                     if (supplier == null) {
-                        putIfAbsent(in.getQuery(), CacheAndCount.EMPTY, cacheHelper);
+                        putIfAbsent(getQuery(), CacheAndCount.EMPTY, cacheHelper);
                         return null;
                     }
 
@@ -792,7 +813,7 @@ public class CustomLRUQueryCache implements QueryCache, Accountable {
                             }
 
                             CacheAndCount cached = cacheImpl(supplier.bulkScorer(), maxDoc);
-                            putIfAbsent(in.getQuery(), cached, cacheHelper);
+                            putIfAbsent(getQuery(), cached, cacheHelper);
                             DocIdSetIterator disi = cached.iterator();
                             if (disi == null) {
                                 // docIdSet.iterator() is allowed to return null when empty but we want a non-null
@@ -862,7 +883,7 @@ public class CustomLRUQueryCache implements QueryCache, Accountable {
 
             CacheAndCount cached;
             try {
-                cached = get(in.getQuery(), cacheHelper);
+                cached = get(getQuery(), cacheHelper);
             } finally {
                 readLock.unlock();
             }
