@@ -56,6 +56,7 @@ import org.junit.Test;
 import org.postgresql.PGProperty;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PreferQueryMode;
+import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -1362,6 +1363,20 @@ public class PostgresITest extends IntegTestCase {
                         rs.getString(2);
                     }
                 }
+            }
+        }
+    }
+
+    @Test
+    public void test_interval_decoding_encoding_roundtrip() throws Exception {
+        try (var conn = DriverManager.getConnection(url(RW), properties)) {
+            try (var stmt = conn.prepareStatement("select ?::interval")) {
+                PGInterval intervalIn = new PGInterval(0, 0, 1, 2, 3, 4);
+                stmt.setObject(1, intervalIn);
+                ResultSet result = stmt.executeQuery();
+                assertThat(result.next()).isTrue();
+                Object intervalOut = result.getObject(1);
+                assertThat(intervalOut).isEqualTo(intervalIn);
             }
         }
     }
