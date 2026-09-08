@@ -21,7 +21,8 @@
 
 package io.crate.replication.logical.metadata;
 
-import io.crate.metadata.RelationName;
+import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -34,6 +35,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import io.crate.metadata.RelationName;
 
 public class Subscription implements Writeable {
 
@@ -87,13 +90,13 @@ public class Subscription implements Writeable {
     private final ConnectionInfo connectionInfo;
     private final List<String> publications;
     private final Settings settings;
-    private final Map<RelationName, RelationState> relations;
+    private final Map<TableOrPartition, RelationState> relations;
 
     public Subscription(String owner,
                         ConnectionInfo connectionInfo,
                         List<String> publications,
                         Settings settings,
-                        Map<RelationName, RelationState> relations) {
+                        Map<TableOrPartition, RelationState> relations) {
         this.owner = owner;
         this.connectionInfo = connectionInfo;
         this.publications = publications;
@@ -107,9 +110,14 @@ public class Subscription implements Writeable {
         publications = Arrays.stream(in.readStringArray()).toList();
         settings = Settings.readSettingsFromStream(in);
         int relSize = in.readVInt();
-        HashMap<RelationName, RelationState> relations = new HashMap<>();
+        HashMap<TableOrPartition, RelationState> relations = new HashMap<>();
         for (int i = 0; i < relSize; i++) {
-            RelationName relationName = new RelationName(in);
+            TableOrPartition relationName;
+            if (in.getVersion().before(Version.V_6_5_0)) {
+                relationName = new TableOrPartition(new RelationName(in), null);
+            } else {
+                relationName = new TableOrPartition(in);
+            }
             RelationState relationState = RelationState.readFrom(in);
             relations.put(relationName, relationState);
         }
@@ -132,7 +140,7 @@ public class Subscription implements Writeable {
         return settings;
     }
 
-    public Map<RelationName, RelationState> relations() {
+    public Map<TableOrPartition, RelationState> relations() {
         return relations;
     }
 
@@ -144,7 +152,15 @@ public class Subscription implements Writeable {
         Settings.writeSettingsToStream(out, settings);
         out.writeVInt(relations.size());
         for (var entry : relations.entrySet()) {
-            entry.getKey().writeTo(out);
+            var target = entry.getKey();
+            if (out.getVersion().before(Version.V_6_5_0)) {
+                if (target.partitionIdent() != null) {
+                    throw new IllegalStateException("Cannot write partition subscription target to a node before " + Version.V_6_5_0);
+                }
+                target.table().writeTo(out);
+            } else {
+                target.writeTo(out);
+            }
             RelationState.writeTo(out, entry.getValue());
         }
     }

@@ -28,8 +28,10 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -144,47 +146,52 @@ public class TransportAlterPublication extends TransportMasterNodeAction<Transpo
     @VisibleForTesting
     static Publication updatePublication(Request request, Metadata currentMetadata, Publication oldPublication) {
         // Ensure tables exists
-        for (var relation : request.tables) {
+        for (var target : request.targets) {
+            var relation = target.table();
             if (currentMetadata.getRelation(relation) == null) {
                 throw new RelationUnknown(relation);
             }
         }
 
-        HashSet<RelationName> tables = new HashSet<>();
+        HashSet<TableOrPartition> targets = new HashSet<>();
         switch (request.operation) {
-            case SET -> tables = new HashSet<>(request.tables);
+            case SET -> targets = new HashSet<>(request.targets);
             case ADD -> {
-                tables.addAll(oldPublication.tables());
-                tables.addAll(request.tables);
+                targets.addAll(oldPublication.targets());
+                targets.addAll(request.targets);
             }
-            case DROP -> oldPublication.tables().stream()
-                .filter(relationName -> request.tables.contains(relationName) == false)
-                .forEach(tables::add);
+            case DROP -> oldPublication.targets().stream()
+                .filter(target -> request.targets.contains(target) == false)
+                .forEach(targets::add);
             default ->
                 throw new UnsupportedOperationException(
                     "Alter publication operation '" + request.operation + "' is not supported"
                 );
         }
-        return new Publication(oldPublication.owner(), oldPublication.isForAllTables(), new ArrayList<>(tables));
+        return new Publication(oldPublication.owner(), oldPublication.isForAllTables(), new ArrayList<>(targets));
     }
 
     public static class Request extends AcknowledgedRequest<Request> {
 
         private final String name;
         private final AlterPublication.Operation operation;
-        private final List<RelationName> tables;
+        private final List<TableOrPartition> targets;
 
-        public Request(String name, AlterPublication.Operation operation, List<RelationName> tables) {
+        public Request(String name, AlterPublication.Operation operation, List<TableOrPartition> targets) {
             this.name = name;
             this.operation = operation;
-            this.tables = tables;
+            this.targets = targets;
         }
 
         public Request(StreamInput in) throws IOException {
             super(in);
             name = in.readString();
             operation = AlterPublication.Operation.VALUES[in.readVInt()];
-            tables = in.readList(RelationName::new);
+            if (in.getVersion().before(Version.V_6_5_0)) {
+                targets = in.readList(stream -> new TableOrPartition(new RelationName(stream), null));
+            } else {
+                targets = in.readList(TableOrPartition::new);
+            }
         }
 
         @Override
@@ -192,7 +199,16 @@ public class TransportAlterPublication extends TransportMasterNodeAction<Transpo
             super.writeTo(out);
             out.writeString(name);
             out.writeVInt(operation.ordinal());
-            out.writeList(tables);
+            if (out.getVersion().before(Version.V_6_5_0)) {
+                out.writeCollection(targets, (stream, target) -> {
+                    if (target.partitionIdent() != null) {
+                        throw new IllegalStateException("Cannot write partition publication target to a node before " + Version.V_6_5_0);
+                    }
+                    target.table().writeTo(stream);
+                });
+            } else {
+                out.writeList(targets);
+            }
         }
     }
 }

@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -193,8 +194,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private PublicationsMetadata publicationsMetadata(String name, boolean allTables, List<String> tables) {
-        var relationNames = Lists.map(tables, x -> new RelationName(DocSchemaInfo.NAME, x));
-        var publications = Map.of(name, new Publication("user1", allTables, relationNames));
+        var targets = Lists.map(tables, x -> new TableOrPartition(new RelationName(DocSchemaInfo.NAME, x), null));
+        var publications = Map.of(name, new Publication("user1", allTables, targets));
         return new PublicationsMetadata(publications);
     }
 

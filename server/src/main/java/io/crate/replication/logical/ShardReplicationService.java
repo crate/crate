@@ -116,12 +116,12 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
     public void beforeIndexShardClosed(ShardId shardId,
                                        @Nullable IndexShard indexShard,
                                        Settings indexSettings) {
-        closeTracker(shardId);
+        closeTracker(shardId, shouldRemoveRetentionLease(indexSettings));
     }
 
     @Override
     public void beforeIndexShardDeleted(ShardId shardId, Settings indexSettings) {
-        closeTracker(shardId);
+        closeTracker(shardId, true);
     }
 
     @Override
@@ -129,18 +129,24 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
         if (REPLICATION_SUBSCRIPTION_NAME.get(oldSettings).isEmpty() == false
             && REPLICATION_SUBSCRIPTION_NAME.get(newSettings).isEmpty() == true) {
             var shardId = indexShard.shardId();
-            closeTracker(shardId);
+            closeTracker(shardId, true);
         }
     }
 
-    private void closeTracker(ShardId shardId) {
+    private void closeTracker(ShardId shardId, boolean removeRetentionLease) {
         var tracker = shards.remove(shardId);
         if (tracker != null) {
             try {
-                tracker.close();
+                tracker.close(removeRetentionLease);
             } catch (IOException e) {
                 LOGGER.error("Error while closing shard changes tracker of shardId=" + shardId, e);
             }
         }
+    }
+
+    private boolean shouldRemoveRetentionLease(Settings indexSettings) {
+        var subscriptionName = REPLICATION_SUBSCRIPTION_NAME.get(indexSettings);
+        return subscriptionName.isEmpty() == false
+            && logicalReplicationService.subscriptions().containsKey(subscriptionName) == false;
     }
 }

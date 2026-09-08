@@ -52,6 +52,7 @@ import java.util.function.LongSupplier;
 import java.util.function.UnaryOperator;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -905,7 +906,11 @@ public class SQLExecutor {
 
     public SQLExecutor addPublication(String name, boolean forAllTables, RelationName... tables) {
         ClusterState prevState = clusterService.state();
-        var publication = new Publication(user.name(), forAllTables, Arrays.asList(tables));
+        var publication = new Publication(
+            user.name(),
+            forAllTables,
+            Arrays.stream(tables).map(table -> new TableOrPartition(table, null)).toList()
+        );
         var publicationsMetadata = new PublicationsMetadata(Map.of(name, publication));
 
         Metadata newMetadata = Metadata.builder(prevState.metadata())

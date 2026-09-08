@@ -31,6 +31,7 @@ import java.util.Objects;
 
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -140,7 +141,7 @@ public class SubscriptionsMetadata extends AbstractNamedDiffable<Metadata.Custom
                         ConnectionInfo connectionInfo = null;
                         Settings settings = null;
                         var publications = new ArrayList<String>();
-                        HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
+                        HashMap<TableOrPartition, Subscription.RelationState> relations = new HashMap<>();
                         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
                             if ("owner".equals(parser.currentName())) {
                                 parser.nextToken();
@@ -193,7 +194,10 @@ public class SubscriptionsMetadata extends AbstractNamedDiffable<Metadata.Custom
                                     if (state == null) {
                                         throw new ElasticsearchParseException("failed to parse subscription relation, expected field 'state' in object");
                                     }
-                                    relations.put(relationName, new Subscription.RelationState(state, stateReason));
+                                    relations.put(
+                                        new TableOrPartition(relationName, null),
+                                        new Subscription.RelationState(state, stateReason)
+                                    );
                                 }
 
                             }

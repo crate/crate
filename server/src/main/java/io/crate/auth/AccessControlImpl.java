@@ -847,7 +847,8 @@ public final class AccessControlImpl implements AccessControl {
             hasALPrivileges(user);
             // All tables cannot be checked on publication creation - they are checked before actual replication starts
             // and a table gets published only if publication owner has DQL, DML and DDL privileges on that table.
-            for (RelationName relationName: createPublication.tables()) {
+            for (var table : createPublication.tables()) {
+                RelationName relationName = RelationName.of(table.getName(), null);
                 for (Permission permission : READ_WRITE_DEFINE) {
                     Privileges.ensureUserHasPrivilege(
                         relationVisitor.roles,

@@ -21,6 +21,8 @@
 
 package io.crate.replication.logical.plan;
 
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
+
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -54,7 +56,9 @@ public class AlterPublicationPlan implements Plan {
         var request = new TransportAlterPublication.Request(
             alterPublication.name(),
             alterPublication.operation(),
-            alterPublication.tables()
+            alterPublication.tables().stream()
+                .map(table -> new TableOrPartition(table, null))
+                .toList()
         );
         dependencies.client().execute(TransportAlterPublication.ACTION, request)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1L : 1L)));

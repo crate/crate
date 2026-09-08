@@ -1469,11 +1469,12 @@ public final class SqlFormatter {
                 builder.append(" FOR ALL TABLES");
             } else if (createPublication.tables().isEmpty() == false) {
                 builder.append(" FOR TABLE ");
-                builder.append(
-                    createPublication.tables().stream()
-                        .map(Formatter::formatQualifiedName)
-                        .collect(COMMA_JOINER)
-                );
+                for (Iterator<Table<Expression>> it = createPublication.tables().iterator(); it.hasNext();) {
+                    it.next().accept(this, context);
+                    if (it.hasNext()) {
+                        builder.append(", ");
+                    }
+                }
             }
             return null;
         }

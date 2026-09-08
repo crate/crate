@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
@@ -36,13 +37,17 @@ import io.crate.metadata.RelationName;
 
 public class PublicationsMetadataTest extends ESTestCase {
 
+    private static TableOrPartition target(String schema, String table) {
+        return new TableOrPartition(new RelationName(schema, table), null);
+    }
+
     public static PublicationsMetadata createMetadata() {
         Map<String, Publication> map = Map.of(
             "pub1",
             new Publication(
                 "user1",
                 false,
-                List.of(new RelationName("s1", "t1"), new RelationName("s1", "t2"))
+                List.of(target("s1", "t1"), target("s1", "t2"))
             ),
             "myPub2",
             new Publication("user2", true, List.of())

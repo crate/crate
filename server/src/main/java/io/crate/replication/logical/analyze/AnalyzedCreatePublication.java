@@ -21,21 +21,22 @@
 
 package io.crate.replication.logical.analyze;
 
+import java.util.List;
+import java.util.function.Consumer;
+
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.DDLStatement;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.RelationName;
-
-import java.util.List;
-import java.util.function.Consumer;
+import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.Table;
 
 public class AnalyzedCreatePublication implements DDLStatement {
 
     private final String name;
     private final boolean forAllTables;
-    private final List<RelationName> tables;
+    private final List<Table<Symbol>> tables;
 
-    public AnalyzedCreatePublication(String name, boolean forAllTables, List<RelationName> tables) {
+    public AnalyzedCreatePublication(String name, boolean forAllTables, List<Table<Symbol>> tables) {
         this.name = name;
         this.forAllTables = forAllTables;
         this.tables = tables;
@@ -49,12 +50,18 @@ public class AnalyzedCreatePublication implements DDLStatement {
         return forAllTables;
     }
 
-    public List<RelationName> tables() {
+    public List<Table<Symbol>> tables() {
         return tables;
     }
 
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
+        for (var table : tables) {
+            for (Assignment<Symbol> partitionProperty : table.partitionProperties()) {
+                consumer.accept(partitionProperty.columnName());
+                partitionProperty.expressions().forEach(consumer);
+            }
+        }
     }
 
     @Override

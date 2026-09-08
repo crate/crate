@@ -27,6 +27,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.index.seqno.RetentionLeaseActions;
 import org.elasticsearch.index.seqno.RetentionLeaseAlreadyExistsException;
+import org.elasticsearch.index.seqno.RetentionLeaseNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.common.annotations.VisibleForTesting;
@@ -99,7 +100,26 @@ public class RetentionLeaseHelper {
             seqNo,
             retentionLeaseSource(subscriberClusterName)
         );
-        client.execute(RetentionLeaseActions.Renew.INSTANCE, request).whenComplete(listener);
+        client.execute(RetentionLeaseActions.Renew.INSTANCE, request)
+            .whenComplete((response, err) -> {
+                if (err == null) {
+                    listener.onResponse(response);
+                } else {
+                    var t = SQLExceptions.unwrap(err);
+                    if (t instanceof RetentionLeaseNotFoundException) {
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                "Add retention lease as it is missing {} with {}",
+                                retentionLeaseId,
+                                seqNo
+                            );
+                        }
+                        addRetentionLease(shardId, seqNo, subscriberClusterName, client, listener);
+                    } else {
+                        listener.onFailure(Exceptions.toException(t));
+                    }
+                }
+            });
     }
 
     public static void attemptRetentionLeaseRemoval(ShardId shardId,

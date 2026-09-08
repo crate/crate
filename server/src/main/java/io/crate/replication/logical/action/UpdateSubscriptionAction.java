@@ -26,6 +26,7 @@ import java.util.HashMap;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -44,7 +45,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.metadata.RelationName;
 import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
@@ -65,13 +65,13 @@ public class UpdateSubscriptionAction extends ActionType<AcknowledgedResponse> {
 
     @VisibleForTesting
     static Subscription updateSubscription(Subscription oldSubscription, Subscription newSubscription) {
-        HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
+        HashMap<TableOrPartition, Subscription.RelationState> relations = new HashMap<>();
         for (var entry : newSubscription.relations().entrySet()) {
-            var relationName = entry.getKey();
+            var target = entry.getKey();
             relations.put(
-                relationName,
+                target,
                 Subscription.updateRelationState(
-                    oldSubscription.relations().get(relationName),
+                    oldSubscription.relations().get(target),
                     entry.getValue()
                 )
             );
