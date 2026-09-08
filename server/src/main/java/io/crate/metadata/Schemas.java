@@ -236,25 +236,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         }
     }
 
-    @Nullable
-    private static String schemaName(QualifiedName ident) {
-        assert ident.getParts().size() <=
-               3 : "When identifying schemas or tables a qualified name should not have more the 3 parts";
-        List<String> parts = ident.getParts();
-        if (parts.size() >= 2) {
-            return parts.get(parts.size() - 2);
-        } else {
-            return null;
-        }
-    }
-
-    private static String relationName(QualifiedName ident) {
-        assert ident.getParts().size() <=
-               3 : "When identifying schemas or tables a qualified name should not have more the 3 parts";
-        List<String> parts = ident.getParts();
-        return parts.get(parts.size() - 1);
-    }
-
     /// @throws [IndexNotFoundException]
     /// @throws [RelationUnknown]
     public DocTableInfo getTableInfo(Index index) {
@@ -451,8 +432,9 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      * @throws RelationUnknown if the view cannot be resolved against the search path.
      */
     public ViewInfo findView(QualifiedName ident, SearchPath searchPath) {
-        String identSchema = schemaName(ident);
-        String viewName = relationName(ident);
+        RelationName relName = RelationName.of(ident, null);
+        String identSchema = relName.schema();
+        String viewName = relName.name();
         ViewInfo viewInfo = null;
         if (identSchema == null) {
             for (String pathSchema : searchPath) {
