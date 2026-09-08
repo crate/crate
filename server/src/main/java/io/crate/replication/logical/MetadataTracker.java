@@ -218,6 +218,7 @@ public final class MetadataTracker implements Closeable {
             .thenApply(r ->
                 new Response(
                     metadataUpgradeService.upgradeMetadata(r.metadata()),
+                    r.targets(),
                     r.unknownPublications()
                 ));
         CompletableFuture<Boolean> updatedClusterState = publicationsState.thenCompose(response -> {
