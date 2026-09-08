@@ -26,6 +26,7 @@ SQL Statements
     create-blob-table
     create-foreign-table
     create-function
+    create-materialized-view
     create-publication
     create-repository
     create-role
@@ -47,6 +48,7 @@ SQL Statements
     drop-analyzer
     drop-foreign-table
     drop-function
+    drop-materialized-view
     drop-publication
     drop-repository
     drop-role
@@ -66,6 +68,7 @@ SQL Statements
     kill
     optimize
     refresh
+    refresh-materialized-view
     restore-snapshot
     revoke
     select

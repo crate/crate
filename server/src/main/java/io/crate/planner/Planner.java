@@ -89,6 +89,7 @@ import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.AnalyzedOptimizeTable;
 import io.crate.analyze.AnalyzedPromoteReplica;
 import io.crate.analyze.AnalyzedRefreshTable;
+import io.crate.analyze.AnalyzedRefreshMaterializedView;
 import io.crate.analyze.AnalyzedRerouteAllocatePrimaryShard;
 import io.crate.analyze.AnalyzedRerouteAllocateReplicaShard;
 import io.crate.analyze.AnalyzedRerouteCancelShard;
@@ -428,6 +429,17 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
+    public Plan visitRefreshMaterializedView(AnalyzedRefreshMaterializedView analysis, PlannerContext context) {
+        return RefreshMaterializedViewPlan.of(
+            analysis,
+            numberOfShards,
+            tableCreator,
+            context,
+            logicalPlanner
+        );
+    }
+
+    @Override
     public Plan visitAnalyzedAlterTableRenameTable(AnalyzedAlterTableRenameTable analysis,
                                                    PlannerContext context) {
         return new AlterTableRenameTablePlan(analysis);
@@ -739,4 +751,3 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         return new DropUserMappingPlan(dropUserMapping);
     }
 }
-

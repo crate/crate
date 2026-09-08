@@ -99,6 +99,10 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
+    public R visitRefreshMaterializedView(AnalyzedRefreshMaterializedView analysis, C context) {
+        return visitAnalyzedStatement(analysis, context);
+    }
+
     public R visitAnalyzedAlterTableRenameTable(AnalyzedAlterTableRenameTable analysis, C context) {
         return visitDDLStatement(analysis, context);
     }

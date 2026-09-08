@@ -36,6 +36,7 @@ import java.util.function.Function;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.TableElementsAnalyzer.RefBuilder;
 import io.crate.common.collections.Lists;
@@ -69,7 +70,18 @@ public record AnalyzedCreateTable(
         Map<String, AnalyzedCheck> checks,
         GenericProperties<Symbol> properties,
         Optional<PartitionedBy<Reference>> partitionedBy,
-        Optional<ClusteredBy<Symbol>> clusteredBy) implements DDLStatement {
+        Optional<ClusteredBy<Symbol>> clusteredBy,
+        @Nullable AnalyzedMaterializedViewDefinition materializedViewDefinition) implements DDLStatement {
+
+    public AnalyzedCreateTable(RelationName relationName,
+                               boolean ifNotExists,
+                               Map<ColumnIdent, RefBuilder> columns,
+                               Map<String, AnalyzedCheck> checks,
+                               GenericProperties<Symbol> properties,
+                               Optional<PartitionedBy<Reference>> partitionedBy,
+                               Optional<ClusteredBy<Symbol>> clusteredBy) {
+        this(relationName, ifNotExists, columns, checks, properties, partitionedBy, clusteredBy, null);
+    }
 
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
@@ -173,6 +185,9 @@ public record AnalyzedCreateTable(
 
         TableProperties.analyze(
             builder, TableParameters.TABLE_CREATE_PARAMETER_INFO, properties.map(toValue));
+        if (materializedViewDefinition != null) {
+            materializedViewDefinition.addTo(builder, params);
+        }
 
         Optional<ColumnIdent> optClusteredBy = clusteredBy
             .flatMap(ClusteredBy::column)

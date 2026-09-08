@@ -105,6 +105,13 @@ class InsertAnalyzer {
     }
 
     public AnalyzedInsertStatement analyze(Insert<Expression> insert, ParamTypeHints typeHints, CoordinatorTxnCtx txnCtx) {
+        return analyze(insert, typeHints, txnCtx, Operation.INSERT);
+    }
+
+    AnalyzedInsertStatement analyze(Insert<Expression> insert,
+                                    ParamTypeHints typeHints,
+                                    CoordinatorTxnCtx txnCtx,
+                                    Operation targetOperation) {
         Set<String> uniqueColumns = new HashSet<>();
         for (String columnName: insert.columns()) {
             if (uniqueColumns.add(columnName) == false) {
@@ -113,7 +120,7 @@ class InsertAnalyzer {
         }
         DocTableInfo tableInfo = schemas.findRelation(
             insert.table().getName(),
-            Operation.INSERT,
+            targetOperation,
             txnCtx.sessionSettings().sessionUser(),
             txnCtx.sessionSettings().searchPath()
         );

@@ -65,6 +65,7 @@ import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CreateForeignTable;
 import io.crate.sql.tree.CreateFunction;
+import io.crate.sql.tree.CreateMaterializedView;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRole;
 import io.crate.sql.tree.CreateSchema;
@@ -83,6 +84,7 @@ import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropForeignTable;
 import io.crate.sql.tree.DropFunction;
+import io.crate.sql.tree.DropMaterializedView;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropRole;
@@ -129,6 +131,7 @@ import io.crate.sql.tree.PrivilegeStatement;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.QuerySpecification;
+import io.crate.sql.tree.RefreshMaterializedView;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.Relation;
 import io.crate.sql.tree.RevokePrivilege;
@@ -842,6 +845,18 @@ public final class SqlFormatter {
         }
 
         @Override
+        public Void visitCreateMaterializedView(CreateMaterializedView node, Integer indent) {
+            builder.append("CREATE MATERIALIZED VIEW ");
+            if (node.ifNotExists()) {
+                builder.append("IF NOT EXISTS ");
+            }
+            builder.append(formatQualifiedName(node.name()));
+            builder.append(" AS ");
+            node.query().accept(this, indent);
+            return null;
+        }
+
+        @Override
         public Void visitCreateTableLike(CreateTableLike<?> node, Integer indent) {
             builder.append("CREATE TABLE ");
             if (node.ifNotExists()) {
@@ -1427,6 +1442,23 @@ public final class SqlFormatter {
             builder.append(node.names().stream()
                 .map(Formatter::formatQualifiedName)
                 .collect(COMMA_JOINER));
+            return null;
+        }
+
+        @Override
+        public Void visitDropMaterializedView(DropMaterializedView node, Integer indent) {
+            builder.append("DROP MATERIALIZED VIEW ");
+            if (node.ifExists()) {
+                builder.append("IF EXISTS ");
+            }
+            builder.append(formatQualifiedName(node.name()));
+            return null;
+        }
+
+        @Override
+        public Void visitRefreshMaterializedView(RefreshMaterializedView node, Integer indent) {
+            builder.append("REFRESH MATERIALIZED VIEW ");
+            builder.append(formatQualifiedName(node.name()));
             return null;
         }
 

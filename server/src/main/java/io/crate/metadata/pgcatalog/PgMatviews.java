@@ -21,23 +21,25 @@
 
 package io.crate.metadata.pgcatalog;
 
+import io.crate.metadata.MaterializedViewMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataTypes;
 
-public class PgMatviews {
+public final class PgMatviews {
     public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_matviews");
 
     private PgMatviews() {}
 
     // https://www.postgresql.org/docs/current/view-pg-matviews.html
-    public static SystemTable<Void> INSTANCE = SystemTable.<Void>builder(NAME)
-        .add("schemaname", DataTypes.STRING, c -> null)
-        .add("matviewname", DataTypes.STRING, c -> null)
-        .add("matviewowner", DataTypes.STRING, c -> null)
-        .add("tablespace", DataTypes.STRING, c -> null)
-        .add("hasindexes", DataTypes.BOOLEAN, c -> null)
-        .add("ispopulated", DataTypes.BOOLEAN, c -> null)
-        .add("definition", DataTypes.STRING, c -> null)
+    public static final SystemTable<DocTableInfo> INSTANCE = SystemTable.<DocTableInfo>builder(NAME)
+        .add("schemaname", DataTypes.STRING, table -> table.ident().schema())
+        .add("matviewname", DataTypes.STRING, table -> table.ident().name())
+        .add("matviewowner", DataTypes.STRING, table -> MaterializedViewMetadata.owner(table.parameters(), null))
+        .add("tablespace", DataTypes.STRING, table -> null)
+        .add("hasindexes", DataTypes.BOOLEAN, table -> false)
+        .add("ispopulated", DataTypes.BOOLEAN, table -> true)
+        .add("definition", DataTypes.STRING, table -> MaterializedViewMetadata.definition(table.parameters()))
         .build();
 }

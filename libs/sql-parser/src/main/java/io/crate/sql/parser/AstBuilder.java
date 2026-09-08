@@ -130,6 +130,7 @@ import io.crate.sql.tree.CreateAnalyzer;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateForeignTable;
 import io.crate.sql.tree.CreateFunction;
+import io.crate.sql.tree.CreateMaterializedView;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateRole;
@@ -159,6 +160,7 @@ import io.crate.sql.tree.DropCheckConstraint;
 import io.crate.sql.tree.DropColumnDefinition;
 import io.crate.sql.tree.DropForeignTable;
 import io.crate.sql.tree.DropFunction;
+import io.crate.sql.tree.DropMaterializedView;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropRole;
@@ -237,6 +239,7 @@ import io.crate.sql.tree.Query;
 import io.crate.sql.tree.QueryBody;
 import io.crate.sql.tree.QuerySpecification;
 import io.crate.sql.tree.RecordSubscript;
+import io.crate.sql.tree.RefreshMaterializedView;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.Relation;
 import io.crate.sql.tree.RerouteAllocateReplicaShard;
@@ -555,6 +558,28 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             (Table<?>) visit(context.table()),
             (Query) visit(context.insertSource().query()),
             context.EXISTS() != null);
+    }
+
+    @Override
+    public Node visitCreateMaterializedView(SqlBaseParser.CreateMaterializedViewContext context) {
+        return new CreateMaterializedView(
+            getQualifiedName(context.name),
+            (Query) visit(context.queryOptParens()),
+            context.EXISTS() != null
+        );
+    }
+
+    @Override
+    public Node visitDropMaterializedView(SqlBaseParser.DropMaterializedViewContext context) {
+        return new DropMaterializedView(
+            getQualifiedName(context.name),
+            context.EXISTS() != null
+        );
+    }
+
+    @Override
+    public Node visitRefreshMaterializedView(SqlBaseParser.RefreshMaterializedViewContext context) {
+        return new RefreshMaterializedView(getQualifiedName(context.name));
     }
 
     @Override

@@ -54,6 +54,7 @@ import io.crate.fdw.ServersMetadata;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.MaterializedViewMetadata;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.PartitionInfos;
@@ -211,7 +212,8 @@ public class InformationSchemaIterables {
             OidHash.schemaOid(info.ident().schema()),
             info.ident(),
             info.ident().name(),
-            toEntryType(info.relationType()),
+            relationOwnerOid(info),
+            toEntryType(info),
             info.rootColumns().size(),
             !info.primaryKey().isEmpty());
     }
@@ -222,17 +224,31 @@ public class InformationSchemaIterables {
             OidHash.schemaOid(info.ident().schema()),
             info.ident(),
             info.pkConstraintNameOrDefault(),
+            0,
             PgClassTable.Entry.Type.INDEX,
             info.rootColumns().size(),
             !info.primaryKey().isEmpty());
     }
 
-    private static PgClassTable.Entry.Type toEntryType(RelationInfo.RelationType type) {
-        return switch (type) {
+    private static PgClassTable.Entry.Type toEntryType(RelationInfo info) {
+        if (info instanceof DocTableInfo tableInfo
+            && MaterializedViewMetadata.isMaterialized(tableInfo.parameters())) {
+            return PgClassTable.Entry.Type.MATERIALIZED_VIEW;
+        }
+        return switch (info.relationType()) {
             case BASE_TABLE -> PgClassTable.Entry.Type.RELATION;
             case VIEW -> PgClassTable.Entry.Type.VIEW;
             case FOREIGN -> PgClassTable.Entry.Type.FOREIGN;
         };
+    }
+
+    private static int relationOwnerOid(RelationInfo info) {
+        if (info instanceof DocTableInfo tableInfo
+            && MaterializedViewMetadata.isMaterialized(tableInfo.parameters())) {
+            String owner = MaterializedViewMetadata.owner(tableInfo.parameters(), null);
+            return owner == null ? 0 : OidHash.userOid(owner);
+        }
+        return 0;
     }
 
     private PgIndexTable.Entry pgIndex(TableInfo tableInfo) {

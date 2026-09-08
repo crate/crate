@@ -42,6 +42,7 @@ import org.elasticsearch.index.store.Store;
 
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.MaterializedViewMetadata;
 import io.crate.replication.logical.LogicalReplicationSettings;
 
 /**
@@ -117,7 +118,8 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         BlobIndicesService.SETTING_INDEX_BLOBS_PATH,
         ExistingShardsAllocator.EXISTING_SHARDS_ALLOCATOR_SETTING,
         LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME,
-        LogicalReplicationSettings.PUBLISHER_INDEX_UUID
+        LogicalReplicationSettings.PUBLISHER_INDEX_UUID,
+        MaterializedViewMetadata.SETTINGS
     );
 
     public static final IndexScopedSettings DEFAULT_SCOPED_SETTINGS = new IndexScopedSettings(Settings.EMPTY, BUILT_IN_INDEX_SETTINGS);
@@ -154,7 +156,8 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
             case IndexMetadata.INDEX_RESIZE_SOURCE_NAME_KEY:
                 return true;
             default:
-                return IndexMetadata.INDEX_ROUTING_INITIAL_RECOVERY_GROUP_SETTING.getRawKey().match(key);
+                return key.startsWith(MaterializedViewMetadata.PREFIX)
+                    || IndexMetadata.INDEX_ROUTING_INITIAL_RECOVERY_GROUP_SETTING.getRawKey().match(key);
         }
     }
 }

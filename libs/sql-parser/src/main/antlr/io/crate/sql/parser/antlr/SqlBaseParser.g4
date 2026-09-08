@@ -44,6 +44,7 @@ statement
     | EXPLAIN (ANALYZE | VERBOSE | explainOptions*) statement                        #explain
     | OPTIMIZE TABLE tableWithPartitions withProperties?                             #optimize
     | REFRESH TABLE tableWithPartitions                                              #refreshTable
+    | REFRESH MATERIALIZED VIEW name=qname                                           #refreshMaterializedView
     | UPDATE aliasedRelation
         SET assignment (COMMA assignment)*
         where?
@@ -108,6 +109,7 @@ dropStmt
         CLOSE_ROUND_BRACKET                                                          #dropFunction
     | DROP (USER | ROLE) (IF EXISTS)? name=ident                                     #dropRole
     | DROP VIEW (IF EXISTS)? names=qnames                                            #dropView
+    | DROP MATERIALIZED VIEW (IF EXISTS)? name=qname                                 #dropMaterializedView
     | DROP ANALYZER name=ident                                                       #dropAnalyzer
     | DROP PUBLICATION (IF EXISTS)? name=ident                                       #dropPublication
     | DROP SUBSCRIPTION (IF EXISTS)? name=ident                                      #dropSubscription
@@ -608,6 +610,7 @@ createStmt
         OPEN_ROUND_BRACKET tableElement (COMMA tableElement)* CLOSE_ROUND_BRACKET
          partitionedByOrClusteredInto withProperties?                                #createTable
     | CREATE TABLE (IF NOT EXISTS)? table AS insertSource                            #createTableAs
+    | CREATE MATERIALIZED VIEW (IF NOT EXISTS)? name=qname AS queryOptParens         #createMaterializedView
     | CREATE TABLE (IF NOT EXISTS)? table
         OPEN_ROUND_BRACKET LIKE likeTable=qname likeOption* CLOSE_ROUND_BRACKET         #createTableLike
     | CREATE FOREIGN TABLE (IF NOT EXISTS)? tableName=qname
