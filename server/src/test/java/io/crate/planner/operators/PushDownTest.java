@@ -312,6 +312,20 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(expectedPlan);
     }
 
+    // tracks a bug: https://github.com/crate/crate/issues/19943
+    @Test
+    public void test_filter_below_a_double_negation_is_pushed_down() {
+        var plan = sqlExecutor.logicalPlan(
+            "SELECT t1.a, t2.b FROM t1, t2 WHERE NOT NOT (t1.x = 1 AND t2.y = 2)");
+        var expectedPlan =
+            """
+            NestedLoopJoin[CROSS]
+              ├ Collect[doc.t1 | [a] | (x = 1)]
+              └ Collect[doc.t2 | [b] | (y = 2)]
+            """;
+        assertThat(plan).isEqualTo(expectedPlan);
+    }
+
     @Test
     public void testWhereClauseIsPushedDownIntoSubRelationOfUnion() {
         LogicalPlan plan = sqlExecutor.logicalPlan(
