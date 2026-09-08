@@ -21,7 +21,10 @@
 
 package io.crate.sql.tree;
 
-public record DropTable<T>(Table<T> table, boolean dropIfExists) implements Statement {
+import java.util.List;
+
+
+public record DropTable(List<QualifiedName> tables, boolean dropIfExists) implements Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -31,7 +34,7 @@ public record DropTable<T>(Table<T> table, boolean dropIfExists) implements Stat
     @Override
     public String toString() {
         return "DropTable{" +
-               "table=" + table +
+               "tables=" + tables +
                ", dropIfExists=" + dropIfExists +
                '}';
     }

@@ -37,7 +37,6 @@ import org.apache.lucene.search.spell.LevenshteinDistance;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.index.Index;
@@ -54,15 +53,12 @@ import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.view.ViewInfo;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
@@ -177,8 +173,10 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                                                    Operation operation,
                                                    Role user,
                                                    SearchPath searchPath) {
-        String schemaName = schemaName(qName);
-        String tableName = relationName(qName);
+
+        RelationName relName = RelationName.of(qName, null);
+        String schemaName = relName.schema();
+        String tableName = relName.name();
 
         RelationInfo relationInfo = null;
         if (schemaName == null) {
@@ -236,25 +234,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 relationInfo.ident(),
                 "The relation " + relationInfo.ident().sqlFqn() + " doesn't support " + operation + " operations");
         }
-    }
-
-    @Nullable
-    private static String schemaName(QualifiedName ident) {
-        assert ident.getParts().size() <=
-               3 : "When identifying schemas or tables a qualified name should not have more the 3 parts";
-        List<String> parts = ident.getParts();
-        if (parts.size() >= 2) {
-            return parts.get(parts.size() - 2);
-        } else {
-            return null;
-        }
-    }
-
-    private static String relationName(QualifiedName ident) {
-        assert ident.getParts().size() <=
-               3 : "When identifying schemas or tables a qualified name should not have more the 3 parts";
-        List<String> parts = ident.getParts();
-        return parts.get(parts.size() - 1);
     }
 
     /// @throws [IndexNotFoundException]
@@ -453,8 +432,9 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      * @throws RelationUnknown if the view cannot be resolved against the search path.
      */
     public ViewInfo findView(QualifiedName ident, SearchPath searchPath) {
-        String identSchema = schemaName(ident);
-        String viewName = relationName(ident);
+        RelationName relName = RelationName.of(ident, null);
+        String identSchema = relName.schema();
+        String viewName = relName.name();
         ViewInfo viewInfo = null;
         if (identSchema == null) {
             for (String pathSchema : searchPath) {

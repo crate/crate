@@ -42,10 +42,11 @@ import org.junit.Test;
 
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.common.collections.Lists;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ViewInfo;
 import io.crate.metadata.table.Operation;
-import io.crate.metadata.view.ViewInfo;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;

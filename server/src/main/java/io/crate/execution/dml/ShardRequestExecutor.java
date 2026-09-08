@@ -52,9 +52,9 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
 import io.crate.execution.support.OneRowActionListener;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryResults;
 
 /**

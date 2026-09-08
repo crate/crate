@@ -35,11 +35,11 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;

@@ -391,7 +391,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitDropTable(AnalyzedDropTable<?> dropTable, PlannerContext context) {
+    public Plan visitDropTable(AnalyzedDropTable dropTable, PlannerContext context) {
         return new DropTablePlan(dropTable);
     }
 

@@ -56,9 +56,9 @@ import org.junit.rules.TemporaryFolder;
 
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;

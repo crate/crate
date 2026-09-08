@@ -44,7 +44,7 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.scalar.timestamp.NowFunction;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;

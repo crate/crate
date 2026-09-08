@@ -118,9 +118,9 @@ import io.crate.exceptions.UnscopedException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.fdw.ForeignTableRelation;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 import io.crate.replication.logical.analyze.AnalyzedAlterPublication;
 import io.crate.replication.logical.analyze.AnalyzedAlterSubscription;
 import io.crate.replication.logical.analyze.AnalyzedCreatePublication;
@@ -517,8 +517,10 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitDropTable(AnalyzedDropTable<?> dropTable, Role user) {
-            ensureDDLOnTable(user, dropTable.tableName().fqn());
+        public Void visitDropTable(AnalyzedDropTable analysis, Role user) {
+            for (AnalyzedDropTable.DropTableTarget target : analysis.tables()) {
+                ensureDDLOnTable(user, target.tableName().fqn());
+            }
             return null;
         }
 

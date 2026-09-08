@@ -53,12 +53,12 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.session.BaseResultReceiver;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;

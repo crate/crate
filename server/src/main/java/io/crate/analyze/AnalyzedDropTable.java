@@ -21,35 +21,30 @@
 
 package io.crate.analyze;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.table.TableInfo;
 
-public final class AnalyzedDropTable<T extends TableInfo> implements DDLStatement {
+public final class AnalyzedDropTable implements DDLStatement {
+
+    public record DropTableTarget(RelationName tableName, int tableOid) {}
 
     private final boolean dropIfExists;
-    private final RelationName tableName;
-    private final int tableOid;
+    private final List<DropTableTarget> tables;
 
-    AnalyzedDropTable(boolean dropIfExists, RelationName tableName, int tableOid) {
+    AnalyzedDropTable(boolean dropIfExists, List<DropTableTarget> tables) {
         this.dropIfExists = dropIfExists;
-        this.tableName = tableName;
-        this.tableOid = tableOid;
+        this.tables = tables;
     }
-
 
     public boolean dropIfExists() {
         return dropIfExists;
     }
 
-    public RelationName tableName() {
-        return tableName;
-    }
-
-    public int tableOid() {
-        return tableOid;
+    public List<DropTableTarget> tables() {
+        return tables;
     }
 
     @Override
@@ -61,3 +56,4 @@ public final class AnalyzedDropTable<T extends TableInfo> implements DDLStatemen
     public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }
+

@@ -37,7 +37,6 @@ import java.util.function.Function;
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -57,11 +56,12 @@ import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.jobs.Task;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
-import io.crate.metadata.doc.DocTableInfo;
 
 public class FetchTask implements Task {
 

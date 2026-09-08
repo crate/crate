@@ -23,6 +23,7 @@ package io.crate.planner.optimizer.costs;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -36,8 +37,8 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;

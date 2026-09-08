@@ -29,7 +29,6 @@ import java.util.function.BiFunction;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
@@ -43,6 +42,7 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.engine.fetch.FetchTask;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 
 public class SharedShardContexts {

@@ -38,7 +38,6 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.UUIDs;
@@ -51,9 +50,10 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.execution.ddl.views.TransportCreateView;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.IndexName;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
 
 /**
  * Action to perform creation of tables on the master but avoid race conditions with creating views.

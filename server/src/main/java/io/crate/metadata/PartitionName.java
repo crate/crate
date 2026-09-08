@@ -44,7 +44,6 @@ import org.jspecify.annotations.Nullable;
 import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.exceptions.PartitionUnknownException;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.Assignment;
 import io.crate.types.DataTypes;
 

@@ -42,6 +42,7 @@ import io.crate.Constants;
 import io.crate.common.collections.MapBuilder;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 
 /**

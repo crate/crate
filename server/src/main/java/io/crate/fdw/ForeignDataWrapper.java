@@ -24,7 +24,6 @@ package io.crate.fdw;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.cluster.metadata.RelationMetadata.ForeignTable;
 import org.elasticsearch.common.settings.Setting;
 
 import io.crate.data.BatchIterator;
@@ -32,6 +31,7 @@ import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationMetadata.ForeignTable;
 import io.crate.metadata.TransactionContext;
 import io.crate.role.Role;
 import io.crate.statistics.Stats;

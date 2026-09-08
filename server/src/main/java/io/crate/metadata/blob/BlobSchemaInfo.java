@@ -26,14 +26,15 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import io.crate.exceptions.ResourceUnknownException;
+import io.crate.metadata.BlobTableInfo;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.TableInfo;
+import io.crate.metadata.ViewInfo;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.view.ViewInfo;
 
 public class BlobSchemaInfo implements SchemaInfo {
 

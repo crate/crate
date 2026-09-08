@@ -25,7 +25,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 import io.crate.sql.tree.GenericProperties;
 
 public record BoundAlterTable(TableInfo table,

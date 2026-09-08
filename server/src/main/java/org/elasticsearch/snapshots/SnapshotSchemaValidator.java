@@ -25,11 +25,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import org.elasticsearch.cluster.metadata.RelationMetadata;
-
 import io.crate.exceptions.IncompatibleSchemaForRestoreException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 
 /**

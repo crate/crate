@@ -22,9 +22,9 @@
 package io.crate.analyze;
 
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.Expression;

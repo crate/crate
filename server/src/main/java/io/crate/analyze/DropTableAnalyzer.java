@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -34,12 +35,10 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TableInfo;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.blob.BlobTableInfo;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.QualifiedName;
@@ -56,24 +55,30 @@ class DropTableAnalyzer {
         this.schemas = schemas;
     }
 
-    public AnalyzedDropTable<DocTableInfo> analyze(DropTable<?> node, CoordinatorSessionSettings sessionSettings) {
-        return analyze(node.table().getName(), node.dropIfExists(), sessionSettings);
+    public AnalyzedDropTable analyze(DropTable node, CoordinatorSessionSettings sessionSettings) {
+        List<AnalyzedDropTable.DropTableTarget> targets = new ArrayList<>();
+        for (QualifiedName name : node.tables()) {
+            targets.add(resolve(name, node.dropIfExists(), sessionSettings));
+        }
+        return new AnalyzedDropTable(node.dropIfExists(), targets);
     }
 
-    public AnalyzedDropTable<BlobTableInfo> analyze(DropBlobTable<?> node, CoordinatorSessionSettings sessionSettings) {
+
+    public AnalyzedDropTable analyze(DropBlobTable<?> node, CoordinatorSessionSettings sessionSettings) {
         List<String> parts = node.table().getName().getParts();
         if (parts.size() != 1 && !parts.get(0).equals(BlobSchemaInfo.NAME)) {
             throw new IllegalArgumentException("No blob tables in schema `" + parts.get(0) + "`");
         } else {
             QualifiedName name = new QualifiedName(
                 List.of(BlobSchemaInfo.NAME, node.table().getName().getSuffix()));
-            return analyze(name, node.ignoreNonExistentTable(), sessionSettings);
+            var target = resolve(name, node.ignoreNonExistentTable(), sessionSettings);
+            return new AnalyzedDropTable(node.ignoreNonExistentTable(), List.of(target));
         }
     }
 
-    private <T extends TableInfo> AnalyzedDropTable<T> analyze(QualifiedName name,
-                                                               boolean dropIfExists,
-                                                               CoordinatorSessionSettings sessionSettings) {
+    private AnalyzedDropTable.DropTableTarget resolve(QualifiedName name,
+                                                      boolean dropIfExists,
+                                                      CoordinatorSessionSettings sessionSettings) {
         RelationName tableName;
         int tableOid = OID_UNASSIGNED;
         try {
@@ -105,6 +110,6 @@ class DropTableAnalyzer {
                 t
             );
         }
-        return new AnalyzedDropTable<>(dropIfExists, tableName, tableOid);
+        return new AnalyzedDropTable.DropTableTarget(tableName, tableOid);
     }
 }

@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,8 +41,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import io.crate.common.collections.MapBuilder;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)

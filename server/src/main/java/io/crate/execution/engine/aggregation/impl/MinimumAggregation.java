@@ -24,7 +24,6 @@ package io.crate.execution.engine.aggregation.impl;
 import java.io.IOException;
 import java.util.List;
 
-import io.crate.types.NumericType;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
@@ -43,11 +42,11 @@ import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
@@ -58,6 +57,7 @@ import io.crate.types.FixedWidthType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
+import io.crate.types.NumericType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 

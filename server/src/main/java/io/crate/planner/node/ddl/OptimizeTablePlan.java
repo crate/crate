@@ -41,10 +41,10 @@ import org.elasticsearch.action.admin.indices.retention.SyncRetentionLeasesReque
 import org.elasticsearch.action.support.broadcast.BroadcastResponse;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedOptimizeTable;
 import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -54,10 +54,10 @@ import io.crate.data.SentinelRow;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;

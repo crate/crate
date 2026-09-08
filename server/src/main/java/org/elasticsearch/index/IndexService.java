@@ -87,12 +87,12 @@ import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dml.TranslogIndexer;
+import io.crate.metadata.BlobTableInfo;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.blob.BlobTableInfo;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 
 public class IndexService extends AbstractIndexComponent implements Iterable<IndexShard> {
 

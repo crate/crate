@@ -23,11 +23,11 @@ package io.crate.statistics;
 
 import static io.crate.common.collections.Iterables.sequentialStream;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.table.TableInfo;
-
 import java.util.function.Function;
 import java.util.stream.Stream;
+
+import io.crate.metadata.RelationName;
+import io.crate.metadata.TableInfo;
 
 /**
  * Holds table statistics that are updated periodically by {@link TableStatsService}.

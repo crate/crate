@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.doc;
+package io.crate.metadata;
 
 import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLUMN_PREFIX;
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
@@ -72,27 +72,13 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.expression.symbol.format.Style;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.IndexReference;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionInfo;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceTree;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.sys.TableColumn;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.StoredTable;
-import io.crate.metadata.table.TableInfo;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CheckConstraint;
@@ -156,7 +142,7 @@ import io.crate.types.UndefinedType;
  * </table>
  *
  */
-public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
+public final class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     /**
      * Tables created on or after this version use oids in the mapping

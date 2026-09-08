@@ -27,6 +27,7 @@ import java.util.List;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.TableInfo;
 
 /**
  * This class is used as information store of table constraints when

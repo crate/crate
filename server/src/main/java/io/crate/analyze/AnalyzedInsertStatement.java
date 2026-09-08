@@ -41,9 +41,9 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocTableInfo;
 
 
 public class AnalyzedInsertStatement implements AnalyzedStatement {
