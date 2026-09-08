@@ -51,32 +51,32 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropTable() throws Exception {
         DropTablePlan plan = e.plan("drop table users");
-        assertThat(plan.dropTable().tableName().name()).isEqualTo("users");
+        assertThat(plan.dropTable().tables().get(0).tableName().name()).isEqualTo("users");
     }
 
     @Test
     public void testDropTableIfExistsWithUnknownSchema() throws Exception {
         DropTablePlan plan = e.plan("drop table if exists unknown_schema.unknown_table");
-        assertThat(plan.dropTable().tableName()).isEqualTo(new RelationName("unknown_schema", "unknown_table"));
+        assertThat(plan.dropTable().tables().get(0).tableName()).isEqualTo(new RelationName("unknown_schema", "unknown_table"));
     }
 
     @Test
     public void testDropTableIfExists() throws Exception {
         DropTablePlan plan = e.plan("drop table if exists users");
-        assertThat(plan.dropTable().tableName().name()).isEqualTo("users");
+        assertThat(plan.dropTable().tables().get(0).tableName().name()).isEqualTo("users");
     }
 
     @Test
     public void testDropTableIfExistsNonExistentTableCreatesPlanWithoutTableInfo() throws Exception {
         DropTablePlan plan = e.plan("drop table if exists groups");
-        assertThat(plan.dropTable().tableName().name()).isEqualTo("groups");
+        assertThat(plan.dropTable().tables().get(0).tableName().name()).isEqualTo("groups");
     }
 
 
     @Test
     public void testDropPartitionedTable() throws Exception {
         DropTablePlan plan = e.plan("drop table parted");
-        assertThat(plan.dropTable().tableName().name()).isEqualTo("parted");
+        assertThat(plan.dropTable().tables().get(0).tableName().name()).isEqualTo("parted");
     }
 
     @Test
@@ -88,6 +88,16 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropNonExistentBlobTableCreatesPlanWithoutTableInfo() throws Exception {
         DropTablePlan plan = e.plan("drop blob table if exists unknown");
-        assertThat(plan.dropTable().tableName().name()).isEqualTo("unknown");
+        assertThat(plan.dropTable().tables().get(0).tableName().name()).isEqualTo("unknown");
     }
+    
+    @Test
+    public void testDropMultipleTables() throws Exception {
+        DropTablePlan plan = e.plan("drop table users, parted");
+        assertThat(plan.dropTable().tables()).satisfiesExactly(
+            x -> assertThat(x.tableName().name()).isEqualTo("users"),
+            x -> assertThat(x.tableName().name()).isEqualTo("parted")
+        );
+    }
+
 }

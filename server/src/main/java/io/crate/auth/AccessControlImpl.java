@@ -517,8 +517,10 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitDropTable(AnalyzedDropTable<?> dropTable, Role user) {
-            ensureDDLOnTable(user, dropTable.tableName().fqn());
+        public Void visitDropTable(AnalyzedDropTable analysis, Role user) {
+            for (AnalyzedDropTable.DropTableTarget target : analysis.tables()) {
+                ensureDDLOnTable(user, target.tableName().fqn());
+            }
             return null;
         }
 
