@@ -25,7 +25,9 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.MoveFilterBeneathJoin.getNewSource;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -118,17 +120,41 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         JoinPlan join = captures.get(nlCapture);
         Symbol query = filter.query();
         Map<Set<RelationName>, Symbol> splitQueries = QuerySplitter.split(query);
-        if (splitQueries.size() == 1 && splitQueries.keySet().iterator().next().size() > 1) {
-            return null;
-        }
         var sources = Lists.map(join.sources(), context.resolvePlan());
         LogicalPlan lhs = sources.get(0);
         LogicalPlan rhs = sources.get(1);
         Set<RelationName> leftName = new HashSet<>(lhs.relationNames());
         Set<RelationName> rightName = new HashSet<>(rhs.relationNames());
+        if (splitQueries.size() == 1) {
+            Set<RelationName> relationNames = splitQueries.keySet().iterator().next();
+            if (relationNames.size() > 1
+                && !leftName.containsAll(relationNames)
+                && !rightName.containsAll(relationNames)) {
+                return null;
+            }
+        }
 
-        Symbol leftQuery = splitQueries.remove(leftName);
-        Symbol rightQuery = splitQueries.remove(rightName);
+        List<Symbol> leftQueryList = new ArrayList<>();
+        List<Symbol> rightQueryList = new ArrayList<>();
+
+        var iterator = splitQueries.entrySet().iterator();
+        while (iterator.hasNext()) {
+            var entry = iterator.next();
+            Set<RelationName> relationNames = entry.getKey();
+
+            if (!relationNames.isEmpty()) {
+                if (leftName.containsAll(relationNames)) {
+                    leftQueryList.add(entry.getValue());
+                    iterator.remove();
+                } else if (rightName.containsAll(relationNames)) {
+                    rightQueryList.add(entry.getValue());
+                    iterator.remove();
+                }
+            }
+        }
+
+        Symbol leftQuery = leftQueryList.isEmpty() ? null : AndOperator.join(leftQueryList);
+        Symbol rightQuery = rightQueryList.isEmpty() ? null : AndOperator.join(rightQueryList);
 
         LogicalPlan newLhs = lhs;
         LogicalPlan newRhs = rhs;

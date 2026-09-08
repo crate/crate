@@ -418,6 +418,8 @@ public class LogicalPlanner {
 
         /// For inner joins, conditions which reference relations of only one side of the join
         /// are moved to that side as a [Filter].
+        /// If there is no remaining condition referencing both sides, the join condition is kept as is,
+        /// so that the inner join is preserved.
         private static LogicalPlan createJoinPlan(LogicalPlan lhs,
                                                   LogicalPlan rhs,
                                                   JoinType joinType,
@@ -426,10 +428,13 @@ public class LogicalPlanner {
                 return new JoinPlan(lhs, rhs, joinType, joinCondition);
             }
             var split = splitJoinCondition(joinCondition, lhs.relationNames(), rhs.relationNames());
+            if (split.remaining() == null) {
+                return new JoinPlan(lhs, rhs, joinType, joinCondition);
+            }
             return new JoinPlan(
                 Filter.create(lhs, split.left()),
                 Filter.create(rhs, split.right()),
-                split.remaining() == null ? JoinType.CROSS : JoinType.INNER,
+                joinType,
                 split.remaining()
             );
         }
@@ -451,7 +456,7 @@ public class LogicalPlanner {
             if (condition == null) {
                 return new SplitJoinCondition(null, null, null);
             }
-            
+
             Set<RelationName> lhsRelations = new HashSet<>(leftRelations);
             Set<RelationName> rhsRelations = new HashSet<>(rightRelations);
             List<Symbol> lhsConditions = new ArrayList<>();
