@@ -181,6 +181,9 @@ public final class BitStringType extends DataType<BitString> implements Streamer
 
     @Override
     public BitString explicitCast(Object value, SessionSettings sessionSettings, RelationLookup relationLookup) throws IllegalArgumentException, ClassCastException {
+        if (value == null) {
+            return null;
+        }
         // explicit cast is allowed to trim or extend the bitstring
         if (value instanceof String str) {
             return BitString.ofRawBits(str, length);

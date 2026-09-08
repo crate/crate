@@ -44,11 +44,13 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.Weight;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.ParsedDocument;
+import org.jspecify.annotations.Nullable;
 import org.junit.Test;
 
 import io.crate.Streamer;
@@ -62,7 +64,9 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationLookup;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -294,5 +298,26 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
                 fail("Unexpected Sort value");
             }
         }
+    }
+
+    @Test
+    public void test_supports_casting_null_to_type() throws Exception {
+        DataType<T> type = getDataDef().type();
+        var sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
+        T explicitCast = type.explicitCast(null, sessionSettings, new RelationLookup() {
+
+            @Override
+            public int getDisplayRelationOid(RelationName relationName) {
+                return Metadata.OID_UNASSIGNED;
+            }
+
+            @Override
+            public @Nullable RelationName getRelationName(int displayOid) {
+                return null;
+            }
+
+        });
+        assertThat(explicitCast).isNull();
+        assertThat(type.implicitCast(null)).isNull();
     }
 }
