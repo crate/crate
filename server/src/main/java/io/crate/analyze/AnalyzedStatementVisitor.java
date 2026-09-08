@@ -236,7 +236,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(promoteReplicaStatement, context);
     }
 
-    public R visitDropTable(AnalyzedDropTable<?> dropTable, C context) {
+    public R visitDropTable(AnalyzedDropTable dropTable, C context) {
         return visitDDLStatement(dropTable, context);
     }
 

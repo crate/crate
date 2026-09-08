@@ -99,7 +99,7 @@ statement
 
 dropStmt
     : DROP BLOB TABLE (IF EXISTS)? table                                             #dropBlobTable
-    | DROP TABLE (IF EXISTS)? table                                                  #dropTable
+    | DROP TABLE (IF EXISTS)? names=qnames                                                  #dropTable
     | DROP ALIAS qname                                                               #dropAlias
     | DROP REPOSITORY ident                                                          #dropRepository
     | DROP SNAPSHOT qname                                                            #dropSnapshot
@@ -768,7 +768,7 @@ objectTypeDefinition
 columnConstraint
     : primaryKeyContraint                                                            #columnConstraintPrimaryKey
     | NOT NULL                                                                       #columnConstraintNotNull
-    | NULL																			 #columnConstraintNull
+    | NULL                                                                           #columnConstraintNull
     | INDEX USING method=ident withProperties?                                       #columnIndexConstraint
     | INDEX OFF                                                                      #columnIndexOff
     | STORAGE withProperties                                                         #columnStorageDefinition

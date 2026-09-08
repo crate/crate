@@ -28,6 +28,9 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.index.IndexNotFoundException;
 import io.crate.common.annotations.VisibleForTesting;
 
+import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
+
 import io.crate.analyze.AnalyzedDropTable;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -45,17 +48,15 @@ import io.crate.planner.operators.SubQueryResults;
 public class DropTablePlan implements Plan {
 
     private static final Logger LOGGER = LogManager.getLogger(DropTablePlan.class);
-    private static final Row ROW_ZERO = new Row1(0L);
-    private static final Row ROW_ONE = new Row1(1L);
 
-    private final AnalyzedDropTable<?> dropTable;
+    private final AnalyzedDropTable dropTable;
 
-    public DropTablePlan(AnalyzedDropTable<?> dropTable) {
+    public DropTablePlan(AnalyzedDropTable dropTable) {
         this.dropTable = dropTable;
     }
 
     @VisibleForTesting
-    public AnalyzedDropTable<?> dropTable() {
+    public AnalyzedDropTable dropTable() {
         return dropTable;
     }
 
@@ -64,31 +65,47 @@ public class DropTablePlan implements Plan {
         return StatementType.DDL;
     }
 
-
     @Override
     public void executeOrFail(DependencyCarrier dependencies,
                               PlannerContext plannerContext,
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        var request = new DropTableRequest(dropTable.tableName(), dropTable.tableOid());
-        dependencies.client().execute(TransportDropTable.ACTION, request).whenComplete((response, err) -> {
-            if (err == null) {
-                if (!response.isAcknowledged() && LOGGER.isWarnEnabled()) {
-                    LOGGER.warn("Dropping table {} was not acknowledged. This could lead to inconsistent state.",
-                        dropTable.tableName());
-                }
-
-                consumer.accept(InMemoryBatchIterator.of(ROW_ONE, SENTINEL), null);
-            } else {
-                err = SQLExceptions.unwrap(err);
-                boolean doesntExist = err instanceof IndexNotFoundException || err instanceof RelationUnknown;
-                if (dropTable.dropIfExists() && doesntExist) {
-                    consumer.accept(InMemoryBatchIterator.of(ROW_ZERO, SENTINEL), null);
+        var targets = dropTable.tables();
+        ArrayList<CompletableFuture<Long>> futures = new ArrayList<>(targets.size());
+        for (var target : targets) {
+            var request = new DropTableRequest(target.tableName(), target.tableOid());
+            var future = dependencies.client().execute(TransportDropTable.ACTION, request)
+                .handle((response, err) -> {
+                    if (err == null) {
+                        if (!response.isAcknowledged() && LOGGER.isWarnEnabled()) {
+                            LOGGER.warn("Dropping table {} was not acknowledged. This could lead to inconsistent state.",
+                                target.tableName());
+                        }
+                        return 1L;
+                    }
+                    var unwrapped = SQLExceptions.unwrap(err);
+                    boolean doesntExist = unwrapped instanceof IndexNotFoundException
+                        || unwrapped instanceof RelationUnknown;
+                    if (dropTable.dropIfExists() && doesntExist) {
+                        return 0L;
+                    }
+                    throw new RuntimeException(unwrapped);
+                });
+            futures.add(future);
+        }
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+            .whenComplete((ignored, err) -> {
+                if (err == null) {
+                    long count = 0;
+                    for (var f : futures) {
+                        count += f.join();
+                    }
+                    consumer.accept(InMemoryBatchIterator.of(new Row1(count), SENTINEL), null);
                 } else {
-                    consumer.accept(null, err);
+                    consumer.accept(null, SQLExceptions.unwrap(err));
                 }
-            }
-        });
+            });
     }
 }
+

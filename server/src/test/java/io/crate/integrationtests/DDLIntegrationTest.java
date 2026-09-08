@@ -756,6 +756,49 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    public void testDropMultipleTables() throws Exception {
+        execute("create table t1 (id int) with (number_of_replicas=0)");
+        execute("create table t2 (id int) with (number_of_replicas=0)");
+        execute("create table t3 (id int) with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("drop table t1, t2, t3");
+        assertThat(response).hasRowCount(3);
+
+        Asserts.assertSQLError(() -> execute("select * from t1"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 't1' unknown");
+        Asserts.assertSQLError(() -> execute("select * from t2"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 't2' unknown");
+        Asserts.assertSQLError(() -> execute("select * from t3"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 't3' unknown");
+    }
+
+    @Test
+    public void testDropMultipleTablesIfExistsWithMissingTable() throws Exception {
+        execute("create table t1 (id int) with (number_of_replicas=0)");
+        execute("create table t2 (id int) with (number_of_replicas=0)");
+        ensureYellow();
+
+        // t_missing does not exist; IF EXISTS should tolerate it
+        execute("drop table if exists t1, t_missing, t2");
+
+        Asserts.assertSQLError(() -> execute("select * from t1"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 't1' unknown");
+        Asserts.assertSQLError(() -> execute("select * from t2"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 't2' unknown");
+    }
+
+    @Test
     public void testCreateAlterAndDropBlobTable() throws Exception {
         execute("create blob table screenshots with (number_of_replicas=0)");
         execute("alter blob table screenshots set (number_of_replicas=1)");

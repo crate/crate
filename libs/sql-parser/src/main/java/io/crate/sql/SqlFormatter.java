@@ -1399,12 +1399,14 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitDropTable(DropTable<?> node, Integer indent) {
+        public Void visitDropTable(DropTable node, Integer indent) {
             builder.append("DROP TABLE ");
             if (node.dropIfExists()) {
                 builder.append("IF EXISTS ");
             }
-            node.table().accept(this, indent);
+            builder.append(node.tables().stream()
+                .map(Formatter::formatQualifiedName)
+                .collect(COMMA_JOINER));
             return null;
         }
 
