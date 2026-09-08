@@ -23,7 +23,6 @@ package io.crate.planner.operators;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -525,22 +524,17 @@ public class LogicalPlanner {
             // If a relation has a Group By and a correlated subquery, we need to apply the subqueries after the group by
             // operation so that the subqueries operate on the grouped rows
             Map<SelectSymbol, LogicalPlan> toApplyBeforeGrouping = new HashMap<>(subQueries.correlated());
-            Map<SelectSymbol, LogicalPlan> toApplyAfterGrouping;
-            Set<SelectSymbol> correlatedSubqueriesInSelect = new HashSet<>();
+            Map<SelectSymbol, LogicalPlan> toApplyAfterGrouping = new HashMap<>();
 
             if (!relation.groupBy().isEmpty()) {
                 for (Symbol output : relation.outputs()) {
                     output.visit(SelectSymbol.class, selectSymbol -> {
                         if (selectSymbol.isCorrelated() && subQueries.correlated().containsKey(selectSymbol)) {
-                            correlatedSubqueriesInSelect.add(selectSymbol);
+                            toApplyAfterGrouping.put(selectSymbol, subQueries.correlated().get(selectSymbol));
                         }
                     });
                 }
-                toApplyAfterGrouping = new HashMap<>(subQueries.correlated());
-                toApplyBeforeGrouping.keySet().removeAll(correlatedSubqueriesInSelect);
-                toApplyAfterGrouping.keySet().removeAll(toApplyBeforeGrouping.keySet());
-            } else {
-                toApplyAfterGrouping = Collections.emptyMap();
+                toApplyBeforeGrouping.keySet().removeAll(toApplyAfterGrouping.keySet());
             }
             return new CorrelatedSubQueryPhases(toApplyBeforeGrouping, toApplyAfterGrouping);
         }
