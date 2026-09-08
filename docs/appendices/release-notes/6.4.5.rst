@@ -46,6 +46,10 @@ series.
 Fixes
 =====
 
+- Fixed an issue that caused casting string values to a longer ``bit`` string to
+  fail with an ``StringIndexOutOfBoundsException`` instead of filling up the gap
+  with ``0``.
+
 - Fixed an issue that caused casting ``null`` to the ``bit`` type to fail.
 
 - Fixed an issue that caused CrateDB to choose the wrong relation if a parent
