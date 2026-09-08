@@ -2340,4 +2340,25 @@ public class TransportSQLActionTest extends IntegTestCase {
             "{x=NULL}"
         );
     }
+
+    @Test
+    public void test_local_scoped_relations_have_prioritiy_over_ancestors() throws Exception {
+        execute("create table touter (c1 int)");
+        execute("create table tinner (c2 int)");
+        execute("insert into touter (c1) values (1)");
+        execute("insert into tinner (c2) values (42)");
+        execute("refresh table touter, tinner");
+
+        execute(
+            """
+            select
+                (select i.c2 from tinner as i limit 1) as result
+            from
+                touter as tinner;
+            """
+        );
+        assertThat(response).hasRows(
+            "42"
+        );
+    }
 }

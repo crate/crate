@@ -51,7 +51,7 @@ public final class RelationName implements Writeable, Accountable, Comparable<Re
     private final String schema;
     private final String name;
 
-    public static RelationName of(QualifiedName name, String defaultSchema) {
+    public static RelationName of(QualifiedName name, @Nullable String defaultSchema) {
         List<String> parts = name.getParts();
         if (parts.size() > 3) {
             throw new IllegalArgumentException(
