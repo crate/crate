@@ -118,7 +118,9 @@ Changes
 SQL Statements
 --------------
 
-None
+- `Manish Singh <https://github.com/manish9363>`_ added support for dropping
+  multiple tables with a single :ref:`DROP TABLE <drop-table>` statement, e.g.
+  ``DROP TABLE t1, t2, t3``.
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------

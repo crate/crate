@@ -549,7 +549,7 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedDropTable<?> visitDropTable(DropTable<?> node, Analysis context) {
+        public AnalyzedDropTable visitDropTable(DropTable node, Analysis context) {
             return dropTableAnalyzer.analyze(node, context.sessionSettings());
         }
 

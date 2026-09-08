@@ -854,7 +854,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitDropTable(SqlBaseParser.DropTableContext context) {
-        return new DropTable<>((Table<?>) visit(context.table()), context.EXISTS() != null);
+        return new DropTable(getQualifiedNames(context.qnames()), context.EXISTS() != null);
     }
 
     @Override

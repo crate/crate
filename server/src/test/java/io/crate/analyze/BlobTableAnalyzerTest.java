@@ -165,9 +165,9 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropBlobTable() {
-        AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table blobs");
-        assertThat(analysis.tableName().name()).isEqualTo("blobs");
-        assertThat(analysis.tableName().schema()).isEqualTo(BlobSchemaInfo.NAME);
+        AnalyzedDropTable analysis = e.analyze("drop blob table blobs");
+        assertThat(analysis.tables().get(0).tableName().name()).isEqualTo("blobs");
+        assertThat(analysis.tables().get(0).tableName().schema()).isEqualTo(BlobSchemaInfo.NAME);
     }
 
     @Test
@@ -179,8 +179,8 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropBlobTableWithValidSchema() {
-        AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table \"blob\".blobs");
-        assertThat(analysis.tableName().name()).isEqualTo("blobs");
+        AnalyzedDropTable analysis = e.analyze("drop blob table \"blob\".blobs");
+        assertThat(analysis.tables().get(0).tableName().name()).isEqualTo("blobs");
     }
 
     @Test
@@ -192,14 +192,14 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropBlobTableIfExists() {
-        AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table if exists blobs");
+        AnalyzedDropTable analysis = e.analyze("drop blob table if exists blobs");
         assertThat(analysis.dropIfExists()).isTrue();
-        assertThat(analysis.tableName().fqn()).isEqualTo("blob.blobs");
+        assertThat(analysis.tables().get(0).tableName().fqn()).isEqualTo("blob.blobs");
     }
 
     @Test
     public void testDropNonExistentBlobTableIfExists() {
-        AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table if exists unknown");
+        AnalyzedDropTable analysis = e.analyze("drop blob table if exists unknown");
         assertThat(analysis.dropIfExists()).isTrue();
     }
 

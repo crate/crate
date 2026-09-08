@@ -754,6 +754,39 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("drop table if exists nonexistent");
         assertThat(response).hasRowCount(0);
     }
+    
+    @Test
+    public void testDropMultipleTables() throws Exception {
+        execute("create table t1 (id int) with (number_of_replicas=0)");
+        execute("create table t2 (id int) with (number_of_replicas=0)");
+        execute("create table t3 (id int) with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("drop table t1, t2, t3");
+        assertThat(response).hasRowCount(3);
+
+        Asserts.assertSQLError(() -> execute("select * from t1"))
+            .hasPGError(UNDEFINED_TABLE);
+        Asserts.assertSQLError(() -> execute("select * from t2"))
+            .hasPGError(UNDEFINED_TABLE);
+        Asserts.assertSQLError(() -> execute("select * from t3"))
+            .hasPGError(UNDEFINED_TABLE);
+    }
+
+    @Test
+    public void testDropMultipleTablesIfExistsWithMissingTable() throws Exception {
+        execute("create table t1 (id int) with (number_of_replicas=0)");
+        execute("create table t2 (id int) with (number_of_replicas=0)");
+        ensureYellow();
+
+        // t_missing does not exist; IF EXISTS should tolerate it
+        execute("drop table if exists t1, t_missing, t2");
+
+        Asserts.assertSQLError(() -> execute("select * from t1"))
+            .hasPGError(UNDEFINED_TABLE);
+        Asserts.assertSQLError(() -> execute("select * from t2"))
+            .hasPGError(UNDEFINED_TABLE);
+    }
 
     @Test
     public void testCreateAlterAndDropBlobTable() throws Exception {
