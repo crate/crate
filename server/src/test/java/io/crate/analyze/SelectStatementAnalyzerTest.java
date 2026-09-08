@@ -61,6 +61,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LteOperator;
 import io.crate.expression.operator.OrOperator;
@@ -1503,6 +1504,17 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThatThrownBy(() -> executor.analyze("select * from users where not \"_score\" >= 0.9"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("System column '_score' can only be used within a '>=' comparison without any surrounded predicate");
+    }
+
+    // The double negation is normalized away before the where clause is validated, so `_score` is no
+    // longer below a `not`. A single `not` is still rejected above.
+    @Test
+    public void test_score_reference_below_double_negation_is_allowed() throws Exception {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
+        QueriedSelectRelation relation = executor.analyze(
+            "select * from users where not not \"_score\" >= 0.9");
+        assertThat(relation.where()).isFunction(GteOperator.NAME);
     }
 
     @Test
