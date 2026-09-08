@@ -347,7 +347,7 @@ public class MetadataTrackerTest extends ESTestCase {
         PublicationsMetadata publicationsMetadata = publisherState.metadata().custom(PublicationsMetadata.TYPE);
         Publication publication = publicationsMetadata.publications().get(publicationName);
         Metadata.Builder mdBuilder = Metadata.builder(publisherState.metadata().currentMaxTableOid());
-        publication.resolveCurrentRelations(
+        List<TableOrPartition> targets = publication.resolveCurrentRelations(
             publisherState,
             () -> List.of(CRATE_USER),
             CRATE_USER,
@@ -355,7 +355,7 @@ public class MetadataTrackerTest extends ESTestCase {
             "dummy",
             mdBuilder
         );
-        return new Response(mdBuilder.build(), List.of());
+        return new Response(mdBuilder.build(), targets, List.of());
     }
 
 
