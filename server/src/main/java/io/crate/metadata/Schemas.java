@@ -177,8 +177,10 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                                                    Operation operation,
                                                    Role user,
                                                    SearchPath searchPath) {
-        String schemaName = schemaName(qName);
-        String tableName = relationName(qName);
+
+        RelationName relName = RelationName.of(qName, null);
+        String schemaName = relName.schema();
+        String tableName = relName.name();
 
         RelationInfo relationInfo = null;
         if (schemaName == null) {

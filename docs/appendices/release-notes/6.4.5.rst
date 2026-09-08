@@ -46,6 +46,9 @@ series.
 Fixes
 =====
 
+- Fixed an issue that caused CrateDB to choose the wrong relation if a parent
+  relation alias clashed with a local scoped relation name.
+
 - Fixed decoding of ``interval`` values sent from PostgreSQL wire protocol
   clients using text format in the ``x hours y minutes ...`` style.
 
