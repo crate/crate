@@ -23,8 +23,8 @@ package io.crate.analyze;
 
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,8 +33,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
-import io.crate.metadata.BlobTableInfo;
-import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableInfo;

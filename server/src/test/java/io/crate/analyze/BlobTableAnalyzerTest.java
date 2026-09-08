@@ -37,7 +37,6 @@ import io.crate.blob.v2.BlobIndicesService;
 import io.crate.data.RowN;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.BlobTableInfo;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.CreateBlobTablePlan;
