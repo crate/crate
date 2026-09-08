@@ -59,9 +59,9 @@ import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 
 public class LuceneShardCollectorProvider extends ShardCollectorProvider {

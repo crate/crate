@@ -31,7 +31,7 @@ import org.jspecify.annotations.Nullable;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.DocTableInfo;
 
 public class BoundCopyTo {
 

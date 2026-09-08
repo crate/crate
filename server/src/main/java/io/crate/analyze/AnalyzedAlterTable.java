@@ -24,7 +24,7 @@ package io.crate.analyze;
 import java.util.function.Consumer;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.Assignment;
 

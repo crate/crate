@@ -56,8 +56,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.lucene.CrateLuceneTestCase;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.doc.DocTableInfo;
 
 public final class IndexEnv implements AutoCloseable {
 

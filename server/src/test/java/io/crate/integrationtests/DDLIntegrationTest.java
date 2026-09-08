@@ -37,18 +37,18 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.exceptions.SQLParseException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.sql.tree.ColumnPolicy;
@@ -753,6 +753,49 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void testDropIfExistsUnknownTable() throws Exception {
         execute("drop table if exists nonexistent");
         assertThat(response).hasRowCount(0);
+    }
+
+    @Test
+    public void testDropMultipleTables() throws Exception {
+        execute("create table t1 (id int) with (number_of_replicas=0)");
+        execute("create table t2 (id int) with (number_of_replicas=0)");
+        execute("create table t3 (id int) with (number_of_replicas=0)");
+        ensureYellow();
+
+        execute("drop table t1, t2, t3");
+        assertThat(response).hasRowCount(3);
+
+        Asserts.assertSQLError(() -> execute("select * from t1"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 't1' unknown");
+        Asserts.assertSQLError(() -> execute("select * from t2"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 't2' unknown");
+        Asserts.assertSQLError(() -> execute("select * from t3"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 't3' unknown");
+    }
+
+    @Test
+    public void testDropMultipleTablesIfExistsWithMissingTable() throws Exception {
+        execute("create table t1 (id int) with (number_of_replicas=0)");
+        execute("create table t2 (id int) with (number_of_replicas=0)");
+        ensureYellow();
+
+        // t_missing does not exist; IF EXISTS should tolerate it
+        execute("drop table if exists t1, t_missing, t2");
+
+        Asserts.assertSQLError(() -> execute("select * from t1"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 't1' unknown");
+        Asserts.assertSQLError(() -> execute("select * from t2"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 't2' unknown");
     }
 
     @Test

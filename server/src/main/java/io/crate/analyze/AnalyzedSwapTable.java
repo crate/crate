@@ -24,7 +24,7 @@ package io.crate.analyze;
 import java.util.function.Consumer;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.DocTableInfo;
 
 public final class AnalyzedSwapTable implements AnalyzedStatement {
 

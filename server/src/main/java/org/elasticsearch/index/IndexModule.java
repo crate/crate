@@ -52,7 +52,7 @@ import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 import io.crate.types.DataTypes;
 
 /**

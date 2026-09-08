@@ -35,8 +35,8 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.TableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.testing.SqlExpressions;
 
 public class NodeStatsCollectSourceTest extends ESTestCase {

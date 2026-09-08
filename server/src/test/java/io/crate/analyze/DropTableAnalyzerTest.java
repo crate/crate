@@ -34,8 +34,6 @@ import org.junit.Test;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -97,21 +95,21 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropExistingTable() {
-        AnalyzedDropTable<DocTableInfo> dropTable = e.analyze(String.format(ENGLISH, "drop table %s", USER_TABLE_IDENT.name()));
+        AnalyzedDropTable dropTable = e.analyze(String.format(ENGLISH, "drop table %s", USER_TABLE_IDENT.name()));
         assertThat(dropTable.dropIfExists()).isFalse();
-        assertThat(dropTable.tableName().indexNameOrAlias()).isEqualTo(USER_TABLE_IDENT.name());
+        assertThat(dropTable.tables().get(0).tableName().indexNameOrAlias()).isEqualTo(USER_TABLE_IDENT.name());
     }
 
     @Test
     public void testDropIfExistExistingTable() {
-        AnalyzedDropTable<DocTableInfo> dropTable = e.analyze(String.format(ENGLISH, "drop table if exists %s", USER_TABLE_IDENT.name()));
+        AnalyzedDropTable dropTable = e.analyze(String.format(ENGLISH, "drop table if exists %s", USER_TABLE_IDENT.name()));
         assertThat(dropTable.dropIfExists()).isTrue();
-        assertThat(dropTable.tableName().indexNameOrAlias()).isEqualTo(USER_TABLE_IDENT.name());
+        assertThat(dropTable.tables().get(0).tableName().indexNameOrAlias()).isEqualTo(USER_TABLE_IDENT.name());
     }
 
     @Test
     public void testNonExistentTableIsRecognizedCorrectly() {
-        AnalyzedDropTable<TableInfo> dropTable = e.analyze("drop table if exists unknowntable");
-        assertThat(dropTable.tableName().name()).isEqualTo("unknowntable");
+        AnalyzedDropTable dropTable = e.analyze("drop table if exists unknowntable");
+        assertThat(dropTable.tables().get(0).tableName().name()).isEqualTo("unknowntable");
     }
 }

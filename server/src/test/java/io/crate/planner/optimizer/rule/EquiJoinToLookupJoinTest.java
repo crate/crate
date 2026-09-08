@@ -21,6 +21,8 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.testing.Asserts.assertThat;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -32,9 +34,9 @@ import org.junit.Test;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.EquiJoinDetector;
 import io.crate.planner.operators.Filter;
@@ -45,8 +47,6 @@ import io.crate.sql.tree.JoinType;
 import io.crate.statistics.Stats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-
-import static io.crate.testing.Asserts.assertThat;
 
 public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
 

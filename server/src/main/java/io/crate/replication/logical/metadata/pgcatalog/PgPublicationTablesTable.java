@@ -26,10 +26,10 @@ import static io.crate.types.DataTypes.STRING;
 import java.util.stream.Stream;
 
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SystemTable;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.replication.logical.LogicalReplicationService;
 

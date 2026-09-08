@@ -40,10 +40,10 @@ import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValu
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataType;
 import io.crate.types.NumericStorage;
 import io.crate.types.NumericType;

@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.view;
+package io.crate.metadata;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -34,15 +34,9 @@ import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.ScopedColumn;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RelationInfo;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.SearchPath;
 import io.crate.metadata.table.Operation;
 
-public class ViewInfo implements RelationInfo {
+public final class ViewInfo implements RelationInfo {
 
     private final RelationName ident;
     private final String definition;

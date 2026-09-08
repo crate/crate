@@ -26,8 +26,8 @@ import java.util.List;
 import io.crate.analyze.WhereClause;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocTableInfo;
 
 public final class GroupByConsumer {
 

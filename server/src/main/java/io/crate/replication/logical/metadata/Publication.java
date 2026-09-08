@@ -140,7 +140,7 @@ public class Publication implements Writeable {
         };
 
         if (isForAllTables()) {
-            for (var table : metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class)) {
+            for (var table : metadata.relations(io.crate.metadata.RelationMetadata.Table.class)) {
                 if (relationFilter.test(table.name()) == false) {
                     continue;
                 }
@@ -151,7 +151,7 @@ public class Publication implements Writeable {
                 if (relationFilter.test(relationName) == false) {
                     continue;
                 }
-                org.elasticsearch.cluster.metadata.RelationMetadata.Table table = metadata.getRelation(relationName);
+                io.crate.metadata.RelationMetadata.Table table = metadata.getRelation(relationName);
                 if (table == null) {
                     if (LOGGER.isDebugEnabled()) {
                         LOGGER.debug("Table {} not found in metadata, skipping publication resolution for it.", relationName);
@@ -167,7 +167,7 @@ public class Publication implements Writeable {
 
     private static void addRelation(Metadata currentMetadata,
                                     Metadata.Builder metadataBuilder,
-                                    org.elasticsearch.cluster.metadata.RelationMetadata.Table table,
+                                    io.crate.metadata.RelationMetadata.Table table,
                                     Predicate<Index> indexFilter) {
         metadataBuilder.setRelation(table);
         for (IndexMetadata indexMetadata : currentMetadata.getIndices(table.name(), List.of(), true, im -> im)) {

@@ -36,7 +36,6 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.Metadata.Custom;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -49,6 +48,7 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 
 public class TransportClusterState extends TransportMasterNodeReadAction<ClusterStateRequest, ClusterStateResponse> {

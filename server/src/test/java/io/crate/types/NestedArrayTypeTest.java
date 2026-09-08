@@ -23,6 +23,7 @@ package io.crate.types;
 
 import static io.crate.execution.dml.IndexerTest.getIndexer;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -39,7 +40,7 @@ import io.crate.execution.dml.ArrayIndexer;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.DocTableInfo;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.SQLExecutor;
 

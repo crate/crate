@@ -29,20 +29,20 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.UUIDs;
 import org.jspecify.annotations.Nullable;
 
-import io.crate.session.Cursors;
 import io.crate.analyze.WhereClause;
 import io.crate.data.Row;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.TableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.tracer.LoggingOptimizerTracer;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
 import io.crate.protocols.postgres.TransactionState;
+import io.crate.session.Cursors;
 import io.crate.session.Session;
 
 public class PlannerContext {

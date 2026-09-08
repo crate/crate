@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.DocTableInfo;
 
 public record AnalyzedAlterTableDropColumn(DocTableInfo table, List<DropColumn> columns) implements DDLStatement {
 

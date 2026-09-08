@@ -35,10 +35,10 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.types.DataType;
 

@@ -26,15 +26,15 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import io.crate.metadata.RelationMetadata;
+import io.crate.metadata.TableInfo;
+import io.crate.metadata.ViewInfo;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.view.ViewInfo;
 import io.crate.role.Roles;
 import io.crate.role.metadata.SysPrivilegesTableInfo;
 import io.crate.role.metadata.SysRolesTableInfo;
