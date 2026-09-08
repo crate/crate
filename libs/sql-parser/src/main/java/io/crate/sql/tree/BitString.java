@@ -44,7 +44,8 @@ public record BitString(BitSet bitSet, int length) implements Literal, Comparabl
 
     private static BitSet toBitSet(String text, int length) {
         BitSet bitSet = new BitSet(length);
-        for (int i = 0; i < length; i++) {
+        int i = 0;
+        for (; i < Math.min(text.length(), length); i++) {
             char c = text.charAt(i);
             boolean value = switch (c) {
                 case '0' -> false;
@@ -53,6 +54,9 @@ public record BitString(BitSet bitSet, int length) implements Literal, Comparabl
                     "Bit string must only contain `0` or `1` values. Encountered: " + c);
             };
             bitSet.set(i, value);
+        }
+        for (; i < length; i++) {
+            bitSet.set(i, false);
         }
         return bitSet;
     }
