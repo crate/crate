@@ -30,7 +30,6 @@ import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.RetentionLeaseStats;
@@ -47,6 +46,7 @@ import org.jspecify.annotations.Nullable;
 import io.crate.blob.v2.BlobShard;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 
 public class ShardRowContext {

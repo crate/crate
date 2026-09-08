@@ -50,7 +50,6 @@ import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.ElasticsearchNodeCommand;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.AllocationId;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.UUIDs;
@@ -71,6 +70,7 @@ import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Tuple;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;

@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.table;
+package io.crate.metadata;
 
 import static io.crate.types.ArrayType.makeArray;
 
@@ -32,18 +32,17 @@ import org.elasticsearch.cluster.ClusterState;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RelationInfo;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
-public interface TableInfo extends RelationInfo {
+public sealed interface TableInfo extends RelationInfo permits
+        DocTableInfo,
+        SystemTable,
+        BlobTableInfo,
+        RelationMetadata.ForeignTable {
 
     Predicate<DataType<?>> IS_OBJECT_ARRAY =
         type -> type instanceof ArrayType && ArrayType.unnest(type).id() == ObjectType.ID;

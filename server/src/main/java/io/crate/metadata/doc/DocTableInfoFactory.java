@@ -42,7 +42,6 @@ import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
 
@@ -58,6 +57,7 @@ import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexName;
@@ -65,6 +65,7 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -205,7 +206,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
     }
 
     /**
-     * Only needed for BWC to build {@link org.elasticsearch.cluster.metadata.RelationMetadata.Table} out of
+     * Only needed for BWC to build {@link io.crate.metadata.RelationMetadata.Table} out of
      * old {@link IndexMetadata} entries.
      * See {@link org.elasticsearch.cluster.metadata.MetadataUpgradeService#upgradeMetadata(Metadata)}.
      *

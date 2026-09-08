@@ -22,6 +22,7 @@
 package io.crate.expression.symbol.format;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,6 +44,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -50,7 +52,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;

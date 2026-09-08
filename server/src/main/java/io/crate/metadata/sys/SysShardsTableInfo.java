@@ -35,7 +35,6 @@ import java.util.TreeMap;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -50,6 +49,7 @@ import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;

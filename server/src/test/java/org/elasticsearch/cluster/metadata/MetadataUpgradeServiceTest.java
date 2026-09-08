@@ -49,6 +49,7 @@ import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;

@@ -56,7 +56,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
 import io.crate.testing.SQLResponse;

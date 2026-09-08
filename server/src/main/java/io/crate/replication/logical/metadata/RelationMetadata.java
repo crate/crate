@@ -58,7 +58,7 @@ public record RelationMetadata(RelationName name,
         out.writeOptionalWriteable(template);
     }
 
-    public static RelationMetadata fromMetadata(org.elasticsearch.cluster.metadata.RelationMetadata.Table table,
+    public static RelationMetadata fromMetadata(io.crate.metadata.RelationMetadata.Table table,
                                                 Metadata metadata) {
         IndexTemplateMetadata templateMetadata = null;
         if (table.partitionedBy().isEmpty() == false) {

@@ -39,7 +39,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.Metadata.XContentContext;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -55,6 +54,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfoFactory;
 

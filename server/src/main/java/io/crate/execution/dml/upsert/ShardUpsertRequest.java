@@ -45,9 +45,9 @@ import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
 

@@ -25,12 +25,12 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 
 import io.crate.common.collections.MapBuilder;
+import io.crate.metadata.RelationMetadata;
+import io.crate.metadata.TableInfo;
+import io.crate.metadata.ViewInfo;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.view.ViewInfo;
 
 public class InformationSchemaInfo implements SchemaInfo {
 

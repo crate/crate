@@ -39,7 +39,7 @@ import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.ForeignDataWrappers;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;

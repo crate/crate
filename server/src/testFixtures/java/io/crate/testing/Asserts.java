@@ -54,7 +54,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.role.Policy;
 import io.crate.sql.tree.ColumnPolicy;

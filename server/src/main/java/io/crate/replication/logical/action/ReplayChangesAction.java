@@ -38,7 +38,6 @@ import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
@@ -54,9 +53,10 @@ import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.RelationMetadata;
 import io.crate.replication.logical.engine.SubscriberEngine;
 import io.crate.replication.logical.exceptions.InvalidShardEngineException;
 

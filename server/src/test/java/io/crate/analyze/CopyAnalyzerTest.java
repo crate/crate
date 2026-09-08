@@ -51,7 +51,7 @@ import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.statement.CopyFromPlan;

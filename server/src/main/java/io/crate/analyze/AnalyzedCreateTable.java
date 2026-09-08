@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import static io.crate.metadata.table.TableInfo.IS_OBJECT_ARRAY;
+import static io.crate.metadata.TableInfo.IS_OBJECT_ARRAY;
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;

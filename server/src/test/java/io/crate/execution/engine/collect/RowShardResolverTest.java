@@ -202,7 +202,7 @@ public class RowShardResolverTest extends ESTestCase {
 
     /**
      * Test partition table scenario, were no primary key is defined.
-     * See {@link io.crate.metadata.doc.DocTableInfo}
+     * See {@link io.crate.metadata.DocTableInfo}
      */
     @Test
     public void test_auto_generated_timestamp_is_set_if_no_pk_are_used() {

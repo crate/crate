@@ -79,7 +79,7 @@ public class DataTypesBwc {
     /// Returns the ES mapping name for a given DataType id.
     /// Mappings are only used for indices from < 6.0.
     ///
-    /// Upgraded indices contain their schema in [org.elasticsearch.cluster.metadata.RelationMetadata]
+    /// Upgraded indices contain their schema in [io.crate.metadata.RelationMetadata]
     /// DataTypes added in >= 6.4 do not have a mapping name.
     @Nullable
     public static String esMappingNameFrom(int typeId) {
@@ -89,7 +89,7 @@ public class DataTypesBwc {
     /// Returns a DataType by mapping name
     /// Mappings are only used for indices from < 6.0.
     ///
-    /// Upgraded indices contain their schema in [org.elasticsearch.cluster.metadata.RelationMetadata]
+    /// Upgraded indices contain their schema in [io.crate.metadata.RelationMetadata]
     /// DataTypes added in >= 6.4 do not have a mapping name.
     @Nullable
     public static DataType<?> ofMappingName(String name) {

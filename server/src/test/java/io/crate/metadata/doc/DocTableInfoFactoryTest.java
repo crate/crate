@@ -47,6 +47,7 @@ import org.junit.Test;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;

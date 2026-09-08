@@ -52,7 +52,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 import io.crate.testing.SqlExpressions;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)

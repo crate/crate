@@ -46,7 +46,7 @@ import io.crate.common.annotations.Immutable;
 import io.crate.common.annotations.ThreadSafe;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.settings.Validators;
 import io.crate.sql.tree.ColumnPolicy;

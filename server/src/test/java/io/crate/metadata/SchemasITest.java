@@ -39,9 +39,7 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.analyze.WhereClause;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.CheckConstraint;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)

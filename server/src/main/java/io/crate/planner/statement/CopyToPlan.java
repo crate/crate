@@ -36,7 +36,6 @@ import java.util.function.UnaryOperator;
 
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCopyTo;
 import io.crate.analyze.BoundCopyTo;
@@ -44,6 +43,7 @@ import io.crate.analyze.CopyStatementSettings;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -60,10 +60,10 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;

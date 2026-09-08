@@ -32,15 +32,15 @@ import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.CheckConstraint;
 
 /**
- * Base interface for tables ({@link io.crate.metadata.table.TableInfo}) and views ({@link io.crate.metadata.view.ViewInfo}).
+ * Base interface for tables ({@link io.crate.metadata.TableInfo}) and views ({@link io.crate.metadata.ViewInfo}).
  */
-public interface RelationInfo extends Iterable<Reference> {
+public sealed interface RelationInfo extends Iterable<Reference>
+    permits TableInfo, ViewInfo {
 
     String PK_SUFFIX = "_pkey";
 

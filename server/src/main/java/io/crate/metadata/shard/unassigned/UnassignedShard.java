@@ -23,10 +23,10 @@ package io.crate.metadata.shard.unassigned;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.sys.SysSchemaInfo;
 
 /**

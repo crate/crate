@@ -67,7 +67,7 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 import io.crate.planner.PlannerContext;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.Publication;

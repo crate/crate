@@ -30,7 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.metadata.Reference;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class SystemTableInfoTest extends CrateDummyClusterServiceUnitTest {

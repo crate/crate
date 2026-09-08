@@ -72,9 +72,9 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.TableInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.testing.UseRandomizedSchema;
 

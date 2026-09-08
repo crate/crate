@@ -27,12 +27,12 @@ import java.util.Map;
 
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.compress.CompressedXContent;
 
 import io.crate.Constants;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 
 @SuppressWarnings("deprecation")

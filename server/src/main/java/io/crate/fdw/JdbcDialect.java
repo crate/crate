@@ -34,10 +34,10 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationMetadata;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.statistics.Stats;

@@ -31,7 +31,7 @@ import org.assertj.core.api.Assertions;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.metadata.Reference;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 
 public class TableInfoAssert extends AbstractAssert<TableInfoAssert, TableInfo> {
 

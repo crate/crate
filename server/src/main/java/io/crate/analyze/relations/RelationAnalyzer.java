@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -71,19 +70,20 @@ import io.crate.expression.tablefunctions.TableFunctionFactory;
 import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.TableInfo;
+import io.crate.metadata.ViewInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.metadata.view.ViewInfo;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
 import io.crate.role.Role;
 import io.crate.sql.parser.SqlParser;
@@ -727,7 +727,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 }
                 yield new AnalyzedView(viewInfo.ident(), owner, resolvedView);
             }
-            default -> throw new IllegalStateException("Unexpected relationInfo: " + relationInfo);
         };
         relationContext.addSourceRelation(relation);
         return relation;
