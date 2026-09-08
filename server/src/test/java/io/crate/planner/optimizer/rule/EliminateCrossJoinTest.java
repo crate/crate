@@ -23,6 +23,7 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.common.collections.Iterables.getOnlyElement;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -37,9 +38,9 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;

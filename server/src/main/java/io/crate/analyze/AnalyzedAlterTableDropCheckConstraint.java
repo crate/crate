@@ -21,10 +21,10 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocTableInfo;
-
 import java.util.function.Consumer;
+
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.DocTableInfo;
 
 public class AnalyzedAlterTableDropCheckConstraint implements DDLStatement {
 

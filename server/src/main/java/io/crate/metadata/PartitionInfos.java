@@ -28,7 +28,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
 
 public class PartitionInfos implements Iterable<PartitionInfo> {
 

@@ -243,7 +243,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
             if (out.getVersion().before(Version.V_6_0_0)) {
                 Map<RelationName, RelationMetadata> relationsInPublications = this.relationsInPublications != null ?
                     this.relationsInPublications :
-                    metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class).stream()
+                    metadata.relations(io.crate.metadata.RelationMetadata.Table.class).stream()
                         .map(table -> RelationMetadata.fromMetadata(table, metadata))
                         .collect(Collectors.toMap(RelationMetadata::name, x -> x));
                 out.writeMap(relationsInPublications, (o, v) -> v.writeTo(out), (o, v) -> v.writeTo(out));

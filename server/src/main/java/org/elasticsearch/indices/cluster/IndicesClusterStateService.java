@@ -51,7 +51,6 @@ import org.elasticsearch.cluster.ClusterStateApplier;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -94,6 +93,7 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.metadata.IndexName;
+import io.crate.metadata.RelationMetadata;
 import io.crate.replication.logical.ShardReplicationService;
 
 public class IndicesClusterStateService extends AbstractLifecycleComponent implements ClusterStateApplier {

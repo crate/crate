@@ -39,9 +39,9 @@ import io.crate.Streamer;
 import io.crate.common.collections.Lists;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
 
 public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, UpsertReplicaRequest.Item> {

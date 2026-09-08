@@ -38,11 +38,11 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.Maps;
 import io.crate.expression.reference.doc.lucene.SourceParser;
+import io.crate.metadata.BlobTableInfo;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.blob.BlobTableInfo;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 

@@ -39,7 +39,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.IndexScopedSettings;
@@ -49,6 +48,7 @@ import org.junit.Test;
 
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationMetadata;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;

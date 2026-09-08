@@ -28,7 +28,7 @@ import io.crate.Constants;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import io.crate.metadata.view.ViewInfo;
+import io.crate.metadata.ViewInfo;
 
 public class InformationViewsTableInfo {
 

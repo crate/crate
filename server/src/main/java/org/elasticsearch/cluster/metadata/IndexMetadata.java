@@ -71,6 +71,7 @@ import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationMetadata;
 import io.crate.rest.action.HttpErrorStatus;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.types.DataTypes;

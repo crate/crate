@@ -26,9 +26,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.SqlFormatter;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;

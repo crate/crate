@@ -32,7 +32,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
 import io.crate.exceptions.PartitionUnknownException;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;

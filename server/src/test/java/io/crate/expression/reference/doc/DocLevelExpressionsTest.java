@@ -31,8 +31,8 @@ import org.junit.After;
 import org.junit.Before;
 
 import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;

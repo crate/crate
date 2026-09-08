@@ -21,16 +21,16 @@
 
 package io.crate.analyze;
 
-import io.crate.execution.dsl.phases.FileUriCollectPhase;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocTableInfo;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.settings.Settings;
-
-import org.jspecify.annotations.Nullable;
-
 import java.util.List;
 import java.util.function.Predicate;
+
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.settings.Settings;
+import org.jspecify.annotations.Nullable;
+
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.DocTableInfo;
 
 public class BoundCopyFrom {
 

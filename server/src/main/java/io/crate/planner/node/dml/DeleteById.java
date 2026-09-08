@@ -37,7 +37,7 @@ import io.crate.execution.dml.ShardRequestExecutor;
 import io.crate.execution.dml.delete.ShardDeleteAction;
 import io.crate.execution.dml.delete.ShardDeleteRequest;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;

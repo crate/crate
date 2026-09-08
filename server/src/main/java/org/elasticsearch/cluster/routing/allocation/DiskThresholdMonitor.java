@@ -42,7 +42,6 @@ import org.elasticsearch.cluster.DiskUsage;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RerouteService;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.RoutingNodes;
@@ -56,6 +55,7 @@ import org.elasticsearch.index.IndexNotFoundException;
 import io.crate.common.collections.Sets;
 import io.crate.concurrent.MultiActionListener;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationMetadata;
 
 /**
  * Listens for a node to go over the high watermark and kicks off an empty

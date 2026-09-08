@@ -53,7 +53,7 @@ public class MetadataIndexUpgrader {
     }
 
     /// Upgrade indexMetadata to 6.4 format:
-    /// - Remove mapping (must be using [org.elasticsearch.cluster.metadata.RelationMetadata])
+    /// - Remove mapping (must be using [io.crate.metadata.RelationMetadata])
     /// - Add partitionValues
     public static IndexMetadata upgrade(IndexMetadata indexMetadata) {
         if (indexMetadata.mapping() == null && !indexMetadata.partitionValues().isEmpty()) {

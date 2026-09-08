@@ -26,7 +26,7 @@ import static io.crate.types.DataTypes.STRING;
 
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 
 public final class PgTablesTable {
 

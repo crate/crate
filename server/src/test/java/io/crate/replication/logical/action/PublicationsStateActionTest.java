@@ -119,8 +119,8 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         );
         Metadata metadata = metadataBuilder.build();
 
-        List<RelationName> relationNames = metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class).stream()
-            .map(org.elasticsearch.cluster.metadata.RelationMetadata.Table::name)
+        List<RelationName> relationNames = metadata.relations(io.crate.metadata.RelationMetadata.Table.class).stream()
+            .map(io.crate.metadata.RelationMetadata.Table::name)
             .toList();
         assertThat(relationNames).contains(new RelationName("doc", "t1"));
     }
@@ -164,8 +164,8 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         );
         Metadata metadata = metadataBuilder.build();
 
-        List<RelationName> relationNames = metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class).stream()
-            .map(org.elasticsearch.cluster.metadata.RelationMetadata.Table::name)
+        List<RelationName> relationNames = metadata.relations(io.crate.metadata.RelationMetadata.Table.class).stream()
+            .map(io.crate.metadata.RelationMetadata.Table::name)
             .toList();
         assertThat(relationNames).contains(new RelationName("doc", "t1"));
     }
@@ -213,8 +213,8 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         );
         Metadata metadata = metadataBuilder.build();
 
-        List<RelationName> relationNames = metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class).stream()
-            .map(org.elasticsearch.cluster.metadata.RelationMetadata.Table::name)
+        List<RelationName> relationNames = metadata.relations(io.crate.metadata.RelationMetadata.Table.class).stream()
+            .map(io.crate.metadata.RelationMetadata.Table::name)
             .toList();
         assertThat(relationNames).contains(new RelationName("doc", "t1"));
     }
@@ -251,8 +251,8 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         );
         Metadata metadata = metadataBuilder.build();
 
-        List<RelationName> relationNames = metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class).stream()
-            .map(org.elasticsearch.cluster.metadata.RelationMetadata.Table::name)
+        List<RelationName> relationNames = metadata.relations(io.crate.metadata.RelationMetadata.Table.class).stream()
+            .map(io.crate.metadata.RelationMetadata.Table::name)
             .toList();
 
         assertThat(relationNames).contains(new RelationName("doc", "t1"));
@@ -460,9 +460,9 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
                 in.setVersion(Version.V_5_10_0);
                 PublicationsStateAction.Response response1 = new PublicationsStateAction.Response(in);
                 Metadata metadata1 = metadataUpgradeService.upgradeMetadata(response1.metadata());
-                org.elasticsearch.cluster.metadata.RelationMetadata.Table table1 = metadata1.getRelation(relationName1);
+                io.crate.metadata.RelationMetadata.Table table1 = metadata1.getRelation(relationName1);
                 assertThat(table1).isNotNull();
-                org.elasticsearch.cluster.metadata.RelationMetadata.Table table2 = metadata1.getRelation(relationName2);
+                io.crate.metadata.RelationMetadata.Table table2 = metadata1.getRelation(relationName2);
                 assertThat(table2).isNotNull();
                 assertThat(table2.partitionedBy()).containsExactly(ColumnIdent.of("p"));
             }

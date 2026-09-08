@@ -28,12 +28,12 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import io.crate.expression.reference.sys.check.AbstractSysCheck;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 
 @Singleton

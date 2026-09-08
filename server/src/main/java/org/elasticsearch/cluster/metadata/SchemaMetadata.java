@@ -34,6 +34,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 
 public class SchemaMetadata implements Diffable<SchemaMetadata> {

@@ -47,8 +47,6 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata.Table;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -72,6 +70,8 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationMetadata;
+import io.crate.metadata.RelationMetadata.Table;
 import io.crate.metadata.doc.DocTableInfoFactory;
 
 

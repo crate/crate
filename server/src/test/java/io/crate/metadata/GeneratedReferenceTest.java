@@ -35,7 +35,6 @@ import org.junit.Test;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;

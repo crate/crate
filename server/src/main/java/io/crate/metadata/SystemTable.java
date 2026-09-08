@@ -51,7 +51,6 @@ import io.crate.expression.symbol.DynamicReference;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;

@@ -48,9 +48,9 @@ import io.crate.expression.reference.DocRefResolver;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.PKAndVersion;
 
 public final class PKLookupTask extends AbstractTask {

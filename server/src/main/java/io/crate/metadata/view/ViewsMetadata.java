@@ -42,7 +42,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
 
 /**
- * @deprecated has been replaced by {@link org.elasticsearch.cluster.metadata.RelationMetadata.View}
+ * @deprecated has been replaced by {@link io.crate.metadata.RelationMetadata.View}
  **/
 @Deprecated(since = "6.3.0")
 public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {

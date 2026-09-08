@@ -57,12 +57,12 @@ import io.crate.fdw.ForeignDataWrappers;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
-import io.crate.metadata.table.TableInfo;
 
 @Singleton
 public class CollectSourceResolver {

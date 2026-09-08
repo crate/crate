@@ -26,13 +26,13 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.SystemTable;
+import io.crate.metadata.TableInfo;
+import io.crate.metadata.ViewInfo;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.view.ViewInfo;
 import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTablesTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionRelTable;

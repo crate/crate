@@ -40,12 +40,12 @@ import org.assertj.core.api.InstanceOfAssertFactories;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.metadata.RelationMetadata;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 
