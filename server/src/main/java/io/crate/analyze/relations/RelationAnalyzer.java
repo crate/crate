@@ -685,48 +685,50 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     protected AnalyzedRelation visitTable(Table<?> node, StatementAnalysisContext context) {
         QualifiedName tableQualifiedName = node.getName();
         SearchPath searchPath = context.sessionSettings().searchPath();
-        AnalyzedRelation relation;
         var relationContext = context.currentRelationContext();
 
-        var withQuery = relationContext.parentSources()
-            .getAncestor(RelationName.of(tableQualifiedName, null));
-        if (withQuery != null) {
-            relation = withQuery;
-        } else {
-            RelationInfo relationInfo = nodeCtx.schemas().findRelation(
+        RelationInfo relationInfo;
+        try {
+            relationInfo = nodeCtx.schemas().findRelation(
                 tableQualifiedName, context.currentOperation(), context.sessionSettings().sessionUser(), searchPath);
-            switch (relationInfo) {
-                case DocTableInfo docTable ->
-                    // Dispatching of doc relations is based on the returned class of the schema information.
-                    relation = new DocTableRelation(docTable);
-                case RelationMetadata.ForeignTable table -> relation = new ForeignTableRelation(table);
-                case TableInfo table -> relation = new TableRelation(table);
-                case ViewInfo viewInfo -> {
-                    Statement viewQuery = SqlParser.createStatement(viewInfo.definition());
-                    CoordinatorSessionSettings viewSessionSettings = new CoordinatorSessionSettings(
-                        context.sessionSettings().authenticatedUser(),
-                        context.sessionSettings().sessionUser(),
-                        viewInfo.searchPath(),
-                        context.sessionSettings().hashJoinsEnabled(),
-                        context.sessionSettings().excludedOptimizerRules(),
-                        viewInfo.errorOnUnknownObjectKey(),
-                        context.sessionSettings().memoryLimitInBytes(),
-                        context.sessionSettings().insertSelectFailFast()
-                    );
-                    AnalyzedRelation resolvedView = context.withSessionSettings(
-                        viewSessionSettings,
-                        newContext -> viewQuery.accept(this, newContext)
-                    );
-                    Role owner = nodeCtx.roles().findRole(viewInfo.owner());
-                    if (owner == null) {
-                        throw new UnauthorizedException(
-                            "Owner \"" + owner + "\" of the view \"" + viewInfo.owner() + "\" not found");
-                    }
-                    relation = new AnalyzedView(viewInfo.ident(), owner, resolvedView);
-                }
-                default -> throw new IllegalStateException("Unexpected relationInfo: " + relationInfo);
+        } catch (Throwable t) {
+            AnalyzedRelation ancestor = relationContext.parentSources()
+                .getAncestor(RelationName.of(tableQualifiedName, null));
+            if (ancestor == null) {
+                throw t;
             }
+            relationContext.addSourceRelation(ancestor);
+            return ancestor;
         }
+        AnalyzedRelation relation = switch (relationInfo) {
+            case DocTableInfo docTable -> new DocTableRelation(docTable);
+            case RelationMetadata.ForeignTable table -> new ForeignTableRelation(table);
+            case TableInfo table -> new TableRelation(table);
+            case ViewInfo viewInfo -> {
+                Statement viewQuery = SqlParser.createStatement(viewInfo.definition());
+                CoordinatorSessionSettings viewSessionSettings = new CoordinatorSessionSettings(
+                    context.sessionSettings().authenticatedUser(),
+                    context.sessionSettings().sessionUser(),
+                    viewInfo.searchPath(),
+                    context.sessionSettings().hashJoinsEnabled(),
+                    context.sessionSettings().excludedOptimizerRules(),
+                    viewInfo.errorOnUnknownObjectKey(),
+                    context.sessionSettings().memoryLimitInBytes(),
+                    context.sessionSettings().insertSelectFailFast()
+                );
+                AnalyzedRelation resolvedView = context.withSessionSettings(
+                    viewSessionSettings,
+                    newContext -> viewQuery.accept(this, newContext)
+                );
+                Role owner = nodeCtx.roles().findRole(viewInfo.owner());
+                if (owner == null) {
+                    throw new UnauthorizedException(
+                        "Owner \"" + owner + "\" of the view \"" + viewInfo.owner() + "\" not found");
+                }
+                yield new AnalyzedView(viewInfo.ident(), owner, resolvedView);
+            }
+            default -> throw new IllegalStateException("Unexpected relationInfo: " + relationInfo);
+        };
         relationContext.addSourceRelation(relation);
         return relation;
     }
