@@ -46,11 +46,11 @@ import org.elasticsearch.index.translog.Translog;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import io.crate.metadata.doc.DocTableInfo;
 
 public class InformationPartitionsTableInfo {
 

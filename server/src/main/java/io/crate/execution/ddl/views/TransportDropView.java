@@ -33,7 +33,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
@@ -42,6 +41,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 

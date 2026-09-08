@@ -39,7 +39,6 @@ import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.single.shard.SingleShardRequest;
 import org.elasticsearch.action.support.single.shard.TransportSingleShardAction;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -62,6 +61,7 @@ import org.elasticsearch.transport.TransportService;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.exceptions.MissingShardOperationsException;
 

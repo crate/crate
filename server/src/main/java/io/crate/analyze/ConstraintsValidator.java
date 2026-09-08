@@ -27,8 +27,8 @@ import java.util.Map;
 
 import io.crate.common.collections.Maps;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.ObjectType;
 
 public final class ConstraintsValidator {

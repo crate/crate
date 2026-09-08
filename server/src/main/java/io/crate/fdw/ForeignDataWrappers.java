@@ -32,7 +32,6 @@ import java.util.concurrent.Executor;
 
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -51,6 +50,7 @@ import io.crate.execution.engine.collect.sources.CollectSource;
 import io.crate.expression.InputFactory;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.TransactionContext;
 import io.crate.role.Roles;
 

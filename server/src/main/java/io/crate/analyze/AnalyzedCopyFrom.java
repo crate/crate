@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.DocTableInfo;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
 import io.crate.types.DataType;

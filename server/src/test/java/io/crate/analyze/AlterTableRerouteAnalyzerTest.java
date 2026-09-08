@@ -34,7 +34,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateEmptyPrimaryAllocationCommand;
@@ -48,6 +47,7 @@ import org.junit.Test;
 
 import io.crate.data.RowN;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.planner.PlannerContext;

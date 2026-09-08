@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.blob;
+package io.crate.metadata;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -38,22 +38,14 @@ import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.StoredTable;
-import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
+public final class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     private final RelationName ident;
     private final int numberOfShards;

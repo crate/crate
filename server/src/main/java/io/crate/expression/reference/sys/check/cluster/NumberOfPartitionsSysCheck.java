@@ -27,10 +27,10 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import io.crate.expression.reference.sys.check.AbstractSysCheck;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 
 @Singleton

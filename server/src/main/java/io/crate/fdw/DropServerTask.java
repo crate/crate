@@ -28,9 +28,9 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.Priority;
 
+import io.crate.metadata.RelationMetadata;
 import io.crate.sql.tree.CascadeMode;
 
 public class DropServerTask extends AckedClusterStateUpdateTask<AcknowledgedResponse> {

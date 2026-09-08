@@ -27,10 +27,10 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.metadata.RelationMetadata;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;

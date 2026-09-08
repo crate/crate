@@ -32,6 +32,7 @@ import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.ViewInfo;
 import io.crate.sql.tree.Node;
 
 public class ViewInfoFactoryTest {

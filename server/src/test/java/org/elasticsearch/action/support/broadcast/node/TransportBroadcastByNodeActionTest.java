@@ -29,11 +29,11 @@ import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;

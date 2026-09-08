@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -48,6 +47,7 @@ import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.delete.ShardDeleteRequest.Item;
 import io.crate.execution.jobs.TasksService;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 
 @Singleton

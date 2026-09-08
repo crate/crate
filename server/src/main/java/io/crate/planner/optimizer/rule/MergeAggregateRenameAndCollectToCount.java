@@ -27,7 +27,7 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 import io.crate.common.collections.Lists;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.FieldReplacer;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.DocTableInfo;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Count;
 import io.crate.planner.operators.HashAggregate;

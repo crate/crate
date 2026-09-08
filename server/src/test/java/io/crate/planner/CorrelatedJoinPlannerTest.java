@@ -22,6 +22,7 @@
 package io.crate.planner;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -36,7 +37,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.DocTableInfo;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.Eval;

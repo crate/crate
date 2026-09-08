@@ -29,15 +29,14 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.elasticsearch.cluster.metadata.RelationMetadata;
-import io.crate.common.annotations.VisibleForTesting;
-
 import io.crate.analyze.BoundCopyFrom;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
+import io.crate.metadata.RelationMetadata;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;

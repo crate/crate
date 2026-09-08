@@ -25,7 +25,7 @@ import static io.crate.types.DataTypes.STRING;
 
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import io.crate.metadata.view.ViewInfo;
+import io.crate.metadata.ViewInfo;
 
 public final class PgViewsTable {
 

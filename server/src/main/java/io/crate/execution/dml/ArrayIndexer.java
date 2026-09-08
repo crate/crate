@@ -42,7 +42,7 @@ import io.crate.Streamer;
 import io.crate.expression.scalar.NumNullTermsPerDocQuery;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

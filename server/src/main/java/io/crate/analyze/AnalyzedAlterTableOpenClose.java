@@ -21,11 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.sql.tree.Table;
-
 import java.util.function.Consumer;
+
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.DocTableInfo;
+import io.crate.sql.tree.Table;
 
 public class AnalyzedAlterTableOpenClose implements DDLStatement {
 

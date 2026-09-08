@@ -37,18 +37,18 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.exceptions.SQLParseException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.sql.tree.ColumnPolicy;

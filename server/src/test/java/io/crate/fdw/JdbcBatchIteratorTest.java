@@ -30,8 +30,8 @@ import org.junit.Test;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 

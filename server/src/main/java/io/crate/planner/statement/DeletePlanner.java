@@ -28,11 +28,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import io.crate.common.annotations.VisibleForTesting;
-
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -51,11 +50,11 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;

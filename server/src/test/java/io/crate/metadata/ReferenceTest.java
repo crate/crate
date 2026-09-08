@@ -37,7 +37,6 @@ import org.junit.Test;
 
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;

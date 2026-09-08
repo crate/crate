@@ -43,6 +43,8 @@ import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotInProgressException;
 import org.elasticsearch.snapshots.SnapshotsService;
 
+import io.crate.metadata.RelationMetadata;
+
 /**
  * Deletes indices.
  */

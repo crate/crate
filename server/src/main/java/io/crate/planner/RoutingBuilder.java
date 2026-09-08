@@ -39,8 +39,8 @@ import io.crate.analyze.WhereClause;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.TableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.fetch.IndexBaseBuilder;
 
 final class RoutingBuilder {

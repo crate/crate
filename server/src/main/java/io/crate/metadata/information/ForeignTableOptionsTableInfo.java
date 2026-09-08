@@ -21,9 +21,8 @@
 
 package io.crate.metadata.information;
 
-import org.elasticsearch.cluster.metadata.RelationMetadata;
-
 import io.crate.Constants;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.types.DataTypes;

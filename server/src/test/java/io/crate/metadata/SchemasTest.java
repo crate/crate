@@ -33,7 +33,6 @@ import java.util.Set;
 
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
@@ -49,7 +48,6 @@ import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.sql.tree.QualifiedName;

@@ -20,7 +20,7 @@
  */
 
 
-package org.elasticsearch.cluster.metadata;
+package io.crate.metadata;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -37,28 +37,20 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.Diffable;
 import org.elasticsearch.cluster.Diffs.ValueSerializer;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RelationInfo;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
@@ -425,7 +417,7 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata>
     record ForeignTable(RelationName name,
                         Map<ColumnIdent, Reference> references,
                         String server,
-                        Settings settings) implements RelationMetadata, Writeable, TableInfo {
+                        Settings settings) implements RelationMetadata, TableInfo {
 
         private static final short ORD = 3;
 

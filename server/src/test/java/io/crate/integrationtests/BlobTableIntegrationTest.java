@@ -23,13 +23,13 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.testing.Asserts;
 

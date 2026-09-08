@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,9 +37,9 @@ import io.crate.auth.Protocol;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ViewInfo;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.view.ViewInfo;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Roles;
 import io.crate.session.Sessions;

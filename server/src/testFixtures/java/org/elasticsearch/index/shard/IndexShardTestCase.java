@@ -48,7 +48,6 @@ import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -108,8 +107,9 @@ import io.crate.common.CheckedFunction;
 import io.crate.common.io.IOUtils;
 import io.crate.concurrent.FutureActionListener;
 import io.crate.execution.dml.TranslogIndexer;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 

@@ -23,6 +23,7 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
@@ -40,7 +41,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -52,14 +52,16 @@ import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.TableInfo;
 import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;

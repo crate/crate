@@ -23,11 +23,12 @@ package io.crate.metadata.table;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.view.ViewInfo;
+import io.crate.metadata.TableInfo;
+import io.crate.metadata.ViewInfo;
 
 public interface SchemaInfo extends AutoCloseable {
 

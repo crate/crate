@@ -27,7 +27,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.metadata.SchemaMetadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
@@ -36,6 +35,7 @@ import org.junit.Test;
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataTypes;
 

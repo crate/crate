@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -60,8 +61,8 @@ import io.crate.expression.symbol.FetchReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableInfo;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.node.dql.QueryThenFetch;

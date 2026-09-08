@@ -36,7 +36,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -51,15 +50,16 @@ import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.fdw.ForeignDataWrapper;
 import io.crate.fdw.ForeignDataWrappers;
 import io.crate.fdw.ServersMetadata;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TableInfo;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.role.Role;
 import io.crate.types.DataTypes;
 
@@ -160,7 +160,7 @@ public final class TransportAnalyzeAction {
                         .thenAccept(samples -> entries.put(docTable.ident(), samples.createTableStats(primitiveColumns)));
                 }
             }
-            
+
             for (RelationMetadata.ForeignTable foreignTable : schema.getForeignTables()) {
                 ServersMetadata.Server server = servers.get(foreignTable.server());
 

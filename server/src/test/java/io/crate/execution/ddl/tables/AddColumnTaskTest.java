@@ -39,13 +39,13 @@ import org.junit.Test;
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;

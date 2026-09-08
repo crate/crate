@@ -43,7 +43,6 @@ import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfigu
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -71,6 +70,7 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;

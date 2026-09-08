@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Locale;
 
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
@@ -43,9 +42,11 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.ViewInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Query;
 import io.crate.types.DataType;

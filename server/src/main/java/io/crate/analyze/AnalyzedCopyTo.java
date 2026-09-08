@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
 

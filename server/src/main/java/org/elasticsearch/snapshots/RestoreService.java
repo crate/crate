@@ -59,7 +59,6 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RecoverySource;
@@ -100,6 +99,7 @@ import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 
 /**

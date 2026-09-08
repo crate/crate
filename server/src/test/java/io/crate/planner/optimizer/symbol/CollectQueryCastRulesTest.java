@@ -23,6 +23,7 @@ package io.crate.planner.optimizer.symbol;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.emptyMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
@@ -46,9 +47,9 @@ import io.crate.expression.operator.Operators;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Collect;

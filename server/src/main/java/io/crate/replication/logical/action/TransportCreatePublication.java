@@ -30,7 +30,6 @@ import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -38,6 +37,7 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
 import io.crate.replication.logical.metadata.Publication;

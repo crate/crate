@@ -38,7 +38,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -106,7 +106,7 @@ public final class MappingUtil {
      * On column addition it's NULL in order to not override an existing value.
      *
      * @deprecated IndexMetadata since 6.4 doesn't contain a mapping anymore.
-     * Table schema is in {@link org.elasticsearch.cluster.metadata.RelationMetadata} instead.
+     * Table schema is in {@link io.crate.metadata.RelationMetadata} instead.
      * This is used for BWC - when communicating with older nodes.
      */
     @Deprecated

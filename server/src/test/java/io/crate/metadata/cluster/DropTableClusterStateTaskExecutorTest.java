@@ -30,12 +30,12 @@ import static org.mockito.Mockito.when;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.execution.ddl.tables.DropTableRequest;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;

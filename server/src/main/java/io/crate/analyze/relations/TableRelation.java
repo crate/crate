@@ -28,8 +28,8 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.TableInfo;
 import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.TableInfo;
 
 public class TableRelation extends AbstractTableRelation<TableInfo> {
 
