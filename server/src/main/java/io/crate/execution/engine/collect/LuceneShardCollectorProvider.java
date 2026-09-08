@@ -30,7 +30,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -72,7 +71,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     private final LuceneQueryBuilder luceneQueryBuilder;
     private final NodeContext nodeCtx;
     private final DocInputFactory docInputFactory;
-    private final BigArrays bigArrays;
     private final ClusterService clusterService;
 
     private final LuceneReferenceResolver referenceResolver;
@@ -86,7 +84,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         Settings settings,
                                         Client elasticsearchClient,
                                         IndexShard indexShard,
-                                        BigArrays bigArrays,
                                         Map<String, FileOutputFactory> fileOutputFactoryMap) {
         super(
             clusterService,
@@ -115,7 +112,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             table.isParentReferenceIgnored()
         );
         this.docInputFactory = new DocInputFactory(nodeCtx, referenceResolver);
-        this.bigArrays = bigArrays;
         this.clusterService = clusterService;
     }
 
@@ -181,14 +177,13 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         if (it != null) {
             return it;
         }
-        it = GroupByOptimizedIterator.tryOptimizeSingleStringKey(
+        it = GroupByOptimizedIterator.tryOptimizeStringKeys(
             nodeCtx.functions(),
             referenceResolver,
             indexShard,
             table,
             partitionName.values(),
             luceneQueryBuilder,
-            bigArrays,
             nodeCtx,
             docInputFactory,
             normalizedPhase,

@@ -1611,4 +1611,78 @@ public class GroupByAggregateTest extends IntegTestCase {
             }
         });
     }
+
+    @Test
+    public void test_group_by_on_two_string_cols() {
+        execute("CREATE TABLE tbl(tag string, country string) CLUSTERED INTO 1 SHARDS");
+        execute("""
+            INSERT INTO tbl(tag, country) VALUES
+            ('null', 'null'),
+            ('foo', 'Austria'),
+            ('foo', 'Germany'),
+            ('foo', 'Greece'),
+            ('foo', 'Greece'),
+            ('bar', 'Austria'),
+            ('bar', 'null'),
+            ('bar', 'Germany'),
+            ('bar', 'Germany'),
+            ('bar', 'Greece'),
+            ('bar', 'Austria'),
+            ('bar', 'null'),
+            ('null', 'null')
+            """);
+        execute("REFRESH table tbl");
+        execute("SELECT tag, country, count(*) FROM tbl GROUP BY 1, 2 ORDER BY count(*) DESC, 1, 2");
+        assertThat(response).hasRows(
+            "bar| Austria| 2",
+            "bar| Germany| 2",
+            "bar| null| 2",
+            "foo| Greece| 2",
+            "null| null| 2",
+            "bar| Greece| 1",
+            "foo| Austria| 1",
+            "foo| Germany| 1");
+    }
+
+    /// Covers the NULL group of a multi-key GROUP BY: a doc without a value for a key column has no
+    /// Lucene ordinal for it, so the ordinal based grouping has to route it to its own group.
+    @Test
+    public void test_group_by_on_two_string_cols_with_nulls() {
+        execute("CREATE TABLE tbl(tag string, country string) CLUSTERED INTO 1 SHARDS");
+        execute("""
+            INSERT INTO tbl(tag, country) VALUES
+            ('foo', 'Austria'),
+            ('foo', NULL),
+            ('foo', NULL),
+            (NULL, 'Austria'),
+            (NULL, NULL)
+            """);
+        execute("REFRESH table tbl");
+        execute("SELECT tag, country, count(*) FROM tbl GROUP BY 1, 2 ORDER BY 1 NULLS LAST, 2 NULLS LAST");
+        assertThat(response).hasRows(
+            "foo| Austria| 1",
+            "foo| NULL| 2",
+            "NULL| Austria| 1",
+            "NULL| NULL| 1");
+    }
+
+    /// The same aggregation over three keys, one of which is not a string, to make sure the mixed-type
+    /// case still produces correct results via the generic group-by.
+    @Test
+    public void test_group_by_on_string_and_non_string_cols() {
+        execute("CREATE TABLE tbl(tag string, country string, yr int) CLUSTERED INTO 1 SHARDS");
+        execute("""
+            INSERT INTO tbl(tag, country, yr) VALUES
+            ('foo', 'Austria', 2024),
+            ('foo', 'Austria', 2024),
+            ('foo', 'Austria', 2025),
+            ('bar', 'Greece', 2025)
+            """);
+        execute("REFRESH table tbl");
+        execute("SELECT tag, country, yr, count(*) FROM tbl GROUP BY 1, 2, 3 ORDER BY 1, 2, 3");
+        assertThat(response).hasRows(
+            "bar| Greece| 2025| 1",
+            "foo| Austria| 2024| 2",
+            "foo| Austria| 2025| 1");
+    }
 }
