@@ -80,3 +80,6 @@ Fixes
     FROM source_symbols_t AS o
     GROUP BY o.c1
     ORDER BY o.c1;
+
+    > Couldn't create execution plan from logical plan because of:
+    Couldn't find (SELECT c1 FROM (i)) in SourceSymbols
