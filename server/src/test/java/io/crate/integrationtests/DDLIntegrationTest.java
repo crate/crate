@@ -754,7 +754,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("drop table if exists nonexistent");
         assertThat(response).hasRowCount(0);
     }
-    
+
     @Test
     public void testDropMultipleTables() throws Exception {
         execute("create table t1 (id int) with (number_of_replicas=0)");
@@ -766,11 +766,17 @@ public class DDLIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(3);
 
         Asserts.assertSQLError(() -> execute("select * from t1"))
-            .hasPGError(UNDEFINED_TABLE);
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 't1' unknown");
         Asserts.assertSQLError(() -> execute("select * from t2"))
-            .hasPGError(UNDEFINED_TABLE);
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 't2' unknown");
         Asserts.assertSQLError(() -> execute("select * from t3"))
-            .hasPGError(UNDEFINED_TABLE);
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 't3' unknown");
     }
 
     @Test
@@ -783,9 +789,13 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("drop table if exists t1, t_missing, t2");
 
         Asserts.assertSQLError(() -> execute("select * from t1"))
-            .hasPGError(UNDEFINED_TABLE);
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 't1' unknown");
         Asserts.assertSQLError(() -> execute("select * from t2"))
-            .hasPGError(UNDEFINED_TABLE);
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 't2' unknown");
     }
 
     @Test

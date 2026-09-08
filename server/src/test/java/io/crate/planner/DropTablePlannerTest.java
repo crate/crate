@@ -94,9 +94,10 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropMultipleTables() throws Exception {
         DropTablePlan plan = e.plan("drop table users, parted");
-        assertThat(plan.dropTable().tables()).hasSize(2);
-        assertThat(plan.dropTable().tables().get(0).tableName().name()).isEqualTo("users");
-        assertThat(plan.dropTable().tables().get(1).tableName().name()).isEqualTo("parted");
+        assertThat(plan.dropTable().tables()).satisfiesExactly(
+            x -> assertThat(x.tableName().name()).isEqualTo("users"),
+            x -> assertThat(x.tableName().name()).isEqualTo("parted")
+        );
     }
 
 }
