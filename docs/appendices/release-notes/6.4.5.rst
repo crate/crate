@@ -46,6 +46,10 @@ series.
 Fixes
 =====
 
+- Fixed an issue that could cause statements including a cross join and an outer
+  join plus any other join to drop the outer join condition, leading to
+  incorrect results.
+
 - Fixed an issue that caused casting string values to a longer ``bit`` string to
   fail with an ``StringIndexOutOfBoundsException`` instead of filling up the gap
   with ``0``.
