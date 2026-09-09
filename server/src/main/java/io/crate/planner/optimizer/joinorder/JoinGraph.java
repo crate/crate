@@ -175,7 +175,10 @@ public record JoinGraph(List<LogicalPlan> nodes,
 
             Symbol joinCondition = joinPlan.joinCondition();
             if (joinPlan.joinType() != JoinType.INNER) {
-                return left.joinWith(right);
+                JoinGraph result = left.joinWith(right);
+                return joinCondition == null
+                    ? result
+                    : result.withFilters(List.of(joinCondition));
             }
 
             ArrayList<Symbol> filters = new ArrayList<>();
