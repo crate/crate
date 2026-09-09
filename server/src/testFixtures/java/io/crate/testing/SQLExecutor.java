@@ -128,6 +128,7 @@ import io.crate.fdw.AddServerTask;
 import io.crate.fdw.CreateServerRequest;
 import io.crate.fdw.FdwAnalyzer;
 import io.crate.fdw.ForeignDataWrappers;
+import io.crate.fdw.ForeignTableRelation;
 import io.crate.lucene.CrateLuceneTestCase;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocTableInfo;
@@ -536,6 +537,9 @@ public class SQLExecutor {
                     RelationName relationName = tableInfo.ident();
                     sources.put(relationName, new DocTableRelation(schemas.getTableInfo(relationName)));
                 }
+            }
+            for (RelationMetadata.ForeignTable foreignTable : schemaInfo.getForeignTables()) {
+                sources.put(foreignTable.name(), new ForeignTableRelation(foreignTable));
             }
         }
         CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);

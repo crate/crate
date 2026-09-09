@@ -23,6 +23,8 @@ package io.crate.types;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.LocalDate;
+
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
@@ -75,5 +77,10 @@ public class DateTypeTest extends DataTypeTestCase<Long> {
 
         timestamp = DataTypes.TIMESTAMP.implicitCast("1970-01-01 12:00");
         assertThat(DataTypes.DATE.implicitCast(timestamp)).isEqualTo(0L);
+    }
+
+    @Test
+    public void test_cast_local_date() {
+        assertThat(DateType.INSTANCE.implicitCast(LocalDate.of(2026, 1, 1))).isEqualTo(1767225600000L);
     }
 }
