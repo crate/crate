@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -1178,6 +1177,7 @@ public class JoinIntegrationTest extends IntegTestCase {
             "  └ Collect[doc.t4 | [id, d] | true]"
         );
         execute(stmt);
+        assertThat(response).hasRows("1| 1| 1| 2| 1| 2| 1| 3");
     }
 
     @Test
@@ -1221,6 +1221,7 @@ public class JoinIntegrationTest extends IntegTestCase {
                 "  │  └ Get[doc.t2 | id, b | DocKeys{1} | (id = 1)]",
                 "  └ Get[doc.t3 | id, c | DocKeys{1} | (id = 1)]");
         execute(stmt);
+        assertThat(response).hasRows("1| 1| 1| 2| 1| 10");
     }
 
     @Test
@@ -1553,50 +1554,6 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         execute(stmt);
         assertThat(response).hasRows("3");
-    }
-
-    @Test
-    @UseRandomizedSchema(random = false)
-    @UseRandomizedOptimizerRules(0)
-    @UseHashJoins(1)
-    public void test_eliminate_cross_join() throws Exception {
-        execute("create table t1 (x int)");
-        execute("create table t2 (y int)");
-        execute("create table t3 (z int)");
-
-        String stmt = "SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t1.x = t3.z AND t3.z = t2.y;";
-        execute("explain (costs false) " + stmt);
-
-        assertThat(response).hasLines(
-            "Eval[x, y, z]",
-            "  └ HashJoin[INNER | (y = z)]",
-            "    ├ HashJoin[INNER | (x = z)]",
-            "    │  ├ Collect[doc.t1 | [x] | true]",
-            "    │  └ Collect[doc.t3 | [z] | true]",
-            "    └ Collect[doc.t2 | [y] | true]"
-        );
-    }
-
-    @Test
-    @UseRandomizedSchema(random = false)
-    @UseRandomizedOptimizerRules(0)
-    @UseHashJoins(1)
-    public void test_eliminate_cross_join_with_filter() throws Exception {
-        execute("create table t1 (x int)");
-        execute("create table t2 (y int)");
-        execute("create table t3 (z int)");
-
-        String stmt = "SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t1.x = t3.z AND t3.z = t2.y WHERE t1.x > 1";
-        execute("explain (costs false) " + stmt);
-
-        assertThat(response).hasLines(
-            "Eval[x, y, z]",
-            "  └ HashJoin[INNER | (y = z)]",
-            "    ├ HashJoin[INNER | (x = z)]",
-            "    │  ├ Collect[doc.t1 | [x] | (x > 1)]",
-            "    │  └ Collect[doc.t3 | [z] | true]",
-            "    └ Collect[doc.t2 | [y] | true]"
-        );
     }
 
     /**

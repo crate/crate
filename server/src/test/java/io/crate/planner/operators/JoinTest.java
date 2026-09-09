@@ -1165,10 +1165,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             .hasMessageContaining("column z specified in USING clause does not exist in left table");
     }
 
-    /**
-     * Verifies a bug fix (and regression that was introduced with 5.2.4)
-     * See https://github.com/crate/crate/issues/13808
-     */
+    // Verifies a bug fix (and regression that was introduced with 5.2.4)
+    // See https://github.com/crate/crate/issues/13808
     @Test
     public void test_nested_joins_with_explicit_and_implicit_join_condition() throws Exception {
         var executor = SQLExecutor.of(clusterService)
@@ -1370,6 +1368,38 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "  │    │  └ Collect[doc.t3 | [c] | true]",
             "  │    └ Collect[doc.t5 | [e] | true]",
             "  └ Collect[doc.t6 | [f] | true]"
+        );
+    }
+
+    @Test
+    public void test_eliminate_cross_join() {
+        QueriedSelectRelation mss = e.analyze("SELECT x, y, z FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t1.x = t3.z AND t3.z = t2.y");
+        var plannerCtx = e.getPlannerContext();
+        var result = buildLogicalPlan(mss, plannerCtx);
+
+        assertThat(result).hasOperators(
+            "Eval[x, y, z]",
+            "  └ HashJoin[INNER | (y = z)]",
+            "    ├ HashJoin[INNER | (x = z)]",
+            "    │  ├ Collect[doc.t1 | [x] | true]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t2 | [y] | true]"
+        );
+    }
+
+    @Test
+    public void test_eliminate_cross_join_with_filter() {
+        QueriedSelectRelation mss = e.analyze("SELECT x, y, z FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t1.x = t3.z AND t3.z = t2.y WHERE t1.x > 1");
+        var plannerCtx = e.getPlannerContext();
+        var result = buildLogicalPlan(mss, plannerCtx);
+
+        assertThat(result).hasOperators(
+            "Eval[x, y, z]",
+            "  └ HashJoin[INNER | (y = z)]",
+            "    ├ HashJoin[INNER | (x = z)]",
+            "    │  ├ Collect[doc.t1 | [x] | (x > 1)]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t2 | [y] | true]"
         );
     }
 }
