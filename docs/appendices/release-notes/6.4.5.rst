@@ -46,6 +46,13 @@ series.
 Fixes
 =====
 
+- Fixed an issue that could cause statements including a cross join with two
+  other relations to apply an incorrect filter if one of the join conditions
+  included an equijoin where one relation appeared multiple times on one side of
+  the equal condition. An example query::
+
+      SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON (t1.x + t1.x) = t3.z AND t3.z = t2.y
+
 - Fixed an issue that could cause statements including a cross join and an outer
   join plus any other join to drop the outer join condition, leading to
   incorrect results.
