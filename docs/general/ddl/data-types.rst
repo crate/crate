@@ -2303,6 +2303,17 @@ Inserting values that are either too short or too long results in an error::
     DROP OK, 1 row affected (... sec)
 
 
+Strings can be cast to the `bit` type. If the length of the string doesn't match
+the `bit` type length, it is trimmed or extended on the right side::
+
+  cr> SELECT '011'::bit(4), '10101'::bit(4)
+  +-----------------------+-------------------------+
+  | CAST('011' AS bit(4)) | CAST('10101' AS bit(4)) |
+  +-----------------------+-------------------------+
+  | B'0110'               | B'1010'                 |
+  +-----------------------+-------------------------+
+  SELECT 1 row in set (... sec)
+
 
 .. _data-types-ip-addresses:
 

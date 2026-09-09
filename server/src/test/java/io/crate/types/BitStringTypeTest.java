@@ -79,6 +79,26 @@ public class BitStringTypeTest extends DataTypeTestCase<BitString> {
         assertThat(result).isEqualTo(BitString.ofRawBits("1110"));
     }
 
+    @Test
+    public void test_casting_string_to_longer_bitstring_fills_in_0_bits() throws Exception {
+        BitStringType type = new BitStringType(4);
+        BitString result1 = type.explicitCast("", SESSION_SETTINGS, null);
+        assertThat(result1).isEqualTo(BitString.ofRawBits("0000"));
+
+        BitString result2 = type.explicitCast("110", SESSION_SETTINGS, null);
+        assertThat(result2).isEqualTo(BitString.ofRawBits("1100"));
+
+        BitString result3 = type.explicitCast("1101", SESSION_SETTINGS, null);
+        assertThat(result3).isEqualTo(BitString.ofRawBits("1101"));
+    }
+
+    @Test
+    public void test_casting_string_can_create_trimmed_bitstring() throws Exception {
+        BitStringType type = new BitStringType(4);
+        BitString result = type.explicitCast("11011", SESSION_SETTINGS, null);
+        assertThat(result).isEqualTo(BitString.ofRawBits("1101"));
+    }
+
     @Override
     public void test_reference_resolver_docvalues_off() throws Exception {
         assumeFalse("BitStringType cannot disable column store", true);
