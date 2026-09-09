@@ -125,7 +125,9 @@ SQL Statements
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
-None
+- `Manish Singh <https://github.com/manish9363>`_ added the
+  ``pg_is_in_recovery()`` scalar function for improved compatibility with
+  PostgreSQL tools. It always returns ``false``.
 
 Data Types
 ----------
