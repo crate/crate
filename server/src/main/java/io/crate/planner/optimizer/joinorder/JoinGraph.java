@@ -25,6 +25,7 @@ import static io.crate.planner.operators.EquiJoinDetector.isEquiJoin;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -186,7 +187,7 @@ public record JoinGraph(List<LogicalPlan> nodes,
             if (joinCondition == null) {
                 edges = Map.of();
             } else {
-                var edgeCollector = new EdgeCollector();
+                var edgeCollector = new EdgeCollector(context);
                 Map<Set<RelationName>, Symbol> split = QuerySplitter.split(joinCondition);
                 for (var entry : split.entrySet()) {
                     Set<RelationName> relations = entry.getKey();
@@ -197,12 +198,14 @@ public record JoinGraph(List<LogicalPlan> nodes,
                     // filters. Therefore, we only want entries where we have
                     // two keys.
                     if (relations.size() == 2 && isEquiJoin(expression)) {
-                        expression.accept(edgeCollector, context);
+                        expression.accept(edgeCollector, null);
                     } else {
                         filters.add(expression);
                     }
                 }
                 edges = edgeCollector.edges;
+                assert (!edges.isEmpty() || !filters.isEmpty())
+                    : "Must have either edges or filters - otherwise we'd be dropping the join condition";
             }
             return left
                 .joinWith(right)
@@ -210,43 +213,56 @@ public record JoinGraph(List<LogicalPlan> nodes,
                 .withFilters(filters);
         }
 
-        private static class EdgeCollector extends SymbolVisitor<Map<Symbol, LogicalPlan>, Void> {
+        private static class EdgeCollector extends SymbolVisitor<Set<LogicalPlan>, Void> {
 
             private final Map<LogicalPlan, List<Edge>> edges = new HashMap<>();
-            private final List<LogicalPlan> sources = new ArrayList<>();
+            private final Map<Symbol, LogicalPlan> outputsToPlan;
+
+            private EdgeCollector(Map<Symbol, LogicalPlan> outputsToPlan) {
+                this.outputsToPlan = outputsToPlan;
+            }
 
             @Override
-            public Void visitField(ScopedSymbol s, Map<Symbol, LogicalPlan> context) {
-                sources.add(context.get(s));
+            public Void visitField(ScopedSymbol s, Set<LogicalPlan> sources) {
+                if (sources != null) {
+                    LogicalPlan logicalPlan = outputsToPlan.get(s);
+                    assert logicalPlan != null : "ScopedSymbol part of joinCondition must exist in outputsToPlan";
+                    sources.add(logicalPlan);
+                }
                 return null;
             }
 
             @Override
-            public Void visitReference(Reference ref, Map<Symbol, LogicalPlan> context) {
-                sources.add(context.get(ref));
+            public Void visitReference(Reference ref, Set<LogicalPlan> sources) {
+                if (sources != null) {
+                    LogicalPlan logicalPlan = outputsToPlan.get(ref);
+                    assert logicalPlan != null : "Reference part of joinCondition must exist in outputsToPlan";
+                    sources.add(logicalPlan);
+                }
                 return null;
             }
 
             @Override
-            public Void visitFunction(io.crate.expression.symbol.Function f, Map<Symbol, LogicalPlan> context) {
-                var sizeSource = sources.size();
-                f.arguments().forEach(x -> x.accept(this, context));
+            public Void visitFunction(io.crate.expression.symbol.Function f, Set<LogicalPlan> sources) {
+                List<Symbol> arguments = f.arguments();
                 if (f.name().equals(EqOperator.NAME)) {
-                    assert sources.size() == sizeSource + 2 : "Source must be collected for each argument";
-                    var fromSymbol = f.arguments().get(0);
-                    var toSymbol = f.arguments().get(1);
-                    var fromRelation = sources.get(sources.size() - 2);
-                    var toRelation = sources.get(sources.size() - 1);
-                    if (fromRelation != null && toRelation != null) {
-                        // Edges are created and indexed for each equi-join condition
-                        // from both directions e.g.:
-                        // a.x = b.y
-                        // becomes:
-                        // a -> Edge[b, a.x, b.y]
-                        // b -> Edge[a, a.x, b.y]
-                        addEdge(fromRelation, new Edge(toRelation, fromSymbol, toSymbol));
-                        addEdge(toRelation, new Edge(fromRelation, fromSymbol, toSymbol));
+                    var lhsSymbol = arguments.get(0);
+                    var rhsSymbol = arguments.get(1);
+
+                    Set<LogicalPlan> lhsRelations = new HashSet<>();
+                    lhsSymbol.accept(this, lhsRelations);
+
+                    Set<LogicalPlan> rhsRelations = new HashSet<>();
+                    rhsSymbol.accept(this, rhsRelations);
+
+                    for (LogicalPlan lhsRelation : lhsRelations) {
+                        for (LogicalPlan rhsRelation : rhsRelations) {
+                            addEdge(lhsRelation, new Edge(rhsRelation, lhsSymbol, rhsSymbol));
+                            addEdge(rhsRelation, new Edge(lhsRelation, lhsSymbol, rhsSymbol));
+                        }
                     }
+                } else {
+                    arguments.forEach(arg -> arg.accept(this, sources));
                 }
                 return null;
             }
