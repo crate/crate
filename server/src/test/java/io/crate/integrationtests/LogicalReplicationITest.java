@@ -293,6 +293,27 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
     }
 
     @Test
+    public void test_subscribing_to_publication_for_concrete_partition() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
+        executeOnPublisher("INSERT INTO doc.t1 (p) VALUES (1), (2)");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        createSubscription("sub1", "pub1");
+
+        var subscription = SubscriptionsMetadata.get(subscriberCluster.getInstance(ClusterService.class).state().metadata())
+            .subscription()
+            .get("sub1");
+        var relationName = new RelationName("doc", "t1");
+        assertThat(subscription.relations()).containsOnlyKeys(
+            new TableOrPartition(relationName, new PartitionName(relationName, List.of("1")).ident())
+        );
+    }
+
+    @Test
     public void test_subscribing_to_publication_containing_index_with_non_active_shards_wont_be_restored() throws Exception {
         // Create two tables, one should be restored successfully, ensuring that the restore works correctly
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 10 shards WITH(" +

@@ -200,10 +200,9 @@ public class TransportCreateSubscription extends TransportMasterNodeAction<Creat
                 }
 
                 HashMap<TableOrPartition, Subscription.RelationState> relations = new HashMap<>();
-                Metadata publisherMetadata = publicationsStateResponse.metadata();
-                for (RelationMetadata.Table table : publisherMetadata.relations(RelationMetadata.Table.class)) {
+                for (TableOrPartition target : publicationsStateResponse.targets()) {
                     relations.put(
-                        new TableOrPartition(table.name(), null),
+                        target,
                         new Subscription.RelationState(Subscription.State.INITIALIZING, null)
                     );
                 }
