@@ -85,6 +85,10 @@
       <outputDirectory>plugins/lang-js</outputDirectory>
     </file>
     <file>
+      <source>../extensions/parquet/src/main/resources/plugin-descriptor.properties</source>
+      <outputDirectory>plugins/parquet</outputDirectory>
+    </file>
+    <file>
       <source>../plugins/cr8-copy-s3/src/main/resources/plugin-descriptor.properties</source>
       <outputDirectory>plugins/copy-s3</outputDirectory>
     </file>
@@ -130,6 +134,7 @@
         <exclude>io.crate:crate-functions</exclude>
         <exclude>io.crate:crate-lang-js</exclude>
         <exclude>io.crate:crate-jmx-monitoring</exclude>
+        <exclude>io.crate:crate-parquet</exclude>
         <exclude>io.crate:es-analysis-common</exclude>
 
         <exclude>io.crate:es-analysis-phonetic</exclude>
@@ -187,6 +192,17 @@
         <includeDependencies>false</includeDependencies>
         <unpack>false</unpack>
         <outputDirectory>plugins/lang-js</outputDirectory>
+      </binaries>
+    </moduleSet>
+    <moduleSet>
+      <useAllReactorProjects>true</useAllReactorProjects>
+      <includes>
+        <include>io.crate:crate-parquet</include>
+      </includes>
+      <binaries>
+        <includeDependencies>false</includeDependencies>
+        <unpack>false</unpack>
+        <outputDirectory>plugins/parquet</outputDirectory>
       </binaries>
     </moduleSet>
     <moduleSet>

@@ -1,2 +1,2 @@
-io.crate.fdw.JdbcFdwProvider
 io.crate.parquet.ParquetFdwProvider
+

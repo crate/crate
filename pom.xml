@@ -409,6 +409,7 @@
         <module>extensions/functions</module>
         <module>extensions/lang-js</module>
         <module>extensions/jmx-monitoring</module>
+        <module>extensions/parquet</module>
         <module>jlink-jdk</module>
         <module>app</module>
         <module>benchmarks</module>
