@@ -35,10 +35,8 @@ import io.crate.analyze.relations.QuerySplitter;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.Maps;
 import io.crate.expression.operator.EqOperator;
-import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
@@ -213,51 +211,37 @@ public record JoinGraph(List<LogicalPlan> nodes,
         private static class EdgeCollector extends SymbolVisitor<Map<Symbol, LogicalPlan>, Void> {
 
             private final Map<LogicalPlan, List<Edge>> edges = new HashMap<>();
-            private final List<LogicalPlan> sources = new ArrayList<>();
-
-            @Override
-            public Void visitField(ScopedSymbol s, Map<Symbol, LogicalPlan> context) {
-                sources.add(context.get(s));
-                return null;
-            }
-
-            @Override
-            public Void visitReference(Reference ref, Map<Symbol, LogicalPlan> context) {
-                sources.add(context.get(ref));
-                return null;
-            }
 
             @Override
             public Void visitFunction(io.crate.expression.symbol.Function f, Map<Symbol, LogicalPlan> context) {
-                var sizeSource = sources.size();
-                f.arguments().forEach(x -> x.accept(this, context));
+                List<Symbol> arguments = f.arguments();
                 if (f.name().equals(EqOperator.NAME)) {
-                    assert sources.size() == sizeSource + 2 : "Source must be collected for each argument";
-                    var fromSymbol = f.arguments().get(0);
-                    var toSymbol = f.arguments().get(1);
-                    var fromRelation = sources.get(sources.size() - 2);
-                    var toRelation = sources.get(sources.size() - 1);
-                    if (fromRelation != null && toRelation != null) {
+                    var lhsSymbol = arguments.get(0);
+                    var rhsSymbol = arguments.get(1);
+                    LogicalPlan lhsRelation = context.get(lhsSymbol);
+                    LogicalPlan rhsRelation = context.get(rhsSymbol);
+                    if (lhsRelation != null && rhsRelation != null) {
                         // Edges are created and indexed for each equi-join condition
                         // from both directions e.g.:
                         // a.x = b.y
                         // becomes:
                         // a -> Edge[b, a.x, b.y]
                         // b -> Edge[a, a.x, b.y]
-                        addEdge(fromRelation, new Edge(toRelation, fromSymbol, toSymbol));
-                        addEdge(toRelation, new Edge(fromRelation, fromSymbol, toSymbol));
+                        addEdge(lhsRelation, new Edge(rhsRelation, lhsSymbol, rhsSymbol));
+                        addEdge(rhsRelation, new Edge(lhsRelation, lhsSymbol, rhsSymbol));
                     }
+                } else {
+                    arguments.forEach(x -> x.accept(this, context));
                 }
                 return null;
             }
 
             private void addEdge(LogicalPlan from, Edge edge) {
-                var values = edges.get(from);
+                List<Edge> values = edges.get(from);
                 if (values == null) {
                     values = List.of(edge);
                 } else {
-                    values = new ArrayList<>(values);
-                    values.add(edge);
+                    values = Lists.concat(values, edge);
                 }
                 edges.put(from, values);
             }
