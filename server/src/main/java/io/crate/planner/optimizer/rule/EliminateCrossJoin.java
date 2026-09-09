@@ -61,22 +61,22 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
     public LogicalPlan apply(JoinPlan join,
                              Captures captures,
                              Rule.Context context) {
-        if (join.relationNames().size() >= 3) {
-            var joinGraph = JoinGraph.create(join, context.resolvePlan());
-            if (joinGraph.hasCrossJoin()) {
-                var newOrder = eliminateCrossJoin(joinGraph);
-                if (newOrder != null) {
-                    var newJoinPlan = reorder(joinGraph, newOrder);
-                    if (newJoinPlan != null) {
-                        return Eval.create(
-                            newJoinPlan,
-                            join.outputs()
-                        );
-                    }
-                }
-            }
+        if (join.relationNames().size() < 3) {
+            return null;
         }
-        return null;
+        var joinGraph = JoinGraph.create(join, context.resolvePlan());
+        if (!joinGraph.hasCrossJoin()) {
+            return null;
+        }
+        List<LogicalPlan> newOrder = orderNodes(joinGraph);
+        if (newOrder == null) {
+            return null;
+        }
+        LogicalPlan newJoinPlan = rebuild(joinGraph, newOrder);
+        if (newJoinPlan == null) {
+            return null;
+        }
+        return Eval.create(newJoinPlan, join.outputs());
     }
 
     /**
@@ -87,7 +87,7 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
      * the original join order.
      **/
     @Nullable
-    static List<LogicalPlan> eliminateCrossJoin(JoinGraph joinGraph) {
+    static List<LogicalPlan> orderNodes(JoinGraph joinGraph) {
         if (joinGraph.edges().isEmpty()) {
             return null;
         }
@@ -96,16 +96,17 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
             return null;
         }
 
-        var newJoinOrder = new ArrayList<LogicalPlan>();
-
-        var priorities = new HashMap<LogicalPlan, Integer>();
+        ArrayList<LogicalPlan> newJoinOrder = new ArrayList<>();
+        HashMap<LogicalPlan, Integer> priorities = new HashMap<>();
         for (int i = 0; i < joinGraph.size(); i++) {
             priorities.put(joinGraph.nodes().get(i), i);
         }
 
-        var nodesToVisit = new PriorityQueue<LogicalPlan>(joinGraph.size(), comparing(priorities::get));
-        var visited = new HashSet<LogicalPlan>();
-
+        PriorityQueue<LogicalPlan> nodesToVisit = new PriorityQueue<>(
+            joinGraph.size(),
+            comparing(priorities::get)
+        );
+        HashSet<LogicalPlan> visited = new HashSet<LogicalPlan>();
         nodesToVisit.add(joinGraph.nodes().get(0));
 
         while (!nodesToVisit.isEmpty()) {
@@ -131,25 +132,24 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
     }
 
     @Nullable
-    static LogicalPlan reorder(JoinGraph graph, List<LogicalPlan> order) {
+    static LogicalPlan rebuild(JoinGraph graph, List<LogicalPlan> order) {
         assert graph.nodes().size() == order.size() : "Size must be equal";
 
         if (graph.edges().isEmpty()) {
             throw new InvalidArgumentException("JoinPlan cannot be built with the provided order.");
         }
 
-        var result = order.get(0);
-        var alreadyJoinedNodes = new HashSet<LogicalPlan>();
+        LogicalPlan result = order.get(0);
+        HashSet<LogicalPlan> alreadyJoinedNodes = new HashSet<>();
         alreadyJoinedNodes.add(result);
 
         for (int i = 1; i < order.size(); i++) {
-            var rightNode = order.get(i);
+            LogicalPlan rightNode = order.get(i);
             alreadyJoinedNodes.add(rightNode);
 
-            var criteria = new ArrayList<Symbol>();
-
+            ArrayList<Symbol> criteria = new ArrayList<>();
             for (var edge : graph.edges(rightNode)) {
-                var toNode = edge.to();
+                LogicalPlan toNode = edge.to();
                 if (alreadyJoinedNodes.contains(toNode)) {
                     criteria.add(EqOperator.of(edge.left(), edge.right()));
                 }
@@ -163,7 +163,7 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
                 joinCondition = null;
             } else {
                 joinType = JoinType.INNER;
-                joinCondition = AndOperator.join(criteria, null);
+                joinCondition = AndOperator.join(criteria);
             }
 
             result = new JoinPlan(
