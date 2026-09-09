@@ -28,6 +28,7 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isInputColumn;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -1370,6 +1371,26 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "  │    │  └ Collect[doc.t3 | [c] | true]",
             "  │    └ Collect[doc.t5 | [e] | true]",
             "  └ Collect[doc.t6 | [f] | true]"
+        );
+    }
+
+    @Test
+    public void test_cross_join_elimination_with_one_side_occuring_multiple_times_in_equi_join() throws Exception {
+        resetClusterService(); // drop existing tables
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table t1 (x int)")
+            .addTable("create table t2 (y int)")
+            .addTable("create table t3 (z int)");
+
+        LogicalPlan plan = e.logicalPlan(
+            "SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON (t1.x + t1.x) = t3.z AND t3.z = t2.y");
+        assertThat(plan).hasOperators(
+            "Eval[x, y, z]",
+            "  └ HashJoin[INNER | (y = z)]",
+            "    ├ HashJoin[INNER | (z = (x + x))]",
+            "    │  ├ Collect[doc.t1 | [x] | true]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t2 | [y] | true]"
         );
     }
 }
