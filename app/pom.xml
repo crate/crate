@@ -196,6 +196,13 @@
         </dependency>
         <dependency>
             <groupId>io.crate</groupId>
+            <artifactId>crate-parquet</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.crate</groupId>
             <artifactId>es-analysis-common</artifactId>
             <version>${project.version}</version>
             <scope>runtime</scope>

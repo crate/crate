@@ -157,3 +157,39 @@ Example::
    - :ref:`ref-alter-server`
    - :ref:`ref-create-foreign-table`
    - :ref:`ref-create-user-mapping`
+
+.. _administration-fdw-parquet:
+
+``parquet``
+========
+
+The ``parquet`` foreign data wrapper allows CrateDB to read local parquet files.
+
+Usage::
+
+  > CREATE SERVER my_parquet FOREIGN DATA WRAPPER parquet
+  OPTIONS (input_files ['file01.parquet', 'file02.parquet']);
+
+  > CREATE FOREIGN TABLE tbl (col1 text) SERVER my_parquet;
+
+  -- your queries on `tbl` now scan the parquet file
+  > SELECT * FROM tbl;
+
+
+``CREATE SERVER OPTIONS``
+-------------------------
+
+The parquet foreign data wrapper supports the following ``OPTIONS`` for use with
+:ref:`ref-create-server`:
+
+:local_files:
+
+  A list of paths to local parquet files. This is required.
+
+  You can provide multiple files, but they all must have the same schema.
+  Otherwise an error will be raised when executing the query.
+
+Example::
+
+  CREATE SERVER my_parquet FOREIGN DATA WRAPPER parquet
+  OPTIONS (input_files ['file01.parquet', 'file02.parquet']);
