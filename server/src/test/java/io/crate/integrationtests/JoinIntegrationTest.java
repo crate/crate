@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -44,6 +45,7 @@ import io.crate.data.Paging;
 import io.crate.execution.engine.join.RamBlockSizeCalculator;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
+import io.crate.planner.optimizer.rule.EliminateCrossJoin;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStatsService;
 import io.crate.testing.Asserts;
@@ -1893,5 +1895,34 @@ public class JoinIntegrationTest extends IntegTestCase {
         } finally {
             Paging.PAGE_SIZE = originalPageSize;
         }
+    }
+
+    @Test
+    @UseRandomizedOptimizerRules (alwaysKeep = EliminateCrossJoin.class)
+    public void test_cross_join_mixed_with_left_outer_and_inner_join_preserves_all_filters() throws Exception {
+        // https://github.com/crate/crate/issues/20143
+        execute(
+            """
+            SELECT
+                a.x,
+                b.y,
+                c.z,
+                d.w
+            FROM
+                generate_series(1, 3) AS a (x)
+                INNER JOIN generate_series(1, 3) AS b (y) ON a.x = b.y
+                LEFT JOIN generate_series(1, 3) AS c (z) ON a.x = c.z
+                CROSS JOIN generate_series(1, 1) AS d (w)
+            ORDER BY
+                a.x,
+                c.z;
+
+            """
+        );
+        assertThat(response).hasRows(
+            "1| 1| 1| 1",
+            "2| 2| 2| 1",
+            "3| 3| 3| 1"
+        );
     }
 }
