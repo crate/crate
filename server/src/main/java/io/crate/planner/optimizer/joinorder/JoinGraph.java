@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import io.crate.analyze.relations.QuerySplitter;
@@ -38,6 +39,7 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
@@ -128,11 +130,7 @@ public record JoinGraph(List<LogicalPlan> nodes,
     }
 
     public List<Edge> edges(LogicalPlan node) {
-        var result = edges.get(node);
-        if (result == null) {
-            return List.of();
-        }
-        return result;
+        return edges.getOrDefault(node, List.of());
     }
 
     public static JoinGraph create(LogicalPlan plan, UnaryOperator<LogicalPlan> resolvePlan) {
@@ -162,43 +160,54 @@ public record JoinGraph(List<LogicalPlan> nodes,
 
         @Override
         public JoinGraph visitFilter(Filter filter, Map<Symbol, LogicalPlan> context) {
-            var source = filter.source().accept(this, context);
+            JoinGraph source = filter.source().accept(this, context);
             return source.withFilters(List.of(filter.query()));
         }
 
         @Override
         public JoinGraph visitJoinPlan(JoinPlan joinPlan, Map<Symbol, LogicalPlan> context) {
-
-            var left = joinPlan.lhs().accept(this, context);
-            var right = joinPlan.rhs().accept(this, context);
+            JoinGraph left = joinPlan.lhs().accept(this, context);
+            JoinGraph right = joinPlan.rhs().accept(this, context);
 
             if (joinPlan.joinType() == JoinType.CROSS) {
                 return left.joinWith(right).withCrossJoin();
             }
 
+            Symbol joinCondition = joinPlan.joinCondition();
             if (joinPlan.joinType() != JoinType.INNER) {
-                return left.joinWith(right);
+                JoinGraph result = left.joinWith(right);
+                return joinCondition == null
+                    ? result
+                    : result.withFilters(List.of(joinCondition));
             }
 
-            var joinCondition = joinPlan.joinCondition();
-            var edgeCollector = new EdgeCollector();
-            var filters = new ArrayList<Symbol>();
-            if (joinCondition != null) {
-                var split = QuerySplitter.split(joinCondition);
+            ArrayList<Symbol> filters = new ArrayList<>();
+            Map<LogicalPlan, List<Edge>> edges;
+            if (joinCondition == null) {
+                edges = Map.of();
+            } else {
+                var edgeCollector = new EdgeCollector();
+                Map<Set<RelationName>, Symbol> split = QuerySplitter.split(joinCondition);
                 for (var entry : split.entrySet()) {
+                    Set<RelationName> relations = entry.getKey();
+                    Symbol expression = entry.getValue();
                     // we are only interested in equi-join conditions between
                     // two tables e.g.: a.x = b.y will result in
                     // (a,b) -> (a.x = b.y) and we can ignore any other
                     // filters. Therefore, we only want entries where we have
                     // two keys.
-                    if (entry.getKey().size() == 2 && isEquiJoin(entry.getValue())) {
-                        entry.getValue().accept(edgeCollector, context);
+                    if (relations.size() == 2 && isEquiJoin(expression)) {
+                        expression.accept(edgeCollector, context);
                     } else {
-                        filters.add(entry.getValue());
+                        filters.add(expression);
                     }
                 }
+                edges = edgeCollector.edges;
             }
-            return left.joinWith(right).withEdges(edgeCollector.edges).withFilters(filters);
+            return left
+                .joinWith(right)
+                .withEdges(edges)
+                .withFilters(filters);
         }
 
         private static class EdgeCollector extends SymbolVisitor<Map<Symbol, LogicalPlan>, Void> {
