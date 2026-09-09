@@ -386,7 +386,6 @@ def setUpTutorials(test):
     shutil.copy(project_path(source_dir, 'data_import_1408312800.json'),
                 os.path.join(import_dir, "users_1408312800.json"))
 
-
 def setUp(test):
     test.globs['cmd'] = cmd
     test.globs['wait_for_schema_update'] = wait_for_schema_update
@@ -545,6 +544,9 @@ def load_tests(loader, suite, ignore):
 
     for fn in doctest_files('general/dql/union.rst',):
         tests.append(docsuite(fn, setUp=setUpPhotosAndCountries))
+
+    for fn in doctest_files('admin/fdw.rst',):
+        tests.append(docsuite(fn, setUp=setUp))
 
     if not tests:
         crate.stop()

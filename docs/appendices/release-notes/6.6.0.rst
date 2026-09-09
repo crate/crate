@@ -60,6 +60,9 @@ SQL Statements
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
+- Added initial support for a Parquet foreign data wrapper
+  :ref:`parquet foreign data wrapper _administration-fdw-parquet`
+
 Data Types
 ----------
 
