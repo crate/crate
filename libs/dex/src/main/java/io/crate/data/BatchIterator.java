@@ -257,4 +257,8 @@ public interface BatchIterator<T> extends Killable {
     default <R> CompletableFuture<List<T>> toList() {
         return collect(Collectors.toList());
     }
+
+    default <R> CompletableFuture<List<R>> toList(Function<? super T, ? extends R> map) {
+        return collect(Collectors.mapping(map, Collectors.toList()));
+    }
 }
