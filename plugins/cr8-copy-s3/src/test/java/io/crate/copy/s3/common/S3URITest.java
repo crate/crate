@@ -21,7 +21,7 @@
 
 package io.crate.copy.s3.common;
 
-import static io.crate.copy.s3.common.S3URI.DEFAULT_ENDPOINT;
+import static io.crate.opendal.S3.DEFAULT_ENDPOINT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
