@@ -36,6 +36,12 @@ in the cluster. The subscription represents a replication connection to the
 publisher. A logical replication will be started on a publisher once
 the subscription is enabled, which is by default on creation.
 
+None of the tables in the publications may already exist on the subscriber
+cluster, not even as empty tables with a matching schema. The initial data is
+transferred as a physical copy from the publisher, after which changes are
+replicated continuously. There is no option to skip the initial copy and
+attach the subscription to pre-existing data.
+
 .. _sql-create-subscription-params:
 
 Parameters

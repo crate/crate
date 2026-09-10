@@ -13,7 +13,13 @@ clusters and thus chaining subscriptions is possible.
 
 .. NOTE::
 
-    A replicated index on a subscriber is read-only.
+    Tables replicated by a subscription are read-only on the subscriber.
+    While a table is subscribed, only ``SELECT``, ``SHOW CREATE``,
+    ``REFRESH``, ``OPTIMIZE``, ``COPY TO`` and some ``ALTER TABLE`` variants
+    are supported. ``INSERT``, ``UPDATE``, ``DELETE``, ``DROP`` and other
+    ``ALTER TABLE`` variants are rejected, and subscribed tables cannot be
+    included in snapshots. See :ref:`read-only behavior
+    <logical-replication-read-only>`.
 
 Logical replication is useful for the following use cases:
 
@@ -22,7 +28,10 @@ Logical replication is useful for the following use cases:
 - Consolidating data from multiple clusters into a single one for aggregated
   reports.
 
-- Ensure high availability if one cluster becomes unavailable.
+- Ensure read availability if one cluster becomes unavailable. The subscriber
+  can continue to serve queries while the publisher is down. Write access on
+  the subscriber is not failed over automatically, see
+  :ref:`logical-replication-disaster-recovery`.
 
 - Replicating between different compatible versions of CrateDB.
   Replicating tables created on a cluster with higher major/minor version to a
@@ -102,6 +111,64 @@ The tables are matched between the publisher and the subscriber using the fully
 qualified table name. Replication to differently-named tables on the subscriber
 is not supported.
 
+.. _logical-replication-read-only:
+
+Read-only behavior
+------------------
+
+The read-only restriction is tied to the table on the subscriber, not to the
+health of the publisher. It stays in effect even when the publisher cluster is
+unreachable or when the subscription is in the ``e`` (failed) state visible in
+:ref:`pg_subscription_rel`.
+
+There is no automatic failover of write access. A subscribed table becomes a
+regular writable table only when:
+
+.. rst-class:: open
+
+- The subscription is removed with ``DROP SUBSCRIPTION``. This is a local
+  operation on the subscriber cluster and does not require the publisher to
+  be reachable.
+
+- The table is dropped on the publisher, which causes the subscriber to stop
+  tracking it.
+
+After a subscription is removed, replication cannot be re-established over
+the same tables without dropping them first.
+
+.. _logical-replication-disaster-recovery:
+
+Disaster recovery
+-----------------
+
+Logical replication provides a warm stand-by with continuous read access, but
+it does not provide automatic failover, and switching back is not supported:
+
+.. rst-class:: open
+
+- **Publisher outage:** The subscriber keeps retrying and resumes replicating
+  automatically once the publisher is reachable again. No manual action is
+  needed, and subscribed tables remain read-only during the outage.
+
+- **Total loss of the publisher:** The subscriber can be promoted by running
+  ``DROP SUBSCRIPTION``. The tables turn into
+  regular writable tables. This is a one-way decision: the promoted cluster
+  becomes the new source of truth, and it diverges permanently from any
+  future publisher. Data written on the subscriber after the last
+  successfully replicated operation is retained, so the replication lag at
+  the time of failure determines the number of lost writes.
+
+- **Switching back:** Returning to the original cluster requires re-seeding
+  it. A subscription cannot be created over tables that already exist on the
+  subscriber, not even over empty tables with a matching schema. There is no
+  incremental way to switch back.
+
+- **Snapshots:** A snapshot restore cannot be combined with a subscription.
+  Subscribed tables cannot be included in snapshots, and a subscription
+  cannot be created over tables restored from a snapshot. Snapshots for
+  backup purposes must therefore be taken on the publisher, or on a cluster
+  that is not a subscription target.
+
 Security
 --------
 
@@ -140,3 +207,10 @@ All subscriptions are listed in the :ref:`pg_subscription` table.
 More details for a subscription are available in the :ref:`pg_subscription_rel`
 table. The table contains detailed information about the replication state per
 table, including error messages if there was an error.
+
+A per-table state of ``e`` indicates the subscription failed for that table;
+the reason is shown in ``srsubstate_reason``. A failed subscription is not
+removed automatically and its tables remain read-only; it must be removed
+explicitly with ``DROP SUBSCRIPTION``. Transient
+publisher outages do not change the state, the metadata tracker retries until
+the publisher is reachable again.
