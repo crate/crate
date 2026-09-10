@@ -206,6 +206,11 @@ Performance and Resilience Improvements
   on a number of factors, such as a column's cardinality ratio, but can range
   from 20% up to two orders of magnitude.
 
+- `Somil Jain <https://github.com/somiljain2006>`_ improved query planning for
+  ``RIGHT JOIN`` queries by pushing null-rejecting ``WHERE`` predicates
+  referencing columns from the non-preserved side closer to their source
+  tables.
+
 Administration and Operations
 -----------------------------
 
