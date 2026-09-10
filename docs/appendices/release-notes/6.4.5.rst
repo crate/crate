@@ -67,3 +67,19 @@ Fixes
 
 - Fixed an issue causing cache to retain some heavy structures, potentially
   leading to an ``OutOfMemoryError``.
+
+- Fixed an issue where a select statement containing a correlated subquery and
+  a group by would lose the subquery and result in an error, e.g.::
+
+    SELECT o.c1,
+       (SELECT i.c1
+        FROM source_symbols_t AS i
+        WHERE i.c1 > o.c1
+        ORDER BY i.c1
+        LIMIT 1) AS next_c1
+    FROM source_symbols_t AS o
+    GROUP BY o.c1
+    ORDER BY o.c1;
+
+    > Couldn't create execution plan from logical plan because of:
+    Couldn't find (SELECT c1 FROM (i)) in SourceSymbols

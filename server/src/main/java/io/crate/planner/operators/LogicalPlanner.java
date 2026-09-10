@@ -406,7 +406,7 @@ public class LogicalPlanner {
                     AndOperator.join(correlatedSubQueries.remainder())
                 );
                 for (Symbol symbol : correlatedSubQueries.correlatedSubQueries()) {
-                    source = subqueryPlanner.planSubQueries(symbol).applyCorrelatedJoin(source);
+                    source = subqueryPlanner.planSubQueries(symbol).applyPreGroupingSubQueries(source);
                 }
                 return Filter.create(source, AndOperator.join(correlatedSubQueries.correlatedSubQueries()));
             }
@@ -516,12 +516,11 @@ public class LogicalPlanner {
             return List.copyOf(result);
         }
 
-
-
         @Override
         public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation relation, List<Symbol> outputs) {
             SplitPoints splitPoints = SplitPointsBuilder.create(relation);
             SubQueries subQueries = subqueryPlanner.planSubQueries(relation);
+
             LogicalPlan source = buildImplicitJoins(
                 relation.from(),
                 relation.where(),
@@ -552,13 +551,15 @@ public class LogicalPlanner {
                                 ProjectSet.create(
                                     WindowAgg.create(
                                         Filter.create(
-                                            groupByOrAggregate(
-                                                ProjectSet.create(
-                                                    source,
-                                                    splitPoints.tableFunctionsBelowGroupBy()
-                                                ),
-                                                relation.groupBy(),
-                                                splitPoints.aggregates()
+                                            subQueries.applyPostGroupingSubQueries(
+                                                groupByOrAggregate(
+                                                    ProjectSet.create(
+                                                        source,
+                                                        splitPoints.tableFunctionsBelowGroupBy()
+                                                    ),
+                                                    relation.groupBy(),
+                                                    splitPoints.aggregates()
+                                                )
                                             ),
                                             having
                                         ),
@@ -604,7 +605,7 @@ public class LogicalPlanner {
             }
             logicalPlan = joinPlan;
         }
-        LogicalPlan correlatedJoin = subQueries.applyCorrelatedJoin(logicalPlan);
+        LogicalPlan correlatedJoin = subQueries.applyPreGroupingSubQueries(logicalPlan);
         return Filter.create(correlatedJoin, whereClause);
     }
 
