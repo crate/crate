@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -79,14 +80,32 @@ public class ColumnSketchBuilderTest extends ESTestCase {
             sketch.add(RandomStrings.randomUnicodeOfLength(random(), 10));
         }
 
+        assertStreamOutInOk(sketch, support, Version.V_6_5_0);
+        assertStreamOutInOk(sketch, support, Version.V_6_4_4);
+    }
+
+    private void assertStreamOutInOk(ColumnSketchBuilder<String> sketch,
+                                     ColumnStatsSupport<String> support,
+                                     Version version) throws IOException {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         StreamOutput out = new OutputStreamStreamOutput(os);
+        out.setVersion(version);
         sketch.writeTo(out);
 
         StreamInput in = new InputStreamStreamInput(new ByteArrayInputStream(os.toByteArray()));
+        in.setVersion(version);
         var serializedSketch = support.readSketchFrom(in);
 
-        assertThat(sketch.toStats(sketch.sampleCount)).isEqualTo(serializedSketch.toStats(serializedSketch.sampleCount));
+        assertThat(sketch.toStats(sketch.sampleCount))
+            .as("version: " + version)
+            .isEqualTo(serializedSketch.toStats(serializedSketch.sampleCount));
+        // We stopped relying on `distinctSketch` in 6.5. However, to support
+        // the ANALYZE statement in mixed clusters, `distinctSketch` needs to
+        // store the correct info.
+        // Also see: https://github.com/crate/crate/pull/20172.
+        assertThat(serializedSketch.distinctSketch.getSketch().getEstimate())
+            .as("version: " + version)
+            .isEqualTo(sketch.toStats(sketch.sampleCount).approxDistinct());
     }
 
 }

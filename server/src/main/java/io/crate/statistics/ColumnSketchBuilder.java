@@ -56,6 +56,13 @@ public abstract class ColumnSketchBuilder<T> {
     /// so tracking exact counts (rather than approximating) is cheap.
     protected final Map<String, Long> distinctCounts;
 
+    /// Set when [#distinctCounts] does not (or may not) cover the whole sample, because some
+    /// contributor (this instance itself, or one merged into it) was deserialized from a node
+    /// older than [Version#V_6_5_0], which never sent per-value counts. Once set, it stays set
+    /// through any further merges/serialization, and [#estimateDistinct] falls back to
+    /// [#distinctSketch] instead of extrapolating from a silently-incomplete [#distinctCounts].
+    protected boolean distinctCountsIncomplete;
+
     /**
      * Creates a new ColumnSketchBuilder for the given DataType
      */
@@ -73,8 +80,10 @@ public abstract class ColumnSketchBuilder<T> {
         this.distinctSketch = DistinctValuesSketch.fromStream(in);
         if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
             this.distinctCounts = in.readMap(StreamInput::readString, StreamInput::readVLong);
+            this.distinctCountsIncomplete = in.readBoolean();
         } else {
             this.distinctCounts = new HashMap<>();
+            this.distinctCountsIncomplete = true;
         }
     }
 
@@ -85,6 +94,7 @@ public abstract class ColumnSketchBuilder<T> {
         out.writeByteArray(distinctSketch.getSketch().toByteArray());
         if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
             out.writeMap(distinctCounts, StreamOutput::writeString, StreamOutput::writeVLong);
+            out.writeBoolean(distinctCountsIncomplete);
         }
         writeSketches(out);
     }
@@ -147,7 +157,13 @@ public abstract class ColumnSketchBuilder<T> {
     /// * `N` the total row count.
     ///
     /// Also see PostgreSQL's [compute_distinct_stats](https://github.com/postgres/postgres/blob/9f4bd91a1960f0263c497a9a1ddf121cbcefbb98/src/backend/commands/analyze.c#L2121).
+    ///
+    /// Falls back to [#distinctSketch]'s own (non-extrapolated) estimate when
+    /// [#distinctCountsIncomplete] is set, since [#distinctCounts] can't be trusted in that case.
     final double estimateDistinct(long totalDocs) {
+        if (distinctCountsIncomplete) {
+            return distinctSketch.getSketch().getEstimate();
+        }
         long n = sampleCount - nullCount;
         long d = distinctCounts.size();
         if (n <= 0) {
@@ -210,6 +226,7 @@ public abstract class ColumnSketchBuilder<T> {
             this.nullCount += other.nullCount;
             this.totalBytes += other.totalBytes;
             this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
+            this.distinctCountsIncomplete = this.distinctCountsIncomplete || typedOther.distinctCountsIncomplete;
             typedOther.distinctCounts.forEach((key, count) -> this.distinctCounts.merge(key, count, Long::sum));
             this.mostCommonValuesSketch = this.mostCommonValuesSketch.merge(typedOther.mostCommonValuesSketch);
             this.histogramSketch = this.histogramSketch.merge(typedOther.histogramSketch);
@@ -284,6 +301,7 @@ public abstract class ColumnSketchBuilder<T> {
             this.nullCount += other.nullCount;
             this.totalBytes += other.totalBytes;
             this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
+            this.distinctCountsIncomplete = this.distinctCountsIncomplete || typedOther.distinctCountsIncomplete;
             typedOther.distinctCounts.forEach((key, count) -> this.distinctCounts.merge(key, count, Long::sum));
             this.mostCommonValuesSketch = this.mostCommonValuesSketch.merge(typedOther.mostCommonValuesSketch);
 
