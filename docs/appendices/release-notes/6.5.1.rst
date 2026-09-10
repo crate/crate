@@ -204,3 +204,7 @@ Fixes
 - Fixed an issue that caused Logical Replication to stop when primary shards on
   the subscriber cluster were relocated to another node or when a replica shard
   was promoted to primary.
+
+- Fixed an issue causing inaccurate estimates of distinct counts of values in a
+  column (e.g. by executing ``SELECT n_distinct FROM pg_catalog.pg_stats``). As
+  a consequence, some optimization rules will be applied more accurately.
