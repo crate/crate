@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.distribution.merge;
 
+
 import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -28,6 +29,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
@@ -44,6 +48,9 @@ import io.crate.data.Row;
  *                                   will receive a throwable if the BatchIterator was killed)
  */
 public class BatchPagingIterator<Key> implements BatchIterator<Row> {
+
+    private static final Logger LOGGER = LogManager.getLogger(BatchPagingIterator.class);
+
 
     private final PagingIterator<Key, Row> pagingIterator;
     private final Function<Key, CompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>>> fetchMore;
@@ -112,18 +119,21 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
         synchronized (this) {
             err = this.killed;
             if (err == null) {
+                LOGGER.info("fetchMore.apply(pagingIterator.exhaustedIterable())");
                 future = fetchMore.apply(pagingIterator.exhaustedIterable());
             } else {
                 future = CompletableFuture.failedStage(err);
             }
         }
         if (err == null) {
+            LOGGER.info("attaching async onNextPage");
             return future.whenComplete(this::onNextPage);
         }
         return future;
     }
 
     private void onNextPage(Iterable<? extends KeyIterable<Key, Row>> rows, Throwable ex) {
+        LOGGER.info("onNextPage ex {}", ex);
         if (ex == null) {
             pagingIterator.merge(rows);
             if (isUpstreamExhausted.getAsBoolean()) {

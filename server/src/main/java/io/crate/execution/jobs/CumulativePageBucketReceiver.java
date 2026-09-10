@@ -307,7 +307,14 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
                 shouldTriggerConsumer = true;
             }
         }
+        LOGGER.info("batchPagingIterator.kill(t); will sleep afterwards");
         batchPagingIterator.kill(t); // this causes a already active consumer to fail
+        try {
+            Thread.sleep(1000);
+            LOGGER.info("after sleep");
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         currentPage.completeExceptionally(t);
         if (shouldTriggerConsumer) {
             consumer.accept(null, t);

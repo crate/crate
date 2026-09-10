@@ -61,7 +61,7 @@ import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-@IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
+@IntegTestCase.ClusterScope(numDataNodes = 5, numClientNodes = 0, supportsDedicatedMasters = false)
 public class GroupByAggregateTest extends IntegTestCase {
 
     private final Setup setup = new Setup(sqlExecutor);
@@ -124,7 +124,23 @@ public class GroupByAggregateTest extends IntegTestCase {
         ensureYellow();
         execute("insert into t (name) values ('Marvin'), ('Trillian'), ('Ford'), ('Arthur')");
         execute("refresh table t");
-        execute("select distinct name from t");
+        Thread select = new Thread(() -> {
+            try {
+                execute("select distinct name from t");
+            } catch (Exception ex) {
+
+            }
+        });
+
+        Thread kill = new Thread(() -> {
+            execute("select id from sys.jobs where stmt = 'select distinct name from t'");
+            String uuid = (String) response.rows()[0][0];
+            execute("kill ?", new Object[]{uuid});
+        });
+
+        select.start();
+        kill.start();
+
     }
 
     @Test
