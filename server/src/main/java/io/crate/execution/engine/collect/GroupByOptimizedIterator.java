@@ -56,9 +56,7 @@ import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
@@ -66,6 +64,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.common.MutableLong;
+import io.crate.common.TriConsumer;
+import io.crate.common.collections.Lists;
 import io.crate.common.concurrent.Killable;
 import io.crate.common.concurrent.Killable.Token;
 import io.crate.data.BatchIterator;
@@ -113,7 +113,9 @@ import io.netty.util.collection.LongObjectHashMap;
 
 final class GroupByOptimizedIterator {
 
-    private static final long BYTES_REF_SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(BytesRef.class);
+    /// Stands in for the Lucene ordinal of a key column in docs that have no value for it.
+    /// Lucene ordinals are always `>= 0`, so this cannot collide with a real one.
+    private static final long NULL_ORD = -1L;
 
     /**
      * This was chosen after benchmarking different ratios with this optimization always enabled:
@@ -415,31 +417,42 @@ final class GroupByOptimizedIterator {
         return numDocs;
     }
 
+    /**
+     * Returns a BatchIterator that groups by the Lucene ordinals of the group keys instead of
+     * by their values, for group-by queries where every key is a string column with doc values:
+     * <code>SELECT tag, country, count(*) FROM tbl GROUP BY tag, country</code>
+     * <p>
+     * The aggregation values are computed straight from doc values if every aggregation has a
+     * {@link DocValueAggregator}, and via the generic aggregation machinery otherwise. Both flavours
+     * share the per-segment ordinal structure documented on {@link #applyDocValueAggregatorsGroupedByKeys}.
+     */
     @SuppressWarnings("rawtypes")
     @Nullable
-    static BatchIterator<Row> tryOptimizeSingleStringKey(Functions functions,
-                                                         LuceneReferenceResolver referenceResolver,
-                                                         IndexShard indexShard,
-                                                         DocTableInfo table,
-                                                         List<String> partitionValues,
-                                                         LuceneQueryBuilder luceneQueryBuilder,
-                                                         BigArrays bigArrays,
-                                                         NodeContext nodeCtx,
-                                                         DocInputFactory docInputFactory,
-                                                         RoutedCollectPhase collectPhase,
-                                                         CollectTask collectTask) {
-        GroupProjection groupProjection = getSingleStringKeyGroupProjection(collectPhase.projections());
+    static BatchIterator<Row> tryOptimizeStringKeys(Functions functions,
+                                                    LuceneReferenceResolver referenceResolver,
+                                                    IndexShard indexShard,
+                                                    DocTableInfo table,
+                                                    List<String> partitionValues,
+                                                    LuceneQueryBuilder luceneQueryBuilder,
+                                                    NodeContext nodeCtx,
+                                                    DocInputFactory docInputFactory,
+                                                    RoutedCollectPhase collectPhase,
+                                                    CollectTask collectTask) {
+        GroupProjection groupProjection = shardGroupProjection(collectPhase.projections());
         if (groupProjection == null) {
             return null;
         }
-        assert groupProjection.keys().size() == 1 : "Must have 1 key if getSingleStringKeyGroupProjection returned a projection";
-        Reference keyRef = getKeyRef(collectPhase.toCollect(), groupProjection.keys().get(0));
-        if (keyRef == null) {
-            return null; // group by on non-reference
-        }
-        keyRef = DocReferences.docRefToRegularRef(keyRef);
-        if (!keyRef.hasDocValues()) {
-            return null;
+        List<Reference> keyRefs = new ArrayList<>(groupProjection.keys().size());
+        for (Symbol key : groupProjection.keys()) {
+            Reference docKeyRef = getKeyRef(collectPhase.toCollect(), key);
+            if (docKeyRef == null) {
+                return null; // group by on non-reference
+            }
+            Reference keyRef = DocReferences.docRefToRegularRef(docKeyRef);
+            if (keyRef.valueType().id() != DataTypes.STRING.id() || !keyRef.hasDocValues()) {
+                return null;
+            }
+            keyRefs.add(keyRef);
         }
         if (Symbols.hasColumn(collectPhase.toCollect(), SysColumns.SCORE)
             || collectPhase.where().hasColumn(SysColumns.SCORE)) {
@@ -447,7 +460,8 @@ final class GroupByOptimizedIterator {
             // to keep the optimized implementation a bit simpler
             return null;
         }
-        if (hasHighCardinalityRatio(() -> indexShard.acquireSearcher("group-by-cardinality-check"), keyRef.storageIdent())) {
+        List<String> keyColumns = Lists.map(keyRefs, Reference::storageIdent);
+        if (hasHighCardinalityRatio(() -> indexShard.acquireSearcher("group-by-cardinality-check"), keyColumns)) {
             return null;
         }
 
@@ -471,6 +485,9 @@ final class GroupByOptimizedIterator {
             collectTask.killToken()::raiseIfKilled
         );
 
+        TriConsumer<ResizeAwareMap<List<Object>, Object[]>, List<Object>, Object[]> accountForNewEntry =
+            GroupByMaps.accountForNewEntry(ramAccounting, Lists.map(keyRefs, Reference::valueType));
+
         // Combine the 2-phase ordinal key optimization with doc-value based aggregation, same as
         // DocValuesGroupByOptimizedIterator does for the generic single/many key case. A DocValueAggregator
         // always yields a partial result; for ITER_FINAL the partial results are finished here via
@@ -486,11 +503,12 @@ final class GroupByOptimizedIterator {
         if (docValueAggregators != null) {
             return getIteratorWithDocValueAggregators(
                 searcher.item(),
-                keyRef.storageIdent(),
+                keyColumns,
                 docValueAggregators,
                 aggregationFunctions(functions, groupProjection.values()),
                 groupProjection.mode(),
                 ramAccounting,
+                accountForNewEntry,
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query()
@@ -513,13 +531,13 @@ final class GroupByOptimizedIterator {
         InputRow inputRow = new InputRow(docCtx.topLevelInputs());
 
         return getIterator(
-            bigArrays,
             searcher.item(),
-            keyRef.storageIdent(),
+            keyColumns,
             aggregations,
             expressions,
             aggExpressions,
             ramAccounting,
+            accountForNewEntry,
             collectTask.memoryManager(),
             collectTask.minNodeVersion(),
             inputRow,
@@ -528,35 +546,40 @@ final class GroupByOptimizedIterator {
             groupProjection.mode());
     }
 
-    /// Combines the 2-phase ordinal-value lookup (see {@link #applyAggregatesGroupedByKey}) with the
-    /// doc-value-aggregators optimization (see {@link DocValuesGroupByOptimizedIterator}): the group key is
-    /// still resolved from Lucene ordinals in 2 phases (cheap long-keyed grouping first, resolving to the
-    /// actual term value only once per distinct term per segment), but the aggregation values are computed
-    /// directly from doc values via {@link DocValueAggregator}.
+    /// Combines the 2-phase ordinal-value lookup (see {@link #applyDocValueAggregatorsGroupedByKeys})
+    /// with the doc-value-aggregators optimization (see {@link DocValuesGroupByOptimizedIterator}): the
+    /// group keys are still resolved from Lucene ordinals in 2 phases (cheap long-keyed grouping first,
+    /// resolving to the actual term values only once per distinct group per segment), but the aggregation
+    /// values are computed directly from doc values via {@link DocValueAggregator}.
     @SuppressWarnings("rawtypes")
-    private static BatchIterator<Row> getIteratorWithDocValueAggregators(IndexSearcher indexSearcher,
-                                                                         String keyColumnName,
-                                                                         List<DocValueAggregator> aggregators,
-                                                                         List<AggregationFunction> aggregationFunctions,
-                                                                         AggregateMode mode,
-                                                                         RamAccounting ramAccounting,
-                                                                         MemoryManager memoryManager,
-                                                                         Version minNodeVersion,
-                                                                         Query query) {
+    private static BatchIterator<Row> getIteratorWithDocValueAggregators(
+            IndexSearcher indexSearcher,
+            List<String> keyColumns,
+            List<DocValueAggregator> aggregators,
+            List<AggregationFunction> aggregationFunctions,
+            AggregateMode mode,
+            RamAccounting ramAccounting,
+            TriConsumer<ResizeAwareMap<List<Object>, Object[]>, List<Object>, Object[]> accountForNewEntry,
+            MemoryManager memoryManager,
+            Version minNodeVersion,
+            Query query) {
+
         Killable.Token killToken = new Token();
         return CollectingBatchIterator.newInstance(
             killToken,
             () -> getRowsFromDocValueAggregatorStates(
-                applyDocValueAggregatorsGroupedByKey(
+                applyDocValueAggregatorsGroupedByKeys(
                     indexSearcher,
-                    keyColumnName,
+                    keyColumns,
                     aggregators,
                     ramAccounting,
+                    accountForNewEntry,
                     memoryManager,
                     minNodeVersion,
                     query,
                     killToken
                 ),
+                keyColumns.size(),
                 aggregators,
                 aggregationFunctions,
                 mode,
@@ -576,23 +599,28 @@ final class GroupByOptimizedIterator {
     }
 
     @SuppressWarnings("rawtypes")
-    private static Iterable<Row> getRowsFromDocValueAggregatorStates(Map<BytesRef, Object[]> groupedStates,
+    private static Iterable<Row> getRowsFromDocValueAggregatorStates(Map<List<Object>, Object[]> groupedStates,
+                                                                     int numKeys,
                                                                      List<DocValueAggregator> aggregators,
                                                                      List<AggregationFunction> aggregationFunctions,
                                                                      AggregateMode mode,
                                                                      RamAccounting ramAccounting) {
         return () -> groupedStates.entrySet().stream()
-            .map(new Function<Map.Entry<BytesRef, Object[]>, Row>() {
+            .map(new Function<Map.Entry<List<Object>, Object[]>, Row>() {
 
-                final Object[] cells = new Object[1 + aggregators.size()];
+                final Object[] cells = new Object[numKeys + aggregators.size()];
                 final RowN row = new RowN(cells);
 
                 @SuppressWarnings("unchecked")
                 @Override
-                public Row apply(Map.Entry<BytesRef, Object[]> entry) {
-                    cells[0] = BytesRefs.toString(entry.getKey());
+                public Row apply(Map.Entry<List<Object>, Object[]> entry) {
+                    // See GroupProjection.outputs(): keys always come first, aggregations second
+                    List<Object> key = entry.getKey();
+                    for (int i = 0; i < numKeys; i++) {
+                        cells[i] = key.get(i);
+                    }
                     Object[] states = entry.getValue();
-                    for (int i = 0, c = 1; i < states.length; i++, c++) {
+                    for (int i = 0, c = numKeys; i < states.length; i++, c++) {
                         // A DocValueAggregator always yields a partial result; finishCollect returns it
                         // as-is for ITER_PARTIAL and finishes it (terminatePartial) for ITER_FINAL.
                         Object partial = aggregators.get(i).partialResult(ramAccounting, states[i]);
@@ -604,27 +632,45 @@ final class GroupByOptimizedIterator {
             .iterator();
     }
 
-    /// Groups docs matching `query` by the ordinal of `keyColumnName`'s `SortedSetDocValues` (phase 1) and
-    /// aggregates them using `aggregators`. The ordinal is only resolved to the actual term value (phase 2)
-    /// the first time it is encountered within a segment; the resulting state is then cached (by ordinal) for
-    /// the remainder of that segment and shared with the global, cross-segment map keyed by the resolved term,
-    /// so that further docs matching the same term - whether in this segment or another one - keep mutating the
-    /// same aggregation state directly, without a separate merge/reduce step.
+    /**
+     * Groups the docs matching {@code query} by the Lucene ordinals of the {@code keyColumns}
+     * (phase 1) and aggregates them using {@code aggregators}.
+     * <p>
+     * The returned map is keyed by the resolved key values - one element per key column in the list,
+     * in the same order as the key cols, e.g. {@code ["foo", "Austria"]} - and spans all segments.
+     * <p>
+     * Within a segment the same groups are additionally held in a structure nested one level per key
+     * column, where each level is keyed by the ordinal of its key column in that segment:
+     * {@code ord(key0) -> ord(key1) -> ... -> states}. The per-segment key is therefore the whole
+     * tuple of ordinals, spread over the nested levels, therfore, routing a doc to its group
+     * uses longs and performs one lookup per key column until you "descend" to the `states`.
+     * <p>
+     * The ordinals of a group are resolved to their term values (phase 2, see {@link #resolveKey})
+     * only the first time the group is reached within a segment. Ordinals are segment-local, therefore
+     * the returned map is keyed by the values and not by the ordinals.
+     * <p>
+     * The states array ({@code Object[]}) is stored both in the nested structure ({@code statesByOrdsInLeaf}
+     * and in the returned map, so that further docs of the same group - whether in this segment or another one -
+     * can keep mutating the same aggregation state directly, without a separate merge/reduce step.
+     */
     @SuppressWarnings("rawtypes")
-    private static Map<BytesRef, Object[]> applyDocValueAggregatorsGroupedByKey(IndexSearcher indexSearcher,
-                                                                                String keyColumnName,
-                                                                                List<DocValueAggregator> aggregators,
-                                                                                RamAccounting ramAccounting,
-                                                                                MemoryManager memoryManager,
-                                                                                Version minNodeVersion,
-                                                                                Query query,
-                                                                                Token killToken) throws IOException {
-        final HashMap<BytesRef, Object[]> statesByKey = new HashMap<>();
+    private static Map<List<Object>, Object[]> applyDocValueAggregatorsGroupedByKeys(
+            IndexSearcher indexSearcher,
+            List<String> keyColumns,
+            List<DocValueAggregator> aggregators,
+            RamAccounting ramAccounting,
+            TriConsumer<ResizeAwareMap<List<Object>, Object[]>, List<Object>, Object[]> accountForNewEntry,
+            MemoryManager memoryManager,
+            Version minNodeVersion,
+            Query query,
+            Token killToken) throws IOException {
+        final ResizeAwareMap<List<Object>, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(new HashMap<>());
         final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1f);
         final List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
-        Object[] nullStates = null;
+        final int numKeys = keyColumns.size();
+        final long[] ords = new long[numKeys];
+        final SortedSetDocValues[] keyValues = new SortedSetDocValues[numKeys];
 
-        LongObjectHashMap<Object[]> stateByOrdInLeaf = new LongObjectHashMap<>();
         for (LeafReaderContext leaf : leaves) {
             killToken.raiseIfKilled();
             Scorer scorer = weight.scorer(leaf);
@@ -634,47 +680,36 @@ final class GroupByOptimizedIterator {
             for (int i = 0, aggregatorsSize = aggregators.size(); i < aggregatorsSize; i++) {
                 aggregators.get(i).loadDocValues(leaf);
             }
-            SortedSetDocValues values = DocValues.getSortedSet(leaf.reader(), keyColumnName);
+            for (int i = 0; i < numKeys; i++) {
+                keyValues[i] = DocValues.getSortedSet(leaf.reader(), keyColumns.get(i));
+            }
+            LongObjectHashMap<Object> statesByOrdsInLeaf = new LongObjectHashMap<>();
             DocIdSetIterator docs = scorer.iterator();
             Bits liveDocs = leaf.reader().getLiveDocs();
-            stateByOrdInLeaf.clear();
             for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
                 killToken.raiseIfKilled();
                 if (docDeleted(liveDocs, doc)) {
                     continue;
                 }
-                if (values.advanceExact(doc)) {
-                    long ord = values.nextOrd();
-                    Object[] states = stateByOrdInLeaf.get(ord);
+                readOrds(keyColumns, keyValues, doc, ords);
+                LongObjectHashMap<Object> statesByLastOrd = getNested(statesByOrdsInLeaf, ords);
+                long lastOrd = ords[numKeys - 1];
+                Object[] states = (Object[]) statesByLastOrd.get(lastOrd);
+                if (states == null) {
+                    List<Object> key = resolveKey(keyValues, ords);
+                    states = statesByKey.get(key);
                     if (states == null) {
-                        BytesRef sharedKey = values.lookupOrd(ord);
-                        states = statesByKey.get(sharedKey);
-                        if (states == null) {
-                            states = initDocValueAggregatorStates(aggregators, ramAccounting, memoryManager, minNodeVersion, doc);
-                            BytesRef key = BytesRef.deepCopyOf(sharedKey);
-                            ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + key.length + HASH_MAP_ENTRY_OVERHEAD);
-                            statesByKey.put(key, states);
-                        } else {
-                            applyDocValueAggregators(aggregators, ramAccounting, doc, states);
-                        }
-                        stateByOrdInLeaf.put(ord, states);
+                        states = initDocValueAggregatorStates(aggregators, ramAccounting, memoryManager, minNodeVersion, doc);
+                        accountForNewEntry.accept(statesByKey, key, states);
+                        statesByKey.put(key, states);
                     } else {
                         applyDocValueAggregators(aggregators, ramAccounting, doc, states);
                     }
-                    if (values.docValueCount() > 1) {
-                        throw new ArrayViaDocValuesUnsupportedException(keyColumnName);
-                    }
+                    statesByLastOrd.put(lastOrd, states);
                 } else {
-                    if (nullStates == null) {
-                        nullStates = initDocValueAggregatorStates(aggregators, ramAccounting, memoryManager, minNodeVersion, doc);
-                    } else {
-                        applyDocValueAggregators(aggregators, ramAccounting, doc, nullStates);
-                    }
+                    applyDocValueAggregators(aggregators, ramAccounting, doc, states);
                 }
             }
-        }
-        if (nullStates != null) {
-            statesByKey.put(null, nullStates);
         }
         return statesByKey;
     }
@@ -705,13 +740,13 @@ final class GroupByOptimizedIterator {
         }
     }
 
-    static BatchIterator<Row> getIterator(BigArrays bigArrays,
-                                          IndexSearcher indexSearcher,
-                                          String keyColumnName,
+    static BatchIterator<Row> getIterator(IndexSearcher indexSearcher,
+                                          List<String> keyColumns,
                                           List<AggregationContext> aggregations,
                                           List<? extends LuceneCollectorExpression<?>> expressions,
                                           List<CollectExpression<Row, ?>> aggExpressions,
                                           RamAccounting ramAccounting,
+                                          TriConsumer<ResizeAwareMap<List<Object>, Object[]>, List<Object>, Object[]> accountForNewEntry,
                                           MemoryManager memoryManager,
                                           Version minNodeVersion,
                                           InputRow inputRow,
@@ -726,20 +761,21 @@ final class GroupByOptimizedIterator {
         return CollectingBatchIterator.newInstance(
             killToken,
             () -> getRows(
-                    applyAggregatesGroupedByKey(
-                        bigArrays,
+                    applyAggregatesGroupedByKeys(
                         indexSearcher,
-                        keyColumnName,
+                        keyColumns,
                         aggregations,
                         expressions,
                         aggExpressions,
                         ramAccounting,
+                        accountForNewEntry,
                         memoryManager,
                         minNodeVersion,
                         inputRow,
                         query,
                         killToken
                     ),
+                keyColumns.size(),
                 ramAccounting,
                 aggregations,
                 aggregateMode
@@ -748,21 +784,26 @@ final class GroupByOptimizedIterator {
         );
     }
 
-    private static Iterable<Row> getRows(Map<BytesRef, Object[]> groupedStates,
+    private static Iterable<Row> getRows(Map<List<Object>, Object[]> groupedStates,
+                                         int numKeys,
                                          RamAccounting ramAccounting,
                                          List<AggregationContext> aggregations,
                                          AggregateMode mode) {
         return () -> groupedStates.entrySet().stream()
-            .map(new Function<Map.Entry<BytesRef, Object[]>, Row>() {
+            .map(new Function<Map.Entry<List<Object>, Object[]>, Row>() {
 
-                final Object[] cells = new Object[1 + aggregations.size()];
+                final Object[] cells = new Object[numKeys + aggregations.size()];
                 final RowN row = new RowN(cells);
 
                 @Override
-                public Row apply(Map.Entry<BytesRef, Object[]> entry) {
-                    cells[0] = BytesRefs.toString(entry.getKey());
+                public Row apply(Map.Entry<List<Object>, Object[]> entry) {
+                    // See GroupProjection.outputs(): keys always come first, aggregations second
+                    List<Object> key = entry.getKey();
+                    for (int i = 0; i < numKeys; i++) {
+                        cells[i] = key.get(i);
+                    }
                     Object[] states = entry.getValue();
-                    for (int i = 0, c = 1; i < states.length; i++, c++) {
+                    for (int i = 0, c = numKeys; i < states.length; i++, c++) {
                         //noinspection unchecked
                         cells[c] = mode.finishCollect(ramAccounting, aggregations.get(i).function(), states[i]);
                     }
@@ -772,25 +813,27 @@ final class GroupByOptimizedIterator {
             .iterator();
     }
 
-    private static Map<BytesRef, Object[]> applyAggregatesGroupedByKey(BigArrays bigArrays,
-                                                                       IndexSearcher indexSearcher,
-                                                                       String keyColumnName,
-                                                                       List<AggregationContext> aggregations,
-                                                                       List<? extends LuceneCollectorExpression<?>> expressions,
-                                                                       List<CollectExpression<Row, ?>> aggExpressions,
-                                                                       RamAccounting ramAccounting,
-                                                                       MemoryManager memoryManager,
-                                                                       Version minNodeVersion,
-                                                                       InputRow inputRow,
-                                                                       Query query,
-                                                                       Token killToken) throws IOException {
-        final HashMap<BytesRef, Object[]> statesByKey = new HashMap<>();
+    private static Map<List<Object>, Object[]> applyAggregatesGroupedByKeys(
+            IndexSearcher indexSearcher,
+            List<String> keyColumns,
+            List<AggregationContext> aggregations,
+            List<? extends LuceneCollectorExpression<?>> expressions,
+            List<CollectExpression<Row, ?>> aggExpressions,
+            RamAccounting ramAccounting,
+            TriConsumer<ResizeAwareMap<List<Object>, Object[]>, List<Object>, Object[]> accountForNewEntry,
+            MemoryManager memoryManager,
+            Version minNodeVersion,
+            InputRow inputRow,
+            Query query,
+            Token killToken) throws IOException {
+        final ResizeAwareMap<List<Object>, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(new HashMap<>());
         final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1f);
         final List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
-        Object[] nullStates = null;
+        final int numKeys = keyColumns.size();
+        final long[] ords = new long[numKeys];
+        final SortedSetDocValues[] keyValues = new SortedSetDocValues[numKeys];
 
-        LongObjectHashMap<Object[]> statesByOrd = new LongObjectHashMap<>();
-        for (LeafReaderContext leaf: leaves) {
+        for (LeafReaderContext leaf : leaves) {
             killToken.raiseIfKilled();
             Scorer scorer = weight.scorer(leaf);
             if (scorer == null) {
@@ -800,7 +843,10 @@ final class GroupByOptimizedIterator {
             for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
                 expressions.get(i).setNextReader(readerContext);
             }
-            SortedSetDocValues values = DocValues.getSortedSet(leaf.reader(), keyColumnName);
+            for (int i = 0; i < numKeys; i++) {
+                keyValues[i] = DocValues.getSortedSet(leaf.reader(), keyColumns.get(i));
+            }
+            LongObjectHashMap<Object> statesByOrdsInLeaf = new LongObjectHashMap<>();
             DocIdSetIterator docs = scorer.iterator();
             Bits liveDocs = leaf.reader().getLiveDocs();
             for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
@@ -814,53 +860,26 @@ final class GroupByOptimizedIterator {
                 for (int i = 0, expressionsSize = aggExpressions.size(); i < expressionsSize; i++) {
                     aggExpressions.get(i).setNextRow(inputRow);
                 }
-                if (values.advanceExact(doc)) {
-                    long ord = values.nextOrd();
-                    Object[] states = statesByOrd.get(ord);
+                readOrds(keyColumns, keyValues, doc, ords);
+                LongObjectHashMap<Object> statesByLastOrd = getNested(statesByOrdsInLeaf, ords);
+                long lastOrd = ords[numKeys - 1];
+                Object[] states = (Object[]) statesByLastOrd.get(lastOrd);
+                if (states == null) {
+                    List<Object> key = resolveKey(keyValues, ords);
+                    states = statesByKey.get(key);
                     if (states == null) {
-                        statesByOrd.put(ord, initStates(aggregations, ramAccounting, memoryManager, minNodeVersion));
+                        // initStates already iterates over the current row
+                        states = initStates(aggregations, ramAccounting, memoryManager, minNodeVersion);
+                        accountForNewEntry.accept(statesByKey, key, states);
+                        statesByKey.put(key, states);
                     } else {
                         aggregateValues(aggregations, ramAccounting, memoryManager, states);
                     }
-                    if (values.docValueCount() > 1) {
-                        throw new ArrayViaDocValuesUnsupportedException(keyColumnName);
-                    }
+                    statesByLastOrd.put(lastOrd, states);
                 } else {
-                    if (nullStates == null) {
-                        nullStates = initStates(aggregations, ramAccounting, memoryManager, minNodeVersion);
-                    } else {
-                        aggregateValues(aggregations, ramAccounting, memoryManager, nullStates);
-                    }
+                    aggregateValues(aggregations, ramAccounting, memoryManager, states);
                 }
             }
-            for (var entry : statesByOrd.entries()) {
-                killToken.raiseIfKilled();
-                long ord = entry.key();
-                Object[] states = entry.value();
-                if (states == null) {
-                    continue;
-                }
-                BytesRef sharedKey = values.lookupOrd(ord);
-                Object[] prevStates = statesByKey.get(sharedKey);
-                if (prevStates == null) {
-                    ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + sharedKey.length + HASH_MAP_ENTRY_OVERHEAD);
-                    statesByKey.put(BytesRef.deepCopyOf(sharedKey), states);
-                } else {
-                    for (int i = 0; i < aggregations.size(); i++) {
-                        AggregationContext aggregation = aggregations.get(i);
-                        //noinspection unchecked
-                        prevStates[i] = aggregation.function().reduce(
-                            ramAccounting,
-                            prevStates[i],
-                            states[i]
-                        );
-                    }
-                }
-            }
-            statesByOrd.clear();
-        }
-        if (nullStates != null) {
-            statesByKey.put(null, nullStates);
         }
         return statesByKey;
     }
@@ -879,16 +898,24 @@ final class GroupByOptimizedIterator {
         }
     }
 
-    static boolean hasHighCardinalityRatio(Supplier<Engine.Searcher> acquireSearcher, String fieldName) {
+    static boolean hasHighCardinalityRatio(Supplier<Engine.Searcher> acquireSearcher, List<String> fieldNames) {
         // acquire separate searcher:
         // Can't use sharedShardContexts() yet, if we bail out the "getOrCreateContext" causes issues later on in the fallback logic
         try (var searcher = acquireSearcher.get()) {
             for (LeafReaderContext leaf : searcher.getIndexReader().leaves()) {
-                Terms terms = leaf.reader().terms(fieldName);
-                if (terms == null) {
-                    return true;
+                double distinctCombinations = 1.0;
+                for (String fieldName : fieldNames) {
+                    Terms terms = leaf.reader().terms(fieldName);
+                    if (terms == null) {
+                        return true;
+                    }
+                    long numTerms = terms.size();
+                    if (numTerms < 0) {
+                        return true; // the codec doesn't store the term count, can't estimate
+                    }
+                    distinctCombinations *= numTerms;
                 }
-                double cardinalityRatio = terms.size() / (double) leaf.reader().numDocs();
+                double cardinalityRatio = distinctCombinations / leaf.reader().numDocs();
                 if (cardinalityRatio > CARDINALITY_RATIO_THRESHOLD) {
                     return true;
                 }
@@ -958,11 +985,11 @@ final class GroupByOptimizedIterator {
     }
 
     /**
-     * The single shard level GroupProjection with exactly one grouping key of any type, or null if
-     * the projections don't have that shape.
+     * The single shard level GroupProjection, with one or more grouping keys of any type,
+     * or null if the projections don't have that shape.
      */
     @Nullable
-    private static GroupProjection singleKeyGroupProjection(Collection<? extends Projection> projections) {
+    private static GroupProjection shardGroupProjection(Collection<? extends Projection> projections) {
         GroupProjection groupProjection = null;
         int shardProjections = 0;
         for (var projection : projections) {
@@ -973,7 +1000,20 @@ final class GroupByOptimizedIterator {
                 }
             }
         }
-        if (shardProjections != 1 || groupProjection == null || groupProjection.keys().size() != 1) {
+        if (shardProjections != 1 || groupProjection == null || groupProjection.keys().isEmpty()) {
+            return null;
+        }
+        return groupProjection;
+    }
+
+    /**
+     * The single shard level GroupProjection with exactly one grouping key of any type, or null if
+     * the projections don't have that shape.
+     */
+    @Nullable
+    private static GroupProjection singleKeyGroupProjection(Collection<? extends Projection> projections) {
+        GroupProjection groupProjection = shardGroupProjection(projections);
+        if (groupProjection == null || groupProjection.keys().size() != 1) {
             return null;
         }
         return groupProjection;
@@ -987,5 +1027,51 @@ final class GroupByOptimizedIterator {
             return null;
         }
         return groupProjection;
+    }
+
+    private static void readOrds(List<String> keyColumns,
+                                 SortedSetDocValues[] keyValues,
+                                 int doc,
+                                 long[] ords) throws IOException {
+        for (int i = 0; i < keyValues.length; i++) {
+            SortedSetDocValues values = keyValues[i];
+            if (values.advanceExact(doc)) {
+                ords[i] = values.nextOrd();
+                if (values.docValueCount() > 1) {
+                    throw new ArrayViaDocValuesUnsupportedException(keyColumns.get(i));
+                }
+            } else {
+                ords[i] = NULL_ORD;
+            }
+        }
+    }
+
+    /**
+     * Traverses the per-segment structure along `ords` down to the level that holds the aggregation
+     * states, creating the intermediate levels on the way.
+     */
+    @SuppressWarnings("unchecked")
+    private static LongObjectHashMap<Object> getNested(LongObjectHashMap<Object> root, long[] ords) {
+        LongObjectHashMap<Object> level = root;
+        for (int i = 0; i < ords.length - 1; i++) {
+            LongObjectHashMap<Object> next = (LongObjectHashMap<Object>) level.get(ords[i]);
+            if (next == null) {
+                next = new LongObjectHashMap<>();
+                level.put(ords[i], next);
+            }
+            level = next;
+        }
+        return level;
+    }
+
+    /**
+     * Phase 2 of the ordinal lookup: resolves the ordinals of a group to its key values.
+     */
+    private static List<Object> resolveKey(SortedSetDocValues[] keyValues, long[] ords) throws IOException {
+        ArrayList<Object> key = new ArrayList<>(ords.length);
+        for (int i = 0; i < ords.length; i++) {
+            key.add(ords[i] == NULL_ORD ? null : keyValues[i].lookupOrd(ords[i]).utf8ToString());
+        }
+        return key;
     }
 }
