@@ -134,7 +134,7 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
             .collect(Collectors.toList());
         var columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, numbers);
         Stats stats = new Stats(20_000, 16, Map.of(ColumnIdent.of("x"), columnStats));
-        assertThat(estimate(stats, query)).isEqualTo(19998L);
+        assertThat(estimate(stats, query)).isEqualTo(19999L);
     }
 
     @Test

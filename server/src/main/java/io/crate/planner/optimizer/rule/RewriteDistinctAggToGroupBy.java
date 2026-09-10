@@ -225,7 +225,7 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
 
     /// True, if this rule can be applied.
     /// Currently, we only check the table size (in number of rows).
-    /// todo Once https://github.com/crate/crate/pull/20172 is merged,
+    /// todo Once https://github.com/crate/crate/pull/20210 is merged,
     /// this method should use column stats.
     /// The condition (that we found through benchmarks) is that at most 1 column
     /// with cardinality higher than 85% makes the rule effective.

@@ -203,3 +203,7 @@ Fixes
   with :ref:`pg_tunnel mode <sql-create-subscription-conn-info>` now requires
   to have ``AL`` privilege to avoid a security issue when authenticated user can
   can switch to CrateDB's unauthenticated internal transport protocol.
+
+- Fixed an issue causing inaccurate estimates of distinct counts of values in a
+  column (e.g. by executing ``SELECT n_distinct FROM pg_catalog.pg_stats``). As
+  a consequence, some optimization rules will be applied more accurately.
