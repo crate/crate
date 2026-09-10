@@ -56,7 +56,7 @@ public class ColumnSketchBuilderTest extends ESTestCase {
         builder.add(List.of(Map.of("id", 2)));
         builder.add(List.of(Map.of("id", 1)));
 
-        var stats = builder.toStats();
+        var stats = builder.toStats(builder.sampleCount);
 
         assertThat(stats.mostCommonValues().values()).containsExactly(
             List.of(Map.of("id", 1)),
@@ -86,7 +86,7 @@ public class ColumnSketchBuilderTest extends ESTestCase {
         StreamInput in = new InputStreamStreamInput(new ByteArrayInputStream(os.toByteArray()));
         var serializedSketch = support.readSketchFrom(in);
 
-        assertThat(sketch.toStats()).isEqualTo(serializedSketch.toStats());
+        assertThat(sketch.toStats(sketch.sampleCount)).isEqualTo(serializedSketch.toStats(serializedSketch.sampleCount));
     }
 
 }

@@ -105,7 +105,7 @@ class Samples implements Writeable {
         Map<ColumnIdent, ColumnStats<?>> statsByColumn = HashMap.newHashMap(primitiveColumns.size());
         for (int i = 0; i < primitiveColumns.size(); i++) {
             Reference primitiveColumn = primitiveColumns.get(i);
-            statsByColumn.put(primitiveColumn.column(), columnSketches.get(i).toStats());
+            statsByColumn.put(primitiveColumn.column(), columnSketches.get(i).toStats(numTotalDocs));
         }
         return new Stats(numTotalDocs, numTotalSizeInBytes, statsByColumn);
     }
