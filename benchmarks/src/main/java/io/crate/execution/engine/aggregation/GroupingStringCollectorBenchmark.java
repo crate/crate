@@ -59,6 +59,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -112,6 +113,7 @@ public class GroupingStringCollectorBenchmark {
             RamAccounting.NO_ACCOUNTING,
             memoryManager,
             Version.CURRENT,
+            new DataType[] { minAgg.partialType() },
             keyInputs.get(0),
             DataTypes.STRING
         );

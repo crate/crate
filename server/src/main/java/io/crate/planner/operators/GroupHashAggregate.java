@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.SequencedCollection;
 import java.util.Set;
 
+import org.elasticsearch.Version;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
@@ -149,6 +150,9 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
             executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         }
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
+        // Chosen once here so the streamed partial-state wire format stays consistent cluster-wide
+        // during a rolling upgrade (see AggregationFunction#partialType(Version)).
+        Version minNodeVersion = plannerContext.clusterState().nodes().getMinNodeVersion();
 
         DistinctRewriter.Result rewritten = DistinctRewriter.rewrite(
             aggregates,
@@ -166,7 +170,8 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                 rewritten.aggregates(),
                 paramBinder,
                 AggregateMode.ITER_FINAL,
-                source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.CLUSTER
+                source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.CLUSTER,
+                minNodeVersion
             );
             executionPlan.addProjection(groupProjection, NO_LIMIT, 0, null);
             if (rewritten.evalProjection() != null) {
@@ -184,7 +189,8 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                         rewritten.aggregates(),
                         paramBinder,
                         AggregateMode.ITER_PARTIAL,
-                        RowGranularity.SHARD
+                        RowGranularity.SHARD,
+                        minNodeVersion
                     )
                 );
                 executionPlan.addProjection(
@@ -194,7 +200,8 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                         rewritten.aggregates(),
                         paramBinder,
                         AggregateMode.PARTIAL_FINAL,
-                        RowGranularity.NODE
+                        RowGranularity.NODE,
+                        minNodeVersion
                     ),
                     NO_LIMIT,
                     0,
@@ -212,7 +219,8 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                         rewritten.aggregates(),
                         paramBinder,
                         AggregateMode.ITER_FINAL,
-                        RowGranularity.NODE
+                        RowGranularity.NODE,
+                        minNodeVersion
                     ),
                     NO_LIMIT,
                     0,
@@ -231,7 +239,8 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
             rewritten.aggregates(),
             paramBinder,
             AggregateMode.ITER_PARTIAL,
-            source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
+            source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE,
+            minNodeVersion
         );
         executionPlan.addProjection(toPartial);
         executionPlan.setDistributionInfo(DistributionInfo.DEFAULT_MODULO);
@@ -242,7 +251,8 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
             rewritten.aggregates(),
             paramBinder,
             AggregateMode.PARTIAL_FINAL,
-            RowGranularity.CLUSTER
+            RowGranularity.CLUSTER,
+            minNodeVersion
         );
         return createMerge(
             plannerContext,

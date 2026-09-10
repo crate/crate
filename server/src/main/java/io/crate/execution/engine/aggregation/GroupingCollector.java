@@ -70,6 +70,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
     private final BiConsumer<Map<K, Object[]>, Row> accumulator;
     private final Supplier<Map<K, Object[]>> supplier;
     private final Version minNodeVersion;
+    private final DataType<?>[] partialTypes;
 
     static GroupingCollector<Object> singleKey(CollectExpression<Row, ?>[] expressions,
                                                AggregateMode mode,
@@ -79,6 +80,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                RamAccounting ramAccounting,
                                                MemoryManager memoryManager,
                                                Version minNodeVersion,
+                                               DataType<?>[] partialTypes,
                                                Input<?> keyInput,
                                                DataType keyType) {
         return new GroupingCollector<>(
@@ -90,6 +92,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             ramAccounting,
             memoryManager,
             minNodeVersion,
+            partialTypes,
             (key, cells) -> cells[0] = key,
             1,
             GroupByMaps.accountForNewEntry(ramAccounting, keyType),
@@ -106,6 +109,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                     RamAccounting ramAccountingContext,
                                                     MemoryManager memoryManager,
                                                     Version minNodeVersion,
+                                                    DataType<?>[] partialTypes,
                                                     List<Input<?>> keyInputs,
                                                     List<? extends DataType> keyTypes) {
         return new GroupingCollector<>(
@@ -117,6 +121,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             ramAccountingContext,
             memoryManager,
             minNodeVersion,
+            partialTypes,
             GroupingCollector::applyKeysToCells,
             keyInputs.size(),
             GroupByMaps.accountForNewEntry(ramAccountingContext, keyTypes),
@@ -147,6 +152,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                               RamAccounting ramAccounting,
                               MemoryManager memoryManager,
                               Version minNodeVersion,
+                              DataType<?>[] partialTypes,
                               BiConsumer<K, Object[]> applyKeyToCells,
                               int numKeyColumns,
                               TriConsumer<ResizeAwareMap<K, Object[]>, K, Object[]> accountForNewEntry,
@@ -166,6 +172,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         this.accumulator = mode == AggregateMode.PARTIAL_FINAL ? this::reduce : this::iter;
         this.supplier = supplier;
         this.minNodeVersion = minNodeVersion;
+        this.partialTypes = partialTypes;
     }
 
     @Override
@@ -245,7 +252,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         for (int i = 0; i < aggregations.length; i++) {
             AggregationFunction aggregation = aggregations[i];
 
-            var newState = aggregation.newState(ramAccounting, minNodeVersion, memoryManager);
+            var newState = aggregation.newState(ramAccounting, partialTypes[i], minNodeVersion, memoryManager);
             if (InputCondition.matches(filters[i])) {
                 //noinspection unchecked
                 states[i] = aggregation.iterate(ramAccounting, memoryManager, newState, inputs[i]);

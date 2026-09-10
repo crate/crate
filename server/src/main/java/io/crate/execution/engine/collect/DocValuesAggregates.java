@@ -178,6 +178,9 @@ public final class DocValuesAggregates {
                 aggregationReferences,
                 table,
                 shardVersionCreated,
+                // Doc-value aggregation runs shard-level (ITER_PARTIAL), so the aggregation's value
+                // type is the partial-state type the plan chose; newState follows it.
+                aggregation.valueType(),
                 literals
             );
             if (docValueAggregator == null) {

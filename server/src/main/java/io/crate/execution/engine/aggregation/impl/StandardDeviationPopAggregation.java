@@ -46,6 +46,7 @@ public class StandardDeviationPopAggregation extends StandardDeviationAggregatio
 
     static {
         DataTypes.register(StdDevPopStateType.ID, _ -> StdDevPopStateType.INSTANCE);
+        DataTypes.register(StdDevPopStateTypeWelford.ID, _ -> StdDevPopStateTypeWelford.INSTANCE);
     }
 
     private static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(
@@ -81,7 +82,28 @@ public class StandardDeviationPopAggregation extends StandardDeviationAggregatio
 
         @Override
         public StandardDeviationPop readValueFrom(StreamInput in) throws IOException {
-            return new StandardDeviationPop(in);
+            return new StandardDeviationPop(in, true);
+        }
+    }
+
+    public static class StdDevPopStateTypeWelford extends StdDevPopStateType {
+
+        public static final StdDevPopStateTypeWelford INSTANCE = new StdDevPopStateTypeWelford();
+        public static final int ID = 8196;
+
+        @Override
+        public int id() {
+            return ID;
+        }
+
+        @Override
+        public String getName() {
+            return "stddev_pop_state_welford";
+        }
+
+        @Override
+        public StandardDeviationPop readValueFrom(StreamInput in) throws IOException {
+            return new StandardDeviationPop(in, false);
         }
     }
 
@@ -91,7 +113,14 @@ public class StandardDeviationPopAggregation extends StandardDeviationAggregatio
 
     @Override
     public DataType<?> partialType() {
-        return new StdDevPopStateType();
+        return StdDevPopStateTypeWelford.INSTANCE;
+    }
+
+    @Override
+    public DataType<?> partialType(Version minNodeInCluster) {
+        return minNodeInCluster.before(Version.V_6_5_0)
+            ? StdDevPopStateType.INSTANCE
+            : StdDevPopStateTypeWelford.INSTANCE;
     }
 
     @Nullable
@@ -100,6 +129,19 @@ public class StandardDeviationPopAggregation extends StandardDeviationAggregatio
                                          Version minNodeInCluster,
                                          MemoryManager memoryManager) {
         ramAccounting.addBytes(StandardDeviationPop.fixedSize());
-        return new StandardDeviationPop();
+        // Local/window-only fallback; the streaming paths use the partialType-aware overload below.
+        return new StandardDeviationPop(minNodeInCluster.before(Version.V_6_5_0));
+    }
+
+    @Nullable
+    @Override
+    public StandardDeviationPop newState(RamAccounting ramAccounting,
+                                         DataType<?> partialType,
+                                         Version minNodeInCluster,
+                                         MemoryManager memoryManager) {
+        ramAccounting.addBytes(StandardDeviationPop.fixedSize());
+        // Follow the partial-state type the plan chose: StdDevPopStateType (id 8192) = legacy layout,
+        // StdDevPopStateTypeWelford (id 8196) = Welford layout. See #19885.
+        return new StandardDeviationPop(partialType.id() == StdDevPopStateType.ID);
     }
 }

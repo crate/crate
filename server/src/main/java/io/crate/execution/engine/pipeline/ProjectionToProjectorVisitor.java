@@ -319,7 +319,8 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitGroupProjection(GroupProjection projection, Context context) {
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForAggregations(context.txnCtx);
+        InputFactory.Context<CollectExpression<Row, ?>> ctx =
+            inputFactory.ctxForAggregations(context.txnCtx, projection.mode());
 
         ctx.add(projection.keys());
         ctx.add(projection.values());
@@ -344,7 +345,8 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitAggregationProjection(AggregationProjection projection, Context context) {
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForAggregations(context.txnCtx);
+        InputFactory.Context<CollectExpression<Row, ?>> ctx =
+            inputFactory.ctxForAggregations(context.txnCtx, projection.mode());
         ctx.add(projection.aggregations());
         return new AggregationPipe(
             ctx.expressions(),

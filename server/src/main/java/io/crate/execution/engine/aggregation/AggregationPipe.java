@@ -34,6 +34,7 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.memory.MemoryManager;
+import io.crate.types.DataType;
 
 public class AggregationPipe implements Projector {
 
@@ -49,11 +50,13 @@ public class AggregationPipe implements Projector {
         AggregationFunction<?, ?>[] functions = new AggregationFunction[aggregations.length];
         Input<?>[][] inputs = new Input[aggregations.length][];
         Input[] filters = new Input[aggregations.length];
+        DataType<?>[] partialTypes = new DataType[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
             AggregationContext aggregation = aggregations[i];
             functions[i] = aggregation.function();
             inputs[i] = aggregation.inputs();
             filters[i] = aggregation.filter();
+            partialTypes[i] = aggregation.partialType();
         }
 
         collector = new AggregateCollector(
@@ -61,6 +64,7 @@ public class AggregationPipe implements Projector {
             ramAccounting,
             memoryManager,
             minNodeVersion,
+            partialTypes,
             aggregateMode,
             functions,
             inputs,
