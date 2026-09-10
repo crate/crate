@@ -41,14 +41,18 @@ public final class FetchSampleRequest extends TransportRequest {
     private final RelationName relationName;
     private final int tableOid;
     private final List<Reference> columns;
+    // the lowest version of the nodes taking part in the ANALYZE
+    private final Version minNodeVersion;
 
     public FetchSampleRequest(RelationName relationName,
                               int tableOid,
                               List<Reference> columns,
+                              Version minNodeVersion,
                               Version nodeVersion) {
         this.relationName = relationName;
         this.tableOid = tableOid;
         this.columns = columns;
+        this.minNodeVersion = minNodeVersion;
         if (nodeVersion.before(Version.V_5_7_0)) {
             throw new UnsupportedOperationException("Cannot run ANALYZE request in a mixed cluster with nodes older than 5.7.0");
         }
@@ -73,6 +77,12 @@ public final class FetchSampleRequest extends TransportRequest {
         for (int i = 0; i < numColumns; i++) {
             columns.add(Reference.fromStream(in));
         }
+        if (in.getVersion().onOrAfter(Version.V_6_5_1)) {
+            this.minNodeVersion = Version.readVersion(in);
+        } else {
+            // Sent by a handler node older than 6.5.1, so that is the lowest version taking part.
+            this.minNodeVersion = in.getVersion();
+        }
     }
 
     @Override
@@ -89,6 +99,9 @@ public final class FetchSampleRequest extends TransportRequest {
         for (Reference column : columns) {
             Reference.toStream(out, column);
         }
+        if (out.getVersion().onOrAfter(Version.V_6_5_1)) {
+            Version.writeVersion(minNodeVersion, out);
+        }
     }
 
     public RelationName relation() {
@@ -103,9 +116,13 @@ public final class FetchSampleRequest extends TransportRequest {
         return columns;
     }
 
+    public Version minNodeVersion() {
+        return minNodeVersion;
+    }
+
     @Override
     public int hashCode() {
-        return Objects.hash(relationName, tableOid, columns);
+        return Objects.hash(relationName, tableOid, columns, minNodeVersion);
     }
 
     @Override
@@ -121,6 +138,7 @@ public final class FetchSampleRequest extends TransportRequest {
         }
         return relationName.equals(other.relation()) &&
                tableOid == other.tableOid() &&
-               columns.equals(other.columns());
+               columns.equals(other.columns()) &&
+               minNodeVersion.equals(other.minNodeVersion());
     }
 }

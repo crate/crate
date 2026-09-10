@@ -186,3 +186,7 @@ Fixes
   :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>` to not overwrite existing
   only on cluster UDF functions (as documented) and instead merge snapshot and
   cluster metadata.
+
+- Fixed an issue causing inaccurate estimates of distinct counts of values in a
+  column (e.g. by executing ``SELECT n_distinct FROM pg_catalog.pg_stats``). As
+  a consequence, some optimization rules will be applied more accurately.

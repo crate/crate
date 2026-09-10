@@ -40,7 +40,7 @@ public class FetchSampleRequestTest {
         for (Version version : List.of(Version.V_6_3_7, Version.V_6_4_2, Version.CURRENT)) {
             RelationName relation = new RelationName("doc", "tbl");
             int tableOid = 1234;
-            FetchSampleRequest request = new FetchSampleRequest(relation, tableOid, List.of(), version);
+            FetchSampleRequest request = new FetchSampleRequest(relation, tableOid, List.of(), version, version);
 
             var out = new BytesStreamOutput();
             out.setVersion(version);
@@ -56,7 +56,7 @@ public class FetchSampleRequestTest {
         // streaming to nodes with unsupported versions
         for (Version version : List.of(Version.V_6_3_6, Version.V_6_4_0, Version.V_6_4_1)) {
             RelationName relation = new RelationName("doc", "tbl");
-            FetchSampleRequest request = new FetchSampleRequest(relation, 1234, List.of(), version);
+            FetchSampleRequest request = new FetchSampleRequest(relation, 1234, List.of(), version, version);
 
             var out = new BytesStreamOutput();
             out.setVersion(version);

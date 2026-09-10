@@ -49,7 +49,7 @@ class Samples implements Writeable {
         this.numTotalSizeInBytes = numTotalSizeInBytes;
     }
 
-    public Samples(List<Reference> references, StreamInput in) throws IOException {
+    public Samples(List<Reference> references, Version minNodeVersion, StreamInput in) throws IOException {
         if (in.getVersion().before(Version.V_5_7_0)) {
             throw new UnsupportedOperationException("Cannot run ANALYZE in a mixed version cluster");
         }
@@ -63,7 +63,7 @@ class Samples implements Writeable {
         this.columnSketches = new ArrayList<>(numRecords);
         for (int i = 0; i < numRecords; i++) {
             Reference ref = references.get(i);
-            this.columnSketches.add(ref.valueType().columnStatsSupport().readSketchFrom(in));
+            this.columnSketches.add(ref.valueType().columnStatsSupport().readSketchFrom(minNodeVersion, in));
         }
     }
 
@@ -105,7 +105,7 @@ class Samples implements Writeable {
         Map<ColumnIdent, ColumnStats<?>> statsByColumn = HashMap.newHashMap(primitiveColumns.size());
         for (int i = 0; i < primitiveColumns.size(); i++) {
             Reference primitiveColumn = primitiveColumns.get(i);
-            statsByColumn.put(primitiveColumn.column(), columnSketches.get(i).toStats());
+            statsByColumn.put(primitiveColumn.column(), columnSketches.get(i).toStats(numTotalDocs));
         }
         return new Stats(numTotalDocs, numTotalSizeInBytes, statsByColumn);
     }

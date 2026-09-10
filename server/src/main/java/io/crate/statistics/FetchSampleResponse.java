@@ -24,6 +24,7 @@ package io.crate.statistics;
 import java.io.IOException;
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
@@ -38,8 +39,8 @@ public final class FetchSampleResponse extends TransportResponse {
         this.samples = samples;
     }
 
-    public FetchSampleResponse(List<Reference> references, StreamInput in) throws IOException {
-        this.samples = new Samples(references, in);
+    public FetchSampleResponse(List<Reference> references, Version minNodeVersion, StreamInput in) throws IOException {
+        this.samples = new Samples(references, minNodeVersion, in);
     }
 
     Samples samples() {
