@@ -36,23 +36,47 @@ import org.junit.jupiter.api.Test;
 
 import io.crate.types.DataTypes;
 import net.jqwik.api.Property;
-import net.jqwik.api.constraints.IntRange;
 
 public class ColumnStatsTest {
 
     @Test
     public void test_column_stats_generation() {
         ColumnStats<?> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1, 1, 2, 4, 4, 4, 4, 4), 1);
-        assertThat(columnStats.averageSizeInBytes()).isEqualTo((double) DataTypes.INTEGER.fixedSize());
+        assertThat(columnStats.averageSizeInBytes()).isEqualTo(DataTypes.INTEGER.fixedSize());
         assertThat(columnStats.nullFraction()).isCloseTo(0.111, Offset.offset(0.01));
         assertThat(columnStats.approxDistinct()).isEqualTo(3.0);
         MostCommonValues<?> mostCommonValues = columnStats.mostCommonValues();
         assertThat(mostCommonValues.values()).hasSize(3);
     }
 
+    @Test
+    public void test_approx_distinct_sample_covers_whole_table() {
+        ColumnStats<?> columnStats = StatsUtils.statsFromRange(0, 500, 500);
+        assertThat(columnStats.approxDistinct()).isEqualTo(500.0);
+    }
+
+    @Test
+    public void test_approx_distinct_sample_is_all_unique() {
+        // Regression test
+        // Earlier, ColumnStats.approxDistinct() used to report the distinct values from the sample,
+        // without extrapolating to the full table.
+        // This meant that, for high-cardinality columns, the reports num. of distinct values was
+        // always 30k.
+        ColumnStats<?> columnStats = StatsUtils.statsFromRange(0, 30_000, 5_000_000);
+        assertThat(columnStats.approxDistinct()).isEqualTo(5_000_000.0);
+    }
+
+    @Test
+    public void test_no_most_common_values_for_unique_sample() {
+        for (int offset : new int[] {0, 30_000}) {
+            ColumnStats<?> stats = StatsUtils.statsFromRange(offset, offset + 30_000, 10_000_000);
+            assertThat(stats.mostCommonValues().values()).as("offset " + offset).isEmpty();
+        }
+    }
+
     @Property
     public void test_null_fraction_is_between_incl_0_and_incl_1(ArrayList<Integer> numbers,
-                                                                @IntRange(min = 0) int nullCount,
+                                                                int nullCount,
                                                                 long totalRowCount) {
         assumeThat(totalRowCount).isGreaterThanOrEqualTo(nullCount);
         assumeThat((long) numbers.size() + nullCount).isLessThanOrEqualTo(totalRowCount);
