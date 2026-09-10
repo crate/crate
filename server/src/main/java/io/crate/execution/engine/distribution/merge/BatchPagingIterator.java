@@ -124,6 +124,9 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
     }
 
     private void onNextPage(Iterable<? extends KeyIterable<Key, Row>> rows, Throwable ex) {
+        if (closed.get()) {
+            return;
+        }
         if (ex == null) {
             pagingIterator.merge(rows);
             if (isUpstreamExhausted.getAsBoolean()) {
