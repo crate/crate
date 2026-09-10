@@ -158,3 +158,7 @@ Fixes
   publications that explicitly listed it. Dropping a table now also removes it
   from those publications. References to non-existent tables in publications
   are also removed when a node restarts.
+
+- Fixed an issue causing inaccurate estimates of distinct counts of values in a
+  column (e.g. by executing ``SELECT n_distinct FROM pg_catalog.pg_stats``). As
+  a consequence, some optimization rules will be applied more accurately.

@@ -32,7 +32,8 @@ public final class StatsUtils {
     public static <T> ColumnStats<T> statsFromValues(DataType<T> dataType, Collection<T> values) {
         ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder();
         builder.addAll(values);
-        return builder.toStats();
+        // Assume the sample is the whole table: totalDocs == the rows just added.
+        return builder.toStats(builder.sampleCount);
     }
 
     public static <T> ColumnStats<T> statsFromValues(DataType<T> dataType, Collection<T> values, int nullCount) {
@@ -41,6 +42,19 @@ public final class StatsUtils {
         for (int i = 0; i < nullCount; i++) {
             builder.add(null);
         }
-        return builder.toStats();
+        // Assume the sample is the whole table: totalDocs == the rows just added.
+        return builder.toStats(builder.sampleCount);
+    }
+
+    public static <T> ColumnStats<T> statsFromValues(DataType<T> dataType,
+                                                     Collection<T> values,
+                                                     int nullCount,
+                                                     long totalDocs) {
+        ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder();
+        builder.addAll(values);
+        for (int i = 0; i < nullCount; i++) {
+            builder.add(null);
+        }
+        return builder.toStats(totalDocs);
     }
 }
