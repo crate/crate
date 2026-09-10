@@ -23,6 +23,7 @@ package io.crate.statistics;
 
 import java.io.IOException;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 
 import io.crate.types.DataType;
@@ -35,27 +36,31 @@ public interface ColumnStatsSupport<T> {
 
     /**
      * Creates a column sketch builder for a column
+     *
+     * @param minNodeVersion the lowest version of the nodes taking part in the ANALYZE
      */
-    ColumnSketchBuilder<T> sketchBuilder();
+    ColumnSketchBuilder<T> sketchBuilder(Version minNodeVersion);
 
     /**
      * Reads a column sketch from a stream
+     *
+     * @param minNodeVersion the lowest version of the nodes taking part in the ANALYZE
      */
-    ColumnSketchBuilder<T> readSketchFrom(StreamInput in) throws IOException;
+    ColumnSketchBuilder<T> readSketchFrom(Version minNodeVersion, StreamInput in) throws IOException;
 
     /**
      * Creates a support instance for a single-valued datatype
      */
     static <T> ColumnStatsSupport<T> singleValued(Class<T> clazz, DataType<T> dataType) {
-        return new ColumnStatsSupport<T>() {
+        return new ColumnStatsSupport<>() {
             @Override
-            public ColumnSketchBuilder<T> sketchBuilder() {
-                return new ColumnSketchBuilder.SingleValued<>(clazz, dataType);
+            public ColumnSketchBuilder<T> sketchBuilder(Version minNodeVersion) {
+                return new ColumnSketchBuilder.SingleValued<>(clazz, dataType, minNodeVersion);
             }
 
             @Override
-            public ColumnSketchBuilder<T> readSketchFrom(StreamInput in) throws IOException {
-                return new ColumnSketchBuilder.SingleValued<>(clazz, dataType, in);
+            public ColumnSketchBuilder<T> readSketchFrom(Version minNodeVersion, StreamInput in) throws IOException {
+                return new ColumnSketchBuilder.SingleValued<>(clazz, dataType, minNodeVersion, in);
             }
         };
     }
@@ -64,15 +69,15 @@ public interface ColumnStatsSupport<T> {
      * Creates a support instance for a composite data type, e.g. an array
      */
     static <T> ColumnStatsSupport<T> composite(DataType<T> dataType) {
-        return new ColumnStatsSupport<T>() {
+        return new ColumnStatsSupport<>() {
             @Override
-            public ColumnSketchBuilder<T> sketchBuilder() {
-                return new ColumnSketchBuilder.Composite<>(dataType);
+            public ColumnSketchBuilder<T> sketchBuilder(Version minNodeVersion) {
+                return new ColumnSketchBuilder.Composite<>(dataType, minNodeVersion);
             }
 
             @Override
-            public ColumnSketchBuilder<T> readSketchFrom(StreamInput in) throws IOException {
-                return new ColumnSketchBuilder.Composite<>(dataType, in);
+            public ColumnSketchBuilder<T> readSketchFrom(Version minNodeVersion, StreamInput in) throws IOException {
+                return new ColumnSketchBuilder.Composite<>(dataType, minNodeVersion, in);
             }
         };
     }
