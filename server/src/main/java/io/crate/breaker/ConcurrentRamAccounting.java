@@ -25,6 +25,8 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongConsumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -39,13 +41,15 @@ import io.crate.data.breaker.RamAccounting;
 @ThreadSafe
 public final class ConcurrentRamAccounting implements RamAccounting {
 
+    private static final Logger LOGGER = LogManager.getLogger(ConcurrentRamAccounting.class);
+
     private final AtomicLong usedBytes = new AtomicLong(0L);
     private final LongConsumer reserveBytes;
     private final LongConsumer releaseBytes;
     private final String label;
     private final int operationMemoryLimit;
 
-    private boolean closed = false;
+    private volatile boolean closed = false;
 
     public static ConcurrentRamAccounting forCircuitBreaker(String label, CircuitBreaker circuitBreaker, int operationMemoryLimit) {
         return new ConcurrentRamAccounting(
@@ -71,7 +75,12 @@ public final class ConcurrentRamAccounting implements RamAccounting {
         if (bytes == 0) {
             return;
         }
-        assert !closed : "Cannot account bytes if ConcurrentRamAccounting instance was closed";
+        boolean localClose = closed; // 1 volatile read.
+        if (localClose == true) {
+            LOGGER.warn("ConcurrentRamAccounting with label {} added bytes after instance was closed", label);
+            assert false : "Cannot account bytes if ConcurrentRamAccounting instance was closed";
+        }
+
         long currentUsedBytes = usedBytes.addAndGet(bytes);
         if (operationMemoryLimit > 0 && currentUsedBytes > operationMemoryLimit) {
             usedBytes.addAndGet(- bytes);
