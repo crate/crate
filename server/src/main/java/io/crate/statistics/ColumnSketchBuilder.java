@@ -56,11 +56,14 @@ public abstract class ColumnSketchBuilder<T> {
     /// so tracking exact counts (rather than approximating) is cheap.
     protected final Map<String, Long> distinctCounts;
 
-    /// Set when [#distinctCounts] does not (or may not) cover the whole sample, because some
-    /// contributor (this instance itself, or one merged into it) was deserialized from a node
-    /// older than [Version#V_6_5_0], which never sent per-value counts. Once set, it stays set
-    /// through any further merges/serialization, and [#estimateDistinct] falls back to
-    /// [#distinctSketch] instead of extrapolating from a silently-incomplete [#distinctCounts].
+    /// Set when [#distinctCounts] does not (or may not) cover the whole sample,
+    /// because this instance was:
+    /// * deserialized from a node older than 6.4.5
+    /// * an instance coming from a node older than 6.4.5 was merged into this instance.
+    ///
+    /// When true, we can't use [#distinctCounts] to provide a better estimate of the
+    /// number of distinct values, so [#estimateDistinct] falls back to [#distinctSketch]
+    /// (instead of extrapolating from incomplete [#distinctCounts]).
     protected boolean distinctCountsIncomplete;
 
     /**
@@ -78,7 +81,7 @@ public abstract class ColumnSketchBuilder<T> {
         this.nullCount = in.readLong();
         this.totalBytes = in.readLong();
         this.distinctSketch = DistinctValuesSketch.fromStream(in);
-        if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
+        if (in.getVersion().after(Version.V_6_4_4)) {
             this.distinctCounts = in.readMap(StreamInput::readString, StreamInput::readVLong);
             this.distinctCountsIncomplete = in.readBoolean();
         } else {
@@ -92,7 +95,7 @@ public abstract class ColumnSketchBuilder<T> {
         out.writeLong(nullCount);
         out.writeLong(totalBytes);
         out.writeByteArray(distinctSketch.getSketch().toByteArray());
-        if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
+        if (out.getVersion().after(Version.V_6_4_4)) {
             out.writeMap(distinctCounts, StreamOutput::writeString, StreamOutput::writeVLong);
             out.writeBoolean(distinctCountsIncomplete);
         }

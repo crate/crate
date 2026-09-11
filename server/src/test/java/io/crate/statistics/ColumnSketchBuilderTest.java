@@ -82,6 +82,7 @@ public class ColumnSketchBuilderTest extends ESTestCase {
 
         assertStreamOutInOk(sketch, support, Version.V_6_5_0);
         assertStreamOutInOk(sketch, support, Version.V_6_4_4);
+        assertStreamOutInOk(sketch, support, Version.V_6_4_3);
     }
 
     private void assertStreamOutInOk(ColumnSketchBuilder<String> sketch,
