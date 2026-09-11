@@ -24,10 +24,13 @@ package io.crate.statistics;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -47,12 +50,29 @@ public abstract class ColumnSketchBuilder<T> {
     protected long totalBytes;
     protected DistinctValuesSketch distinctSketch;
 
+    /// Exact per-value counts of the sample, used to extrapolate the sample's distinct
+    /// count in the full table via the Haas-Stokes estimator (same approach as PostgreSQL).
+    /// The sample is bounded by [Reservoir#NUM_SAMPLES],
+    /// so tracking exact counts (rather than approximating) is cheap.
+    protected final Map<String, Long> distinctCounts;
+
+    /// Set when [#distinctCounts] does not (or may not) cover the whole sample,
+    /// because this instance was:
+    /// * deserialized from a node older than 6.4.5
+    /// * an instance coming from a node older than 6.4.5 was merged into this instance.
+    ///
+    /// When true, we can't use [#distinctCounts] to provide a better estimate of the
+    /// number of distinct values, so [#estimateDistinct] falls back to [#distinctSketch]
+    /// (instead of extrapolating from incomplete [#distinctCounts]).
+    protected boolean distinctCountsIncomplete;
+
     /**
      * Creates a new ColumnSketchBuilder for the given DataType
      */
     public ColumnSketchBuilder(DataType<T> dataType) {
         this.dataType = dataType;
         this.distinctSketch = DistinctValuesSketch.newSketch();
+        this.distinctCounts = new HashMap<>();
     }
 
     public ColumnSketchBuilder(DataType<T> dataType, StreamInput in) throws IOException {
@@ -61,6 +81,13 @@ public abstract class ColumnSketchBuilder<T> {
         this.nullCount = in.readLong();
         this.totalBytes = in.readLong();
         this.distinctSketch = DistinctValuesSketch.fromStream(in);
+        if (in.getVersion().after(Version.V_6_4_4)) {
+            this.distinctCounts = in.readMap(StreamInput::readString, StreamInput::readVLong);
+            this.distinctCountsIncomplete = in.readBoolean();
+        } else {
+            this.distinctCounts = new HashMap<>();
+            this.distinctCountsIncomplete = true;
+        }
     }
 
     public final void writeTo(StreamOutput out) throws IOException {
@@ -68,6 +95,10 @@ public abstract class ColumnSketchBuilder<T> {
         out.writeLong(nullCount);
         out.writeLong(totalBytes);
         out.writeByteArray(distinctSketch.getSketch().toByteArray());
+        if (out.getVersion().after(Version.V_6_4_4)) {
+            out.writeMap(distinctCounts, StreamOutput::writeString, StreamOutput::writeVLong);
+            out.writeBoolean(distinctCountsIncomplete);
+        }
         writeSketches(out);
     }
 
@@ -82,7 +113,9 @@ public abstract class ColumnSketchBuilder<T> {
             nullCount++;
         } else {
             totalBytes += dataType.valueBytes(value);
-            distinctSketch.update(value.toString());
+            String key = value.toString();
+            distinctSketch.update(key);
+            distinctCounts.merge(key, 1L, Long::sum);
             updateSketches(value);
         }
     }
@@ -101,15 +134,54 @@ public abstract class ColumnSketchBuilder<T> {
     public abstract ColumnSketchBuilder<T> merge(ColumnSketchBuilder<?> other);
 
     /**
-     * Produce a streamable and merge-able representation of the sketch
+     * Produce a streamable and merge-able representation of the sketch.
+     *
+     * @param totalDocs the total (non-sampled) row count of the table, used to extrapolate
+     *                   the sample's distinct count to the full population
      */
-    public abstract ColumnStats<T> toStats();
+    public abstract ColumnStats<T> toStats(long totalDocs);
 
     double nullFraction() {
         if (nullCount == 0 || sampleCount == 0) {
             return 0;
         }
         return (double) nullCount / (double) sampleCount;
+    }
+
+    /// Extrapolates the sample's distinct-value count to the full table using the
+    /// Haas-Stokes estimator:
+    /// ```
+    /// n*d / (n - f1 + f1*n/N)
+    /// ```
+    /// where:
+    /// * `n` is the (non-null) sample size
+    /// * `d` the distinct count in the sample
+    /// * `f1` the count of values seen exactly once in the sample
+    /// * `N` the total row count.
+    ///
+    /// Also see PostgreSQL's [compute_distinct_stats](https://github.com/postgres/postgres/blob/9f4bd91a1960f0263c497a9a1ddf121cbcefbb98/src/backend/commands/analyze.c#L2121).
+    ///
+    /// Falls back to [#distinctSketch]'s own (non-extrapolated) estimate when
+    /// [#distinctCountsIncomplete] is set, since [#distinctCounts] can't be trusted in that case.
+    final double estimateDistinct(long totalDocs) {
+        if (distinctCountsIncomplete) {
+            return distinctSketch.getSketch().getEstimate();
+        }
+        long n = sampleCount - nullCount;
+        long d = distinctCounts.size();
+        if (n <= 0) {
+            return d;
+        }
+        long f1 = 0;
+        for (long count : distinctCounts.values()) {
+            if (count == 1L) {
+                f1++;
+            }
+        }
+        double N = Math.max(totalDocs, n);
+        double denom = (n - f1) + f1 * (double) n / N;
+        double estimate = denom > 0 ? ((double) n * d) / denom : d;
+        return Math.round(Math.min(estimate, N));
     }
 
     /**
@@ -157,6 +229,8 @@ public abstract class ColumnSketchBuilder<T> {
             this.nullCount += other.nullCount;
             this.totalBytes += other.totalBytes;
             this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
+            this.distinctCountsIncomplete = this.distinctCountsIncomplete || typedOther.distinctCountsIncomplete;
+            typedOther.distinctCounts.forEach((key, count) -> this.distinctCounts.merge(key, count, Long::sum));
             this.mostCommonValuesSketch = this.mostCommonValuesSketch.merge(typedOther.mostCommonValuesSketch);
             this.histogramSketch = this.histogramSketch.merge(typedOther.histogramSketch);
 
@@ -164,10 +238,10 @@ public abstract class ColumnSketchBuilder<T> {
         }
 
         @Override
-        public ColumnStats<T> toStats() {
+        public ColumnStats<T> toStats(long totalDocs) {
             double nullFraction = nullFraction();
             double avgSizeInBytes = (double) totalBytes / ((double) sampleCount - nullCount);
-            double approxDistinct = this.distinctSketch.getSketch().getEstimate();
+            double approxDistinct = estimateDistinct(totalDocs);
             MostCommonValues<T> mcv = this.mostCommonValuesSketch.toMostCommonValues(sampleCount, approxDistinct);
             return new ColumnStats<>(
                 nullFraction,
@@ -230,16 +304,18 @@ public abstract class ColumnSketchBuilder<T> {
             this.nullCount += other.nullCount;
             this.totalBytes += other.totalBytes;
             this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
+            this.distinctCountsIncomplete = this.distinctCountsIncomplete || typedOther.distinctCountsIncomplete;
+            typedOther.distinctCounts.forEach((key, count) -> this.distinctCounts.merge(key, count, Long::sum));
             this.mostCommonValuesSketch = this.mostCommonValuesSketch.merge(typedOther.mostCommonValuesSketch);
 
             return this;
         }
 
         @Override
-        public ColumnStats<T> toStats() {
+        public ColumnStats<T> toStats(long totalDocs) {
             double nullFraction = nullFraction();
             double avgSizeInBytes = (double) totalBytes / ((double) sampleCount - nullCount);
-            double approxDistinct = this.distinctSketch.getSketch().getEstimate();
+            double approxDistinct = estimateDistinct(totalDocs);
             MostCommonValues<T> mcv =
                 this.mostCommonValuesSketch.toMostCommonValues(sampleCount, approxDistinct, this::fromByteStream);
             return new ColumnStats<>(

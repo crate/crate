@@ -50,6 +50,46 @@ public class ColumnStatsTest {
         assertThat(mostCommonValues.values()).hasSize(3);
     }
 
+    @Test
+    public void test_approx_distinct_is_exact_when_sample_covers_whole_table() {
+        // n == N (sample is the entire table): the Haas-Stokes estimator must not distort
+        // the exact distinct count, regardless of sample size relative to the 30k reservoir cap.
+        List<Integer> values = IntStream.range(0, 500).boxed().toList();
+        ColumnStats<?> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, values, 0, 500);
+        assertThat(columnStats.approxDistinct()).isEqualTo(500.0);
+    }
+
+    @Test
+    public void test_approx_distinct_extrapolates_sample_larger_than_reservoir_cap() {
+        // Sample (n = 40,000) exceeds Reservoir.NUM_SAMPLES (30,000): 30,000 values occur
+        // once (f1 = 30,000), 5,000 values occur twice each -> d = 35,000.
+        List<Integer> values = new ArrayList<>();
+        for (int i = 0; i < 30_000; i++) {
+            values.add(i);
+        }
+        for (int i = 30_000; i < 35_000; i++) {
+            values.add(i);
+            values.add(i);
+        }
+
+        // Haas-Stokes: n*d / (n - f1 + f1*n/N) = 40000*35000 / (10000 + 30000*40000/400000)
+        //            = 1,400,000,000 / 13,000 = 107,692.307692...
+        ColumnStats<?> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, values, 0, 400_000);
+        assertThat(columnStats.approxDistinct()).isEqualTo(107_692);
+    }
+
+    @Test
+    public void test_approx_distinct_scales_up_when_sample_is_all_unique() {
+        // Regression test
+        // Earlier, ColumnStats.approxDistinct() used to report the distinct values from the sample,
+        // without extrapolating to the full table.
+        // This meant that, for high-cardinality columns, the reports num. of distinct values was
+        // always 30k.
+        List<Integer> values = IntStream.range(0, 30_000).boxed().toList();
+        ColumnStats<?> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, values, 0, 5_000_000);
+        assertThat(columnStats.approxDistinct()).isEqualTo(5_000_000.0);
+    }
+
     @Property
     public void test_null_fraction_is_between_incl_0_and_incl_1(ArrayList<Integer> numbers,
                                                                 @IntRange(min = 0) int nullCount,
