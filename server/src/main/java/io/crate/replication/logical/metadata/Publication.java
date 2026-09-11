@@ -136,13 +136,14 @@ public class Publication implements Writeable {
         return "Publication{forAllTables=" + forAllTables + ", owner=" + owner + ", targets=" + targets + "}";
     }
 
-    public Metadata.Builder resolveCurrentRelations(ClusterState state,
-                                                    Roles roles,
-                                                    Role publicationOwner,
-                                                    Role subscriber,
-                                                    String publicationName,
-                                                    Metadata.Builder metadataBuilder) {
+    public List<TableOrPartition> resolveCurrentRelations(ClusterState state,
+                                                          Roles roles,
+                                                          Role publicationOwner,
+                                                          Role subscriber,
+                                                          String publicationName,
+                                                          Metadata.Builder metadataBuilder) {
         Metadata metadata = state.metadata();
+        ArrayList<TableOrPartition> resolvedTargets = new ArrayList<>();
         Predicate<RelationName> relationFilter = relationName -> {
             if (!userCanPublish(roles, relationName, publicationOwner, publicationName)) {
                 return false;
@@ -167,6 +168,7 @@ public class Publication implements Writeable {
                     continue;
                 }
                 addRelation(metadata, metadataBuilder, table, indexFilter);
+                resolvedTargets.add(new TableOrPartition(table.name(), null));
             }
         } else {
             for (TableOrPartition target : targets) {
@@ -181,20 +183,22 @@ public class Publication implements Writeable {
                     }
                     continue;
                 }
-                addTarget(metadata, metadataBuilder, table, target, indexFilter);
+                addTarget(metadata, metadataBuilder, table, target, indexFilter, resolvedTargets);
             }
         }
 
-        return metadataBuilder;
+        return resolvedTargets;
     }
 
     private static void addTarget(Metadata currentMetadata,
                                   Metadata.Builder metadataBuilder,
                                   org.elasticsearch.cluster.metadata.RelationMetadata.Table table,
                                   TableOrPartition target,
-                                  Predicate<Index> indexFilter) {
+                                  Predicate<Index> indexFilter,
+                                  List<TableOrPartition> resolvedTargets) {
         if (target.partitionIdent() == null) {
             addRelation(currentMetadata, metadataBuilder, table, indexFilter);
+            resolvedTargets.add(target);
             return;
         }
 
@@ -213,6 +217,7 @@ public class Publication implements Writeable {
         for (IndexMetadata indexMetadata : indices) {
             addIndex(metadataBuilder, indexMetadata, indexFilter);
         }
+        resolvedTargets.add(target);
     }
 
     private static void addRelation(Metadata currentMetadata,
