@@ -122,6 +122,11 @@ SQL Statements
   multiple tables with a single :ref:`DROP TABLE <drop-table>` statement, e.g.
   ``DROP TABLE t1, t2, t3``.
 
+- Improved the error message that is raised when a ``TEXT`` value exceeds the
+  maximum length that can be indexed or stored in the column store. It now
+  contains the name of the column instead of its internal numeric identifier
+  (oid).
+
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
