@@ -15,7 +15,7 @@
  * under the License.
  *
  * However, if you have executed another commercial license agreement
- * with Crate these terms will supersede the license and you may use the
+ * with Crate these terms willcomputeHealth supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
@@ -89,6 +89,21 @@ public class SysClusterHealth {
             underreplicatedShards += tableHealth.underreplicatedShards();
         }
         return List.of(new ClusterHealth(health, finalDescription, missingShards, underreplicatedShards, numPendingTasks));
+    }
+
+    public static Health computeHealth(ClusterState clusterState) {
+        Set<ClusterBlock> blocksRed = clusterState.blocks().global(HttpErrorStatus.SERVICE_UNAVAILABLE);
+        if (!blocksRed.isEmpty()) {
+            return Health.RED;
+        }
+        Set<ClusterBlock> blocksYellow = clusterState.blocks().global(ClusterBlockLevel.METADATA_WRITE);
+        Health health = !blocksYellow.isEmpty() ? Health.YELLOW : Health.GREEN;
+        for (var tableHealth : TableHealth.compute(clusterState)) {
+            if (tableHealth.health().severity() > health.severity()) {
+                health = tableHealth.health();
+            }
+        }
+        return health;
     }
 
     public record ClusterHealth(Health health,

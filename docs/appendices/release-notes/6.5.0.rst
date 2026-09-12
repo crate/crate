@@ -127,7 +127,8 @@ SQL Standard and PostgreSQL Compatibility
 
 - `Manish Singh <https://github.com/manish9363>`_ added the
   ``pg_is_in_recovery()`` scalar function for improved compatibility with
-  PostgreSQL tools. It always returns ``false``.
+  PostgreSQL tools. It returns ``true`` when the cluster health is ``RED``
+  and ``false`` otherwise.
 
 Data Types
 ----------

@@ -23,10 +23,9 @@ package io.crate.expression.scalar.postgres;
 
 import java.util.EnumSet;
 
+import org.elasticsearch.cluster.health.Health;
+
 import io.crate.data.Input;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
@@ -36,6 +35,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
+import io.crate.metadata.sys.SysClusterHealth;
 import io.crate.types.DataTypes;
 
 public class PgIsInRecoveryFunction extends Scalar<Boolean, Void> {
@@ -59,14 +59,8 @@ public class PgIsInRecoveryFunction extends Scalar<Boolean, Void> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx, NodeContext nodeCtx) {
-        assert symbol.arguments().size() == 0 : "function's number of arguments must be 0";
-        return Literal.of(false);
-    }
-
-    @Override
     public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         assert args.length == 0 : "number of args must be 0";
-        return false;
+        return SysClusterHealth.computeHealth(nodeCtx.clusterService().state()) == Health.RED;
     }
 }

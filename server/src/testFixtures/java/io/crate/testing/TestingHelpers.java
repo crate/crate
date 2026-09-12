@@ -225,7 +225,8 @@ public class TestingHelpers {
             Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE))),
             () -> roles,
             nodeContext -> schemas,
-            new TableStats()
+            new TableStats(),
+            null
         );
     }
 
