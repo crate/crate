@@ -22,12 +22,14 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
+import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.util.BytesRef;
 
 import io.crate.metadata.IndexType;
@@ -55,6 +57,20 @@ public class StringIndexer implements ValueIndexer<String> {
     public void indexValue(String value, IndexDocumentBuilder docBuilder) throws IOException {
         String name = ref.storageIdent();
         BytesRef binaryValue = new BytesRef(value);
+        if (binaryValue.length > IndexWriter.MAX_TERM_LENGTH
+                && (ref.indexType() != IndexType.NONE || ref.hasDocValues())) {
+            // Lucene enforces this limit on indexed terms and on sorted doc values, but it
+            // only knows the storage identifier (oid) of the column. Raise the error upfront
+            // to be able to include the column name instead of the oid.
+            // See https://github.com/crate/crate/issues/17376
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "Value for column \"%s\" is too large, must be <= %d bytes (got %d bytes). "
+                    + "Use `INDEX OFF` and `STORAGE WITH (columnstore = false)` to store larger values",
+                ref.column().sqlFqn(),
+                IndexWriter.MAX_TERM_LENGTH,
+                binaryValue.length));
+        }
         if (ref.indexType() != IndexType.NONE) {
             Field field = new Field(name, binaryValue, FIELD_TYPE);
             docBuilder.addField(field);
@@ -66,15 +82,7 @@ public class StringIndexer implements ValueIndexer<String> {
             }
         }
         if (ref.hasDocValues()) {
-            try {
-                docBuilder.addField(new SortedSetDocValuesField(name, binaryValue));
-            } catch (IllegalArgumentException e) {
-                String message = e.getMessage();
-                if (message != null) {
-                    message = message.replace('"' + name + '"', '"' + ref.column().toString() + '"');
-                }
-                throw new IllegalArgumentException(message, e);
-            }
+            docBuilder.addField(new SortedSetDocValuesField(name, binaryValue));
         } else {
             if (docBuilder.maybeAddStoredField()) {
                 docBuilder.addField(new StoredField(name, value));
