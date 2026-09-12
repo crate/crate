@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar.regex;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
@@ -81,6 +82,7 @@ public class RegexpMatchFunctionTest extends ScalarTestCase {
     @Test
     public void test_compile() {
         assertCompile("regexp_match(name, '(bar)(beque)')", scalar -> compiledScalar -> {
+            assertThat(scalar).isInstanceOf(RegexpMatchFunction.class);
             assertThat(compiledScalar).isInstanceOf(RegexpMatchFunction.class);
         });
     }
