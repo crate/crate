@@ -62,6 +62,7 @@ import io.crate.expression.scalar.geo.WithinFunction;
 import io.crate.expression.scalar.object.ObjectKeysFunction;
 import io.crate.expression.scalar.postgres.CurrentSettingFunction;
 import io.crate.expression.scalar.postgres.PgBackendPidFunction;
+import io.crate.expression.scalar.postgres.PgIsInRecoveryFunction;
 import io.crate.expression.scalar.postgres.PgEncodingToCharFunction;
 import io.crate.expression.scalar.postgres.PgGetUserByIdFunction;
 import io.crate.expression.scalar.postgres.PgPostmasterStartTime;
@@ -242,6 +243,7 @@ public class ScalarFunctions implements FunctionsProvider {
         CurrentSettingFunction.register(builder, sessionSettingRegistry);
 
         PgBackendPidFunction.register(builder);
+        PgIsInRecoveryFunction.register(builder);
         PgEncodingToCharFunction.register(builder);
         PgGetUserByIdFunction.register(builder);
         PgTypeofFunction.register(builder);
