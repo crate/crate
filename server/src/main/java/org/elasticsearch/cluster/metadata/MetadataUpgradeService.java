@@ -90,7 +90,8 @@ public class MetadataUpgradeService {
                 functions,
                 nodeContext.roles(),
                 _ -> nodeContext.schemas(),
-                nodeContext.tableStats()
+                nodeContext.tableStats(),
+                nodeContext.clusterService()
             )
         );
     }

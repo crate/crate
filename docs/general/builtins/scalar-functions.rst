@@ -4572,6 +4572,34 @@ Example::
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-pg_is_in_recovery:
+
+``pg_catalog.pg_is_in_recovery()``
+----------------------------------
+
+The ``pg_is_in_recovery()`` system information function is implemented for
+enhanced compatibility with PostgreSQL. In PostgreSQL it returns ``true`` while
+the server is still in recovery. CrateDB has no equivalent recovery state, so
+instead it returns ``true`` when the :ref:`cluster health <sys-cluster_health>`
+is ``RED`` and ``false`` otherwise.
+
+Returns: ``boolean``
+
+Synopsis::
+
+    pg_is_in_recovery()
+
+Example::
+
+    cr> select pg_is_in_recovery() AS in_recovery;
+    +-------------+
+    | in_recovery |
+    +-------------+
+    | FALSE       |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-pg_postmaster_start_time:
 
 ``pg_catalog.pg_postmaster_start_time()``
