@@ -66,7 +66,15 @@ public class StringIndexer implements ValueIndexer<String> {
             }
         }
         if (ref.hasDocValues()) {
-            docBuilder.addField(new SortedSetDocValuesField(name, binaryValue));
+            try {
+                docBuilder.addField(new SortedSetDocValuesField(name, binaryValue));
+            } catch (IllegalArgumentException e) {
+                String message = e.getMessage();
+                if (message != null) {
+                    message = message.replace('"' + name + '"', '"' + ref.column().toString() + '"');
+                }
+                throw new IllegalArgumentException(message, e);
+            }
         } else {
             if (docBuilder.maybeAddStoredField()) {
                 docBuilder.addField(new StoredField(name, value));
