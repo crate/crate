@@ -32,6 +32,7 @@ import java.util.List;
 import org.elasticsearch.Version;
 import org.junit.Test;
 
+import io.crate.expression.operator.EqOperator;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.sql.SqlFormatter;
@@ -60,6 +61,22 @@ public class NotPredicateTest extends ScalarTestCase {
     @Test
     public void testNormalizeSymbol() throws Exception {
         assertNormalize("not name = 'foo'", isFunction(NotPredicate.NAME));
+    }
+
+    @Test
+    public void test_normalize_removes_double_negation() throws Exception {
+        assertNormalize("not not name = 'foo'", isFunction(EqOperator.NAME));
+        assertNormalize("not not not not name = 'foo'", isFunction(EqOperator.NAME));
+    }
+
+    @Test
+    public void test_normalize_keeps_single_negation_for_odd_number_of_negations() throws Exception {
+        assertNormalize("not not not name = 'foo'", isFunction(NotPredicate.NAME));
+    }
+
+    @Test
+    public void test_normalize_double_negation_of_null_stays_null() throws Exception {
+        assertNormalize("not not null", isLiteral(null, DataTypes.BOOLEAN));
     }
 
     @Test

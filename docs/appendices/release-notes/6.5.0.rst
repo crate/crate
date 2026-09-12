@@ -153,6 +153,13 @@ Performance and Resilience Improvements
 - `Bing O'Dowd <https://github.com/bodowd>`_ improved query planning by
   deduplicating identical join conditions joined by the ``AND`` operator.
 
+- `Dhruv Patel <https://github.com/DHRUV6029>`_ improved query planning by
+  normalizing a double negation to the predicate it negates, so that
+  ``NOT NOT <predicate>`` is now optimized the same way as ``<predicate>``.
+  Previously the redundant negation made the predicate opaque to the optimizer.
+  For example, in ``WHERE NOT NOT (a = 1 AND b = 2)`` the ``AND`` was no longer
+  visible, so neither part could be pushed down to the relation it belongs to.
+
 - Improved the performance of ``GROUP BY`` queries on a single ``STRING`` column
   with doc values enabled: aggregation values are now read directly from doc
   values where possible.
