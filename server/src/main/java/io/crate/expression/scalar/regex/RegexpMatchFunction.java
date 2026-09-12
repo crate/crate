@@ -3,8 +3,8 @@
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -13,16 +13,23 @@
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
  * License for the specific language governing permissions and limitations
  * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
 package io.crate.expression.scalar.regex;
 
+import static io.crate.expression.RegexpFlags.isGlobal;
 import static io.crate.expression.RegexpFlags.parseFlags;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
@@ -46,6 +53,7 @@ import io.crate.types.DataTypes;
 public final class RegexpMatchFunction extends Scalar<List<String>, Object> {
 
     public static final String NAME = "regexp_match";
+    @Nullable
     private final Pattern pattern;
 
     public static void register(Functions.Builder builder) {
@@ -55,7 +63,7 @@ public final class RegexpMatchFunction extends Scalar<List<String>, Object> {
                 .returnType(DataTypes.STRING_ARRAY.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
-            (signature, boundSignature) -> new RegexpMatchFunction(signature, boundSignature, null)
+            RegexpMatchFunction::new
         );
         builder.add(
             Signature.builder(NAME, FunctionType.SCALAR)
@@ -66,11 +74,15 @@ public final class RegexpMatchFunction extends Scalar<List<String>, Object> {
                 .returnType(DataTypes.STRING_ARRAY.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
-            (signature, boundSignature) -> new RegexpMatchFunction(signature, boundSignature, null)
+            RegexpMatchFunction::new
         );
     }
 
-    private RegexpMatchFunction(Signature signature, BoundSignature boundSignature, Pattern pattern) {
+    private RegexpMatchFunction(Signature signature, BoundSignature boundSignature) {
+        this(signature, boundSignature, null);
+    }
+
+    private RegexpMatchFunction(Signature signature, BoundSignature boundSignature, @Nullable Pattern pattern) {
         super(signature, boundSignature);
         this.pattern = pattern;
     }
@@ -94,6 +106,9 @@ public final class RegexpMatchFunction extends Scalar<List<String>, Object> {
                 if (flags == null) {
                     return this;
                 }
+                if (isGlobal(flags)) {
+                    throw new IllegalArgumentException("The regular expression flag is unknown: g");
+                }
             }
             return new RegexpMatchFunction(signature, boundSignature, Pattern.compile(pattern, parseFlags(flags)));
         }
@@ -113,6 +128,9 @@ public final class RegexpMatchFunction extends Scalar<List<String>, Object> {
             flags = (String) args[2].value();
             if (flags == null) {
                 return null;
+            }
+            if (isGlobal(flags)) {
+                throw new IllegalArgumentException("The regular expression flag is unknown: g");
             }
         }
 
