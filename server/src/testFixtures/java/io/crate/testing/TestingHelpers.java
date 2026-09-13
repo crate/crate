@@ -23,6 +23,8 @@ package io.crate.testing;
 
 import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -46,6 +48,8 @@ import java.util.function.LongSupplier;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -221,12 +225,14 @@ public class TestingHelpers {
     }
 
     public static NodeContext createNodeContext(Schemas schemas, List<Role> roles) {
+        ClusterService clusterService = mock(ClusterService.class);
+        when(clusterService.state()).thenReturn(ClusterState.EMPTY_STATE);
         return new NodeContext(
             Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE))),
             () -> roles,
             nodeContext -> schemas,
             new TableStats(),
-            null
+            clusterService
         );
     }
 
