@@ -125,7 +125,10 @@ SQL Statements
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
-None
+- `Manish Singh <https://github.com/manish9363>`_ added the
+  ``pg_is_in_recovery()`` scalar function for improved compatibility with
+  PostgreSQL tools. It returns ``true`` when the cluster health is ``RED``
+  and ``false`` otherwise.
 
 Data Types
 ----------
@@ -143,6 +146,13 @@ None
 Performance and Resilience Improvements
 ---------------------------------------
 
+- `Dhruv Patel <https://github.com/DHRUV6029>`_ improved query planning by
+  normalizing a double negation to the predicate it negates, so that
+  ``NOT NOT <predicate>`` is now optimized the same way as ``<predicate>``.
+  Previously the redundant negation made the predicate opaque to the optimizer.
+  For example, in ``WHERE NOT NOT (a = 1 AND b = 2)`` the ``AND`` was no longer
+  visible, so neither part could be pushed down to the relation it belongs to.
+
 - Re-added the change to :ref:`swapping <alter_cluster_swap_table>` and
   :ref:`renaming <sql-alter-table-rename-to>` of tables to no longer re-allocate
   the shards of the swapped/renamed table, so that in-progress snapshots can
@@ -153,9 +163,11 @@ Performance and Resilience Improvements
 - `Bing O'Dowd <https://github.com/bodowd>`_ improved query planning by
   deduplicating identical join conditions joined by the ``AND`` operator.
 
-- Improved the performance of ``GROUP BY`` queries on a single ``STRING`` column
+- Improved the performance of ``GROUP BY`` queries on ``STRING`` columns
   with doc values enabled: aggregation values are now read directly from doc
-  values where possible.
+  values where possible. Benchmarks showed a performance increase that can
+  exceed 100%, but this depends on the number of such columns in the
+  ``GROUP BY`` clause and by their combined cardinality in the table.
 
 - `Somil Jain <https://github.com/somiljain2006>`_ improved metadata query
   performance by caching analyzed ``ViewInfo`` instances, reducing repeated

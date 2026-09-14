@@ -64,4 +64,9 @@ public class AzureRepositorySettingsTests extends ESTestCase {
         assertThat(azureRepository(Settings.builder().put("readonly", true).build()).isReadOnly())
             .isTrue();
     }
+
+    @Test
+    public void test_default_buffer_size_is_4mb() throws Exception {
+        assertThat(azureRepository(Settings.EMPTY).bufferSize()).isEqualTo(4 * 1024 * 1024);
+    }
 }

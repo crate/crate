@@ -46,6 +46,13 @@ series.
 Fixes
 =====
 
+- Fixed an issue that could cause statements including a cross join with two
+  other relations to apply an incorrect filter if one of the join conditions
+  included an equijoin where one relation appeared multiple times on one side of
+  the equal condition. An example query::
+
+      SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON (t1.x + t1.x) = t3.z AND t3.z = t2.y
+
 - Fixed an issue that could cause statements including a cross join and an outer
   join plus any other join to drop the outer join condition, leading to
   incorrect results.
@@ -67,3 +74,23 @@ Fixes
 
 - Fixed an issue causing cache to retain some heavy structures, potentially
   leading to an ``OutOfMemoryError``.
+
+- Fixed an issue where a select statement containing a correlated subquery and
+  a group by would lose the subquery and result in an error, e.g.::
+
+    SELECT o.c1,
+       (SELECT i.c1
+        FROM source_symbols_t AS i
+        WHERE i.c1 > o.c1
+        ORDER BY i.c1
+        LIMIT 1) AS next_c1
+    FROM source_symbols_t AS o
+    GROUP BY o.c1
+    ORDER BY o.c1;
+
+    > Couldn't create execution plan from logical plan because of:
+    Couldn't find (SELECT c1 FROM (i)) in SourceSymbols
+
+- Fixed performance regression introduced in :ref:`version_6.3.0` that caused
+  ``CREATE SNAPSHOT`` to run slower if repository was created with
+  :ref:`Azure storage <sql-create-repo-azure>`.

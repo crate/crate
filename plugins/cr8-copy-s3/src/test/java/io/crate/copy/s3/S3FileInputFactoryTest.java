@@ -50,5 +50,17 @@ public class S3FileInputFactoryTest {
             }
         }
     }
+
+    @Test
+    public void test_custom_endpoint_head_fails_fallback_to_default() throws Exception {
+        try (var executor = AsyncExecutor.createTokioExecutor(1)) {
+            var factory = new S3FileInputFactory(executor);
+            URI uri = URI.create("s3://key:secret@invalidHost:1/example-bucket/example-key.json");
+            Settings withClauseOptions = Settings.EMPTY;
+            try (OpenDALFileInput fileInput = factory.create(uri, withClauseOptions)) {
+                assertThat(fileInput.uri()).isEqualTo(URI.create("s3://example-bucket/example-key.json"));
+            }
+        }
+    }
 }
 

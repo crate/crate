@@ -27,11 +27,9 @@ import java.util.Map;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -59,7 +57,6 @@ public class ShardCollectorProviderFactory {
     private final NodeContext nodeCtx;
     private final LuceneQueryBuilder luceneQueryBuilder;
     private final NodeLimits nodeJobsCounter;
-    private final BigArrays bigArrays;
     private final Settings settings;
     private final CircuitBreakerService circuitBreakerService;
     private final Map<String, FileOutputFactory> fileOutputFactoryMap;
@@ -85,7 +82,6 @@ public class ShardCollectorProviderFactory {
         this.nodeCtx = nodeCtx;
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.nodeJobsCounter = nodeJobsCounter;
-        this.bigArrays = new BigArrays(pageCacheRecycler, circuitBreakerService, CircuitBreaker.QUERY, true);
         this.fileOutputFactoryMap = fileOutputFactoryMap;
     }
 
@@ -114,7 +110,6 @@ public class ShardCollectorProviderFactory {
                 settings,
                 elasticsearchClient,
                 indexShard,
-                bigArrays,
                 fileOutputFactoryMap);
         }
     }

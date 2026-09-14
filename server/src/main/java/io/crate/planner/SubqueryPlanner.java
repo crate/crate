@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.operators.CorrelatedJoin;
@@ -39,41 +40,65 @@ public class SubqueryPlanner {
         this.planSubSelects = planSubSelects;
     }
 
-    public record SubQueries(Map<LogicalPlan, SelectSymbol> uncorrelated, Map<SelectSymbol, LogicalPlan> correlated) {
+    public record Correlated(Map<SelectSymbol, LogicalPlan> toApplyBeforeGrouping, Map<SelectSymbol, LogicalPlan> toApplyAfterGrouping) {}
 
-        public LogicalPlan applyCorrelatedJoin(LogicalPlan source) {
-            for (var entry : correlated.entrySet()) {
-                LogicalPlan plannedSubQuery = entry.getValue();
-                SelectSymbol subQuery = entry.getKey();
-                source = new CorrelatedJoin(
-                    source,
-                    subQuery,
-                    plannedSubQuery
-                );
+    public record SubQueries(Map<LogicalPlan, SelectSymbol> uncorrelated, Correlated correlated) {
+
+        public LogicalPlan applyPreGroupingSubQueries(LogicalPlan source) {
+            return applyCorrelatedJoin(source, correlated.toApplyBeforeGrouping);
+        }
+
+        public LogicalPlan applyPostGroupingSubQueries(LogicalPlan source) {
+            return applyCorrelatedJoin(source, correlated.toApplyAfterGrouping);
+        }
+
+        private LogicalPlan applyCorrelatedJoin(LogicalPlan source, Map<SelectSymbol, LogicalPlan> correlatedSubqueries) {
+            for (Map.Entry<SelectSymbol, LogicalPlan> entry : correlatedSubqueries.entrySet()) {
+                SelectSymbol selectSymbol = entry.getKey();
+                LogicalPlan plan = entry.getValue();
+                source = new CorrelatedJoin(source, selectSymbol, plan);
             }
             return source;
         }
     }
 
     public SubQueries planSubQueries(AnalyzedStatement statement) {
-        SubQueries subQueries = new SubQueries(new LinkedHashMap<>(), new LinkedHashMap<>());
+        SubQueries subQueries = new SubQueries(new LinkedHashMap<>(), new Correlated(new LinkedHashMap<>(), new LinkedHashMap<>()));
         statement.visitSymbols(tree ->
             tree.visit(SelectSymbol.class, selectSymbol -> planSubquery(selectSymbol, subQueries))
         );
         return subQueries;
     }
 
+    public SubQueries planSubQueries(QueriedSelectRelation statement) {
+        SubQueries subQueries = new SubQueries(new LinkedHashMap<>(), new Correlated(new LinkedHashMap<>(), new LinkedHashMap<>()));
+        statement.visitSymbols(tree ->
+            tree.visit(SelectSymbol.class, selectSymbol -> planSubquery(selectSymbol, subQueries))
+        );
+        if (!statement.groupBy().isEmpty()) {
+            for (Symbol output: statement.outputs()) {
+                output.visit(SelectSymbol.class, selectSymbol -> {
+                    if (selectSymbol.isCorrelated() && subQueries.correlated.toApplyBeforeGrouping.containsKey(selectSymbol)) {
+                        subQueries.correlated.toApplyAfterGrouping.put(selectSymbol, subQueries.correlated.toApplyBeforeGrouping.get(selectSymbol));
+                        subQueries.correlated.toApplyBeforeGrouping.remove(selectSymbol);
+                    }
+                });
+            }
+        }
+        return subQueries;
+    }
+
     public SubQueries planSubQueries(Symbol symbol) {
-        SubQueries subQueries = new SubQueries(new LinkedHashMap<>(), new LinkedHashMap<>());
+        SubQueries subQueries = new SubQueries(new LinkedHashMap<>(), new Correlated(new LinkedHashMap<>(), new LinkedHashMap<>()));
         symbol.visit(SelectSymbol.class, selectSymbol -> planSubquery(selectSymbol, subQueries));
         return subQueries;
     }
 
     private void planSubquery(SelectSymbol selectSymbol, SubQueries subQueries) {
         if (selectSymbol.isCorrelated()) {
-            if (!subQueries.correlated.containsKey(selectSymbol)) {
+            if (!subQueries.correlated.toApplyBeforeGrouping.containsKey(selectSymbol)) {
                 LogicalPlan subPlan = planSubSelects.apply(selectSymbol);
-                subQueries.correlated.put(selectSymbol, subPlan);
+                subQueries.correlated.toApplyBeforeGrouping.put(selectSymbol, subPlan);
             }
         } else {
             LogicalPlan subPlan = planSubSelects.apply(selectSymbol);

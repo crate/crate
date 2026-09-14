@@ -410,12 +410,19 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
     public void test_no_pk_extraction_if_the_pk_is_under_not() {
         List<List<Symbol>> matches = analyzeExactX(query("x != 1 or x = 1"));
         assertThat(matches).isNull();
-        matches = analyzeExactX(query("not(x != 1) or x = 1"));
-        assertThat(matches).isNull();
         matches = analyzeExactX(query("not(i != 1 and x = 1)"));
         assertThat(matches).isNull();
         matches = analyzeExactX(query("x = 1 or (x = 2 or (x = 3 or not(x = 4)))"));
         assertThat(matches).isNull();
+    }
+
+    // `x != 1` is analyzed as `not(x = 1)`, so `not(x != 1)` is a double negation and is normalized
+    // away before the primary key is extracted.
+    @Test
+    public void test_pk_extraction_if_the_pk_is_under_a_double_negation() {
+        List<List<Symbol>> matches = analyzeExactX(query("not(x != 1) or x = 1"));
+        assertThat(matches).satisfiesExactlyInAnyOrder(
+            s -> assertThat(s).satisfiesExactly(isLiteral(1)));
     }
 
     @Test
