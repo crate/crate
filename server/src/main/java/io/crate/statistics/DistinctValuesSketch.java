@@ -51,7 +51,55 @@ public abstract class DistinctValuesSketch {
      * Creates a new empty sketch
      */
     public static DistinctValuesSketch newSketch() {
-        return new Impl(new CpcSketch());
+        return new DistinctValuesSketch() {
+
+            final CpcSketch distinctSketch = new CpcSketch();
+
+            @Override
+            public void update(String v) {
+                distinctSketch.update(v);
+            }
+
+            @Override
+            public DistinctValuesSketch merge(DistinctValuesSketch other) {
+                CpcUnion union = new CpcUnion();
+                union.update(distinctSketch);
+                union.update(other.getSketch());
+                return mergedSketch(union);
+            }
+
+            @Override
+            public CpcSketch getSketch() {
+                return distinctSketch;
+            }
+        };
+    }
+
+    /**
+     * Wraps a {@link CpcUnion}, reused across an entire merge chain so that folding
+     * many sketches together (e.g. across shards/nodes) doesn't allocate a fresh
+     * union per merge step.
+     */
+    private static DistinctValuesSketch mergedSketch(CpcUnion union) {
+        return new DistinctValuesSketch() {
+            @Override
+            public void update(String v) {
+                CpcSketch scratch = new CpcSketch();
+                scratch.update(v);
+                union.update(scratch);
+            }
+
+            @Override
+            public DistinctValuesSketch merge(DistinctValuesSketch other) {
+                union.update(other.getSketch());
+                return mergedSketch(union);
+            }
+
+            @Override
+            public CpcSketch getSketch() {
+                return union.getResult();
+            }
+        };
     }
 
     /**
@@ -59,34 +107,26 @@ public abstract class DistinctValuesSketch {
      */
     public static DistinctValuesSketch fromStream(StreamInput in) throws IOException {
         byte[] distinctSketchBytes = in.readByteArray();
-        return new Impl(CpcSketch.heapify(distinctSketchBytes));
-    }
+        var sketch = CpcSketch.heapify(distinctSketchBytes);
+        return new DistinctValuesSketch() {
+            @Override
+            public void update(String v) {
+                throw new UnsupportedOperationException();
+            }
 
-    private static final class Impl extends DistinctValuesSketch {
+            @Override
+            public DistinctValuesSketch merge(DistinctValuesSketch other) {
+                CpcUnion union = new CpcUnion();
+                union.update(sketch);
+                union.update(other.getSketch());
+                return mergedSketch(union);
+            }
 
-        private final CpcSketch sketch;
-
-        Impl(CpcSketch sketch) {
-            this.sketch = sketch;
-        }
-
-        @Override
-        public void update(String v) {
-            sketch.update(v);
-        }
-
-        @Override
-        public DistinctValuesSketch merge(DistinctValuesSketch other) {
-            CpcUnion union = new CpcUnion();
-            union.update(this.sketch);
-            union.update(other.getSketch());
-            return new Impl(union.getResult());
-        }
-
-        @Override
-        public CpcSketch getSketch() {
-            return sketch;
-        }
+            @Override
+            public CpcSketch getSketch() {
+                return sketch;
+            }
+        };
     }
 
 }
