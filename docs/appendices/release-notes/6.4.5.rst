@@ -90,3 +90,7 @@ Fixes
 
     > Couldn't create execution plan from logical plan because of:
     Couldn't find (SELECT c1 FROM (i)) in SourceSymbols
+
+- Fixed performance regression introduced in :ref:`version_6.3.0` that caused
+  ``CREATE SNAPSHOT`` to run slower if repository was created with
+  :ref:`Azure storage <sql-create-repo-azure>`.
