@@ -351,6 +351,7 @@
         <versions.jwt>4.6.0</versions.jwt>
         <versions.jwks-rsa>0.24.1</versions.jwks-rsa>
         <versions.bouncycastle-bcpkix-jdk18on>1.85</versions.bouncycastle-bcpkix-jdk18on>
+        <versions.hardwood>1.0.0.Final</versions.hardwood>
 
         <versions.hamcrest>2.2</versions.hamcrest>
         <versions.mockito>5.23.0</versions.mockito>
@@ -409,6 +410,7 @@
         <module>extensions/functions</module>
         <module>extensions/lang-js</module>
         <module>extensions/jmx-monitoring</module>
+        <module>extensions/parquet</module>
         <module>jlink-jdk</module>
         <module>app</module>
         <module>benchmarks</module>
