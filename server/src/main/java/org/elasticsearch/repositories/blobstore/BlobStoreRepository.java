@@ -200,9 +200,12 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     /**
      * Size hint for the IO buffer size to use when reading from and writing to the repository.
+     * Used by Azure and GCS repositories.
+     * S3 uses own setting which has default 5MB
+     * Minimum is aligned with Azure SDK which was used before CrateDB 6.3.
      */
     private static final Setting<ByteSizeValue> IO_BUFFER_SIZE_SETTING = Setting.byteSizeSetting("io_buffer_size",
-        ByteSizeValue.parseBytesSizeValue("128kb", "io_buffer_size"), ByteSizeValue.parseBytesSizeValue("8kb", "buffer_size"),
+        ByteSizeValue.parseBytesSizeValue("4mb", "io_buffer_size"), ByteSizeValue.parseBytesSizeValue("8kb", "buffer_size"),
         ByteSizeValue.parseBytesSizeValue("16mb", "io_buffer_size"), Setting.Property.NodeScope);
 
     private final boolean compress;
@@ -526,6 +529,10 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      */
     public BlobPath basePath() {
         return basePath;
+    }
+
+    public int bufferSize() {
+        return bufferSize;
     }
 
     /**
