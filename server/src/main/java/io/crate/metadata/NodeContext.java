@@ -24,6 +24,7 @@ package io.crate.metadata;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.env.Environment;
 
@@ -91,6 +92,21 @@ public class NodeContext {
         this.clusterService = clusterService;
     }
 
+    private NodeContext(Functions functions,
+                        Roles roles,
+                        Schemas schemas,
+                        long serverStartTimeInMs,
+                        TableStats tableStats,
+                        ClusterService clusterService) {
+        this.functions = functions;
+        this.roles = roles;
+        this.schemas = schemas;
+        this.serverStartTimeInMs = serverStartTimeInMs;
+        this.tableStats = tableStats;
+        this.clusterService = clusterService;
+    }
+
+
     public Functions functions() {
         return functions;
     }
@@ -111,8 +127,18 @@ public class NodeContext {
         return tableStats;
     }
 
-    public ClusterService clusterService() {
-        return clusterService;
+    public ClusterState currentState() {
+        return clusterService.state();
     }
 
+    public NodeContext withFunctions(Functions newFunctions) {
+        return new NodeContext(
+            newFunctions,
+            roles,
+            schemas,
+            serverStartTimeInMs,
+            tableStats,
+            clusterService
+        );
+    }
 }

@@ -61,6 +61,6 @@ public class PgIsInRecoveryFunction extends Scalar<Boolean, Void> {
     @Override
     public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         assert args.length == 0 : "number of args must be 0";
-        return SysClusterHealth.computeHealth(nodeCtx.clusterService().state()) == Health.RED;
+        return SysClusterHealth.computeHealth(nodeCtx.currentState()) == Health.RED;
     }
 }

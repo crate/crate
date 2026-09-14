@@ -85,15 +85,7 @@ public class MetadataUpgradeService {
     private DocTableInfoFactory createDocTableFactory(Metadata metadata) {
         Functions functions = nodeContext.functions().copyOfBuiltIns();
         functions.setUDFs(userDefinedFunctionService.buildUDFResolvers(metadata));
-        return new DocTableInfoFactory(
-            new NodeContext(
-                functions,
-                nodeContext.roles(),
-                _ -> nodeContext.schemas(),
-                nodeContext.tableStats(),
-                nodeContext.clusterService()
-            )
-        );
+        return new DocTableInfoFactory(nodeContext.withFunctions(functions));
     }
 
     public Metadata upgradeMetadata(Metadata metadata) {
