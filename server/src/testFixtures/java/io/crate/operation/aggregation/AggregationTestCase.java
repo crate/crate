@@ -248,13 +248,27 @@ public abstract class AggregationTestCase extends ESTestCase {
                 var resultWithDocValues = assertAndGetMergedIterAndPartial(
                     aggregationFunction, terminatePartialAggFunction, partialResultWithDocValues.get(0).get(0));
 
-                assertThat(resultWithoutDocValues).isEqualTo(resultWithDocValues);
+                // Welford's parallel merge is order-sensitive in the last ULP: the iterate and
+                // doc-value paths accumulate values in different orders, so their floating-point
+                // stddev/variance results can differ by an ULP. Tolerate a tiny difference - relative
+                // for large magnitudes, with a small absolute floor so a near-zero expected value does
+                // not degenerate to exact-match - while still catching real regressions; other result
+                // types must match exactly. See #19760, #19885.
+                if (resultWithoutDocValues instanceof Double d1 && resultWithDocValues instanceof Double d2) {
+                    double tolerance = Math.max(1e-9, Math.abs(d2) * 1e-11);
+                    assertThat(Math.abs(d1 - d2))
+                        .as("iterate vs doc-value result within Welford last-ULP tolerance")
+                        .isLessThanOrEqualTo(tolerance);
+                } else {
+                    assertThat(resultWithoutDocValues).isEqualTo(resultWithDocValues);
+                }
             } else {
                 var docValueAggregator = aggregationFunction.getDocValueAggregator(
                     refResolver,
                     targetColumns,
                     mock(DocTableInfo.class),
                     Version.CURRENT,
+                    aggregationFunction.partialType(),
                     List.of()
                 );
                 if (docValueAggregator != null) {
@@ -624,6 +638,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             toReference(argumentTypes),
             mock(DocTableInfo.class),
             Version.CURRENT,
+            aggregationFunction.partialType(),
             List.of()
         );
     }

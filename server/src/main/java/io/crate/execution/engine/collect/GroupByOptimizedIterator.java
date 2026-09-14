@@ -501,7 +501,8 @@ final class GroupByOptimizedIterator {
         docCtx.add(collectPhase.toCollect().stream()::iterator);
 
         InputFactory inputFactory = new InputFactory(nodeCtx);
-        InputFactory.Context<CollectExpression<Row, ?>> ctxForAggregations = inputFactory.ctxForAggregations(collectTask.txnCtx());
+        InputFactory.Context<CollectExpression<Row, ?>> ctxForAggregations =
+            inputFactory.ctxForAggregations(collectTask.txnCtx(), groupProjection.mode());
         ctxForAggregations.add(groupProjection.values());
         final List<CollectExpression<Row, ?>> aggExpressions = ctxForAggregations.expressions();
 
@@ -931,7 +932,7 @@ final class GroupByOptimizedIterator {
             AggregationContext aggregation = aggregations.get(i);
             AggregationFunction function = aggregation.function();
 
-            var newState = function.newState(ramAccounting, minNodeVersion, memoryManager);
+            var newState = function.newState(ramAccounting, aggregation.partialType(), minNodeVersion, memoryManager);
             if (InputCondition.matches(aggregation.filter())) {
                 states[i] = function.iterate(
                     ramAccounting,

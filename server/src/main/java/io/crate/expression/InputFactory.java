@@ -38,6 +38,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.expression.reference.GatheringRefResolver;
 import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
@@ -47,6 +48,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.types.DataType;
 
 /**
  * Factory which can be used to create {@link Input}s from symbols.
@@ -100,13 +102,13 @@ public class InputFactory {
         return context;
     }
 
-    public Context<CollectExpression<Row, ?>> ctxForAggregations(TransactionContext txnCtx) {
+    public Context<CollectExpression<Row, ?>> ctxForAggregations(TransactionContext txnCtx, AggregateMode mode) {
         List<CollectExpression<Row, ?>> expressions = new ArrayList<>();
         List<AggregationContext> aggregationContexts = new ArrayList<>();
         return new Context<>(
             expressions,
             aggregationContexts,
-            new AggregationVisitor(txnCtx, nodeCtx, expressions, aggregationContexts));
+            new AggregationVisitor(txnCtx, nodeCtx, expressions, aggregationContexts, mode));
     }
 
     public static class Context<T extends Input<?>> {
@@ -191,13 +193,16 @@ public class InputFactory {
     private static class AggregationVisitor extends InputColumnVisitor {
 
         private final List<AggregationContext> aggregationContexts;
+        private final AggregateMode mode;
 
         AggregationVisitor(TransactionContext txnCtx,
                            NodeContext nodeCtx,
                            List<CollectExpression<Row, ?>> expressions,
-                           List<AggregationContext> aggregationContexts) {
+                           List<AggregationContext> aggregationContexts,
+                           AggregateMode mode) {
             super(txnCtx, nodeCtx, expressions);
             this.aggregationContexts = aggregationContexts;
+            this.mode = mode;
         }
 
         @Override
@@ -211,7 +216,15 @@ public class InputFactory {
             for (Symbol aggInput : aggregation.inputs()) {
                 inputs.add(aggInput.accept(this, context));
             }
-            AggregationContext aggregationContext = new AggregationContext((AggregationFunction<?, ?>) impl, filter, inputs);
+            // The plan already picked the partial-state type for this aggregation. On a producing node
+            // (ITER_PARTIAL / ITER_FINAL) that is the aggregation output type; on a reducer (PARTIAL_FINAL)
+            // it is the (partial) input type. newState follows this so the accumulator layout can never
+            // diverge from the streamed wire format.
+            DataType<?> partialType = mode == AggregateMode.PARTIAL_FINAL && !aggregation.inputs().isEmpty()
+                ? aggregation.inputs().get(0).valueType()
+                : aggregation.valueType();
+            AggregationContext aggregationContext =
+                new AggregationContext((AggregationFunction<?, ?>) impl, filter, inputs, partialType);
             aggregationContexts.add(aggregationContext);
 
             // can't generate an input from an aggregation.

@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
 
@@ -64,13 +65,15 @@ public class ProjectionBuilder {
                                                        Collection<Function> aggregates,
                                                        UnaryOperator<Symbol> subQueryAndParamBinder,
                                                        AggregateMode mode,
-                                                       RowGranularity granularity) {
+                                                       RowGranularity granularity,
+                                                       Version minNodeInCluster) {
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(inputs);
         ArrayList<Aggregation> aggregations = getAggregations(
             aggregates,
             mode,
             sourceSymbols,
-            subQueryAndParamBinder
+            subQueryAndParamBinder,
+            minNodeInCluster
         );
         return new AggregationProjection(aggregations, granularity, mode);
     }
@@ -81,14 +84,16 @@ public class ProjectionBuilder {
         Collection<Function> values,
         UnaryOperator<Symbol> subQueryAndParamBinder,
         AggregateMode mode,
-        RowGranularity requiredGranularity) {
+        RowGranularity requiredGranularity,
+        Version minNodeInCluster) {
 
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(inputs);
         ArrayList<Aggregation> aggregations = getAggregations(
             values,
             mode,
             sourceSymbols,
-            subQueryAndParamBinder
+            subQueryAndParamBinder,
+            minNodeInCluster
         );
         return new GroupProjection(
             Lists.map(InputColumns.create(keys, sourceSymbols), subQueryAndParamBinder),
@@ -101,7 +106,8 @@ public class ProjectionBuilder {
     private ArrayList<Aggregation> getAggregations(Collection<Function> functions,
                                                    AggregateMode mode,
                                                    InputColumns.SourceSymbols sourceSymbols,
-                                                   UnaryOperator<Symbol> subQueryAndParamBinder) {
+                                                   UnaryOperator<Symbol> subQueryAndParamBinder,
+                                                   Version minNodeInCluster) {
         ArrayList<Aggregation> aggregations = new ArrayList<>(functions.size());
         for (Function function : functions) {
             assert function.signature().getType() == FunctionType.AGGREGATE :
@@ -128,7 +134,8 @@ public class ProjectionBuilder {
 
                 case PARTIAL_FINAL:
                     InputColumn partialInput = sourceSymbols.getICForSource(function);
-                    aggregationInputs = List.of(new InputColumn(partialInput.index(), aggregationFunction.partialType()));
+                    aggregationInputs = List.of(
+                        new InputColumn(partialInput.index(), aggregationFunction.partialType(minNodeInCluster)));
                     filterInput = Literal.BOOLEAN_TRUE;
                     break;
 
@@ -136,7 +143,7 @@ public class ProjectionBuilder {
                     throw new AssertionError("Invalid mode: " + mode.name());
             }
 
-            var valueType = mode.returnType(aggregationFunction);
+            var valueType = mode.returnType(aggregationFunction, minNodeInCluster);
             Aggregation aggregation = new Aggregation(
                 aggregationFunction.signature(),
                 aggregationFunction.boundSignature().returnType(),

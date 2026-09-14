@@ -24,6 +24,7 @@ package io.crate.expression.symbol;
 import java.io.IOException;
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -34,8 +35,10 @@ import io.crate.types.DataType;
 public enum AggregateMode {
     ITER_PARTIAL {
         @Override
-        public DataType<?> returnType(AggregationFunction<?, ?> function) {
-            return function.partialType();
+        public DataType<?> returnType(AggregationFunction<?, ?> function, Version minNodeInCluster) {
+            // ITER_PARTIAL emits the streamed partial state, so its type must match the wire format
+            // the rest of the cluster expects for the given min node version.
+            return function.partialType(minNodeInCluster);
         }
 
         @Override
@@ -48,7 +51,7 @@ public enum AggregateMode {
 
     private static final List<AggregateMode> VALUES = List.of(values());
 
-    public DataType<?> returnType(AggregationFunction<?, ?> function) {
+    public DataType<?> returnType(AggregationFunction<?, ?> function, Version minNodeInCluster) {
         return function.boundSignature().returnType();
     }
 

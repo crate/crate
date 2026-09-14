@@ -40,6 +40,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputCondition;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.memory.MemoryManager;
+import io.crate.types.DataType;
 
 /**
  * Collector implementation which uses {@link AggregationFunction}s to aggregate the rows it will receive.
@@ -56,11 +57,13 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
     private final BiConsumer<Object[], Row> accumulator;
     private final Function<Object[], Iterable<Row>> finisher;
     private final Version minNodeVersion;
+    private final DataType<?>[] partialTypes;
 
     public AggregateCollector(List<? extends CollectExpression<Row, ?>> expressions,
                               RamAccounting ramAccounting,
                               MemoryManager memoryManager,
                               Version minNodeVersion,
+                              DataType<?>[] partialTypes,
                               AggregateMode mode,
                               AggregationFunction<?, ?>[] aggregations,
                               Input<?>[][] inputs,
@@ -69,6 +72,7 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
         this.ramAccounting = ramAccounting;
         this.memoryManager = memoryManager;
         this.minNodeVersion = minNodeVersion;
+        this.partialTypes = partialTypes;
         this.aggregations = aggregations;
         this.filters = filters;
         this.inputs = inputs;
@@ -123,7 +127,7 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
     private Object[] prepareState() {
         Object[] states = new Object[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
-            states[i] = aggregations[i].newState(ramAccounting, minNodeVersion, memoryManager);
+            states[i] = aggregations[i].newState(ramAccounting, partialTypes[i], minNodeVersion, memoryManager);
         }
         return states;
     }

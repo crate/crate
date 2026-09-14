@@ -38,6 +38,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
+import io.crate.types.DataType;
 
 public class GroupingProjector implements Projector {
 
@@ -58,11 +59,13 @@ public class GroupingProjector implements Projector {
         AggregationFunction<?, ?>[] functions = new AggregationFunction[aggregations.length];
         Input<?>[][] inputs = new Input[aggregations.length][];
         Input<Boolean>[] filters = new Input[aggregations.length];
+        DataType<?>[] partialTypes = new DataType[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
             AggregationContext aggregation = aggregations[i];
             functions[i] = aggregation.function();
             inputs[i] = aggregation.inputs();
             filters[i] = aggregation.filter();
+            partialTypes[i] = aggregation.partialType();
         }
         if (keys.size() == 1) {
             Symbol key = keys.get(0);
@@ -75,6 +78,7 @@ public class GroupingProjector implements Projector {
                 ramAccounting,
                 memoryManager,
                 minNodeVersion,
+                partialTypes,
                 keyInputs.get(0),
                 key.valueType()
             );
@@ -88,6 +92,7 @@ public class GroupingProjector implements Projector {
                 ramAccounting,
                 memoryManager,
                 minNodeVersion,
+                partialTypes,
                 keyInputs,
                 typeView(keys)
             );

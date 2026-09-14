@@ -31,8 +31,12 @@ public class StandardDeviationPop extends Variance {
     public StandardDeviationPop() {
     }
 
-    public StandardDeviationPop(StreamInput in) throws IOException {
-        super(in);
+    public StandardDeviationPop(boolean legacy) {
+        super(legacy);
+    }
+
+    public StandardDeviationPop(StreamInput in, boolean legacy) throws IOException {
+        super(in, legacy);
     }
 
     @Override

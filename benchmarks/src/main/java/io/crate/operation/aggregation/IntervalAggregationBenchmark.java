@@ -61,6 +61,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -118,6 +119,7 @@ public class IntervalAggregationBenchmark {
             RamAccounting.NO_ACCOUNTING,
             onHeapMemoryManager,
             Version.CURRENT,
+            new DataType[] { intervalSumAggregation.partialType() },
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { intervalSumAggregation },
             new Input[][] { { inExpr0 } },
@@ -128,6 +130,7 @@ public class IntervalAggregationBenchmark {
             RamAccounting.NO_ACCOUNTING,
             onHeapMemoryManager,
             Version.CURRENT,
+            new DataType[] { intervalAvgAggregation.partialType() },
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { intervalAvgAggregation },
             new Input[][] { { inExpr0 } },
