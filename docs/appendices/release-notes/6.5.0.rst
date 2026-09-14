@@ -141,7 +141,8 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
-None
+- `Gaurav K Ohri <https://github.com/gohri81-tech>`_ added support for the
+  :ref:`regexp_match <scalar-regexp_match>` scalar.
 
 Performance and Resilience Improvements
 ---------------------------------------

@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.jspecify.annotations.Nullable;
-
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionType;
@@ -53,8 +51,6 @@ import io.crate.types.DataTypes;
 public final class RegexpMatchFunction extends Scalar<List<String>, Object> {
 
     public static final String NAME = "regexp_match";
-    @Nullable
-    private final Pattern pattern;
 
     public static void register(Functions.Builder builder) {
         builder.add(
@@ -79,12 +75,26 @@ public final class RegexpMatchFunction extends Scalar<List<String>, Object> {
     }
 
     private RegexpMatchFunction(Signature signature, BoundSignature boundSignature) {
-        this(signature, boundSignature, null);
+        super(signature, boundSignature);
     }
 
-    private RegexpMatchFunction(Signature signature, BoundSignature boundSignature, @Nullable Pattern pattern) {
-        super(signature, boundSignature);
-        this.pattern = pattern;
+    static class CompiledRegexpMatch extends Scalar<List<String>, Object> {
+
+        private final Pattern pattern;
+
+        protected CompiledRegexpMatch(Signature signature, BoundSignature boundSignature, Pattern pattern) {
+            super(signature, boundSignature);
+            this.pattern = pattern;
+        }
+
+        @Override
+        public List<String> evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<Object>... args) {
+            String value = (String) args[0].value();
+            if (value == null) {
+                return null;
+            }
+            return match(value, pattern);
+        }
     }
 
     @Override
@@ -110,7 +120,7 @@ public final class RegexpMatchFunction extends Scalar<List<String>, Object> {
                     throw new IllegalArgumentException("The regular expression flag is unknown: g");
                 }
             }
-            return new RegexpMatchFunction(signature, boundSignature, Pattern.compile(pattern, parseFlags(flags)));
+            return new CompiledRegexpMatch(signature, boundSignature, Pattern.compile(pattern, parseFlags(flags)));
         }
         return this;
     }
@@ -119,8 +129,11 @@ public final class RegexpMatchFunction extends Scalar<List<String>, Object> {
     public List<String> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         assert args.length == 2 || args.length == 3 : "number of arguments must be 2 or 3";
         String value = (String) args[0].value();
+        if (value == null) {
+            return null;
+        }
         String patternText = (String) args[1].value();
-        if (value == null || patternText == null) {
+        if (patternText == null) {
             return null;
         }
         String flags = null;
@@ -133,13 +146,15 @@ public final class RegexpMatchFunction extends Scalar<List<String>, Object> {
                 throw new IllegalArgumentException("The regular expression flag is unknown: g");
             }
         }
+        Pattern pattern = Pattern.compile(patternText, parseFlags(flags));
+        return match(value, pattern);
+    }
 
-        Pattern matchPattern = pattern == null ? Pattern.compile(patternText, parseFlags(flags)) : pattern;
-        Matcher matcher = matchPattern.matcher(value);
+    private static List<String> match(String value, Pattern pattern) {
+        Matcher matcher = pattern.matcher(value);
         if (!matcher.find()) {
             return null;
         }
-
         int groupCount = matcher.groupCount();
         ArrayList<String> result = new ArrayList<>(Math.max(1, groupCount));
         if (groupCount == 0) {

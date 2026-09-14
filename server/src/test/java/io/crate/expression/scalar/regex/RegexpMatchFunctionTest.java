@@ -24,6 +24,9 @@ package io.crate.expression.scalar.regex;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
@@ -38,22 +41,22 @@ public class RegexpMatchFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_match_without_groups() {
-        assertEvaluate("regexp_match(name, 'bar')", new String[]{"bar"}, Literal.of("foobarbequebaz"));
+        assertEvaluate("regexp_match(name, 'bar')", List.of("bar"), Literal.of("foobarbequebaz"));
     }
 
     @Test
     public void test_match_with_groups() {
-        assertEvaluate("regexp_match(name, '(bar)(beque)')", new String[]{"bar", "beque"}, Literal.of("foobarbequebaz"));
+        assertEvaluate("regexp_match(name, '(bar)(beque)')", List.of("bar", "beque"), Literal.of("foobarbequebaz"));
     }
 
     @Test
     public void test_match_with_unmatched_group() {
-        assertEvaluate("regexp_match('b', '(a)?b')", new String[]{null}, Literal.of("b"));
+        assertEvaluate("regexp_match('b', '(a)?b')", Arrays.asList(new Object[] { null }), Literal.of("b"));
     }
 
     @Test
     public void test_flags() {
-        assertEvaluate("regexp_match(name, '(BAR)', 'i')", new String[]{"BAR"}, Literal.of("foobarbequebaz"));
+        assertEvaluate("regexp_match(name, '(BAR)', 'i')", List.of("bar"), Literal.of("foobarbequebaz"));
         assertEvaluateNull("regexp_match(name, '(BAR)', '')", Literal.of("foobarbequebaz"));
     }
 
@@ -83,7 +86,7 @@ public class RegexpMatchFunctionTest extends ScalarTestCase {
     public void test_compile() {
         assertCompile("regexp_match(name, '(bar)(beque)')", scalar -> compiledScalar -> {
             assertThat(scalar).isInstanceOf(RegexpMatchFunction.class);
-            assertThat(compiledScalar).isInstanceOf(RegexpMatchFunction.class);
+            assertThat(compiledScalar).isInstanceOf(RegexpMatchFunction.CompiledRegexpMatch.class);
         });
     }
 }
