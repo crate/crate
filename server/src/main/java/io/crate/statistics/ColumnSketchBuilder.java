@@ -24,9 +24,7 @@ package io.crate.statistics;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import org.apache.lucene.util.BytesRef;
@@ -34,6 +32,11 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+
+import com.carrotsearch.hppc.ObjectLongHashMap;
+import com.carrotsearch.hppc.ObjectLongMap;
+import com.carrotsearch.hppc.cursors.LongCursor;
+import com.carrotsearch.hppc.cursors.ObjectLongCursor;
 
 import io.crate.Streamer;
 import io.crate.types.DataType;
@@ -56,7 +59,7 @@ public abstract class ColumnSketchBuilder<T> {
     /// count in the full table via the Haas-Stokes estimator (same approach as PostgreSQL).
     /// The sample is bounded by [Reservoir#NUM_SAMPLES],
     /// so tracking exact counts (rather than approximating) is cheap.
-    protected final Map<String, Long> distinctCounts;
+    protected final ObjectLongMap<String> distinctCounts;
 
     /// Set when [#distinctCounts] does not (or may not) cover the whole sample,
     /// because this instance was:
@@ -74,7 +77,9 @@ public abstract class ColumnSketchBuilder<T> {
     public ColumnSketchBuilder(DataType<T> dataType) {
         this.dataType = dataType;
         this.distinctSketch = DistinctValuesSketch.newSketch();
-        this.distinctCounts = new HashMap<>();
+        // Pre-sized to the reservoir's upper bound so a single builder's add() loop
+        // never triggers a resize (which re-hashes every key).
+        this.distinctCounts = new ObjectLongHashMap<>(Reservoir.NUM_SAMPLES);
     }
 
     public ColumnSketchBuilder(DataType<T> dataType, StreamInput in) throws IOException {
@@ -84,10 +89,15 @@ public abstract class ColumnSketchBuilder<T> {
         this.totalBytes = in.readLong();
         this.distinctSketch = DistinctValuesSketch.fromStream(in);
         if (in.getVersion().after(Version.V_6_4_4)) {
-            this.distinctCounts = in.readMap(StreamInput::readString, StreamInput::readVLong);
+            int size = in.readVInt();
+            ObjectLongHashMap<String> counts = new ObjectLongHashMap<>(size);
+            for (int i = 0; i < size; i++) {
+                counts.put(in.readString(), in.readVLong());
+            }
+            this.distinctCounts = counts;
             this.distinctCountsIncomplete = in.readBoolean();
         } else {
-            this.distinctCounts = new HashMap<>();
+            this.distinctCounts = new ObjectLongHashMap<>();
             this.distinctCountsIncomplete = true;
         }
     }
@@ -98,7 +108,11 @@ public abstract class ColumnSketchBuilder<T> {
         out.writeLong(totalBytes);
         out.writeByteArray(distinctSketch.getSketch().toByteArray());
         if (out.getVersion().after(Version.V_6_4_4)) {
-            out.writeMap(distinctCounts, StreamOutput::writeString, StreamOutput::writeVLong);
+            out.writeVInt(distinctCounts.size());
+            for (ObjectLongCursor<String> c : distinctCounts) {
+                out.writeString(c.key);
+                out.writeVLong(c.value);
+            }
             out.writeBoolean(distinctCountsIncomplete);
         }
         writeSketches(out);
@@ -117,7 +131,7 @@ public abstract class ColumnSketchBuilder<T> {
             totalBytes += dataType.valueBytes(value);
             String key = value.toString();
             distinctSketch.update(key);
-            distinctCounts.merge(key, 1L, Long::sum);
+            distinctCounts.addTo(key, 1L);
             updateSketches(value);
         }
     }
@@ -175,8 +189,8 @@ public abstract class ColumnSketchBuilder<T> {
             return d;
         }
         long f1 = 0;
-        for (long count : distinctCounts.values()) {
-            if (count == 1L) {
+        for (LongCursor c : distinctCounts.values()) {
+            if (c.value == 1L) {
                 f1++;
             }
         }
@@ -232,7 +246,9 @@ public abstract class ColumnSketchBuilder<T> {
             this.totalBytes += other.totalBytes;
             this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
             this.distinctCountsIncomplete = this.distinctCountsIncomplete || typedOther.distinctCountsIncomplete;
-            typedOther.distinctCounts.forEach((key, count) -> this.distinctCounts.merge(key, count, Long::sum));
+            for (ObjectLongCursor<String> c : typedOther.distinctCounts) {
+                this.distinctCounts.addTo(c.key, c.value);
+            }
             this.mostCommonValuesSketch = this.mostCommonValuesSketch.merge(typedOther.mostCommonValuesSketch);
             this.histogramSketch = this.histogramSketch.merge(typedOther.histogramSketch);
 
@@ -307,7 +323,9 @@ public abstract class ColumnSketchBuilder<T> {
             this.totalBytes += other.totalBytes;
             this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
             this.distinctCountsIncomplete = this.distinctCountsIncomplete || typedOther.distinctCountsIncomplete;
-            typedOther.distinctCounts.forEach((key, count) -> this.distinctCounts.merge(key, count, Long::sum));
+            for (ObjectLongCursor<String> c : typedOther.distinctCounts) {
+                this.distinctCounts.addTo(c.key, c.value);
+            }
             this.mostCommonValuesSketch = this.mostCommonValuesSketch.merge(typedOther.mostCommonValuesSketch);
 
             return this;
