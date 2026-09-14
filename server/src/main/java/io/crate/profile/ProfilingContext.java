@@ -30,11 +30,16 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.search.profile.ProfileResult;
 import org.elasticsearch.search.profile.query.QueryProfiler;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationMetadata;
+import io.crate.metadata.StorageIdents;
 
 /**
  * Simple stop watch type class that can be used as a context across multiple layers (analyzer, planner, executor)
@@ -71,9 +76,28 @@ public class ProfilingContext {
         return Collections.unmodifiableMap(builder);
     }
 
-    private static Map<String, Object> resultAsMap(ShardId shardId, ProfileResult profileResult, ClusterState currentState) {
+    private static Map<String, Object> resultAsMap(ShardId shardId,
+                                                   ProfileResult profileResult,
+                                                   ClusterState currentState) {
+        Metadata metadata = currentState.metadata();
+        PartitionName partitionName = metadata.getPartitionName(shardId.getIndexUUID());
+        RelationMetadata.Table table = metadata.getRelation(partitionName.relationName());
+        HashMap<Long, ColumnIdent> columnByOid = new HashMap<>();
+        if (table != null) {
+            for (Reference ref : table.columns()) {
+                if (ref.oid() != Metadata.OID_UNASSIGNED) {
+                    columnByOid.put(ref.oid(), ref.column());
+                }
+            }
+        }
+        return resultAsMap(shardId, profileResult, partitionName, columnByOid);
+    }
+
+    private static Map<String, Object> resultAsMap(ShardId shardId,
+                                                   ProfileResult profileResult,
+                                                   PartitionName partitionName,
+                                                   Map<Long, ColumnIdent> columnByOid) {
         TreeMap<String, Object> queryTimingsBuilder = new TreeMap<>();
-        PartitionName partitionName = currentState.metadata().getPartitionName(shardId.getIndexUUID());
         queryTimingsBuilder.put("SchemaName", partitionName.relationName().schema());
         queryTimingsBuilder.put("TableName", partitionName.relationName().name());
         if (partitionName.values().isEmpty() == false) {
@@ -81,7 +105,8 @@ public class ProfilingContext {
         }
         queryTimingsBuilder.put("ShardId", shardId.id());
         queryTimingsBuilder.put("QueryName", profileResult.getQueryName());
-        queryTimingsBuilder.put("QueryDescription", profileResult.getLuceneDescription());
+        queryTimingsBuilder.put("QueryDescription", StorageIdents.replaceOids(
+            profileResult.getLuceneDescription(), columnByOid::get));
         queryTimingsBuilder.put("Time", profileResult.getTime() / NS_TO_MS_FACTOR);
         queryTimingsBuilder.put("BreakDown", profileResult.getTimeBreakdown().entrySet().stream()
             .collect(Collectors.toMap(
@@ -92,7 +117,7 @@ public class ProfilingContext {
             ))
         );
         List<Map<String, Object>> children = profileResult.getProfiledChildren().stream()
-            .map((ProfileResult pr) -> resultAsMap(shardId, pr, currentState))
+            .map((ProfileResult pr) -> resultAsMap(shardId, pr, partitionName, columnByOid))
             .collect(Collectors.toList());
         if (!children.isEmpty()) {
             queryTimingsBuilder.put("Children", children);
