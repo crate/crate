@@ -137,6 +137,7 @@ import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.Constants;
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
@@ -197,16 +198,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      * do not observe the setting, instead they examine the file to see if it is compressed or not.
      */
     public static final Setting<Boolean> COMPRESS_SETTING = Setting.boolSetting("compress", true, Setting.Property.NodeScope);
-
-    /**
-     * Size hint for the IO buffer size to use when reading from and writing to the repository.
-     * Used by Azure and GCS repositories.
-     * S3 uses own setting which has default 5MB
-     * Minimum is aligned with Azure SDK which was used before CrateDB 6.3.
-     */
-    private static final Setting<ByteSizeValue> IO_BUFFER_SIZE_SETTING = Setting.byteSizeSetting("io_buffer_size",
-        ByteSizeValue.parseBytesSizeValue("4mb", "io_buffer_size"), ByteSizeValue.parseBytesSizeValue("8kb", "buffer_size"),
-        ByteSizeValue.parseBytesSizeValue("16mb", "io_buffer_size"), Setting.Property.NodeScope);
 
     private final boolean compress;
 
@@ -330,7 +321,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         restoreRateLimiter = getRateLimiter(metadata.settings(), "max_restore_bytes_per_sec", ByteSizeValue.ZERO);
         readOnly = metadata.settings().getAsBoolean("readonly", false);
         this.basePath = basePath;
-        bufferSize = Math.toIntExact(IO_BUFFER_SIZE_SETTING.get(metadata.settings()).getBytes());
+        bufferSize = Constants.READ_WRITE_BLOB_BUFFER_SIZE;
     }
 
     @Override
