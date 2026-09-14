@@ -122,6 +122,13 @@ SQL Statements
   multiple tables with a single :ref:`DROP TABLE <drop-table>` statement, e.g.
   ``DROP TABLE t1, t2, t3``.
 
+- Improved the error messages of :ref:`INSERT <sql-insert>` statements and the
+  ``QueryDescription`` of :ref:`EXPLAIN ANALYZE <ref-explain>` to show the
+  column name instead of the internal storage identifier (``oid``) of a
+  column. For example, inserting a too large value into a ``TEXT`` column now
+  fails with ``DocValuesField "network" is too large, must be <= 32766``
+  instead of ``DocValuesField "356" is too large, must be <= 32766``.
+
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
