@@ -35,6 +35,7 @@ import dev.hardwood.InputFile;
 import dev.hardwood.reader.ParquetFileReader;
 import dev.hardwood.reader.RowReader;
 import dev.hardwood.schema.ColumnProjection;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -53,6 +54,7 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
     private final List<Reference> columns;
     private final List<InputFile> inputFiles;
     private final Symbol query;
+    private volatile Throwable killed = null;
 
     public ParquetBatchIterator(List<InputFile> inputFiles, List<Reference> columns, Symbol query) {
         this.inputFiles = inputFiles;
@@ -62,9 +64,15 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
         this.query = query;
     }
 
+    private void raiseIfKilled() {
+        if (killed != null) {
+            Exceptions.rethrowUnchecked(killed);
+        }
+    }
+
     @Override
     public void kill(Throwable throwable) {
-
+        killed = throwable;
     }
 
     @Override
@@ -74,6 +82,7 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
 
     @Override
     public boolean moveNext() {
+        raiseIfKilled();
         if (rowReader == null) {
             return false;
         }
@@ -96,19 +105,38 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
         return false;
     }
 
-    @Override
-    public void moveToStart() {
-    }
-
-    @Override
-    public void close() {
+    private void releaseReader() throws IllegalStateException {
         if (reader != null) {
             try {
                 reader.close();
             } catch (IOException e) {
-                throw new Error("Could not close: " + e.getMessage());
+                throw new IllegalStateException("Could not close ParquetBatchIterator: " + e.getMessage());
             }
         }
+    }
+
+    @Override
+    public void moveToStart() {
+        raiseIfKilled();
+        releaseReader();
+        // Hardwood does not support moving the cursor backwards
+        // so we reopen the file to start from the beginning
+        try {
+            reader = ParquetFileReader.openAll(inputFiles);
+            rowReader = reader.buildRowReader()
+                    .projection(ColumnProjection.columns(columns.stream()
+                            .map(ref -> ref.column().fqn())
+                            .toArray(String[]::new)))
+                    .build();
+        } catch (IOException e) {
+            Exceptions.rethrowUnchecked(e);
+        }
+    }
+
+    @Override
+    public void close() {
+        killed = BatchIterator.CLOSED;
+        releaseReader();
     }
 
     @Override
@@ -130,8 +158,8 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
                             .map(ref -> ref.column().fqn())
                             .toArray(String[]::new)))
                     .build();
+            return CompletableFuture.completedFuture(null);
         }
-        return CompletableFuture.completedFuture(null);
+        throw new IllegalStateException("BatchIterator already loaded");
     }
 }
-

@@ -27,12 +27,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import dev.hardwood.InputFile;
+import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocTableInfo;
@@ -67,9 +70,10 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("trip_distance")),
                 table.getReadReference(ColumnIdent.of("passenger_count")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, query);
-        List<Object[]> rows = Utils.getRows(it);
-        assertThat(rows).containsExactly(
+        BatchIteratorTester<Object[]> tester = BatchIteratorTester.forRows(
+                () -> new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, query),
+                ResultOrder.EXACT);
+        List<Object[]> expectedResult = List.of(
                 new Object[] { 0.97, 1L },
                 new Object[] { 0.9, 0L },
                 new Object[] { 1.4, 0L },
@@ -90,6 +94,8 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                 new Object[] { 1.22, 2L },
                 new Object[] { 1.69, 3L },
                 new Object[] { 1.13, 1L });
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+
     }
 
     @Test
