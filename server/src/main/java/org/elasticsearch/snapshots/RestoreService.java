@@ -427,9 +427,17 @@ public class RestoreService implements ClusterStateApplier {
 
                 for (RestoreIndex restoreIndex : restoreRelation.restoreIndices()) {
                     String sourceIndexName = restoreIndex.index().name();
-                    String targetIndexName = restoreIndex.partitionValues().isEmpty()
-                        ? targetName.indexNameOrAlias()
-                        : new PartitionName(targetName, restoreIndex.partitionValues()).asIndexName();
+                    String targetIndexName;
+                    if (restoreIndex.partitionValues().isEmpty()) {
+                        targetIndexName = targetName.indexNameOrAlias();
+                    } else if (targetName.equals(relationName)) {
+                        targetIndexName = sourceIndexName;
+                    } else {
+                        targetIndexName = new PartitionName(
+                            targetName,
+                            restoreIndex.partitionValues()
+                        ).asIndexName();
+                    }
 
                     ensureNotPartial(targetIndexName);
                     SnapshotRecoverySource recoverySource = new SnapshotRecoverySource(

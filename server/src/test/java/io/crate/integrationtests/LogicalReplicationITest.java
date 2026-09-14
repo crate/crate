@@ -448,6 +448,20 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             "1| 1",
             "2| 2"
         );
+
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (3)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1", "2", "3");
+        });
+
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (4)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1", "2", "3", "4");
+        });
     }
 
     @Test
