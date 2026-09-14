@@ -28,6 +28,7 @@ import threading
 import unittest
 import socket
 import json
+import tarfile
 from pathlib import Path
 from crate.client import connect
 from cr8.run_crate import CrateNode, wait_until
@@ -62,10 +63,10 @@ def _is_up(host: str, port: int) -> bool:
 class MinioServer:
 
     MINIO_URLS = {
-        'Linux-x86_64': 'https://dl.min.io/server/minio/release/linux-amd64/minio',
-        'Linux-aarch64': 'https://dl.min.io/server/minio/release/linux-arm64/minio',
-        'Darwin-x86_64': 'https://dl.min.io/server/minio/release/darwin-amd64/minio',
-        'Darwin-arm64': 'https://dl.min.io/server/minio/release/darwin-arm64/minio'
+        'Linux-x86_64': 'https://github.com/pgsty/silo/releases/download/RELEASE.2026-09-03T13-18-01Z/silo_20260903131801.0.0_linux_amd64.tar.gz',
+        'Linux-aarch64': 'https://github.com/pgsty/silo/releases/download/RELEASE.2026-09-03T13-18-01Z/silo_20260903131801.0.0_linux_arm64.tar.gz',
+        'Darwin-x86_64': 'https://github.com/pgsty/silo/releases/download/RELEASE.2026-09-03T13-18-01Z/silo_20260903131801.0.0_darwin_amd64.tar.gz',
+        'Darwin-arm64': 'https://github.com/pgsty/silo/releases/download/RELEASE.2026-09-03T13-18-01Z/silo_20260903131801.0.0_darwin_arm64.tar.gz'
     }
 
     MINIO_ACCESS_KEY = 'minio'
@@ -83,11 +84,14 @@ class MinioServer:
 
     def _get_minio(self):
         minio_dir = MinioServer.CACHE_DIR / 'minio'
-        minio_path = minio_dir / 'minio'
+        minio_path = minio_dir / 'silo'
         if not os.path.exists(minio_path):
             os.makedirs(minio_dir, exist_ok=True)
             minio_url = MinioServer.MINIO_URLS[f'{platform.system()}-{platform.machine()}']
-            urlretrieve(minio_url, minio_path)
+            minio_download = minio_dir / "silo.tar.gz"
+            urlretrieve(minio_url, minio_download)
+            with tarfile.open(minio_download, "r:gz") as tf:
+                tf.extract("silo", path=minio_dir)
         minio_path.chmod(0o755)
         return minio_path
 
