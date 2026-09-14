@@ -69,6 +69,7 @@ import io.crate.expression.scalar.postgres.PgPostmasterStartTime;
 import io.crate.expression.scalar.postgres.PgSleepFunction;
 import io.crate.expression.scalar.postgres.PgTableIsVisibleFunction;
 import io.crate.expression.scalar.regex.RegexpCountFunction;
+import io.crate.expression.scalar.regex.RegexpMatchFunction;
 import io.crate.expression.scalar.regex.RegexpPositionFunction;
 import io.crate.expression.scalar.regex.RegexpReplaceFunction;
 import io.crate.expression.scalar.string.AsciiFunction;
@@ -130,6 +131,7 @@ public class ScalarFunctions implements FunctionsProvider {
         RegexpCountFunction.register(builder);
         RegexpReplaceFunction.register(builder);
         RegexpPositionFunction.register(builder);
+        RegexpMatchFunction.register(builder);
 
         ArithmeticFunctions.register(builder);
         BitwiseFunctions.register(builder);

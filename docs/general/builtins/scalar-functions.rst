@@ -2973,6 +2973,34 @@ Examples
     +---------------------+--------------+
     SELECT 5 rows in set (... sec)
 
+
+.. _scalar-regexp_match:
+
+``regexp_match(value, pattern [, flags ])``
+-------------------------------------------
+
+Returns a text array of matching substring(s) within the first match of a
+regular expression. Returns ``NULL`` if there is no match. If the regular
+expression contains no capture group the result is a single element array
+containing the substring matching the whole pattern. If the pattern contains
+capture groups the result is an array with a substring match per capture group
+in the order of the groups.
+
+If any argument is ``NULL``, the result is ``NULL``.
+
+::
+
+    cr> SELECT
+    ...   regexp_match('foobarbequebaz', 'bar.*que') as nogroup,
+    ...   regexp_match('foobarbequebaz', '(bar)(beque)') as groups;
+    +--------------+------------------+
+    | nogroup      | groups           |
+    +--------------+------------------+
+    | ["barbeque"] | ["bar", "beque"] |
+    +--------------+------------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-regexp_instr:
 
 ``regexp_instr(source, pattern [, start [, N [, endoption [, flags [, subexpr])``
