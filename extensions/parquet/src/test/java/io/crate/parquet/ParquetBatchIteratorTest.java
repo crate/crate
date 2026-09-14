@@ -27,12 +27,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import dev.hardwood.InputFile;
+import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocTableInfo;
@@ -67,9 +70,32 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("trip_distance")),
                 table.getReadReference(ColumnIdent.of("passenger_count")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, query);
-        List<Object[]> rows = Utils.getRows(it);
-        assertThat(rows).containsExactly(
+        BatchIteratorTester<Object[]> tester = BatchIteratorTester.forRows(
+                () -> new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, query),
+                ResultOrder.EXACT);
+        // List<Object[]> rows = Utils.getRows(it);
+        // assertThat(rows).containsExactly(
+        // new Object[] { 0.97, 1L },
+        // new Object[] { 0.9, 0L },
+        // new Object[] { 1.4, 0L },
+        // new Object[] { 5.58, 4L },
+        // new Object[] { 2.16, 0L },
+        // new Object[] { 2.33, 2L },
+        // new Object[] { 1.3, 1L },
+        // new Object[] { 2.9, 0L },
+        // new Object[] { 5.34, 1L },
+        // new Object[] { 1.83, 3L },
+        // new Object[] { 1.54, 1L },
+        // new Object[] { 1.79, 1L },
+        // new Object[] { 1.24, 2L },
+        // new Object[] { 2.0, 4L },
+        // new Object[] { 0.83, 1L },
+        // new Object[] { 3.83, 1L },
+        // new Object[] { 5.38, 1L },
+        // new Object[] { 1.22, 2L },
+        // new Object[] { 1.69, 3L },
+        // new Object[] { 1.13, 1L });
+        List<Object[]> expectedResult = List.of(
                 new Object[] { 0.97, 1L },
                 new Object[] { 0.9, 0L },
                 new Object[] { 1.4, 0L },
@@ -90,6 +116,8 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                 new Object[] { 1.22, 2L },
                 new Object[] { 1.69, 3L },
                 new Object[] { 1.13, 1L });
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+
     }
 
     @Test
