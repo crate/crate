@@ -38,6 +38,7 @@ import io.crate.types.DateType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
+import io.crate.types.IpType;
 import io.crate.types.LongType;
 import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
@@ -84,6 +85,7 @@ public class ParquetTypes {
                     yield pqList == null ? null : pqList.values();
                 }
                 case BitStringType.ID -> rowReader.getString(fqn);
+                case IpType.ID -> rowReader.getString(fqn);
                 default ->
                     throw new UnsupportedOperationException("The CrateDB type " + crateType.toString()
                             + " is not supported in the parquet foreign data wrapper");

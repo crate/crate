@@ -46,6 +46,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.BitStringType;
 import io.crate.types.DateType;
+import io.crate.types.IpType;
 import io.crate.types.NumericType;
 import io.crate.types.TimestampType;
 
@@ -72,7 +73,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                                 "tire_health array(integer), tpep_pickup_datetime timestamp without time zone," +
                                 "taxi_start date, taxi_start_shift timestamp with time zone," +
                                 "steering_wheel_count smallint, total_amount_earned decimal(18,3)," +
-                                "bstr bit)");
+                                "bstr bit, ip_address ip)");
     }
 
     @Test
@@ -491,6 +492,38 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                 new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
                 new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
                 new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") });
+    }
+
+    @Test
+    public void test_reads_ip() throws Exception {
+        DocTableInfo table = e.resolveTableInfo("doc.taxi");
+        // no predicate
+        Symbol query = e.asSymbol("true");
+        List<Reference> columns = List.of(
+                table.getReadReference(ColumnIdent.of("ip_address")));
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, query);
+        List<Object[]> rows = Utils.getRows(it);
+        assertThat(rows).containsExactly(
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
+                new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") });
     }
 
     @Test
