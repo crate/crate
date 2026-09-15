@@ -101,10 +101,11 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     private List<String> getSimilarTables(Role user, String tableName, Iterable<TableInfo> tables) {
         LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
         ArrayList<Candidate> candidates = new ArrayList<>();
+        String lTableName = tableName.toLowerCase(Locale.ENGLISH);
         for (TableInfo table : tables) {
             if (roles.hasAnyPrivilege(user, Securable.TABLE, table.ident().fqn())) {
                 String candidate = table.ident().name();
-                float score = levenshteinDistance.getDistance(tableName.toLowerCase(Locale.ENGLISH), candidate.toLowerCase(Locale.ENGLISH));
+                float score = levenshteinDistance.getDistance(lTableName, candidate.toLowerCase(Locale.ENGLISH));
                 if (score > 0.7f) {
                     candidates.add(new Candidate(score, candidate));
                 }
@@ -120,9 +121,10 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     private List<String> getSimilarSchemas(Role user, String schema) {
         LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
         ArrayList<Candidate> candidates = new ArrayList<>();
+        String lSchema = schema.toLowerCase(Locale.ENGLISH);
         for (String availableSchema : schemas.keySet()) {
             if (roles.hasAnyPrivilege(user, Securable.SCHEMA, availableSchema)) {
-                float score = levenshteinDistance.getDistance(schema.toLowerCase(Locale.ENGLISH), availableSchema.toLowerCase(Locale.ENGLISH));
+                float score = levenshteinDistance.getDistance(lSchema, availableSchema.toLowerCase(Locale.ENGLISH));
                 if (score > 0.7f) {
                     candidates.add(new Candidate(score, availableSchema));
                 }
@@ -135,14 +137,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
             .toList();
     }
 
-    static class Candidate {
-        final double score;
-        final String name;
-
-        Candidate(double score, String name) {
-            this.score = score;
-            this.name = name;
-        }
+    record Candidate(double score, String name) {
     }
 
     /**

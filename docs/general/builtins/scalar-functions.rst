@@ -2973,6 +2973,34 @@ Examples
     +---------------------+--------------+
     SELECT 5 rows in set (... sec)
 
+
+.. _scalar-regexp_match:
+
+``regexp_match(value, pattern [, flags ])``
+-------------------------------------------
+
+Returns a text array of matching substring(s) within the first match of a
+regular expression. Returns ``NULL`` if there is no match. If the regular
+expression contains no capture group the result is a single element array
+containing the substring matching the whole pattern. If the pattern contains
+capture groups the result is an array with a substring match per capture group
+in the order of the groups.
+
+If any argument is ``NULL``, the result is ``NULL``.
+
+::
+
+    cr> SELECT
+    ...   regexp_match('foobarbequebaz', 'bar.*que') as nogroup,
+    ...   regexp_match('foobarbequebaz', '(bar)(beque)') as groups;
+    +--------------+------------------+
+    | nogroup      | groups           |
+    +--------------+------------------+
+    | ["barbeque"] | ["bar", "beque"] |
+    +--------------+------------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-regexp_instr:
 
 ``regexp_instr(source, pattern [, start [, N [, endoption [, flags [, subexpr])``
@@ -4569,6 +4597,34 @@ Example::
     +-----+
     |  -1 |
     +-----+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-pg_is_in_recovery:
+
+``pg_catalog.pg_is_in_recovery()``
+----------------------------------
+
+The ``pg_is_in_recovery()`` system information function is implemented for
+enhanced compatibility with PostgreSQL. In PostgreSQL it returns ``true`` while
+the server is still in recovery. CrateDB has no equivalent recovery state, so
+instead it returns ``true`` when the :ref:`cluster health <sys-cluster_health>`
+is ``RED`` and ``false`` otherwise.
+
+Returns: ``boolean``
+
+Synopsis::
+
+    pg_is_in_recovery()
+
+Example::
+
+    cr> select pg_is_in_recovery() AS in_recovery;
+    +-------------+
+    | in_recovery |
+    +-------------+
+    | FALSE       |
+    +-------------+
     SELECT 1 row in set (... sec)
 
 
