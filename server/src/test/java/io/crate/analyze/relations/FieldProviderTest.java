@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -57,7 +58,9 @@ public class FieldProviderTest extends ESTestCase {
         Map<RelationName, AnalyzedRelation> relations = sources.entrySet().stream()
             .collect(Collectors.toMap(
                 entry -> RelationName.of(entry.getKey(), "doc"),
-                Map.Entry::getValue
+                Map.Entry::getValue,
+                (x, y) -> x,
+                LinkedHashMap::new
             ));
         return new FullQualifiedNameFieldProvider(
             relations,
@@ -124,6 +127,70 @@ public class FieldProviderTest extends ESTestCase {
             null,
             Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY
         )).isExactlyInstanceOf(ColumnUnknownException.class);
+    }
+
+    @Test
+    public void test_unknown_column_sets_correct_relation_name_to_exception() {
+        AnalyzedRelation fooA = new DummyRelation(new RelationName("foo", "a"), "x");
+        AnalyzedRelation barB = new DummyRelation(new RelationName("bar", "b"), "y");
+        // Keep the order; `foo.a` must be visited first to ensure the schema is taken
+        // from the relation matching the table name and not from any other source
+        Map<QualifiedName, AnalyzedRelation> sources = new LinkedHashMap<>();
+        sources.put(newQN("foo.a"), fooA);
+        sources.put(newQN("bar.b"), barB);
+        FieldProvider<Symbol> resolver = newFQFieldProvider(sources);
+
+        assertThatThrownBy(() -> resolver.resolveField(
+            newQN("b.z"),
+            null,
+            Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY
+        ))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column z unknown")
+            .satisfies(e ->
+                assertThat(((ColumnUnknownException) e).getTableIdents()).containsExactly(barB.relationName()));
+
+        assertThatThrownBy(() -> resolver.resolveField(
+            newQN("bar.b.z"),
+            null,
+            Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY
+        ))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column z unknown")
+            .satisfies(e ->
+                assertThat(((ColumnUnknownException) e).getTableIdents()).containsExactly(barB.relationName()));
+    }
+
+    @Test
+    public void test_unknown_column_of_relation_without_schema_sets_correct_relation_name_to_exception() {
+        // Aliased relations and with-queries are registered without a schema
+        RelationName alias = new RelationName(null, "t");
+        AnalyzedRelation aliasedRelation = new DummyRelation(alias, "x");
+        FieldProvider<Symbol> resolver = new FullQualifiedNameFieldProvider(
+            Map.of(alias, aliasedRelation),
+            ParentRelations.NO_PARENTS,
+            DocSchemaInfo.NAME
+        );
+
+        assertThatThrownBy(() -> resolver.resolveField(
+            newQN("t.z"),
+            null,
+            Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY
+        ))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column z unknown")
+            .satisfies(e ->
+                assertThat(((ColumnUnknownException) e).getTableIdents()).containsExactly(alias));
+
+        assertThatThrownBy(() -> resolver.resolveField(
+            newQN("z"),
+            null,
+            Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY
+        ))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column z unknown")
+            .satisfies(e ->
+                assertThat(((ColumnUnknownException) e).getTableIdents()).containsExactly(alias));
     }
 
     @Test
