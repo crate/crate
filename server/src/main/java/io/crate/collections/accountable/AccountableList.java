@@ -147,6 +147,24 @@ public class AccountableList<T> extends AbstractList<T> {
         return true;
     }
 
+    @Override
+    public T remove(int index) {
+        Objects.checkIndex(index, size);
+        final Object[] es = elementData;
+
+        @SuppressWarnings("unchecked") T oldValue = (T) es[index];
+        fastRemove(es, index);
+
+        return oldValue;
+    }
+
+    private void fastRemove(Object[] es, int i) {
+        final int newSize;
+        if ((newSize = size - 1) > i)
+            System.arraycopy(es, i + 1, es, i, newSize - i);
+        es[size = newSize] = null;
+    }
+
     /**
      *
      * @param fromIndex low endpoint (inclusive) of the subList
