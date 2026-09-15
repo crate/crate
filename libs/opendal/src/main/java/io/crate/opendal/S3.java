@@ -34,7 +34,7 @@ import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 public final class S3 {
 
@@ -47,24 +47,18 @@ public final class S3 {
     }
 
     /// Gets the region from the endpoint if well-known and the value contains the region
-    /// name, otherwise tries to make a HEAD request.
-    /// Returns default region for the default endpoint or in case of HEAD request failure.
+    /// name, otherwise tries to make a HEAD request
     ///
     /// Adapted from:
     ///     https://github.com/apache/opendal/blob/500532ea92b622d44edd2d84a40e3b80ed5d6e6c/core/services/s3/src/backend.rs?plain=1#L603-L603
-    public static String getRegion(@NonNull String endpoint, String bucket) {
+    @Nullable
+    public static String getRegion(String endpoint, String bucket) {
         Matcher awsMatcher = AWS_ENDPOINT.matcher(endpoint);
         if (awsMatcher.matches()) {
             return awsMatcher.group(1);
         }
         if (endpoint.endsWith("r2.cloudflarestorage.com")) {
             return "auto";
-        }
-
-        // Endpoint can start with http or https.
-        if (endpoint.endsWith(DEFAULT_ENDPOINT)) {
-            // Shortcut to default region, as result is the same regardless of HEAD request result.
-            return DEFAULT_REGION;
         }
         try (var httpClient = HttpClient.newHttpClient()) {
             HttpRequest request = HttpRequest.newBuilder(URI.create(endpoint + "/" + bucket))
@@ -76,10 +70,14 @@ public final class S3 {
                 if (bucketRegion.isPresent()) {
                     return bucketRegion.get();
                 }
+                if (response.statusCode() == 403 || response.statusCode() == 200) {
+                    return DEFAULT_REGION;
+                }
             } catch (IOException | InterruptedException e) {
-                LOGGER.warn("Error trying to retrieve region from S3 endpoint, falling back to {}", DEFAULT_REGION, e);
+                LOGGER.warn("Error trying to retrieve region from S3 endpoint", e);
+                return null;
             }
         }
-        return DEFAULT_REGION;
+        return null;
     }
 }
