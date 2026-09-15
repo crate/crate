@@ -342,6 +342,26 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     }
 
     @Test
+    public void test_user_auth_with_invalid_jwt_token_returns_401() throws Exception {
+        String brokenToken = "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IlJVSFJ5QjFrd1FNaVRxRnVmWDF1T25tRlBTZDN3Z0lSMlBoYXUzZzVsNVkiLCJ1c2UiOiJzaWcifQS05OTgzLTQzODUtYTI1Yi1lMjk5OWI1YWMzNTIiLCJjbHVzdGVyX2lkIjoiNzMzODBhNzktOTk4My00Mzg1LWEyNWItZTI5OTliNWFjMzUyIiwiZXhwIjoxNzg4OTQ1NDY3LCJpc3MiOiJodHRwczovL2NvbnNvbGUuY3JhdGVkYi1kZXYuY2xvdWQvYXBpL3YyL21ldGEvandrLyIsImp0aSI6Ijk3MDZiMDc0LTRkNGYtNDZkZi1hODI5LWMwNmY0MzllNjgxZSIsInN1YiI6ImpvbkBjcmF0ZS5pbyIsInR5cGUiOiJhY2Nlc3MiLCJ1c2VybmFtZSI6ImFkbWluIn0.HxI6IKg3_tbcpndEimZLwwtHtHJuWtkOn6wSTTaKU8JaKlls4dIIqKH1OSBD1DGKa1urKmDOqs_co-aP8i2vbkP7z09rNvGy-NGvjx9RdlkS_shQZdsRQIRXoG7MKH3z7fT9U1-31OMjfNuqpFGIxrtKDHhZt8Dagz7E7Z_uPDHus1HsBlJL3YxH9HB81U8BvmMxFe6puIzDB5Y5y83q5s7CjFF_61Srcl5kGL1fQjtOLelF6L25Zv1gVpPYw5TDU5Xb9S5r1eXV9vLF0wN0izFjOrNgJIOYEhP51ZjBof0tt3GWqTzMxW14P8CDKtz1VZxlcFCg27KQKOSDv8fNA51SiuijDSyii3NZ-UiEsAC7ukd_6ixkmtgGiCvYkhCJCNfv6P9kv059KfuMkS24YyzRv0x1dvWRDMDF-dMavmAKXz-IQagY3tudwTem23Yo5NVDB0qnlZAmyBzMEE-q7ApaCXwgI9TnwDocNCOxnx2gBk40j_MRc4oWY5qICb3MICA8oKeZm4GwpSIG5cqJNq3zSJ6sdudX3tyhEeECzPMLSQsIlIXEiSAcPuObHc48vdCo5qOnbTVBTOQS--aZWStU8LtKX17ZZ887alskrB0b7iT5qmfmjGNMSv3sXWHyM-vdHOh88-5R67F6mCx0mDLVC-XSM5nsCfTKfUJFUak";
+
+        Roles roles = () -> List.of(JWT_USER);
+        Authentication authentication = mock(Authentication.class);
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authentication, roles);
+        EmbeddedChannel ch = new EmbeddedChannel(handler);
+
+        var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, brokenToken);
+
+        ch.writeInbound(request);
+        ch.releaseInbound();
+
+        assertThat(request.refCnt()).isEqualTo(0);
+        assertThat(handler.authorized()).isFalse();
+        assertUnauthorized(ch.readOutbound(), "The token was expected to have 3 parts, but got 2.\n");
+    }
+
+    @Test
     public void test_user_authentication_with_jwt_token_user_not_found() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel(handlerWithHBA);
 
