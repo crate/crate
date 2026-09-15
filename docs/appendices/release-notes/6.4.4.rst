@@ -153,3 +153,6 @@ Fixes
 
 - Fixed an issue causing ``CREATE SNAPSHOT`` statements to get stuck.
 
+- Fixed an issue causing inaccurate estimates of distinct counts of values in a
+  column (e.g. by executing ``SELECT n_distinct FROM pg_catalog.pg_stats``). As
+  a consequence, some optimization rules will be applied more accurately.
