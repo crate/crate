@@ -46,6 +46,9 @@ series.
 Fixes
 =====
 
+- HTTP clients sending an invalid JWT token in the Authentication header now
+  receive a ``401`` error instead of ``500``.
+
 - Fixed an issue that could cause statements including a cross join with two
   other relations to apply an incorrect filter if one of the join conditions
   included an equijoin where one relation appeared multiple times on one side of
