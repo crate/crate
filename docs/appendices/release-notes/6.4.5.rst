@@ -97,3 +97,8 @@ Fixes
 - Fixed performance regression introduced in :ref:`version_6.3.0` that caused
   ``CREATE SNAPSHOT`` to run slower if repository was created with
   :ref:`Azure storage <sql-create-repo-azure>`.
+
+- Fixed an issue that could cause an error message to reference a wrong relation
+  if a column used in a query could not be resolved and multiple relations are
+  involved. This could also lead to privileges being checked on the wrong
+  relation while generating the error.
