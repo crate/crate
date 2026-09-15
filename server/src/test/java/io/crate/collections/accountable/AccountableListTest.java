@@ -37,24 +37,24 @@ public class AccountableListTest {
     public void test_list_accounts_for_shallow_size() throws Exception {
         PlainRamAccounting accounting = new PlainRamAccounting();
         AccountableList<Integer> list = new AccountableList<>(accounting::addBytes);
-        assertThat(accounting.totalBytes()).isEqualTo(4); // Size
+        assertThat(accounting.totalBytes()).isEqualTo(32); // Size
 
         int length = 100;
         for (int i = 0; i < length; i++) {
             list.add(i);
         }
-        assertThat(accounting.totalBytes()).isEqualTo(460);
+        assertThat(accounting.totalBytes()).isEqualTo(488);
 
         List<Integer> subList = list.subList(10, 20);
-        assertThat(accounting.totalBytes()).isEqualTo(472); // Sub list structures (pointer, offset and size).
+        assertThat(accounting.totalBytes()).isEqualTo(500); // Sub list structures (pointer, offset and size).
 
         // Temporal storage overhead on list sorting is not accounted for.
         list.sort(Comparator.comparingInt(x -> x));
-        assertThat(accounting.totalBytes()).isEqualTo(472);
+        assertThat(accounting.totalBytes()).isEqualTo(500);
 
         // Temporal storage overhead on sub-list sorting is not accounted for.
         subList.sort(Comparator.comparingInt(x -> x));
-        assertThat(accounting.totalBytes()).isEqualTo(472);
+        assertThat(accounting.totalBytes()).isEqualTo(500);
     }
 
     @Test
@@ -66,26 +66,26 @@ public class AccountableListTest {
         // Both lists should have the same capacity and same accounted memory.
         PlainRamAccounting acct1 = new PlainRamAccounting();
         AccountableList<Integer> list1 = new AccountableList<>(acct1::addBytes);
-        assertThat(acct1.totalBytes()).isEqualTo(4); // Size
+        assertThat(acct1.totalBytes()).isEqualTo(32); // Size
 
         int length = 15;
         for (int i = 0; i < length; i++) {
             list1.add(i);
         }
         // growth:
-        // initial: 4
-        // 1st growth, to 10 elements, array header 16 bytes + 10 elements * 4 bytes, aligned to 56, total = 60
-        // 2nd growth, to 15 elements, 16 + 15 * 4 = 76, aligned to 80, total = 84
-        assertThat(acct1.totalBytes()).isEqualTo(84);
+        // initial: 32
+        // 1st growth, to 10 elements, array header 16 bytes + 10 elements * 4 bytes, aligned to 56, total = 88
+        // 2nd growth, to 15 elements, 16 + 15 * 4 = 76, aligned to 80, total = 112
+        assertThat(acct1.totalBytes()).isEqualTo(112);
 
         // Add 15 elements at once. This makes the list's capacity grow to 15.
         // The resulting AccountableLists should be the same, and use the same amount of memory.
         PlainRamAccounting acct2 = new PlainRamAccounting();
         AccountableList<Integer> list2 = new AccountableList<>(acct2::addBytes);
-        assertThat(acct2.totalBytes()).isEqualTo(4); // Size
+        assertThat(acct2.totalBytes()).isEqualTo(32); // Size
 
         list2.addAll(IntStream.range(0, length).boxed().toList());
-        assertThat(acct2.totalBytes()).isEqualTo(84);
+        assertThat(acct2.totalBytes()).isEqualTo(112);
 
         assertThat(list1.equals(list2));
     }
