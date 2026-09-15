@@ -319,6 +319,10 @@ class InsertAnalyzer {
             f -> f.signature().isDeterministic());
         Map<Reference, Symbol> updateAssignments = HashMap.newHashMap(duplicateKeyContext.getAssignments().size());
         for (Assignment<Expression> assignment : duplicateKeyContext.getAssignments()) {
+            if (duplicateKeyContext.getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_UPDATE_SET
+                && isNoopPrimaryKeyAssignment(assignment, targetTable)) {
+                continue;
+            }
             Reference targetCol = (Reference) exprAnalyzer.convert(assignment.columnName(), exprCtx);
             Symbol valueSymbol = ValueNormalizer.normalizeInputForReference(
                 normalizer.normalize(expressionAnalyzer.convert(assignment.expression(), exprCtx), txnCtx),
@@ -352,5 +356,23 @@ class InsertAnalyzer {
             paramTypeHints,
             duplicateKeyContext
         );
+    }
+
+    private static boolean isNoopPrimaryKeyAssignment(Assignment<Expression> assignment, DocTableRelation targetTable) {
+
+        if (!(assignment.columnName() instanceof QualifiedNameReference targetRef)
+            || !(assignment.expression() instanceof QualifiedNameReference valueRef)) {
+            return false;
+        }
+
+        List<String> targetParts = targetRef.getName().getParts();
+        List<String> valueParts = valueRef.getName().getParts();
+        if (targetParts.size() != 1 || valueParts.size() != 2 || !"excluded".equals(valueParts.get(0))) {
+            return false;
+        }
+        ColumnIdent targetColumn = ColumnIdent.of(targetParts.get(0));
+        ColumnIdent excludedColumn = ColumnIdent.of(valueParts.get(1));
+
+        return targetColumn.equals(excludedColumn) && targetTable.tableInfo().primaryKey().contains(targetColumn);
     }
 }
