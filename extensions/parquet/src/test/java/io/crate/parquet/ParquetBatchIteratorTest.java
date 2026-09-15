@@ -74,7 +74,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_correctly_implements_batch_iterator_contracts() throws Exception {
+    public void test_reads_double_and_correctly_implements_batch_iterator_contracts() throws Exception {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         // no predicate
         Symbol query = e.asSymbol("true");
