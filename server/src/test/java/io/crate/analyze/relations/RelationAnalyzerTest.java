@@ -22,8 +22,10 @@
 package io.crate.analyze.relations;
 
 import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isReference;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -35,8 +37,10 @@ import org.junit.Test;
 
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.expression.scalar.SubscriptFunction;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.metadata.RelationName;
@@ -165,5 +169,66 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = executor.analyze("select * from t1");
         assertThat(relation.from()).hasSize(1);
         assertThat(relation.from().getFirst()).isInstanceOf(AnalyzedView.class);
+    }
+
+    @Test
+    public void test_with_query_takes_precedence_over_tables_and_views_with_same_name() throws IOException {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (k int, other int)")
+            .addView(new RelationName("doc", "v"), "select 1 as x");
+
+        QueriedSelectRelation relation = executor.analyze(
+            "WITH tbl(a, b) AS (VALUES (1, 100)) SELECT tbl.b FROM tbl");
+        assertThat(relation.from().getFirst()).isExactlyInstanceOf(AliasedAnalyzedRelation.class);
+        assertThat(relation.outputs()).satisfiesExactly(isField("b", new RelationName(null, "tbl")));
+
+        relation = executor.analyze(
+            "WITH v(c) AS (VALUES (100)) SELECT v.c FROM v");
+        assertThat(relation.from().getFirst()).isExactlyInstanceOf(AliasedAnalyzedRelation.class);
+        assertThat(relation.outputs()).satisfiesExactly(isField("c", new RelationName(null, "v")));
+    }
+
+    @Test
+    public void test_schema_qualified_name_resolves_to_table_and_not_to_with_query() throws IOException {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (a int, b int)");
+
+        QueriedSelectRelation relation = executor.analyze(
+            "WITH tbl (a, b) AS (VALUES (1, 100)) SELECT tbl.b FROM doc.tbl");
+        assertThat(relation.from().getFirst().relationName()).isEqualTo(new RelationName("doc", "tbl"));
+        assertThat(relation.outputs()).satisfiesExactly(isReference("b"));
+    }
+
+    @Test
+    public void test_with_query_is_visible_within_nested_subqueries() {
+        QueriedSelectRelation relation = executor.analyze(
+            "WITH tbl AS (SELECT 1 AS x) SELECT (SELECT max(x) FROM tbl) FROM t1");
+        assertThat(relation.outputs()).satisfiesExactly(
+            s -> assertThat(s).isExactlyInstanceOf(SelectSymbol.class));
+    }
+
+    @Test
+    public void test_correlated_subquery_resolves_parent_column_if_statement_has_with_queries() {
+        QueriedSelectRelation relation = executor.analyze(
+            "WITH c AS (SELECT 1 AS x) " +
+            "SELECT t1.a, (SELECT count(*) FROM t2 WHERE t2.b = t1.a) FROM t1");
+        assertThat(relation.outputs()).satisfiesExactly(
+            isReference("a"),
+            s -> assertThat(s).isExactlyInstanceOf(SelectSymbol.class)
+        );
+    }
+
+    @Test
+    public void test_columns_of_with_query_are_not_accessible_without_using_it_in_from() {
+        assertThatThrownBy(() -> executor.analyze("WITH tbl AS (SELECT 1 AS x) SELECT tbl.x FROM t1"))
+            .isExactlyInstanceOf(RelationUnknown.class)
+            .hasMessage("Relation 'doc.tbl' unknown");
+    }
+
+    @Test
+    public void test_duplicate_with_query_names_are_rejected() {
+        assertThatThrownBy(() -> executor.analyze("WITH tbl AS (SELECT 1), tbl AS (SELECT 2) SELECT * FROM tbl"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("WITH query name \"tbl\" specified more than once");
     }
 }

@@ -35,34 +35,32 @@ public class ParentRelations {
     public static final ParentRelations NO_PARENTS = new ParentRelations();
 
     private final List<Map<RelationName, AnalyzedRelation>> sourcesTree;
+    private final List<Map<RelationName, AnalyzedRelation>> withTree;
 
     private ParentRelations() {
         sourcesTree = Collections.emptyList();
+        withTree = Collections.emptyList();
     }
 
-    private ParentRelations(ArrayList<Map<RelationName, AnalyzedRelation>> sourcesTree) {
+    private ParentRelations(ArrayList<Map<RelationName, AnalyzedRelation>> sourcesTree,
+                            ArrayList<Map<RelationName, AnalyzedRelation>> withTree) {
         this.sourcesTree = sourcesTree;
+        this.withTree = withTree;
     }
 
-    public ParentRelations newLevel(Map<RelationName, AnalyzedRelation> sources) {
+    public ParentRelations newLevel(Map<RelationName, AnalyzedRelation> sources,
+                                    Map<RelationName, AnalyzedRelation> withRelations) {
         ArrayList<Map<RelationName, AnalyzedRelation>> newSourcesTree = new ArrayList<>(sourcesTree.size() + 1);
         newSourcesTree.addAll(sourcesTree);
         newSourcesTree.add(sources);
-        return new ParentRelations(newSourcesTree);
+        ArrayList<Map<RelationName, AnalyzedRelation>> newWithTree = new ArrayList<>(withTree.size() + 1);
+        newWithTree.addAll(withTree);
+        newWithTree.add(withRelations);
+        return new ParentRelations(newSourcesTree, newWithTree);
     }
 
     public boolean containsRelation(RelationName qualifiedName) {
         return getAncestor(qualifiedName) != null;
-    }
-
-    @Nullable
-    public AnalyzedRelation getParent(RelationName relationName) {
-        if (sourcesTree.isEmpty() || sourcesTree.size() < 2) {
-            return null;
-        }
-        // the last item is the _current_ relation, need one before that for the immediate parent
-        Map<RelationName, AnalyzedRelation> parent = sourcesTree.get(sourcesTree.size() - 2);
-        return parent.get(relationName);
     }
 
     public Iterable<AnalyzedRelation> getParents() {
@@ -73,14 +71,24 @@ public class ParentRelations {
     }
 
     @Nullable
-    public AnalyzedRelation getAncestor(RelationName relationName) {
-        AnalyzedRelation relation = null;
-        for (int i = sourcesTree.size() - 1; i >= 0; i--) {
-            relation = sourcesTree.get(i).get(relationName);
+    public AnalyzedRelation getAncestorWithQuery(RelationName relationName) {
+        for (int i = withTree.size() - 1; i >= 0; i--) {
+            AnalyzedRelation relation = withTree.get(i).get(relationName);
             if (relation != null) {
-                break;
+                return relation;
             }
         }
-        return relation;
+        return null;
+    }
+
+    @Nullable
+    public AnalyzedRelation getAncestor(RelationName relationName) {
+        for (int i = sourcesTree.size() - 1; i >= 0; i--) {
+            AnalyzedRelation relation = sourcesTree.get(i).get(relationName);
+            if (relation != null) {
+                return relation;
+            }
+        }
+        return null;
     }
 }

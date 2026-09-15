@@ -677,7 +677,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             new RelationName(null, node.name()),
             node.columnNames()
         );
-        context.currentRelationContext().addSourceRelation(aliasedRelation);
+        context.currentRelationContext().addWithRelation(aliasedRelation);
         return aliasedRelation;
     }
 
@@ -687,20 +687,16 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         SearchPath searchPath = context.sessionSettings().searchPath();
         var relationContext = context.currentRelationContext();
 
-        RelationInfo relationInfo;
-        try {
-            relationInfo = nodeCtx.schemas().findRelation(
-                tableQualifiedName, context.currentOperation(), context.sessionSettings().sessionUser(), searchPath);
-        } catch (Throwable t) {
-            AnalyzedRelation ancestor = relationContext.parentSources()
-                .getAncestor(RelationName.of(tableQualifiedName, null));
-            if (ancestor == null) {
-                throw t;
-            }
-            relationContext.addSourceRelation(ancestor);
-            return ancestor;
+        AnalyzedRelation relation = relationContext.parentSources()
+            .getAncestorWithQuery(RelationName.of(tableQualifiedName, null));
+        if (relation != null) {
+            relationContext.addSourceRelation(relation);
+            return relation;
         }
-        AnalyzedRelation relation = switch (relationInfo) {
+        RelationInfo relationInfo = nodeCtx.schemas().findRelation(
+            tableQualifiedName, context.currentOperation(), context.sessionSettings().sessionUser(), searchPath);
+
+        relation = switch (relationInfo) {
             case DocTableInfo docTable -> new DocTableRelation(docTable);
             case RelationMetadata.ForeignTable table -> new ForeignTableRelation(table);
             case TableInfo table -> new TableRelation(table);
