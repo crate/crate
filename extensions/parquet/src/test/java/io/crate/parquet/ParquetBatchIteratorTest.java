@@ -27,7 +27,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Before;
@@ -47,9 +46,9 @@ import io.crate.testing.SQLExecutor;
 public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
     private final List<Path> parquetFile = List.of(
             Paths.get(getClass().getResource("/data").toURI())
-                    .resolve("yellow_tripdata_2026-01.parquet"),
+                    .resolve("yellow_taxi_01.parquet"),
             Paths.get(getClass().getResource("/data").toURI())
-                    .resolve("yellow_tripdata_2026-02.parquet"));
+                    .resolve("yellow_taxi_02.parquet"));
 
     public ParquetBatchIteratorTest() throws URISyntaxException {
     }

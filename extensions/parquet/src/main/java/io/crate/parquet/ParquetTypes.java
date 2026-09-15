@@ -58,7 +58,6 @@ public class ParquetTypes {
                 case DoubleType.ID -> rowReader.getDouble(fqn);
                 case StringType.ID -> rowReader.getString(fqn);
                 case DateType.ID -> rowReader.getDate(fqn);
-                // TODO: timestamp types need to be hardened; look at this again later
                 case TimeTZType.ID -> rowReader.getTimestamp(fqn);
                 case TimestampType.ID_WITHOUT_TZ -> {
                     LocalDateTime ldt = rowReader.getLocalTimestamp(fqn);
