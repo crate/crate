@@ -31,6 +31,7 @@ import dev.hardwood.row.PqList;
 import io.crate.metadata.Reference;
 import io.crate.parquet.exceptions.IncompatibleSchemaForParquetException;
 import io.crate.types.ArrayType;
+import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
 import io.crate.types.DataType;
 import io.crate.types.DateType;
@@ -82,6 +83,7 @@ public class ParquetTypes {
                     PqList pqList = rowReader.getList(fqn);
                     yield pqList == null ? null : pqList.values();
                 }
+                case BitStringType.ID -> rowReader.getString(fqn);
                 default ->
                     throw new UnsupportedOperationException("The CrateDB type " + crateType.toString()
                             + " is not supported in the parquet foreign data wrapper");

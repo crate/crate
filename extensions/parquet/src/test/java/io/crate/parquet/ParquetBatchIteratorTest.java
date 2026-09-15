@@ -44,6 +44,7 @@ import io.crate.metadata.Reference;
 import io.crate.parquet.exceptions.IncompatibleSchemaForParquetException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.BitStringType;
 import io.crate.types.DateType;
 import io.crate.types.NumericType;
 import io.crate.types.TimestampType;
@@ -70,7 +71,8 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                                 "car_id uuid, car_sensor object," +
                                 "tire_health array(integer), tpep_pickup_datetime timestamp without time zone," +
                                 "taxi_start date, taxi_start_shift timestamp with time zone," +
-                                "steering_wheel_count smallint, total_amount_earned decimal(18,3))");
+                                "steering_wheel_count smallint, total_amount_earned decimal(18,3)," +
+                                "bstr bit)");
     }
 
     @Test
@@ -457,6 +459,38 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                 new Object[] { List.of(1, 1, 0, 0) },
                 new Object[] { List.of(1, 1, 0, 0) },
                 new Object[] { List.of(1, 1, 0, 0) });
+    }
+
+    @Test
+    public void test_reads_bit() throws Exception {
+        DocTableInfo table = e.resolveTableInfo("doc.taxi");
+        // no predicate
+        Symbol query = e.asSymbol("true");
+        List<Reference> columns = List.of(
+                table.getReadReference(ColumnIdent.of("bstr")));
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, query);
+        List<Object[]> rows = Utils.getRows(it);
+        assertThat(rows).containsExactly(
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
+                new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") });
     }
 
     @Test
