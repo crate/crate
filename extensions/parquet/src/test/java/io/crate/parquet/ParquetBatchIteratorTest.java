@@ -45,6 +45,7 @@ import io.crate.parquet.exceptions.IncompatibleSchemaForParquetException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DateType;
+import io.crate.types.NumericType;
 import io.crate.types.TimestampType;
 
 public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
@@ -68,7 +69,8 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                                 "big_car boolean, trip_type text," +
                                 "car_id uuid, car_sensor object," +
                                 "tire_health array(integer), tpep_pickup_datetime timestamp without time zone," +
-                                "taxi_start date, taxi_start_shift timestamp with time zone)");
+                                "taxi_start date, taxi_start_shift timestamp with time zone," +
+                                "steering_wheel_count smallint, total_amount_earned decimal(18,3))");
     }
 
     @Test
@@ -138,7 +140,39 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_reads_numeric() throws Exception {
+    public void test_reads_smallint() throws Exception {
+        DocTableInfo table = e.resolveTableInfo("doc.taxi");
+        // no predicate
+        Symbol query = e.asSymbol("true");
+        List<Reference> columns = List.of(
+                table.getReadReference(ColumnIdent.of("steering_wheel_count")));
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, query);
+        List<Object[]> rows = Utils.getRows(it);
+        assertThat(rows).containsExactly(
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 },
+                new Object[] { (short) 1 });
+    }
+
+    @Test
+    public void test_reads_int() throws Exception {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         // no predicate
         Symbol query = e.asSymbol("true");
@@ -167,6 +201,38 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                 new Object[] { 2L },
                 new Object[] { 3L },
                 new Object[] { 1L });
+    }
+
+    @Test
+    public void test_reads_numeric() throws Exception {
+        DocTableInfo table = e.resolveTableInfo("doc.taxi");
+        // no predicate
+        Symbol query = e.asSymbol("true");
+        List<Reference> columns = List.of(
+                table.getReadReference(ColumnIdent.of("total_amount_earned")));
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, query);
+        List<Object[]> rows = Utils.getRows(it);
+        assertThat(rows).containsExactly(
+                new Object[] { NumericType.INSTANCE.implicitCast("733.085") },
+                new Object[] { NumericType.INSTANCE.implicitCast("393.277") },
+                new Object[] { NumericType.INSTANCE.implicitCast("478.570") },
+                new Object[] { NumericType.INSTANCE.implicitCast("15.603") },
+                new Object[] { NumericType.INSTANCE.implicitCast("505.244") },
+                new Object[] { NumericType.INSTANCE.implicitCast("782.168") },
+                new Object[] { NumericType.INSTANCE.implicitCast("559.905") },
+                new Object[] { NumericType.INSTANCE.implicitCast("792.465") },
+                new Object[] { NumericType.INSTANCE.implicitCast("445.029") },
+                new Object[] { NumericType.INSTANCE.implicitCast("735.267") },
+                new Object[] { NumericType.INSTANCE.implicitCast("653.083") },
+                new Object[] { NumericType.INSTANCE.implicitCast("933.206") },
+                new Object[] { NumericType.INSTANCE.implicitCast("623.122") },
+                new Object[] { NumericType.INSTANCE.implicitCast("284.454") },
+                new Object[] { NumericType.INSTANCE.implicitCast("737.791") },
+                new Object[] { NumericType.INSTANCE.implicitCast("333.474") },
+                new Object[] { NumericType.INSTANCE.implicitCast("748.944") },
+                new Object[] { NumericType.INSTANCE.implicitCast("6.757") },
+                new Object[] { NumericType.INSTANCE.implicitCast("806.736") },
+                new Object[] { NumericType.INSTANCE.implicitCast("300.954") });
     }
 
     @Test

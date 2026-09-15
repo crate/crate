@@ -40,6 +40,7 @@ import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
+import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
 import io.crate.types.UUIDType;
@@ -54,7 +55,11 @@ public class ParquetTypes {
             Object object = switch (crateType.id()) {
                 case BooleanType.ID -> rowReader.getBoolean(fqn);
                 case IntegerType.ID -> rowReader.getInt(fqn);
+                case ShortType.ID -> {
+                    yield ShortType.INSTANCE.implicitCast(rowReader.getInt(fqn));
+                }
                 case LongType.ID -> rowReader.getLong(fqn);
+                case NumericType.ID -> rowReader.getDecimal(fqn);
                 case FloatType.ID -> rowReader.getFloat(fqn);
                 case DoubleType.ID -> rowReader.getDouble(fqn);
                 case StringType.ID -> rowReader.getString(fqn);
@@ -71,7 +76,6 @@ public class ParquetTypes {
                     yield localDateTime == null ? null
                             : localDateTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
                 }
-                case NumericType.ID -> rowReader.getDecimal(fqn);
                 case UUIDType.ID -> rowReader.getUuid(fqn);
                 case ObjectType.ID -> rowReader.getString(fqn);
                 case ArrayType.ID -> {
