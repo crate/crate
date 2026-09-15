@@ -22,6 +22,7 @@
 package io.crate.execution.engine.collect.collectors;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -29,13 +30,12 @@ import java.util.concurrent.CompletionStage;
 
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.DocAndFloatFeatureBuffer;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
-import org.apache.lucene.util.Bits;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.common.exceptions.Exceptions;
@@ -64,11 +64,12 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
     private final InputRow row;
     private Weight weight;
     private final Float minScore;
+    private final DocAndFloatFeatureBuffer buffer = new DocAndFloatFeatureBuffer();
 
     private Iterator<LeafReaderContext> leavesIt;
     private LeafReaderContext currentLeaf;
     private Scorer currentScorer;
-    private DocIdSetIterator currentDocIdSetIt;
+    private int buffIdx = Integer.MAX_VALUE;
     private volatile Throwable killed;
 
     public LuceneBatchIterator(IndexSearcher indexSearcher,
@@ -108,41 +109,51 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
             try {
                 weight = createWeight();
             } catch (IOException e) {
-                Exceptions.rethrowUnchecked(e);
+                throw new UncheckedIOException(e);
             }
         }
-
         try {
             return innerMoveNext();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
     private boolean innerMoveNext() throws IOException {
-        while (tryAdvanceDocIdSetIterator()) {
-            LeafReader reader = currentLeaf.reader();
-            Bits liveDocs = reader.getLiveDocs();
-            int doc;
-            while ((doc = currentDocIdSetIt.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-                if (docDeleted(liveDocs, doc) || belowMinScore(currentScorer)) {
-                    continue;
+        while (tryAdvanceLeaf()) {
+            while (getNextDocs()) {
+                while (buffIdx < buffer.size) {
+                    int doc = buffer.docs[buffIdx];
+                    if (minScore != null && buffer.features[buffIdx] < minScore) {
+                        buffIdx++;
+                        continue;
+                    }
+                    for (LuceneCollectorExpression<?> expression : expressions) {
+                        expression.setNextDocId(doc);
+                    }
+                    buffIdx++;
+                    return true;
                 }
-                onDoc(doc);
-                return true;
             }
-            currentDocIdSetIt = null;
+            buffIdx = Integer.MAX_VALUE;
+            currentLeaf = null;
         }
         clearState();
         return false;
     }
 
-    private boolean belowMinScore(Scorer currentScorer) throws IOException {
-        return minScore != null && currentScorer.score() < minScore;
+    private boolean getNextDocs() throws IOException {
+        if (buffIdx < buffer.size) {
+            return true;
+        }
+        buffIdx = 0;
+        LeafReader reader = currentLeaf.reader();
+        currentScorer.nextDocsAndScores(reader.maxDoc(), reader.getLiveDocs(), buffer);
+        return buffer.size > 0;
     }
 
-    private boolean tryAdvanceDocIdSetIterator() throws IOException {
-        if (currentDocIdSetIt != null) {
+    private boolean tryAdvanceLeaf() throws IOException {
+        if (currentLeaf != null) {
             return true;
         }
         while (leavesIt.hasNext()) {
@@ -153,19 +164,19 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
             }
             currentScorer = scorer;
             currentLeaf = leaf;
-            currentDocIdSetIt = scorer.iterator();
             var readerContext = new ReaderContext(currentLeaf);
             for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.setScorer(currentScorer);
                 expression.setNextReader(readerContext);
             }
+            scorer.iterator().advance(0);
             return true;
         }
         return false;
     }
 
     private void clearState() {
-        currentDocIdSetIt = null;
+        buffIdx = Integer.MAX_VALUE;
         currentScorer = null;
         currentLeaf = null;
     }
@@ -197,19 +208,6 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
     @Override
     public boolean hasLazyResultSet() {
         return true;
-    }
-
-    private static boolean docDeleted(@Nullable Bits liveDocs, int doc) {
-        if (liveDocs == null) {
-            return false;
-        }
-        return liveDocs.get(doc) == false;
-    }
-
-    private void onDoc(int doc) throws IOException {
-        for (LuceneCollectorExpression<?> expression : expressions) {
-            expression.setNextDocId(doc);
-        }
     }
 
     private void raiseIfKilled() {
