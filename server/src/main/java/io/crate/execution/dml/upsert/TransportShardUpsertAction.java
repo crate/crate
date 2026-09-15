@@ -81,6 +81,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.StorageIdents;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.SysColumns;
 
@@ -229,14 +230,18 @@ public class TransportShardUpsertAction extends TransportShardAction<
                         e
                     );
                 }
+                // Lucene only knows the storage identifier (oid) of a column, replace it
+                // with the column name to turn errors like `DocValuesField "356" is too
+                // large` into something users can act on
+                Exception userError = StorageIdents.replaceOids(e, tableInfo);
                 if (!request.continueOnError()) {
-                    shardResponse.failure(e);
+                    shardResponse.failure(userError);
                     break;
                 }
                 shardResponse.add(
                     location,
                     item.id(),
-                    e,
+                    userError,
                     (e instanceof VersionConflictEngineException)
                 );
             } catch (AssertionError e) {
