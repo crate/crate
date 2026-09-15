@@ -85,7 +85,13 @@ public class ParquetTypes {
                     yield pqList == null ? null : pqList.values();
                 }
                 case BitStringType.ID -> rowReader.getString(fqn);
-                case IpType.ID -> rowReader.getString(fqn);
+                case IpType.ID -> {
+                    try {
+                        yield rowReader.getString(fqn);
+                    } catch (RuntimeException e) {
+                        yield rowReader.getLong(fqn);
+                    }
+                }
                 default ->
                     throw new UnsupportedOperationException("The CrateDB type " + crateType.toString()
                             + " is not supported in the parquet foreign data wrapper");

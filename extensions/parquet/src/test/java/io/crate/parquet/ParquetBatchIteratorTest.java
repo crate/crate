@@ -73,7 +73,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                                 "tire_health array(integer), tpep_pickup_datetime timestamp without time zone," +
                                 "taxi_start date, taxi_start_shift timestamp with time zone," +
                                 "steering_wheel_count smallint, total_amount_earned decimal(18,3)," +
-                                "bstr bit, ip_address ip)");
+                                "bstr bit, ip_address ip, ip_address_long ip)");
     }
 
     @Test
@@ -495,7 +495,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_reads_ip() throws Exception {
+    public void test_reads_ip_stored_as_text_in_parquet() throws Exception {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         // no predicate
         Symbol query = e.asSymbol("true");
@@ -525,6 +525,39 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                 new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
                 new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") });
     }
+
+    @Test
+    public void test_reads_ip_stored_as_long_in_parquet() throws Exception {
+        DocTableInfo table = e.resolveTableInfo("doc.taxi");
+        // no predicate
+        Symbol query = e.asSymbol("true");
+        List<Reference> columns = List.of(
+                table.getReadReference(ColumnIdent.of("ip_address")));
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, query);
+        List<Object[]> rows = Utils.getRows(it);
+        assertThat(rows).containsExactly(
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] { IpType.INSTANCE.implicitCast(2130706433) });
+    }
+
 
     @Test
     public void test_raises_if_cratedb_foreign_table_schema_is_incompatible_with_the_underlying_parquet_schema()
