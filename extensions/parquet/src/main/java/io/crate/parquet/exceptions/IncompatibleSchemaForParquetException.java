@@ -29,7 +29,7 @@ public class IncompatibleSchemaForParquetException extends IllegalArgumentExcept
     public IncompatibleSchemaForParquetException(String fullyQualifiedName, DataType<?> dataType) {
         super(String.format(
                 Locale.ENGLISH,
-                "The requested column `%s` has type `%s`, but that cannot be converted to the type of the column in the parquet file",
+                "The requested column `%s` has type `%s`, but that is not compatible with the column in the parquet file",
                 fullyQualifiedName,
                 dataType.toString()));
     }
