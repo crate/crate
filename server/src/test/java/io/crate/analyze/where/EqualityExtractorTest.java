@@ -573,8 +573,8 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
         FullQualifiedNameFieldProvider fieldProvider = new FullQualifiedNameFieldProvider(
             tableSources,
             ParentRelations.NO_PARENTS
-                .newLevel(Map.of(tableInfoOuter.ident(), tableRelationOuter))
-                .newLevel(tableSources),
+                .newLevel(Map.of(tableInfoOuter.ident(), tableRelationOuter), Map.of())
+                .newLevel(tableSources, Map.of()),
             DocSchemaInfo.NAME
         );
         SqlExpressions expressions = new SqlExpressions(
