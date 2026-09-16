@@ -34,15 +34,17 @@ import java.util.function.Predicate;
 
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.Streamer;
-import io.crate.execution.dml.LongIndexer;
+import io.crate.execution.dml.DateIndexer;
 import io.crate.execution.dml.ValueIndexer;
-import io.crate.expression.reference.doc.lucene.LongColumnReference;
+import io.crate.expression.reference.doc.lucene.DateColumnReference;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -56,33 +58,55 @@ public class DateType extends DataType<Long>
     public static final DateType INSTANCE = new DateType();
     public static final int TYPE_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Long.class);
 
-    private static final StorageSupport<Long> STORAGE = new StorageSupport<>(true, true, new LongEqQuery()) {
+    private static final int DAY_TO_MS = 86400000;
+
+    public static int toEpochDay(long msSince1970) {
+        return (int) Math.divideExact(msSince1970, DAY_TO_MS);
+    }
+
+    public static long msFromEpochDay(int epochDay) {
+        return ((long) epochDay) * DAY_TO_MS;
+    }
+
+    private static final StorageSupport<Long> STORAGE = new StorageSupport<>(true, true, new DateEqQuery()) {
+
+        public Long decode(int input) {
+            return msFromEpochDay(input);
+        }
+
         @Override
         public Long decode(long input) {
-            return input;
+            return super.decode(input);
+        }
+
+        @Override
+        public Long decode(ColumnIdent column, SourceParser sourceParser, Version tableVersion, byte[] bytes) {
+            return super.decode(column, sourceParser, tableVersion, bytes);
         }
 
         @Override
         public ValueIndexer<Long> valueIndexer(RelationName table,
                                                Reference ref,
                                                Function<ColumnIdent, Reference> getRef) {
-            return new LongIndexer(ref);
+            return new DateIndexer(ref);
         }
 
         @Override
         public Long decode(byte[] packedPoint) {
-            return NumericUtils.sortableBytesToLong(packedPoint, 0);
+            int epochDay = NumericUtils.sortableBytesToInt(packedPoint, 0);
+            return msFromEpochDay(epochDay);
         }
 
         @Override
         public LuceneCollectorExpression<Long> getLuceneExpression(Reference ref,
                                                                    Predicate<Reference> isParentIgnored) {
-            return new LongColumnReference(ref.storageIdent());
+            return new DateColumnReference(ref.storageIdent());
         }
 
         @Override
         public Long decode(DataType<Long> type, XContentParser parser) throws IOException {
-            return parser.longValue();
+            int epochDay = parser.intValue();
+            return msFromEpochDay(epochDay);
         }
     };
 
@@ -140,7 +164,7 @@ public class DateType extends DataType<Long>
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
 
-        var epochDay = longVal / 1000 / 86400;
+        int epochDay = toEpochDay(longVal);
         var localDate = LocalDate.ofEpochDay(epochDay);
         return localDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
     }
@@ -149,6 +173,8 @@ public class DateType extends DataType<Long>
     public Long sanitizeValue(Object value) {
         if (value == null) {
             return null;
+        } else if (value instanceof Integer epochDay) {
+            return msFromEpochDay(epochDay);
         } else if (value instanceof Number number) {
             return number.longValue();
         } else {

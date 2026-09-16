@@ -65,8 +65,9 @@ public class NullSentinelValues {
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-            case DateType.ID:
                 return min ? Long.MIN_VALUE : Long.MAX_VALUE;
+            case DateType.ID:
+                return min ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 
             case FloatType.ID:
                 return min ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
