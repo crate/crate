@@ -34,8 +34,10 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
+import io.crate.types.CharacterType;
 
 public class HashJoinTest extends CrateDummyClusterServiceUnitTest {
 
@@ -89,5 +91,41 @@ public class HashJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(result.lhsHashSymbols()).satisfiesExactly(isSQL("doc.t1.a"), isSQL("doc.t1.a"), isSQL("doc.t1.i"));
         assertThat(result.rhsHashSymbols()).satisfiesExactly(isSQL("doc.t3.c"), isSQL("doc.t2.b"), isSQL("doc.t2.i"));
 
+    }
+
+    @Test
+    public void test_hash_symbols_of_both_sides_are_paired_by_position() {
+        Symbol joinCondition = sqlExpressions.asSymbol("t1.a = t3.c AND t2.i = t5.i AND t1.i = t5.i");
+        var result = HashJoin.createHashSymbols(
+            List.of(T3.T1, T3.T2),
+            List.of(T3.T3, T3.T5),
+            joinCondition);
+
+        assertThat(result.lhsHashSymbols()).satisfiesExactly(
+            isSQL("doc.t1.a"), isSQL("doc.t2.i"), isSQL("doc.t1.i"));
+        assertThat(result.rhsHashSymbols()).satisfiesExactly(
+            isSQL("doc.t3.c"), isSQL("doc.t5.i"), isSQL("doc.t5.i"));
+    }
+
+    @Test
+    public void test_hash_symbols_of_character_columns_are_normalized_to_a_common_type() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl1 (a int, c1 char(2))")
+            .addTable("create table tbl2 (b int, c2 char(3))");
+
+        Symbol joinCondition = e.asSymbol("tbl1.c1 = tbl2.c2");
+        var result = HashJoin.createHashSymbols(
+            List.of(new RelationName("doc", "tbl1")),
+            List.of(new RelationName("doc", "tbl2")),
+            joinCondition);
+
+        // character(n) values are blank padded to their declared length, so hashing them by value
+        // can only find a match if both sides of a pair are normalized to the same length.
+        assertThat(result.lhsHashSymbols()).zipSatisfy(
+            result.rhsHashSymbols(),
+            (lhs, rhs) -> {
+                assertThat(lhs.valueType()).isEqualTo(CharacterType.of(3));
+                assertThat(rhs.valueType()).isEqualTo(CharacterType.of(3));
+            });
     }
 }
