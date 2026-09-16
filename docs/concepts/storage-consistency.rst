@@ -99,6 +99,29 @@ A new codec only applies to segments that are written after the change.
 Existing segments keep their compression until they are merged, which can be
 triggered explicitly with :ref:`OPTIMIZE TABLE <sql-optimize>`.
 
+
+.. _concept-query-cache:
+
+Query cache
+===========
+
+CrateDB caches the result of the parts of a query that can be evaluated
+directly on the Lucene_ index. If the same query part is needed again, the
+cached result is reused instead of being computed a second time. The cache is
+per node and shared by all shards on that node, and only query parts that are
+used repeatedly, on segments above a certain size, are added to it.
+
+.. NOTE::
+
+   Apart from the query cache, read performance depends on the file system cache
+   of the operating system, which keeps frequently accessed parts of the Lucene_
+   segments in memory. Leaving a good portion of the available memory to the
+   operating system is therefore important.
+
+.. SEEALSO::
+
+   :ref:`CRATE_HEAP_SIZE <conf-env-heap-size>`
+
 .. _concept-atomicity:
 
 Atomicity at document level
