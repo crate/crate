@@ -46,4 +46,6 @@ series.
 Fixes
 =====
 
-None
+- Fixed an issue that caused order-sensitive aggregations
+  (``string_agg``, ``array_agg``) applied on top of ``UNION ALL ... ORDER BY``
+  to return incorrect results.

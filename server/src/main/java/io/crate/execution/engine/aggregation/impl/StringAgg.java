@@ -59,7 +59,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
                     .argumentTypes(DataTypes.STRING.getTypeSignature(),
                             DataTypes.STRING.getTypeSignature())
                     .returnType(DataTypes.STRING.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
+                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.ORDER_SENSITIVE)
                     .build();
 
 
