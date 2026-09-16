@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
@@ -44,6 +45,7 @@ import org.locationtech.spatial4j.shape.Shape;
 import io.crate.Streamer;
 import io.crate.execution.dml.GeoShapeIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.ColumnIdent;
@@ -91,6 +93,12 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
             // so when we're retrieving for display or exact comparisons, go to the stored
             // value
             return true;
+        }
+
+        @Override
+        public LuceneCollectorExpression<Map<String, Object>> getLuceneExpression(Reference ref,
+                                                                                  Predicate<Reference> isParentIgnored) {
+            throw new AssertionError("GeoShape doesn't have docValues. Must use DocCollectorExpression instead");
         }
     };
 

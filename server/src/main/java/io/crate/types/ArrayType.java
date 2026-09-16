@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -55,9 +56,12 @@ import io.crate.common.collections.Lists;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ArrayIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.DocCollectorExpression;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationLookup;
 import io.crate.metadata.RelationName;
@@ -149,6 +153,15 @@ public class ArrayType<T> extends DataType<List<T>> {
                 public boolean retrieveFromStoredFields() {
                     return true;
                 }
+
+                @Override
+                public LuceneCollectorExpression<List<T>> getLuceneExpression(Reference ref,
+                                                                              Predicate<Reference> isParentIgnored) {
+                    return (LuceneCollectorExpression) DocCollectorExpression.create(
+                        DocReferences.toDocLookup(ref),
+                        isParentIgnored
+                    );
+                }
             };
         } else {
             return new StorageSupport<List<T>>(innerStorage) {
@@ -182,6 +195,15 @@ public class ArrayType<T> extends DataType<List<T>> {
                 @Override
                 public boolean retrieveFromStoredFields() {
                     return true;
+                }
+
+                @Override
+                public LuceneCollectorExpression<List<T>> getLuceneExpression(Reference ref,
+                                                                              Predicate<Reference> isParentIgnored) {
+                    return (LuceneCollectorExpression) DocCollectorExpression.create(
+                        DocReferences.toDocLookup(ref),
+                        isParentIgnored
+                    );
                 }
             };
         }
