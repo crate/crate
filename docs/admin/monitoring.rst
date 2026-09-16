@@ -107,6 +107,40 @@ by type, for ``SELECT``, ``UPDATE``, ``DELETE``, ``INSERT``, ``MANAGEMENT``,
 ``DDL``, ``COPY`` and ``UNDEFINED`` queries. In addition, the number of
 affected rows is exposed, grouped by the aforementioned types.
 
+The type of a statement is derived from the execution plan CrateDB created for
+it. It is also recorded in the ``classification['type']`` column of
+:ref:`sys.jobs_metrics <sys-jobs-metrics>` and :ref:`sys.jobs_log <sys-logs>`,
+Statements are grouped as follows:
+
+- ``SELECT``: ``SELECT`` statements, including sub-selects and the ``SHOW``
+  statements that are rewritten into a query, e.g. ``SHOW tables``.
+
+- ``INSERT``: ``INSERT INTO``, including ``INSERT INTO ... (SELECT ...)``.
+
+- ``UPDATE``: ``UPDATE`` statements.
+
+- ``DELETE``: ``DELETE`` statements.
+
+- ``COPY``: ``COPY FROM`` and ``COPY TO``.
+
+- ``DDL``: statements that change the metadata of the cluster. This covers
+  ``CREATE``, ``ALTER`` and ``DROP`` for tables, views, schemas,
+  repositories, publications, subscriptions, foreign servers, foreign tables
+  and user mappings, as well as statements like: ``REFRESH``, ``SWAP TABLE``,
+  ``CREATE SNAPSHOT``, ``DROP SNAPSHOT`` and ``RESTORE SNAPSHOT``, etc.
+
+- ``MANAGEMENT``: statements that act on the running cluster or on the
+  current session without changing metadata. This covers ``SET GLOBAL``,
+  ``RESET``, ``SET SESSION``, ``SET SESSION AUTHORIZATION``,
+  ``GRANT``, ``DENY``, ``REVOKE``, ``KILL``, ``ANALYZE``,
+  ``EXPLAIN``, ``SHOW CREATE TABLE``, ``ALTER TABLE ... REROUTE``,
+  ``ALTER CLUSTER REROUTE RETRY FAILED``, ``ALTER CLUSTER DECOMMISSION``,
+  ``ALTER CLUSTER GC DANGLING ARTIFACTS``, etc.
+
+- ``UNDEFINED``: everything else, including statements that failed before
+  CrateDB could create a plan for them, for example because they could not
+  be parsed or analyzed.
+
 Metrics can be accessed using the JMX MBean object name
 ``io.crate.monitoring:type=QueryStats`` and the following attributes:
 
