@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.Term;
@@ -42,6 +43,8 @@ import io.crate.Streamer;
 import io.crate.common.collections.Lists;
 import io.crate.execution.dml.BooleanIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.BooleanColumnReference;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -155,6 +158,11 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
                                                   Reference ref,
                                                   Function<ColumnIdent, Reference> getRef) {
             return new BooleanIndexer(ref);
+        }
+
+        public LuceneCollectorExpression<Boolean> getLuceneExpression(Reference ref,
+                                                                      Predicate<Reference> isParentIgnored) {
+            return new BooleanColumnReference(ref.storageIdent());
         }
     };
 

@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import org.apache.lucene.util.BytesRef;
@@ -38,10 +39,12 @@ import org.jspecify.annotations.Nullable;
 import io.crate.execution.dml.FulltextIndexer;
 import io.crate.execution.dml.StringIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.StringColumnReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RelationLookup;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnType;
@@ -70,7 +73,7 @@ public class CharacterType extends StringType {
             })
         ) {
             @Override
-            @SuppressWarnings({"rawtypes"})
+            @SuppressWarnings({"unchecked", "rawtypes"})
             public ValueIndexer<Object> valueIndexer(RelationName table,
                                                      Reference ref,
                                                      Function<ColumnIdent, Reference> getRef) {
@@ -78,6 +81,13 @@ public class CharacterType extends StringType {
                     case FULLTEXT -> (ValueIndexer) new FulltextIndexer(ref);
                     case NONE, PLAIN -> (ValueIndexer) new StringIndexer(ref);
                 };
+            }
+
+            @Override
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            public LuceneCollectorExpression<Object> getLuceneExpression(Reference ref,
+                                                                         Predicate<Reference> isParentIgnored) {
+                return (LuceneCollectorExpression) new StringColumnReference(ref.storageIdent());
             }
         };
     }

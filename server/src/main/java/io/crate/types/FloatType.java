@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -38,6 +39,8 @@ import ch.randelshofer.fastdoubleparser.JavaFloatParser;
 import io.crate.Streamer;
 import io.crate.execution.dml.FloatIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.FloatColumnReference;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -124,6 +127,11 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
             return NumericUtils.sortableIntToFloat(NumericUtils.sortableBytesToInt(packedPoint, 0));
         }
 
+        @Override
+        public LuceneCollectorExpression<Float> getLuceneExpression(Reference ref,
+                                                                    Predicate<Reference> isParentIgnored) {
+            return new FloatColumnReference(ref.storageIdent());
+        }
     };
 
     private static final BigDecimal MAX = BigDecimal.valueOf(Float.MAX_VALUE);

@@ -31,6 +31,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -55,6 +56,8 @@ import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.FulltextIndexer;
 import io.crate.execution.dml.StringIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.StringColumnReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationLookup;
@@ -153,7 +156,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
         new StringEqQuery(UnaryOperator.identity())) {
 
             @Override
-            @SuppressWarnings({"rawtypes"})
+            @SuppressWarnings({"unchecked", "rawtypes"})
             public ValueIndexer<Object> valueIndexer(RelationName table,
                                                      Reference ref,
                                                      Function<ColumnIdent, Reference> getRef) {
@@ -161,6 +164,12 @@ public class StringType extends DataType<String> implements Streamer<String> {
                     case FULLTEXT -> (ValueIndexer) new FulltextIndexer(ref);
                     case NONE, PLAIN -> (ValueIndexer) new StringIndexer(ref);
                 };
+            }
+
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            public LuceneCollectorExpression<Object> getLuceneExpression(Reference ref,
+                                                                         Predicate<Reference> isParentIgnored) {
+                return (LuceneCollectorExpression) new StringColumnReference(ref.storageIdent());
             }
     };
 
