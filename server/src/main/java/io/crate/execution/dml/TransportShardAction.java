@@ -21,9 +21,12 @@
 
 package io.crate.execution.dml;
 
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -31,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -45,9 +49,11 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillAllListener;
 import io.crate.execution.jobs.kill.KillableCallable;
+import io.crate.metadata.RelationName;
 
 /**
  * Base class for performing Crate-specific TransportWriteActions like Delete or Upsert.
@@ -105,6 +111,20 @@ public abstract class TransportShardAction<
                                            ActionListener<PrimaryResult<ReplicaReq, ShardResponse>> listener) {
         if (tasksService.recentlyFailed(request.jobId())) {
             listener.onFailure(JobKilledException.of(JobKilledException.MESSAGE));
+            return;
+        }
+        if (REPLICATION_SUBSCRIPTION_NAME.get(primary.indexSettings().getSettings()).isEmpty() == false) {
+            RelationMetadata relation = Objects.requireNonNull(
+                clusterService.state()
+                    .metadata()
+                    .getRelation(primary.shardId().getIndexUUID()));
+
+            RelationName relationName = relation.name();
+            listener.onFailure(new OperationOnInaccessibleRelationException(
+                relationName,
+                "The relation \"" + relationName.fqn() + "\" doesn't allow write operations, " +
+                    "because it is included in a logical replication subscription."
+            ));
             return;
         }
         try {

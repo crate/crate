@@ -25,6 +25,7 @@ import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATIO
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -136,13 +137,14 @@ public class Publication implements Writeable {
         return "Publication{forAllTables=" + forAllTables + ", owner=" + owner + ", targets=" + targets + "}";
     }
 
-    public Metadata.Builder resolveCurrentRelations(ClusterState state,
-                                                    Roles roles,
-                                                    Role publicationOwner,
-                                                    Role subscriber,
-                                                    String publicationName,
-                                                    Metadata.Builder metadataBuilder) {
+    public List<TableOrPartition> resolveCurrentRelations(ClusterState state,
+                                                          Roles roles,
+                                                          Role publicationOwner,
+                                                          Role subscriber,
+                                                          String publicationName,
+                                                          Metadata.Builder metadataBuilder) {
         Metadata metadata = state.metadata();
+        ArrayList<TableOrPartition> resolvedTargets = new ArrayList<>();
         Predicate<RelationName> relationFilter = relationName -> {
             if (!userCanPublish(roles, relationName, publicationOwner, publicationName)) {
                 return false;
@@ -167,6 +169,7 @@ public class Publication implements Writeable {
                     continue;
                 }
                 addRelation(metadata, metadataBuilder, table, indexFilter);
+                resolvedTargets.add(new TableOrPartition(table.name(), null));
             }
         } else {
             for (TableOrPartition target : targets) {
@@ -181,20 +184,22 @@ public class Publication implements Writeable {
                     }
                     continue;
                 }
-                addTarget(metadata, metadataBuilder, table, target, indexFilter);
+                addTarget(metadata, metadataBuilder, table, target, indexFilter, resolvedTargets);
             }
         }
 
-        return metadataBuilder;
+        return resolvedTargets;
     }
 
     private static void addTarget(Metadata currentMetadata,
                                   Metadata.Builder metadataBuilder,
                                   org.elasticsearch.cluster.metadata.RelationMetadata.Table table,
                                   TableOrPartition target,
-                                  Predicate<Index> indexFilter) {
+                                  Predicate<Index> indexFilter,
+                                  List<TableOrPartition> resolvedTargets) {
         if (target.partitionIdent() == null) {
             addRelation(currentMetadata, metadataBuilder, table, indexFilter);
+            resolvedTargets.add(target);
             return;
         }
 
@@ -209,10 +214,23 @@ public class Publication implements Writeable {
             return;
         }
 
-        metadataBuilder.setRelation(table.withIndexUUIDs(indices.stream().map(IndexMetadata::getIndexUUID).toList()));
+        metadataBuilder.setRelation(table.withIndexUUIDs(accumulateIndexUUIDs(metadataBuilder, table.name(), indices)));
         for (IndexMetadata indexMetadata : indices) {
             addIndex(metadataBuilder, indexMetadata, indexFilter);
         }
+        resolvedTargets.add(target);
+    }
+
+    private static List<String> accumulateIndexUUIDs(Metadata.Builder metadataBuilder,
+                                                     RelationName relationName,
+                                                     List<IndexMetadata> indices) {
+        LinkedHashSet<String> indexUUIDs = new LinkedHashSet<>();
+        org.elasticsearch.cluster.metadata.RelationMetadata.Table currentTable = metadataBuilder.getRelation(relationName);
+        if (currentTable != null) {
+            indexUUIDs.addAll(currentTable.indexUUIDs());
+        }
+        indexUUIDs.addAll(indices.stream().map(IndexMetadata::getIndexUUID).toList());
+        return indexUUIDs.stream().toList();
     }
 
     private static void addRelation(Metadata currentMetadata,

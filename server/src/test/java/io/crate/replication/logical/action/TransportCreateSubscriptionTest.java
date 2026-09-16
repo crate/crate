@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -154,7 +155,10 @@ public class TransportCreateSubscriptionTest {
             .put(IndexMetadata.builder(indexUUID).indexName(relationName.indexNameOrAlias()).settings(indexSettings))
             .build();
 
-        PublicationsStateAction.Response response = new PublicationsStateAction.Response(publisherMetadata, List.of());
+        PublicationsStateAction.Response response = new PublicationsStateAction.Response(
+            publisherMetadata,
+            List.of(new TableOrPartition(relationName, null)),
+            List.of());
         when(logicalReplicationService.getPublicationState(anyString(), any(List.class), any(ConnectionInfo.class)))
             .thenReturn(CompletableFuture.completedFuture(response));
 
