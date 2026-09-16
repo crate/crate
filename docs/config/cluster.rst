@@ -786,6 +786,17 @@ attribute awareness*.
 
   The ``awareness.attributes`` setting supports using several values.
 
+   Awareness is a best effort mechanism: CrateDB *tries* to avoid allocating
+   two copies of the same shard to nodes that share an attribute value, but if
+   no node with a different value is available, it will still allocate the copy
+   to a node with an already used value. Use the
+   ``cluster.routing.allocation.awareness.force.*.values`` setting below if the
+   separation has to be enforced instead.
+
+   Awareness attributes are also taken into account when reading data: a node
+   prefers shards that live on nodes sharing its own attribute values, which
+   reduces the traffic between zones.
+
 .. _cluster.routing.allocation.awareness.force.\*.values:
 
 **cluster.routing.allocation.awareness.force.\*.values**
