@@ -102,3 +102,9 @@ Fixes
   if a column used in a query could not be resolved and multiple relations are
   involved. This could also lead to privileges being checked on the wrong
   relation while generating the error.
+
+- Fixed a regression introduced in :ref:`version_6.4.0` which caused a join,
+  executed with the hash join implementation, to not match rows when the join
+  condition used :ref:`CHAR(n) <data-type-character>` join keys of different
+  length but same value, because of the blank padding, which is applied to match
+  the defined ``n`` length.
