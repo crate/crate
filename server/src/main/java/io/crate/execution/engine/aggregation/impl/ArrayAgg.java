@@ -48,7 +48,7 @@ public class ArrayAgg extends AggregationFunction<List<Object>, List<Object>> {
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.AGGREGATE)
         .argumentTypes(TypeSignature.E)
         .returnType(TypeSignature.ARRAY_E)
-        .features(Scalar.Feature.DETERMINISTIC)
+        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.ORDER_SENSITIVE)
         .typeVariableConstraints(TypeVariableConstraint.E)
         .build();
 
