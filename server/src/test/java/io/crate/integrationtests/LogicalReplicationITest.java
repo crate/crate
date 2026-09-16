@@ -40,6 +40,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -208,6 +209,19 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
     }
 
     @Test
+    public void test_create_publication_for_missing_partition_raises_error() {
+        executeOnPublisher(
+            "CREATE TABLE doc.parted (id INT, p INT) " +
+            "PARTITIONED BY (p) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
+        executeOnPublisher("INSERT INTO doc.parted (id, p) VALUES (1, 1)");
+        executeOnPublisher("REFRESH TABLE doc.parted");
+
+        assertThatThrownBy(() -> executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.parted PARTITION (p = 2)"))
+            .isExactlyInstanceOf(PartitionUnknownException.class)
+            .hasMessageContaining("No partition for table 'doc.parted'");
+    }
+
+    @Test
     public void test_create_publication_for_all_tables() {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
         executeOnPublisher("CREATE PUBLICATION pub1 FOR ALL TABLES");
@@ -289,6 +303,360 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertThat(response).hasRows(
             "1",
             "2"
+        );
+    }
+
+    @Test
+    public void test_subscribing_to_publication_for_concrete_partition() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        createSubscription("sub1", "pub1");
+
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        var response = executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id");
+        assertThat(response).hasRows("1| 1");
+
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (3, 1), (4, 2)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var res = executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1| 1", "3| 1");
+        });
+
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (4, 1)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var res = executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1| 1", "3| 1", "4| 1");
+        });
+    }
+
+    @Test
+    public void test_can_subscribe_to_different_partitions_of_same_table() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE PUBLICATION pub2 FOR TABLE doc.t1 PARTITION (p = 2)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        executeOnSubscriber("CREATE SUBSCRIPTION sub1" +
+            " CONNECTION '" + publisherConnectionUrl() + "' PUBLICATION pub1");
+        ensureGreenOnSubscriber();
+        executeOnSubscriber("CREATE SUBSCRIPTION sub2" +
+            " CONNECTION '" + publisherConnectionUrl() + "' PUBLICATION pub2");
+        ensureGreenOnSubscriber();
+
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var response = executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id");
+            assertThat(response).hasRows("1| 1", "2| 2");
+        });
+    }
+
+    @Test
+    public void test_can_subscribe_to_partition_if_compatible_parent_and_other_partition_exist_locally() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        executeOnSubscriber(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnSubscriber("INSERT INTO doc.t1 (id, p) VALUES (2, 2)");
+
+        createSubscription("sub1", "pub1");
+
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var response = executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id");
+            assertThat(response).hasRows("1| 1", "2| 2");
+        });
+
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (3, 1), (4, 2)");
+
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var response = executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id");
+            assertThat(response).hasRows("1| 1", "2| 2", "3| 1");
+        });
+    }
+
+    @Test
+    public void test_cannot_subscribe_to_partition_if_target_partition_exists_locally() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        executeOnSubscriber(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnSubscriber("INSERT INTO doc.t1 (id, p) VALUES (2, 1)");
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+
+        assertThatThrownBy(() -> createSubscription("sub1", "pub1"))
+            .isExactlyInstanceOf(RelationAlreadyExists.class)
+            .hasMessage("Subscription 'sub1' cannot be created as included relation 'doc.t1' partition '04132' already exists");
+
+        assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id")).hasRows("2| 1");
+    }
+
+    @Test
+    public void test_local_partition_remains_writable_while_other_partition_is_subscribed() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        executeOnSubscriber(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnSubscriber("INSERT INTO doc.t1 (id, p) VALUES (2, 2)");
+        createSubscription("sub1", "pub1");
+
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id")).hasRows(
+                "1| 1",
+                "2| 2"
+            );
+        });
+
+        assertThatThrownBy(() -> executeOnSubscriber("INSERT INTO doc.t1 (id, p) VALUES (3, 1)"))
+            .isInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"doc.t1\" doesn't allow write operations, because it is included in a logical replication subscription.");
+        assertThatThrownBy(() -> executeOnSubscriber("UPDATE doc.t1 SET id = 3 WHERE p = 1"))
+            .isInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"doc.t1\" doesn't allow write operations, because it is included in a logical replication subscription.");
+        assertThatThrownBy(() -> executeOnSubscriber("DELETE FROM doc.t1 WHERE p = 1"))
+            .isInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"doc.t1\" doesn't allow write operations, because it is included in a logical replication subscription.");
+
+        executeOnSubscriber("INSERT INTO doc.t1 (id, p) VALUES (3, 2)");
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 WHERE p = 2 ORDER BY id")).hasRows(
+            "2| 2",
+            "3| 2"
+        );
+
+        executeOnSubscriber("UPDATE doc.t1 SET id = 4 WHERE p = 2 AND id = 3");
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 WHERE p = 2 ORDER BY id")).hasRows(
+            "2| 2",
+            "4| 2"
+        );
+
+        executeOnSubscriber("DELETE FROM doc.t1 WHERE p = 2 AND id = 4");
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 WHERE p = 2 ORDER BY id")).hasRows("2| 2");
+    }
+
+    @Test
+    public void test_can_subscribe_to_different_partitions_from_different_publishers_if_storage_idents_match() throws Exception {
+        setupSecondPublisher();
+
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        executeOnSecondPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnSecondPublisher("ALTER TABLE doc.t1 SET (refresh_interval = '1000ms')");
+        executeOnSecondPublisher("INSERT INTO doc.t1 (id, p) VALUES (2, 2)");
+        executeOnSecondPublisher("REFRESH TABLE doc.t1");
+        executeOnSecondPublisher("CREATE PUBLICATION pub2 FOR TABLE doc.t1 PARTITION (p = 2)");
+        executeOnSecondPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnSecondPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        executeOnSubscriber("CREATE SUBSCRIPTION sub1" +
+            " CONNECTION '" + publisherConnectionUrl() + "' PUBLICATION pub1");
+        ensureGreenOnSubscriber();
+
+        executeOnSubscriber("CREATE SUBSCRIPTION sub2" +
+            " CONNECTION '" + secondPublisherConnectionUrl() + "' PUBLICATION pub2");
+        ensureGreenOnSubscriber();
+
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var response = executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id");
+            assertThat(response).hasRows("1| 1", "2| 2");
+        });
+    }
+
+    @Test
+    public void test_rejects_subscription_to_partition_if_parent_table_has_incompatible_column_oids() throws Exception {
+        setupSecondPublisher();
+
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        executeOnSecondPublisher(
+            "CREATE TABLE doc.t1 (dropped INT, id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnSecondPublisher("ALTER TABLE doc.t1 DROP COLUMN dropped");
+        executeOnSecondPublisher("INSERT INTO doc.t1 (id, p) VALUES (2, 2)");
+        executeOnSecondPublisher("REFRESH TABLE doc.t1");
+        executeOnSecondPublisher("CREATE PUBLICATION pub2 FOR TABLE doc.t1 PARTITION (p = 2)");
+        executeOnSecondPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnSecondPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        executeOnSubscriber("CREATE SUBSCRIPTION sub1" +
+            " CONNECTION '" + publisherConnectionUrl() + "' PUBLICATION pub1");
+        ensureGreenOnSubscriber();
+
+        assertThatThrownBy(() -> executeOnSubscriber("CREATE SUBSCRIPTION sub2" +
+            " CONNECTION '" + secondPublisherConnectionUrl() + "' PUBLICATION pub2"))
+            .hasMessage("[logical_replication:_latest_/_latest_] cannot restore relation [doc.t1]: column [p] OID mismatch - snapshot: [3], target: [2]");
+    }
+
+    @Test
+    public void test_cannot_subscribe_to_same_partition_twice() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE PUBLICATION pub2 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        executeOnSubscriber("CREATE SUBSCRIPTION sub1" +
+            " CONNECTION '" + publisherConnectionUrl() + "' PUBLICATION pub1");
+        ensureGreenOnSubscriber();
+
+        assertThatThrownBy(() -> executeOnSubscriber("CREATE SUBSCRIPTION sub2" +
+            " CONNECTION '" + publisherConnectionUrl() + "' PUBLICATION pub2"))
+            .hasMessage("Subscription 'sub2' cannot be created as included relation 'doc.t1' partition '04132' already exists");
+    }
+
+    @Test
+    public void test_cannot_subscribe_to_table_if_partition_subscription_exists() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub_partition FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE PUBLICATION pub_table FOR TABLE doc.t1");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        executeOnSubscriber("CREATE SUBSCRIPTION sub_partition" +
+            " CONNECTION '" + publisherConnectionUrl() + "' PUBLICATION pub_partition");
+        ensureGreenOnSubscriber();
+
+        assertThatThrownBy(() -> executeOnSubscriber("CREATE SUBSCRIPTION sub_table" +
+            " CONNECTION '" + publisherConnectionUrl() + "' PUBLICATION pub_table"))
+            .hasMessage("Subscription 'sub_table' cannot be created as included relation 'doc.t1' already exists");
+    }
+
+    @Test
+    public void test_cannot_subscribe_to_partition_if_table_subscription_exists() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub_partition FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE PUBLICATION pub_table FOR TABLE doc.t1");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        executeOnSubscriber("CREATE SUBSCRIPTION sub_table" +
+            " CONNECTION '" + publisherConnectionUrl() + "' PUBLICATION pub_table");
+        ensureGreenOnSubscriber();
+
+        assertThatThrownBy(() -> executeOnSubscriber("CREATE SUBSCRIPTION sub_partition" +
+            " CONNECTION '" + publisherConnectionUrl() + "' PUBLICATION pub_partition"))
+            .hasMessage("Subscription 'sub_partition' cannot be created as included relation 'doc.t1' partition '04132' already exists");
+    }
+
+    @Test
+    public void test_dropping_partition_subscription_keeps_other_partition_subscription_active() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE PUBLICATION pub2 FOR TABLE doc.t1 PARTITION (p = 2)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        executeOnSubscriber("CREATE SUBSCRIPTION sub1" +
+            " CONNECTION '" + publisherConnectionUrl() + "' PUBLICATION pub1");
+        ensureGreenOnSubscriber();
+        executeOnSubscriber("CREATE SUBSCRIPTION sub2" +
+            " CONNECTION '" + publisherConnectionUrl() + "' PUBLICATION pub2");
+        ensureGreenOnSubscriber();
+
+        executeOnSubscriber("DROP SUBSCRIPTION sub1");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (3, 1), (4, 2)");
+
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var response = executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id");
+            assertThat(response).hasRows("1| 1", "2| 2", "4| 2");
+        });
+    }
+
+    @Test
+    public void test_dropping_last_partition_subscription_makes_table_writable() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+        createSubscription("sub1", "pub1");
+
+        executeOnSubscriber("DROP SUBSCRIPTION sub1");
+
+        executeOnSubscriber("INSERT INTO doc.t1 (id, p) VALUES (2, 1), (3, 2)");
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id")).hasRows(
+            "1| 1",
+            "2| 1",
+            "3| 2"
         );
     }
 
@@ -491,6 +859,20 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             "1| 1",
             "2| 2"
         );
+
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (3)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1", "2", "3");
+        });
+
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (4)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1", "2", "3", "4");
+        });
     }
 
     @Test
