@@ -51,28 +51,28 @@ public class OperationTest extends ESTestCase {
 
     @Test
     public void testBuildFromEmptyIndexBlocks() throws Exception {
-        assertThat(Operation.buildFromIndexSettingsAndState(Settings.EMPTY, IndexMetadata.State.OPEN, false)).isEqualTo(ALL);
+        assertThat(Operation.buildFromIndexSettingsAndState(Settings.EMPTY, IndexMetadata.State.OPEN, false, false)).isEqualTo(ALL);
     }
 
     @Test
     public void testBuildFromSingleIndexBlocks() throws Exception {
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder().put(
-                IndexMetadata.SETTING_READ_ONLY, true).build(), IndexMetadata.State.OPEN, false)).isEqualTo(READ_ONLY);
+                IndexMetadata.SETTING_READ_ONLY, true).build(), IndexMetadata.State.OPEN, false, false)).isEqualTo(READ_ONLY);
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
-                .put(IndexMetadata.SETTING_BLOCKS_READ, true).build(), IndexMetadata.State.OPEN, false))
+                .put(IndexMetadata.SETTING_BLOCKS_READ, true).build(), IndexMetadata.State.OPEN, false, false))
             .containsExactlyInAnyOrder(
                 UPDATE, INSERT, DELETE, DROP, ALTER, ALTER_SET, ALTER_OPEN, ALTER_CLOSE,
                 ALTER_BLOCKS, REFRESH, OPTIMIZE, ALTER_REROUTE);
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
-                .put(IndexMetadata.SETTING_BLOCKS_WRITE, true).build(), IndexMetadata.State.OPEN, false))
+                .put(IndexMetadata.SETTING_BLOCKS_WRITE, true).build(), IndexMetadata.State.OPEN, false, false))
             .containsExactlyInAnyOrder(
                 READ, ALTER, ALTER_SET, ALTER_OPEN, ALTER_CLOSE, ALTER_BLOCKS, SHOW_CREATE,
                 REFRESH, OPTIMIZE, COPY_TO, CREATE_SNAPSHOT, ALTER_REROUTE);
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
-                .put(IndexMetadata.SETTING_BLOCKS_METADATA, true).build(), IndexMetadata.State.OPEN, false))
+                .put(IndexMetadata.SETTING_BLOCKS_METADATA, true).build(), IndexMetadata.State.OPEN, false, false))
             .containsExactlyInAnyOrder(
                 READ, UPDATE, INSERT, DELETE, ALTER_BLOCKS, ALTER_OPEN,
                 ALTER_CLOSE, REFRESH, SHOW_CREATE, OPTIMIZE, ALTER_REROUTE);
@@ -82,21 +82,21 @@ public class OperationTest extends ESTestCase {
     public void testBuildFromCompoundIndexBlocks() throws Exception {
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_READ, true)
-                .put(IndexMetadata.SETTING_BLOCKS_WRITE, true).build(), IndexMetadata.State.OPEN, false))
+                .put(IndexMetadata.SETTING_BLOCKS_WRITE, true).build(), IndexMetadata.State.OPEN, false, false))
             .containsExactlyInAnyOrder(
                 ALTER, ALTER_SET, ALTER_OPEN, ALTER_CLOSE, ALTER_BLOCKS,
                 REFRESH, OPTIMIZE, ALTER_REROUTE);
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_WRITE, true)
-                .put(IndexMetadata.SETTING_BLOCKS_METADATA, true).build(), IndexMetadata.State.OPEN, false))
+                .put(IndexMetadata.SETTING_BLOCKS_METADATA, true).build(), IndexMetadata.State.OPEN, false, false))
             .containsExactlyInAnyOrder(
                 READ, ALTER_OPEN, ALTER_CLOSE, ALTER_BLOCKS, REFRESH,
                 SHOW_CREATE, OPTIMIZE, ALTER_REROUTE);
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_READ, true)
-                .put(IndexMetadata.SETTING_BLOCKS_METADATA, true).build(), IndexMetadata.State.OPEN, false))
+                .put(IndexMetadata.SETTING_BLOCKS_METADATA, true).build(), IndexMetadata.State.OPEN, false, false))
             .containsExactlyInAnyOrder(
                 INSERT, UPDATE, DELETE, ALTER_OPEN, ALTER_CLOSE,
                 ALTER_BLOCKS, REFRESH, OPTIMIZE, ALTER_REROUTE);
@@ -106,14 +106,14 @@ public class OperationTest extends ESTestCase {
     public void test_allowed_operations_for_replicated_table() {
         var replicatedIndexSettings = Settings.builder().put(REPLICATION_SUBSCRIPTION_NAME.getKey(), "sub1").build();
         assertThat(
-            Operation.buildFromIndexSettingsAndState(replicatedIndexSettings, IndexMetadata.State.OPEN, false))
+            Operation.buildFromIndexSettingsAndState(replicatedIndexSettings, IndexMetadata.State.OPEN, false, false))
             .containsExactlyInAnyOrder(
                 READ, ALTER_SET, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE);
     }
 
     @Test
     public void test_allowed_operations_for_published_table() {
-        assertThat(Operation.buildFromIndexSettingsAndState(Settings.EMPTY, IndexMetadata.State.OPEN, true))
+        assertThat(Operation.buildFromIndexSettingsAndState(Settings.EMPTY, IndexMetadata.State.OPEN, true, false))
             .isEqualTo(Operation.PUBLISHED_IN_LOGICAL_REPLICATION);
     }
 
@@ -121,7 +121,7 @@ public class OperationTest extends ESTestCase {
     public void test_allowed_operations_for_published_and_subcribed_table() {
         var replicatedIndexSettings = Settings.builder().put(REPLICATION_SUBSCRIPTION_NAME.getKey(), "sub1").build();
         assertThat(
-            Operation.buildFromIndexSettingsAndState(replicatedIndexSettings, IndexMetadata.State.OPEN, true))
+            Operation.buildFromIndexSettingsAndState(replicatedIndexSettings, IndexMetadata.State.OPEN, true, false))
             .isEqualTo(Operation.SUBSCRIBED_IN_LOGICAL_REPLICATION);
     }
 }
