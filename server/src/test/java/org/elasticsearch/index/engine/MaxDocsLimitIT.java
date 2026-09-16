@@ -43,7 +43,7 @@ public class MaxDocsLimitIT extends IntegTestCase {
 
     public static class TestEnginePlugin extends Plugin implements EnginePlugin {
         @Override
-        public Optional<EngineFactory> getEngineFactory(IndexSettings indexSettings) {
+        public Optional<EngineFactory> getEngineFactory(IndexSettings indexSettings, boolean isPrimary) {
             return Optional.of(config -> {
                 assert maxDocs.get() > 0 : "maxDocs is unset";
                 return EngineTestCase.createEngine(config, maxDocs.get());

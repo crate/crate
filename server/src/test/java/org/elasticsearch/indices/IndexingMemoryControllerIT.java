@@ -76,7 +76,7 @@ public class IndexingMemoryControllerIT extends IntegTestCase {
         }
 
         @Override
-        public Optional<EngineFactory> getEngineFactory(IndexSettings indexSettings) {
+        public Optional<EngineFactory> getEngineFactory(IndexSettings indexSettings, boolean isPrimary) {
             return Optional.of(config -> new InternalEngine(engineConfigWithLargerIndexingMemory(config)));
         }
     }

@@ -37,7 +37,7 @@ import io.crate.common.SuppressForbidden;
  *
  */
 @SuppressForbidden(reason = "reference counting is required here")
-class ElasticsearchReaderManager extends ReferenceManager<ElasticsearchDirectoryReader> {
+public class ElasticsearchReaderManager extends ReferenceManager<ElasticsearchDirectoryReader> {
 
     /**
      * Creates and returns a new ElasticsearchReaderManager from the given
@@ -47,7 +47,7 @@ class ElasticsearchReaderManager extends ReferenceManager<ElasticsearchDirectory
      * @param reader            the directoryReader to use for future reopens
      * @param refreshListener   A consumer that is called every time a new reader is opened
      */
-    ElasticsearchReaderManager(ElasticsearchDirectoryReader reader) {
+    public ElasticsearchReaderManager(ElasticsearchDirectoryReader reader) {
         this.current = reader;
     }
 

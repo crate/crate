@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -497,7 +498,7 @@ public class Node implements Closeable {
 
             // collect engine factory providers from server and from plugins
             final Collection<EnginePlugin> enginePlugins = pluginsService.filterPlugins(EnginePlugin.class);
-            final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders =
+            final Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders =
                 Stream.concat(
                     indicesModule.getEngineFactories().stream(),
                     enginePlugins.stream().map(plugin -> plugin::getEngineFactory)).toList();

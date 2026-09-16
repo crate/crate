@@ -437,7 +437,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         IndexShard shard = newStartedShard(
             randomBoolean(),
             Settings.EMPTY,
-            List.of(idxSettings -> Optional.of(config -> new InternalEngine(configWithRefreshListener(config, refreshListener))))
+            List.of((idxSettings, _) -> Optional.of(config -> new InternalEngine(configWithRefreshListener(config, refreshListener))))
         );
         refreshLatch.set(new CountDownLatch(1)); // block refresh
         final IndexingMemoryController controller = new IndexingMemoryController(

@@ -43,7 +43,7 @@ public class MockEngineFactoryPlugin extends Plugin implements EnginePlugin {
     }
 
     @Override
-    public Optional<EngineFactory> getEngineFactory(final IndexSettings indexSettings) {
+    public Optional<EngineFactory> getEngineFactory(final IndexSettings indexSettings, final boolean isPrimary) {
         return Optional.of(new MockEngineFactory(AssertingDirectoryReader.class));
     }
 }

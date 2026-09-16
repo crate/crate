@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -85,7 +86,7 @@ public final class IndexModule {
 
     private final IndexSettings indexSettings;
     private final AnalysisRegistry analysisRegistry;
-    private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
+    private final Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders;
     private final Set<IndexEventListener> indexEventListeners = new HashSet<>();
     private final Map<String, IndexStorePlugin.DirectoryFactory> directoryFactories;
     private final List<IndexingOperationListener> indexOperationListeners = new ArrayList<>();
@@ -103,7 +104,7 @@ public final class IndexModule {
     public IndexModule(
             final IndexSettings indexSettings,
             final AnalysisRegistry analysisRegistry,
-            final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
+            final Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders,
             final Map<String, IndexStorePlugin.DirectoryFactory> directoryFactories) {
         this.indexSettings = indexSettings;
         this.analysisRegistry = analysisRegistry;

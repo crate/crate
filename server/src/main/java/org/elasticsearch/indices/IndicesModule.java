@@ -23,7 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import org.elasticsearch.action.resync.TransportResyncReplicationAction;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -68,9 +68,9 @@ public class IndicesModule extends AbstractModule {
         bind(RetentionLeaseSyncer.class).asEagerSingleton();
     }
 
-    public Collection<Function<IndexSettings, Optional<EngineFactory>>> getEngineFactories() {
+    public Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> getEngineFactories() {
         return List.of(
-            indexSettings -> {
+            (indexSettings, isPrimary) -> {
                 if (indexSettings.getSettings().get(LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME.getKey()) != null) {
                     return Optional.of(SubscriberEngine::new);
                 }

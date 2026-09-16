@@ -38,7 +38,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -334,7 +333,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
      */
     protected IndexShard newShard(boolean primary,
                                   Settings settings,
-                                  Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders) throws IOException {
+                                  Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders) throws IOException {
         final RecoverySource recoverySource =
                 primary ? RecoverySource.EmptyStoreRecoverySource.INSTANCE : RecoverySource.PeerRecoverySource.INSTANCE;
         final ShardRouting shardRouting =
@@ -358,7 +357,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
     protected IndexShard newShard(
             final ShardRouting shardRouting,
             final Settings settings,
-            final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
+            final Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders,
             final IndexingOperationListener... listeners) throws IOException {
         assert shardRouting.initializing() : shardRouting;
         Settings indexSettings = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
@@ -434,7 +433,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
      */
     protected IndexShard newShard(ShardRouting routing,
                                   IndexMetadata indexMetadata,
-                                  Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
+                                  Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders,
                                   IndexingOperationListener... listeners) throws IOException {
         return newShard(routing, indexMetadata, engineFactoryProviders, () -> {}, listeners);
     }
@@ -449,7 +448,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
      */
     protected IndexShard newShard(ShardRouting routing,
                                   IndexMetadata indexMetadata,
-                                  Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
+                                  Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders,
                                   Runnable globalCheckpointSyncer,
                                   IndexingOperationListener... listeners) throws IOException {
         // add node id as name to settings for proper logging
@@ -482,7 +481,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                                   ShardPath shardPath,
                                   IndexMetadata indexMetadata,
                                   @Nullable CheckedFunction<IndexSettings, Store, IOException> storeProvider,
-                                  Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
+                                  Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders,
                                   Runnable globalCheckpointSyncer,
                                   IndexEventListener indexEventListener,
                                   IndexingOperationListener... listeners) throws IOException {
@@ -513,7 +512,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                                   ShardPath shardPath,
                                   IndexMetadata indexMetadata,
                                   @Nullable CheckedFunction<IndexSettings, Store, IOException> storeProvider,
-                                  Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
+                                  Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders,
                                   Runnable globalCheckpointSyncer,
                                   RetentionLeaseSyncer retentionLeaseSyncer,
                                   IndexEventListener indexEventListener,
@@ -601,7 +600,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
      */
     protected IndexShard reinitShard(IndexShard current,
                                      ShardRouting routing,
-                                     Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
+                                     Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders,
                                      IndexingOperationListener... listeners) throws IOException {
         closeShards(current);
         return newShard(
@@ -627,7 +626,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
     protected IndexShard reinitShard(IndexShard current,
                                      ShardRouting routing,
                                      IndexMetadata indexMetadata,
-                                     Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
+                                     Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders,
                                      IndexingOperationListener... listeners) throws IOException {
         closeShards(current);
         return newShard(
@@ -670,7 +669,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
      * @param engineFactoryProviders    list of engine factory providers
      */
     protected IndexShard newStartedShard(
-            final boolean primary, final Settings settings, final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders) throws IOException {
+            final boolean primary, final Settings settings, final Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders) throws IOException {
         return newStartedShard(p -> newShard(p, settings, engineFactoryProviders), primary);
     }
 
