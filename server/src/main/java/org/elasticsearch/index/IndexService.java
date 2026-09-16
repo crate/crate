@@ -382,7 +382,7 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
             }
 
             logger.debug("creating shard_id {}", shardId);
-            Directory directory = directoryFactory.newDirectory(this.indexSettings, path);
+            Directory directory = directoryFactory.newDirectory(this.indexSettings, path, routing.primary());
             store = new Store(
                 shardId,
                 this.indexSettings,

@@ -59,7 +59,7 @@ public class FsDirectoryFactory implements IndexStorePlugin.DirectoryFactory {
 
 
     @Override
-    public Directory newDirectory(IndexSettings indexSettings, ShardPath path) throws IOException {
+    public Directory newDirectory(IndexSettings indexSettings, ShardPath path, boolean isPrimary) throws IOException {
         final Path location = path.resolveIndex();
         final LockFactory lockFactory = indexSettings.getValue(INDEX_LOCK_FACTOR_SETTING);
         Files.createDirectories(location);
