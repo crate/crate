@@ -786,16 +786,16 @@ attribute awareness*.
 
   The ``awareness.attributes`` setting supports using several values.
 
-   Awareness is a best effort mechanism: CrateDB *tries* to avoid allocating
-   two copies of the same shard to nodes that share an attribute value, but if
-   no node with a different value is available, it will still allocate the copy
-   to a node with an already used value. Use the
-   ``cluster.routing.allocation.awareness.force.*.values`` setting below if the
-   separation has to be enforced instead.
+  Awareness is a best effort mechanism: CrateDB *tries* to avoid allocating
+  two copies of the same shard to nodes that share an attribute value, but if
+  no node with a different value is available, it will still allocate the copy
+  to a node with an already used value. Use the
+  ``cluster.routing.allocation.awareness.force.*.values`` setting below if the
+  separation has to be enforced instead.
 
-   Awareness attributes are also taken into account when reading data: a node
-   prefers shards that live on nodes sharing its own attribute values, which
-   reduces the traffic between zones.
+  Awareness attributes are also taken into account when reading data: a node
+  prefers shards that live on nodes sharing its own attribute values, which
+  reduces the traffic between zones.
 
 .. _cluster.routing.allocation.awareness.force.\*.values:
 
@@ -815,15 +815,15 @@ attribute awareness*.
   when we start one or more nodes with ``node.attr.zone`` set to
   ``zone2``.
 
-   Forcing awareness has a consequence once one of the values becomes
-   unavailable: instead of falling back to a node with an already used value,
-   CrateDB leaves the affected copies unassigned, and the table stays in a
-   ``YELLOW`` health state until a node with the missing value joins again.
+  Forcing awareness has a consequence once one of the values becomes
+  unavailable: instead of falling back to a node with an already used value,
+  CrateDB leaves the affected copies unassigned, and the table stays in a
+  ``YELLOW`` health state until a node with the missing value joins again.
 
-   That trade-off is the point of the setting. Without forced awareness, the
-   remaining nodes have to hold every copy of every shard, which can exhaust
-   their storage or memory if a single zone cannot handle the data of the
-   whole cluster on its own.
+  That trade-off is the point of the setting. Without forced awareness, the
+  remaining nodes have to hold every copy of every shard, which can exhaust
+  their storage or memory if a single zone cannot handle the data of the
+  whole cluster on its own.
 
 
 .. _conf-routing-allocation-filtering:
