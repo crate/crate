@@ -21,6 +21,8 @@
 
 package io.crate.execution.ddl.tables;
 
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -43,6 +45,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.PartitionName;
@@ -92,7 +95,18 @@ public class TransportDropPartitionsAction extends AbstractDDLTransportAction<Dr
                 if (table == null) {
                     throw new RelationUnknown(request.relationName());
                 }
-                Collection<Index> indices = getIndices(currentState, request, IndexMetadata::getIndex);
+                Collection<IndexMetadata> indicesMetadata = getIndices(currentState, request, Function.identity());
+                for (IndexMetadata indexMetadata : indicesMetadata) {
+                    if (REPLICATION_SUBSCRIPTION_NAME.get(indexMetadata.getSettings()).isEmpty() == false) {
+                        RelationName relationName = table.name();
+                        throw new OperationOnInaccessibleRelationException(
+                            relationName,
+                            "The relation \"" + relationName.fqn() + "\" doesn't allow write operations, " +
+                                "because it is included in a logical replication subscription."
+                        );
+                    }
+                }
+                Collection<Index> indices = indicesMetadata.stream().map(IndexMetadata::getIndex).toList();
 
                 if (indices.isEmpty()) {
                     return currentState;
