@@ -243,6 +243,11 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
         /**
          * Function never returns null.
          **/
-        NOTNULL
+        NOTNULL,
+
+        /**
+         * Aggregate function result depends on the input rows consumption order.
+         **/
+        ORDER_SENSITIVE
     }
 }
