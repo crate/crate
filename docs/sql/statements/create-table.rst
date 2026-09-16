@@ -713,6 +713,42 @@ Sets the maximum number of columns that is allowed for a table. Default is
   Maximum amount of fields in the Lucene index mapping. This includes both the
   user facing mapping (columns) and internal fields.
 
+The limit is validated when a table is created, and every time a column is
+added, either explicitly with :ref:`ALTER TABLE ADD COLUMN
+<sql-alter-table-add-column>`, or implicitly, when a new sub-column is added
+to a dynamic object column. A statement that would exceed the limit is
+rejected with an error.
+
+Sub-columns of object columns count individually. For an existing table, named
+index definitions and columns that were dropped with :ref:`ALTER TABLE DROP
+COLUMN <sql-alter-table-drop-column>` count as well, because CrateDB retains
+the metadata of dropped columns. Adding and dropping columns repeatedly
+therefore moves a table closer to the limit, even though the number of visible
+columns stays the same.
+
+To see how close a table is to its limit, count its columns in
+:ref:`information_schema.columns <information_schema_columns>`:
+
+.. code-block:: sql
+
+    SELECT count(*)
+    FROM information_schema.columns
+    WHERE table_schema = 'doc' AND table_name = 'my_table';
+
+The setting is dynamic. Use :ref:`ALTER TABLE <sql-alter-table-set-reset>` to
+raise the limit of an existing table.
+
+.. CAUTION::
+
+    Raising the limit is a mitigation, not a solution. Every column adds to the
+    size of the cluster state, which is held in memory on, and replicated to,
+    every node. Tables with a very high number of columns slow down cluster
+    state updates and increase the heap usage of the whole cluster.
+
+    If a schema grows without bounds because arbitrary keys are inserted into
+    dynamic objects, it's recommended store the data in an object column with
+    :ref:`column policy ignored <type-object-columns-ignored>` instead.
+
 
 .. _sql-create-table-mapping-depth-limit:
 
