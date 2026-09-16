@@ -50,7 +50,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
-public class GeoPointType extends DataType<Point> implements Streamer<Point>, FixedWidthType {
+public final class GeoPointType extends DataType<Point> implements Streamer<Point>, FixedWidthType {
 
     public static final int ID = 13;
     public static final String NAME = "geo_point";

@@ -46,7 +46,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStatsSupport;
 
-public class IpType extends DataType<String> implements Streamer<String> {
+public final class IpType extends DataType<String> implements Streamer<String> {
 
     public static final int ID = 5;
     public static final String NAME = "ip";

@@ -35,7 +35,7 @@ import io.crate.Streamer;
 import io.crate.interval.IntervalParser;
 import io.crate.statistics.ColumnStatsSupport;
 
-public class IntervalType extends DataType<Period> implements FixedWidthType, Streamer<Period> {
+public final class IntervalType extends DataType<Period> implements FixedWidthType, Streamer<Period> {
 
     public static final int ID = 17;
     public static final String NAME = "interval";

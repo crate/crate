@@ -42,10 +42,11 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.AggStateType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public final class LTTBAggregation
         extends
@@ -321,7 +322,7 @@ public final class LTTBAggregation
 
     }
 
-    public static class LttbStateType extends DataType<LTTBAggregation.LttbState>
+    public static class LttbStateType extends AggStateType<LTTBAggregation.LttbState>
             implements Streamer<LTTBAggregation.LttbState> {
         static final int ID = 18000;
         static final LttbStateType INSTANCE = new LttbStateType();

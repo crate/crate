@@ -61,10 +61,12 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.AggStateType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.CharacterType;
 import io.crate.types.DataType;
+import io.crate.types.DataType.Precedence;
 import io.crate.types.DataTypes;
 import io.crate.types.DateType;
 import io.crate.types.DoubleType;
@@ -425,7 +427,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
     }
 
-    public static class HllStateType extends DataType<HyperLogLogDistinctAggregation.HllState>
+    public static class HllStateType extends AggStateType<HyperLogLogDistinctAggregation.HllState>
         implements Streamer<HyperLogLogDistinctAggregation.HllState> {
 
         static final int ID = 17000;

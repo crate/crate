@@ -66,7 +66,7 @@ import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 import io.crate.statistics.ColumnStatsSupport;
 
-public class StringType extends DataType<String> implements Streamer<String> {
+public sealed class StringType extends DataType<String> implements Streamer<String> permits CharacterType {
 
     public static final int ID = 4;
     public static final String NAME = "text";

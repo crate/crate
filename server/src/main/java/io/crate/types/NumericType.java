@@ -44,7 +44,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 
-public class NumericType extends DataType<BigDecimal> implements Streamer<BigDecimal> {
+public final class NumericType extends DataType<BigDecimal> implements Streamer<BigDecimal> {
 
     public static final int ID = 22;
     public static final String NAME = "numeric";

@@ -52,7 +52,9 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.AggStateType;
 import io.crate.types.DataType;
+import io.crate.types.DataType.Precedence;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
 
@@ -169,7 +171,7 @@ public class IntervalAverageAggregation extends AggregationFunction<IntervalAver
         }
     }
 
-    public static class IntervalAverageStateType extends DataType<IntervalAverageState>
+    public static class IntervalAverageStateType extends AggStateType<IntervalAverageState>
         implements FixedWidthType, Streamer<IntervalAverageState> {
 
         public static final int ID = 1028;

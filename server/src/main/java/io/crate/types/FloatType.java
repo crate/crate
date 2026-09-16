@@ -43,7 +43,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStatsSupport;
 
-public class FloatType extends DataType<Float> implements Streamer<Float>, FixedWidthType {
+public final class FloatType extends DataType<Float> implements Streamer<Float>, FixedWidthType {
 
     public static final FloatType INSTANCE = new FloatType();
     public static final int ID = 7;

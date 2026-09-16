@@ -70,7 +70,7 @@ import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ObjectColumnType;
 
-public class ObjectType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
+public final class ObjectType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
     public static final ObjectType UNTYPED = new ObjectType(Map.of(), ColumnPolicy.DYNAMIC);
     public static final int ID = 12;

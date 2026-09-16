@@ -23,10 +23,9 @@ package io.crate.types;
 
 import java.io.IOException;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-
-import org.apache.lucene.util.RamUsageEstimator;
 
 import io.crate.Streamer;
 

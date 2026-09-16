@@ -30,10 +30,11 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.Streamer;
+import io.crate.types.AggStateType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-public final class RemovableCumulativeStateType<T> extends DataType<RemovableCumulativeState<T>>
+public final class RemovableCumulativeStateType<T> extends AggStateType<RemovableCumulativeState<T>>
         implements Streamer<RemovableCumulativeState<T>> {
 
     public static final int ID = 1029;

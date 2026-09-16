@@ -28,10 +28,11 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
 import io.crate.execution.engine.aggregation.impl.CmpByAggregation.CompareBy;
+import io.crate.types.AggStateType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-public class CompareByType extends DataType<CompareBy> implements Streamer<CompareBy> {
+public class CompareByType extends AggStateType<CompareBy> implements Streamer<CompareBy> {
 
     public static final int ID = 1027;
     private final DataType<?> retValType;

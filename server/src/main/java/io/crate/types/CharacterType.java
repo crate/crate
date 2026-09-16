@@ -40,14 +40,14 @@ import io.crate.execution.dml.StringIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RelationLookup;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 
-public class CharacterType extends StringType {
+public final class CharacterType extends StringType {
 
     public static final String NAME = "character";
     public static final int ID = 27;

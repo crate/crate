@@ -48,7 +48,7 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 
-public class FloatVectorType extends DataType<float[]> implements Streamer<float[]> {
+public final class FloatVectorType extends DataType<float[]> implements Streamer<float[]> {
 
     public static final int ID = 28;
     public static final String NAME = "float_vector";

@@ -43,7 +43,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStatsSupport;
 
-public class DoubleType extends DataType<Double> implements FixedWidthType, Streamer<Double> {
+public final class DoubleType extends DataType<Double> implements FixedWidthType, Streamer<Double> {
 
     public static final DoubleType INSTANCE = new DoubleType();
     public static final int ID = 6;
