@@ -3500,7 +3500,7 @@ public class IndexShardTests extends IndexShardTestCase {
     public void testCloseShardWhileResettingEngine() throws Exception {
         CountDownLatch readyToCloseLatch = new CountDownLatch(1);
         CountDownLatch closeDoneLatch = new CountDownLatch(1);
-        IndexShard shard = newStartedShard(false, Settings.EMPTY, List.of(idxSettings -> Optional.of(
+        IndexShard shard = newStartedShard(false, Settings.EMPTY, List.of((idxSettings, _) -> Optional.of(
             config -> new InternalEngine(config) {
                 @Override
                 public InternalEngine recoverFromTranslog(TranslogRecoveryRunner translogRecoveryRunner,
@@ -3600,7 +3600,7 @@ public class IndexShardTests extends IndexShardTestCase {
     public void testSnapshotWhileResettingEngine() throws Exception {
         CountDownLatch readyToSnapshotLatch = new CountDownLatch(1);
         CountDownLatch snapshotDoneLatch = new CountDownLatch(1);
-        IndexShard shard = newStartedShard(false, Settings.EMPTY, List.of(idxSettings -> Optional.of(
+        IndexShard shard = newStartedShard(false, Settings.EMPTY, List.of((idxSettings, _) -> Optional.of(
             config -> new InternalEngine(config) {
                 @Override
                 public InternalEngine recoverFromTranslog(TranslogRecoveryRunner translogRecoveryRunner,
@@ -3862,7 +3862,7 @@ public class IndexShardTests extends IndexShardTestCase {
             shard,
             readonlyShardRouting,
             shard.indexSettings.getIndexMetadata(),
-            List.of(_ -> Optional.of(
+            List.of((_, _) -> Optional.of(
                 engineConfig ->
                     new ReadOnlyEngine(engineConfig, null, null, true, UnaryOperator.identity(), true) {
 

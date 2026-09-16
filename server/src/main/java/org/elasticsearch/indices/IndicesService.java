@@ -48,7 +48,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -149,7 +149,7 @@ public class IndicesService extends AbstractLifecycleComponent
     private final IndexingMemoryController indexingMemoryController;
     private final QueryCache indicesQueryCache;
     private final MetaStateService metaStateService;
-    private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
+    private final Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders;
     private final Map<String, IndexStorePlugin.DirectoryFactory> directoryFactories;
     final AbstractRefCounted indicesRefCount; // pkg-private for testing
     private final CountDownLatch closeLatch = new CountDownLatch(1);
@@ -177,7 +177,7 @@ public class IndicesService extends AbstractLifecycleComponent
                           CircuitBreakerService circuitBreakerService,
                           BigArrays bigArrays,
                           MetaStateService metaStateService,
-                          Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
+                          Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders,
                           Map<String, IndexStorePlugin.DirectoryFactory> directoryFactories) {
         this.settings = settings;
         this.clusterService = clusterService;

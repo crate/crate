@@ -302,7 +302,7 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
             shard,
             ShardRoutingHelper.initWithSameId(shard.routingEntry(), RecoverySource.PeerRecoverySource.INSTANCE),
             indexMetadata,
-            List.of(idxSettings -> Optional.of(NoOpEngine::new))
+            List.of((idxSettings, _) -> Optional.of(NoOpEngine::new))
         );
         replica.markAsRecovering("for testing", new RecoveryState(replica.routingEntry(), localNode, localNode));
         replica.prepareForIndexRecovery();

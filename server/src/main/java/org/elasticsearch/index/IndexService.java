@@ -39,7 +39,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -101,7 +101,7 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
     private final ShardStoreDeleter shardStoreDeleter;
     private final QueryCache queryCache;
     private final IndexStorePlugin.DirectoryFactory directoryFactory;
-    private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
+    private final Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders;
     private volatile Map<Integer, IndexShard> shards = emptyMap();
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final AtomicBoolean deleted = new AtomicBoolean(false);
@@ -135,7 +135,7 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
             NodeEnvironment nodeEnv,
             ShardStoreDeleter shardStoreDeleter,
             AnalysisRegistry analysisRegistry,
-            Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
+            Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders,
             CircuitBreakerService circuitBreakerService,
             BigArrays bigArrays,
             ThreadPool threadPool,

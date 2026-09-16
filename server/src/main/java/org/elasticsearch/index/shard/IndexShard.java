@@ -45,8 +45,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -177,7 +177,7 @@ public class IndexShard extends AbstractIndexShardComponent {
     private final Object engineMutex = new Object(); // lock ordering: engineMutex -> mutex
     private final AtomicReference<Engine> currentEngineReference = new AtomicReference<>();
     private volatile EngineFactory engineFactory;
-    final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
+    final Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders;
 
     private final IndexingOperationListener indexingOperationListeners;
     private final Runnable globalCheckpointSyncer;
@@ -240,7 +240,7 @@ public class IndexShard extends AbstractIndexShardComponent {
             QueryCache queryCache,
             Analyzer indexAnalyzer,
             Supplier<TranslogIndexer> getTranslogIndexer,
-            Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
+            Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders,
             IndexEventListener indexEventListener,
             ThreadPool threadPool,
             BigArrays bigArrays,
@@ -254,7 +254,7 @@ public class IndexShard extends AbstractIndexShardComponent {
         this.codecService = new CodecService();
         Objects.requireNonNull(store, "Store must be provided to the index shard");
         this.engineFactoryProviders = engineFactoryProviders;
-        this.engineFactory = getEngineFactory();
+        this.engineFactory = getEngineFactory(shardRouting.primary());
         this.store = store;
         this.indexEventListener = indexEventListener;
         this.threadPool = threadPool;
@@ -1815,7 +1815,7 @@ public class IndexShard extends AbstractIndexShardComponent {
     public void onSettingsChanged(Settings oldSettings) {
         this.indexEventListener.beforeIndexSettingsChangesApplied(this, oldSettings, indexSettings.getSettings());
 
-        var newEngineFactory = getEngineFactory();
+        var newEngineFactory = getEngineFactory(shardRouting.primary());
         if (newEngineFactory.getClass() != engineFactory.getClass()) {
             try {
                 // resetEngineToGlobalCheckpoint will use the new engine factory
@@ -3034,7 +3034,7 @@ public class IndexShard extends AbstractIndexShardComponent {
         }
     }
 
-    Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders() {
+    Collection<BiFunction<IndexSettings, Boolean, Optional<EngineFactory>>> engineFactoryProviders() {
         return engineFactoryProviders;
     }
 
@@ -3299,7 +3299,7 @@ public class IndexShard extends AbstractIndexShardComponent {
                     }
                 };
             IOUtils.close(currentEngineReference.getAndSet(readOnlyEngine));
-            engineFactory = getEngineFactory();
+            engineFactory = getEngineFactory(shardRouting.primary());
             newEngineReference.set(engineFactory.newReadWriteEngine(newEngineConfig(replicationTracker)));
             onNewEngine(newEngineReference.get());
         }
@@ -3378,7 +3378,7 @@ public class IndexShard extends AbstractIndexShardComponent {
         return refreshListeners.pendingCount();
     }
 
-    private EngineFactory getEngineFactory() {
+    private EngineFactory getEngineFactory(boolean isPrimary) {
         final IndexMetadata indexMetadata = indexSettings.getIndexMetadata();
         if (indexMetadata != null && indexMetadata.getState() == IndexMetadata.State.CLOSE) {
             // NoOpEngine takes precedence as long as the index is closed
@@ -3388,7 +3388,7 @@ public class IndexShard extends AbstractIndexShardComponent {
         final List<Optional<EngineFactory>> engineFactories =
             engineFactoryProviders
                 .stream()
-                .map(engineFactoryProvider -> engineFactoryProvider.apply(indexSettings))
+                .map(engineFactoryProvider -> engineFactoryProvider.apply(indexSettings, isPrimary))
                 .filter(maybe -> Objects.requireNonNull(maybe).isPresent())
                 .collect(Collectors.toList());
         if (engineFactories.isEmpty()) {

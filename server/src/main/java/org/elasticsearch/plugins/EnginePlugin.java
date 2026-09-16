@@ -35,8 +35,9 @@ public interface EnginePlugin {
      * {@link Optional#empty()}. If multiple plugins return an engine factory for a given index the index will not be created and an
      * {@link IllegalStateException} will be thrown during index creation.
      *
+     * @param isPrimary whether the engine is being created for a primary shard copy
      * @return an optional engine factory
      */
-    Optional<EngineFactory> getEngineFactory(IndexSettings indexSettings);
+    Optional<EngineFactory> getEngineFactory(IndexSettings indexSettings, boolean isPrimary);
 
 }
