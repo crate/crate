@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
@@ -299,6 +298,22 @@ public class UnionIntegrationTest extends IntegTestCase {
         );
         assertThat(response).hasRows(
             "index_1| 4"
+        );
+    }
+
+    @Test
+    @UseRandomizedOptimizerRules(0)
+    public void test_array_agg_over_ordered_union_all_preserves_global_order() throws Exception {
+        execute("""
+               SELECT array_agg(x) AS arr FROM (
+                SELECT x FROM unnest([3, 1]) AS a(x)
+                UNION ALL
+                SELECT x FROM unnest([4, 2]) AS b(x)
+                ORDER BY x
+            ) AS u
+            """);
+        assertThat(response).hasRows(
+            "[1, 2, 3, 4]"
         );
     }
 
