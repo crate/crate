@@ -815,6 +815,16 @@ attribute awareness*.
   when we start one or more nodes with ``node.attr.zone`` set to
   ``zone2``.
 
+   Forcing awareness has a consequence once one of the values becomes
+   unavailable: instead of falling back to a node with an already used value,
+   CrateDB leaves the affected copies unassigned, and the table stays in a
+   ``YELLOW`` health state until a node with the missing value joins again.
+
+   That trade-off is the point of the setting. Without forced awareness, the
+   remaining nodes have to hold every copy of every shard, which can exhaust
+   their storage or memory if a single zone cannot handle the data of the
+   whole cluster on its own.
+
 
 .. _conf-routing-allocation-filtering:
 
