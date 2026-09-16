@@ -61,6 +61,44 @@ Should any replica shard fail to write the data or times out in step 5, it's
 immediately considered as unavailable.
 
 
+.. _concept-compression:
+
+Compression
+===========
+
+The data of a shard is stored in Lucene_ segments, which compresses the data
+in those segments upon write. Two parts of a segment dominate the size on disk:
+
+- The *stored fields*, which hold the fields of the original document and they
+  are compressed in blocks, so that the compression works across several
+  documents at once.
+
+- The *doc values*, which hold the columnar structures the data, which is uses
+  used for aggregations, grouping and sorting.
+
+For doc values, Lucene relies on internal lightweight integer encodings —
+bit-packed deltas, GCD factoring, table lookups and monotonic offsets, plus
+``LZ4`` for sorted terms dictionaries — rather than general-purpose compression.
+These keep values randomly accessible and cheap to decode, trading some space
+optimization for CPU cost.
+
+On the other hand, ``stored fields`` compression can be controlled with the
+:ref:`codec <sql-create-table-codec>` table setting. ``default`` uses ``LZ4``,
+which is fast to compress and to decompress. ``best_compression`` uses
+``DEFLATE``, which produces smaller segments at the cost of slower inserts and
+lookups. ``codec`` cannot be changed while a table is open, so changing it for
+an existing table requires closing the table first:
+
+.. code-block:: sql
+
+   ALTER TABLE my_table CLOSE;
+   ALTER TABLE my_table SET (codec = 'best_compression');
+   ALTER TABLE my_table OPEN;
+
+A new codec only applies to segments that are written after the change.
+Existing segments keep their compression until they are merged, which can be
+triggered explicitly with :ref:`OPTIMIZE TABLE <sql-optimize>`.
+
 .. _concept-atomicity:
 
 Atomicity at document level
