@@ -44,11 +44,17 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.snapshots.Snapshot;
+import org.elasticsearch.snapshots.SnapshotId;
+import org.elasticsearch.snapshots.SnapshotSchemaValidator;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.repository.LogicalReplicationRepository;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
@@ -131,26 +137,56 @@ public class TransportCreateSubscription extends TransportMasterNodeAction<Creat
 
                     Metadata metadata = state.metadata();
                     Metadata publisherMetadata = response.metadata();
-                    for (RelationMetadata.Table table : publisherMetadata.relations(RelationMetadata.Table.class)) {
-                        if (metadata.getRelation(table.name()) != null) {
-                            var message = String.format(
-                                Locale.ENGLISH,
-                                "Subscription '%s' cannot be created as included relation '%s' already exists",
-                                request.name(),
-                                table.name()
-                            );
-                            throw new RelationAlreadyExists(table.name(), message);
+                    for (TableOrPartition target : response.targets()) {
+                        RelationName targetName = target.table();
+                        RelationMetadata.Table table = publisherMetadata.getRelation(targetName);
+                        String partitionIdent = target.partitionIdent();
 
+                        if (partitionIdent == null) {
+                            if (metadata.getRelation(targetName) != null) {
+                                var message = String.format(
+                                    Locale.ENGLISH,
+                                    "Subscription '%s' cannot be created as included relation '%s' already exists",
+                                    request.name(),
+                                    targetName
+                                );
+                                throw new RelationAlreadyExists(targetName, message);
+                            }
+                        } else {
+                            List<String> partitionValues = PartitionName.decodeIdent(partitionIdent);
+                            if (metadata.getIndex(targetName, partitionValues, false, x -> x) != null) {
+                                var message = String.format(
+                                    Locale.ENGLISH,
+                                    "Subscription '%s' cannot be created as included relation '%s' partition '%s' already exists",
+                                    request.name(),
+                                    targetName,
+                                    partitionIdent
+                                );
+                                throw new RelationAlreadyExists(targetName, message);
+                            }
+                            RelationMetadata.Table existingSubscriberTable = metadata.getRelation(targetName);
+                            if (existingSubscriberTable != null) {
+                                SnapshotSchemaValidator.validate(
+                                    new Snapshot(
+                                        LogicalReplicationRepository.TYPE,
+                                        new SnapshotId(LogicalReplicationRepository.LATEST, LogicalReplicationRepository.LATEST)
+                                    ),
+                                    targetName,
+                                    table,
+                                    existingSubscriberTable
+                                );
+                            }
                         }
+
                         checkVersionCompatibility(
-                            table.name().fqn(),
+                            targetName.fqn(),
                             state.nodes().getMinNodeVersion(),
                             table.settings()
                         );
 
-                        for (Settings settings : publisherMetadata.getIndices(table.name(), List.of(), false, IndexMetadata::getSettings)) {
+                        for (Settings settings : publisherMetadata.getIndices(targetName, List.of(), false, IndexMetadata::getSettings)) {
                             checkVersionCompatibility(
-                                table.name().fqn(),
+                                targetName.fqn(),
                                 state.nodes().getMinNodeVersion(),
                                 settings
                             );

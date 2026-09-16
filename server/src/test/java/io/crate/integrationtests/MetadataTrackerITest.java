@@ -410,6 +410,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
             defaultTableSettings() +
             ")");
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
         createPublication("pub1", false, List.of("doc.t1"));
 
         createSubscription("sub1", "pub1");
@@ -439,6 +440,199 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         // write to doc.t1 should still not work on the subscriber
         assertThatThrownBy(() -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES (3)"))
             .hasMessageContaining("The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication subscription.");
+    }
+
+    @Test
+    public void test_tracker_fails_if_added_publication_table_exists_on_subscriber() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("CREATE TABLE t2 (id INT) WITH(" + defaultTableSettings() + ")");
+        createPublication("pub1", false, List.of("t1"));
+        executeOnPublisher("GRANT DQL ON TABLE t2 TO " + SUBSCRIBING_USER);
+        createSubscription("sub1", "pub1");
+
+        executeOnSubscriber("CREATE TABLE t2 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("ALTER PUBLICATION pub1 ADD TABLE t2");
+
+        assertBusy(() -> {
+            var response = executeOnSubscriber(
+                "SELECT s.subname, r.relname, sr.srsubstate, sr.srsubstate_reason" +
+                    " FROM pg_subscription s" +
+                    " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                    " JOIN pg_class r ON sr.srrelid = r.oid" +
+                    " ORDER BY r.relname"
+            );
+            assertThat(response).hasRows(
+                "sub1| t1| r| NULL",
+                "sub1| t2| e| Relation already exists"
+            );
+            assertThat(isTrackerActive()).isFalse();
+        });
+    }
+
+    @Test
+    public void test_dropping_table_of_table_publication_removes_subscription_target() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        createPublication("pub1", false, List.of("doc.t1"));
+        createSubscription("sub1", "pub1");
+
+        executeOnPublisher("DROP TABLE doc.t1");
+
+        assertBusy(() -> {
+            var response = executeOnSubscriber(
+                "SELECT r.relname" +
+                    " FROM pg_subscription s" +
+                    " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                    " JOIN pg_class r ON sr.srrelid = r.oid"
+            );
+            assertThat(response).hasRowCount(0L);
+        });
+
+        executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES (2)");
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        assertThat(executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id")).hasRows(
+            "1",
+            "2"
+        );
+    }
+
+    @Test
+    public void test_dropping_partition_of_table_publication_deletes_subscriber_partition() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+                "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        createPublication("pub1", false, List.of("doc.t1"));
+        createSubscription("sub1", "pub1");
+
+        executeOnPublisher("DELETE FROM doc.t1 WHERE p = 1");
+
+        assertBusy(() -> {
+            var response = executeOnSubscriber(
+                "SELECT values FROM information_schema.table_partitions" +
+                    " WHERE table_schema = 'doc' AND table_name = 't1'" +
+                    " ORDER BY partition_ident"
+            );
+            assertThat(response).hasRows("{p=2}");
+        });
+
+        assertThatThrownBy(() -> executeOnSubscriber("INSERT INTO doc.t1 (id, p) VALUES (3, 3)"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class);
+    }
+
+    @Test
+    public void test_dropping_table_of_partition_publication_removes_subscription_target() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+                "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+        createSubscription("sub1", "pub1");
+
+        executeOnPublisher("DROP TABLE doc.t1");
+
+        assertBusy(() -> {
+            var response = executeOnSubscriber(
+                "SELECT r.relname" +
+                    " FROM pg_subscription s" +
+                    " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                    " JOIN pg_class r ON sr.srrelid = r.oid"
+            );
+            assertThat(response).hasRowCount(0L);
+        });
+
+        executeOnSubscriber("INSERT INTO doc.t1 (id, p) VALUES (2, 1)");
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id")).hasRows(
+            "1| 1",
+            "2| 1"
+        );
+    }
+
+    @Test
+    public void test_dropping_partition_of_partition_publication_removes_subscription_target() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+                "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+        createSubscription("sub1", "pub1");
+
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1")).hasRows("1| 1");
+        });
+
+        executeOnPublisher("DELETE FROM doc.t1 WHERE p = 1");
+
+        assertBusy(() -> {
+            var response = executeOnSubscriber(
+                "SELECT r.relname" +
+                    " FROM pg_subscription s" +
+                    " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                    " JOIN pg_class r ON sr.srrelid = r.oid"
+            );
+            assertThat(response).hasRowCount(0L);
+        });
+
+        executeOnSubscriber("INSERT INTO doc.t1 (id, p) VALUES (2, 1)");
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id")).hasRows(
+            "1| 1",
+            "2| 1"
+        );
+    }
+
+    @Test
+    public void test_dropping_partition_of_partition_publication_keeps_other_partition_target_active() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+                "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher(
+            "CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1), doc.t1 PARTITION (p = 2)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+        createSubscription("sub1", "pub1");
+
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id")).hasRows(
+                "1| 1",
+                "2| 2"
+            );
+        });
+
+        executeOnPublisher("DELETE FROM doc.t1 WHERE p = 1");
+
+        assertBusy(() -> {
+            var response = executeOnSubscriber(
+                "SELECT r.relname" +
+                    " FROM pg_subscription s" +
+                    " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                    " JOIN pg_class r ON sr.srrelid = r.oid"
+            );
+            assertThat(response).hasRows("t1");
+        });
+
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (3, 2)");
+
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 WHERE p = 2 ORDER BY id")).hasRows(
+                "2| 2",
+                "3| 2"
+            );
+        });
     }
 
     private boolean isTrackerActive() throws Exception {

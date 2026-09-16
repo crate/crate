@@ -71,8 +71,18 @@ import io.crate.testing.SQLTransportExecutor;
 
 public abstract class LogicalReplicationITestCase extends ESTestCase {
 
+    private static final Collection<Class<? extends Plugin>> MOCK_PLUGINS = List.of(
+        IntegTestCase.TestSeedPlugin.class,
+        MockHttpTransport.TestPlugin.class,
+        MockTransportService.TestPlugin.class,
+        InternalSettingsPlugin.class
+    );
+
     protected TestCluster publisherCluster;
     SQLTransportExecutor publisherSqlExecutor;
+
+    protected TestCluster secondPublisherCluster;
+    SQLTransportExecutor secondPublisherSqlExecutor;
 
     public TestCluster subscriberCluster;
     SQLTransportExecutor subscriberSqlExecutor;
@@ -81,46 +91,51 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
 
     @Before
     public void setupClusters() throws IOException, InterruptedException {
-        Collection<Class<? extends Plugin>> mockPlugins = List.of(
-            IntegTestCase.TestSeedPlugin.class,
-            MockHttpTransport.TestPlugin.class,
-            MockTransportService.TestPlugin.class,
-            InternalSettingsPlugin.class
-        );
-
-        publisherCluster = new TestCluster(
-            randomLong(),
-            createTempDir(),
+        publisherCluster = newCluster(
             getPublisherSupportsDedicatedMasters(),
             getPublisherAutoManageMasterNodes(),
             getPublisherNumberOfNodes(),
-            getPublisherNumberOfNodes(),
             "publishing_cluster",
-            createNodeConfigurationSource(),
-            0,
-            "publisher",
-            mockPlugins
+            "publisher"
         );
-        publisherCluster.beforeTest(random());
-        publisherCluster.ensureAtLeastNumDataNodes(getPublisherNumberOfNodes());
         publisherSqlExecutor = publisherCluster.createSQLTransportExecutor();
 
-        subscriberCluster = new TestCluster(
-            randomLong(),
-            createTempDir(),
+        subscriberCluster = newCluster(
             getSubscriberSupportsDedicatedMasters(),
             getSubscriberAutoManageMasterNodes(),
             getSubscriberNumberOfNodes(),
-            getSubscriberNumberOfNodes(),
             "subscribing_cluster",
+            "subscriber"
+        );
+        subscriberSqlExecutor = subscriberCluster.createSQLTransportExecutor();
+    }
+
+    protected void setupSecondPublisher() throws IOException, InterruptedException {
+        secondPublisherCluster = newCluster(false, true, 1, "publishing_cluster_2", "publisher2");
+        secondPublisherSqlExecutor = secondPublisherCluster.createSQLTransportExecutor();
+    }
+
+    private TestCluster newCluster(boolean supportsDedicatedMasters,
+                                   boolean autoManageMasterNodes,
+                                   int numberOfNodes,
+                                   String clusterName,
+                                   String nodePrefix) throws IOException, InterruptedException {
+        var cluster = new TestCluster(
+            randomLong(),
+            createTempDir(),
+            supportsDedicatedMasters,
+            autoManageMasterNodes,
+            numberOfNodes,
+            numberOfNodes,
+            clusterName,
             createNodeConfigurationSource(),
             0,
-            "subscriber",
-            mockPlugins
+            nodePrefix,
+            MOCK_PLUGINS
         );
-        subscriberCluster.beforeTest(random());
-        subscriberCluster.ensureAtLeastNumDataNodes(getSubscriberNumberOfNodes());
-        subscriberSqlExecutor = subscriberCluster.createSQLTransportExecutor();
+        cluster.beforeTest(random());
+        cluster.ensureAtLeastNumDataNodes(numberOfNodes);
+        return cluster;
     }
 
     @After
@@ -134,6 +149,8 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         }
         stopCluster(subscriberCluster);
         subscriberCluster = null;
+        stopCluster(secondPublisherCluster);
+        secondPublisherCluster = null;
         stopCluster(publisherCluster);
         publisherCluster = null;
     }
@@ -180,6 +197,10 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
 
     public SQLResponse executeOnPublisher(String sql) {
         return publisherSqlExecutor.exec(sql);
+    }
+
+    public SQLResponse executeOnSecondPublisher(String sql) {
+        return secondPublisherSqlExecutor.exec(sql);
     }
 
     SQLResponse executeOnPublisherAsUser(String sql, Role user) {
@@ -235,8 +256,16 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
     }
 
     public String publisherConnectionUrl() {
+        return publisherConnectionUrl(publisherCluster);
+    }
+
+    protected String secondPublisherConnectionUrl() {
+        return publisherConnectionUrl(secondPublisherCluster);
+    }
+
+    private String publisherConnectionUrl(TestCluster cluster) {
         if (randomBoolean()) {
-            var postgres = publisherCluster.getInstance(PostgresNetty.class);
+            var postgres = cluster.getInstance(PostgresNetty.class);
             InetSocketAddress address = postgres.boundAddress().publishAddress().address();
             return String.format(
                 Locale.ENGLISH,
@@ -248,7 +277,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         } else {
             // Sniff mode expects to talk to data nodes; Include all nodes so it can choose the data node
             ArrayList<String> nodes = new ArrayList<>();
-            for (var transportService : publisherCluster.getInstances(TransportService.class)) {
+            for (var transportService : cluster.getInstances(TransportService.class)) {
                 InetSocketAddress address = transportService.boundAddress().publishAddress().address();
                 nodes.add(address.getHostName() + ":" + address.getPort());
             }

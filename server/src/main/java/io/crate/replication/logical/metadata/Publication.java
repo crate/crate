@@ -25,6 +25,7 @@ import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATIO
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -213,11 +214,23 @@ public class Publication implements Writeable {
             return;
         }
 
-        metadataBuilder.setRelation(table.withIndexUUIDs(indices.stream().map(IndexMetadata::getIndexUUID).toList()));
+        metadataBuilder.setRelation(table.withIndexUUIDs(accumulateIndexUUIDs(metadataBuilder, table.name(), indices)));
         for (IndexMetadata indexMetadata : indices) {
             addIndex(metadataBuilder, indexMetadata, indexFilter);
         }
         resolvedTargets.add(target);
+    }
+
+    private static List<String> accumulateIndexUUIDs(Metadata.Builder metadataBuilder,
+                                                     RelationName relationName,
+                                                     List<IndexMetadata> indices) {
+        LinkedHashSet<String> indexUUIDs = new LinkedHashSet<>();
+        org.elasticsearch.cluster.metadata.RelationMetadata.Table currentTable = metadataBuilder.getRelation(relationName);
+        if (currentTable != null) {
+            indexUUIDs.addAll(currentTable.indexUUIDs());
+        }
+        indexUUIDs.addAll(indices.stream().map(IndexMetadata::getIndexUUID).toList());
+        return indexUUIDs.stream().toList();
     }
 
     private static void addRelation(Metadata currentMetadata,

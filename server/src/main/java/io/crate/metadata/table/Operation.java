@@ -79,6 +79,14 @@ public enum Operation {
         ALTER_BLOCKS, ALTER_OPEN, ALTER_CLOSE, ALTER_REROUTE, REFRESH, SHOW_CREATE, OPTIMIZE);
     public static final EnumSet<Operation> SUBSCRIBED_IN_LOGICAL_REPLICATION = EnumSet.of(
         READ, ALTER_SET, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE);
+    public static final EnumSet<Operation> PARTITION_SUBSCRIBED_IN_LOGICAL_REPLICATION =
+        EnumSet.copyOf(
+            Sets.concat(
+                SUBSCRIBED_IN_LOGICAL_REPLICATION,
+                // below ops are blocked for subscribed partitions in TransportShardAction and TransportDropPartitionsAction
+                UPDATE, INSERT, DELETE
+            )
+        );
     public static final EnumSet<Operation> PUBLISHED_IN_LOGICAL_REPLICATION = EnumSet.of(
         READ, UPDATE, INSERT, DELETE, DROP, ALTER, ALTER_SET, ALTER_BLOCKS, ALTER_CLOSE, ALTER_REROUTE, REFRESH,
         SHOW_CREATE, COPY_TO, OPTIMIZE, RESTORE_SNAPSHOT, CREATE_SNAPSHOT);
@@ -99,14 +107,17 @@ public enum Operation {
 
     public static EnumSet<Operation> buildFromIndexSettingsAndState(Settings settings,
                                                                     IndexMetadata.State state,
-                                                                    boolean isPublished) {
+                                                                    boolean isPublished,
+                                                                    boolean hasOnlyPartitionSubscriptions) {
         if (state == IndexMetadata.State.CLOSE) {
             return CLOSED_OPERATIONS;
         }
         Set<Operation> operations = ALL;
 
         var isSubscribed = isReplicated(settings);
-        if (isSubscribed && isPublished) {
+        if (hasOnlyPartitionSubscriptions) {
+            operations = PARTITION_SUBSCRIBED_IN_LOGICAL_REPLICATION;
+        } else if (isSubscribed && isPublished) {
             // if the table is subscribed and published use the more restrictive operation set
             operations = SUBSCRIBED_IN_LOGICAL_REPLICATION;
         } else if (isSubscribed) {
@@ -136,7 +147,8 @@ public enum Operation {
             if (relationInfo.supportedOperations().equals(CLOSED_OPERATIONS)) {
                 exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations, as it is currently " +
                                    "closed.";
-            } else if (relationInfo.supportedOperations().equals(SUBSCRIBED_IN_LOGICAL_REPLICATION)) {
+            } else if (relationInfo.supportedOperations().equals(SUBSCRIBED_IN_LOGICAL_REPLICATION)
+                       || relationInfo.supportedOperations().equals(PARTITION_SUBSCRIBED_IN_LOGICAL_REPLICATION)) {
                 exceptionMessage = "The relation \"%s\" doesn't allow %s operations, because it is included in a " +
                                    "logical replication subscription.";
             } else if (relationInfo.supportedOperations().equals(PUBLISHED_IN_LOGICAL_REPLICATION)) {
