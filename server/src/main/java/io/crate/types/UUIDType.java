@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -81,6 +82,20 @@ public class UUIDType extends DataType<UUID> implements FixedWidthType, Streamer
                            byte[] bytes) {
 
             return UUIDType.decode(bytes);
+        }
+
+        @Override
+        public LuceneCollectorExpression<UUID> getLuceneExpression(Reference ref,
+                                                                   Predicate<Reference> isParentIgnored) {
+            return new BinaryColumnReference<UUID>(ref.storageIdent()) {
+
+                @Override
+                protected UUID convert(BytesRef input) {
+                    long mostSigBits = (long) BitUtil.VH_LE_LONG.get(input.bytes, input.offset);
+                    long leastSigBits = (long) BitUtil.VH_LE_LONG.get(input.bytes, input.offset + 8);
+                    return new UUID(mostSigBits, leastSigBits);
+                }
+            };
         }
     };
 
@@ -293,18 +308,6 @@ public class UUIDType extends DataType<UUID> implements FixedWidthType, Streamer
         public String storageIdentLeafName() {
             return ref.storageIdentLeafName();
         }
-    }
-
-    public static LuceneCollectorExpression<UUID> getCollectorExpression(String fqn) {
-        return new BinaryColumnReference<UUID>(fqn) {
-
-            @Override
-            protected UUID convert(BytesRef input) {
-                long mostSigBits = (long) BitUtil.VH_LE_LONG.get(input.bytes, input.offset);
-                long leastSigBits = (long) BitUtil.VH_LE_LONG.get(input.bytes, input.offset + 8);
-                return new UUID(mostSigBits, leastSigBits);
-            }
-        };
     }
 
     @Override

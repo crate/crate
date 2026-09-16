@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -38,6 +39,8 @@ import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
 import io.crate.Streamer;
 import io.crate.execution.dml.DoubleIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.DoubleColumnReference;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -124,6 +127,11 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
             return NumericUtils.sortableLongToDouble(NumericUtils.sortableBytesToLong(packedPoint, 0));
         }
 
+        @Override
+        public LuceneCollectorExpression<Double> getLuceneExpression(Reference ref,
+                                                                     Predicate<Reference> isParentIgnored) {
+            return new DoubleColumnReference(ref.storageIdent());
+        }
     };
 
     private static final BigDecimal DOUBLE_MAX = BigDecimal.valueOf(Double.MAX_VALUE);

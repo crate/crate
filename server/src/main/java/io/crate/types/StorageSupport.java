@@ -23,11 +23,13 @@ package io.crate.types;
 
 
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.elasticsearch.Version;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
@@ -58,6 +60,10 @@ public abstract class StorageSupport<T> {
         return docValuesDefault && indexType != IndexType.FULLTEXT;
     }
 
+    /// Return a collector expression that reads values from docValues
+    /// Must _not_ be called if ref.hasDocValues() is false
+    public abstract LuceneCollectorExpression<T> getLuceneExpression(Reference ref,
+                                                                     Predicate<Reference> isParentIgnored);
 
     /**
      * Creates a valueIndexer

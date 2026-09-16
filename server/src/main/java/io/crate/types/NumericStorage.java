@@ -26,6 +26,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -203,7 +204,10 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
         }
     }
 
-    public static LuceneCollectorExpression<BigDecimal> getCollectorExpression(String fqn, NumericType type) {
+    @Override
+    public LuceneCollectorExpression<BigDecimal> getLuceneExpression(Reference ref,
+                                                                     Predicate<Reference> isParentIgnored) {
+        String fqn = ref.storageIdent();
         final Integer precision = type.numericPrecision();
         final MathContext mathContext = type.mathContext();
 

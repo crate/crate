@@ -24,6 +24,7 @@ package io.crate.types;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -32,6 +33,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import io.crate.Streamer;
 import io.crate.execution.dml.IntIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.ByteColumnReference;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -66,6 +69,11 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
             return (byte) NumericUtils.sortableBytesToInt(packedPoint, 0);
         }
 
+        @SuppressWarnings({ "rawtypes", "unchecked" })
+        public LuceneCollectorExpression<Number> getLuceneExpression(Reference ref,
+                                                                     Predicate<Reference> isParentIgnored) {
+            return (LuceneCollectorExpression) new ByteColumnReference(ref.storageIdent());
+        }
     };
 
     private ByteType() {

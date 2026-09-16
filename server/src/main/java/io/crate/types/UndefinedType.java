@@ -23,6 +23,7 @@ package io.crate.types;
 
 import java.io.IOException;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -32,6 +33,7 @@ import org.jspecify.annotations.Nullable;
 import io.crate.Streamer;
 import io.crate.execution.dml.IndexDocumentBuilder;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -151,6 +153,12 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
             @Override
             public boolean canBeIndexed() {
                 return false;
+            }
+
+            @Override
+            public LuceneCollectorExpression<Object> getLuceneExpression(Reference ref,
+                                                                         Predicate<Reference> isParentIgnored) {
+                throw new UnsupportedOperationException("Undefined type can't read doc-values from Lucene");
             }
         };
     }
