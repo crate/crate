@@ -40,21 +40,48 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 
-class ArithmeticOperatorsFactory {
+// Clamps integral overflow instead of wrapping around.
+class WindowFrameBoundaryArithmetic {
 
     private static final BinaryOperator<Double> ADD_DOUBLE_FUNCTION = Double::sum;
-    private static final BinaryOperator<Byte> ADD_BYTE_FUNCTION = (Byte x, Byte y) -> (byte) (x.intValue() + y.intValue());
-    private static final BinaryOperator<Short> ADD_SHORT_FUNCTION = (Short x, Short y) -> (short) (x.intValue() + y.intValue());
-    private static final BinaryOperator<Integer> ADD_INTEGER_FUNCTION = Integer::sum;
-    private static final BinaryOperator<Long> ADD_LONG_FUNCTION = Long::sum;
     private static final BinaryOperator<Float> ADD_FLOAT_FUNCTION = Float::sum;
+    private static final BinaryOperator<Byte> ADD_BYTE_FUNCTION = (Byte x, Byte y) -> {
+        int result = x.intValue() + y.intValue();
+        return (byte) Math.clamp(result, Byte.MIN_VALUE, Byte.MAX_VALUE);
+    };
+    private static final BinaryOperator<Short> ADD_SHORT_FUNCTION = (Short x, Short y) -> {
+        int result = x.intValue() + y.intValue();
+        return (short) Math.clamp(result, Short.MIN_VALUE, Short.MAX_VALUE);
+    };
+    private static final BinaryOperator<Integer> ADD_INTEGER_FUNCTION = (Integer x, Integer y) ->
+        Math.clamp(x.longValue() + y.longValue(), Integer.MIN_VALUE, Integer.MAX_VALUE);
+    private static final BinaryOperator<Long> ADD_LONG_FUNCTION = (Long x, Long y) -> {
+        try {
+            return Math.addExact(x, y);
+        } catch (ArithmeticException e) {
+            return y > 0 ? Long.MAX_VALUE : Long.MIN_VALUE;
+        }
+    };
 
     private static final BinaryOperator<Double> SUB_DOUBLE_FUNCTION = (arg0, arg1) -> arg0 - arg1;
-    private static final BinaryOperator<Byte> SUB_BYTE_FUNCTION = (arg0, arg1) -> (byte) (arg0.intValue() - arg1.intValue());
-    private static final BinaryOperator<Short> SUB_SHORT_FUNCTION = (arg0, arg1) -> (short) (arg0.intValue() - arg1.intValue());
-    private static final BinaryOperator<Integer> SUB_INTEGER_FUNCTION = (arg0, arg1) -> arg0 - arg1;
-    private static final BinaryOperator<Long> SUB_LONG_FUNCTION = (arg0, arg1) -> arg0 - arg1;
     private static final BinaryOperator<Float> SUB_FLOAT_FUNCTION = (arg0, arg1) -> arg0 - arg1;
+    private static final BinaryOperator<Byte> SUB_BYTE_FUNCTION = (Byte x, Byte y) -> {
+        int result = x.intValue() - y.intValue();
+        return (byte) Math.clamp(result, Byte.MIN_VALUE, Byte.MAX_VALUE);
+    };
+    private static final BinaryOperator<Short> SUB_SHORT_FUNCTION = (Short x, Short y) -> {
+        int result = x.intValue() - y.intValue();
+        return (short) Math.clamp(result, Short.MIN_VALUE, Short.MAX_VALUE);
+    };
+    private static final BinaryOperator<Integer> SUB_INTEGER_FUNCTION = (Integer x, Integer y) ->
+        Math.clamp(x.longValue() - y.longValue(), Integer.MIN_VALUE, Integer.MAX_VALUE);
+    private static final BinaryOperator<Long> SUB_LONG_FUNCTION = (Long x, Long y) -> {
+        try {
+            return Math.subtractExact(x, y);
+        } catch (ArithmeticException e) {
+            return y < 0 ? Long.MAX_VALUE : Long.MIN_VALUE;
+        }
+    };
 
     static BiFunction getAddFunction(DataType<?> fstArgDataType, DataType<?> sndArgDataType) {
         switch (fstArgDataType.id()) {

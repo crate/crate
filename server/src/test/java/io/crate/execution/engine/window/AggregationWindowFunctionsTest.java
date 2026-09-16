@@ -418,6 +418,41 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
+    public void test_agg_over_range_with_integral_boundary_overflow() throws Throwable {
+        assertEvaluate(
+            "count(*) OVER (ORDER BY x RANGE BETWEEN CURRENT ROW AND 1 FOLLOWING)",
+            new Object[] { 1L, 1L },
+            List.of(ColumnIdent.of("x")),
+            new Object[] { 0 },
+            new Object[] { Integer.MAX_VALUE }
+        );
+
+        assertEvaluate(
+            "count(*) OVER (ORDER BY x RANGE BETWEEN 1 PRECEDING AND CURRENT ROW)",
+            new Object[] { 1L, 1L },
+            List.of(ColumnIdent.of("x")),
+            new Object[] { Integer.MIN_VALUE },
+            new Object[] { 0 }
+        );
+
+        assertEvaluate(
+            "count(*) OVER (ORDER BY y RANGE BETWEEN CURRENT ROW AND 1 FOLLOWING)",
+            new Object[] { 1L, 1L },
+            List.of(ColumnIdent.of("y")),
+            new Object[] { 0L },
+            new Object[] { Long.MAX_VALUE }
+        );
+
+        assertEvaluate(
+            "count(*) OVER (ORDER BY y RANGE BETWEEN 1 PRECEDING AND CURRENT ROW)",
+            new Object[] { 1L, 1L },
+            List.of(ColumnIdent.of("y")),
+            new Object[] { Long.MIN_VALUE },
+            new Object[] { 0L }
+        );
+    }
+
+    @Test
     public void test_agg_over_range_following() throws Throwable {
         Object[] expected = new Object[]{
             11.5,

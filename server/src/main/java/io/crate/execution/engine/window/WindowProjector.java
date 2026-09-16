@@ -182,8 +182,8 @@ public class WindowProjector {
         BiFunction<Object[], Object[], Object[]> updateProbeValues;
         if (offsetValue != null && framingMode == WindowFrame.Mode.RANGE) {
             BiFunction<DataType<?>, DataType<?>, BiFunction> offsetFn = windowDefinition.orderBy().reverseFlags()[0]
-                ? ArithmeticOperatorsFactory::getSubtractFunction
-                : ArithmeticOperatorsFactory::getAddFunction;
+                ? WindowFrameBoundaryArithmetic::getSubtractFunction
+                : WindowFrameBoundaryArithmetic::getAddFunction;
             updateProbeValues = createUpdateProbeValueFunction(windowDefinition, offsetFn, offsetValue, offsetType);
         } else {
             updateProbeValues = (currentRow, x) -> x;
@@ -214,8 +214,8 @@ public class WindowProjector {
         BiFunction<Object[], Object[], Object[]> updateStartProbeValue;
         if (offsetValue != null && framingMode == WindowFrame.Mode.RANGE) {
             BiFunction<DataType<?>, DataType<?>, BiFunction> offsetFn = windowDefinition.orderBy().reverseFlags()[0]
-                ? ArithmeticOperatorsFactory::getAddFunction
-                : ArithmeticOperatorsFactory::getSubtractFunction;
+                ? WindowFrameBoundaryArithmetic::getAddFunction
+                : WindowFrameBoundaryArithmetic::getSubtractFunction;
             updateStartProbeValue = createUpdateProbeValueFunction(windowDefinition, offsetFn, offsetValue, offsetType);
         } else {
             updateStartProbeValue = (currentRow, x) -> x;
