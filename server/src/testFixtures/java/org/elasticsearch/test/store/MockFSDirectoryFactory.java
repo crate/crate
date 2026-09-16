@@ -68,10 +68,10 @@ public class MockFSDirectoryFactory implements IndexStorePlugin.DirectoryFactory
         Setting.boolSetting("index.store.mock.random.crash_index", true, Property.IndexScope, Property.NodeScope);
 
     @Override
-    public Directory newDirectory(IndexSettings idxSettings, ShardPath path) throws IOException {
+    public Directory newDirectory(IndexSettings idxSettings, ShardPath path, boolean isPrimary) throws IOException {
         Settings indexSettings = idxSettings.getSettings();
         Random random = new Random(idxSettings.getValue(IntegTestCase.INDEX_TEST_SEED_SETTING));
-        return wrap(randomDirectoryService(random, idxSettings, path), random, indexSettings,
+        return wrap(randomDirectoryService(random, idxSettings, path, isPrimary), random, indexSettings,
             path.getShardId());
     }
 
@@ -131,7 +131,7 @@ public class MockFSDirectoryFactory implements IndexStorePlugin.DirectoryFactory
         return w;
     }
 
-    private Directory randomDirectoryService(Random random, IndexSettings indexSettings, ShardPath path) throws IOException {
+    private Directory randomDirectoryService(Random random, IndexSettings indexSettings, ShardPath path, boolean isPrimary) throws IOException {
         final IndexMetadata build = IndexMetadata.builder(indexSettings.getIndexMetadata())
             .settings(Settings.builder()
                 // don't use the settings from indexSettings#getSettings() they are merged with node settings and might contain
@@ -141,7 +141,7 @@ public class MockFSDirectoryFactory implements IndexStorePlugin.DirectoryFactory
                     RandomPicks.randomFrom(random, IndexModule.Type.values()).getSettingsKey()))
             .build();
         final IndexSettings newIndexSettings = new IndexSettings(build, indexSettings.getNodeSettings());
-        return new FsDirectoryFactory().newDirectory(newIndexSettings, path);
+        return new FsDirectoryFactory().newDirectory(newIndexSettings, path, isPrimary);
     }
 
     public static final class ElasticsearchMockDirectoryWrapper extends MockDirectoryWrapper {
