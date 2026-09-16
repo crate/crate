@@ -881,6 +881,25 @@ public abstract class Engine implements Closeable {
     public abstract void rollTranslogGeneration() throws EngineException;
 
     /**
+     * Whether this engine instance is able to serve as a primary, i.e. accept and durably apply
+     * writes. A shard (e.g. one using a read-only engine) being promoted to primary whose current
+     * engine returns {@code false} here must have its engine replaced before it can accept writes.
+     */
+    public boolean canServeAsPrimary() {
+        return true;
+    }
+
+    /**
+     * Called on a shard's current engine when it is about to become primary, before any engine
+     * replacement that {@link #canServeAsPrimary()} returning {@code false} triggers. Gives an
+     * engine backed by storage shared with other copies (e.g. a lock the primary alone may hold) a
+     * chance to switch that storage into primary mode before a new, writable engine opens against
+     * it.
+     */
+    public void prepareForPromotion() {
+    }
+
+    /**
      * Triggers a forced merge on this engine
      */
     public abstract void forceMerge(boolean flush,

@@ -434,6 +434,13 @@ public class IndexShard extends AbstractIndexShardComponent {
                             assert getOperationPrimaryTerm() == newPrimaryTerm;
                             try {
                                 replicationTracker.activatePrimaryMode(getLocalCheckpoint());
+                                // Give the current engine a chance to prepare for becoming primary
+                                // (e.g. switching a lock only the primary may hold)
+                                // before a replacement engine, if one is needed, opens against it.
+                                getEngine().prepareForPromotion();
+                                if (!getEngine().canServeAsPrimary()) {
+                                    resetEngineToGlobalCheckpoint();
+                                }
                                 /*
                                  * If this shard was serving as a replica shard when another shard was promoted to primary then
                                  * its Lucene index was reset during the primary term transition. In particular, the Lucene index
