@@ -166,16 +166,26 @@ public class AccountableList<T> extends AbstractList<T> {
             int newCapacity = newLength(oldCapacity,
                 minCapacity - oldCapacity, /* minimum growth */
                 oldCapacity >> 1           /* preferred growth */);
-            // Same as RamUsageEstimator.shallowSizeOf(array) but without NUM_BYTES_ARRAY_HEADER as we are accounting only for expansion.
-            allocateBytes.accept(RamUsageEstimator.alignObjectSize((long) NUM_BYTES_OBJECT_REF * (newCapacity - oldCapacity)));
+            allocateBytes.accept(calculateAdditionalMem(newCapacity, oldCapacity));
             elementData = Arrays.copyOf(elementData, newCapacity);
         } else {
             int length = Math.max(DEFAULT_CAPACITY, minCapacity);
-            // Inlining RamUsageEstimator.shallowSizeOf(array) since we want to account before allocation.
-            allocateBytes.accept(RamUsageEstimator.alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + (long) NUM_BYTES_OBJECT_REF * length));
+            allocateBytes.accept(shallowSizeOfArray(length));
             elementData = new Object[length];
         }
         return elementData;
+    }
+
+    private static long calculateAdditionalMem(int newCapacity, int oldCapacity) {
+        // NB: Cannot be simplified as: alignObjectSize(OBJECT_REF * (newCapacity - oldCapacity)),
+        // because alignObjectSize() isn't an additive function.
+        // Example is: NUM_BYTES_ARRAY_HEADER = 16, NUM_BYTES_OBJECT_REF = 4, newCapacity = 22, oldCapacity = 15.
+        return shallowSizeOfArray(newCapacity) - shallowSizeOfArray(oldCapacity);
+    }
+
+    // Inlining RamUsageEstimator.shallowSizeOf(array) since we want to account before allocation.
+    private static long shallowSizeOfArray(int length) {
+        return RamUsageEstimator.alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + (long) NUM_BYTES_OBJECT_REF * length);
     }
 
     /**
