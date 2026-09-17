@@ -40,11 +40,11 @@ import org.jspecify.annotations.Nullable;
 public final class StorageIdents {
 
     /**
-     * Matches digits which Lucene uses like a field name. Either quoted, e.g.
-     * {@code DocValuesField "356" is too large} or {@code field="5615"}, or followed by a colon,
-     * e.g. {@code 1:[-9223372036854775808 TO 1741790715]}.
+     * Matches the storage identifiers Lucene names in its messages: digits which are quoted
+     * and introduced by {@code field=} or {@code DocValuesField}, e.g. {@code field="5615"},
+     * or which are followed by a colon, e.g. {@code 1:[-9223372036854775808 TO 1741790715]}.
      */
-    private static final Pattern FIELD_NAME = Pattern.compile("\"(\\d+)\"|\\b(\\d+):");
+    private static final Pattern FIELD_NAME = Pattern.compile("(?<=field=|DocValuesField )\"(\\d+)\"|\\b(\\d+):");
 
     private StorageIdents() {}
 
