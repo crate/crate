@@ -241,6 +241,24 @@ consumption for the particular query.
    The optimizer setting is for advanced use only and can significantly impact
    the performance behavior of the queries.
 
+  The available optimizer rules, together with their current value and a short
+  description, can be listed with:
+
+  .. code-block:: sql
+
+      SELECT name, setting, short_desc
+      FROM pg_catalog.pg_settings
+      WHERE name LIKE 'optimizer%';
+
+  .. WARNING::
+
+     Optimizer rules are prone to changes, they can be renamed, removed or
+     change behaviour between releases, Switching a rule off is considered
+     experimental, as it can make queries considerably slower, or even fail,
+     therefore, rules it should be used as a temporary workaround, for example
+     to work around a bug, or achieve better performance for a specific query,
+     until and the underneath issue is properly fixed.
+
 
 .. _conf-session-optimizer_eliminate_cross_join:
 
