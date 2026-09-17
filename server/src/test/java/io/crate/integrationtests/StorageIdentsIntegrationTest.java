@@ -74,11 +74,13 @@ public class StorageIdentsIntegrationTest extends IntegTestCase {
     @UseRandomizedOptimizerRules(0)
     @SuppressWarnings("unchecked")
     public void test_explain_analyze_names_the_column_instead_of_the_oid() {
-        execute("create table explain_tbl (ts timestamp with time zone)");
-        execute("insert into explain_tbl (ts) values (1741790715000)");
+        // A single shard keeps the term query in the description: shards without a matching
+        // document rewrite it to a MatchNoDocsQuery, which doesn't name a field at all.
+        execute("create table explain_tbl (name text) clustered into 1 shards");
+        execute("insert into explain_tbl (name) values ('foo')");
         execute("refresh table explain_tbl");
 
-        execute("explain analyze select ts from explain_tbl where ts < 1741790716773");
+        execute("explain analyze select name from explain_tbl where name = 'foo'");
 
         Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
         Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
@@ -95,6 +97,6 @@ public class StorageIdentsIntegrationTest extends IntegTestCase {
 
         assertThat(queryDescriptions).isNotEmpty();
         assertThat(queryDescriptions).anySatisfy(
-            description -> assertThat(description).contains("ts:"));
+            description -> assertThat(description).contains("name:"));
     }
 }
