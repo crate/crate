@@ -47,9 +47,9 @@ import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -78,7 +78,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                 Signature.builder(NAME, FunctionType.AGGREGATE)
                         .argumentTypes(T)
                         .returnType(T)
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .typeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T"))
                         .build(),
             ArbitraryAggregation::new
@@ -87,7 +87,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                 Signature.builder(ALIAS, FunctionType.AGGREGATE)
                         .argumentTypes(T)
                         .returnType(T)
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .typeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T"))
                         .build(),
             ArbitraryAggregation::new

@@ -37,8 +37,8 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -50,7 +50,7 @@ public class FunctionTest extends ESTestCase {
     private Signature signature = Signature.builder(randomAsciiLettersOfLength(10), FunctionType.SCALAR)
         .argumentTypes(DataTypes.BOOLEAN.getTypeSignature())
         .returnType(returnType.getTypeSignature())
-        .features(EnumSet.of(Scalar.Feature.DETERMINISTIC, randomFeatures().toArray(Scalar.Feature[]::new)))
+        .features(EnumSet.of(Feature.DETERMINISTIC, randomFeatures().toArray(Signature.Feature[]::new)))
         .build();
 
 
@@ -129,9 +129,9 @@ public class FunctionTest extends ESTestCase {
         assertThat(in.available()).isZero();
     }
 
-    private static Set<Scalar.Feature> randomFeatures() {
-        Set<Scalar.Feature> features = EnumSet.noneOf(Scalar.Feature.class);
-        for (Scalar.Feature feature : Scalar.Feature.values()) {
+    private static Set<Signature.Feature> randomFeatures() {
+        Set<Signature.Feature> features = EnumSet.noneOf(Feature.class);
+        for (Signature.Feature feature : Feature.values()) {
             if (randomBoolean()) {
                 features.add(feature);
             }

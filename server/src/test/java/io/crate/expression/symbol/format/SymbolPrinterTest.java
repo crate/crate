@@ -49,10 +49,10 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
@@ -145,7 +145,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         Signature signature = Signature.builder("agg", FunctionType.AGGREGATE)
                 .argumentTypes(DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.LONG.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build();
         Aggregation a = new Aggregation(
             signature,

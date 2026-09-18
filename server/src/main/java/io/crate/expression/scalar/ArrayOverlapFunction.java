@@ -32,6 +32,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
@@ -45,7 +46,7 @@ public class ArrayOverlapFunction extends Scalar<Boolean, List<Object>> {
             TypeSignature.ARRAY_E)
         .returnType(DataTypes.BOOLEAN.getTypeSignature())
         .typeVariableConstraints(TypeVariableConstraint.E)
-        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NOTNULL)
+        .features(Feature.DETERMINISTIC, Feature.NOTNULL)
         .build();
 
     public static void register(Functions.Builder module) {

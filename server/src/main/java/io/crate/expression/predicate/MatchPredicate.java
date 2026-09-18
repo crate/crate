@@ -73,9 +73,9 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -103,7 +103,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
             DataTypes.STRING.getTypeSignature(),
             DataTypes.UNTYPED_OBJECT.getTypeSignature())
         .returnType(DataTypes.BOOLEAN.getTypeSignature())
-        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NOTNULL)
+        .features(Feature.DETERMINISTIC, Feature.NOTNULL)
         .build();
 
     public static final Signature GEO_MATCH = Signature.builder(NAME, FunctionType.SCALAR)
@@ -112,7 +112,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
             DataTypes.STRING.getTypeSignature(),
             DataTypes.UNTYPED_OBJECT.getTypeSignature())
         .returnType(DataTypes.BOOLEAN.getTypeSignature())
-        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NOTNULL)
+        .features(Feature.DETERMINISTIC, Feature.NOTNULL)
         .build();
 
 

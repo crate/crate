@@ -21,8 +21,8 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.metadata.Scalar.Feature.DETERMINISTIC;
-import static io.crate.metadata.Scalar.Feature.STRICTNULL;
+import static io.crate.metadata.functions.Signature.Feature.DETERMINISTIC;
+import static io.crate.metadata.functions.Signature.Feature.STRICTNULL;
 
 import java.util.Collection;
 import java.util.EnumSet;

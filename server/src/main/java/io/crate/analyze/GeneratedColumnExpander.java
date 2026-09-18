@@ -51,8 +51,8 @@ import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.functions.Signature.Feature;
 
 public final class GeneratedColumnExpander {
 
@@ -191,7 +191,7 @@ public final class GeneratedColumnExpander {
 
                 String operatorName = function.name();
                 if (!operatorName.equals(EqOperator.NAME)) {
-                    if (!generatedFunction.signature().hasFeature(Scalar.Feature.COMPARISON_REPLACEMENT)) {
+                    if (!generatedFunction.signature().hasFeature(Feature.COMPARISON_REPLACEMENT)) {
                         return null;
                     }
                     // rewrite operator

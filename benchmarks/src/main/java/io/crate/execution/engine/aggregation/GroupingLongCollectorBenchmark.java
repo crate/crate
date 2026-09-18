@@ -73,8 +73,8 @@ import io.crate.memory.MemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 import io.netty.util.collection.LongObjectHashMap;
@@ -101,7 +101,7 @@ public class GroupingLongCollectorBenchmark {
                     Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
                             .argumentTypes(DataTypes.INTEGER.getTypeSignature())
                             .returnType(DataTypes.LONG.getTypeSignature())
-                            .features(Scalar.Feature.DETERMINISTIC)
+                            .features(Feature.DETERMINISTIC)
                             .build(),
                     List.of(DataTypes.INTEGER),
                     DataTypes.INTEGER

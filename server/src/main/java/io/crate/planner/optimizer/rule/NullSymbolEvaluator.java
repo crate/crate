@@ -40,6 +40,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature.Feature;
 
 final class NullSymbolEvaluator extends SymbolVisitor<Void, Symbol> {
 
@@ -110,7 +111,7 @@ final class NullSymbolEvaluator extends SymbolVisitor<Void, Symbol> {
         }
         if (!allResolved) {
             if (atLeastOneNull) {
-                if (function.signature().hasFeature(Scalar.Feature.STRICTNULL)) {
+                if (function.signature().hasFeature(Feature.STRICTNULL)) {
                     // Function is unresolved, but having at least one null argument is enough to make it NULL
                     return Literal.NULL;
                 }

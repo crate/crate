@@ -34,6 +34,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -60,7 +61,7 @@ public final class RoundFunction {
                 Signature.builder(NAME, FunctionType.SCALAR)
                     .argumentTypes(typeSignature)
                     .returnType(returnType.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .build(),
                 (signature, boundSignature) -> {
                     if (returnType.equals(DataTypes.INTEGER)) {
@@ -86,7 +87,7 @@ public final class RoundFunction {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) -> new UnaryScalar<>(
                 signature,
@@ -101,7 +102,7 @@ public final class RoundFunction {
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             RoundFunction::roundWithPrecision
         );

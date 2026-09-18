@@ -33,8 +33,8 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.testing.PlainRamAccounting;
@@ -82,7 +82,7 @@ public class ArrayAggTest extends AggregationTestCase {
             Signature.builder(ArrayAgg.NAME, FunctionType.AGGREGATE)
                 .argumentTypes(TypeSignature.E)
                 .returnType(TypeSignature.ARRAY_E)
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             List.of(DataTypes.STRING),
@@ -105,7 +105,7 @@ public class ArrayAggTest extends AggregationTestCase {
             Signature.builder(ArrayAgg.NAME, FunctionType.AGGREGATE)
                 .argumentTypes(TypeSignature.E)
                 .returnType(TypeSignature.ARRAY_E)
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             List.of(DataTypes.STRING),
