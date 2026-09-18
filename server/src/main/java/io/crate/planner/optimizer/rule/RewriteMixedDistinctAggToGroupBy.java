@@ -36,10 +36,11 @@ import io.crate.execution.engine.aggregation.sum.SumAggregation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
+import io.crate.planner.operators.DistinctRewriter.CollectSet;
+import io.crate.planner.operators.DistinctRewriter.GroupByPartials;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.HashAggregate;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.SplitDistinctAggregate;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -102,7 +103,7 @@ public final class RewriteMixedDistinctAggToGroupBy implements Rule<HashAggregat
     /// * there is a filter
     /// * there are and scalar-expression aggregate arguments (only plain columns, or `count(*)`).
     private static boolean matches(HashAggregate agg) {
-        if (agg.distinctMode() != HashAggregate.DistinctMode.COLLECT_SET) {
+        if (!(agg.distinctRewriter() instanceof CollectSet)) {
             return false;
         }
 
@@ -153,7 +154,7 @@ public final class RewriteMixedDistinctAggToGroupBy implements Rule<HashAggregat
         // List of partial aggregates that go into the GroupHashAggregate.
         // For example, `AVG(x)` needs two partial aggregates, `SUM(X)` and `COUNT(x)`,
         // that are then used to calculate the global `AVG(x)`.
-        List<Function> partials = SplitDistinctAggregate.partials(aggregate.aggregates(), context.txnCtx(), context.nodeCtx());
+        List<Function> partials = new GroupByPartials().partials(aggregate.aggregates(), context.txnCtx(), context.nodeCtx());
         if (partials == null) {
             return null;
         }
@@ -164,7 +165,7 @@ public final class RewriteMixedDistinctAggToGroupBy implements Rule<HashAggregat
             List.of(distinctColumn),
             partials
         );
-        return new HashAggregate(inner, aggregate.aggregates(), HashAggregate.DistinctMode.SPLIT_AND_MERGE);
+        return new HashAggregate(inner, aggregate.aggregates(), new GroupByPartials());
     }
 
     /// True, if this rule can be applied.
