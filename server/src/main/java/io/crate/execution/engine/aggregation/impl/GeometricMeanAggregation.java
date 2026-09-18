@@ -49,9 +49,9 @@ import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -80,7 +80,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
                     Signature.builder(NAME, FunctionType.AGGREGATE)
                             .argumentTypes(supportedType.getTypeSignature())
                             .returnType(DataTypes.DOUBLE.getTypeSignature())
-                            .features(Scalar.Feature.DETERMINISTIC)
+                            .features(Feature.DETERMINISTIC)
                             .build(),
                     GeometricMeanAggregation::new
             );

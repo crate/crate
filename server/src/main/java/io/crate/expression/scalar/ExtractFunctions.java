@@ -47,8 +47,8 @@ import org.joda.time.chrono.ISOChronology;
 
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.sql.tree.Extract;
 import io.crate.types.DataTypes;
 
@@ -84,7 +84,7 @@ public class ExtractFunctions {
                     Signature.builder(functionNameFrom(entry.extractField()), FunctionType.SCALAR)
                         .argumentTypes(argType.getTypeSignature())
                         .returnType(DataTypes.INTEGER.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                        .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                         .build(),
                     (signature, boundSignature) ->
                         new UnaryScalar<Number, Long>(signature, boundSignature, argType, dtf::get)
@@ -95,7 +95,7 @@ public class ExtractFunctions {
                 Signature.builder(functionNameFrom(EPOCH), FunctionType.SCALAR)
                     .argumentTypes(argType.getTypeSignature())
                     .returnType(DataTypes.DOUBLE.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .build(),
                 (signature, boundSignature) ->
                     new UnaryScalar<>(signature, boundSignature, argType, v -> (double) v / 1000)
@@ -119,7 +119,7 @@ public class ExtractFunctions {
                 Signature.builder(functionNameFrom(entry.extractField()), FunctionType.SCALAR)
                     .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
                     .returnType(DataTypes.INTEGER.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .build(),
                 (signature, boundSignature) ->
                     new UnaryScalar<Number, Period>(signature, boundSignature, DataTypes.INTERVAL, function::apply)
@@ -130,7 +130,7 @@ public class ExtractFunctions {
             Signature.builder(functionNameFrom(EPOCH), FunctionType.SCALAR)
                 .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.INTERVAL, ExtractFunctions::toMillis)

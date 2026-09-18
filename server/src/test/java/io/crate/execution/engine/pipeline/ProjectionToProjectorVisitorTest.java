@@ -79,10 +79,10 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 
@@ -116,7 +116,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         avgSignature = Signature.builder("avg", FunctionType.AGGREGATE)
                 .argumentTypes(DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build();
     }
 

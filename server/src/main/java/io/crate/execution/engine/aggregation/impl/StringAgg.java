@@ -40,9 +40,9 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -59,7 +59,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
                     .argumentTypes(DataTypes.STRING.getTypeSignature(),
                             DataTypes.STRING.getTypeSignature())
                     .returnType(DataTypes.STRING.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.ORDER_SENSITIVE)
+                    .features(Feature.DETERMINISTIC, Feature.ORDER_SENSITIVE)
                     .build();
 
 

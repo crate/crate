@@ -119,9 +119,9 @@ import io.crate.memory.MemoryManager;
 import io.crate.memory.MemoryManagerFactory;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Routing;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.operators.PKAndVersion;
@@ -1066,7 +1066,7 @@ public class JobSetup {
 
     private boolean isOrderSensitive(List<Aggregation> aggregations) {
         for (Aggregation aggregation : aggregations) {
-            if (aggregation.signature().hasFeature(Scalar.Feature.ORDER_SENSITIVE)) {
+            if (aggregation.signature().hasFeature(Feature.ORDER_SENSITIVE)) {
                 return true;
             }
         }

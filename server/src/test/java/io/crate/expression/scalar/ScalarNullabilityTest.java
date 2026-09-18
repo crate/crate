@@ -35,6 +35,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -54,7 +55,7 @@ public class ScalarNullabilityTest {
     public void test_nullability_scalars_return_null_on_null_input() {
         var numberOfFunctionsToTested = 0;
         for (var signature : functions.signatures()) {
-            if (signature.hasFeature(Scalar.Feature.STRICTNULL)) {
+            if (signature.hasFeature(Feature.STRICTNULL)) {
                 // Using this::getDataType instead of signature.getArgumentDataTypes to handle generics as string
                 List<DataType<?>> argumentTypes = Lists.map(signature.getArgumentTypes(), this::getDataType);
                 var function = functions.getQualified(
@@ -79,7 +80,7 @@ public class ScalarNullabilityTest {
     public void test_non_nullability_scalars_return_not_null_on_null_input() {
         var numberOfFunctionsToTested = 0;
         for (var signature : functions.signatures()) {
-            if (signature.hasFeature(Scalar.Feature.NOTNULL)) {
+            if (signature.hasFeature(Feature.NOTNULL)) {
                 // Using this::getDataType instead of signature.getArgumentDataTypes to handle generics as string
                 List<DataType<?>> argumentTypes = Lists.map(signature.getArgumentTypes(), this::getDataType);
                 var function = functions.getQualified(

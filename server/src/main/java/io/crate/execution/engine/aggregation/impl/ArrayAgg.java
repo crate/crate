@@ -34,9 +34,9 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -48,7 +48,7 @@ public class ArrayAgg extends AggregationFunction<List<Object>, List<Object>> {
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.AGGREGATE)
         .argumentTypes(TypeSignature.E)
         .returnType(TypeSignature.ARRAY_E)
-        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.ORDER_SENSITIVE)
+        .features(Feature.DETERMINISTIC, Feature.ORDER_SENSITIVE)
         .typeVariableConstraints(TypeVariableConstraint.E)
         .build();
 

@@ -43,6 +43,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;

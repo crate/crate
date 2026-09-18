@@ -33,9 +33,9 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.testing.PlainRamAccounting;
 import io.crate.types.DataTypes;
@@ -106,7 +106,7 @@ public class StringAggTest extends AggregationTestCase {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build(),
             List.of(DataTypes.STRING),
             DataTypes.STRING

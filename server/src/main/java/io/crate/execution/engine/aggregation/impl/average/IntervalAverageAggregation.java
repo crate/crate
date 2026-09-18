@@ -49,9 +49,9 @@ import io.crate.execution.engine.aggregation.impl.util.OverflowAwareMutableLong;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
@@ -71,7 +71,7 @@ public class IntervalAverageAggregation extends AggregationFunction<IntervalAver
                     Signature.builder(functionName, FunctionType.AGGREGATE)
                             .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
                             .returnType(DataTypes.INTERVAL.getTypeSignature())
-                            .features(Scalar.Feature.DETERMINISTIC)
+                            .features(Feature.DETERMINISTIC)
                             .build(),
                     IntervalAverageAggregation::new
             );

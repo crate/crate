@@ -36,9 +36,9 @@ import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
@@ -166,7 +166,7 @@ public class NthValueFunctions implements WindowFunction {
             Signature.builder(FIRST_VALUE_NAME, FunctionType.WINDOW)
                 .argumentTypes(TypeSignature.E)
                 .returnType(TypeSignature.E)
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             (signature, boundSignature) ->
@@ -181,7 +181,7 @@ public class NthValueFunctions implements WindowFunction {
             Signature.builder(LAST_VALUE_NAME, FunctionType.WINDOW)
                 .argumentTypes(TypeSignature.E)
                 .returnType(TypeSignature.E)
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             (signature, boundSignature) ->
@@ -197,7 +197,7 @@ public class NthValueFunctions implements WindowFunction {
                 .argumentTypes(TypeSignature.E,
                     DataTypes.INTEGER.getTypeSignature())
                 .returnType(TypeSignature.E)
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             (signature, boundSignature) ->

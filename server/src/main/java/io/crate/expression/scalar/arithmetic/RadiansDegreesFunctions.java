@@ -27,8 +27,8 @@ import ch.obermuhlner.math.big.BigDecimalMath;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
 
 public class RadiansDegreesFunctions {
@@ -38,7 +38,7 @@ public class RadiansDegreesFunctions {
             Signature.builder("radians", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, Math::toRadians));
@@ -46,7 +46,7 @@ public class RadiansDegreesFunctions {
             Signature.builder("radians", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
@@ -59,7 +59,7 @@ public class RadiansDegreesFunctions {
             Signature.builder("degrees", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, Math::toDegrees));
@@ -67,7 +67,7 @@ public class RadiansDegreesFunctions {
             Signature.builder("degrees", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(

@@ -42,8 +42,8 @@ import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.testing.PlainRamAccounting;
 import io.crate.types.DataType;
@@ -57,7 +57,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
                         .argumentTypes(argumentType.getTypeSignature(),
                                 DataTypes.DOUBLE.getTypeSignature())
                         .returnType(DataTypes.DOUBLE.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 rows,
                 List.of()
@@ -70,7 +70,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
                         .argumentTypes(argumentType.getTypeSignature(),
                                 DataTypes.DOUBLE_ARRAY.getTypeSignature())
                         .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 rows,
                 List.of()
@@ -87,7 +87,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
                         .argumentTypes(DataTypes.DOUBLE.getTypeSignature(),
                                 DataTypes.DOUBLE.getTypeSignature())
                         .returnType(DataTypes.DOUBLE.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 List.of(DataTypes.DOUBLE, DataTypes.DOUBLE),
                 DataTypes.DOUBLE
@@ -97,7 +97,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
                         .argumentTypes(DataTypes.DOUBLE.getTypeSignature(),
                                 DataTypes.DOUBLE_ARRAY.getTypeSignature())
                         .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 List.of(DataTypes.DOUBLE, DataTypes.DOUBLE_ARRAY),
                 DataTypes.DOUBLE_ARRAY
@@ -247,7 +247,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
                         .argumentTypes(DataTypes.LONG.getTypeSignature(),
                                 DataTypes.DOUBLE_ARRAY.getTypeSignature())
                         .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY),
                 DataTypes.DOUBLE_ARRAY
@@ -271,7 +271,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
                         .argumentTypes(DataTypes.LONG.getTypeSignature(),
                                 DataTypes.DOUBLE_ARRAY.getTypeSignature())
                         .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY),
                 DataTypes.DOUBLE_ARRAY
@@ -297,7 +297,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature())
             .returnType(DataTypes.DOUBLE.getTypeSignature())
-            .features(Scalar.Feature.DETERMINISTIC)
+            .features(Feature.DETERMINISTIC)
             .build();
         var impl = (AggregationFunction<Object, ?>) nodeCtx.functions().getQualified(
             signature,
@@ -333,7 +333,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature())
             .returnType(DataTypes.DOUBLE.getTypeSignature())
-            .features(Scalar.Feature.DETERMINISTIC)
+            .features(Feature.DETERMINISTIC)
             .build();
 
         double fraction = 0.5;

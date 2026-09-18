@@ -37,7 +37,6 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TableInfo;
 import io.crate.protocols.postgres.parser.PgArrayParsingException;
 import io.crate.sql.tree.ColumnPolicy;

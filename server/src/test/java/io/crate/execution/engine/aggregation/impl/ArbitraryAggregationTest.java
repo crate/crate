@@ -30,9 +30,9 @@ import org.junit.Test;
 
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -44,7 +44,7 @@ public class ArbitraryAggregationTest extends AggregationTestCase {
                 Signature.builder(ArbitraryAggregation.NAME, FunctionType.AGGREGATE)
                         .argumentTypes(argumentType.getTypeSignature())
                         .returnType(argumentType.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 data,
                 List.of()
@@ -141,7 +141,7 @@ public class ArbitraryAggregationTest extends AggregationTestCase {
         Signature aggregate = Signature.builder("any_value", FunctionType.AGGREGATE)
                 .argumentTypes(DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.INTEGER.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build();
         Object result = executeAggregation(aggregate, new Object[][] { new Object[] { 1 } }, List.of());
         assertThat(result).isEqualTo(1);
