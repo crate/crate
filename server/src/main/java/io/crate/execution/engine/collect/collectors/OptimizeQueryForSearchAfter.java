@@ -30,6 +30,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 
 import io.crate.analyze.OrderBy;
+import io.crate.execution.engine.sort.NullAwareNumber;
 import io.crate.expression.reference.doc.lucene.NullSentinelValues;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -71,7 +72,11 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
                     return null;
                 }
                 boolean nullsFirst = orderBy.nullsFirst()[i];
-                value = value == null || value.equals(missingValues[i]) ? null : value;
+                if (value instanceof NullAwareNumber nullAwareNumber) {
+                    value = nullAwareNumber.isNull() ? null : ref.valueType().sanitizeValue(nullAwareNumber.value());
+                } else {
+                    value = value == null || value.equals(missingValues[i]) ? null : value;
+                }
                 if (nullsFirst && value == null) {
                     // no filter needed
                     continue;

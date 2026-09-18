@@ -63,3 +63,7 @@ Fixes
   <information_schema_columns>` table. Now it returns the defined ``scale`` for
   ``NUMERIC``, ``0`` for integral numeric types (``BYTE``, ``SHORT``,
   ``INTEGER``, ``LONG``) and ``NULL`` for all other types.
+
+- Fixed an issue where :ref:`ORDER BY <sql-select-order-by>` misinterpreted
+  :ref:`REAL <type-real>` and :ref:`DOUBLE PRECISION <type-double-precision>`
+  values of ``Infinity`` as ``NULL``.

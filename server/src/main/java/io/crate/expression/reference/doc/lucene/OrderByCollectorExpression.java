@@ -26,6 +26,7 @@ import java.util.function.UnaryOperator;
 import org.apache.lucene.search.FieldDoc;
 
 import io.crate.analyze.OrderBy;
+import io.crate.execution.engine.sort.NullAwareNumber;
 import io.crate.metadata.Reference;
 
 /**
@@ -48,7 +49,11 @@ public class OrderByCollectorExpression extends LuceneCollectorExpression<Object
     }
 
     private void value(Object value) {
-        if (missingValue != null && missingValue.equals(value)) {
+        if (value instanceof NullAwareNumber nullAwareNumber) {
+            this.value = nullAwareNumber.isNull()
+                ? null
+                : valueConversion.apply(nullAwareNumber.value());
+        } else if (missingValue != null && missingValue.equals(value)) {
             this.value = null;
         } else {
             this.value = valueConversion.apply(value);
