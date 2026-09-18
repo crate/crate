@@ -349,10 +349,15 @@ public class ExpressionAnalyzer {
             validateFrame(window, windowFrame);
             FrameBound start = windowFrame.getStart();
             FrameBoundDefinition startBound = convertToAnalyzedFrameBound(context, start);
-
+            if (startBound.value().valueType().id() == DataTypes.NUMERIC.id()) {
+                throw new IllegalArgumentException("Window frame bounds of type numeric are not supported");
+            }
             FrameBoundDefinition endBound = windowFrame.getEnd()
                 .map(end -> convertToAnalyzedFrameBound(context, end))
                 .orElse(new FrameBoundDefinition(FrameBound.Type.CURRENT_ROW, Literal.NULL));
+            if (endBound.value().valueType().id() == DataTypes.NUMERIC.id()) {
+                throw new IllegalArgumentException("Window frame bounds of type numeric are not supported");
+            }
             windowFrameDefinition = new WindowFrameDefinition(windowFrame.mode(), startBound, endBound);
         }
 
