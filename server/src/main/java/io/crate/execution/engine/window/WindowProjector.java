@@ -252,8 +252,7 @@ public class WindowProjector {
                 : "ORDER BY expression must resolve to an InputColumn, but got: " + orderSymbol;
             offsetColumnPosition = ((InputColumn) orderSymbol).index();
         }
-        var finalOffsetValue =
-            offsetType.id() == IntervalType.ID ? offsetType.sanitizeValue(offsetValue) : orderSymbol.valueType().sanitizeValue(offsetValue);
+        var finalOffsetValue = offsetType.id() == IntervalType.ID ? offsetType.sanitizeValue(offsetValue) : offsetValue;
         return (currentRow, x) -> {
             // if the offsetCell position is -1 the window is ordered by a Literal so we leave the
             // probe value to null so it doesn't impact ordering (ie. all values will be consistently GT or LT
