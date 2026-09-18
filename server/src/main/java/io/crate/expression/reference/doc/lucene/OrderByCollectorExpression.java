@@ -21,12 +21,18 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import java.io.IOException;
 import java.util.function.UnaryOperator;
 
 import org.apache.lucene.search.FieldDoc;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
+import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.Reference;
+import io.crate.types.DataType;
+import io.crate.types.DoubleType;
+import io.crate.types.FloatType;
 
 /**
  * A {@link LuceneCollectorExpression} is used to collect
@@ -37,10 +43,34 @@ public class OrderByCollectorExpression extends LuceneCollectorExpression<Object
     private final int orderIndex;
     private final UnaryOperator<Object> valueConversion;
     private final Object missingValue;
+    // Some References use sentinel values in the FieldDocs to represent nulls, and in some cases
+    // the sentinel value is also itself a valid value that can be stored in that column type (e.g.
+    // REAL and DOUBLE). In these cases, we need to look up and return the actual value stored
+    // in the document, and `docValueSource` will be non-null.
+    // When there is no ambiguity whether the Sentinel value represents NULL (e.g.
+    // BigInt - the sentinel value is out of range for the type), it is unnecessary
+    // to look up the value in the document because it can be safely inferred
+    // from the FieldDocs and therefore docValueSource is null.
+    private final NumericColumnReference<?> docValueSource;
+    private boolean ambiguous;
 
     private Object value;
 
+    @Nullable
+    private static NumericColumnReference<?> docValueSourceFor(Reference ref) {
+        DataType<?> dataType = ref.valueType();
+        switch (dataType.id()) {
+            case DoubleType.ID:
+                return new DoubleColumnReference(ref.storageIdent());
+            case FloatType.ID:
+                return new FloatColumnReference(ref.storageIdent());
+            default:
+                return null;
+        }
+    }
+
     public OrderByCollectorExpression(Reference ref, OrderBy orderBy, UnaryOperator<Object> valueConversion) {
+        this.docValueSource = docValueSourceFor(ref);
         this.valueConversion = valueConversion;
         assert orderBy.orderBySymbols().contains(ref) : "symbol must be part of orderBy symbols";
         orderIndex = orderBy.orderBySymbols().indexOf(ref);
@@ -48,10 +78,30 @@ public class OrderByCollectorExpression extends LuceneCollectorExpression<Object
     }
 
     private void value(Object value) {
+        ambiguous = false;
         if (missingValue != null && missingValue.equals(value)) {
-            this.value = null;
+            // Cannot distinguish if the value stored in the document actually equals
+            // the sentinel value (missingValue) or is null.
+            // Mark this row as ambiguous to look up the value in the document later
+            // after the caller of OrderByCollectorExpression advances the docValueSource
+            // reader "pointer"
+            ambiguous = true;
         } else {
             this.value = valueConversion.apply(value);
+        }
+    }
+
+    @Override
+    public void setNextReader(ReaderContext ctx) throws IOException {
+        if (ambiguous && docValueSource != null) {
+            docValueSource.setNextReader(ctx);
+        }
+    }
+
+    @Override
+    public void setNextDocId(int doc) {
+        if (ambiguous && docValueSource != null) {
+            docValueSource.setNextDocId(doc);
         }
     }
 
@@ -61,6 +111,13 @@ public class OrderByCollectorExpression extends LuceneCollectorExpression<Object
 
     @Override
     public Object value() {
+        if (ambiguous) {
+            if (docValueSource != null) {
+                Object actualValue = docValueSource.value();
+                return actualValue == null ? null : valueConversion.apply(actualValue);
+            }
+            return null;
+        }
         return value;
     }
 
