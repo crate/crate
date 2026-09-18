@@ -62,18 +62,22 @@ public class HashAggregate extends ForwardingLogicalPlan {
     private static final String MERGE_PHASE_NAME = "mergeOnHandler";
     final List<Function> aggregates;
 
-    /// The `distinct` flag in the functions might still need to be rewritten, if an optimizer rule
-    /// didn't already take care of it by deduplicating the source.
-    private final boolean rewriteDistinct;
+    /// How the `distinct` flag in `aggregates` is implemented in the **execution** plan.
+    /// The `aggregates`/`outputs()` are unaffected by this in every case.
+    private final DistinctRewriter distinctRewriter;
 
     public HashAggregate(LogicalPlan source, List<Function> aggregates) {
-        this(source, aggregates, true);
+        this(source, aggregates, new DistinctRewriter.CollectSet());
     }
 
-    public HashAggregate(LogicalPlan source, List<Function> aggregates, boolean rewriteDistinct) {
+    public HashAggregate(LogicalPlan source, List<Function> aggregates, DistinctRewriter distinctRewriter) {
         super(source);
         this.aggregates = aggregates;
-        this.rewriteDistinct = rewriteDistinct;
+        this.distinctRewriter = distinctRewriter;
+    }
+
+    public DistinctRewriter distinctRewriter() {
+        return distinctRewriter;
     }
 
     @Override
@@ -99,14 +103,13 @@ public class HashAggregate extends ForwardingLogicalPlan {
         AggregationOutputValidator.validateOutputs(aggregates);
         var paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
-        DistinctRewriter.Result rewritten = rewriteDistinct
-            ? DistinctRewriter.rewrite(
-                aggregates,
-                aggregates,
-                paramBinder,
-                plannerContext.transactionContext(),
-                plannerContext.nodeContext())
-            : DistinctRewriter.noop(aggregates);
+        DistinctRewriter.Result rewritten = distinctRewriter.rewrite(
+            aggregates,
+            aggregates,
+            paramBinder,
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext()
+        );
 
         var sourceOutputs = source.outputs();
         if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {
@@ -201,7 +204,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new HashAggregate(Lists.getOnlyElement(sources), aggregates, rewriteDistinct);
+        return new HashAggregate(Lists.getOnlyElement(sources), aggregates, distinctRewriter);
     }
 
     @Override
@@ -210,6 +213,19 @@ public class HashAggregate extends ForwardingLogicalPlan {
         ArrayList<Function> newAggregates = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
             Symbols.intersection(outputToKeep, aggregates, newAggregates::add);
+        }
+        if (distinctRewriter instanceof DistinctRewriter.GroupByPartials) {
+            // `source` is a `GroupHashAggregate` producing the partials this operator recombines.
+            // `avg(x)`'s argument `x` doesn't appear in `source.outputs()` any more, only
+            // the `sum(x)`/`count(x)` partials do.
+            // So leave `source` untouched instead of pruning it.
+            if (newAggregates.size() == aggregates.size()) {
+                return this;
+            }
+            List<Function> prunedOutputs = Lists.intersection(aggregates, newAggregates);
+            HashAggregate newPlan = new HashAggregate(source, prunedOutputs, distinctRewriter);
+            validateOutputsOrder(newPlan.outputs());
+            return newPlan;
         }
         // Trying to prune source with a narrower list of outputs:
         // outputsToKeep ∩ aggregates ∩ source.outputs()
@@ -222,7 +238,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
             return this;
         }
         List<Function> prunedOutputs = Lists.intersection(aggregates, newAggregates);
-        HashAggregate newPlan = new HashAggregate(newSource, prunedOutputs, rewriteDistinct);
+        HashAggregate newPlan = new HashAggregate(newSource, prunedOutputs, distinctRewriter);
         validateOutputsOrder(newPlan.outputs());
         return newPlan;
     }
