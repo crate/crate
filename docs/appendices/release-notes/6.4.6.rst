@@ -108,3 +108,7 @@ Fixes
 - Fixed an issue that caused ``WHERE distance(p, ...) IS NULL`` to fail with an
   ``IndexOutOfBoundsException``, and comparisons like
   ``WHERE distance(p, NULL) > 100`` to fail with a ``NullPointerException``.
+
+- Fixed an issue where :ref:`ORDER BY <sql-select-order-by>` using a
+  :ref:`REAL <type-real>` or :ref:`DOUBLE PRECISION <type-double-precision>`
+  column returned values of ``Infinity`` as ``NULL``.
