@@ -90,12 +90,12 @@ public class ArrayAggTest extends AggregationTestCase {
         );
         RamAccounting ramAccounting = new PlainRamAccounting();
         Object state = impl.newState(ramAccounting, Version.CURRENT, memoryManager);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(24L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(32L);
         impl.iterate(ramAccounting, memoryManager, state, Literal.of("trillian"));
         impl.iterate(ramAccounting, memoryManager, state, Literal.of("arthur"));
-        assertThat(ramAccounting.totalBytes()).isEqualTo(136L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(200L);
         impl.terminatePartial(ramAccounting, state);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(136L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(200L);
     }
 
     @SuppressWarnings("unchecked")
@@ -114,16 +114,16 @@ public class ArrayAggTest extends AggregationTestCase {
         var impl = (AggregationFunction<Object, Object>) agg.optimizeForExecutionAsWindowFunction(Version.CURRENT);
         RamAccounting ramAccounting = new PlainRamAccounting();
         Object state = impl.newState(ramAccounting, Version.CURRENT, memoryManager);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(24L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(32);
         impl.iterate(ramAccounting, memoryManager, state, Literal.of("trillian"));
         impl.iterate(ramAccounting, memoryManager, state, Literal.of("arthur"));
         impl.iterate(ramAccounting, memoryManager, state, Literal.of("john"));
-        assertThat(ramAccounting.totalBytes()).isEqualTo(184L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(248);
 
         impl.removeFromAggregatedState(ramAccounting, state, new Input[] { Literal.of("trillian") });
-        assertThat(ramAccounting.totalBytes()).isEqualTo(128L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(192);
 
         impl.terminatePartial(ramAccounting, state);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(152L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(216);
     }
 }
