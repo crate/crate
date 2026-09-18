@@ -109,6 +109,11 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 "  b text default 'hello'," +
                 "  c int" +
                 ")"
+            ).addTable(
+                "create table doc.no_pk (" +
+                    "  id int," +
+                    "  name text" +
+                    ")"
             );
     }
 
@@ -653,5 +658,34 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             """))
                 .isInstanceOf(ColumnValidationException.class)
                 .hasMessageContaining("Updating a primary key is not supported");
+    }
+
+    @Test
+    public void testOnConflictDoUpdateCanAssignNestedPrimaryKeyToExcludedPrimaryKey() {
+        e.analyze("""
+            insert into doc.nested (o, x)
+            values ('{"id": 1}', 1)
+            on conflict (o['id'])
+            do update set o['id'] = excluded.o['id'], x = excluded.x
+            """);
+    }
+
+    @Test
+    public void testOnConflictDoUpdateCanAssignCompositePrimaryKeyToExcludedPrimaryKey() {
+        e.analyze("""
+            insert into three_pk (a, b, c, d)
+            values (1, 2, 3, 10)
+            on conflict (a, b, c)
+            do update set a = excluded.a, b = excluded.b, c = excluded.c, d = excluded.d
+            """);
+    }
+
+    @Test
+    public void testOnConflictDoUpdateTableWithNoDeclaredPrimaryKey() {
+        e.analyze("""
+            insert into doc.no_pk (id, name)
+            values (1, 'Varun')
+            on conflict (_id) do update set _id = excluded._id
+            """);
     }
 }

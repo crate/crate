@@ -67,6 +67,8 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.StringLiteral;
+import io.crate.sql.tree.SubscriptExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -154,7 +156,10 @@ class InsertAnalyzer {
         );
 
         final boolean ignoreDuplicateKeys =
-            insert.duplicateKeyContext().getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_NOTHING;
+            insert.duplicateKeyContext().getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_NOTHING
+                || (insert.duplicateKeyContext().getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_UPDATE_SET
+                && insert.duplicateKeyContext().getAssignments().isEmpty() == false
+                && onDuplicateKeyAssignments.isEmpty());
 
         List<Symbol> returnValues;
         if (insert.returningClause().isEmpty()) {
@@ -320,7 +325,7 @@ class InsertAnalyzer {
         Map<Reference, Symbol> updateAssignments = HashMap.newHashMap(duplicateKeyContext.getAssignments().size());
         for (Assignment<Expression> assignment : duplicateKeyContext.getAssignments()) {
             if (duplicateKeyContext.getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_UPDATE_SET
-                && isNoopPrimaryKeyAssignment(assignment, targetTable)) {
+                && isPrimaryKeySelfAssignment(assignment, targetTable.tableInfo().primaryKey())) {
                 continue;
             }
             Reference targetCol = (Reference) exprAnalyzer.convert(assignment.columnName(), exprCtx);
@@ -358,21 +363,22 @@ class InsertAnalyzer {
         );
     }
 
-    private static boolean isNoopPrimaryKeyAssignment(Assignment<Expression> assignment, DocTableRelation targetTable) {
-
-        if (!(assignment.columnName() instanceof QualifiedNameReference targetRef)
-            || !(assignment.expression() instanceof QualifiedNameReference valueRef)) {
-            return false;
+    private static boolean isPrimaryKeySelfAssignment(Assignment<Expression> assignment,
+                                                      List<ColumnIdent> primaryKey) {
+        for (ColumnIdent pk : primaryKey) {
+            if (pk.toExpression().equals(assignment.columnName())
+                && excludedExpression(pk).equals(assignment.expression())) {
+                return true;
+            }
         }
+        return false;
+    }
 
-        List<String> targetParts = targetRef.getName().getParts();
-        List<String> valueParts = valueRef.getName().getParts();
-        if (targetParts.size() != 1 || valueParts.size() != 2 || !"excluded".equals(valueParts.get(0))) {
-            return false;
+    private static Expression excludedExpression(ColumnIdent column) {
+        Expression expression = new QualifiedNameReference(QualifiedName.of("excluded", column.name()));
+        for (String child : column.path()) {
+            expression = new SubscriptExpression(expression, new StringLiteral(child));
         }
-        ColumnIdent targetColumn = ColumnIdent.of(targetParts.get(0));
-        ColumnIdent excludedColumn = ColumnIdent.of(valueParts.get(1));
-
-        return targetColumn.equals(excludedColumn) && targetTable.tableInfo().primaryKey().contains(targetColumn);
+        return expression;
     }
 }
