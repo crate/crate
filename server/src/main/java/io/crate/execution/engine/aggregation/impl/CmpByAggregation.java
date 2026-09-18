@@ -49,9 +49,9 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -114,7 +114,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
                 .argumentTypes(returnValueType,
                         cmpType)
                 .returnType(returnValueType)
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .typeVariableConstraints(variableConstraintA, variableConstraintB)
                 .build(),
             (signature, boundSignature) -> new CmpByAggregation(1, signature, boundSignature)
@@ -124,7 +124,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
                 .argumentTypes(returnValueType,
                         cmpType)
                 .returnType(returnValueType)
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .typeVariableConstraints(variableConstraintA, variableConstraintB)
                 .build(),
             (signature, boundSignature) -> new CmpByAggregation(-1, signature, boundSignature)

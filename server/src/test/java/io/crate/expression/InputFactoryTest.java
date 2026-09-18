@@ -52,10 +52,9 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Scalar;
-import io.crate.metadata.Scalar.Feature;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -71,7 +70,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
                     .argumentTypes(DataTypes.INTEGER.getTypeSignature(),
                             DataTypes.INTEGER.getTypeSignature())
                     .returnType(DataTypes.INTEGER.getTypeSignature())
-                    .features(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Scalar.Feature.STRICTNULL)
+                    .features(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.STRICTNULL)
                     .build(),
             List.of(new InputColumn(1, DataTypes.INTEGER), Literal.of(10)),
             DataTypes.INTEGER

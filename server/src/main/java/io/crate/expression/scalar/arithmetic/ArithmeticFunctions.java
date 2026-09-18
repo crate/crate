@@ -33,9 +33,8 @@ import ch.obermuhlner.math.big.BigDecimalMath;
 import io.crate.expression.scalar.BinaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
-import io.crate.metadata.Scalar.Feature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
 
 public class ArithmeticFunctions {
@@ -100,7 +99,7 @@ public class ArithmeticFunctions {
             BigDecimal::remainder
         );
 
-        private final Set<Scalar.Feature> features;
+        private final Set<Feature> features;
 
         private final BinaryOperator<Integer> integerFunction;
         private final BinaryOperator<Double> doubleFunction;
@@ -108,7 +107,7 @@ public class ArithmeticFunctions {
         private final BinaryOperator<Float> floatFunction;
         private final BinaryOperator<BigDecimal> bdFunction;
 
-        Operations(Set<Scalar.Feature> features,
+        Operations(Set<Feature> features,
                    BinaryOperator<Integer> integerFunction,
                    BinaryOperator<Double> doubleFunction,
                    BinaryOperator<Long> longFunction,

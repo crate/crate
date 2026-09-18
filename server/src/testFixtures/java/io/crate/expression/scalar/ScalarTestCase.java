@@ -55,6 +55,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.role.Role;
 import io.crate.role.Roles;
@@ -262,7 +263,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
 
         actualValue = scalar.evaluate(txnCtx, sqlExpressions.nodeCtx, arguments);
         assertThat((T) actualValue).satisfies(expectedValue);
-        if (scalar.signature().hasFeature(Scalar.Feature.NOTNULL)) {
+        if (scalar.signature().hasFeature(Feature.NOTNULL)) {
             assertThat(actualValue).isNotNull();
         }
     }

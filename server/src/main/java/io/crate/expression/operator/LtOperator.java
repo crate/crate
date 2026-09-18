@@ -23,8 +23,8 @@ package io.crate.expression.operator;
 
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
 
 public final class LtOperator {
@@ -38,7 +38,7 @@ public final class LtOperator {
                     .argumentTypes(supportedType.getTypeSignature(),
                         supportedType.getTypeSignature())
                     .returnType(Operator.RETURN_TYPE.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .build(),
                 (signature, boundSignature) ->
                     new CmpOperator(signature, boundSignature, cmpResult -> cmpResult < 0)
@@ -49,7 +49,7 @@ public final class LtOperator {
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature(),
                     DataTypes.NUMERIC.getTypeSignature())
                 .returnType(Operator.RETURN_TYPE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new CmpOperator(signature, boundSignature, cmpResult -> cmpResult < 0)

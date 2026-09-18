@@ -56,9 +56,9 @@ import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.statistics.SketchStreamer;
 import io.crate.types.ByteType;
@@ -82,7 +82,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         Signature.builder(NAME, FunctionType.AGGREGATE)
             .argumentTypes(TypeSignature.V)
             .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
-            .features(Scalar.Feature.DETERMINISTIC)
+            .features(Feature.DETERMINISTIC)
             .typeVariableConstraints(TypeVariableConstraint.V)
             .build();
 
@@ -91,7 +91,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             .argumentTypes(TypeSignature.V,
                 DataTypes.INTEGER.getTypeSignature())
             .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
-            .features(Scalar.Feature.DETERMINISTIC)
+            .features(Feature.DETERMINISTIC)
             .typeVariableConstraints(TypeVariableConstraint.V)
             .build();
 
@@ -101,7 +101,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature())
             .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
-            .features(Scalar.Feature.DETERMINISTIC)
+            .features(Feature.DETERMINISTIC)
             .typeVariableConstraints(TypeVariableConstraint.V)
             .build();
 

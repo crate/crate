@@ -61,6 +61,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataType;
 
 
@@ -194,7 +195,7 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent imple
         var signature = Signature.builder(functionName, FunctionType.SCALAR)
             .argumentTypes(Lists.map(udf.argumentTypes(), DataType::getTypeSignature))
             .returnType(udf.returnType().getTypeSignature())
-            .features(Scalar.Feature.DETERMINISTIC)
+            .features(Feature.DETERMINISTIC)
             .build();
 
         final Scalar<?, ?> scalar;

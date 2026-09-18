@@ -54,9 +54,9 @@ import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.types.DataTypes;
@@ -404,7 +404,7 @@ public class WindowBatchIteratorTest {
                 return Signature.builder("first_cell_value", FunctionType.WINDOW)
                         .argumentTypes()
                         .returnType(DataTypes.INTEGER.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build();
             }
 
@@ -432,7 +432,7 @@ public class WindowBatchIteratorTest {
                 return Signature.builder("a_frame_bounded_window_function", FunctionType.WINDOW)
                         .argumentTypes()
                         .returnType(DataTypes.INTEGER.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build();
             }
 
@@ -461,7 +461,7 @@ public class WindowBatchIteratorTest {
                 return Signature.builder("row_number", FunctionType.WINDOW)
                         .argumentTypes()
                         .returnType(DataTypes.INTEGER.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build();
             }
 
