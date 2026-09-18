@@ -22,6 +22,7 @@
 package io.crate.execution.engine.window;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -450,6 +451,171 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
             new Object[] { Long.MIN_VALUE },
             new Object[] { 0L }
         );
+    }
+
+    @Test
+    public void test_agg_over_range_with_wider_bounds() throws Throwable {
+        for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            DocTableInfo tableInfo = SQLExecutor.tableInfo(
+                new RelationName("doc", "t1"),
+                "create table doc.t1 (x " + type.getName() + ")",
+                clusterService);
+            DocTableRelation tableRelation = new DocTableRelation(tableInfo);
+            sqlExpressions = new SqlExpressions(
+                Map.of(tableInfo.ident(), tableRelation), tableRelation, Role.CRATE_USER);
+            for (String bound : List.of(
+                "3000000000", // A BIGINT literal outside the INTEGER range.
+                "3000000000.0", // A NUMERIC literal exactly representable as BIGINT.
+                "9223372036854775807" // Long.MAX_VALUE.
+            )) {
+                for (String direction : List.of("ASC", "DESC")) {
+                    int first = direction.equals("ASC") ? -10 : 10;
+                    assertEvaluate(
+                        "count(*) OVER (ORDER BY x " + direction + " RANGE BETWEEN CURRENT ROW AND " + bound + " FOLLOWING)",
+                        new Object[] { 2L, 1L },
+                        List.of(ColumnIdent.of("x")),
+                        new Object[] { type.implicitCast(first) },
+                        new Object[] { type.implicitCast(-first) }
+                    );
+                    assertEvaluate(
+                        "count(*) OVER (ORDER BY x " + direction + " RANGE BETWEEN " + bound + " PRECEDING AND CURRENT ROW)",
+                        new Object[] { 1L, 2L },
+                        List.of(ColumnIdent.of("x")),
+                        new Object[] { type.implicitCast(first) },
+                        new Object[] { type.implicitCast(-first) }
+                    );
+                }
+            }
+        }
+    }
+
+    @Test
+    public void test_agg_over_rows_with_large_bounds() throws Throwable {
+        for (String bound : List.of(
+            "3000000000", // A BIGINT literal outside the INTEGER range.
+            "3000000000.0", // A NUMERIC literal exactly representable as BIGINT.
+            "9223372036854775807" // Long.MAX_VALUE.
+        )) {
+            for (String direction : List.of("ASC", "DESC")) {
+                int first = direction.equals("ASC") ? 0 : 10;
+                assertEvaluate(
+                    "count(*) OVER (ORDER BY x " + direction + " ROWS BETWEEN CURRENT ROW AND " + bound + " FOLLOWING)",
+                    new Object[] { 2L, 1L },
+                    List.of(ColumnIdent.of("x")),
+                    new Object[] { first },
+                    new Object[] { 10 - first }
+                );
+                assertEvaluate(
+                    "count(*) OVER (ORDER BY x " + direction + " ROWS BETWEEN " + bound + " PRECEDING AND CURRENT ROW)",
+                    new Object[] { 1L, 2L },
+                    List.of(ColumnIdent.of("x")),
+                    new Object[] { first },
+                    new Object[] { 10 - first }
+                );
+            }
+        }
+    }
+
+    @Test
+    public void test_rows_with_negative_bounds_are_rejected() {
+        assertThatThrownBy(() -> assertEvaluate(
+            "count(*) OVER (ORDER BY x ROWS BETWEEN -1 PRECEDING AND CURRENT ROW)",
+            new Object[] { 1L },
+            List.of(ColumnIdent.of("x")),
+            new Object[] { 0 }
+        ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Window frame offset must not be negative");
+        assertThatThrownBy(() -> assertEvaluate(
+            "count(*) OVER (ORDER BY x ROWS BETWEEN CURRENT ROW AND -1 FOLLOWING)",
+            new Object[] { 1L },
+            List.of(ColumnIdent.of("x")),
+            new Object[] { 0 }
+        ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Window frame offset must not be negative");
+    }
+
+    @Test
+    public void test_agg_over_range_with_floating_point_bounds() throws Throwable {
+        for (var type : List.of(DataTypes.FLOAT, DataTypes.DOUBLE)) {
+            DocTableInfo tableInfo = SQLExecutor.tableInfo(
+                new RelationName("doc", "t1"),
+                "create table doc.t1 (x " + type.getName() + ")",
+                clusterService);
+            DocTableRelation tableRelation = new DocTableRelation(tableInfo);
+            sqlExpressions = new SqlExpressions(
+                Map.of(tableInfo.ident(), tableRelation), tableRelation, Role.CRATE_USER);
+            for (String bound : List.of(
+                "3", // An INTEGER bound.
+                "1e40" // A DOUBLE bound outside the FLOAT range.
+            )) {
+                for (String direction : List.of("ASC", "DESC")) {
+                    int first = direction.equals("ASC") ? 0 : 2;
+                    assertEvaluate(
+                        "count(*) OVER (ORDER BY x " + direction + " RANGE BETWEEN CURRENT ROW AND " + bound + " FOLLOWING)",
+                        new Object[] { 2L, 1L },
+                        List.of(ColumnIdent.of("x")),
+                        new Object[] { type.implicitCast(first) },
+                        new Object[] { type.implicitCast(2 - first) }
+                    );
+                    assertEvaluate(
+                        "count(*) OVER (ORDER BY x " + direction + " RANGE BETWEEN " + bound + " PRECEDING AND CURRENT ROW)",
+                        new Object[] { 1L, 2L },
+                        List.of(ColumnIdent.of("x")),
+                        new Object[] { type.implicitCast(first) },
+                        new Object[] { type.implicitCast(2 - first) }
+                    );
+                }
+            }
+        }
+    }
+
+    @Test
+    public void test_agg_over_range_with_timestamp_and_large_bounds() throws Throwable {
+        DocTableInfo tableInfo = SQLExecutor.tableInfo(
+            new RelationName("doc", "t1"),
+            "create table doc.t1 (x timestamp with time zone)",
+            clusterService);
+        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
+        sqlExpressions = new SqlExpressions(
+            Map.of(tableInfo.ident(), tableRelation), tableRelation, Role.CRATE_USER);
+        // Long.MAX_VALUE overflows when added to or subtracted from the timestamp values.
+        for (String direction : List.of("ASC", "DESC")) {
+            long first = direction.equals("ASC") ? -10L : 10L;
+            assertEvaluate(
+                "count(*) OVER (ORDER BY x " + direction + " RANGE BETWEEN CURRENT ROW AND 9223372036854775807 FOLLOWING)",
+                new Object[] { 2L, 1L },
+                List.of(ColumnIdent.of("x")),
+                new Object[] { first },
+                new Object[] { -first }
+            );
+            assertEvaluate(
+                "count(*) OVER (ORDER BY x " + direction + " RANGE BETWEEN 9223372036854775807 PRECEDING AND CURRENT ROW)",
+                new Object[] { 1L, 2L },
+                List.of(ColumnIdent.of("x")),
+                new Object[] { first },
+                new Object[] { -first }
+            );
+        }
+    }
+
+    @Test
+    public void test_numeric_window_frame_bounds_outside_long_range_are_rejected() {
+        assertThatThrownBy(() -> assertEvaluate(
+            "count(*) OVER (ORDER BY x RANGE BETWEEN 9223372036854775808 PRECEDING AND CURRENT ROW)",
+            new Object[] { 1L },
+            List.of(ColumnIdent.of("x")),
+            new Object[] { 0 }))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The window frame bound 9223372036854775808 is not representable as a value of type bigint");
+        assertThatThrownBy(() -> assertEvaluate(
+            "count(*) OVER (ORDER BY x ROWS BETWEEN CURRENT ROW AND 9223372036854775808 FOLLOWING)",
+            new Object[] { 1L },
+            List.of(ColumnIdent.of("x")),
+            new Object[] { 0 }))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The window frame bound 9223372036854775808 is not representable as a value of type bigint");
     }
 
     @Test
