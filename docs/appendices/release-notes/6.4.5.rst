@@ -102,3 +102,7 @@ Fixes
   condition used :ref:`CHAR(n) <data-type-character>` join keys of different
   length but same value, because of the blank padding, which is applied to match
   the defined ``n`` length.
+
+- Fixed an issue where :ref:`ORDER BY <sql-select-order-by>` reads
+  :ref:`REAL <type-real>` and :ref:`DOUBLE PRECISION <type-double-precision>`
+  values of ``Infinity`` as ``NULL``.
