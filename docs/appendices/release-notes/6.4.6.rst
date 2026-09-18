@@ -73,3 +73,7 @@ Fixes
   table restored explicitly with ``RESTORE SNAPSHOT ... TABLE`` doesn't restore
   its server and user mappings, so it's unusable unless they already exist or
   created manually.
+
+- Fixed an issue where :ref:`ORDER BY <sql-select-order-by>` using a
+  :ref:`REAL <type-real>` or :ref:`DOUBLE PRECISION <type-double-precision>`
+  column returned values of ``Infinity`` as ``NULL``.

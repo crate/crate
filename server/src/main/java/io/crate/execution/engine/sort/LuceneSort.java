@@ -219,23 +219,27 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
                 return sortField;
             }
             case FloatType.ID -> {
-                var selectorType = reverse ? SortedNumericSelector.Type.MAX : SortedNumericSelector.Type.MIN;
-                var sortField = new SortedNumericSortField(fieldName, SortField.Type.FLOAT, reverse, selectorType);
-                sortField.setMissingValue(
-                    NullSentinelValues.nullSentinel(DataTypes.FLOAT, nullValueOrder, reverse));
-                return sortField;
+                return nullAwareNumericSortField(fieldName, reverse, nullValueOrder, SortField.Type.FLOAT);
             }
             case DoubleType.ID -> {
-                var selectorType = reverse ? SortedNumericSelector.Type.MAX : SortedNumericSelector.Type.MIN;
-                var sortField = new SortedNumericSortField(fieldName, SortField.Type.DOUBLE, reverse, selectorType);
-                sortField.setMissingValue(
-                    NullSentinelValues.nullSentinel(DataTypes.DOUBLE, nullValueOrder, reverse));
-                return sortField;
+                return nullAwareNumericSortField(fieldName, reverse, nullValueOrder, SortField.Type.DOUBLE);
             }
             case GeoPointType.ID -> throw new IllegalArgumentException(
                 "can't sort on geo_point field without using specific sorting feature, like geo_distance");
             default -> throw new UnsupportedOperationException("Cannot order on " + symbol + "::" + valueType);
         }
+    }
+
+    public static SortField nullAwareNumericSortField(String fieldName, boolean reverse,
+                                                       NullValueOrder nullValueOrder, SortField.Type sortFieldType) {
+        return new SortField(fieldName, new FieldComparatorSource() {
+            @Override
+            public FieldComparator<?> newComparator(String fieldname, int numHits,
+                                                    Pruning pruning, boolean reversed) {
+                boolean nullsAtMin = nullValueOrder == NullValueOrder.FIRST ^ reversed;
+                return new NullAwareNumericDocValueFieldComparator(fieldName, numHits, nullsAtMin, sortFieldType);
+            }
+        }, reverse);
     }
 
     @Override
@@ -275,6 +279,12 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
                 }
                 @SuppressWarnings("unchecked")
                 DataType<Object> dataType = (DataType<Object>) symbol.valueType();
+                if (dataType.id() == FloatType.ID || dataType.id() == DoubleType.ID) {
+                    NullValueOrder nullValueOrder = NullValueOrder.fromFlag(context.nullFirst);
+                    boolean nullsAtMin = nullValueOrder == NullValueOrder.FIRST ^ reversed;
+                    SortField.Type sortFieldType = dataType.id() == FloatType.ID ? SortField.Type.FLOAT : SortField.Type.DOUBLE;
+                    return new NullAwareNumericInputFieldComparator(numHits, expressions, input, nullsAtMin, sortFieldType);
+                }
                 Object nullSentinel = NullSentinelValues.nullSentinel(
                     dataType,
                     NullValueOrder.fromFlag(nullFirst),
