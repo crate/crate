@@ -22,7 +22,6 @@
 package io.crate.execution.engine.window;
 
 import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
 
 import org.joda.time.DateTime;
 
@@ -43,7 +42,8 @@ import io.crate.types.TimestampType;
 // Clamps integral overflow instead of wrapping around.
 class WindowFrameBoundaryArithmetic {
 
-    private static final BinaryOperator<Double> ADD_DOUBLE_FUNCTION = Double::sum;
+    private static final BiFunction<Double, Number, Double> ADD_DOUBLE_FUNCTION =
+        (x, y) -> x + y.doubleValue();
     private static final BiFunction<Float, Number, Float> ADD_FLOAT_FUNCTION =
         (x, y) -> (float) (x.doubleValue() + y.doubleValue());
     private static final BiFunction<Byte, Number, Byte> ADD_BYTE_FUNCTION = (Byte x, Number y) -> {
@@ -64,7 +64,8 @@ class WindowFrameBoundaryArithmetic {
         }
     };
 
-    private static final BinaryOperator<Double> SUB_DOUBLE_FUNCTION = (arg0, arg1) -> arg0 - arg1;
+    private static final BiFunction<Double, Number, Double> SUB_DOUBLE_FUNCTION =
+        (x, y) -> x - y.doubleValue();
     private static final BiFunction<Float, Number, Float> SUB_FLOAT_FUNCTION =
         (x, y) -> (float) (x.doubleValue() - y.doubleValue());
     private static final BiFunction<Byte, Number, Byte> SUB_BYTE_FUNCTION = (Byte x, Number y) -> {
