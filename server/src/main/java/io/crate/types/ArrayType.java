@@ -78,7 +78,7 @@ import io.crate.statistics.ColumnStatsSupport;
 /**
  * A type which contains a collection of elements of another type.
  */
-public class ArrayType<T> extends DataType<List<T>> {
+public final class ArrayType<T> extends DataType<List<T>> {
 
     public static final ArrayType<Object> ARRAY_OF_UNDEFINED = new ArrayType<>(UndefinedType.INSTANCE);
     public static final long ARRAY_LIST_SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ArrayList.class);

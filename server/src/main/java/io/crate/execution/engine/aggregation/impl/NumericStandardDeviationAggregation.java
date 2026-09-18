@@ -43,13 +43,13 @@ import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
+import io.crate.types.AggStateType;
 
 public abstract class NumericStandardDeviationAggregation<V extends NumericVariance>
     extends AggregationFunction<V, BigDecimal> {
 
     public abstract static class StdDevNumericStateType<V extends NumericVariance>
-        extends DataType<V> implements Streamer<V> {
+        extends AggStateType<V> implements Streamer<V> {
 
         @Override
         public Precedence precedence() {

@@ -43,8 +43,10 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.AggStateType;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.DataType.Precedence;
 import io.crate.types.DataTypes;
 
 /**
@@ -99,7 +101,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
         }
     }
 
-    static class StringAggStateType extends DataType<StringAggState> implements Streamer<StringAggState> {
+    static class StringAggStateType extends AggStateType<StringAggState> implements Streamer<StringAggState> {
 
         static final StringAggStateType INSTANCE = new StringAggStateType();
 

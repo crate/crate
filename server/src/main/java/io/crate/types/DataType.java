@@ -50,7 +50,40 @@ import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 import io.crate.statistics.ColumnStatsSupport;
 
-public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable, Comparator<T>, Accountable {
+public abstract sealed class DataType<T>
+    implements Comparable<DataType<?>>, Writeable, Comparator<T>, Accountable
+    permits
+        BooleanType,
+        ByteType,
+        ShortType,
+        IntegerType,
+        LongType,
+        TimestampType,
+        TimeTZType,
+        DateType,
+        FloatType,
+        DoubleType,
+        BitStringType,
+        NumericType,
+        UUIDType,
+        StringType,
+        JsonType,
+        IpType,
+        IntervalType,
+        FloatVectorType,
+        OidVectorType,
+        RegclassType,
+        RegprocType,
+        RegtypeType,
+        RowType,
+        GeoPointType,
+        GeoShapeType,
+        ArrayType,
+        ObjectType,
+        UncheckedObjectType,
+        UndefinedType,
+        NotSupportedType,
+        AggStateType {
 
     /**
      * Type precedence ids which help to decide when a type can be cast

@@ -27,7 +27,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 
 import io.crate.Streamer;
 
-public class OidVectorType extends DataType<List<Integer>> {
+public final class OidVectorType extends DataType<List<Integer>> {
 
     public static final String NAME = "oidvector";
     public static final int ID = 21;

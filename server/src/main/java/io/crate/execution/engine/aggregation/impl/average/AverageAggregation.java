@@ -50,8 +50,10 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.AggStateType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
+import io.crate.types.DataType.Precedence;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FixedWidthType;
@@ -159,7 +161,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         }
     }
 
-    public static class AverageStateType extends DataType<AverageState>
+    public static class AverageStateType extends AggStateType<AverageState>
         implements FixedWidthType, Streamer<AverageState> {
 
         public static final int ID = 1024;

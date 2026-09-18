@@ -52,7 +52,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
-public class GeoShapeType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
+public final class GeoShapeType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
     public static final int ID = 14;
     public static final GeoShapeType INSTANCE = new GeoShapeType();

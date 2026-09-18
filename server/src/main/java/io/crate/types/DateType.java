@@ -47,7 +47,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStatsSupport;
 
-public class DateType extends DataType<Long>
+public final class DateType extends DataType<Long>
     implements FixedWidthType, Streamer<Long> {
 
     public static final int ID = 24;

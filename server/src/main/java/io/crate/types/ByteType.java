@@ -40,7 +40,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStatsSupport;
 
-public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWidthType {
+public final class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWidthType {
 
     public static final ByteType INSTANCE = new ByteType();
     public static final int ID = 2;

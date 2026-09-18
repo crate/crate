@@ -39,7 +39,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnPolicy;
 
-public class UndefinedType extends DataType<Object> implements Streamer<Object> {
+public final class UndefinedType extends DataType<Object> implements Streamer<Object> {
 
     public static final int ID = 0;
     public static final String NAME = "undefined";

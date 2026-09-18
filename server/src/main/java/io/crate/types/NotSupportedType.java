@@ -23,7 +23,7 @@ package io.crate.types;
 
 import io.crate.Streamer;
 
-public class NotSupportedType extends DataType<Void> {
+public final class NotSupportedType extends DataType<Void> {
 
     public static final NotSupportedType INSTANCE = new NotSupportedType();
     public static final int ID = 1;

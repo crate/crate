@@ -53,6 +53,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.TypeVariableConstraint;
+import io.crate.types.AggStateType;
 import io.crate.types.BitStringType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -177,7 +178,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
         return state.value();
     }
 
-    public static class LongStateType extends DataType<MutableLong>
+    public static class LongStateType extends AggStateType<MutableLong>
         implements FixedWidthType, Streamer<MutableLong> {
 
         public static final int ID = 16384;

@@ -35,7 +35,7 @@ import io.crate.Streamer;
  * Object type that makes no assumptions about neither the keys or values, treating them like generic values and lifting
  * the restriction of having the keys be Strings.
  */
-public class UncheckedObjectType extends DataType<Map<Object, Object>> implements Streamer<Map<Object, Object>> {
+public final class UncheckedObjectType extends DataType<Map<Object, Object>> implements Streamer<Map<Object, Object>> {
 
     public static final UncheckedObjectType INSTANCE = new UncheckedObjectType();
     public static final int ID = 16;

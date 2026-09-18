@@ -50,7 +50,7 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 
-public class CharacterType extends StringType {
+public final class CharacterType extends StringType {
 
     public static final String NAME = "character";
     public static final int ID = 27;

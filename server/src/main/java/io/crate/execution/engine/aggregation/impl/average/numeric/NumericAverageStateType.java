@@ -28,10 +28,11 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
-import io.crate.types.DataType;
+import io.crate.types.AggStateType;
+import io.crate.types.DataType.Precedence;
 import io.crate.types.NumericType;
 
-public class NumericAverageStateType extends DataType<NumericAverageState> implements Streamer<NumericAverageState> {
+public class NumericAverageStateType extends AggStateType<NumericAverageState> implements Streamer<NumericAverageState> {
 
     public static final int ID = 1026;
     public static final long INIT_SIZE = NumericType.size(BigDecimal.ZERO) + 8; // Nominator and primitive long denominator.

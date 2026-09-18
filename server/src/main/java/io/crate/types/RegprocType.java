@@ -29,7 +29,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
 
-public class RegprocType extends DataType<Regproc> implements Streamer<Regproc> {
+public final class RegprocType extends DataType<Regproc> implements Streamer<Regproc> {
 
     public static final RegprocType INSTANCE = new RegprocType();
     public static final int ID = 19;

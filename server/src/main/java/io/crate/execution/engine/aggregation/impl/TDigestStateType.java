@@ -27,9 +27,10 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
-import io.crate.types.DataType;
+import io.crate.types.AggStateType;
+import io.crate.types.DataType.Precedence;
 
-class TDigestStateType extends DataType<TDigestState> implements Streamer<TDigestState> {
+class TDigestStateType extends AggStateType<TDigestState> implements Streamer<TDigestState> {
 
     static final int ID = 5120;
     static final TDigestStateType INSTANCE = new TDigestStateType();

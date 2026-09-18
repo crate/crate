@@ -52,6 +52,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.AggStateType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -163,7 +164,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
         }
     }
 
-    public static class GeometricMeanStateType extends DataType<GeometricMeanState>
+    public static class GeometricMeanStateType extends AggStateType<GeometricMeanState>
         implements Streamer<GeometricMeanState>, FixedWidthType {
 
         public static final GeometricMeanStateType INSTANCE = new GeometricMeanStateType();

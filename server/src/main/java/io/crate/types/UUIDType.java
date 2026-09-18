@@ -55,7 +55,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.SysColumns;
 
-public class UUIDType extends DataType<UUID> implements FixedWidthType, Streamer<UUID> {
+public final class UUIDType extends DataType<UUID> implements FixedWidthType, Streamer<UUID> {
 
     public static final int ID = 29;
     public static final String NAME = "uuid";

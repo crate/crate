@@ -44,8 +44,8 @@ import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.AggStateType;
 import io.crate.types.ByteType;
-import io.crate.types.DataType;
 import io.crate.types.DoubleType;
 import io.crate.types.FixedWidthType;
 import io.crate.types.FloatType;
@@ -57,7 +57,7 @@ import io.crate.types.TimestampType;
 public abstract class StandardDeviationAggregation<V extends Variance> extends AggregationFunction<V, Double> {
 
     public abstract static class StdDevStateType<V extends Variance>
-        extends DataType<V> implements Streamer<V>, FixedWidthType {
+        extends AggStateType<V> implements Streamer<V>, FixedWidthType {
 
         @Override
         public Precedence precedence() {

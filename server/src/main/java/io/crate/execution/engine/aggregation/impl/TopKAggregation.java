@@ -61,8 +61,10 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.statistics.SketchStreamer;
+import io.crate.types.AggStateType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
+import io.crate.types.DataType.Precedence;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
@@ -562,7 +564,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         return new TopKLongState(new FrequentLongsSketch(capacity), limit);
     }
 
-    static final class StateType extends DataType<State> implements Streamer<State> {
+    static final class StateType extends AggStateType<State> implements Streamer<State> {
 
         public static final int ID = 4232;
         private final DataType<?> innerType;
