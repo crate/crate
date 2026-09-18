@@ -462,6 +462,42 @@ Memory
   system call on startup to ensure that the memory pages of the CrateDB process
   are locked into RAM.
 
+Query cache
+===========
+
+CrateDB caches the result of the parts of a query that can be evaluated
+directly on the Lucene index. If the same query part is needed again, the
+cached result is reused instead of being computed a second time. The cache is
+per node and shared by all shards on that node, and only query parts that are
+used repeatedly, on segments above a certain size, are added to it.
+
+.. NOTE::
+
+   CrateDB has no shard request cache and no field data cache. Apart from the
+   query cache, read performance depends on the file system cache of the
+   operating system, which keeps frequently accessed parts of the Lucene
+   segments in memory. Leaving a good part of the available memory to the
+   operating system is therefore important.
+
+.. _indices.queries.cache.size:
+
+**indices.queries.cache.size**
+  | *Default:* ``10%``
+  | *Runtime:* ``no``
+
+  The amount of memory the query cache may use on a node, either as a
+  percentage of the heap or as an absolute value, for example ``512mb``.
+
+.. _indices.queries.cache.count:
+
+**indices.queries.cache.count**
+  | *Default:* ``10000``
+  | *Runtime:* ``no``
+
+  The maximum number of query parts to keep in the cache. Entries are evicted
+  in least recently used order once this limit or
+  :ref:`indices.queries.cache.size` is reached.
+
 Garbage collection
 ==================
 
