@@ -36,6 +36,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
+import io.crate.planner.operators.DistinctRewriter.NoOp;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.HashAggregate;
@@ -175,7 +176,7 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
         }
 
         GroupHashAggregate dedup = new GroupHashAggregate(source, List.of(groupKey), List.of());
-        return new HashAggregate(dedup, aggregate.aggregates(), HashAggregate.DistinctMode.NONE);
+        return new HashAggregate(dedup, aggregate.aggregates(), new NoOp());
     }
 
     /// True if `plan` already groups by `groupKey`, i.e., a `GROUP BY` isn't needed.
