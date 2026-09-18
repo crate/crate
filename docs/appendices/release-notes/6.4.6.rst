@@ -57,6 +57,10 @@ Fixes
   integral ``PRECEDING``/``FOLLOWING`` bounds to compute frames incorrectly due
   to boundary overflow.
 
+- Fixed incorrect ``RANGE`` and ``ROWS`` window frames caused by overflow when
+  large frame bounds were narrowed before evaluation. Explicit ``NULL`` frame
+  bounds and negative ``ROWS`` offsets now raise an error.
+
 - Fixed an issue that caused ``CREATE SNAPSHOT`` to fail if repository had at
   least one snapshot created before and backend storage's DELETE API was
   temporarily unavailable.
