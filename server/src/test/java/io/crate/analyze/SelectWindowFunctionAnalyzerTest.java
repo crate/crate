@@ -226,4 +226,25 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageStartingWith("'y' must appear in the GROUP BY clause or be used in an aggregation function.");
     }
+
+    @Test
+    public void test_window_frame_offset_must_not_be_null() {
+        assertThatThrownBy(() -> e.analyze(
+            "SELECT avg(x) OVER (ORDER BY x RANGE BETWEEN NULL PRECEDING AND CURRENT ROW) FROM t"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The offset of a `<offset> PRECEDING/FOLLOWING` frame bound must not be null");
+        assertThatThrownBy(() -> e.analyze(
+            "SELECT avg(x) OVER (ORDER BY x RANGE BETWEEN CURRENT ROW AND NULL FOLLOWING) FROM t"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The offset of a `<offset> PRECEDING/FOLLOWING` frame bound must not be null");
+    }
+
+    @Test
+    public void test_rows_window_frame_offset_must_be_numeric() {
+        assertThatThrownBy(() -> e.analyze(
+            "SELECT avg(x) OVER (ORDER BY x ROWS BETWEEN '1' PRECEDING AND CURRENT ROW) FROM t"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage(
+                "The offset of a `ROWS <offset> PRECEDING/FOLLOWING` frame bound must be of type bigint, not text");
+    }
 }
