@@ -149,15 +149,9 @@ public class OrderedLuceneBatchIteratorFloatBenchmark {
     private LuceneOrderedDocCollector createOrderedCollector(IndexSearcher searcher,
                                                              String sortByColumnName) {
 
-        System.out.println("Using nullAwareNumericSortField");
         NullValueOrder nullValueOrder = nullsFirst[0] ? NullValueOrder.FIRST : NullValueOrder.LAST;
         SortField sortField = nullAwareNumericSortField(sortByColumnName, reverseFlags[0], nullValueOrder, SortField.Type.FLOAT);
-        List<LuceneCollectorExpression<?>> expressions = Collections.singletonList(new OrderByCollectorExpression(reference, orderBy, o -> {
-            // if (o instanceof NullAwareNumber n) {
-            //     return n.isNull() ? null : (float) n.value();
-            // }
-            return o;
-        }));
+        List<LuceneCollectorExpression<?>> expressions = Collections.singletonList(new OrderByCollectorExpression(reference, orderBy, o -> o));
 
         // System.out.println("Using old SortedNumericSortField");
         // SortField sortField = new SortedNumericSortField(sortByColumnName, SortField.Type.FLOAT, reverseFlags[0]);
