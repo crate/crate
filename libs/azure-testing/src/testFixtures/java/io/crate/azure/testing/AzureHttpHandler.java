@@ -156,8 +156,14 @@ public class AzureHttpHandler implements HttpHandler {
                 exchange.getResponseHeaders().add("Content-Type", "application/octet-stream");
                 exchange.getResponseHeaders().add("x-ms-blob-content-length", String.valueOf(length));
                 exchange.getResponseHeaders().add("x-ms-blob-type", "blockblob");
-                exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), length);
-                exchange.getResponseBody().write(blob.toBytesRef().bytes, start, length);
+                // With length 0, the HttpServer switches to chunked transfer encoding
+                // and omits the Content-Length header. With length -1 sends `Content-Length: 0`
+                // without a body. Azure always reports the content length and OpenDAL
+                // rejects an HTTP response which does not contain content length.
+                exchange.sendResponseHeaders(HttpResponseStatus.OK.code(), length == 0 ? -1 : length);
+                if (length > 0) {
+                    exchange.getResponseBody().write(blob.toBytesRef().bytes, start, length);
+                }
 
             } else if (Regex.simpleMatch("DELETE /" + container + "/*", request)) {
                 // Delete Blob (https://docs.microsoft.com/en-us/rest/api/storageservices/delete-blob)

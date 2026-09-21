@@ -168,4 +168,39 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
         execute("select x from target order by x");
         assertThat(response).hasRows("1", "2", "3");
     }
+
+    @Test
+    public void test_copy_from_azure_blob_storage_with_empty_files() {
+        // Use 4 shards and insert only 1 value to test empty shards -> empty files
+        execute("CREATE TABLE source (x int) CLUSTERED INTO 4 SHARDS");
+        execute("INSERT INTO source(x) values (1)");
+        execute("REFRESH TABLE source");
+
+        execute(
+            """
+            COPY source TO DIRECTORY ?
+            WITH (
+                protocol = 'http',
+                key = ?
+            )
+            """,
+            new Object[]{containerUri, AZURE_KEY}
+        );
+
+        execute("CREATE TABLE target (x int)");
+        execute(
+            """
+            COPY target FROM ?
+            WITH (
+                protocol = 'http',
+                key = ?
+            )
+            """,
+            new Object[]{containerUri + "/*", AZURE_KEY}
+        );
+
+        execute("REFRESH TABLE target");
+        execute("select x from target");
+        assertThat(response).hasRows("1");
+    }
 }
