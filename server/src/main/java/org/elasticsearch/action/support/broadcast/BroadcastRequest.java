@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.support.broadcast;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,22 +38,34 @@ import io.crate.metadata.PartitionName;
 public class BroadcastRequest extends TransportRequest {
 
     protected final List<PartitionName> partitions;
+    private final int tableOid;
 
     protected BroadcastRequest(List<PartitionName> partitions) {
         this.partitions = partitions;
+        this.tableOid = OID_UNASSIGNED;
     }
 
     protected BroadcastRequest(PartitionName partition) {
-        this(List.of(partition));
+        this(partition, OID_UNASSIGNED);
+    }
+
+    protected BroadcastRequest(PartitionName partition, int tableOid) {
+        this.partitions = List.of(partition);
+        this.tableOid = tableOid;
     }
 
     public BroadcastRequest(StreamInput in) throws IOException {
         super(in);
         this.partitions = readPartitions(in);
+        tableOid = in.getVersion().onOrAfter(Version.V_6_5_0) ? in.readVInt() : OID_UNASSIGNED;
     }
 
     public final List<PartitionName> partitions() {
         return partitions;
+    }
+
+    public final int tableOid() {
+        return tableOid;
     }
 
     @Override
@@ -61,6 +75,9 @@ public class BroadcastRequest extends TransportRequest {
             out.writeCollection(partitions);
         } else {
             writePartitionNamesToPre60(out, partitions);
+        }
+        if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
+            out.writeVInt(tableOid);
         }
     }
 

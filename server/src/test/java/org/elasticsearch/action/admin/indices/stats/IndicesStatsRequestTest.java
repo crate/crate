@@ -38,7 +38,7 @@ public class IndicesStatsRequestTest {
         RelationName relation = new RelationName("doc", "tbl");
         int tableOid = 1234;
         IndicesStatsRequest request = new IndicesStatsRequest(
-            new PartitionName(relation, List.of()), tableOid);
+            new PartitionName(relation, List.of()), tableOid).clear().docs(true);
 
         var out = new BytesStreamOutput();
         out.setVersion(Version.V_6_5_0);
@@ -49,9 +49,12 @@ public class IndicesStatsRequestTest {
         IndicesStatsRequest streamed = new IndicesStatsRequest(in);
 
         assertThat(streamed.tableOid()).isEqualTo(tableOid);
+        assertThat(streamed.docs()).isTrue();
+        assertThat(streamed.store()).isFalse();
+        assertThat(in.available()).isZero();
 
         // streaming to nodes with unsupported versions
-        request = new IndicesStatsRequest(new PartitionName(relation, List.of()), tableOid);
+        request = new IndicesStatsRequest(new PartitionName(relation, List.of()), tableOid).clear().docs(true);
 
         out = new BytesStreamOutput();
         out.setVersion(Version.V_6_4_0);
@@ -62,5 +65,8 @@ public class IndicesStatsRequestTest {
         streamed = new IndicesStatsRequest(in);
 
         assertThat(streamed.tableOid()).isEqualTo(OID_UNASSIGNED);
+        assertThat(streamed.docs()).isTrue();
+        assertThat(streamed.store()).isFalse();
+        assertThat(in.available()).isZero();
     }
 }
