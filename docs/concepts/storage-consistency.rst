@@ -69,12 +69,17 @@ Compression
 The data of a shard is stored in Lucene_ segments, which compresses the data
 in those segments upon write. Two parts of a segment dominate the size on disk:
 
-- The *stored fields*, which hold the fields of the original document and they
-  are compressed in blocks, so that the compression works across several
-  documents at once.
+- The *doc values*, which hold the data in a columnar structure. They are used
+  for aggregations, grouping and sorting, but also to read the values of a row.
 
-- The *doc values*, which hold the columnar structures the data, which is uses
-  used for aggregations, grouping and sorting.
+- The *stored fields*, which hold the values of columns that cannot be
+  reconstructed from the doc values. They are compressed in blocks, so that the
+  compression works across several documents at once.
+
+.. NOTE::
+    Until a row has been replicated, a complete representation of it is also
+    kept as part of the :ref:`translog <concept-durability>`. Background merges,
+    or an explicit :ref:`OPTIMIZE TABLE <sql-optimize>`, remove it afterwards.
 
 For doc values, Lucene relies on internal lightweight integer encodings —
 bit-packed deltas, GCD factoring, table lookups and monotonic offsets, plus
