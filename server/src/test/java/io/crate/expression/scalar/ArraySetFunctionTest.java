@@ -39,10 +39,10 @@ public class ArraySetFunctionTest extends ScalarTestCase {
     public void test_indexes_out_of_range() {
         assertThatThrownBy(() -> assertEvaluateNull("array_set([1,1,1], [-2147483649], [2])"))
             .isExactlyInstanceOf(ConversionException.class)
-            .hasMessage("Cannot cast `-2147483649::bigint` of type `bigint` to type `integer`");
+            .hasMessage("Cannot cast `-2147483649` of type `bigint` to type `integer`");
         assertThatThrownBy(() -> assertEvaluateNull("array_set([1,1,1], [2147483648], [2])"))
             .isExactlyInstanceOf(ConversionException.class)
-            .hasMessage("Cannot cast `2147483648::bigint` of type `bigint` to type `integer`");
+            .hasMessage("Cannot cast `2147483648` of type `bigint` to type `integer`");
     }
 
     @Test

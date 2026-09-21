@@ -66,13 +66,13 @@ public class GroupByScalarAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testValidGroupByWithScalar() throws Exception {
         AnalyzedRelation relation = executor.analyze("select id * 2 from users group by id");
-        assertThat(relation.outputs().get(0).toColumn().sqlFqn()).isEqualTo("(id * 2::bigint)");
+        assertThat(relation.outputs().get(0).toColumn().sqlFqn()).isEqualTo("(id * 2)");
     }
 
     @Test
     public void testValidGroupByWithMultipleScalarFunctions() throws Exception {
         AnalyzedRelation relation = executor.analyze("select abs(id * 2) from users group by id");
-        assertThat(relation.outputs().get(0).toColumn().sqlFqn()).isEqualTo("abs((id * 2::bigint))");
+        assertThat(relation.outputs().get(0).toColumn().sqlFqn()).isEqualTo("abs((id * 2))");
     }
 
     @Test

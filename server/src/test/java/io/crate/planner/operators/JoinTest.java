@@ -602,7 +602,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "Rename[user_type, domain] AS doc.user_session_visitortype",
             "  └ Eval[CASE WHEN (event_time = first_event_time) THEN 'new_user' ELSE 'returning_user' END AS user_type, domain]",
             "    └ Fetch[event_time, domain, first_event_time]",
-            "      └ Limit[1::bigint;0]",
+            "      └ Limit[1;0]",
             "        └ Eval[_fetchid, first_event_time]",
             "          └ HashJoin[INNER | (user_id = user_id)]",
             "            ├ Rename[user_id, first_event_time] AS first_visit",
@@ -667,7 +667,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Eval[name AS usr]
-              └ Limit[10::bigint;0]
+              └ Limit[10;0]
                 └ NestedLoopJoin[CROSS]
                   ├ OrderBy[name ASC]
                   │  └ Collect[doc.users | [name] | true]
@@ -755,7 +755,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                   │    └ HashAggregate[max(ts)]
                   │      └ Collect[doc.metric_mini | [ts] | true]
                   └ Rename[ts_production] AS b
-                    └ Collect[doc.metric_mini | [ts_production] | ((ts_production AS start >= 1638316800000::bigint) AND (ts_production AS start <= 1638320399000::bigint))]
+                    └ Collect[doc.metric_mini | [ts_production] | ((ts_production AS start >= 1638316800000) AND (ts_production AS start <= 1638320399000))]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
 
@@ -909,7 +909,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                   └ Collect[doc.d | [] | true]
                 └ SubPlan
                   └ Eval[1]
-                    └ Limit[2::bigint;0::bigint]
+                    └ Limit[2;0]
                       └ Filter[(((x = 1) AND (x = 1)) AND (x = 1))]
                         └ TableFunction[empty_row | [] | true]
             """

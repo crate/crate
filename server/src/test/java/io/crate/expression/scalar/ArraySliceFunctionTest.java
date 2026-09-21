@@ -147,14 +147,14 @@ public class ArraySliceFunctionTest extends ScalarTestCase {
     public void testFromIsBig() {
         assertThatThrownBy(() -> assertEvaluate("[1,2,3,4,5][2147483648:]", List.of()))
             .isExactlyInstanceOf(ConversionException.class)
-            .hasMessage("Cannot cast `2147483648::bigint` of type `bigint` to type `integer`");
+            .hasMessage("Cannot cast `2147483648` of type `bigint` to type `integer`");
     }
 
     @Test
     public void testToIsBig() {
         assertThatThrownBy(() -> assertEvaluate("[1,2,3,4,5][:2147483648]", List.of(1, 2, 3, 4, 5)))
             .isExactlyInstanceOf(ConversionException.class)
-            .hasMessage("Cannot cast `2147483648::bigint` of type `bigint` to type `integer`");
+            .hasMessage("Cannot cast `2147483648` of type `bigint` to type `integer`");
     }
 
     @Test

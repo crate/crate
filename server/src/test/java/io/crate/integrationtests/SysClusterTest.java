@@ -60,7 +60,7 @@ public class SysClusterTest extends IntegTestCase {
     public void testExplainSysCluster() throws Exception {
         execute("explain (costs false) select id, master_node, name, settings from sys.cluster limit 2");
         assertThat(response).hasRows(
-            "Limit[2::bigint;0]\n" +
+            "Limit[2;0]\n" +
             "  └ Collect[sys.cluster | [id, master_node, name, settings] | true]");
     }
 

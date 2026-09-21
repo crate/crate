@@ -483,19 +483,19 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testArrayAccessResultsInTermAndFunctionQuery() {
         assertThat(convert("ts_array[1] = 1129224512000")).hasToString(
             "+ts_array:[1129224512000 TO 1129224512000] " +
-            "#(ts_array[1] = 1129224512000::bigint)");
+            "#(ts_array[1] = 1129224512000)");
         assertThat(convert("ts_array[1] >= 1129224512000")).hasToString(
             "+ts_array:[1129224512000 TO 9223372036854775807] " +
-            "#(ts_array[1] >= 1129224512000::bigint)");
+            "#(ts_array[1] >= 1129224512000)");
         assertThat(convert("ts_array[1] > 1129224512000")).hasToString(
             "+ts_array:[1129224512001 TO 9223372036854775807] " +
-            "#(ts_array[1] > 1129224512000::bigint)");
+            "#(ts_array[1] > 1129224512000)");
         assertThat(convert("ts_array[1] <= 1129224512000")).hasToString(
             "+ts_array:[-9223372036854775808 TO 1129224512000] " +
-            "#(ts_array[1] <= 1129224512000::bigint)");
+            "#(ts_array[1] <= 1129224512000)");
         assertThat(convert("ts_array[1] < 1129224512000")).hasToString(
             "+ts_array:[-9223372036854775808 TO 1129224511999] " +
-            "#(ts_array[1] < 1129224512000::bigint)");
+            "#(ts_array[1] < 1129224512000)");
     }
 
     @Test

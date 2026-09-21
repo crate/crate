@@ -22,7 +22,6 @@
 package io.crate.expression.symbol;
 
 import java.lang.reflect.Array;
-import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
 
@@ -48,8 +47,8 @@ public class LiteralValueFormatter {
             builder.append("NULL");
         } else if (value instanceof Map) {
             formatMap((Map<String, Object>) value, builder);
-        } else if (value instanceof Collection) {
-            formatIterable((Iterable<?>) value, builder);
+        } else if (value instanceof Iterable<?> iterable) {
+            formatIterable(iterable, builder);
         } else if (value.getClass().isArray()) {
             formatArray(value, builder);
         } else if (value instanceof String || value instanceof Point) {
@@ -57,11 +56,6 @@ public class LiteralValueFormatter {
         } else if (value instanceof Period) {
             builder.append(Literals.quoteStringLiteral(value.toString()));
             builder.append("::interval");
-        } else if (value instanceof Long
-                   && ((Long) value <= Integer.MAX_VALUE
-                   || (Long) value >= Integer.MIN_VALUE)) {
-            builder.append(value.toString());
-            builder.append("::bigint");
         } else if (value instanceof UUID uuid) {
             builder.append("'");
             builder.append(uuid.toString());
