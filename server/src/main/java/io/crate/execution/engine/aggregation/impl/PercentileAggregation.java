@@ -48,7 +48,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.IntervalType;
 import io.crate.types.TypeSignature;
 
-class PercentileAggregation<T> extends AggregationFunction<TDigestState, Object> {
+public class PercentileAggregation<T> extends AggregationFunction<TDigestState, Object> {
 
     public static final String NAME = "percentile";
 
