@@ -43,7 +43,6 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.jspecify.annotations.Nullable;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.SysColumns;
@@ -169,7 +168,7 @@ public final class SourceParser {
     }
 
     private Object parseArray(XContentParser parser,
-                              @Nullable DataType<?> type,
+                              DataType<?> type,
                               Map<String, Type> requiredColumns) throws IOException {
         if (type instanceof GeoPointType || type instanceof FloatVectorType) {
             return type.implicitCast(parser.list());
@@ -228,11 +227,10 @@ public final class SourceParser {
                 values.put(fieldName, null);
             } else {
                 boolean currentTreeIncludeUnknown = false;
-                DataType<?> type = null;
+                DataType<?> type = DataTypes.UNDEFINED;
                 Map<String, Type> requiredChilden = Map.of();
                 if (required instanceof SingleType singleType) {
                     type = singleType.type();
-                    required = null;
                     if (ArrayType.unnest(type) instanceof ObjectType objectType) {
                         // Use inner types to parse the object sub-columns for type aware parsing
                         requiredChilden = Type.typeMap(objectType);
@@ -269,7 +267,7 @@ public final class SourceParser {
      * the input on COPY FROM.
      */
     private Object parseValue(XContentParser parser,
-                              @Nullable DataType<?> type,
+                              DataType<?> type,
                               Map<String, Type> requiredColumns,
                               boolean includeUnknown) throws IOException {
         return switch (parser.currentToken()) {
@@ -299,8 +297,8 @@ public final class SourceParser {
     }
 
 
-    private static boolean isUndefined(@Nullable DataType<?> type) {
-        return type == null || type.id() == DataTypes.UNDEFINED.id();
+    private static boolean isUndefined(DataType<?> type) {
+        return type.id() == DataTypes.UNDEFINED.id();
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
