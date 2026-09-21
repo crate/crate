@@ -108,7 +108,6 @@ import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.ArbitraryAggregation;
 import io.crate.execution.engine.aggregation.impl.CmpByAggregation;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
-import io.crate.execution.engine.aggregation.impl.PercentileAggregation;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.DocValuesAggregates;
 import io.crate.execution.engine.collect.MapSideDataCollectOperation;
@@ -248,7 +247,6 @@ public abstract class AggregationTestCase extends ESTestCase {
                 aggregationFunction, terminatePartialAggFunction, partialResultWithoutDocValues);
 
             if (aggregationFunction.signature().hasFeature(Signature.Feature.ORDER_SENSITIVE) == false &&
-                aggregationFunction.signature().getName().name().equals(PercentileAggregation.NAME) == false &&
                 aggregationFunction.signature().getName().name().equals(ArbitraryAggregation.NAME) == false &&
                 aggregationFunction.signature().getName().name().equals(CollectSetAggregation.NAME) == false &&
                 aggregationFunction.signature().getName().name().equals(CmpByAggregation.MAX_BY) == false &&

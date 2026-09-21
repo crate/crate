@@ -65,7 +65,7 @@ public class PercentileAggregation<T> extends AggregationFunction<TDigestState, 
                         DataTypes.DOUBLE.getTypeSignature()
                     )
                     .returnType(DataTypes.DOUBLE.getTypeSignature())
-                    .features(Feature.DETERMINISTIC)
+                    .features(Feature.DETERMINISTIC, Feature.ORDER_SENSITIVE)
                     .build(),
                 PercentileAggregation::new
             );
@@ -76,7 +76,7 @@ public class PercentileAggregation<T> extends AggregationFunction<TDigestState, 
                         DataTypes.DOUBLE_ARRAY.getTypeSignature()
                     )
                     .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
-                    .features(Feature.DETERMINISTIC)
+                    .features(Feature.DETERMINISTIC, Feature.ORDER_SENSITIVE)
                     .build(),
                 PercentileAggregation::new
             );
@@ -90,7 +90,7 @@ public class PercentileAggregation<T> extends AggregationFunction<TDigestState, 
                         DataTypes.DOUBLE.getTypeSignature()
                     )
                     .returnType(DataTypes.DOUBLE.getTypeSignature())
-                    .features(Feature.DETERMINISTIC)
+                    .features(Feature.DETERMINISTIC, Feature.ORDER_SENSITIVE)
                     .build(),
                 PercentileAggregation::new
             );
@@ -102,7 +102,7 @@ public class PercentileAggregation<T> extends AggregationFunction<TDigestState, 
                         DataTypes.DOUBLE.getTypeSignature()
                     )
                     .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
-                    .features(Feature.DETERMINISTIC)
+                    .features(Feature.DETERMINISTIC, Feature.ORDER_SENSITIVE)
                     .build(),
                 PercentileAggregation::new
             );
@@ -126,7 +126,7 @@ public class PercentileAggregation<T> extends AggregationFunction<TDigestState, 
                     DataTypes.DOUBLE.getTypeSignature()
                 )
                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                .features(Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC, Feature.ORDER_SENSITIVE)
                 .build(),
             newIntervalPercentileAgg
         );
@@ -138,7 +138,7 @@ public class PercentileAggregation<T> extends AggregationFunction<TDigestState, 
                     DataTypes.DOUBLE_ARRAY.getTypeSignature()
                 )
                 .returnType(intervalArraySignature)
-                .features(Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC, Feature.ORDER_SENSITIVE)
                 .build(),
             newIntervalPercentileAgg
         );
@@ -151,7 +151,7 @@ public class PercentileAggregation<T> extends AggregationFunction<TDigestState, 
                     DataTypes.DOUBLE.getTypeSignature()
                 )
                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                .features(Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC, Feature.ORDER_SENSITIVE)
                 .build(),
             newIntervalPercentileAgg
         );
@@ -164,7 +164,7 @@ public class PercentileAggregation<T> extends AggregationFunction<TDigestState, 
                     DataTypes.DOUBLE.getTypeSignature()
                 )
                 .returnType(intervalArraySignature)
-                .features(Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC, Feature.ORDER_SENSITIVE)
                 .build(),
             newIntervalPercentileAgg
         );
