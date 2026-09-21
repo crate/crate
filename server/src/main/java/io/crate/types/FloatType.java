@@ -34,6 +34,7 @@ import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import ch.randelshofer.fastdoubleparser.JavaFloatParser;
 import io.crate.Streamer;
@@ -131,6 +132,11 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         public LuceneCollectorExpression<Float> getLuceneExpression(Reference ref,
                                                                     Predicate<Reference> isParentIgnored) {
             return new FloatColumnReference(ref.storageIdent());
+        }
+
+        @Override
+        public Float decode(DataType<Float> type, XContentParser parser) throws IOException {
+            return parser.floatValue();
         }
     };
 

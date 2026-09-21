@@ -36,6 +36,7 @@ import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.Streamer;
 import io.crate.execution.dml.LongIndexer;
@@ -77,6 +78,11 @@ public class DateType extends DataType<Long>
         public LuceneCollectorExpression<Long> getLuceneExpression(Reference ref,
                                                                    Predicate<Reference> isParentIgnored) {
             return new LongColumnReference(ref.storageIdent());
+        }
+
+        @Override
+        public Long decode(DataType<Long> type, XContentParser parser) throws IOException {
+            return parser.longValue();
         }
     };
 

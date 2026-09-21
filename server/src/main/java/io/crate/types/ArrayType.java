@@ -161,6 +161,11 @@ public class ArrayType<T> extends DataType<List<T>> {
                         isParentIgnored
                     );
                 }
+
+                @Override
+                public List<T> decode(DataType<List<T>> type, XContentParser parser) throws IOException {
+                    throw new UnsupportedOperationException("Must not decode source value directly from ArrayType");
+                }
             };
         } else {
             return new StorageSupport<List<T>>(innerStorage) {
@@ -203,6 +208,11 @@ public class ArrayType<T> extends DataType<List<T>> {
                         DocReferences.toDocLookup(ref),
                         isParentIgnored
                     );
+                }
+
+                @Override
+                public List<T> decode(DataType<List<T>> type, XContentParser parser) throws IOException {
+                    throw new UnsupportedOperationException("Must not decode source value directly from ArrayType");
                 }
             };
         }

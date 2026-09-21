@@ -29,6 +29,7 @@ import java.util.function.Predicate;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.Streamer;
 import io.crate.execution.dml.IntIndexer;
@@ -73,6 +74,11 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
         public LuceneCollectorExpression<Number> getLuceneExpression(Reference ref,
                                                                      Predicate<Reference> isParentIgnored) {
             return (LuceneCollectorExpression) new ByteColumnReference(ref.storageIdent());
+        }
+
+        @Override
+        public Byte decode(DataType<Number> type, XContentParser parser) throws IOException {
+            return (byte) parser.intValue();
         }
     };
 

@@ -86,6 +86,11 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
                                                                     Predicate<Reference> isParentIgnored) {
             return new GeoPointColumnReference(ref.storageIdent());
         }
+
+        @Override
+        public Point decode(DataType<Point> type, XContentParser parser) throws IOException {
+            return type.implicitCast(parser.list());
+        }
     };
 
     private GeoPointType() {

@@ -28,6 +28,7 @@ import java.util.function.Predicate;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.Streamer;
@@ -159,6 +160,11 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
             public LuceneCollectorExpression<Object> getLuceneExpression(Reference ref,
                                                                          Predicate<Reference> isParentIgnored) {
                 throw new UnsupportedOperationException("Undefined type can't read doc-values from Lucene");
+            }
+
+            @Override
+            public Object decode(DataType<Object> type, XContentParser parser) throws IOException {
+                return parser.text();
             }
         };
     }

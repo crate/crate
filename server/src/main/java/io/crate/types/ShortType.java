@@ -30,6 +30,7 @@ import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.Streamer;
 import io.crate.execution.dml.IntIndexer;
@@ -75,6 +76,10 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
             return (LuceneCollectorExpression) new ShortColumnReference(ref.storageIdent());
         }
 
+        @Override
+        public Short decode(DataType<Number> type, XContentParser parser) throws IOException {
+            return parser.shortValue(true);
+        }
     };
 
     private ShortType() {

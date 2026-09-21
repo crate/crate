@@ -34,6 +34,7 @@ import java.util.function.Supplier;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.execution.dml.FulltextIndexer;
@@ -88,6 +89,11 @@ public class CharacterType extends StringType {
             public LuceneCollectorExpression<Object> getLuceneExpression(Reference ref,
                                                                          Predicate<Reference> isParentIgnored) {
                 return (LuceneCollectorExpression) new StringColumnReference(ref.storageIdent());
+            }
+
+            @Override
+            public Object decode(DataType<Object> type, XContentParser parser) throws IOException {
+                return parser.text();
             }
         };
     }
