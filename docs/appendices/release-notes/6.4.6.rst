@@ -49,3 +49,7 @@ Fixes
 - Fixed an issue that caused order-sensitive aggregations
   (``string_agg``, ``array_agg``) applied on top of ``UNION ALL ... ORDER BY``
   to return incorrect results.
+
+- Fixed an issue that could cause window functions using ``RANGE`` with
+  integral ``PRECEDING``/``FOLLOWING`` bounds to compute frames incorrectly due
+  to boundary overflow.
