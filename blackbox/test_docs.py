@@ -58,12 +58,16 @@ CRATE_SETTINGS = {
 
 class CrateTestShell(CrateShell):
 
-    def __init__(self):
-        super(CrateTestShell, self).__init__(is_tty=False)
+    def __init__(self, crate_hosts):
+        super().__init__(crate_hosts, is_tty=False)
         self.logger = ColorPrinter(False, stream=PrintWrapper(), line_end='\n')
 
 
-cmd = CrateTestShell()
+# The shell connects within its constructor, and crate-python >= 2.3 checks
+# the servers in `connect()` and raises `ConnectionError` if none of them
+# responds. It is therefore created once the node is up, in
+# `ConnectingCrateLayer.start()`, instead of at import time.
+cmd = None
 
 
 def pretty_print(s):
@@ -82,8 +86,9 @@ class ConnectingCrateLayer(CrateNode):
         super().__init__(*args, **kwargs)
 
     def start(self):
+        global cmd
         super().start()
-        cmd._connect(self.http_url)
+        cmd = CrateTestShell(self.http_url)
 
     def stop(self):
         print('')
@@ -432,7 +437,8 @@ class DocTests(unittest.TestSuite):
             super().run(result, debug)
         finally:
             crate.stop()
-            cmd.close()
+            if cmd is not None:
+                cmd.close()
 
 class CrateDBVersionTest(unittest.TestCase):
     """
