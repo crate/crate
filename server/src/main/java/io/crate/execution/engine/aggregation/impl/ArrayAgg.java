@@ -28,6 +28,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
+import io.crate.collections.accountable.AccountableList;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -82,8 +83,7 @@ public class ArrayAgg extends AggregationFunction<List<Object>, List<Object>> {
     public List<Object> newState(RamAccounting ramAccounting,
                                  Version minNodeInCluster,
                                  MemoryManager memoryManager) {
-        ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(ArrayType.ARRAY_LIST_SHALLOW_SIZE));
-        return new ArrayList<>();
+        return new AccountableList<>(ramAccounting::addBytes);
     }
 
     @Override

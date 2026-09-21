@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -428,7 +429,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("explain (costs false) select * from doc.t as t1, doc.t as t2 order by t1.x, t2.x limit 3");
         assertThat(response).hasLines(
             "Fetch[x, y, x, y]",
-            "  └ Limit[3::bigint;0]",
+            "  └ Limit[3;0]",
             "    └ OrderBy[x ASC x ASC]",
             "      └ NestedLoopJoin[CROSS]",
             "        ├ Rename[t1._fetchid, x] AS t1",
@@ -1509,7 +1510,7 @@ public class JoinIntegrationTest extends IntegTestCase {
             "    └ Rename[a] AS i",
             "      └ Eval[a]",
             "        └ Fetch[a, b]",
-            "          └ Limit[1::bigint;0]",
+            "          └ Limit[1;0]",
             "            └ OrderBy[b DESC]",
             "              └ Collect[doc.tt1 | [_fetchid, b] | true]"
         );

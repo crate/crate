@@ -38,6 +38,7 @@ import org.elasticsearch.common.io.stream.ByteBufferStreamInput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.locationtech.spatial4j.context.SpatialContext;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.Shape;
@@ -99,6 +100,11 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
         public LuceneCollectorExpression<Map<String, Object>> getLuceneExpression(Reference ref,
                                                                                   Predicate<Reference> isParentIgnored) {
             throw new AssertionError("GeoShape doesn't have docValues. Must use DocCollectorExpression instead");
+        }
+
+        @Override
+        public Map<String, Object> decode(DataType<Map<String, Object>> type, XContentParser parser) throws IOException {
+            return parser.map();
         }
     };
 

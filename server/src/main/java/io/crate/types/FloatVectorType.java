@@ -36,6 +36,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.Streamer;
@@ -106,6 +107,11 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
         public LuceneCollectorExpression<float[]> getLuceneExpression(Reference ref,
                                                                       Predicate<Reference> isParentIgnored) {
             return new FloatVectorColumnReference(ref.storageIdent());
+        }
+
+        @Override
+        public float[] decode(DataType<float[]> type, XContentParser parser) throws IOException {
+            return type.implicitCast(parser.list());
         }
     };
 

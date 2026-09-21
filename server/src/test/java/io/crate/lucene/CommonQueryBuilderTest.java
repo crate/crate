@@ -47,7 +47,6 @@ import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeQuery;
 import org.elasticsearch.Version;
 import org.junit.Test;
-import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -71,9 +70,6 @@ import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FloatVectorType;
-import io.crate.types.GeoPointType;
-import io.crate.types.GeoShapeType;
-import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
 
 public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
@@ -487,19 +483,19 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testArrayAccessResultsInTermAndFunctionQuery() {
         assertThat(convert("ts_array[1] = 1129224512000")).hasToString(
             "+ts_array:[1129224512000 TO 1129224512000] " +
-            "#(ts_array[1] = 1129224512000::bigint)");
+            "#(ts_array[1] = 1129224512000)");
         assertThat(convert("ts_array[1] >= 1129224512000")).hasToString(
             "+ts_array:[1129224512000 TO 9223372036854775807] " +
-            "#(ts_array[1] >= 1129224512000::bigint)");
+            "#(ts_array[1] >= 1129224512000)");
         assertThat(convert("ts_array[1] > 1129224512000")).hasToString(
             "+ts_array:[1129224512001 TO 9223372036854775807] " +
-            "#(ts_array[1] > 1129224512000::bigint)");
+            "#(ts_array[1] > 1129224512000)");
         assertThat(convert("ts_array[1] <= 1129224512000")).hasToString(
             "+ts_array:[-9223372036854775808 TO 1129224512000] " +
-            "#(ts_array[1] <= 1129224512000::bigint)");
+            "#(ts_array[1] <= 1129224512000)");
         assertThat(convert("ts_array[1] < 1129224512000")).hasToString(
             "+ts_array:[-9223372036854775808 TO 1129224511999] " +
-            "#(ts_array[1] < 1129224512000::bigint)");
+            "#(ts_array[1] < 1129224512000)");
     }
 
     @Test
@@ -999,19 +995,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
                 builder.indexValue("a", listOfVal1AndNull);
                 builder.indexValue("a", listOfVal2AndNull);
 
-                String val1Str = Literal.ofUnchecked(type, val1).toString();
-                if (type.id() == GeoPointType.ID) {
-                    PointImpl p = (PointImpl) val1;
-                    val1Str = "[" + p.getX() + "," + p.getY() + "]";
-                } else if (type.id() == GeoShapeType.ID) {
-                    // DataTypeTesting.getDataGenerator generates points only
-                    List<Double> c = (List<Double>) ((Map<String, Object>) val1).get("coordinates");
-                    val1Str = String.format("'POINT (%s %s)'", c.get(0), c.get(1));
-                } else if (type.id() == NumericType.ID) {
-                    // TODO: quoting the numeric literals to preserve precision then correctly match - https://github.com/crate/crate/issues/18220
-                    val1Str = "'" + val1 + "'";
-                }
-                assertThat(tester.runQuery("a", String.format("%s = all(a)", val1Str)))
+                assertThat(tester.runQuery("a", "? = all(a)", val1))
                     .containsExactly(List.of(val1), List.of(val1, val1), List.of());
             }
         }
@@ -1054,12 +1038,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
                 builder.indexValue("a", listOfVal1AndNull);
                 builder.indexValue("a", listOfVal2AndNull);
 
-                String val1Str = Literal.ofUnchecked(type, val1).toString();
-                if (type.id() == NumericType.ID) {
-                    // TODO: quoting the numeric literals to preserve precision then correctly match - https://github.com/crate/crate/issues/18220
-                    val1Str = "'" + val1 + "'";
-                }
-                assertThat(tester.runQuery("a", String.format("%s = all(a)", val1Str)))
+                assertThat(tester.runQuery("a", "? = all(a)", val1))
                     .containsExactly(List.of(val1), List.of(val1, val1), List.of());
             }
         }

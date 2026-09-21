@@ -22,10 +22,12 @@
 package io.crate.types;
 
 
+import java.io.IOException;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.execution.dml.ValueIndexer;
@@ -100,6 +102,8 @@ public abstract class StorageSupport<T> {
     public T decode(byte[] packedPoint) {
         throw new UnsupportedOperationException("decodeFromPackedPoint not supported");
     }
+
+    public abstract T decode(DataType<T> type, XContentParser parser) throws IOException;
 
     /**
      * @return {@code true} if values should always be loaded from stored fields

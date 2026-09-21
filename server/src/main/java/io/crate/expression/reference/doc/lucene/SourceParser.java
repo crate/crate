@@ -30,7 +30,6 @@ import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,31 +43,18 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.jspecify.annotations.Nullable;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.server.xcontent.XContentHelper;
-import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
-import io.crate.types.BitStringType;
-import io.crate.types.BooleanType;
-import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.DateType;
-import io.crate.types.DoubleType;
-import io.crate.types.FloatType;
 import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
 import io.crate.types.GeoShapeType;
-import io.crate.types.IntegerType;
-import io.crate.types.LongType;
-import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
-import io.crate.types.ShortType;
-import io.crate.types.TimestampType;
-import io.crate.types.UUIDType;
+import io.crate.types.StorageSupport;
 import io.crate.types.UndefinedType;
 
 public final class SourceParser {
@@ -77,7 +63,32 @@ public final class SourceParser {
 
     private static final Logger LOGGER = LogManager.getLogger(SourceParser.class);
 
-    private final Map<String, Object> requiredColumns = new HashMap<>();
+
+    sealed interface Type permits SingleType, NestedTypes {
+
+        static Type of(DataType<?> type) {
+            return type instanceof ObjectType objectType
+                ? new NestedTypes(typeMap(objectType))
+                : new SingleType(type);
+        }
+
+        private static Map<String, Type> typeMap(ObjectType objectType) {
+            Map<String, DataType<?>> innerTypes = objectType.innerTypes();
+            HashMap<String, Type> children = HashMap.newHashMap(innerTypes.size());
+            for (var entry : innerTypes.entrySet()) {
+                children.put(entry.getKey(), Type.of(entry.getValue()));
+            }
+            return children;
+        }
+    }
+
+    public record SingleType(DataType<?> type) implements Type {
+    }
+
+    public record NestedTypes(Map<String, Type> nestedColumns) implements Type {
+    }
+
+    private final Map<String, Type> requiredColumns = new HashMap<>();
     private final UnaryOperator<String> lookupNameBySourceKey;
     private final boolean strictMode;
 
@@ -91,30 +102,34 @@ public final class SourceParser {
         this.strictMode = strictMode;
     }
 
-    @SuppressWarnings({"unchecked"})
     public void register(ColumnIdent docColumn, DataType<?> type) {
         assert docColumn.name().equals(SysColumns.DOC.name()) && docColumn.path().size() > 0
             : "All columns registered for sourceParser must start with _doc";
 
         List<String> path = docColumn.path();
         if (path.size() == 1) {
-            requiredColumns.put(docColumn.path().get(0), type);
+            requiredColumns.put(path.get(0), new SingleType(type));
         } else {
-            Map<String, Object> columns = requiredColumns;
+            Map<String, Type> columns = requiredColumns;
             for (int i = 0; i < path.size(); i++) {
                 String part = path.get(i);
                 if (i + 1 == path.size()) {
-                    columns.put(part, type);
+                    columns.put(part, new SingleType(type));
                 } else {
-                    Object object = columns.get(part);
-                    if (object instanceof Map map) {
-                        columns = map;
-                    } else if (object instanceof DataType) {
-                        break;
-                    } else {
-                        HashMap<String, Object> children = new HashMap<>();
-                        columns.put(part, children);
-                        columns = children;
+                    Type object = columns.get(part);
+                    switch (object) {
+                        case SingleType _:
+                            break;
+
+                        case NestedTypes nested:
+                            columns = nested.nestedColumns();
+                            break;
+
+                        case null:
+                            HashMap<String, Type> children = new HashMap<>();
+                            columns.put(part, new NestedTypes(children));
+                            columns = children;
+                            break;
                     }
                 }
             }
@@ -129,7 +144,11 @@ public final class SourceParser {
         return parse(bytes, requiredColumns, includeUnknownCols);
     }
 
-    public Map<String, Object> parse(BytesReference bytes, Map<String, Object> requiredColumns, boolean includeUnknownCols) {
+    public Map<String, Object> parse(BytesReference bytes, ColumnIdent column, ObjectType objectType) {
+        return parse(bytes, Map.of(column.leafName(), Type.of(objectType)), false);
+    }
+
+    public Map<String, Object> parse(BytesReference bytes, Map<String, Type> requiredColumns, boolean includeUnknownCols) {
         try (InputStream inputStream = XContentHelper.getUncompressedInputStream(bytes);
              XContentParser parser = XContentType.JSON.xContent().createParser(
                  NamedXContentRegistry.EMPTY,
@@ -149,8 +168,8 @@ public final class SourceParser {
     }
 
     private Object parseArray(XContentParser parser,
-                              @Nullable DataType<?> type,
-                              @Nullable Map<String, Object> requiredColumns) throws IOException {
+                              DataType<?> type,
+                              Map<String, Type> requiredColumns) throws IOException {
         if (type instanceof GeoPointType || type instanceof FloatVectorType) {
             return type.implicitCast(parser.list());
         } else {
@@ -164,8 +183,8 @@ public final class SourceParser {
             //   "s" string
             //   )))));
             //   SELECT a['b'] from test; -- resolves to array(array(object))
-            if (type instanceof ArrayType) {
-                type = ((ArrayType<?>) type).innerType();
+            if (type instanceof ArrayType<?> arrayType) {
+                type = arrayType.innerType();
             }
             for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
                 values.add(parseValue(parser, type, requiredColumns, false));
@@ -174,14 +193,10 @@ public final class SourceParser {
         }
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     private Map<String, Object> parseObject(XContentParser parser,
-                                            @Nullable Map<String, Object> requiredColumns,
+                                            Map<String, Type> requiredColumns,
                                             boolean includeUnknown) throws IOException {
-        var parseAllFields = false;
-        if (requiredColumns == null || requiredColumns.isEmpty()) {
-            parseAllFields = true;
-        }
+        boolean parseAllFields = requiredColumns.isEmpty();
         HashMap<String, Object> values = new HashMap<>();
         XContentParser.Token token = parser.nextToken(); // move past START_OBJECT;
         for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
@@ -192,16 +207,16 @@ public final class SourceParser {
                 parser.skipChildren();
                 continue;
             }
-            var required = requiredColumns == null ? null : requiredColumns.get(fieldName);
+            Type required = requiredColumns.get(fieldName);
             if ((parseAllFields == false && required == null && !includeUnknown)) {
                 parser.skipChildren();
             } else if (token == START_ARRAY
-                && required instanceof DataType<?>
-                && !(required instanceof ArrayType<?>)
-                && !(required instanceof GeoPointType)
-                && !(required instanceof GeoShapeType)
-                && !(required instanceof FloatVectorType)
-                && !(required instanceof UndefinedType)) {
+                    && required instanceof SingleType type
+                    && !(type.type() instanceof ArrayType<?>)
+                    && !(type.type() instanceof GeoPointType)
+                    && !(type.type() instanceof GeoShapeType)
+                    && !(type.type() instanceof FloatVectorType)
+                    && !(type.type() instanceof UndefinedType)) {
                 // due to a bug: https://github.com/crate/crate/issues/13990
                 parser.skipChildren();
                 values.put(fieldName, null);
@@ -212,25 +227,26 @@ public final class SourceParser {
                 values.put(fieldName, null);
             } else {
                 boolean currentTreeIncludeUnknown = false;
-                DataType<?> type = null;
-                if (required instanceof DataType<?> dataType) {
-                    type = dataType;
-                    required = null;
-                    if (ArrayType.unnest(dataType) instanceof ObjectType objectType) {
+                DataType<?> type = DataTypes.UNDEFINED;
+                Map<String, Type> requiredChilden = Map.of();
+                if (required instanceof SingleType singleType) {
+                    type = singleType.type();
+                    if (ArrayType.unnest(type) instanceof ObjectType objectType) {
                         // Use inner types to parse the object sub-columns for type aware parsing
-                        required = objectType.innerTypes();
+                        requiredChilden = Type.typeMap(objectType);
                         // When parsing a complete object, we need to parse also possible ignored sub-columns
                         // (We do not know if the object supports ignored sub-columns or not)
                         currentTreeIncludeUnknown = true;
                     }
+                } else if (required instanceof NestedTypes nested) {
+                    requiredChilden = nested.nestedColumns();
                 }
-
                 Object value = null;
                 try {
                     value = parseValue(
                         parser,
                         type,
-                        (Map) required,
+                        requiredChilden,
                         currentTreeIncludeUnknown);
                 } catch (Exception e) {
                     if (strictMode) {
@@ -251,8 +267,8 @@ public final class SourceParser {
      * the input on COPY FROM.
      */
     private Object parseValue(XContentParser parser,
-                              @Nullable DataType<?> type,
-                              @Nullable Map<String, Object> requiredColumns,
+                              DataType<?> type,
+                              Map<String, Type> requiredColumns,
                               boolean includeUnknown) throws IOException {
         return switch (parser.currentToken()) {
             case VALUE_NULL -> null;
@@ -281,33 +297,16 @@ public final class SourceParser {
     }
 
 
-    private static boolean isUndefined(@Nullable DataType<?> type) {
-        return type == null || type.id() == DataTypes.UNDEFINED.id();
+    private static boolean isUndefined(DataType<?> type) {
+        return type.id() == DataTypes.UNDEFINED.id();
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     private static Object parseByType(XContentParser parser, DataType<?> type) throws IOException {
         assert type != null : "Type must no be null when parsing data type aware";
-
         // Type could be an array if traversed into an object array → unnest to get the inner type
-        var elementType = ArrayType.unnest(type);
-        return switch (elementType.id()) {
-            case BooleanType.ID -> parser.booleanValue();
-            case ByteType.ID -> (byte) parser.intValue();
-            case ShortType.ID -> parser.shortValue(true);
-            case IntegerType.ID -> parser.intValue();
-            case LongType.ID -> parser.longValue();
-            case TimestampType.ID_WITH_TZ -> parser.longValue();
-            case TimestampType.ID_WITHOUT_TZ -> parser.longValue();
-            case DateType.ID -> parser.longValue();
-            case FloatType.ID -> parser.floatValue();
-            case DoubleType.ID -> parser.doubleValue();
-            case BitStringType.ID -> new BitString(
-                BitSet.valueOf(parser.binaryValue()),
-                ((BitStringType) elementType).length()
-            );
-            case NumericType.ID -> elementType.sanitizeValue(parser.text());
-            case UUIDType.ID -> elementType.sanitizeValue(parser.text());
-            default -> parser.text();
-        };
+        DataType<?> elementType = ArrayType.unnest(type);
+        StorageSupport<?> storageSupportSafe = elementType.storageSupportSafe();
+        return storageSupportSafe.decode((DataType) elementType, parser);
     }
 }

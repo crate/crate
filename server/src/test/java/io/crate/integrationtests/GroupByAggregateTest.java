@@ -26,6 +26,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -784,7 +785,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("explain (costs false) " + query);
         assertThat(response).hasLines(
             "Eval[count(DISTINCT good), count(DISTINCT department), count(DISTINCT good)]",
-            "  └ Filter[(count(DISTINCT department) > 0::bigint)]",
+            "  └ Filter[(count(DISTINCT department) > 0)]",
             "    └ NestedLoopJoin[CROSS]",
             "      ├ HashAggregate[count(DISTINCT good)]",
             "      │  └ GroupHashAggregate[good]",
@@ -1521,7 +1522,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("analyze");
         execute("explain (costs false) select distinct id from m.tbl limit 2");
         assertThat(response).hasLines(
-            "LimitDistinct[2::bigint;0 | [id]]",
+            "LimitDistinct[2;0 | [id]]",
             "  └ Collect[m.tbl | [id] | true]"
         );
         execute("select distinct id from m.tbl limit 2");
