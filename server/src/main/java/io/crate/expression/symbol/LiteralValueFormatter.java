@@ -30,23 +30,16 @@ import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.sql.Literals;
 
-public class LiteralValueFormatter {
-
-    private static final LiteralValueFormatter INSTANCE = new LiteralValueFormatter();
-
-    public static void format(Object value, StringBuilder builder) {
-        INSTANCE.formatValue(value, builder);
-    }
+public final class LiteralValueFormatter {
 
     private LiteralValueFormatter() {
     }
 
-    @SuppressWarnings("unchecked")
-    public void formatValue(Object value, StringBuilder builder) {
+    public static void format(Object value, StringBuilder builder) {
         if (value == null) {
             builder.append("NULL");
-        } else if (value instanceof Map) {
-            formatMap((Map<String, Object>) value, builder);
+        } else if (value instanceof Map<?, ?> map) {
+            formatMap(map, builder);
         } else if (value instanceof Iterable<?> iterable) {
             formatIterable(iterable, builder);
         } else if (value.getClass().isArray()) {
@@ -65,12 +58,12 @@ public class LiteralValueFormatter {
         }
     }
 
-    private void formatIterable(Iterable<?> iterable, StringBuilder builder) {
+    private static void formatIterable(Iterable<?> iterable, StringBuilder builder) {
         builder.append('[');
         var it = iterable.iterator();
         while (it.hasNext()) {
             var elem = it.next();
-            formatValue(elem, builder);
+            format(elem, builder);
             if (it.hasNext()) {
                 builder.append(", ");
             }
@@ -78,17 +71,21 @@ public class LiteralValueFormatter {
         builder.append(']');
     }
 
-    private void formatMap(Map<String, Object> map, StringBuilder builder) {
+    private static void formatMap(Map<?, ?> map, StringBuilder builder) {
         builder.append("{");
         var it = map
             .entrySet()
-            .stream()
             .iterator();
         while (it.hasNext()) {
             var entry = it.next();
-            formatIdentifier(entry.getKey(), builder);
-            builder.append("=");
-            formatValue(entry.getValue(), builder);
+            Object identifier = entry.getKey();
+            Object value = entry.getValue();
+            builder
+                .append('"')
+                .append(identifier)
+                .append('"')
+                .append("=");
+            format(value, builder);
             if (it.hasNext()) {
                 builder.append(", ");
             }
@@ -96,14 +93,10 @@ public class LiteralValueFormatter {
         builder.append("}");
     }
 
-    private void formatIdentifier(String identifier, StringBuilder builder) {
-        builder.append('"').append(identifier).append('"');
-    }
-
-    private void formatArray(Object array, StringBuilder builder) {
+    private static void formatArray(Object array, StringBuilder builder) {
         builder.append('[');
         for (int i = 0, length = Array.getLength(array); i < length; i++) {
-            formatValue(Array.get(array, i), builder);
+            format(Array.get(array, i), builder);
             if (i + 1 < length) {
                 builder.append(", ");
             }
