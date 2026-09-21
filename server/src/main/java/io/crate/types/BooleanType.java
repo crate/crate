@@ -38,6 +38,7 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.Streamer;
 import io.crate.common.collections.Lists;
@@ -163,6 +164,11 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
         public LuceneCollectorExpression<Boolean> getLuceneExpression(Reference ref,
                                                                       Predicate<Reference> isParentIgnored) {
             return new BooleanColumnReference(ref.storageIdent());
+        }
+
+        @Override
+        public Boolean decode(DataType<Boolean> type, XContentParser parser) throws IOException {
+            return parser.booleanValue();
         }
     };
 

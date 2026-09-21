@@ -30,7 +30,6 @@ import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,26 +48,14 @@ import org.jspecify.annotations.Nullable;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.server.xcontent.XContentHelper;
-import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
-import io.crate.types.BitStringType;
-import io.crate.types.BooleanType;
-import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.DateType;
-import io.crate.types.DoubleType;
-import io.crate.types.FloatType;
 import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
 import io.crate.types.GeoShapeType;
-import io.crate.types.IntegerType;
-import io.crate.types.LongType;
-import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
-import io.crate.types.ShortType;
-import io.crate.types.TimestampType;
-import io.crate.types.UUIDType;
+import io.crate.types.StorageSupport;
 import io.crate.types.UndefinedType;
 
 public final class SourceParser {
@@ -316,29 +303,12 @@ public final class SourceParser {
         return type == null || type.id() == DataTypes.UNDEFINED.id();
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     private static Object parseByType(XContentParser parser, DataType<?> type) throws IOException {
         assert type != null : "Type must no be null when parsing data type aware";
-
         // Type could be an array if traversed into an object array → unnest to get the inner type
-        var elementType = ArrayType.unnest(type);
-        return switch (elementType.id()) {
-            case BooleanType.ID -> parser.booleanValue();
-            case ByteType.ID -> (byte) parser.intValue();
-            case ShortType.ID -> parser.shortValue(true);
-            case IntegerType.ID -> parser.intValue();
-            case LongType.ID -> parser.longValue();
-            case TimestampType.ID_WITH_TZ -> parser.longValue();
-            case TimestampType.ID_WITHOUT_TZ -> parser.longValue();
-            case DateType.ID -> parser.longValue();
-            case FloatType.ID -> parser.floatValue();
-            case DoubleType.ID -> parser.doubleValue();
-            case BitStringType.ID -> new BitString(
-                BitSet.valueOf(parser.binaryValue()),
-                ((BitStringType) elementType).length()
-            );
-            case NumericType.ID -> elementType.sanitizeValue(parser.text());
-            case UUIDType.ID -> elementType.sanitizeValue(parser.text());
-            default -> parser.text();
-        };
+        DataType<?> elementType = ArrayType.unnest(type);
+        StorageSupport<?> storageSupportSafe = elementType.storageSupportSafe();
+        return storageSupportSafe.decode((DataType) elementType, parser);
     }
 }

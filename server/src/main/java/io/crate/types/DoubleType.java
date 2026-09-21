@@ -34,6 +34,7 @@ import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
 import io.crate.Streamer;
@@ -131,6 +132,11 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
         public LuceneCollectorExpression<Double> getLuceneExpression(Reference ref,
                                                                      Predicate<Reference> isParentIgnored) {
             return new DoubleColumnReference(ref.storageIdent());
+        }
+
+        @Override
+        public Double decode(DataType<Double> type, XContentParser parser) throws IOException {
+            return parser.doubleValue();
         }
     };
 

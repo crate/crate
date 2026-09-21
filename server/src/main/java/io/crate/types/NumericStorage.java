@@ -39,6 +39,7 @@ import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.execution.dml.IndexDocumentBuilder;
 import io.crate.execution.dml.ValueIndexer;
@@ -232,5 +233,10 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
                 return new BigDecimal(bigInt, scale == null ? 0 : scale, mathContext);
             }
         };
+    }
+
+    @Override
+    public BigDecimal decode(DataType<BigDecimal> type, XContentParser parser) throws IOException {
+        return type.sanitizeValue(parser.text());
     }
 }

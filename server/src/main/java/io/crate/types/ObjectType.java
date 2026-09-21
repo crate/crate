@@ -121,6 +121,11 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
                                                                                   Predicate<Reference> isParentIgnored) {
             throw new AssertionError("ObjectType has no doc values. Must use DocCollectorExpression instead");
         }
+
+        @Override
+        public Map<String, Object> decode(DataType<Map<String, Object>> type, XContentParser parser) throws IOException {
+            return parser.map();
+        }
     };
 
     public static class Builder {
