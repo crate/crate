@@ -24,6 +24,7 @@ package io.crate.operation.aggregation;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.within;
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
 import static org.mockito.Mockito.mock;
@@ -33,6 +34,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -103,6 +105,10 @@ import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.execution.engine.aggregation.impl.ArbitraryAggregation;
+import io.crate.execution.engine.aggregation.impl.CmpByAggregation;
+import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
+import io.crate.execution.engine.aggregation.impl.PercentileAggregation;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.DocValuesAggregates;
 import io.crate.execution.engine.collect.MapSideDataCollectOperation;
@@ -241,6 +247,15 @@ public abstract class AggregationTestCase extends ESTestCase {
             var resultWithoutDocValues = assertAndGetMergedIterAndPartial(
                 aggregationFunction, terminatePartialAggFunction, partialResultWithoutDocValues);
 
+            if (aggregationFunction.signature().hasFeature(Signature.Feature.ORDER_SENSITIVE) == false &&
+                aggregationFunction.signature().getName().name().equals(PercentileAggregation.NAME) == false &&
+                aggregationFunction.signature().getName().name().equals(ArbitraryAggregation.NAME) == false &&
+                aggregationFunction.signature().getName().name().equals(CollectSetAggregation.NAME) == false &&
+                aggregationFunction.signature().getName().name().equals(CmpByAggregation.MAX_BY) == false &&
+                aggregationFunction.signature().getName().name().equals(CmpByAggregation.MIN_BY) == false) {
+                assertResultIsOrderInsensitive(aggregationFunction, terminatePartialAggFunction, data, randomExtraStates, resultWithoutDocValues);
+            }
+
             // assert that aggregations with/-out doc values yield the
             // same result, if a doc value aggregator exists.
             if (partialResultWithDocValues != null) {
@@ -281,6 +296,39 @@ public abstract class AggregationTestCase extends ESTestCase {
         assertThat(result2).as("iter->final should have the same result as partial->final")
             .isEqualTo(result1);
         return result1;
+    }
+
+    /**
+     * Aggregations not marked with {@link Signature.Feature#ORDER_SENSITIVE} must produce the same
+     * result regardless of the consumption order of the input rows.
+     *
+     * @param data must not be mutated as it can be used in order sensitive aggregations.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void assertResultIsOrderInsensitive(AggregationFunction aggregationFunction,
+                                                AggregationFunction terminatePartialAggFunction,
+                                                Object[][] data,
+                                                boolean randomExtraStates,
+                                                Object expectedResult) {
+        List<Object[]> shuffledRows = new ArrayList<>(Arrays.asList(data));
+        Collections.shuffle(shuffledRows, random());
+        Object[][] shuffledData = shuffledRows.toArray(new Object[0][]);
+
+        Object shuffledResult = assertAndGetMergedIterAndPartial(
+            aggregationFunction,
+            terminatePartialAggFunction,
+            execPartialAggregationWithoutDocValues(aggregationFunction, shuffledData, randomExtraStates, Version.CURRENT)
+        );
+        String reason = String.format(
+            "%s is not ORDER_SENSITIVE but is sensitive to input order",
+            aggregationFunction.signature().getName().toString());
+        if (expectedResult instanceof Double expectedDouble) {
+            assertThat((Double) shuffledResult).as(reason).isEqualTo(expectedDouble, within(Double.valueOf(0.01)));
+        } else if (expectedResult instanceof Float expectedFloat) {
+            assertThat((Float) shuffledResult).as(reason).isEqualTo(expectedFloat, within(Float.valueOf(0.01f)));
+        } else {
+            assertThat(shuffledResult).as(reason).isEqualTo(expectedResult);
+        }
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
