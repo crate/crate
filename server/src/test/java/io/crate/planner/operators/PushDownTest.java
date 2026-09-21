@@ -428,7 +428,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         );
         var expectedPlan =
             """
-            Filter[(count(*) > 10::bigint)]
+            Filter[(count(*) > 10)]
               └ GroupHashAggregate[x | count(*)]
                 └ Collect[doc.t1 | [x] | (x > 1)]
             """;
@@ -554,7 +554,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             """
             Rename[id, name] AS u
               └ OrderBy[id ASC name ASC]
-                └ Get[doc.users | id, name | DocKeys{1::bigint} | (id = 1::bigint)]
+                └ Get[doc.users | id, name | DocKeys{1} | (id = 1)]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
     }

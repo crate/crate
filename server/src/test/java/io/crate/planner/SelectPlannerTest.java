@@ -24,6 +24,7 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collection;
@@ -120,7 +121,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan plan = e.logicalPlan("select name from users where id = 1");
         assertThat(plan).isEqualTo(
-            "Get[doc.users | name | DocKeys{1::bigint} | (id = 1::bigint)]");
+            "Get[doc.users | name | DocKeys{1} | (id = 1)]");
     }
 
     @Test
@@ -144,7 +145,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan plan = e.logicalPlan("select name from users where id = 1 and _version = 1");
         assertThat(plan).isEqualTo(
-            "Get[doc.users | name | DocKeys{1::bigint, 1::bigint} | ((id = 1::bigint) AND (_version = 1::bigint))]");
+            "Get[doc.users | name | DocKeys{1, 1} | ((id = 1) AND (_version = 1))]");
     }
 
     @Test
@@ -177,7 +178,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan plan = e.logicalPlan("select name, date from parted_pks where id = 1 and date = 0");
         assertThat(plan).isEqualTo(
-            "Get[doc.parted_pks | name, date | DocKeys{1, 0::bigint} | ((id = 1) AND (date = 0::bigint))]"
+            "Get[doc.parted_pks | name, date | DocKeys{1, 0} | ((id = 1) AND (date = 0))]"
         );
     }
 
@@ -190,7 +191,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan plan = e.logicalPlan("select name from users where id in (1, 2)");
         assertThat(plan).isEqualTo(
-            "Get[doc.users | name | DocKeys{1::bigint; 2::bigint} | (id = ANY([1::bigint, 2::bigint]))]"
+            "Get[doc.users | name | DocKeys{1; 2} | (id = ANY([1, 2]))]"
         );
     }
 
@@ -668,7 +669,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             p -> assertThat(p).isExactlyInstanceOf(GroupProjection.class), // parallel on shard-level
             p -> assertThat(p).isExactlyInstanceOf(GroupProjection.class), // node-level
             p -> assertThat(p).isFilterWithQuery()
-                .isSQL("((INPUT(1) * 2::bigint) > 120::bigint)"),
+                .isSQL("((INPUT(1) * 2) > 120)"),
             p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class),
             p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class));
     }
@@ -726,7 +727,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(nl.joinPhase().joinType()).isEqualTo(JoinType.INNER);
         Collect rightCM = (Collect) nl.right();
         assertThat(((RoutedCollectPhase) rightCM.collectPhase()).where())
-            .isSQL("((doc.users.name = 'Arthur') AND (doc.users.id > 1::bigint))");
+            .isSQL("((doc.users.name = 'Arthur') AND (doc.users.id > 1))");
     }
 
     @Test
@@ -934,7 +935,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan plan = e.logicalPlan("select 1 from t_pk_part_generated where ts = 0");
         assertThat(plan).isEqualTo(
-            "Get[doc.t_pk_part_generated | 1 | DocKeys{0::bigint, 0::bigint} | ((ts = 0::bigint) AND (p = 0::bigint))]"
+            "Get[doc.t_pk_part_generated | 1 | DocKeys{0, 0} | ((ts = 0) AND (p = 0))]"
         );
     }
 
@@ -1019,8 +1020,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan("select count(name), generate_series(1, count(name)) from users");
         assertThat(plan).isEqualTo(
             """
-            Eval[count(name), pg_catalog.generate_series(1::bigint, count(name))]
-              └ ProjectSet[pg_catalog.generate_series(1::bigint, count(name)), count(name)]
+            Eval[count(name), pg_catalog.generate_series(1, count(name))]
+              └ ProjectSet[pg_catalog.generate_series(1, count(name)), count(name)]
                 └ HashAggregate[count(name)]
                   └ Collect[doc.users | [name] | true]
             """
@@ -1130,7 +1131,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         String stmt = "select distinct name from users limit 1";
         LogicalPlan plan = e.logicalPlan(stmt);
         assertThat(plan).isEqualTo(
-            "LimitDistinct[1::bigint;0 | [name]]\n" +
+            "LimitDistinct[1;0 | [name]]\n" +
             "  └ Collect[doc.users | [name] | true]");
     }
 
@@ -1144,7 +1145,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         String stmt = "select id, name from users group by id, name limit 1";
         LogicalPlan plan = e.logicalPlan(stmt);
         assertThat(plan).isEqualTo(
-            "LimitDistinct[1::bigint;0 | [id, name]]\n" +
+            "LimitDistinct[1;0 | [id, name]]\n" +
             "  └ Collect[doc.users | [id, name] | true]");
     }
 
@@ -1158,7 +1159,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         String stmt = "select id, name from users group by id, name limit 1 offset 3";
         LogicalPlan plan = e.logicalPlan(stmt);
         assertThat(plan).isEqualTo(
-            "LimitDistinct[1::bigint;3::bigint | [id, name]]\n" +
+            "LimitDistinct[1;3 | [id, name]]\n" +
             "  └ Collect[doc.users | [id, name] | true]");
 
         Merge merge = e.plan(stmt);
@@ -1302,7 +1303,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan logicalPlan = e.logicalPlan(stmt);
         String expectedPlan =
             "GroupHashAggregate[name | count(*)]\n" +
-            "  └ Get[doc.users | name | DocKeys{1::bigint; 2::bigint; 3::bigint; 4::bigint; 5::bigint} | (id = ANY([1::bigint, 2::bigint, 3::bigint, 4::bigint, 5::bigint]))]";
+            "  └ Get[doc.users | name | DocKeys{1; 2; 3; 4; 5} | (id = ANY([1, 2, 3, 4, 5]))]";
         assertThat(logicalPlan).isEqualTo(expectedPlan);
         Merge coordinatorMerge = e.plan(stmt);
         Merge distributedMerge = (Merge) coordinatorMerge.subPlan();
@@ -1457,13 +1458,13 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         String stmt = "SELECT * FROM parted_by_generated WHERE ts >= '2020-02-01'";
         LogicalPlan plan = e.logicalPlan(stmt);
         String expectedPlan =
-            "Collect[doc.parted_by_generated | [ts, p AS date_trunc('month', ts)] | (ts >= 1580515200000::bigint)]";
+            "Collect[doc.parted_by_generated | [ts, p AS date_trunc('month', ts)] | (ts >= 1580515200000)]";
         assertThat(plan).isEqualTo(expectedPlan);
 
         Collect collect = (Collect) ((Merge) e.plan(stmt)).subPlan();;
         RoutedCollectPhase routedCollectPhase = (RoutedCollectPhase) collect.collectPhase();
         Symbol where = routedCollectPhase.where();
-        assertThat(where).isSQL("(doc.parted_by_generated.ts >= 1580515200000::bigint)");
+        assertThat(where).isSQL("(doc.parted_by_generated.ts >= 1580515200000)");
         assertThat(routedCollectPhase.routing().locations().values().stream()
             .flatMap(x -> x.keySet().stream())
             .collect(Collectors.toSet())).containsExactly(
@@ -1614,7 +1615,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan logicalPlan = e.logicalPlan("select * from v where o['ts'] < 1682489868000::timestamp");
         assertThat(logicalPlan).hasOperators(
             "Rename[o] AS doc.v",
-            "  └ Collect[doc.tbl | [o] | ((o['ts'] < 1682489868000::bigint) AND (o['a'] = 'x'))]"
+            "  └ Collect[doc.tbl | [o] | ((o['ts'] < 1682489868000) AND (o['a'] = 'x'))]"
         );
     }
 
@@ -1661,7 +1662,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan logicalPlan = e.logicalPlan(stmt);
         assertThat(logicalPlan).hasOperators(
             "Eval[country, max(height) FILTER (WHERE (height > 0)) AS max_height, max(prominence) FILTER (WHERE (height > 0)) AS max_prominence]",
-            "  └ Limit[100::bigint;0]",
+            "  └ Limit[100;0]",
             "    └ GroupHashAggregate[country | max(height) FILTER (WHERE (height > 0)), max(prominence) FILTER (WHERE (height > 0))]",
             "      └ Rename[height, (height > 0), prominence, country] AS alias1",
             "        └ Collect[sys.summits | [height, (height > 0), prominence, country] | true]"

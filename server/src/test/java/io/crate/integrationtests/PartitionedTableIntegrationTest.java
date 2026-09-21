@@ -2185,7 +2185,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(printedTable(response.rows())).isEqualTo(
             "Eval[p, name]\n" +
             "  └ Fetch[p, name, ordinal]\n" +
-            "    └ Limit[100::bigint;0]\n" +
+            "    └ Limit[100;0]\n" +
             "      └ OrderBy[ordinal ASC]\n" +
             "        └ Collect[doc.tbl | [_fetchid, ordinal] | true]\n"
         );

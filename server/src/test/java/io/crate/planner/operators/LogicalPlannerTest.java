@@ -169,7 +169,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = plan("SELECT a FROM t1 ORDER BY a LIMIT 10 offset 5");
         assertThat(plan).isEqualTo(
             """
-            Limit[10::bigint;5::bigint]
+            Limit[10;5]
               └ OrderBy[a ASC]
                 └ Collect[doc.t1 | [a] | true]
             """
@@ -188,10 +188,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Rename[a, x] AS tt
-              └ Limit[1::bigint;0]
+              └ Limit[1;0]
                 └ OrderBy[x DESC]
                   └ Fetch[a, x]
-                    └ Limit[3::bigint;0]
+                    └ Limit[3;0]
                       └ OrderBy[a ASC]
                         └ Collect[doc.t1 | [_fetchid, a] | true]
             """);
@@ -205,7 +205,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             HashAggregate[sum(x)]
               └ Rename[x] AS tt
                 └ Fetch[x]
-                  └ Limit[10::bigint;0]
+                  └ Limit[10;0]
                     └ Collect[doc.t1 | [_fetchid] | true]
             """);
     }
@@ -288,11 +288,11 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).hasOperators(
             "MultiPhase",
             "  └ Collect[doc.t1 | [a, x, i] | (x > (SELECT 1 FROM (doc.t1)))]",
-            "  └ Limit[2::bigint;0::bigint]",
+            "  └ Limit[2;0]",
             "    └ MultiPhase",
             "      └ Collect[doc.t1 | [1] | (x > cast((SELECT count(*) FROM (doc.t2)) AS INTEGER))]",
-            "      └ Limit[2::bigint;0::bigint]",
-            "        └ Limit[1::bigint;0]",
+            "      └ Limit[2;0]",
+            "        └ Limit[1;0]",
             "          └ Count[doc.t2 | true]"
         );
     }
@@ -317,7 +317,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 │    └ Count[doc.t1 | true]
                 └ Rename[i] AS t2
                   └ Fetch[i]
-                    └ Limit[1::bigint;0]
+                    └ Limit[1;0]
                       └ Collect[doc.t2 | [_fetchid] | true]
             """);
     }
@@ -335,7 +335,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Fetch[x, a, y]
-              └ Limit[10::bigint;0]
+              └ Limit[10;0]
                 └ OrderBy[x ASC]
                   └ HashJoin[INNER | (x = y)]
                     ├ Collect[doc.t1 | [_fetchid, x] | true]
@@ -368,7 +368,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan subPlan = plan.dependencies().keySet().iterator().next();
         assertThat(subPlan).isEqualTo(
             """
-            Limit[10::bigint;0]
+            Limit[10;0]
               └ OrderBy[x DESC]
                 └ Collect[doc.t1 | [x] | true]
             """);
@@ -383,7 +383,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "Eval[x]",
             "  └ OrderBy[x ASC]",
             "    └ Fetch[x, a]",
-            "      └ Limit[10::bigint;0]",
+            "      └ Limit[10;0]",
             "        └ OrderBy[a DESC]",
             "          └ Collect[doc.t1 | [_fetchid, a] | true]"
         );
@@ -408,12 +408,12 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Fetch[a, i, b, i]
-              └ Limit[10::bigint;0]
+              └ Limit[10;0]
                 └ HashJoin[INNER | (i = i)]
                   ├ Rename[a, i] AS t1
                   │  └ Filter[(a > '50')]
                   │    └ Fetch[a, i]
-                  │      └ Limit[5::bigint;0]
+                  │      └ Limit[5;0]
                   │        └ OrderBy[a ASC]
                   │          └ Collect[doc.t1 | [_fetchid, a] | true]
                   └ Rename[t2._fetchid, i] AS t2
@@ -443,7 +443,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Fetch[i, a, i]
-              └ Limit[5::bigint;0]
+              └ Limit[5;0]
                 └ HashJoin[INNER | (i = i)]
                   ├ MultiPhase
                   │  └ Collect[doc.t1 | [_fetchid, i] | (i = ANY((doc.t2)))]
@@ -477,7 +477,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             """
             Eval[i, a, i]
               └ Fetch[i, a, x, i, y]
-                └ Limit[5::bigint;0]
+                └ Limit[5;0]
                   └ Filter[(x > y)]
                     └ HashJoin[INNER | (i = i)]
                       ├ MultiPhase
@@ -513,7 +513,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = plan("SELECT name FROM users u WHERE id = 1");
         assertThat(plan).isEqualTo(
             "Rename[name] AS u\n" +
-            "  └ Get[doc.users | name | DocKeys{1::bigint} | (id = 1::bigint)]");
+            "  └ Get[doc.users | name | DocKeys{1} | (id = 1)]");
     }
 
     @Test
@@ -526,7 +526,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = plan(statement);
         assertThat(plan).isEqualTo(
             """
-            LimitDistinct[20::bigint;0 | [name, other_id]]
+            LimitDistinct[20;0 | [name, other_id]]
               └ Rename[name, other_id] AS u
                 └ Collect[doc.users | [name, other_id] | true]
             """
@@ -547,7 +547,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Fetch[a, x, i, b, y, i]
-              └ Limit[3::bigint;0]
+              └ Limit[3;0]
                 └ NestedLoopJoin[CROSS]
                   ├ Collect[doc.t1 | [_fetchid] | true]
                   └ Collect[doc.t2 | [_fetchid] | true]
@@ -561,7 +561,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Fetch[a, x, i, b, y, i]
-              └ Limit[3::bigint;0]
+              └ Limit[3;0]
                 └ HashJoin[INNER | (a = b)]
                   ├ Collect[doc.t1 | [_fetchid, a] | true]
                   └ Collect[doc.t2 | [_fetchid, b] | true]
@@ -590,7 +590,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Eval[a AS b]
-              └ LimitDistinct[10::bigint;0 | [a]]
+              └ LimitDistinct[10;0 | [a]]
                 └ Collect[doc.t1 | [a] | true]
             """
         );
@@ -607,7 +607,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Fetch[name, a, x, i]
-              └ Limit[10::bigint;0]
+              └ Limit[10;0]
                 └ NestedLoopJoin[INNER | (a LIKE name)]
                   ├ Rename[name] AS u
                   │  └ GroupHashAggregate[name]
@@ -627,7 +627,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Fetch[name, a, x, i]
-              └ Limit[10::bigint;0]
+              └ Limit[10;0]
                 └ HashJoin[INNER | (a = name)]
                   ├ Rename[name] AS u
                   │  └ GroupHashAggregate[name]
@@ -645,7 +645,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(subPlan).hasOperators(
             "Eval[x]",
             "  └ Fetch[x, a]",
-            "    └ Limit[10::bigint;0]",
+            "    └ Limit[10;0]",
             "      └ OrderBy[a DESC]",
             "        └ Collect[doc.t1 | [_fetchid, a] | true]"
         );
@@ -670,7 +670,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Fetch[generate_series, i, aliased]
-              └ Limit[10::bigint;0]
+              └ Limit[10;0]
                 └ NestedLoopJoin[CROSS]
                   ├ TableFunction[generate_series | [generate_series] | true]
                   └ Rename[v._fetchid, aliased] AS v
@@ -721,7 +721,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             LIMIT 10
             """);
         assertThat(plan).hasOperators(
-            "LimitDistinct[10::bigint;0 | [ai, \"avg(x)\", \"cast(i AS BIGINT)\"]]",
+            "LimitDistinct[10;0 | [ai, \"avg(x)\", \"cast(i AS BIGINT)\"]]",
             "  └ Union[ai, \"avg(x)\", \"cast(i AS BIGINT)\"]",
             "    ├ GroupHashAggregate[ai, \"avg(x)\", \"cast(i AS BIGINT)\"]",
             "    │  └ Union[ai, \"avg(x)\", \"cast(i AS BIGINT)\"]",
@@ -867,7 +867,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                           └ Collect[doc.t1 | [x] | (i = 1)]
                 └ SubPlan
                   └ Rename[true] AS s
-                    └ Limit[2::bigint;0::bigint]
+                    └ Limit[2;0]
                       └ Collect[doc.t1 | [true] | (x = x)]"""
         );
     }
@@ -1018,8 +1018,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                     └ Collect[doc.t1 | [x] | true]
                 └ SubPlan
                   └ Rename[x] AS i
-                    └ Limit[2::bigint;0::bigint]
-                      └ Limit[1::bigint;0]
+                    └ Limit[2;0]
+                      └ Limit[1;0]
                         └ OrderBy[x ASC]
                           └ Collect[doc.t1 | [x] | (x > x)]
             """
@@ -1044,7 +1044,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                  └ Rename[x] AS o
                    └ Collect[doc.t1 | [x] | true]
                  └ SubPlan
-                   └ Limit[2::bigint;0::bigint]
+                   └ Limit[2;0]
                      └ HashAggregate[min(x)]
                        └ Rename[x] AS t
                          └ Collect[doc.t1 | [x] | (x > x)]
@@ -1072,14 +1072,14 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                       └ Rename[x] AS o
                         └ Collect[doc.t1 | [x] | true]
                       └ SubPlan
-                        └ Limit[2::bigint;0::bigint]
+                        └ Limit[2;0]
                           └ HashAggregate[min(x)]
                             └ Rename[x] AS t
                               └ Collect[doc.t1 | [x] | (x = x)]
                 └ SubPlan
                   └ Rename[x] AS i
-                    └ Limit[2::bigint;0::bigint]
-                      └ Limit[1::bigint;0]
+                    └ Limit[2;0]
+                      └ Limit[1;0]
                         └ OrderBy[x ASC]
                           └ Collect[doc.t1 | [x] | (x > x)]
             """

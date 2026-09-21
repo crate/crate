@@ -242,9 +242,9 @@ public class ShowIntegrationTest extends IntegTestCase {
                "day2" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', "ts") INDEX OFF,
                "day3" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', "ts"),
                "day4" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', "ts"),
-               "col1" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS "ts" + CAST(1 AS bigint),
-               "col2" TEXT GENERATED ALWAYS AS "ts" + CAST(1 AS bigint),
-               "col3" TEXT GENERATED ALWAYS AS "ts" + CAST(1 AS bigint),
+               "col1" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS "ts" + 1,
+               "col2" TEXT GENERATED ALWAYS AS "ts" + 1,
+               "col3" TEXT GENERATED ALWAYS AS "ts" + 1,
                "name" TEXT GENERATED ALWAYS AS concat("user"['name'], 'foo'),
                "ts" TIMESTAMP WITH TIME ZONE,
                "user" OBJECT(DYNAMIC) AS (
