@@ -407,7 +407,7 @@ public class MockRepository extends FsRepository {
             @Override
             public void delete() throws IOException {
                 if (throwOnDeletion) {
-                    throw new IOException("dummy");
+                    throw new RuntimeException("dummy, opendal doesn't throw IOException");
                 }
                 for (BlobContainer child : children().values()) {
                     child.delete();

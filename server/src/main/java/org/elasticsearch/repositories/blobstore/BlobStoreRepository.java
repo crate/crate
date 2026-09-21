@@ -948,7 +948,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                         "but failed to clean up their index folders", metadata.name(), indexSnId), e);
                 return 0L;
             } catch (Exception e) {
-                assert false : e;
                 LOGGER.warn(new ParameterizedMessage("[{}] Exception during single stale index delete", metadata.name()), e);
                 return 0L;
             } finally {
