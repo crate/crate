@@ -362,25 +362,25 @@
         <versions.min_maven>3.6.3</versions.min_maven>
         <!-- Maven Plugins -->
         <versions.plugin.dependency>3.11.0</versions.plugin.dependency>
-        <versions.plugin.versions>2.21.0</versions.plugin.versions>
+        <versions.plugin.versions>2.22.0</versions.plugin.versions>
         <versions.plugin.enforcer>3.6.3</versions.plugin.enforcer>
         <versions.plugin.clean>3.5.0</versions.plugin.clean>
         <versions.plugin.resources>3.5.0</versions.plugin.resources>
-        <versions.plugin.install>3.1.4</versions.plugin.install>
-        <versions.plugin.compiler>3.15.0</versions.plugin.compiler>
-        <versions.plugin.surefire>3.5.6</versions.plugin.surefire>
+        <versions.plugin.install>3.2.0</versions.plugin.install>
+        <versions.plugin.compiler>3.16.0</versions.plugin.compiler>
+        <versions.plugin.surefire>3.6.0</versions.plugin.surefire>
         <versions.plugin.checkstyle>3.6.0</versions.plugin.checkstyle>
         <versions.plugin.puppycrawl>12.3.1</versions.plugin.puppycrawl>
         <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
         <versions.plugin.jacoco>0.8.15</versions.plugin.jacoco>
-        <versions.plugin.forbiddenapis>3.10</versions.plugin.forbiddenapis>
+        <versions.plugin.forbiddenapis>3.11</versions.plugin.forbiddenapis>
         <versions.plugin.jlink>3.1.0</versions.plugin.jlink>
         <versions.plugin.assembly>3.8.0</versions.plugin.assembly>
         <versions.plugin.download>1.13.0</versions.plugin.download>
-        <versions.plugin.git-commit>10.0.0</versions.plugin.git-commit>
+        <versions.plugin.git-commit>10.0.1</versions.plugin.git-commit>
         <versions.plugin.shade>3.6.2</versions.plugin.shade>
         <versions.plugin.jar>3.5.1</versions.plugin.jar>
-        <versions.plugin.build-helper>3.6.1</versions.plugin.build-helper>
+        <versions.plugin.build-helper>3.6.2</versions.plugin.build-helper>
         <versions.plugin.antlr>4.13.2</versions.plugin.antlr>
         <versions.plugin.os>1.7.0</versions.plugin.os>
     </properties>
