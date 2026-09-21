@@ -132,8 +132,7 @@ public class ArrayType<T> extends DataType<List<T>> {
                 @Override
                 public List<T> decode(ColumnIdent column, SourceParser sourceParser, Version tableVersion, byte[] bytes) {
                     try {
-                        var col = column.leafName();
-                        var map = sourceParser.parse(new BytesArray(bytes), Map.of(col, objectType.innerTypes()), false);
+                        var map = sourceParser.parse(new BytesArray(bytes), column, objectType);
                         if (map.isEmpty()) {
                             return List.of();
                         }
