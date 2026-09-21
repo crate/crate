@@ -29,8 +29,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jspecify.annotations.Nullable;
 
-import io.crate.metadata.PartitionName;
-
 /**
  * A request to force merging the segments of one or more indices. In order to
  * run a merge on all the indices, pass an empty array.
@@ -66,8 +64,8 @@ public class ForceMergeRequest extends BroadcastRequest {
      * Constructs a merge request over one or more indices.
      * An empty list will request a force merge over all indices
      */
-    public ForceMergeRequest(List<PartitionName> partitions) {
-        super(partitions);
+    public ForceMergeRequest(List<Target> targets) {
+        super(targets);
         forceMergeUUID = UUIDs.randomBase64UUID();
     }
 

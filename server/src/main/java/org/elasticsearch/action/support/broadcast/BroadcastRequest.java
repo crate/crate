@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.support.broadcast;
 
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,48 +29,78 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.transport.TransportRequest;
 
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 public class BroadcastRequest extends TransportRequest {
 
-    protected final List<PartitionName> partitions;
+    /**
+     * Carries the table identity alongside its name. Each request type determines
+     * whether to resolve by name or OID; pre-6.5 peers only receive the name.
+     * Empty partition values select all partitions of the table.
+     */
+    public record Target(RelationName relationName, int tableOid, List<String> partitionValues) implements Writeable {
 
-    protected BroadcastRequest(List<PartitionName> partitions) {
-        this.partitions = partitions;
+        public Target(StreamInput in) throws IOException {
+            this(new RelationName(in), in.readVInt(), in.readList(StreamInput::readOptionalString));
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            relationName.writeTo(out);
+            out.writeVInt(tableOid);
+            out.writeCollection(partitionValues, StreamOutput::writeOptionalString);
+        }
     }
 
-    protected BroadcastRequest(PartitionName partition) {
-        this(List.of(partition));
+    private final List<Target> targets;
+
+    protected BroadcastRequest(List<Target> targets) {
+        this.targets = List.copyOf(targets);
     }
 
     public BroadcastRequest(StreamInput in) throws IOException {
         super(in);
-        this.partitions = readPartitions(in);
+        if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
+            targets = in.readList(Target::new);
+        } else {
+            List<PartitionName> partitions = in.getVersion().onOrAfter(Version.V_6_0_0)
+                ? in.readList(PartitionName::new)
+                : readPartitionNamesFromPre60(in);
+            targets = partitions.stream()
+                .map(p -> new Target(p.relationName(), OID_UNASSIGNED, p.values()))
+                .toList();
+        }
     }
 
+    public final List<Target> targets() {
+        return targets;
+    }
+
+    /** Adapt targets for existing name-based index lookups and older peers. */
     public final List<PartitionName> partitions() {
-        return partitions;
+        return targets.stream()
+            .map(t -> new PartitionName(t.relationName(), t.partitionValues()))
+            .toList();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
-            out.writeCollection(partitions);
+        if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
+            out.writeCollection(targets);
         } else {
-            writePartitionNamesToPre60(out, partitions);
-        }
-    }
-
-    private static List<PartitionName> readPartitions(StreamInput in) throws IOException {
-        if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
-            return in.readList(PartitionName::new);
-        } else {
-            return readPartitionNamesFromPre60(in);
+            List<PartitionName> partitions = partitions();
+            if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
+                out.writeCollection(partitions);
+            } else {
+                writePartitionNamesToPre60(out, partitions);
+            }
         }
     }
 

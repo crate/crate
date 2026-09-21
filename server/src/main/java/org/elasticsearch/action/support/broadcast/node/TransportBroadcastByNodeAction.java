@@ -369,17 +369,14 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
     }
 
     static String[] concreteIndices(ClusterState clusterState, BroadcastRequest request) {
-        if (request instanceof IndicesStatsRequest statsRequest && statsRequest.tableOid() != OID_UNASSIGNED) {
-            assert statsRequest.partitions().size() == 1 : "Stats requests must target a single table/partition";
-            var partitionValues = statsRequest.partitions().get(0).values();
-            return clusterState.metadata()
-                .getIndices(
-                    statsRequest.tableOid(),
-                    partitionValues,
-                    false,
-                    im -> im.getIndex().uuid()
-                )
-                .toArray(String[]::new);
+        if (request instanceof IndicesStatsRequest && !request.targets().isEmpty()) {
+            var target = request.targets().getFirst();
+            if (target.tableOid() != OID_UNASSIGNED) {
+                assert request.targets().size() == 1 : "Stats requests must target a single table/partition";
+                return clusterState.metadata()
+                    .getIndices(target.tableOid(), target.partitionValues(), false, im -> im.getIndex().uuid())
+                    .toArray(String[]::new);
+            }
         }
         return clusterState.metadata()
             .getIndices(request.partitions(), false, im -> im.getIndex().uuid())

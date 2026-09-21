@@ -32,13 +32,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.elasticsearch.action.support.broadcast.BroadcastRequest.Target;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.data.RowN;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.OptimizeTablePlan;
@@ -74,6 +74,11 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         );
     }
 
+    private Target target(String name, List<String> values) {
+        var relation = RelationName.fromIndexName(name);
+        return new Target(relation, plannerContext.clusterState().metadata().getRelation(relation).oid(), values);
+    }
+
     @Test
     public void testOptimizeSystemTable() throws Exception {
         assertThatThrownBy(() -> analyze("OPTIMIZE TABLE sys.shards"))
@@ -84,32 +89,32 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testOptimizeTable() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE users");
-        assertThat(analysis.partitions()).containsExactly(new PartitionName(RelationName.fromIndexName("users"), List.of()));
+        assertThat(analysis.targets()).containsExactly(target("users", List.of()));
     }
 
     @Test
     public void testOptimizeBlobTable() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE blob.blobs");
-        assertThat(analysis.partitions()).containsExactly(new PartitionName(RelationName.fromIndexName("blob.blobs"), List.of()));
+        assertThat(analysis.targets()).containsExactly(target("blob.blobs", List.of()));
     }
 
     @Test
     public void testOptimizeTableWithParams() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE users WITH (max_num_segments=2)");
-        assertThat(analysis.partitions()).containsExactly(new PartitionName(RelationName.fromIndexName("users"), List.of()));
+        assertThat(analysis.targets()).containsExactly(target("users", List.of()));
         assertThat(MAX_NUM_SEGMENTS.get(analysis.settings())).isEqualTo(2);
         analysis = analyze("OPTIMIZE TABLE users WITH (only_expunge_deletes=true)");
 
-        assertThat(analysis.partitions()).containsExactly(new PartitionName(RelationName.fromIndexName("users"), List.of()));
+        assertThat(analysis.targets()).containsExactly(target("users", List.of()));
         assertThat(ONLY_EXPUNGE_DELETES.get(analysis.settings())).isEqualTo(Boolean.TRUE);
 
         analysis = analyze("OPTIMIZE TABLE users WITH (flush=false)");
-        assertThat(analysis.partitions()).containsExactly(new PartitionName(RelationName.fromIndexName("users"), List.of()));
+        assertThat(analysis.targets()).containsExactly(target("users", List.of()));
         assertThat(FLUSH.get(analysis.settings())).isEqualTo(Boolean.FALSE);
 
         analysis = analyze("OPTIMIZE TABLE users WITH (upgrade_segments=true)");
-        assertThat(analysis.partitions()).containsExactly(new PartitionName(RelationName.fromIndexName("users"), List.of()));
+        assertThat(analysis.targets()).containsExactly(target("users", List.of()));
         assertThat(UPGRADE_SEGMENTS.get(analysis.settings())).isEqualTo(Boolean.TRUE);
     }
 
@@ -131,7 +136,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     public void testOptimizePartition() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=1395874800000)");
-        assertThat(analysis.partitions()).containsExactly(new PartitionName(RelationName.fromIndexName("parted"), List.of("1395874800000")));
+        assertThat(analysis.targets()).containsExactly(target("parted", List.of("1395874800000")));
     }
 
     @Test
@@ -140,7 +145,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             "OPTIMIZE TABLE parted PARTITION (date=null)");
         List<String> nullList = new ArrayList<>();
         nullList.add(null);
-        assertThat(analysis.partitions()).containsExactly(new PartitionName(RelationName.fromIndexName("parted"), nullList));
+        assertThat(analysis.targets()).containsExactly(target("parted", nullList));
     }
 
     @Test
@@ -148,16 +153,16 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=1395874800000) " +
             "WITH (only_expunge_deletes=true)");
-        assertThat(analysis.partitions()).containsExactly(new PartitionName(RelationName.fromIndexName("parted"), List.of("1395874800000")));
+        assertThat(analysis.targets()).containsExactly(target("parted", List.of("1395874800000")));
     }
 
     @Test
     public void testOptimizeMultipleTables() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE parted, users");
-        assertThat(analysis.partitions()).hasSize(2);
-        assertThat(analysis.partitions())
-            .contains(new PartitionName(RelationName.fromIndexName("users"), List.of()),
-                      new PartitionName(RelationName.fromIndexName("parted"), List.of()));
+        assertThat(analysis.targets()).hasSize(2);
+        assertThat(analysis.targets())
+            .contains(target("users", List.of()),
+                      target("parted", List.of()));
     }
 
     @Test

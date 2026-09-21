@@ -27,6 +27,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
+import org.elasticsearch.action.support.broadcast.BroadcastRequest.Target;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
@@ -45,7 +46,6 @@ import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexName;
 import io.crate.execution.ddl.tables.GCDanglingArtifactsRequest;
 import io.crate.execution.ddl.tables.TransportGCDanglingArtifacts;
-import io.crate.metadata.PartitionName;
 
 /**
  * Main class to initiate resizing (shrink / split) an index into a new index
@@ -143,7 +143,7 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
         }
         final String resizedIndexUUID = UUIDs.randomBase64UUID();
 
-        client.stats(new IndicesStatsRequest(new PartitionName(request.table(), request.partitionValues()), tableOid)
+        client.stats(new IndicesStatsRequest(new Target(request.table(), tableOid, request.partitionValues()))
             .clear()
             .docs(true))
             .thenCompose(statsResponse -> createIndexService.resizeIndex(request, sourceIndexUUID, resizedIndexUUID, statsResponse))

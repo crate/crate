@@ -26,13 +26,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
+import org.elasticsearch.action.support.broadcast.BroadcastRequest.Target;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -58,7 +58,7 @@ public class TransportBroadcastByNodeActionTest extends CrateDummyClusterService
 
         String[] concreteIndices = TransportBroadcastByNodeAction.concreteIndices(
             stateAfterSwap,
-            new IndicesStatsRequest(new PartitionName(t1Name, List.of()), t1.oid())
+            new IndicesStatsRequest(new Target(t1Name, t1.oid(), List.of()))
         );
 
         String t1IndexUUID = metadata.getIndex(t1Name, List.of(), true, IndexMetadata::getIndexUUID);
@@ -87,7 +87,7 @@ public class TransportBroadcastByNodeActionTest extends CrateDummyClusterService
 
         String[] concreteIndices = TransportBroadcastByNodeAction.concreteIndices(
             stateAfterSwap,
-            new IndicesStatsRequest(new PartitionName(partedName, partitionValues), parted.oid())
+            new IndicesStatsRequest(new Target(partedName, parted.oid(), partitionValues))
         );
 
         String partedIndexUUID = metadata.getIndex(partedName, partitionValues, true, IndexMetadata::getIndexUUID);
