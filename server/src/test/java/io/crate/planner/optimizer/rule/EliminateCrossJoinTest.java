@@ -44,6 +44,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Rename;
 import io.crate.planner.operators.Union;
@@ -70,13 +71,32 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
     private DocTableInfo cDoc;
     private DocTableInfo dDoc;
 
+    private Reference c1;
+    private Reference c2;
+    private Reference c3;
+    private Reference c4;
+    private Collect t1;
+    private Collect t2;
+    private Collect t3;
+    private Collect t4;
+    private DocTableInfo t1Doc;
+    private DocTableInfo t2Doc;
+    private DocTableInfo t3Doc;
+    private DocTableInfo t4Doc;
+    private JoinPlan join1;
+    private JoinPlan join2;
+
     @Before
     public void prepare() throws Exception {
         e = SQLExecutor.of(clusterService)
             .addTable("create table a (x int)")
             .addTable("create table b (y int)")
             .addTable("create table c (z int)")
-            .addTable("create table d (w int)");
+            .addTable("create table d (w int)")
+            .addTable("create table t1 (c1 int)")
+            .addTable("create table t2 (c2 int)")
+            .addTable("create table t3 (c3 int)")
+            .addTable("create table t4 (c4 int)");
 
         aDoc = e.resolveTableInfo("a");
         bDoc = e.resolveTableInfo("b");
@@ -92,6 +112,24 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         b = new Collect(new DocTableRelation(bDoc), List.of(y), WhereClause.MATCH_ALL);
         c = new Collect(new DocTableRelation(cDoc), List.of(z), WhereClause.MATCH_ALL);
         d = new Collect(new DocTableRelation(dDoc), List.of(w), WhereClause.MATCH_ALL);
+
+        t1Doc = e.resolveTableInfo("t1");
+        t2Doc = e.resolveTableInfo("t2");
+        t3Doc = e.resolveTableInfo("t3");
+        t4Doc = e.resolveTableInfo("t4");
+
+        c1 = (Reference) e.asSymbol("c1");
+        c2 = (Reference) e.asSymbol("c2");
+        c3 = (Reference) e.asSymbol("c3");
+        c4 = (Reference) e.asSymbol("c4");
+
+        t1 = new Collect(new DocTableRelation(t1Doc), List.of(c1), WhereClause.MATCH_ALL);
+        t2 = new Collect(new DocTableRelation(t2Doc), List.of(c2), WhereClause.MATCH_ALL);
+        t3 = new Collect(new DocTableRelation(t3Doc), List.of(c3), WhereClause.MATCH_ALL);
+        t4 = new Collect(new DocTableRelation(t4Doc), List.of(c4), WhereClause.MATCH_ALL);
+
+        join1 = new JoinPlan(t1, t2, JoinType.CROSS, null);
+        join2 = new JoinPlan(join1, t3, JoinType.CROSS, null);
     }
 
     @Test
@@ -546,6 +584,64 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
+    @Test
+    public void temp_debug_inner_with_3_conditions() throws Exception {
+        var join3 = new JoinPlan(join2, t4, JoinType.INNER, e.asSymbol("t1.c1 = t3.c3 AND t2.c2 = t4.c4 AND t3.c3 = t4.c4"));
+
+        assertThat(join3).hasOperators(
+            "Join[INNER | (((c1 = c3) AND (c2 = c4)) AND (c3 = c4))]",
+            "  ├ Join[CROSS]",
+            "  │  ├ Join[CROSS]",
+            "  │  │  ├ Collect[doc.t1 | [c1] | true]",
+            "  │  │  └ Collect[doc.t2 | [c2] | true]",
+            "  │  └ Collect[doc.t3 | [c3] | true]",
+            "  └ Collect[doc.t4 | [c4] | true]"
+        );
+
+        var rule = new EliminateCrossJoin();
+        var match = rule.pattern().accept(join3, Captures.empty());
+        var result = rule.apply(match.value(), match.captures(), e.ruleContext());
+
+        System.out.println("BEFORE:");
+        prettyPrint(join3);
+
+        System.out.println("AFTER:");
+        prettyPrint(result);
+    }
+
+    @Test
+    public void temp_debug_inner_with_2_conditions_filter_below() throws Exception {
+        var filteredCross = new Filter(join2, e.asSymbol("t1.c1 = t3.c3"));
+        var join3 = new JoinPlan(filteredCross, t4, JoinType.INNER, e.asSymbol("t2.c2 = t4.c4 AND t3.c3 = t4.c4"));
+
+        assertThat(join3).hasOperators(
+            "Join[INNER | ((c2 = c4) AND (c3 = c4))]",
+            "  ├ Filter[(c1 = c3)]",
+            "  │  └ Join[CROSS]",
+            "  │    ├ Join[CROSS]",
+            "  │    │  ├ Collect[doc.t1 | [c1] | true]",
+            "  │    │  └ Collect[doc.t2 | [c2] | true]",
+            "  │    └ Collect[doc.t3 | [c3] | true]",
+            "  └ Collect[doc.t4 | [c4] | true]"
+        );
+
+        var rule = new EliminateCrossJoin();
+        var match = rule.pattern().accept(join3, Captures.empty());
+        var result = rule.apply(match.value(), match.captures(), e.ruleContext());
+
+        System.out.println("BEFORE:");
+        prettyPrint(join3);
+
+        System.out.println("AFTER:");
+        prettyPrint(result);
+
+    }
+
+    private void prettyPrint(LogicalPlan plan) {
+        var pc = new io.crate.planner.operators.PrintContext(null);
+        plan.print(pc);
+        System.out.println(pc);
+    }
 
     @Test
     public void test_eliminate_cross_joins_with_remaining_cross_joins() throws Exception {
