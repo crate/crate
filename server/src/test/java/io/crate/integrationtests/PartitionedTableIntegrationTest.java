@@ -59,6 +59,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.session.BaseResultReceiver;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
@@ -1961,7 +1962,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("refresh table t1");
 
         Asserts.assertSQLError(() -> execute("select id/0 from t1"))
-            .hasPGError(INTERNAL_ERROR)
+            .hasPGError(PGErrorStatus.DATA_EXCEPTION)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("/ by zero");
     }

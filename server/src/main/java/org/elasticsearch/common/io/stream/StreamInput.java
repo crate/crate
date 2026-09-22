@@ -1018,6 +1018,8 @@ public abstract class StreamInput extends InputStream {
                     return (T) readStackTrace(new EsRejectedExecutionException(readOptionalString(), isExecutorShutdown), this);
                 case 19:
                     return (T) readStackTrace(new UncheckedIOException(readOptionalString(), readException()), this);
+                case 20:
+                    return (T) readStackTrace(new ArithmeticException(readOptionalString()), this);
                 default:
                     throw new IOException("no such exception for id: " + key);
             }

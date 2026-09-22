@@ -160,14 +160,14 @@ public class ArraySliceFunctionTest extends ScalarTestCase {
     @Test
     public void testFromIsBigExpression() {
         assertThatThrownBy(() -> assertEvaluate("[1,2,3,4,5][2147483647+20:]", List.of()))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(ArithmeticException.class)
             .hasMessage("integer overflow");
     }
 
     @Test
     public void testToIsBigExpression() {
         assertThatThrownBy(() -> assertEvaluate("[1,2,3,4,5][:2147483647+20]", List.of(1, 2, 3, 4, 5)))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(ArithmeticException.class)
             .hasMessage("integer overflow");
     }
 
