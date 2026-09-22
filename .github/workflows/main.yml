@@ -62,7 +62,7 @@ jobs:
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
         run: |
-          mvn test \
+          ./mvnw test \
             -Dtests.crate.run-windows-incompatible=true \
             -DforkCount=2 \
             -DthreadCount=2 \
@@ -94,7 +94,7 @@ jobs:
       - name: Run forbiddenapis:check
         if: needs.changes.outputs.java == 'true'
         run: |
-          mvn compile forbiddenapis:check
+          ./mvnw compile forbiddenapis:check
 
   checkstyle:
     name: checkstyle
@@ -113,4 +113,4 @@ jobs:
           distribution: "temurin"
       - name: Run checkstyle
         if: needs.changes.outputs.java == 'true'
-        run: mvn compile checkstyle:checkstyle
+        run: ./mvnw compile checkstyle:checkstyle
