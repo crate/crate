@@ -34,4 +34,4 @@ jobs:
       - name: Run tests on ${{ matrix.os }}
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
-        run: mvn "-Dtests.crate.run-windows-incompatible=false" "-Dcheckstyle.skip" test
+        run: ./mvnw "-Dtests.crate.run-windows-incompatible=false" "-Dcheckstyle.skip" test
