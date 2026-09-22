@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar;
 
-import java.util.function.BinaryOperator;
+import java.util.function.BiFunction;
 
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
@@ -31,11 +31,11 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.Signature.Feature;
 
-public final class BinaryScalar<T> extends Scalar<T, T> {
+public final class BinaryScalar<T1, T2, R> extends Scalar<R, Object> {
 
-    private final BinaryOperator<T> func;
+    private final BiFunction<T1, T2, R> func;
 
-    public BinaryScalar(BinaryOperator<T> func,
+    public BinaryScalar(BiFunction<T1, T2, R> func,
                         Signature signature,
                         BoundSignature boundSignature) {
         super(signature, boundSignature);
@@ -44,17 +44,19 @@ public final class BinaryScalar<T> extends Scalar<T, T> {
     }
 
     @Override
-    public T evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<T>[] args) {
-        T arg0Value = args[0].value();
-        if (arg0Value == null) {
+    @SafeVarargs
+    @SuppressWarnings("unchecked")
+    public final R evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object> ... args) {
+        T1 arg0 = (T1) args[0].value();
+        if (arg0 == null) {
             return null;
         }
-        T arg1Value = args[1].value();
-        if (arg1Value == null) {
+        T2 arg1 = (T2) args[1].value();
+        if (arg1 == null) {
             return null;
         }
         try {
-            return func.apply(arg0Value, arg1Value);
+            return func.apply(arg0, arg1);
         } catch (ArithmeticException ae) {
             throw new IllegalArgumentException(ae.getMessage(), ae);
         }
