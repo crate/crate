@@ -147,6 +147,8 @@ public class HttpError {
             httpErrorStatus = HttpErrorStatus.REPOSITORY_WITH_SAME_NAME_EXISTS_ALREADY;
         } else if (throwable instanceof InvalidSnapshotNameException) {
             httpErrorStatus = HttpErrorStatus.SNAPSHOT_WITH_SAME_NAME_EXISTS_ALREADY;
+        } else if (throwable instanceof ArithmeticException) {
+            httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
         } else if (throwable instanceof ElasticsearchException ex) {
             httpErrorStatus = ex.httpErrorStatus();
         }

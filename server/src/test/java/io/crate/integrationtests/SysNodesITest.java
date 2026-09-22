@@ -21,14 +21,15 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;
 
 @IntegTestCase.ClusterScope(numClientNodes = 0, supportsDedicatedMasters = false)
@@ -64,7 +65,7 @@ public class SysNodesITest extends IntegTestCase {
     @Test
     public void testScalarEvaluatesInErrorOnSysNodes() throws Exception {
         Asserts.assertSQLError(() -> execute("select 1/0 from sys.nodes"))
-                .hasPGError(INTERNAL_ERROR)
+                .hasPGError(PGErrorStatus.DATA_EXCEPTION)
                 .hasHTTPError(BAD_REQUEST, 4000)
                 .hasMessageContaining("/ by zero");
 
