@@ -23,7 +23,6 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
@@ -896,5 +895,32 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(table2.maxOid()).isEqualTo(2L);
 
 
+    }
+
+    @Test
+    public void test_get_reference_by_oid() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("""
+                create table tbl (
+                    name text,
+                    o object as (y text),
+                    gone int,
+                    index name_ft using fulltext (name)
+                )
+                """);
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        Reference oy = table.getReference(ColumnIdent.of("o", "y"));
+        assertThat(table.getReference(oy.oid()).column()).isEqualTo(oy.column());
+
+        IndexReference nameFt = table.indexColumn(ColumnIdent.of("name_ft"));
+        assertThat(table.getReference(nameFt.oid()).column()).isEqualTo(nameFt.column());
+
+        assertThat(table.getReference(table.maxOid() + 1)).isNull();
+        assertThat(table.getReference(OID_UNASSIGNED)).isNull();
+
+        Reference dropped = table.getReference(ColumnIdent.of("gone"));
+        DocTableInfo afterDrop = table.dropColumns(List.of(new DropColumn(dropped, false)));
+        assertThat(afterDrop.getReference(dropped.oid()).isDropped()).isTrue();
     }
 }
