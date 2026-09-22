@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,6 +39,7 @@ import org.junit.Test;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
@@ -1275,7 +1275,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testScalarEvaluatesInErrorOnInformationSchema() {
         Asserts.assertSQLError(() -> execute("select 1/0 from information_schema.tables"))
-            .hasPGError(INTERNAL_ERROR)
+            .hasPGError(PGErrorStatus.DATA_EXCEPTION)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("/ by zero");
     }

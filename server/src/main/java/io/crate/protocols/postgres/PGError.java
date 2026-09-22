@@ -112,6 +112,8 @@ public class PGError {
             status = PGErrorStatus.UNDEFINED_FUNCTION;
         } else if (throwable instanceof ParsingException) {
             status = PGErrorStatus.SYNTAX_ERROR;
+        } else if (throwable instanceof ArithmeticException) {
+            status = PGErrorStatus.DATA_EXCEPTION;
         } else if (throwable instanceof ElasticsearchException ex) {
             status = ex.pgErrorStatus();
         }

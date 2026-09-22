@@ -960,6 +960,13 @@ public abstract class StreamOutput extends OutputStream {
                 writeCause = false;
             } else if (throwable instanceof UncheckedIOException) {
                 writeVInt(19);
+            } else if (throwable instanceof ArithmeticException) {
+                if (getVersion().onOrAfter(Version.V_6_5_0)) {
+                    writeVInt(20);
+                } else {
+                    throwable = new IllegalArgumentException(throwable);
+                    writeVInt(6);
+                }
             } else {
                 final ElasticsearchException ex;
                 if (throwable instanceof ElasticsearchException && ElasticsearchException.isRegistered(throwable.getClass(), version)) {

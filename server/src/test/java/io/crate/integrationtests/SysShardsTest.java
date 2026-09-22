@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Path;
@@ -47,6 +48,7 @@ import org.junit.Test;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
@@ -408,7 +410,7 @@ public class SysShardsTest extends IntegTestCase {
         ensureYellow();
         Asserts.assertSQLError(() -> execute(
                 "select 1/0 from sys.shards"))
-            .hasPGError(INTERNAL_ERROR)
+            .hasPGError(PGErrorStatus.DATA_EXCEPTION)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("/ by zero");
     }
