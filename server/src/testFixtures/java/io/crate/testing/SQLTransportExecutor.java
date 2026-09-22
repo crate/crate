@@ -32,6 +32,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -90,6 +91,7 @@ import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DateType;
 import io.crate.types.JsonType;
 
 public class SQLTransportExecutor {
@@ -433,6 +435,10 @@ public class SQLTransportExecutor {
             }
             pgObject.setType("bit");
             return pgObject;
+        }
+        if (arg instanceof LocalDate date) {
+            // TODO: Change to use java.sql.Date to cover pg DateType serialization
+            return DateType.toTimestamp(date);
         }
         if (arg instanceof Period period) {
             try {

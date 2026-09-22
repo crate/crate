@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -29,6 +30,7 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.Period;
 
 import io.crate.data.Input;
+import io.crate.expression.scalar.BinaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
@@ -39,6 +41,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DateType;
 import io.crate.types.IntervalType;
 
 public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> implements BiFunction<Long, Period, Long> {
@@ -93,11 +96,7 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
                 .forbidCoercion()
                 .build(),
             (signature, boundSignature) ->
-                new IntervalTimestampArithmeticScalar(
-                    DateTime::plus,
-                    signature,
-                    boundSignature
-                )
+                new BinaryScalar<>((Period x, LocalDate y) -> DateType.plus(y, x), signature, boundSignature)
         );
         module.add(
             Signature.builder(ArithmeticFunctions.Names.ADD, FunctionType.SCALAR)
@@ -108,12 +107,7 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .forbidCoercion()
                 .build(),
-            (signature, boundSignature) ->
-                new IntervalTimestampArithmeticScalar(
-                    DateTime::plus,
-                    signature,
-                    boundSignature
-                )
+            (signature, boundSignature) -> new BinaryScalar<>(DateType::plus, signature, boundSignature)
         );
         module.add(
             Signature.builder(ArithmeticFunctions.Names.SUBTRACT, FunctionType.SCALAR)
@@ -124,12 +118,7 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .forbidCoercion()
                 .build(),
-            (signature, boundSignature) ->
-                new IntervalTimestampArithmeticScalar(
-                    DateTime::minus,
-                    signature,
-                    boundSignature
-                )
+            (signature, boundSignature) -> new BinaryScalar<>(DateType::minus, signature, boundSignature)
         );
     }
 

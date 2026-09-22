@@ -24,9 +24,7 @@ package io.crate.protocols.postgres.types;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.ResolverStyle;
@@ -37,7 +35,7 @@ import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
 
-final class DateType extends PGType<Long> {
+final class DateType extends PGType<LocalDate> {
 
     public static final DateType INSTANCE = new DateType();
 
@@ -47,7 +45,6 @@ final class DateType extends PGType<Long> {
 
     /// Days between 1970-01-01 and 2000-01-01
     private static final int EPOCH_DAY_DIFF = 10957;
-    private static final int DAY_TO_MS = 86400000;
 
     private static final DateTimeFormatter ISO_FORMATTER = new DateTimeFormatterBuilder()
         .parseCaseInsensitive()
@@ -89,34 +86,30 @@ final class DateType extends PGType<Long> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, Long msSince1970) {
+    public int writeAsBinary(ByteBuf buffer, LocalDate date) {
         buffer.writeInt(TYPE_LEN);
-        long daysSince1970 = msSince1970 / DAY_TO_MS;
+        long daysSince1970 = date.toEpochDay();
         buffer.writeInt((int) daysSince1970 - EPOCH_DAY_DIFF);
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    public Long readBinaryValue(ByteBuf buffer, int valueLength) {
+    public LocalDate readBinaryValue(ByteBuf buffer, int valueLength) {
         // https://github.com/postgres/postgres/blob/master/src/include/datatype/timestamp.h#L235
         long numDaysSince2000 = (long) buffer.readInt();
-        return (numDaysSince2000 + EPOCH_DAY_DIFF) * DAY_TO_MS;
+        return LocalDate.ofEpochDay(numDaysSince2000 + EPOCH_DAY_DIFF);
     }
 
     @Override
-    byte[] encodeAsUTF8Text(Long value) {
-        long millis = (long) value;
-        LocalDate date = LocalDate.ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC);
-
+    byte[] encodeAsUTF8Text(LocalDate date) {
         return date.format(ISO_FORMATTER_AD).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
-    Long decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
+    LocalDate decodeUTF8Text(byte[] bytes, RelationLookup relationLookup) {
         String s = new String(bytes, StandardCharsets.UTF_8);
 
         //TODO: Add support of other formats, other than ISO 8601 (YYYY-MM-DD).
-        LocalDate dt = LocalDate.parse(s, ISO_FORMATTER);
-        return dt.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+        return LocalDate.parse(s, ISO_FORMATTER);
     }
 }

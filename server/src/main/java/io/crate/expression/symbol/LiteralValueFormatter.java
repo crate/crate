@@ -22,6 +22,7 @@
 package io.crate.expression.symbol;
 
 import java.lang.reflect.Array;
+import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 
@@ -44,7 +45,9 @@ public final class LiteralValueFormatter {
             formatIterable(iterable, builder);
         } else if (value.getClass().isArray()) {
             formatArray(value, builder);
-        } else if (value instanceof String || value instanceof Point) {
+        } else if (value instanceof String
+                || value instanceof Point
+                || value instanceof LocalDate) {
             builder.append(Literals.quoteStringLiteral(value.toString()));
         } else if (value instanceof Period) {
             builder.append(Literals.quoteStringLiteral(value.toString()));

@@ -153,23 +153,16 @@ public final class TimestampType extends DataType<Long>
 
     @Override
     public Long implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
-        if (value == null) {
-            return null;
-        } else if (value instanceof Long l) {
-            return l;
-        } else if (value instanceof String str) {
-            return parse.apply(str);
-        } else if (value instanceof Double) {
-            // we treat float and double values as seconds with milliseconds as fractions
-            // see timestamp documentation
-            return ((Number) (((Double) value) * 1000)).longValue();
-        } else if (value instanceof Float) {
-            return ((Number) (((Float) value) * 1000)).longValue();
-        } else if (value instanceof Number number) {
-            return number.longValue();
-        } else {
-            throw new ClassCastException("Can't cast '" + value + "' to " + getName());
-        }
+        return switch (value) {
+            case null -> null;
+            case Long l -> l;
+            case String str -> parse.apply(str);
+            case Double v -> (long) (v * 1000);
+            case Float v -> (long) (v * 1000);
+            case Number v -> v.longValue();
+            case LocalDate date -> DateType.toTimestamp(date);
+            default -> throw new ClassCastException("Can't cast '" + value + "' to " + getName());
+        };
     }
 
     @Override

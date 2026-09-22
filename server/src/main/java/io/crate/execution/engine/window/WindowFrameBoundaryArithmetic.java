@@ -21,10 +21,12 @@
 
 package io.crate.execution.engine.window;
 
+import java.time.LocalDate;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 
 import org.joda.time.DateTime;
+import org.joda.time.Period;
 
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.arithmetic.IntervalTimestampArithmeticScalar;
@@ -86,7 +88,6 @@ class WindowFrameBoundaryArithmetic {
     static BiFunction getAddFunction(DataType<?> fstArgDataType, DataType<?> sndArgDataType) {
         switch (fstArgDataType.id()) {
             case LongType.ID:
-            case DateType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {
@@ -101,6 +102,8 @@ class WindowFrameBoundaryArithmetic {
                     );
                 }
                 return ADD_LONG_FUNCTION;
+            case DateType.ID:
+                return (x, y) -> DateType.ofTimestamp(DateType.plus((LocalDate) x, (Period) y));
             case DoubleType.ID:
                 return ADD_DOUBLE_FUNCTION;
             case FloatType.ID:
@@ -120,7 +123,6 @@ class WindowFrameBoundaryArithmetic {
     static BiFunction getSubtractFunction(DataType<?> fstArgDataType, DataType<?> sndArgDataType) {
         switch (fstArgDataType.id()) {
             case LongType.ID:
-            case DateType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {
@@ -135,6 +137,8 @@ class WindowFrameBoundaryArithmetic {
                     );
                 }
                 return SUB_LONG_FUNCTION;
+            case DateType.ID:
+                return (x, y) -> DateType.ofTimestamp(DateType.minus((LocalDate) x, (Period) y));
             case DoubleType.ID:
                 return SUB_DOUBLE_FUNCTION;
             case FloatType.ID:

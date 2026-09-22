@@ -21,9 +21,7 @@
 
 package io.crate.expression.scalar;
 
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 
 import org.junit.After;
 import org.junit.Before;
@@ -34,11 +32,12 @@ import io.crate.metadata.SystemClock;
 
 public class CurrentDateFunctionTest extends ScalarTestCase {
 
-    private static final long CURRENT_TIMESTAMP = 1422294644581L;
+    private long currentTimestamp = 1422294644581L;
+    private LocalDate currentDate = LocalDate.of(2015, 1, 26);
 
     @Before
     public void prepare() {
-        SystemClock.setCurrentMillisFixedUTC(CURRENT_TIMESTAMP);
+        SystemClock.setCurrentMillisFixedUTC(currentTimestamp);
     }
 
     @After
@@ -53,14 +52,12 @@ public class CurrentDateFunctionTest extends ScalarTestCase {
 
     @Test
     public void testCurdateReturnsExpectedDate() {
-        var dayTruncMillis = LocalDate.ofInstant(Instant.ofEpochMilli(CURRENT_TIMESTAMP), ZoneOffset.UTC).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
-        assertEvaluate("CURDATE()", dayTruncMillis);
+        assertEvaluate("CURDATE()", currentDate);
     }
 
     @Test
     public void testCurrentDateReturnsExpectedDate() {
-        var dayTruncMillis = LocalDate.ofInstant(Instant.ofEpochMilli(CURRENT_TIMESTAMP), ZoneOffset.UTC).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
-        assertEvaluate("CURRENT_DATE", dayTruncMillis);
+        assertEvaluate("CURRENT_DATE", currentDate);
     }
 
     @Test
