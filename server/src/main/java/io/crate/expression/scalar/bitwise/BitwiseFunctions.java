@@ -59,7 +59,7 @@ public class BitwiseFunctions {
             .returnType(typeSignature)
             .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
             .build();
-        module.add(scalar, (signature, boundSignature) -> new BinaryScalar<>(operator, signature, boundSignature, type));
+        module.add(scalar, (signature, boundSignature) -> new BinaryScalar<>(operator, signature, boundSignature));
     }
 
     public static void register(Functions.Builder module) {
