@@ -1515,16 +1515,24 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         // -> long is restricted to min-value + 1 to max-value - 1
 
         var sqlExecutor = SQLExecutor.of(clusterService)
-            .addTable("create table tbl (b byte, s smallint, i int, l long)");
-        Indexer indexer = getIndexer(sqlExecutor, "tbl", "b", "s", "i", "l");
+            .addTable("create table tbl (b byte, s smallint, i int, l long, r real, d double)");
+        Indexer indexer = getIndexer(sqlExecutor, "tbl", "b", "s", "i", "l", "r", "d");
 
-        indexer.index(item(Byte.MAX_VALUE, 0, 0, 0));
-        indexer.index(item(0, Short.MAX_VALUE, 0, 0));
-        indexer.index(item(0, 0, Integer.MAX_VALUE, 0));
+        indexer.index(item(Byte.MAX_VALUE, 0, 0, 0, 0, 0));
+        indexer.index(item(0, Short.MAX_VALUE, 0, 0, 0, 0));
+        indexer.index(item(0, 0, Integer.MAX_VALUE, 0, 0, 0));
 
-        assertThatThrownBy(() -> indexer.index(item(0, 0, 0, Long.MAX_VALUE)))
+        assertThatThrownBy(() -> indexer.index(item(0, 0, 0, Long.MAX_VALUE, 0, 0)))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Value 9223372036854775807 exceeds allowed range for column of type bigint");
+
+        assertThatThrownBy(() -> indexer.index(item(0, 0, 0, 0, Float.MAX_VALUE, 0)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Value 3.4028235E38 exceeds allowed range for column of type real");
+
+        assertThatThrownBy(() -> indexer.index(item(0, 0, 0, 0, 0, Double.MAX_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Value 1.7976931348623157E308 exceeds allowed range for column of type double");
     }
 
     @Test

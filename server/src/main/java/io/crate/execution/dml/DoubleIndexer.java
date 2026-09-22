@@ -47,6 +47,10 @@ public class DoubleIndexer implements ValueIndexer<Number> {
     @Override
     public void indexValue(Number value, IndexDocumentBuilder docBuilder) throws IOException {
         double doubleValue = value.doubleValue();
+        if (doubleValue == Double.MAX_VALUE || doubleValue == -Double.MAX_VALUE) {
+            throw new IllegalArgumentException(
+                "Value " + doubleValue + " exceeds allowed range for column of type double");
+        }
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
             docBuilder.addField(new DoubleField(name, doubleValue, Field.Store.NO));
         } else {

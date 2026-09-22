@@ -47,6 +47,10 @@ public class FloatIndexer implements ValueIndexer<Float> {
     @Override
     public void indexValue(Float value, IndexDocumentBuilder docBuilder) throws IOException {
         float floatValue = value.floatValue();
+        if (floatValue == Float.MAX_VALUE || floatValue == -Float.MAX_VALUE) {
+            throw new IllegalArgumentException(
+                "Value " + floatValue + " exceeds allowed range for column of type real");
+        }
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
             docBuilder.addField(new FloatField(name, floatValue, Field.Store.NO));
         } else {

@@ -69,10 +69,10 @@ public class NullSentinelValues {
                 return min ? Long.MIN_VALUE : Long.MAX_VALUE;
 
             case FloatType.ID:
-                return min ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
+                return min ? Float.MIN_VALUE : Float.MAX_VALUE;
 
             case DoubleType.ID:
-                return min ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+                return min ? Double.MIN_VALUE : Double.MAX_VALUE;
 
             case NumericType.ID:
                 return min ? NumericStorage.COMPACT_MIN_VALUE - 1 : NumericStorage.COMPACT_MAX_VALUE + 1;
@@ -106,10 +106,10 @@ public class NullSentinelValues {
                 return min ? Long.MIN_VALUE : Long.MAX_VALUE;
 
             case FloatType.ID:
-                return min ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
+                return min ? Float.MIN_VALUE : Float.MAX_VALUE;
 
             case DoubleType.ID:
-                return min ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+                return min ? Double.MIN_VALUE : Double.MAX_VALUE;
 
             default:
                 return null;
