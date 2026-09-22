@@ -30,32 +30,26 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.Signature.Feature;
-import io.crate.types.DataType;
 
 public final class BinaryScalar<T> extends Scalar<T, T> {
 
     private final BinaryOperator<T> func;
-    private final DataType<T> type;
 
     public BinaryScalar(BinaryOperator<T> func,
                         Signature signature,
-                        BoundSignature boundSignature,
-                        DataType<T> type) {
+                        BoundSignature boundSignature) {
         super(signature, boundSignature);
         assert signature.hasFeature(Feature.STRICTNULL) : "A BinaryScalar is NULLABLE by definition";
-        assert boundSignature.argTypes().stream().allMatch(t -> t.id() == type.id()) :
-            "All bound argument types of the signature must match the type argument";
         this.func = func;
-        this.type = type;
     }
 
     @Override
     public T evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<T>[] args) {
-        T arg0Value = type.sanitizeValue(args[0].value());
+        T arg0Value = args[0].value();
         if (arg0Value == null) {
             return null;
         }
-        T arg1Value = type.sanitizeValue(args[1].value());
+        T arg1Value = args[1].value();
         if (arg1Value == null) {
             return null;
         }

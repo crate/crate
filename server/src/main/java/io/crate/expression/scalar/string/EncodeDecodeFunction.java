@@ -50,8 +50,7 @@ public class EncodeDecodeFunction {
                 new BinaryScalar<>(
                     new Encode(),
                     signature,
-                    boundSignature,
-                    DataTypes.STRING
+                    boundSignature
                 )
         );
         module.add(
@@ -65,8 +64,7 @@ public class EncodeDecodeFunction {
                 new BinaryScalar<>(
                     new Decode(),
                     signature,
-                    boundSignature,
-                    DataTypes.STRING
+                    boundSignature
                 )
         );
     }
