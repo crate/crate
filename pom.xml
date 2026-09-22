@@ -209,6 +209,40 @@
                                     </ignoreVersion>
                                 </ignoreVersions>
                             </rule>
+                            <!-- Ignore anything above 3.5.6: 3.6.0 discovers 0 tests when forkCount > 1.
+                                 Drop these rules once a release with the fix is out. -->
+                            <rule>
+                                <groupId>org.apache.maven.plugins</groupId>
+                                <artifactId>maven-surefire-plugin</artifactId>
+                                <ignoreVersions>
+                                    <!-- 3.5.7+ within the 3.5 line -->
+                                    <ignoreVersion>
+                                        <version>^3\.5\.([7-9]|\d{2,}).*</version>
+                                        <type>regex</type>
+                                    </ignoreVersion>
+                                    <!-- 3.6.0+ -->
+                                    <ignoreVersion>
+                                        <version>^3\.([6-9]|\d{2,})\..*</version>
+                                        <type>regex</type>
+                                    </ignoreVersion>
+                                </ignoreVersions>
+                            </rule>
+                            <rule>
+                                <groupId>org.apache.maven.plugins</groupId>
+                                <artifactId>maven-surefire-report-plugin</artifactId>
+                                <ignoreVersions>
+                                    <!-- 3.5.7+ within the 3.5 line -->
+                                    <ignoreVersion>
+                                        <version>^3\.5\.([7-9]|\d{2,}).*</version>
+                                        <type>regex</type>
+                                    </ignoreVersion>
+                                    <!-- 3.6.0+ -->
+                                    <ignoreVersion>
+                                        <version>^3\.([6-9]|\d{2,})\..*</version>
+                                        <type>regex</type>
+                                    </ignoreVersion>
+                                </ignoreVersions>
+                            </rule>
                         </rules>
                     </ruleSet>
                 </configuration>
@@ -368,7 +402,7 @@
         <versions.plugin.resources>3.5.0</versions.plugin.resources>
         <versions.plugin.install>3.2.0</versions.plugin.install>
         <versions.plugin.compiler>3.16.0</versions.plugin.compiler>
-        <versions.plugin.surefire>3.6.0</versions.plugin.surefire>
+        <versions.plugin.surefire>3.5.6</versions.plugin.surefire>
         <versions.plugin.checkstyle>3.6.0</versions.plugin.checkstyle>
         <versions.plugin.puppycrawl>12.3.1</versions.plugin.puppycrawl>
         <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
