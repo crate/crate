@@ -26,6 +26,7 @@ import static java.util.stream.Collectors.toSet;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -308,7 +309,8 @@ public final class DataTypes {
         entry(BitString.class, BitStringType.INSTANCE_ONE),
         entry(TimeTZ.class, TimeTZType.INSTANCE),
         entry(UUID.class, UUIDType.INSTANCE),
-        entry(Period.class, IntervalType.INSTANCE)
+        entry(Period.class, IntervalType.INSTANCE),
+        entry(LocalDate.class, DATE)
     );
 
     public static DataType<?> guessType(Object value) {

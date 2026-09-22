@@ -64,6 +64,7 @@ import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.expression.symbol.LiteralValueFormatter;
 import io.crate.sql.SqlFormatter;
 import io.crate.testing.Asserts;
 import io.crate.testing.DataTypeTesting;
@@ -1807,13 +1808,7 @@ public class TransportSQLActionTest extends IntegTestCase {
             selectParams.append(i);
 
             selectInlineValues.append(" = ");
-            if (arg instanceof String) {
-                selectInlineValues.append("'");
-                selectInlineValues.append(arg);
-                selectInlineValues.append("'");
-            } else {
-                selectInlineValues.append(arg);
-            }
+            LiteralValueFormatter.format(arg, selectInlineValues);
             selectParams.append(" = ?");
 
             if (i + 1 < args.length) {

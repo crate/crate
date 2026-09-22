@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -340,8 +341,8 @@ public class CastFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_can_cast_timestamp_to_date() {
-        assertEvaluate("'2020-02-09T17:50:44+0100'::timestamp::date", 1581206400000L);
-        assertEvaluate("'2020-02-09T17:50:44+0100'::timestamp without time zone::date", 1581206400000L);
+        assertEvaluate("'2020-02-09T17:50:44+0100'::timestamp::date", LocalDate.of(2020, 2, 9));
+        assertEvaluate("'2020-02-09T17:50:44+0100'::timestamp without time zone::date", LocalDate.of(2020, 2, 9));
     }
 
     @Test

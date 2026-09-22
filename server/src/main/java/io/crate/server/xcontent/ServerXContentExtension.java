@@ -19,6 +19,7 @@
 
 package io.crate.server.xcontent;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -36,6 +37,7 @@ import org.locationtech.spatial4j.shape.jts.JtsPoint;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.RowN;
 import io.crate.sql.tree.BitString;
+import io.crate.types.DateType;
 import io.crate.types.IntervalType;
 import io.crate.types.Regclass;
 import io.crate.types.Regproc;
@@ -60,6 +62,7 @@ public class ServerXContentExtension implements XContentBuilderExtension {
             org.joda.time.Period period = (org.joda.time.Period) v;
             b.value(IntervalType.PERIOD_FORMATTER.print(period));
         });
+        writers.put(LocalDate.class, (b, v) -> b.value(DateType.toTimestamp((LocalDate) v)));
         writers.put(BytesReference.class, (b, v) -> {
             if (v == null) {
                 b.nullValue();

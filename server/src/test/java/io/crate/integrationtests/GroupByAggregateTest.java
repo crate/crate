@@ -30,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -60,6 +61,7 @@ import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DateType;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class GroupByAggregateTest extends IntegTestCase {
@@ -159,7 +161,14 @@ public class GroupByAggregateTest extends IntegTestCase {
             ),
             new TestCase(DataTypes.FLOAT, List.of(-Float.MAX_VALUE, -Float.MAX_VALUE, Float.MAX_VALUE, -1.23f)),
             new TestCase(DataTypes.DOUBLE, List.of(-Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE, -1.23d)),
-            new TestCase(DataTypes.DATE, List.of(Long.MIN_VALUE, Long.MIN_VALUE, Long.MAX_VALUE, 0L)),
+            new TestCase(
+                DataTypes.DATE,
+                List.of(
+                    DateType.MIN,
+                    DateType.MIN,
+                    DateType.MAX,
+                    LocalDate.EPOCH)
+            ),
             new TestCase(
                 DataTypes.TIMESTAMPZ,
                 List.of(Long.MIN_VALUE + 1, Long.MIN_VALUE + 1, Long.MAX_VALUE - 1, -1)

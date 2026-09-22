@@ -23,6 +23,7 @@ package io.crate.testing;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -158,10 +159,11 @@ public final class DataTypeTesting {
                 return () -> (T) (Long) random.nextLong();
 
             case DateType.ID:
-                // DATE values are normalised to midnight UTC by DateType.implicitCast,
-                // so the generator must produce day-aligned epoch-millis for round-trip
-                // tests to match the inserted value against the stored value.
-                return () -> (T) (Long) (random.nextLong() / 86_400_000L * 86_400_000L);
+                return () -> (T) (LocalDate) LocalDate.ofEpochDay(
+                    random.nextLong(
+                        DateType.MIN.plusDays(1).toEpochDay(),
+                        DateType.MAX.toEpochDay())
+                    );
 
             case RegclassType.ID:
                 return () -> {

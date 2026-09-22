@@ -222,7 +222,7 @@ are likely to be larger due to additional metadata.
       - Time and date without time zone
     * - ``DATE``
       - 8 bytes
-      - 292275054BC to 292278993AD
+      - -292275055-05-18 to +292278994-08-16
       - Date in UTC. Internally stored as ``BIGINT``.
     * - ``TIME WITH TIME ZONE``
       - 12 bytes
@@ -1981,9 +1981,9 @@ must be prefixed by the plus or minus symbol. See also `Year.parse Javadoc`_::
 
 .. CAUTION::
 
-    Due to internal date parsing, the full ``BIGINT`` range is not supported
-    for timestamp values. The valid range of dates is from ``292275054BC`` to
-    ``292278993AD``.
+    Due to internal date parsing, the full ``BIGINT`` range is not supported for
+    timestamp values. The valid range of dates is from ``-292275055-05-18`` to
+    ``+292278994-08-16``.
 
     When inserting dates smaller than ``-999999999999999`` (equal to
     ``-29719-04-05``) or bigger than ``999999999999999`` (equal
