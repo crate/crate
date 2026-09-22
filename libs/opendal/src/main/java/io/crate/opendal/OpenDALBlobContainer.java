@@ -64,14 +64,18 @@ public class OpenDALBlobContainer implements BlobContainer {
             if (ex.getCode() == Code.NotFound) {
                 return false;
             }
-            throw ex;
+            throw new IOException(ex);
         }
     }
 
     @Override
     public InputStream readBlob(String blobName) throws IOException {
-        String path = pathAsString + blobName;
-        return operator.createInputStream(path);
+        try {
+            String path = pathAsString + blobName;
+            return operator.createInputStream(path);
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
     }
 
 
@@ -85,34 +89,48 @@ public class OpenDALBlobContainer implements BlobContainer {
         try (var out = operator.createOutputStream(path, size)) {
             inputStream.transferTo(out);
             out.flush();
+        } catch (Exception e) {
+            throw new IOException(e);
         }
     }
 
     @Override
     public void delete() throws IOException {
-        operator.removeAll(pathAsString);
+        try {
+            operator.removeAll(pathAsString);
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
     }
 
     @Override
     public void deleteBlobsIgnoringIfNotExists(List<String> blobNames) throws IOException {
-        for (String blobName : blobNames) {
-            String path = pathAsString + blobName;
-            operator.removeAll(path);
+        try {
+            for (String blobName : blobNames) {
+                String path = pathAsString + blobName;
+                operator.removeAll(path);
+            }
+        } catch (Exception e) {
+            throw new IOException(e);
         }
     }
 
     @Override
     public Map<String, BlobContainer> children() throws IOException {
-        HashMap<String, BlobContainer> result = new HashMap<>();
-        for (var entry : operator.list(pathAsString)) {
-            if (entry.getMetadata().isDir()) {
-                String suffix = entry.path.substring(pathAsString.length(), entry.path.length() - 1);
-                if (!suffix.isEmpty()) {
-                    result.put(suffix, new OpenDALBlobContainer(path.add(suffix), operator, bufferSize));
+        try {
+            HashMap<String, BlobContainer> result = new HashMap<>();
+            for (var entry : operator.list(pathAsString)) {
+                if (entry.getMetadata().isDir()) {
+                    String suffix = entry.path.substring(pathAsString.length(), entry.path.length() - 1);
+                    if (!suffix.isEmpty()) {
+                        result.put(suffix, new OpenDALBlobContainer(path.add(suffix), operator, bufferSize));
+                    }
                 }
             }
+            return result;
+        } catch (Exception e) {
+            throw new IOException(e);
         }
-        return result;
     }
 
     @Override
@@ -124,11 +142,15 @@ public class OpenDALBlobContainer implements BlobContainer {
     public List<String> listBlobsByPrefix(String blobNamePrefix) throws IOException {
         String fullPath = pathAsString + blobNamePrefix;
         List<String> result = new ArrayList<>();
-        for (var entry : operator.list(fullPath)) {
-            if (entry.getMetadata().isDir() == false) {
-                result.add(entry.getPath().substring(pathAsString.length()));
+        try {
+            for (var entry : operator.list(fullPath)) {
+                if (entry.getMetadata().isDir() == false) {
+                    result.add(entry.getPath().substring(pathAsString.length()));
+                }
             }
+            return result;
+        } catch (Exception e) {
+            throw new IOException(e);
         }
-        return result;
     }
 }
