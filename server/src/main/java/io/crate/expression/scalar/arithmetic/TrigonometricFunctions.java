@@ -36,7 +36,6 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
-import io.crate.types.DoubleType;
 
 public final class TrigonometricFunctions {
 
@@ -75,8 +74,7 @@ public final class TrigonometricFunctions {
                 new BinaryScalar<>(
                     Math::atan2,
                     signature,
-                    boundSignature,
-                    DoubleType.INSTANCE
+                    boundSignature
                 )
         );
 
@@ -89,10 +87,9 @@ public final class TrigonometricFunctions {
                 .build(),
             (signature, ignoredBoundSignature) ->
                 new BinaryScalar<>(
-                    (y, x) -> BigDecimalMath.atan2(y, x, MathContext.DECIMAL128),
+                    (BigDecimal y, BigDecimal x) -> BigDecimalMath.atan2(y, x, MathContext.DECIMAL128),
                     signature,
-                    BoundSignature.sameAsUnbound(signature),
-                    DataTypes.NUMERIC
+                    BoundSignature.sameAsUnbound(signature)
             )
         );
     }

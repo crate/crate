@@ -136,7 +136,7 @@ public class ArithmeticFunctions {
                     .features(op.features)
                     .build(),
                 (signature, boundSignature) ->
-                    new BinaryScalar<>(op.integerFunction, signature, boundSignature, DataTypes.INTEGER)
+                    new BinaryScalar<>(op.integerFunction, signature, boundSignature)
             );
             builder.add(
                 Signature.builder(op.toString(), FunctionType.SCALAR)
@@ -145,7 +145,7 @@ public class ArithmeticFunctions {
                     .features(op.features)
                     .build(),
                 (signature, boundSignature) ->
-                    new BinaryScalar<>(op.longFunction, signature, boundSignature, DataTypes.LONG)
+                    new BinaryScalar<>(op.longFunction, signature, boundSignature)
             );
             if (op != Operations.SUBTRACT) {
                 for (var type : List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ)) {
@@ -156,7 +156,7 @@ public class ArithmeticFunctions {
                             .features(op.features)
                             .build(),
                         (signature, boundSignature) ->
-                            new BinaryScalar<>(op.longFunction, signature, boundSignature, type)
+                            new BinaryScalar<>(op.longFunction, signature, boundSignature)
                     );
                 }
             }
@@ -167,7 +167,7 @@ public class ArithmeticFunctions {
                     .features(op.features)
                     .build(),
                 (signature, boundSignature) ->
-                    new BinaryScalar<>(op.floatFunction, signature, boundSignature, DataTypes.FLOAT)
+                    new BinaryScalar<>(op.floatFunction, signature, boundSignature)
             );
             builder.add(
                 Signature.builder(op.toString(), FunctionType.SCALAR)
@@ -176,7 +176,7 @@ public class ArithmeticFunctions {
                     .features(op.features)
                     .build(),
                 (signature, boundSignature) ->
-                    new BinaryScalar<>(op.doubleFunction, signature, boundSignature, DataTypes.DOUBLE)
+                    new BinaryScalar<>(op.doubleFunction, signature, boundSignature)
             );
             builder.add(
                 Signature.builder(op.toString(), FunctionType.SCALAR)
@@ -185,7 +185,7 @@ public class ArithmeticFunctions {
                     .features(op.features)
                     .build(),
                 (signature, boundSignature) ->
-                    new BinaryScalar<>(op.bdFunction, signature, boundSignature, DataTypes.NUMERIC)
+                    new BinaryScalar<>(op.bdFunction, signature, boundSignature)
             );
         }
 
@@ -196,7 +196,7 @@ public class ArithmeticFunctions {
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
-                new BinaryScalar<>(Math::pow, signature, boundSignature, DataTypes.DOUBLE)
+                new BinaryScalar<>(Math::pow, signature, boundSignature)
         );
         builder.add(
             Signature.builder(Names.POWER, FunctionType.SCALAR)
@@ -206,10 +206,9 @@ public class ArithmeticFunctions {
                 .build(),
             (signature, boundSignature) ->
                 new BinaryScalar<>(
-                    (arg1 , arg2) -> BigDecimalMath.pow(arg1, arg2, MathContext.DECIMAL128),
+                    (BigDecimal arg1 , BigDecimal arg2) -> BigDecimalMath.pow(arg1, arg2, MathContext.DECIMAL128),
                     signature,
-                    boundSignature,
-                    DataTypes.NUMERIC)
+                    boundSignature)
         );
     }
 }

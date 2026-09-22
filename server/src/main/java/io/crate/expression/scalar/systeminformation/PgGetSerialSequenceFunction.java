@@ -46,8 +46,7 @@ public class PgGetSerialSequenceFunction {
             (signature, boundSignature) -> new BinaryScalar<>(
                 (table, column) -> null,
                 signature,
-                boundSignature,
-                DataTypes.STRING
+                boundSignature
             )
         );
     }
