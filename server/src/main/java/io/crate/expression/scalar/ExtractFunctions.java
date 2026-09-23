@@ -87,7 +87,7 @@ public class ExtractFunctions {
                         .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                         .build(),
                     (signature, boundSignature) ->
-                        new UnaryScalar<Number, Long>(signature, boundSignature, argType, dtf::get)
+                        new UnaryScalar<>(signature, boundSignature, (Long x) -> dtf.get(x))
                 );
             }
             // extract(epoch from ...) is different as is returns a `double precision`
@@ -98,7 +98,7 @@ public class ExtractFunctions {
                     .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .build(),
                 (signature, boundSignature) ->
-                    new UnaryScalar<>(signature, boundSignature, argType, v -> (double) v / 1000)
+                    new UnaryScalar<>(signature, boundSignature, (Long v) -> (double) v / 1000)
             );
         }
 
@@ -122,7 +122,7 @@ public class ExtractFunctions {
                     .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .build(),
                 (signature, boundSignature) ->
-                    new UnaryScalar<Number, Period>(signature, boundSignature, DataTypes.INTERVAL, function::apply)
+                    new UnaryScalar<Number, Period>(signature, boundSignature, function::apply)
             );
         }
         // extract(epoch from ...) is different as is returns a `double precision`
@@ -133,7 +133,7 @@ public class ExtractFunctions {
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
-                new UnaryScalar<>(signature, boundSignature, DataTypes.INTERVAL, ExtractFunctions::toMillis)
+                new UnaryScalar<>(signature, boundSignature, ExtractFunctions::toMillis)
         );
     }
 

@@ -41,7 +41,6 @@ public final class CoordinateFunction {
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.GEO_POINT,
                     CoordinateFunction::getLatitude
                 )
         );
@@ -55,7 +54,6 @@ public final class CoordinateFunction {
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.GEO_POINT,
                     CoordinateFunction::getLongitude
                 )
         );

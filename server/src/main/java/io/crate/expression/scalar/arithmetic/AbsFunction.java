@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.math.BigDecimal;
 import java.math.MathContext;
 
 import io.crate.expression.scalar.UnaryScalar;
@@ -51,7 +52,6 @@ public final class AbsFunction {
                     return new UnaryScalar<>(
                         signature,
                         boundSignature,
-                        argType,
                         x -> argType.sanitizeValue(Math.abs(((Number) x).doubleValue()))
                     );
                 }
@@ -66,8 +66,7 @@ public final class AbsFunction {
             (signature, boundSignature) -> new UnaryScalar<>(
                 signature,
                 boundSignature,
-                DataTypes.NUMERIC,
-                x -> x.abs(MathContext.DECIMAL128)
+                (BigDecimal x) -> x.abs(MathContext.DECIMAL128)
             )
         );
     }

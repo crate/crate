@@ -38,7 +38,7 @@ public final class AsciiFunction {
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
-                new UnaryScalar<>(signature, boundSignature, DataTypes.STRING, AsciiFunction::ascii)
+                new UnaryScalar<>(signature, boundSignature, AsciiFunction::ascii)
         );
     }
 

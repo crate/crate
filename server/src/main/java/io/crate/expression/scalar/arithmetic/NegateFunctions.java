@@ -29,7 +29,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
-import io.crate.types.TypeSignature;
 
 public final class NegateFunctions {
 
@@ -38,13 +37,13 @@ public final class NegateFunctions {
     public static void register(Functions.Builder builder) {
         builder.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("double precision"))
-                .returnType(TypeSignature.parse("double precision"))
+                .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .forbidCoercion()
                 .build(),
             (signature, boundSignature) ->
-                new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, x -> x * -1)
+                new UnaryScalar<>(signature, boundSignature, (Double x) -> x * -1)
         );
         builder.add(
             Signature.builder(NAME, FunctionType.SCALAR)
@@ -54,37 +53,37 @@ public final class NegateFunctions {
                 .forbidCoercion()
                 .build(),
             (signature, boundSignature) ->
-                new UnaryScalar<>(signature, boundSignature, DataTypes.FLOAT, x -> x * -1)
+                new UnaryScalar<>(signature, boundSignature, (Float x) -> x * -1)
         );
         builder.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("integer"))
-                .returnType(TypeSignature.parse("integer"))
+                .argumentTypes(DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .forbidCoercion()
                 .build(),
             (signature, boundSignature) ->
-                new UnaryScalar<>(signature, boundSignature, DataTypes.INTEGER, x -> x * -1)
+                new UnaryScalar<>(signature, boundSignature, (Integer x) -> x * -1)
         );
         builder.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("bigint"))
-                .returnType(TypeSignature.parse("bigint"))
+                .argumentTypes(DataTypes.LONG.getTypeSignature())
+                .returnType(DataTypes.LONG.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .forbidCoercion()
                 .build(),
             (signature, boundSignature) ->
-                new UnaryScalar<>(signature, boundSignature, DataTypes.LONG, x -> x * -1)
+                new UnaryScalar<>(signature, boundSignature, (Long x) -> x * -1)
         );
         builder.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("smallint"))
-                .returnType(TypeSignature.parse("smallint"))
+                .argumentTypes(DataTypes.SHORT.getTypeSignature())
+                .returnType(DataTypes.SHORT.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .forbidCoercion()
                 .build(),
             (signature, boundSignature) ->
-                new UnaryScalar<>(signature, boundSignature, DataTypes.SHORT, x -> (short) (x * -1))
+                new UnaryScalar<>(signature, boundSignature, (Short x) -> (x * -1))
         );
         builder.add(
             Signature.builder(NAME, FunctionType.SCALAR)
@@ -94,7 +93,7 @@ public final class NegateFunctions {
                 .forbidCoercion()
                 .build(),
             (signature, boundSignature) ->
-                new UnaryScalar<>(signature, boundSignature, DataTypes.NUMERIC, BigDecimal::negate)
+                new UnaryScalar<>(signature, boundSignature, (BigDecimal x) -> x.negate())
         );
     }
 }

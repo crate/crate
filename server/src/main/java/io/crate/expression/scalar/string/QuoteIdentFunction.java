@@ -24,7 +24,6 @@ package io.crate.expression.scalar.string;
 import static io.crate.sql.Identifiers.isKeyWord;
 
 import io.crate.common.annotations.VisibleForTesting;
-
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
@@ -51,7 +50,6 @@ public final class QuoteIdentFunction {
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.STRING,
                     QuoteIdentFunction::maybeQuoteExpression
                 )
         );
