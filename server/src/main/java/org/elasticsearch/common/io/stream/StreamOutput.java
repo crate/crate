@@ -35,7 +35,6 @@ import java.nio.file.FileSystemLoopException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.Collections;
@@ -62,7 +61,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.Writeable.Writer;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.joda.time.DateTimeZone;
 import org.joda.time.Period;
 import org.joda.time.ReadableInstant;
 import org.jspecify.annotations.Nullable;
@@ -644,12 +642,7 @@ public abstract class StreamOutput extends OutputStream {
             o.writeByte((byte) 12);
             o.writeLong(((Date) v).getTime());
         }),
-        Map.entry(ReadableInstant.class, (o, v) -> {
-            o.writeByte((byte) 13);
-            final ReadableInstant instant = (ReadableInstant) v;
-            o.writeString(instant.getZone().getID());
-            o.writeLong(instant.getMillis());
-        }),
+        // 13 used to be ReadableInstant
         Map.entry(BytesReference.class, (o, v) -> {
             o.writeByte((byte) 14);
             o.writeBytesReference((BytesReference) v);
@@ -1003,32 +996,6 @@ public abstract class StreamOutput extends OutputStream {
         } else {
             writeBoolean(true);
             writeNamedWriteable(namedWriteable);
-        }
-    }
-
-    /**
-     * Write a {@linkplain DateTimeZone} to the stream.
-     */
-    public void writeTimeZone(DateTimeZone timeZone) throws IOException {
-        writeString(timeZone.getID());
-    }
-
-    /**
-     * Write a {@linkplain ZoneId} to the stream.
-     */
-    public void writeZoneId(ZoneId timeZone) throws IOException {
-        writeString(timeZone.getId());
-    }
-
-    /**
-     * Write an optional {@linkplain DateTimeZone} to the stream.
-     */
-    public void writeOptionalTimeZone(@Nullable DateTimeZone timeZone) throws IOException {
-        if (timeZone == null) {
-            writeBoolean(false);
-        } else {
-            writeBoolean(true);
-            writeTimeZone(timeZone);
         }
     }
 
