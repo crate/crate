@@ -41,7 +41,6 @@ public final class InitCapFunction {
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.STRING,
                     InitCapFunction::toCapital
                 )
         );

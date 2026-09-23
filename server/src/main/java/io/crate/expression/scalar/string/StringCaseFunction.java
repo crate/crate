@@ -43,8 +43,7 @@ public final class StringCaseFunction {
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.STRING,
-                    val -> val.toUpperCase(Locale.ENGLISH)
+                    (String val) -> val.toUpperCase(Locale.ENGLISH)
                 )
         );
         module.add(
@@ -57,8 +56,7 @@ public final class StringCaseFunction {
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.STRING,
-                    val -> val.toLowerCase(Locale.ENGLISH)
+                    (String val) -> val.toLowerCase(Locale.ENGLISH)
                 )
         );
 

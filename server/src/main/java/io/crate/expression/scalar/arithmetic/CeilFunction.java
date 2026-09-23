@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
@@ -55,8 +56,7 @@ public final class CeilFunction {
                         new UnaryScalar<>(
                             signature,
                             boundSignature,
-                            type,
-                            x -> returnType.sanitizeValue(Math.ceil(x.doubleValue()))
+                            (Number x) -> returnType.sanitizeValue(Math.ceil(x.doubleValue()))
                         )
                 );
             }
@@ -72,8 +72,7 @@ public final class CeilFunction {
                 (signature, boundSignature) -> new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.NUMERIC,
-                    x -> x.setScale(0, RoundingMode.CEILING)
+                    (BigDecimal x) -> x.setScale(0, RoundingMode.CEILING)
                 )
             );
         }

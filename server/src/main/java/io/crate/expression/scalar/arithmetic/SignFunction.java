@@ -48,7 +48,6 @@ public class SignFunction {
                 return new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    argType,
                     x -> BigDecimal.valueOf(Math.signum(((Number) argType.sanitizeValue(x)).longValue()))
                 );
             }

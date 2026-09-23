@@ -45,7 +45,6 @@ public final class GeoHashFunction {
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.GEO_POINT,
                     GeoHashFunction::getGeoHash
                 )
         );

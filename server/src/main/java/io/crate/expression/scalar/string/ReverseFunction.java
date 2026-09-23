@@ -43,8 +43,7 @@ public final class ReverseFunction {
                 return new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.STRING,
-                    s -> new StringBuilder(s).reverse().toString()
+                    (String s) -> new StringBuilder(s).reverse().toString()
                 );
             }
         );

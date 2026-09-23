@@ -47,7 +47,7 @@ public final class LengthFunction {
                 .returnType(DataTypes.INTEGER.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
-            (signature, boundSignature) -> new UnaryScalar<>(signature, boundSignature, DataTypes.STRING, func)
+            (signature, boundSignature) -> new UnaryScalar<>(signature, boundSignature, func)
         );
     }
 

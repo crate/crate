@@ -117,7 +117,6 @@ public final class TrigonometricFunctions {
                 new UnaryScalar<>(
                     signature,
                     BoundSignature.sameAsUnbound(signature),
-                    DataTypes.NUMERIC,
                     func
                 )
         );

@@ -60,7 +60,6 @@ public final class TruncFunction {
                     new UnaryScalar<>(
                         signature,
                         boundSignature,
-                        type,
                         n -> {
                             double val = ((Number) n).doubleValue();
                             UnaryOperator<Double> f = val >= 0 ? Math::floor : Math::ceil;
