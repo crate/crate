@@ -156,4 +156,37 @@ public class CrossJoinDebugIntegrationTest extends IntegTestCase {
         execute(query);
         assertThat(response).hasRows("1| 1| 1");
     }
+
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    @Test
+    public void temp_debug_cross_join_4_tables() throws Exception {
+        execute("create table t1 (c1 integer)");
+        execute("create table t2 (c2 integer)");
+        execute("create table t3 (c3 integer)");
+        execute("create table t4 (c4 integer)");
+
+        execute("insert into t1 (c1) values (1)");
+        execute("insert into t2 (c2) values (1)");
+        execute("insert into t3 (c3) values (1)");
+        execute("insert into t4 (c4) values (1)");
+        execute("refresh table t1, t2, t3, t4");
+
+        String query = """
+            SELECT *
+            FROM t1, t2, t3, t4
+            WHERE t1.c1 = t3.c3
+              AND t2.c2 = t4.c4
+              AND t3.c3 = t4.c4;
+            """;
+
+        execute("EXPLAIN VERBOSE " + query);
+        for (Object[] row : response.rows()) {
+            System.out.println(row[0] + "\n" + row[1] + "\n");
+        }
+
+        execute(query);
+        assertThat(response).hasRows("1| 1| 1| 1");
+    }
 }
