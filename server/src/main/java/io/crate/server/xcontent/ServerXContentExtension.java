@@ -25,7 +25,6 @@ import java.util.Objects;
 
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilderExtension;
 import org.locationtech.spatial4j.shape.Point;
@@ -112,13 +111,5 @@ public class ServerXContentExtension implements XContentBuilderExtension {
             b.value(bitString.asPrefixedBitString());
         });
         return writers;
-    }
-
-    @Override
-    public Map<Class<?>, XContentBuilder.HumanReadableTransformer> getXContentHumanReadableTransformers() {
-        return Map.of(
-            TimeValue.class, v -> ((TimeValue) v).millis(),
-            ByteSizeValue.class, v -> ((ByteSizeValue) v).getBytes()
-        );
     }
 }
