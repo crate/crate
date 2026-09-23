@@ -44,21 +44,4 @@ public interface XContentBuilderExtension {
      * @return a map of class name to writer
      */
     Map<Class<?>, XContentBuilder.Writer> getXContentWriters();
-
-    /**
-     * Used for plugging in a human readable version of a class's encoding. It is assumed that
-     * the human readable equivalent is <b>always</b> behind the {@code toString()} method, so
-     * this transformer returns the raw value to be used.
-     *
-     * An example implementation:
-     *
-     * <pre>
-     * {@code
-     *     Map<Class<?>, XContentBuilder.HumanReadableTransformer> transformers = new HashMap<>();
-     *     transformers.put(ByteSizeValue.class, (value) -> ((ByteSizeValue) value).bytes());
-     * }
-     * </pre>
-     * @return a map of class name to transformer used to retrieve raw value
-     */
-    Map<Class<?>, XContentBuilder.HumanReadableTransformer> getXContentHumanReadableTransformers();
 }

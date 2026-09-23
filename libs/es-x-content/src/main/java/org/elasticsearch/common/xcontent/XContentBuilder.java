@@ -60,7 +60,6 @@ public final class XContentBuilder implements Closeable, Flushable {
     }
 
     private static final Map<Class<?>, Writer> WRITERS;
-    private static final Map<Class<?>, HumanReadableTransformer> HUMAN_READABLE_TRANSFORMERS;
 
     static {
         Map<Class<?>, Writer> writers = new HashMap<>();
@@ -86,35 +85,20 @@ public final class XContentBuilder implements Closeable, Flushable {
         writers.put(BigDecimal.class, (b, v) -> b.value((BigDecimal) v));
         writers.put(UUID.class, (b, v) -> b.value(v.toString()));
 
-        Map<Class<?>, HumanReadableTransformer> humanReadableTransformer = new HashMap<>();
-
         // Load pluggable extensions
         for (XContentBuilderExtension service : ServiceLoader.load(XContentBuilderExtension.class)) {
             Map<Class<?>, Writer> addlWriters = service.getXContentWriters();
-            Map<Class<?>, HumanReadableTransformer> addlTransformers = service.getXContentHumanReadableTransformers();
             addlWriters.forEach((key, value) -> Objects.requireNonNull(value,
                 "invalid null xcontent writer for class " + key));
-            addlTransformers.forEach((key, value) -> Objects.requireNonNull(value,
-                "invalid null xcontent transformer for human readable class " + key));
             writers.putAll(addlWriters);
-            humanReadableTransformer.putAll(addlTransformers);
         }
 
         WRITERS = Collections.unmodifiableMap(writers);
-        HUMAN_READABLE_TRANSFORMERS = Collections.unmodifiableMap(humanReadableTransformer);
     }
 
     @FunctionalInterface
     public interface Writer {
         void write(XContentBuilder builder, Object value) throws IOException;
-    }
-
-    /**
-     * Interface for transforming complex objects into their "raw" equivalents for human-readable fields
-     */
-    @FunctionalInterface
-    public interface HumanReadableTransformer {
-        Object rawValue(Object value) throws IOException;
     }
 
     /**
@@ -126,11 +110,6 @@ public final class XContentBuilder implements Closeable, Flushable {
      * Output stream to which the built object is written
      */
     private final OutputStream bos;
-
-    /**
-     * When this flag is set to true, some types of values are written in a format easier to read for a human.
-     */
-    private boolean humanReadable = false;
 
     /**
      * Constructs a new builder using the provided XContent and an OutputStream. Make sure
@@ -178,23 +157,6 @@ public final class XContentBuilder implements Closeable, Flushable {
     public XContentBuilder lfAtEnd() {
         generator.usePrintLineFeedAtEnd();
         return this;
-    }
-
-    /**
-     * Set the "human readable" flag. Once set, some types of values are written in a
-     * format easier to read for a human.
-     */
-    public XContentBuilder humanReadable(boolean humanReadable) {
-        this.humanReadable = humanReadable;
-        return this;
-    }
-
-    /**
-     * @return the value of the "human readable" flag. When the value is equal to true,
-     * some types of values are written in a format easier to read for a human.
-     */
-    public boolean humanReadable() {
-        return this.humanReadable;
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -797,29 +759,6 @@ public final class XContentBuilder implements Closeable, Flushable {
         }
         return this;
     }
-
-    ////////////////////////////////////////////////////////////////////////////
-    // Human readable fields
-    //
-    // These are fields that have a "raw" value and a "human readable" value,
-    // such as time values or byte sizes. The human readable variant is only
-    // used if the humanReadable flag has been set
-    //////////////////////////////////
-
-    public XContentBuilder humanReadableField(String rawFieldName, String readableFieldName, Object value) throws IOException {
-        if (humanReadable) {
-            field(readableFieldName, Objects.toString(value));
-        }
-        HumanReadableTransformer transformer = HUMAN_READABLE_TRANSFORMERS.get(value.getClass());
-        if (transformer != null) {
-            Object rawValue = transformer.rawValue(value);
-            field(rawFieldName, rawValue);
-        } else {
-            throw new IllegalArgumentException("no raw transformer found for class " + value.getClass());
-        }
-        return this;
-    }
-
 
     ////////////////////////////////////////////////////////////////////////////
     // Raw fields
