@@ -75,8 +75,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.joda.time.Period;
 import org.jspecify.annotations.Nullable;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -677,7 +675,7 @@ public abstract class StreamInput extends InputStream {
             case 12:
                 return readDate();
             case 13:
-                return readDateTime();
+                throw new IllegalArgumentException("Streaming values as DateTime is no longer supported. Use LocalDateTime instead");
             case 14:
                 return readBytesReference();
             case 15:
@@ -724,11 +722,6 @@ public abstract class StreamInput extends InputStream {
             list.add(readGenericValue());
         }
         return list;
-    }
-
-    private DateTime readDateTime() throws IOException {
-        final String timeZoneId = readString();
-        return new DateTime(readLong(), DateTimeZone.forID(timeZoneId));
     }
 
     private ZonedDateTime readZonedDateTime() throws IOException {
@@ -798,23 +791,6 @@ public abstract class StreamInput extends InputStream {
 
     private Date readDate() throws IOException {
         return new Date(readLong());
-    }
-
-    /**
-     * Read a {@linkplain DateTimeZone}.
-     */
-    public DateTimeZone readTimeZone() throws IOException {
-        return DateTimeZone.forID(readString());
-    }
-
-    /**
-     * Read an optional {@linkplain DateTimeZone}.
-     */
-    public DateTimeZone readOptionalTimeZone() throws IOException {
-        if (readBoolean()) {
-            return DateTimeZone.forID(readString());
-        }
-        return null;
     }
 
     public int[] readIntArray() throws IOException {
