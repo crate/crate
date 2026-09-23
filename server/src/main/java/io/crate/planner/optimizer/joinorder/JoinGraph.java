@@ -84,7 +84,7 @@ import io.crate.sql.tree.JoinType;
 public record JoinGraph(List<LogicalPlan> nodes,
                         Map<LogicalPlan, List<Edge>> edges,
                         List<Symbol> filters,
-                        boolean hasCrossJoin) {
+                        int crossJoinCount) {
 
     public record Edge(LogicalPlan to, Symbol left, Symbol right) {}
 
@@ -96,19 +96,19 @@ public record JoinGraph(List<LogicalPlan> nodes,
         var newNodes = Lists.concat(this.nodes, other.nodes);
         var newEdges = Maps.merge(this.edges, other.edges, Lists::concat);
         var newFilters = Lists.concat(this.filters, other.filters);
-        var hasCrossJoin = this.hasCrossJoin || other.hasCrossJoin();
+        var newCrossJoinCount = this.crossJoinCount + other.crossJoinCount();
 
         return new JoinGraph(
             newNodes,
             newEdges,
             newFilters,
-            hasCrossJoin
+            newCrossJoinCount
         );
     }
 
     JoinGraph withEdges(Map<LogicalPlan, List<Edge>> edges) {
         var newEdges = Maps.merge(this.edges, edges, Lists::concat);
-        return new JoinGraph(this.nodes, newEdges, this.filters, this.hasCrossJoin);
+        return new JoinGraph(this.nodes, newEdges, this.filters, this.crossJoinCount);
     }
 
     JoinGraph withFilters(List<Symbol> filters) {
@@ -116,11 +116,11 @@ public record JoinGraph(List<LogicalPlan> nodes,
             return this;
         }
         var newFilters = Lists.concat(this.filters, filters);
-        return new JoinGraph(this.nodes, edges, newFilters, this.hasCrossJoin);
+        return new JoinGraph(this.nodes, edges, newFilters, this.crossJoinCount);
     }
 
     JoinGraph withCrossJoin() {
-        return new JoinGraph(this.nodes, edges, filters, true);
+        return new JoinGraph(this.nodes, edges, filters, this.crossJoinCount + 1);
     }
 
     public int size() {
@@ -152,7 +152,7 @@ public record JoinGraph(List<LogicalPlan> nodes,
             for (Symbol output : logicalPlan.outputs()) {
                 context.put(output, logicalPlan);
             }
-            return new JoinGraph(List.of(logicalPlan), Map.of(), List.of(), false);
+            return new JoinGraph(List.of(logicalPlan), Map.of(), List.of(), 0);
         }
 
         @Override

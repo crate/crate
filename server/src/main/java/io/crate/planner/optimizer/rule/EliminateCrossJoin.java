@@ -63,23 +63,18 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
                              Rule.Context context) {
         if (join.relationNames().size() >= 3) {
             var joinGraph = JoinGraph.create(join, context.resolvePlan());
-            if (joinGraph.hasCrossJoin()) {
+            if (joinGraph.crossJoinCount() > 0) {
                 var newOrder = eliminateCrossJoin(joinGraph);
-                List<Integer> newOrderPositions = eliminateCrossJoinPositionsOnly(joinGraph);
-                boolean orderChanged = false;
-                for (int i = 0; i < newOrderPositions.size(); i++) {
-                    if (newOrderPositions.get(i) != i) {
-                        orderChanged = true;
-                        break;
-                    }
-                }
-                if (orderChanged) {
+                if (newOrder != null) {
                     var newJoinPlan = reorder(joinGraph, newOrder);
                     if (newJoinPlan != null) {
-                        return Eval.create(
-                            newJoinPlan,
-                            join.outputs()
-                        );
+                        var newJoinGraph = JoinGraph.create(newJoinPlan, context.resolvePlan());
+                        if (newJoinGraph.crossJoinCount() < joinGraph.crossJoinCount()) {
+                            return Eval.create(
+                                newJoinPlan,
+                                join.outputs()
+                            );
+                        }
                     }
                 }
             }
