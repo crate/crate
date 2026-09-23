@@ -22,7 +22,6 @@ package io.crate.server.xcontent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.UnaryOperator;
 
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -121,10 +120,5 @@ public class ServerXContentExtension implements XContentBuilderExtension {
             TimeValue.class, v -> ((TimeValue) v).millis(),
             ByteSizeValue.class, v -> ((ByteSizeValue) v).getBytes()
         );
-    }
-
-    @Override
-    public Map<Class<?>, UnaryOperator<Object>> getDateTransformers() {
-        return Map.of();
     }
 }
