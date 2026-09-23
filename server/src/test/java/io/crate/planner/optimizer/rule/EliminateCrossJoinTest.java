@@ -637,7 +637,36 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
 
     }
 
+    @Test
+    public void temp_debug_inner_with_1_condition_filter_below() throws Exception {
+        var filteredCross = new Filter(join1, e.asSymbol("t1.c1 = t2.c2"));
+        var join3 = new JoinPlan(filteredCross, t3, JoinType.INNER, e.asSymbol("t2.c2 = t3.c3"));
+
+        assertThat(join3).hasOperators(
+            "Join[INNER | (c2 = c3)]",
+            "  ├ Filter[(c1 = c2)]",
+            "  │  └ Join[CROSS]",
+            "  │    ├ Collect[doc.t1 | [c1] | true]",
+            "  │    └ Collect[doc.t2 | [c2] | true]",
+            "  └ Collect[doc.t3 | [c3] | true]"
+        );
+
+        var rule = new EliminateCrossJoin();
+        var match = rule.pattern().accept(join3, Captures.empty());
+        var result = rule.apply(match.value(), match.captures(), e.ruleContext());
+
+        System.out.println("BEFORE:");
+        prettyPrint(join3);
+
+        System.out.println("AFTER:");
+        prettyPrint(result);
+    }
+
     private void prettyPrint(LogicalPlan plan) {
+        if (plan == null) {
+            System.out.println("plan is null");
+            return;
+        }
         var pc = new io.crate.planner.operators.PrintContext(null);
         plan.print(pc);
         System.out.println(pc);

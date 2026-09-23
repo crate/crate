@@ -65,7 +65,15 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
             var joinGraph = JoinGraph.create(join, context.resolvePlan());
             if (joinGraph.hasCrossJoin()) {
                 var newOrder = eliminateCrossJoin(joinGraph);
-                if (newOrder != null) {
+                List<Integer> newOrderPositions = eliminateCrossJoinPositionsOnly(joinGraph);
+                boolean orderChanged = false;
+                for (int i = 0; i < newOrderPositions.size(); i++) {
+                    if (newOrderPositions.get(i) != i) {
+                        orderChanged = true;
+                        break;
+                    }
+                }
+                if (orderChanged) {
                     var newJoinPlan = reorder(joinGraph, newOrder);
                     if (newJoinPlan != null) {
                         return Eval.create(
@@ -128,6 +136,26 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
         }
         assert visited.size() == joinGraph.size() : "Invalid state, each node needs to be visited";
         return newJoinOrder;
+    }
+
+    /**
+     * Same traversal as {@link #eliminateCrossJoin(JoinGraph)}, but returns each node's
+     * original position (index into {@link JoinGraph#nodes()}) in the new order instead
+     * of the nodes themselves — lets a caller check whether positions actually changed
+     * without needing to compare {@link LogicalPlan} identities.
+     */
+    @Nullable
+    static List<Integer> eliminateCrossJoinPositionsOnly(JoinGraph joinGraph) {
+        var newOrder = eliminateCrossJoin(joinGraph);
+        if (newOrder == null) {
+            return null;
+        }
+        var nodes = joinGraph.nodes();
+        var positions = new ArrayList<Integer>(newOrder.size());
+        for (var node : newOrder) {
+            positions.add(nodes.indexOf(node));
+        }
+        return positions;
     }
 
     @Nullable
