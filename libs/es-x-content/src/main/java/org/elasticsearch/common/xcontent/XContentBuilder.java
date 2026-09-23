@@ -23,7 +23,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.Flushable;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -212,29 +211,9 @@ public final class XContentBuilder implements Closeable, Flushable {
     // Boolean
     //////////////////////////////////
 
-    public XContentBuilder field(String name, Boolean value) throws IOException {
-        return (value == null) ? nullField(name) : field(name, value.booleanValue());
-    }
-
     public XContentBuilder field(String name, boolean value) throws IOException {
         ensureNameNotNull(name);
         generator.writeBooleanField(name, value);
-        return this;
-    }
-
-    public XContentBuilder array(String name, boolean[] values) throws IOException {
-        return field(name).values(values);
-    }
-
-    private XContentBuilder values(boolean[] values) throws IOException {
-        if (values == null) {
-            return nullValue();
-        }
-        startArray();
-        for (boolean b : values) {
-            value(b);
-        }
-        endArray();
         return this;
     }
 
@@ -250,10 +229,6 @@ public final class XContentBuilder implements Closeable, Flushable {
     ////////////////////////////////////////////////////////////////////////////
     // Byte
     //////////////////////////////////
-
-    public XContentBuilder field(String name, Byte value) throws IOException {
-        return (value == null) ? nullField(name) : field(name, value.byteValue());
-    }
 
     public XContentBuilder field(String name, byte value) throws IOException {
         return field(name).value(value);
@@ -271,20 +246,6 @@ public final class XContentBuilder implements Closeable, Flushable {
     ////////////////////////////////////////////////////////////////////////////
     // Double
     //////////////////////////////////
-
-    public XContentBuilder field(String name, Double value) throws IOException {
-        return (value == null) ? nullField(name) : field(name, value.doubleValue());
-    }
-
-    public XContentBuilder field(String name, double value) throws IOException {
-        ensureNameNotNull(name);
-        generator.writeNumberField(name, value);
-        return this;
-    }
-
-    public XContentBuilder array(String name, double[] values) throws IOException {
-        return field(name).values(values);
-    }
 
     private XContentBuilder values(double[] values) throws IOException {
         if (values == null) {
@@ -311,18 +272,10 @@ public final class XContentBuilder implements Closeable, Flushable {
     // Float
     //////////////////////////////////
 
-    public XContentBuilder field(String name, Float value) throws IOException {
-        return (value == null) ? nullField(name) : field(name, value.floatValue());
-    }
-
     public XContentBuilder field(String name, float value) throws IOException {
         ensureNameNotNull(name);
         generator.writeNumberField(name, value);
         return this;
-    }
-
-    public XContentBuilder array(String name, float[] values) throws IOException {
-        return field(name).values(values);
     }
 
     private XContentBuilder values(float[] values) throws IOException {
@@ -350,18 +303,10 @@ public final class XContentBuilder implements Closeable, Flushable {
     // Integer
     //////////////////////////////////
 
-    public XContentBuilder field(String name, Integer value) throws IOException {
-        return (value == null) ? nullField(name) : field(name, value.intValue());
-    }
-
     public XContentBuilder field(String name, int value) throws IOException {
         ensureNameNotNull(name);
         generator.writeNumberField(name, value);
         return this;
-    }
-
-    public XContentBuilder array(String name, int[] values) throws IOException {
-        return field(name).values(values);
     }
 
     private XContentBuilder values(int[] values) throws IOException {
@@ -389,18 +334,10 @@ public final class XContentBuilder implements Closeable, Flushable {
     // Long
     //////////////////////////////////
 
-    public XContentBuilder field(String name, Long value) throws IOException {
-        return (value == null) ? nullField(name) : field(name, value.longValue());
-    }
-
     public XContentBuilder field(String name, long value) throws IOException {
         ensureNameNotNull(name);
         generator.writeNumberField(name, value);
         return this;
-    }
-
-    public XContentBuilder array(String name, long[] values) throws IOException {
-        return field(name).values(values);
     }
 
     private XContentBuilder values(long[] values) throws IOException {
@@ -428,18 +365,6 @@ public final class XContentBuilder implements Closeable, Flushable {
     // Short
     //////////////////////////////////
 
-    public XContentBuilder field(String name, Short value) throws IOException {
-        return (value == null) ? nullField(name) : field(name, value.shortValue());
-    }
-
-    public XContentBuilder field(String name, short value) throws IOException {
-        return field(name).value(value);
-    }
-
-    public XContentBuilder array(String name, short[] values) throws IOException {
-        return field(name).values(values);
-    }
-
     private XContentBuilder values(short[] values) throws IOException {
         if (values == null) {
             return nullValue();
@@ -464,32 +389,6 @@ public final class XContentBuilder implements Closeable, Flushable {
     ////////////////////////////////////////////////////////////////////////////
     // BigInteger
     //////////////////////////////////
-
-    public XContentBuilder field(String name, BigInteger value) throws IOException {
-        if (value == null) {
-            return nullField(name);
-        }
-        ensureNameNotNull(name);
-        generator.writeNumberField(name, value);
-        return this;
-    }
-
-    public XContentBuilder array(String name, BigInteger[] values) throws IOException {
-        return field(name).values(values);
-    }
-
-    private XContentBuilder values(BigInteger[] values) throws IOException {
-        if (values == null) {
-            return nullValue();
-        }
-        startArray();
-        for (BigInteger b : values) {
-            value(b);
-        }
-        endArray();
-        return this;
-    }
-
     public XContentBuilder value(BigInteger value) throws IOException {
         if (value == null) {
             return nullValue();
@@ -502,31 +401,6 @@ public final class XContentBuilder implements Closeable, Flushable {
     ////////////////////////////////////////////////////////////////////////////
     // BigDecimal
     //////////////////////////////////
-
-    public XContentBuilder field(String name, BigDecimal value) throws IOException {
-        if (value == null) {
-            return nullField(name);
-        }
-        ensureNameNotNull(name);
-        generator.writeNumberField(name, value);
-        return this;
-    }
-
-    public XContentBuilder array(String name, BigDecimal[] values) throws IOException {
-        return field(name).values(values);
-    }
-
-    private XContentBuilder values(BigDecimal[] values) throws IOException {
-        if (values == null) {
-            return nullValue();
-        }
-        startArray();
-        for (BigDecimal b : values) {
-            value(b);
-        }
-        endArray();
-        return this;
-    }
 
     public XContentBuilder value(BigDecimal value) throws IOException {
         if (value == null) {
@@ -547,10 +421,6 @@ public final class XContentBuilder implements Closeable, Flushable {
         ensureNameNotNull(name);
         generator.writeStringField(name, value);
         return this;
-    }
-
-    public XContentBuilder array(String name, String... values) throws IOException {
-        return field(name).values(values);
     }
 
     private XContentBuilder values(String[] values) throws IOException {
@@ -616,19 +486,6 @@ public final class XContentBuilder implements Closeable, Flushable {
         return this;
     }
 
-
-    ////////////////////////////////////////////////////////////////////////////
-    // LatLon
-    //////////////////////////////////
-
-    public XContentBuilder latlon(String name, double lat, double lon) throws IOException {
-        return field(name).latlon(lat, lon);
-    }
-
-    public XContentBuilder latlon(double lat, double lon) throws IOException {
-        return startObject().field("lat", lat).field("lon", lon).endObject();
-    }
-
     ////////////////////////////////////////////////////////////////////////////
     // Path
     //////////////////////////////////
@@ -650,10 +507,6 @@ public final class XContentBuilder implements Closeable, Flushable {
 
     public XContentBuilder field(String name, Object value) throws IOException {
         return field(name).value(value);
-    }
-
-    public XContentBuilder array(String name, Object... values) throws IOException {
-        return field(name).values(values, Map.of());
     }
 
     private XContentBuilder values(Object[] values, Map<Class<?>, Writer> writerOverrides) throws IOException {
@@ -704,10 +557,6 @@ public final class XContentBuilder implements Closeable, Flushable {
     // Maps & Iterable
     //////////////////////////////////
 
-    public XContentBuilder field(String name, Map<String, Object> values) throws IOException {
-        return field(name).map(values);
-    }
-
     public XContentBuilder map(Map<String, ?> values) throws IOException {
         return mapContents(values, true, Map.of());
     }
@@ -757,23 +606,6 @@ public final class XContentBuilder implements Closeable, Flushable {
             }
             endArray();
         }
-        return this;
-    }
-
-    ////////////////////////////////////////////////////////////////////////////
-    // Raw fields
-    //////////////////////////////////
-
-    /**
-     * Writes a value with the source coming directly from the bytes in the stream
-     */
-    public XContentBuilder rawValue(InputStream stream, XContentType contentType) throws IOException {
-        generator.writeRawValue(stream, contentType);
-        return this;
-    }
-
-    public XContentBuilder copyCurrentStructure(XContentParser parser) throws IOException {
-        generator.copyCurrentStructure(parser);
         return this;
     }
 
