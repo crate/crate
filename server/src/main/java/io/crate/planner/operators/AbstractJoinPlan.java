@@ -124,6 +124,18 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
         return List.of(lhs, rhs);
     }
 
+    /**
+     * Returns the leaf plans of a (possibly nested) join tree, in left-to-right order.
+     * Recurses through any {@link AbstractJoinPlan} (JoinPlan, HashJoin, NestedLoopJoin);
+     * any other plan is treated as a leaf.
+     */
+    public static List<LogicalPlan> orderedPlans(LogicalPlan plan) {
+        if (plan instanceof AbstractJoinPlan join) {
+            return Lists.concat(orderedPlans(join.lhs()), orderedPlans(join.rhs()));
+        }
+        return List.of(plan);
+    }
+
     @Override
     public boolean supportsDistributedReads() {
         return lhs.supportsDistributedReads() && rhs.supportsDistributedReads();
