@@ -437,8 +437,13 @@ public class SQLTransportExecutor {
             return pgObject;
         }
         if (arg instanceof LocalDate date) {
-            // TODO: Change to use java.sql.Date to cover pg DateType serialization
-            return DateType.toTimestamp(date);
+            // sql.Date type constructor says:
+            // "not to exceed the milliseconds representation for the year 8099"
+            // Fallback to using timestamp-in-ms directly without going through PG Date type
+            if (date.getYear() > 8099) {
+                return DateType.toTimestamp(date);
+            }
+            return new java.sql.Date(DateType.toTimestamp(date));
         }
         if (arg instanceof Period period) {
             try {
