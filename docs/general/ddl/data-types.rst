@@ -2033,9 +2033,6 @@ must be prefixed by the plus or minus symbol. See also `Year.parse Javadoc`_::
     - :ref:`TIME <type-time>` types cannot be added to or subtracted from
       ``DATE`` types.
 
-    - :ref:`INTERVAL <type-interval>` types cannot be added to or subtracted
-      from ``DATE`` types.
-
     This behaviour does not comply with standard SQL and is incompatible with
     PostgreSQL. This behavior may change in a future version of CrateDB (see
     `tracking issue #11528`_).
