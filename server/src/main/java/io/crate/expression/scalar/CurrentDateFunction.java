@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar;
 
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.EnumSet;
 
 import io.crate.data.Input;
@@ -34,7 +36,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
 
-public final class CurrentDateFunction extends Scalar<Long, String> {
+public final class CurrentDateFunction extends Scalar<LocalDate, Object> {
 
     public static final String NAME = "curdate";
 
@@ -55,8 +57,7 @@ public final class CurrentDateFunction extends Scalar<Long, String> {
 
     @Override
     @SafeVarargs
-    public final Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<String>... args) {
-        long millis = txnCtx.currentInstant().toEpochMilli();
-        return millis - millis % 86400000;
+    public final LocalDate evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
+        return txnCtx.currentInstant().atZone(ZoneOffset.UTC).toLocalDate();
     }
 }
