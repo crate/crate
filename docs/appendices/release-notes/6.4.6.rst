@@ -57,3 +57,9 @@ Fixes
 - Fixed an issue that caused ``CREATE SNAPSHOT`` to fail if repository had at
   least one snapshot created before and backend storage's DELETE API was
   temporarily unavailable.
+
+- Fixed an issue that caused ``NULL`` to always be returned for
+  ``numeric_scale`` of :ref:`information_schema.columns
+  <information_schema_columns>` table. Now it returns the defined ``scale`` for
+  ``NUMERIC``, ``0`` for integral numeric types (``BYTE``, ``SHORT``,
+  ``INTEGER``, ``LONG``) and ``NULL`` for all other types.
