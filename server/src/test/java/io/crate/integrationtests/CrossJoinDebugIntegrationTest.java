@@ -186,6 +186,101 @@ public class CrossJoinDebugIntegrationTest extends IntegTestCase {
             System.out.println(row[0] + "\n" + row[1] + "\n");
         }
 
+        assertThat(response).hasRows(
+            new Object[]{
+                "Initial logical plan",
+                """
+                    Filter[(((c1 = c3) AND (c2 = c4)) AND (c3 = c4))] (rows=0)
+                      └ Join[CROSS] (rows=unknown)
+                        ├ Join[CROSS] (rows=unknown)
+                        │  ├ Join[CROSS] (rows=unknown)
+                        │  │  ├ Collect[doc.t1 | [c1] | true] (rows=unknown)
+                        │  │  └ Collect[doc.t2 | [c2] | true] (rows=unknown)
+                        │  └ Collect[doc.t3 | [c3] | true] (rows=unknown)
+                        └ Collect[doc.t4 | [c4] | true] (rows=unknown)"""
+            },
+            new Object[]{
+                "optimizer_rewrite_filter_on_cross_join_to_inner_join",
+                """
+                    Filter[(c1 = c3)] (rows=0)
+                      └ Join[INNER | ((c2 = c4) AND (c3 = c4))] (rows=unknown)
+                        ├ Join[CROSS] (rows=unknown)
+                        │  ├ Join[CROSS] (rows=unknown)
+                        │  │  ├ Collect[doc.t1 | [c1] | true] (rows=unknown)
+                        │  │  └ Collect[doc.t2 | [c2] | true] (rows=unknown)
+                        │  └ Collect[doc.t3 | [c3] | true] (rows=unknown)
+                        └ Collect[doc.t4 | [c4] | true] (rows=unknown)"""
+            },
+            new Object[]{
+                "optimizer_move_filter_beneath_join",
+                """
+                    Join[INNER | ((c2 = c4) AND (c3 = c4))] (rows=unknown)
+                      ├ Filter[(c1 = c3)] (rows=0)
+                      │  └ Join[CROSS] (rows=unknown)
+                      │    ├ Join[CROSS] (rows=unknown)
+                      │    │  ├ Collect[doc.t1 | [c1] | true] (rows=unknown)
+                      │    │  └ Collect[doc.t2 | [c2] | true] (rows=unknown)
+                      │    └ Collect[doc.t3 | [c3] | true] (rows=unknown)
+                      └ Collect[doc.t4 | [c4] | true] (rows=unknown)"""
+            },
+            new Object[]{
+                "optimizer_rewrite_join_plan",
+                """
+                    HashJoin[INNER | ((c2 = c4) AND (c3 = c4))] (rows=unknown)
+                      ├ Filter[(c1 = c3)] (rows=0)
+                      │  └ Join[CROSS] (rows=unknown)
+                      │    ├ Join[CROSS] (rows=unknown)
+                      │    │  ├ Collect[doc.t1 | [c1] | true] (rows=unknown)
+                      │    │  └ Collect[doc.t2 | [c2] | true] (rows=unknown)
+                      │    └ Collect[doc.t3 | [c3] | true] (rows=unknown)
+                      └ Collect[doc.t4 | [c4] | true] (rows=unknown)"""
+            },
+            new Object[]{
+                "optimizer_rewrite_filter_on_cross_join_to_inner_join",
+                """
+                    HashJoin[INNER | ((c2 = c4) AND (c3 = c4))] (rows=unknown)
+                      ├ Join[INNER | (c1 = c3)] (rows=unknown)
+                      │  ├ Join[CROSS] (rows=unknown)
+                      │  │  ├ Collect[doc.t1 | [c1] | true] (rows=unknown)
+                      │  │  └ Collect[doc.t2 | [c2] | true] (rows=unknown)
+                      │  └ Collect[doc.t3 | [c3] | true] (rows=unknown)
+                      └ Collect[doc.t4 | [c4] | true] (rows=unknown)"""
+            },
+            new Object[]{
+                "optimizer_rewrite_join_plan",
+                """
+                    HashJoin[INNER | ((c2 = c4) AND (c3 = c4))] (rows=unknown)
+                      ├ HashJoin[INNER | (c1 = c3)] (rows=unknown)
+                      │  ├ Join[CROSS] (rows=unknown)
+                      │  │  ├ Collect[doc.t1 | [c1] | true] (rows=unknown)
+                      │  │  └ Collect[doc.t2 | [c2] | true] (rows=unknown)
+                      │  └ Collect[doc.t3 | [c3] | true] (rows=unknown)
+                      └ Collect[doc.t4 | [c4] | true] (rows=unknown)"""
+            },
+            new Object[]{
+                "optimizer_rewrite_join_plan",
+                """
+                    HashJoin[INNER | ((c2 = c4) AND (c3 = c4))] (rows=unknown)
+                      ├ HashJoin[INNER | (c1 = c3)] (rows=unknown)
+                      │  ├ NestedLoopJoin[CROSS] (rows=unknown)
+                      │  │  ├ Collect[doc.t1 | [c1] | true] (rows=unknown)
+                      │  │  └ Collect[doc.t2 | [c2] | true] (rows=unknown)
+                      │  └ Collect[doc.t3 | [c3] | true] (rows=unknown)
+                      └ Collect[doc.t4 | [c4] | true] (rows=unknown)"""
+            },
+            new Object[]{
+                "Final logical plan",
+                """
+                    HashJoin[INNER | ((c2 = c4) AND (c3 = c4))] (rows=unknown)
+                      ├ HashJoin[INNER | (c1 = c3)] (rows=unknown)
+                      │  ├ NestedLoopJoin[CROSS] (rows=unknown)
+                      │  │  ├ Collect[doc.t1 | [c1] | true] (rows=unknown)
+                      │  │  └ Collect[doc.t2 | [c2] | true] (rows=unknown)
+                      │  └ Collect[doc.t3 | [c3] | true] (rows=unknown)
+                      └ Collect[doc.t4 | [c4] | true] (rows=unknown)"""
+            }
+        );
+
         execute(query);
         assertThat(response).hasRows("1| 1| 1| 1");
     }
