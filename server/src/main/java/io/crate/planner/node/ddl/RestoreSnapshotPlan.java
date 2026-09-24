@@ -48,9 +48,9 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -159,14 +159,16 @@ public class RestoreSnapshotPlan implements Plan {
             List<Assignment<Object>> partitionProperties = Lists.map(table.partitionProperties(), x -> x.map(eval));
             PartitionName partitionName;
             try {
-                TableInfo tableInfo = schemas.getTableInfo(relationName);
-                if (tableInfo instanceof DocTableInfo docTableInfo) {
-                    Operation.blockedRaiseException(docTableInfo, Operation.RESTORE_SNAPSHOT);
-                    partitionName = partitionProperties.isEmpty()
-                        ? null
-                        : PartitionName.ofAssignmentsUnsafe(docTableInfo, partitionProperties);
+                RelationInfo relationInfo = schemas.findRelation(
+                    relationName.toQualifiedName(),
+                    Operation.RESTORE_SNAPSHOT,
+                    txnCtx.sessionSettings().sessionUser(),
+                    txnCtx.sessionSettings().searchPath()
+                );
+                if (relationInfo instanceof DocTableInfo docTableInfo && !partitionProperties.isEmpty()) {
+                    partitionName = PartitionName.ofAssignmentsUnsafe(docTableInfo, partitionProperties);
                 } else {
-                    // e.g. a foreign table, which may be restored under a different name
+                    // Views and foreign tables have no partitions
                     partitionName = null;
                 }
             } catch (RelationUnknown | SchemaUnknownException e) {

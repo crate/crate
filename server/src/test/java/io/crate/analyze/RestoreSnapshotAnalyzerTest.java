@@ -301,6 +301,19 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_restore_view_existing_in_cluster() throws Exception {
+        e.addView(new RelationName("custom", "my_view"), "SELECT 1");
+        BoundRestoreSnapshot statement =
+            analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLE custom.my_view");
+        assertThat(statement.restoreTables()).satisfiesExactly(
+            table -> {
+                assertThat(table.tableIdent()).isEqualTo(new RelationName("custom", "my_view"));
+                assertThat(table.partitionName()).isNull();
+            }
+        );
+    }
+
+    @Test
     public void testRestoreUnsupportedParameter() throws Exception {
         assertThatThrownBy(() -> analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLE users WITH (foo=true)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)

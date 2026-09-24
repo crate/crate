@@ -553,21 +553,8 @@ public class RestoreService implements ClusterStateApplier {
                 mdBuilder.persistentSettings(settings);
             }
 
-            // old UDF/ViewsMetadata were already migrated to new structures in
+            // old UDF metadata was already migrated to new structures in
             // MetadataUpgradeService#upgradeMetadata()
-            // Restore views
-            if (request.includeViews()) {
-                for (RelationMetadata.View view : snapshotMetadata.relations(RelationMetadata.View.class)) {
-                    mdBuilder.setView(
-                        view.name(),
-                        view.stmt(),
-                        view.owner(),
-                        view.searchPath(),
-                        view.errorOnUnknownObjectKey()
-                    );
-                }
-            }
-
             if (request.includeCustomMetadata() && snapshotMetadata.customs() != null) {
                 // CrateDB patch to only restore defined custom metadata types
                 List<String> customMetadataTypes = Arrays.asList(request.customMetadataTypes());
@@ -678,8 +665,10 @@ public class RestoreService implements ClusterStateApplier {
                         mdBuilder.tableOidSupplier().nextOid()
                     );
                 } else if (snapshotRelation instanceof RelationMetadata.View view) {
+                    // old ViewsMetadata have already been migrated to RelationMetadata.View in
+                    // MetadataUpgradeService#upgradeMetadata()
                     mdBuilder.setView(
-                        view.name(),
+                        targetName,
                         view.stmt(),
                         view.owner(),
                         view.searchPath(),

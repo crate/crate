@@ -1424,6 +1424,62 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         );
     }
 
+    @Test
+    public void test_restore_view_with_schema_rename() throws Exception {
+        try {
+            execute("CREATE VIEW myschema.my_view AS SELECT 1 AS x");
+            execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
+            waitNoPendingTasksOnAll();
+
+            execute("RESTORE SNAPSHOT " + snapshotName() + " VIEWS WITH (" +
+                "wait_for_completion=true, " +
+                "schema_rename_pattern = '(.+)', " +
+                "schema_rename_replacement = 'restored_$1')");
+
+            execute("SELECT table_schema, table_name FROM information_schema.views " +
+                "WHERE table_name = 'my_view' ORDER BY 1");
+            assertThat(response).hasRows(
+                "myschema| my_view",
+                "restored_myschema| my_view"
+            );
+            execute("SELECT x FROM myschema.my_view");
+            assertThat(response).hasRows("1");
+            execute("SELECT x FROM restored_myschema.my_view");
+            assertThat(response).hasRows("1");
+        } finally {
+            execute("DROP VIEW IF EXISTS myschema.my_view");
+            execute("DROP VIEW IF EXISTS restored_myschema.my_view");
+        }
+    }
+
+    @Test
+    public void test_restore_view_with_view_rename() throws Exception {
+        try {
+            execute("CREATE VIEW myschema.my_view AS SELECT 1 AS x");
+            execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
+            waitNoPendingTasksOnAll();
+
+            execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE myschema.my_view WITH (" +
+                "wait_for_completion=true, " +
+                "table_rename_pattern = '(.+)', " +
+                "table_rename_replacement = 'restored_$1')");
+
+            execute("SELECT table_schema, table_name FROM information_schema.views " +
+                "WHERE table_schema = 'myschema' ORDER BY 2");
+            assertThat(response).hasRows(
+                "myschema| my_view",
+                "myschema| restored_my_view"
+            );
+            execute("SELECT x FROM myschema.my_view");
+            assertThat(response).hasRows("1");
+            execute("SELECT x FROM myschema.restored_my_view");
+            assertThat(response).hasRows("1");
+        } finally {
+            execute("DROP VIEW IF EXISTS myschema.my_view");
+            execute("DROP VIEW IF EXISTS myschema.restored_my_view");
+        }
+    }
+
     private void createForeignTableAndSnapshotAll() throws Exception {
         execute("CREATE SERVER my_postgresql FOREIGN DATA WRAPPER jdbc OPTIONS (url 'jdbc:postgresql://example.com:5432/')");
         execute("CREATE FOREIGN TABLE myschema.remote_documents (name text) SERVER my_postgresql " +
