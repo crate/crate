@@ -325,10 +325,20 @@ public class RestoreService implements ClusterStateApplier {
                 resolver.accept(relation.name(), List.of());
             }
         }
-        for (RelationMetadata.ForeignTable relation : snapshotMetadata.relations(RelationMetadata.ForeignTable.class)) {
-            resolver.accept(relation.name(), List.of());
+        if (includeForeignTables(request)) {
+            for (RelationMetadata.ForeignTable relation : snapshotMetadata.relations(RelationMetadata.ForeignTable.class)) {
+                resolver.accept(relation.name(), List.of());
+            }
         }
         return restoreRelations;
+    }
+
+    private static boolean includeForeignTables(RestoreSnapshotRequest request) {
+        if (!request.includeCustomMetadata()) {
+            return false;
+        }
+        String[] customMetadataTypes = request.customMetadataTypes();
+        return customMetadataTypes.length == 0;
     }
 
     public static RestoreInProgress updateRestoreStateWithDeletedIndices(RestoreInProgress oldRestore, Set<Index> deletedIndices) {
@@ -557,13 +567,6 @@ public class RestoreService implements ClusterStateApplier {
                 }
             }
 
-            // Restore ForeignTables
-            // old ForeignTablesMetadata have already been migrated to RelationMetadata.ForeignTable in
-            // MetadataUpgradeService#upgradeMetadata()
-            for (RelationMetadata.ForeignTable foreignTable : snapshotMetadata.relations(RelationMetadata.ForeignTable.class)) {
-                mdBuilder.setForeignTable(foreignTable);
-            }
-
             if (request.includeCustomMetadata() && snapshotMetadata.customs() != null) {
                 // CrateDB patch to only restore defined custom metadata types
                 List<String> customMetadataTypes = Arrays.asList(request.customMetadataTypes());
@@ -682,6 +685,8 @@ public class RestoreService implements ClusterStateApplier {
                         view.errorOnUnknownObjectKey()
                     );
                 } else if (snapshotRelation instanceof RelationMetadata.ForeignTable foreignTable) {
+                    // old ForeignTablesMetadata have already been migrated to RelationMetadata.ForeignTable in
+                    // MetadataUpgradeService#upgradeMetadata()
                     mdBuilder.setForeignTable(foreignTable);
                 }
             } else {
