@@ -21,9 +21,7 @@
 
 package io.crate.planner.optimizer.rule;
 
-import static io.crate.common.collections.Iterables.getOnlyElement;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -43,7 +41,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.planner.operators.Collect;
-import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
@@ -97,7 +94,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_build_graph_from_a_single_join_reorder_and_rebuild_to_logical_plan() throws Exception {
+    public void test_cannot_apply_if_there_are_no_cross_joins() throws Exception {
         var joinCondition = e.asSymbol("a.x = b.y");
         var join = new JoinPlan(a, b, JoinType.INNER, joinCondition);
 
@@ -107,163 +104,13 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.b | [y] | true]"
         );
 
-        JoinGraph joinGraph = JoinGraph.create(join, UnaryOperator.identity());
-        assertThat(joinGraph.nodes()).containsExactly(a, b);
-        assertThat(joinGraph.edges()).hasSize(2);
-
-        var edges = joinGraph.edges().get(a);
-        assertThat(edges).hasSize(1);
-        var edge = getOnlyElement(edges);
-        assertThat(edge.to()).isEqualTo(b);
-        assertThat(edge.left()).isEqualTo(x);
-        assertThat(edge.right()).isEqualTo(y);
-
-        edges = joinGraph.edges().get(b);
-        assertThat(edges).hasSize(1);
-        edge = getOnlyElement(edges);
-        assertThat(edge.to()).isEqualTo(a);
-        assertThat(edge.left()).isEqualTo(x);
-        assertThat(edge.right()).isEqualTo(y);
-
-        var reordered = EliminateCrossJoin.rebuild(joinGraph, List.of(b, a));
-        assertThat(reordered).hasOperators(
-            "Join[INNER | (x = y)]",
-            "  ├ Collect[doc.b | [y] | true]",
-            "  └ Collect[doc.a | [x] | true]"
-        );
+        var rule = new EliminateCrossJoin();
+        Match<JoinPlan> match = rule.pattern().accept(join, Captures.empty());
+        LogicalPlan result = rule.apply(join, match.captures(), e.ruleContext());
+        assertThat(result).isNull();
     }
 
     @Test
-    public void test_build_graph_from_a_double_nested_join_reorder_and_rebuild_to_logical_plan() throws Exception {
-        Symbol firstJoinCondition = e.asSymbol("a.x = b.y");
-        var firstJoin = new JoinPlan(a, b, JoinType.INNER, firstJoinCondition);
-        Symbol secondJoinCondition = e.asSymbol("b.y = c.z");
-        var join = new JoinPlan(firstJoin, c, JoinType.INNER, secondJoinCondition);
-
-        assertThat(join).hasOperators(
-            "Join[INNER | (y = z)]",
-            "  ├ Join[INNER | (x = y)]",
-            "  │  ├ Collect[doc.a | [x] | true]",
-            "  │  └ Collect[doc.b | [y] | true]",
-            "  └ Collect[doc.c | [z] | true]"
-        );
-
-        JoinGraph joinGraph = JoinGraph.create(join, UnaryOperator.identity());
-        // This builds the following graph:
-        // [a]--[a.x = b.y]--[b]--[b.y = c.z]--[c]
-        assertThat(joinGraph.nodes()).containsExactly(a, b, c);
-
-        var edges = joinGraph.edges().get(a);
-        assertThat(edges).hasSize(1);
-        // `a.x = b.y` creates an edge from a to b
-        assertThat(edges).contains(
-            new JoinGraph.Edge(b, x, y)
-        );
-
-        // `b.y = c.z` creates an edge from b to c
-        edges = joinGraph.edges().get(b);
-        assertThat(edges).hasSize(2);
-        assertThat(edges).contains(
-            new JoinGraph.Edge(a, x, y),
-            new JoinGraph.Edge(c, y, z)
-        );
-
-        var reordered = EliminateCrossJoin.rebuild(joinGraph, List.of(c, b, a));
-        assertThat(reordered).hasOperators(
-            "Join[INNER | (x = y)]",
-            "  ├ Join[INNER | (y = z)]",
-            "  │  ├ Collect[doc.c | [z] | true]",
-            "  │  └ Collect[doc.b | [y] | true]",
-            "  └ Collect[doc.a | [x] | true]"
-        );
-
-        var orderWithCrossJoin = EliminateCrossJoin.rebuild(joinGraph, List.of(a, c, b));
-        assertThat(orderWithCrossJoin).hasOperators(
-            "Join[INNER | ((x = y) AND (y = z))]",
-            "  ├ Join[CROSS]",
-            "  │  ├ Collect[doc.a | [x] | true]",
-            "  │  └ Collect[doc.c | [z] | true]",
-            "  └ Collect[doc.b | [y] | true]"
-        );
-    }
-
-    @Test
-    public void test_build_graph_from_a_triple_nested_join_reorder_and_rebuild_to_logical_plan() throws Exception {
-        Symbol firstJoinCondition = e.asSymbol("a.x = b.y");
-        var firstJoin = new JoinPlan(a, b, JoinType.INNER, firstJoinCondition);
-
-        Symbol secondJoinCondition = e.asSymbol("a.x = c.z");
-        var secondJoin = new JoinPlan(firstJoin, c, JoinType.INNER, secondJoinCondition);
-
-        Symbol topJoinCondition = e.asSymbol("b.y = d.w");
-        var topJoin = new JoinPlan(secondJoin, d, JoinType.INNER, topJoinCondition);
-
-        assertThat(topJoin).isEqualTo(
-            "Join[INNER | (y = w)]\n" +
-            "  ├ Join[INNER | (x = z)]\n" +
-            "  │  ├ Join[INNER | (x = y)]\n" +
-            "  │  │  ├ Collect[doc.a | [x] | true]\n" +
-            "  │  │  └ Collect[doc.b | [y] | true]\n" +
-            "  │  └ Collect[doc.c | [z] | true]\n" +
-            "  └ Collect[doc.d | [w] | true]"
-        );
-
-        JoinGraph joinGraph = JoinGraph.create(topJoin, UnaryOperator.identity());
-
-        assertThat(EliminateCrossJoin.rebuild(joinGraph, List.of(a, c, b, d))).isEqualTo(
-            "Join[INNER | (y = w)]\n" +
-            "  ├ Join[INNER | (x = y)]\n" +
-            "  │  ├ Join[INNER | (x = z)]\n" +
-            "  │  │  ├ Collect[doc.a | [x] | true]\n" +
-            "  │  │  └ Collect[doc.c | [z] | true]\n" +
-            "  │  └ Collect[doc.b | [y] | true]\n" +
-            "  └ Collect[doc.d | [w] | true]"
-        );
-    }
-
-    @Test
-    public void test_build_graph_from_a_nested_join_with_filter_and_rebuild_to_logical_plan() throws Exception {
-        Symbol firstJoinCondition = e.asSymbol("a.x = b.y");
-        var firstJoin = new JoinPlan(a, b, JoinType.INNER, firstJoinCondition);
-        Symbol secondJoinCondition = e.asSymbol("b.y = c.z");
-        var join = new JoinPlan(firstJoin, c, JoinType.INNER, secondJoinCondition);
-        var filter = new Filter(join, e.asSymbol("a.x > 1"));
-
-        assertThat(filter).hasOperators(
-            "Filter[(x > 1)]",
-            "  └ Join[INNER | (y = z)]",
-            "    ├ Join[INNER | (x = y)]",
-            "    │  ├ Collect[doc.a | [x] | true]",
-            "    │  └ Collect[doc.b | [y] | true]",
-            "    └ Collect[doc.c | [z] | true]"
-        );
-
-        JoinGraph joinGraph = JoinGraph.create(filter, UnaryOperator.identity());
-
-        assertThat(EliminateCrossJoin.rebuild(joinGraph, List.of(c, b, a))).hasOperators(
-            "Filter[(x > 1)]",
-            "  └ Join[INNER | (x = y)]",
-            "    ├ Join[INNER | (y = z)]",
-            "    │  ├ Collect[doc.c | [z] | true]",
-            "    │  └ Collect[doc.b | [y] | true]",
-            "    └ Collect[doc.a | [x] | true]"
-        );
-
-        var secondFilter = new Filter(filter, e.asSymbol("b.y < 10"));
-
-        joinGraph = JoinGraph.create(secondFilter, UnaryOperator.identity());
-
-        assertThat(EliminateCrossJoin.rebuild(joinGraph, List.of(c, b, a))).hasOperators(
-            "Filter[(y < 10)]",
-            "  └ Filter[(x > 1)]",
-            "    └ Join[INNER | (x = y)]",
-            "      ├ Join[INNER | (y = z)]",
-            "      │  ├ Collect[doc.c | [z] | true]",
-            "      │  └ Collect[doc.b | [y] | true]",
-            "      └ Collect[doc.a | [x] | true]"
-        );
-    }
-
     public void test_eliminate_cross_join() throws Exception {
         var firstJoin = new JoinPlan(a, b, JoinType.CROSS, null);
         Symbol joinCondition = e.asSymbol("c.z = a.x AND c.z = b.y");
@@ -303,6 +150,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
+    @Test
     public void test_eliminate_cross_join_when_order_does_not_change() throws Exception {
         var firstJoin = new JoinPlan(a, c, JoinType.CROSS, null);
         Symbol joinCondition = e.asSymbol("c.z = a.x AND c.z = b.y");
@@ -338,6 +186,48 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  │  └ Collect[doc.c | [z] | true]",
             "  └ Collect[doc.b | [y] | true]"
         );
+    }
+
+    @Test
+    public void test_cannot_apply_cross_join_has_no_equi_join() throws Exception {
+        var firstJoin = new JoinPlan(a, b, JoinType.INNER, e.asSymbol("a.x = b.y"));
+        var join = new JoinPlan(firstJoin, c, JoinType.CROSS, null);
+
+        assertThat(join).hasOperators(
+            "Join[CROSS]",
+            "  ├ Join[INNER | (x = y)]",
+            "  │  ├ Collect[doc.a | [x] | true]",
+            "  │  └ Collect[doc.b | [y] | true]",
+            "  └ Collect[doc.c | [z] | true]"
+        );
+
+        var rule = new EliminateCrossJoin();
+        Match<JoinPlan> match = rule.pattern().accept(join, Captures.empty());
+        var result = rule.apply(match.value(), match.captures(), e.ruleContext());
+
+        // `c` has no equi-condition anywhere, so no edge for it can ever exist in the JoinGraph we build internally.
+        // The rule fires (num of relations >= 3, has a cross join), but it's not applied.
+        assertThat(result).isNull();
+    }
+
+    @Test
+    public void test_cannot_apply_cross_join_with_partial_match() throws Exception {
+        var firstJoin = new JoinPlan(a, b, JoinType.CROSS, null);
+        var join = new JoinPlan(firstJoin, c, JoinType.INNER, e.asSymbol("a.x = c.z"));
+
+        assertThat(join).hasOperators(
+            "Join[INNER | (x = z)]",
+            "  ├ Join[CROSS]",
+            "  │  ├ Collect[doc.a | [x] | true]",
+            "  │  └ Collect[doc.b | [y] | true]",
+            "  └ Collect[doc.c | [z] | true]"
+        );
+
+        var rule = new EliminateCrossJoin();
+        Match<JoinPlan> match = rule.pattern().accept(join, Captures.empty());
+        var result = rule.apply(match.value(), match.captures(), e.ruleContext());
+
+        assertThat(result).isNull();
     }
 
     @Test
@@ -382,6 +272,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(result).isNull();
     }
 
+    @Test
     public void test_do_not_reorder_without_a_crossjoin() throws Exception {
         var firstJoin = new JoinPlan(a, b, JoinType.LEFT, e.asSymbol("a.x = b.y"));
         var secondJoin = new JoinPlan(firstJoin, c, JoinType.INNER, e.asSymbol("a.x = b.y"));
@@ -407,6 +298,8 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(result).isNull();
     }
 
+    // todo adapt this too
+    @Test
     public void test_resolve_multiple_aliases_with_same_name_in_logical_join_plan() throws Exception {
 
         var relation_a = new DocTableRelation(aDoc);
@@ -459,14 +352,28 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_graph_with_order() throws Exception {
+    public void test_eliminate_cross_join_with_order() throws Exception {
         var order = new Order(a, new OrderBy(List.of(x)));
-        Symbol firstJoinCondition = e.asSymbol("a.x = b.y");
-        var firstJoin = new JoinPlan(order, b, JoinType.INNER, firstJoinCondition);
-        Symbol secondJoinCondition = e.asSymbol("b.y = c.z");
-        var join = new JoinPlan(firstJoin, c, JoinType.INNER, secondJoinCondition);
+        var firstJoin = new JoinPlan(order, b, JoinType.CROSS, null);
+        Symbol joinCondition = e.asSymbol("a.x = b.y AND b.y = c.z");
+        var join = new JoinPlan(firstJoin, c, JoinType.INNER, joinCondition);
 
         assertThat(join).hasOperators(
+            "Join[INNER | ((x = y) AND (y = z))]",
+            "  ├ Join[CROSS]",
+            "  │  ├ OrderBy[x ASC]",
+            "  │  │  └ Collect[doc.a | [x] | true]",
+            "  │  └ Collect[doc.b | [y] | true]",
+            "  └ Collect[doc.c | [z] | true]"
+        );
+
+        var rule = new EliminateCrossJoin();
+        var match = rule.pattern().accept(join, Captures.empty());
+        var result = rule.apply(match.value(), match.captures(), e.ruleContext());
+
+        // The CROSS join is eliminated (converted to INNER via a.x = b.y),
+        // and the OrderBy wrapping `a` survives intact at its original position.
+        assertThat(result).hasOperators(
             "Join[INNER | (y = z)]",
             "  ├ Join[INNER | (x = y)]",
             "  │  ├ OrderBy[x ASC]",
@@ -474,28 +381,32 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  │  └ Collect[doc.b | [y] | true]",
             "  └ Collect[doc.c | [z] | true]"
         );
-
-        JoinGraph joinGraph = JoinGraph.create(join, UnaryOperator.identity());
-        assertThat(joinGraph.nodes()).containsExactly(order, b, c);
-
-        var reordered = EliminateCrossJoin.rebuild(joinGraph, List.of(c, b, order));
-        assertThat(reordered).hasOperators(
-            "Join[INNER | (x = y)]",
-            "  ├ Join[INNER | (y = z)]",
-            "  │  ├ Collect[doc.c | [z] | true]",
-            "  │  └ Collect[doc.b | [y] | true]",
-            "  └ OrderBy[x ASC]",
-            "    └ Collect[doc.a | [x] | true]"
-        );
     }
 
     @Test
-    public void test_graph_with_union() throws Exception {
+    public void test_eliminate_cross_join_with_union() throws Exception {
         Union union = new Union(a, b, Lists.concat(a.outputs(), b.outputs()));
-        var firstJoin = new JoinPlan(union, c, JoinType.INNER, e.asSymbol("b.y = c.z"));
-        var secondJoin = new JoinPlan(firstJoin, d, JoinType.INNER, e.asSymbol("a.x = d.w"));
+        var firstJoin = new JoinPlan(union, c, JoinType.CROSS, null);
+        Symbol joinCondition = e.asSymbol("b.y = c.z AND a.x = d.w");
+        var join = new JoinPlan(firstJoin, d, JoinType.INNER, joinCondition);
 
-        assertThat(secondJoin).hasOperators(
+        assertThat(join).hasOperators(
+            "Join[INNER | ((y = z) AND (x = w))]",
+            "  ├ Join[CROSS]",
+            "  │  ├ Union[x, y]",
+            "  │  │  ├ Collect[doc.a | [x] | true]",
+            "  │  │  └ Collect[doc.b | [y] | true]",
+            "  │  └ Collect[doc.c | [z] | true]",
+            "  └ Collect[doc.d | [w] | true]"
+        );
+
+        var rule = new EliminateCrossJoin();
+        var match = rule.pattern().accept(join, Captures.empty());
+        var result = rule.apply(match.value(), match.captures(), e.ruleContext());
+
+        // The CROSS join is eliminated (converted to INNER via b.y = c.z),
+        // and the Union wrapping a/b survives intact as a single leaf.
+        assertThat(result).hasOperators(
             "Join[INNER | (x = w)]",
             "  ├ Join[INNER | (y = z)]",
             "  │  ├ Union[x, y]",
@@ -504,51 +415,39 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  │  └ Collect[doc.c | [z] | true]",
             "  └ Collect[doc.d | [w] | true]"
         );
-
-        JoinGraph joinGraph = JoinGraph.create(secondJoin, UnaryOperator.identity());
-        assertThat(joinGraph.nodes()).containsExactly(union, c, d);
-
-        var reordered = EliminateCrossJoin.rebuild(joinGraph, List.of(union, d, c));
-        assertThat(reordered).hasOperators(
-            "Join[INNER | (y = z)]",
-            "  ├ Join[INNER | (x = w)]",
-            "  │  ├ Union[x, y]",
-            "  │  │  ├ Collect[doc.a | [x] | true]",
-            "  │  │  └ Collect[doc.b | [y] | true]",
-            "  │  └ Collect[doc.d | [w] | true]",
-            "  └ Collect[doc.c | [z] | true]"
-        );
     }
 
-    /**
-     * https://github.com/crate/crate/issues/14854
-     */
+    /// [Filter from IN-Operator in Join condition is ignored in query plan](https://github.com/crate/crate/issues/14854)
     @Test
-    public void test_graph_with_constant_join_conditions_become_filters() throws Exception {
-        var joinCondition = e.asSymbol("a.x = b.y AND a.x > 1");
-        var join = new JoinPlan(a, b, JoinType.INNER, joinCondition);
+    public void test_eliminate_cross_join_with_constant_join_conditions_become_filters() throws Exception {
+        var firstJoin = new JoinPlan(a, b, JoinType.CROSS, null);
+        Symbol joinCondition = e.asSymbol("a.x = b.y AND a.x > 1 AND b.y = c.z");
+        var join = new JoinPlan(firstJoin, c, JoinType.INNER, joinCondition);
 
         assertThat(join).hasOperators(
-            "Join[INNER | ((x = y) AND (x > 1))]",
-            "  ├ Collect[doc.a | [x] | true]",
-            "  └ Collect[doc.b | [y] | true]"
+            "Join[INNER | (((x = y) AND (x > 1)) AND (y = z))]",
+            "  ├ Join[CROSS]",
+            "  │  ├ Collect[doc.a | [x] | true]",
+            "  │  └ Collect[doc.b | [y] | true]",
+            "  └ Collect[doc.c | [z] | true]"
         );
 
-        JoinGraph joinGraph = JoinGraph.create(join, UnaryOperator.identity());
-        assertThat(joinGraph.nodes()).containsExactly(a, b);
-        assertThat(joinGraph.edges()).hasSize(2);
-        assertThat(joinGraph.filters()).hasSize(1);
-        assertThat(joinGraph.filters().getFirst()).isEqualTo(e.asSymbol("a.x > 1"));
+        var rule = new EliminateCrossJoin();
+        var match = rule.pattern().accept(join, Captures.empty());
+        var result = rule.apply(match.value(), match.captures(), e.ruleContext());
 
-        var reordered = EliminateCrossJoin.rebuild(joinGraph, List.of(b, a));
-        assertThat(reordered).hasOperators(
+        // The CROSS join is eliminated (converted to INNER via a.x = b.y),
+        // and the non-equi, single-relation condition (a.x > 1) survives as
+        // a Filter wrapping the rebuilt join, instead of being dropped.
+        assertThat(result).hasOperators(
             "Filter[(x > 1)]",
-            "  └ Join[INNER | (x = y)]",
-            "    ├ Collect[doc.b | [y] | true]",
-            "    └ Collect[doc.a | [x] | true]"
+            "  └ Join[INNER | (y = z)]",
+            "    ├ Join[INNER | (x = y)]",
+            "    │  ├ Collect[doc.a | [x] | true]",
+            "    │  └ Collect[doc.b | [y] | true]",
+            "    └ Collect[doc.c | [z] | true]"
         );
     }
-
 
     @Test
     public void test_eliminate_cross_joins_with_remaining_cross_joins() throws Exception {
