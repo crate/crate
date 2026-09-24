@@ -24,6 +24,7 @@ package io.crate.metadata.information;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.NUMERIC;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 import static io.crate.types.DataTypes.TIMESTAMP;
@@ -36,7 +37,9 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.NumericType;
 
 
 public final class InformationColumnsTableInfo {
@@ -89,7 +92,17 @@ public final class InformationColumnsTableInfo {
             }
             return null;
         })
-        .add("numeric_scale", INTEGER, ignored -> null)
+        .add("numeric_scale", INTEGER, c -> {
+            DataType<?> type = c.ref().valueType();
+            int id = type.id();
+            if (id == DataTypes.BYTE.id() || id == DataTypes.SHORT.id() || id == INTEGER.id() || id == LONG.id()) {
+                return 0;
+            }
+            if (id == NUMERIC.id()) {
+                return ((NumericType) type).scale();
+            }
+            return null;
+        })
         .add("datetime_precision", INTEGER, r -> {
             if (r.ref().valueType() == TIMESTAMPZ || r.ref().valueType() == TIMESTAMP) {
                 return DATETIME_PRECISION;
