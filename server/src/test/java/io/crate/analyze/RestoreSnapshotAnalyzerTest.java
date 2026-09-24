@@ -301,6 +301,36 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_restore_view_existing_in_cluster() throws Exception {
+        e.addView(new RelationName("custom", "my_view"), "SELECT 1");
+        BoundRestoreSnapshot statement =
+            analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLE custom.my_view");
+        assertThat(statement.restoreTables()).satisfiesExactly(
+            table -> {
+                assertThat(table.tableIdent()).isEqualTo(new RelationName("custom", "my_view"));
+                assertThat(table.partitionName()).isNull();
+            }
+        );
+    }
+
+    @Test
+    public void test_restore_foreign_table_existing_in_cluster_with_partition_clause_fails() throws Exception {
+        e.addServer("pg", "jdbc", "crate", Settings.builder().put("url", "jdbc:postgresql://localhost:5432/").build())
+            .addForeignTable("create foreign table custom.remote (x int) server pg");
+        assertThatThrownBy(() -> analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLE custom.remote PARTITION (x = 1)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("relation 'custom.remote' is not partitioned");
+    }
+
+    @Test
+    public void test_restore_view_existing_in_cluster_with_partition_clause_fails() throws Exception {
+        e.addView(new RelationName("custom", "my_view"), "SELECT 1");
+        assertThatThrownBy(() -> analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLE custom.my_view PARTITION (x = 1)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("relation 'custom.my_view' is not partitioned");
+    }
+
+    @Test
     public void testRestoreUnsupportedParameter() throws Exception {
         assertThatThrownBy(() -> analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLE users WITH (foo=true)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
