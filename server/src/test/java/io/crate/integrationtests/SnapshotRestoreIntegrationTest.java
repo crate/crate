@@ -26,11 +26,11 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.INVALID_OBJECT_DEFINITION;
 import static io.crate.rest.action.HttpErrorStatus.GENERIC_NOT_FOUND;
 import static io.crate.rest.action.HttpErrorStatus.RESTORE_SCHEMA_INCOMPATIBLE;
+import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
@@ -143,9 +143,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
             "REVOKE ALL FROM my_user",
             "REVOKE ALL FROM \"John\"",
             "DROP ANALYZER a1",
-            "DROP FUNCTION custom(string)",
-            "DROP FOREIGN TABLE myschema.remote_documents",
-            "DROP SERVER my_postgresql"
+            "DROP FUNCTION custom(string)"
         );
         for (var stmt : stmts) {
             try {
@@ -153,6 +151,12 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
             } catch (Exception e) {
                 // pass, exception may raise cause entity does not exist
             }
+        }
+
+        // CASCADE also drops the foreign tables and user mappings depending on the servers
+        execute("SELECT foreign_server_name FROM information_schema.foreign_servers");
+        for (Object[] row : response.rows()) {
+            execute("DROP SERVER IF EXISTS \"" + row[0] + "\" CASCADE");
         }
 
         execute("DROP USER IF EXISTS my_user");
@@ -1313,6 +1317,73 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
             .hasSize(2)
             .hasEntry("schema_name", "public")
             .hasEntry("table_name", "documents");
+    }
+
+    @Test
+    public void test_restore_only_foreign_table() throws Exception {
+        try {
+            createForeignTableAndSnapshotAll();
+            execute("DROP TABLE my_table_1");
+            execute("DROP TABLE my_table_2");
+            execute("DROP FOREIGN TABLE myschema.remote_documents");
+            execute("DROP SERVER my_postgresql");
+
+            execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE myschema.remote_documents WITH (wait_for_completion=true)");
+
+            execute("SELECT foreign_table_schema, foreign_table_name FROM information_schema.foreign_tables");
+            assertThat(response).hasRows("myschema| remote_documents");
+            execute("SELECT foreign_server_name FROM information_schema.foreign_servers");
+            assertThat(response).isEmpty();
+            assertSQLError(() -> execute("SELECT count(*) FROM myschema.remote_documents"))
+                .hasPGError(INTERNAL_ERROR)
+                .hasMessageContaining("Server `my_postgresql` not found");
+            assertThat(response).isEmpty();
+        } finally {
+            execute("DROP FOREIGN TABLE IF EXISTS myschema.remote_documents");
+        }
+    }
+
+    @Test
+    public void test_restore_table_does_not_restore_foreign_tables() throws Exception {
+        createForeignTableAndSnapshotAll();
+        execute("DROP TABLE my_table_1");
+        execute("DROP FOREIGN TABLE myschema.remote_documents");
+        execute("DROP SERVER my_postgresql");
+
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_table_1 WITH (wait_for_completion=true)");
+
+        execute("SELECT count(*) FROM my_table_1");
+        assertThat(response).hasRows("3");
+        execute("SELECT foreign_table_schema, foreign_table_name FROM information_schema.foreign_tables");
+        assertThat(response).isEmpty();
+        execute("SELECT foreign_server_name FROM information_schema.foreign_servers");
+        assertThat(response).isEmpty();
+    }
+
+    @Test
+    public void test_restore_all_restores_foreign_tables_and_servers() throws Exception {
+        createForeignTableAndSnapshotAll();
+        execute("DROP TABLE my_table_1");
+        execute("DROP TABLE my_table_2");
+        execute("DROP FOREIGN TABLE myschema.remote_documents");
+        execute("DROP SERVER my_postgresql");
+
+        execute("RESTORE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
+
+        execute("SELECT foreign_table_schema, foreign_table_name FROM information_schema.foreign_tables");
+        assertThat(response).hasRows("myschema| remote_documents");
+        execute("SELECT foreign_server_name FROM information_schema.foreign_servers");
+        assertThat(response).hasRows("my_postgresql");
+    }
+
+    private void createForeignTableAndSnapshotAll() throws Exception {
+        execute("CREATE SERVER my_postgresql FOREIGN DATA WRAPPER jdbc OPTIONS (url 'jdbc:postgresql://example.com:5432/')");
+        execute("CREATE FOREIGN TABLE myschema.remote_documents (name text) SERVER my_postgresql " +
+            "OPTIONS (schema_name 'public', table_name 'documents')");
+        createTable("my_table_1", false);
+        createTable("my_table_2", false);
+        execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
+        waitNoPendingTasksOnAll();
     }
 
     private void execute_statements_that_restore_tables_with_different_fqn(boolean partitioned) throws Exception {

@@ -86,6 +86,15 @@ To cancel a restore operation simply drop the tables that are being restored.
     Therefore, subsequent inserts may execute UDFs with the same name and
     signature but different definitions.
 
+.. CAUTION::
+
+    :ref:`Foreign tables <ref-create-foreign-table>` are only restored together
+    with their :ref:`servers <ref-create-server>` and
+    :ref:`user mappings <ref-create-user-mapping>` when using ``ALL`` or
+    ``METADATA``. Restoring a foreign table with ``TABLE`` doesn't restore its
+    server and user mappings, so the foreign table is unusable unless they
+    already exist in the cluster, or created manually.
+
 .. TIP::
 
     After restoring a snapshot which affects tables/partitions and their data,
