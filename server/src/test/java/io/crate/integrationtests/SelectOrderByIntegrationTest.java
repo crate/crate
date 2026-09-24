@@ -176,6 +176,30 @@ public class SelectOrderByIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][0]).isEqualTo(1521479461L);
     }
 
+    /*
+     * Related to https://github.com/crate/crate/issues/20107
+     * */
+    @Test
+    public void test_order_by_ambiguity_between_sentinel_and_null() {
+        execute("create table t1 (i real, d double)");
+        execute("insert into t1 (i, d) values " +
+            "(cast('Infinity' as real), 1.0), " +
+            "(1.0, cast('Infinity' as double)), " +
+            "(NULL, cast('-Infinity' as double)), " +
+            "(cast('-Infinity' as real), NULL)");
+        execute("refresh table t1");
+
+        execute("select i from t1 order by i nulls first");
+        assertThat(response).hasRows("NULL", "-Infinity", "1.0", "Infinity");
+        execute("select i from t1 order by i nulls last");
+        assertThat(response).hasRows("-Infinity", "1.0", "Infinity", "NULL");
+
+        execute("select d from t1 order by d nulls first");
+        assertThat(response).hasRows("NULL", "-Infinity", "1.0", "Infinity");
+        execute("select d from t1 order by d nulls last");
+        assertThat(response).hasRows("-Infinity", "1.0", "Infinity", "NULL");
+    }
+
     @Test
     public void testOrderByLiteralConstant() {
         execute("create table t1 (id int)");
