@@ -49,6 +49,7 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
     protected final Symbol joinCondition;
     protected final JoinType joinType;
     protected final LookUpJoin lookupJoin;
+    private final List<Symbol> outputs;
 
     public enum LookUpJoin {
         LEFT, RIGHT, NONE;
@@ -72,6 +73,7 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
         this.joinCondition = joinCondition;
         this.joinType = joinType;
         this.lookupJoin = lookupJoin;
+        this.outputs = getOutputs();
     }
 
     public LogicalPlan lhs() {
@@ -88,6 +90,10 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
 
     @Override
     public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    private List<Symbol> getOutputs() {
         if (joinType == JoinType.SEMI) {
             return lhs.outputs();
         } else {
