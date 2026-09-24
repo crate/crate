@@ -254,6 +254,14 @@ Administration and Operations
   Issuers that do not serve a discovery document are unaffected: CrateDB
   falls back to using ``iss`` as the JWK endpoint URL directly.
 
+- Added support for renaming :ref:`foreign tables <ref-create-foreign-table>`
+  and :ref:`views <ddl-views>` when restoring them with
+  :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>`. The
+  ``schema_rename_pattern``, ``schema_rename_replacement``,
+  ``table_rename_pattern`` and ``table_rename_replacement`` options now also
+  apply to foreign tables and views. Previously, they were always restored
+  under their original names.
+
 Client interfaces
 -----------------
 
