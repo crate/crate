@@ -50,6 +50,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -156,23 +157,24 @@ public class RestoreSnapshotPlan implements Plan {
                 txnCtx.sessionSettings().searchPath().currentSchema());
 
             List<Assignment<Object>> partitionProperties = Lists.map(table.partitionProperties(), x -> x.map(eval));
+            PartitionName partitionName;
             try {
-                DocTableInfo docTableInfo = schemas.getTableInfo(relationName);
-                Operation.blockedRaiseException(docTableInfo, Operation.RESTORE_SNAPSHOT);
-                // Table existence check is done later after resolving indices and applying all table name/schema renaming options.
-                PartitionName partitionName = partitionProperties.isEmpty()
-                    ? null
-                    : PartitionName.ofAssignmentsUnsafe(docTableInfo, partitionProperties);
-                restoreTables.add(new BoundRestoreSnapshot.RestoreTableInfo(relationName, partitionName));
-            } catch (RelationUnknown | SchemaUnknownException e) {
-                if (table.partitionProperties().isEmpty()) {
-                    restoreTables.add(new BoundRestoreSnapshot.RestoreTableInfo(relationName, null));
+                TableInfo tableInfo = schemas.getTableInfo(relationName);
+                if (tableInfo instanceof DocTableInfo docTableInfo) {
+                    Operation.blockedRaiseException(docTableInfo, Operation.RESTORE_SNAPSHOT);
+                    partitionName = partitionProperties.isEmpty()
+                        ? null
+                        : PartitionName.ofAssignmentsUnsafe(docTableInfo, partitionProperties);
                 } else {
-                    var partitionName = PartitionName.ofAssignments(relationName, partitionProperties);
-                    restoreTables.add(
-                        new BoundRestoreSnapshot.RestoreTableInfo(relationName, partitionName));
+                    // e.g. a foreign table, which may be restored under a different name
+                    partitionName = null;
                 }
+            } catch (RelationUnknown | SchemaUnknownException e) {
+                partitionName = partitionProperties.isEmpty()
+                    ? null
+                    : PartitionName.ofAssignments(relationName, partitionProperties);
             }
+            restoreTables.add(new BoundRestoreSnapshot.RestoreTableInfo(relationName, partitionName));
         }
 
         return new BoundRestoreSnapshot(
