@@ -36,9 +36,8 @@ import org.apache.lucene.util.NumericUtils;
 import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 
 /*
- * Used for comparing float and long types. Float and long columns can store Infinity,
- * but Lucene's FieldDoc
-*/
+ * Used for comparing float and double types without a Sentinel value.
+ */
 public class NullAwareNumericFieldComparator extends FieldComparator<NullAwareNumber> implements LeafFieldComparator {
     private SortedNumericDocValues docValues;
 
@@ -56,11 +55,7 @@ public class NullAwareNumericFieldComparator extends FieldComparator<NullAwareNu
     private long currentValue;
     private boolean currentIsNull;
 
-    NullAwareNumericFieldComparator(
-            String fieldName,
-            int numHits,
-            boolean nullsFirst,
-            SortField.Type sortFieldType) {
+    NullAwareNumericFieldComparator(String fieldName, int numHits, boolean nullsFirst, SortField.Type sortFieldType) {
         this.fieldName = fieldName;
         this.values = new long[numHits];
         this.nullBitmap = new BitSet(numHits);
@@ -68,8 +63,7 @@ public class NullAwareNumericFieldComparator extends FieldComparator<NullAwareNu
         this.sortFieldType = sortFieldType;
     }
 
-    private int compare(long leftVal, boolean leftIsNull,
-            long rightValue, boolean rightIsNull) {
+    private int compare(long leftVal, boolean leftIsNull, long rightValue, boolean rightIsNull) {
         if (leftIsNull || rightIsNull) {
             if (leftIsNull && rightIsNull) {
                 return 0;
