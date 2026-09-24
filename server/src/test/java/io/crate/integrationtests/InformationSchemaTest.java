@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.List;
@@ -701,7 +700,10 @@ public class InformationSchemaTest extends IntegTestCase {
                 "    level2 string not null," +
                 "    level2_nullable string" +
                 "  ) not null" +
-                ") not null)");
+                ") not null, " +
+                "ts timestamp, " +
+                "y numeric(10, 6), " +
+                "y_array numeric(10, 6)[])");
 
         execute("select * from INFORMATION_SCHEMA.Columns where table_schema = ? order by column_name asc", new Object[]{defaultSchema});
         assertThat(response).hasColumns(
@@ -747,7 +749,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "udt_schema"
         );
 
-        assertThat(response.rowCount()).isEqualTo(11L);
+        assertThat(response.rowCount()).isEqualTo(14L);
 
         Map<String, Integer> cols = IntStream.range(0, response.cols().length)
                                              .boxed()
@@ -764,6 +766,9 @@ public class InformationSchemaTest extends IntegTestCase {
         assertThat(response.rows()[8][cols.get("column_name")]).isEqualTo("stuff['level1']");
         assertThat(response.rows()[9][cols.get("column_name")]).isEqualTo("stuff['level1']['level2']");
         assertThat(response.rows()[10][cols.get("column_name")]).isEqualTo("stuff['level1']['level2_nullable']");
+        assertThat(response.rows()[11][cols.get("column_name")]).isEqualTo("ts");
+        assertThat(response.rows()[12][cols.get("column_name")]).isEqualTo("y");
+        assertThat(response.rows()[13][cols.get("column_name")]).isEqualTo("y_array");
 
         assertThat(response.rows()[0][cols.get("data_type")]).isEqualTo("integer");
         assertThat(response.rows()[0][cols.get("datetime_precision")]).isEqualTo(null);
@@ -794,6 +799,20 @@ public class InformationSchemaTest extends IntegTestCase {
         assertThat(response.rows()[6][cols.get("numeric_precision")]).isEqualTo(16);
         assertThat(response.rows()[4][cols.get("numeric_precision")]).isEqualTo(53);
         assertThat(response.rows()[5][cols.get("numeric_precision")]).isEqualTo(24);
+        assertThat(response.rows()[11][cols.get("numeric_precision")]).isNull();
+        assertThat(response.rows()[12][cols.get("numeric_precision")]).isEqualTo(10);
+        assertThat(response.rows()[13][cols.get("numeric_precision")]).isNull();
+
+        assertThat(response.rows()[0][cols.get("numeric_scale")]).isEqualTo(0);  // age integer
+        assertThat(response.rows()[1][cols.get("numeric_scale")]).isEqualTo(0);  // b byte
+        assertThat(response.rows()[3][cols.get("numeric_scale")]).isNull();               // col2 string
+        assertThat(response.rows()[4][cols.get("numeric_scale")]).isNull();               // d double
+        assertThat(response.rows()[5][cols.get("numeric_scale")]).isNull();               // f float
+        assertThat(response.rows()[6][cols.get("numeric_scale")]).isEqualTo(0);  // s short
+        assertThat(response.rows()[7][cols.get("numeric_scale")]).isNull();               // stuff object
+        assertThat(response.rows()[11][cols.get("numeric_scale")]).isNull();              // ts timestamp
+        assertThat(response.rows()[12][cols.get("numeric_scale")]).isEqualTo(6); // y numeric(10, 2)
+        assertThat(response.rows()[13][cols.get("numeric_scale")]).isNull();              // y_array numeric(10, 2)[]
 
         // Select the column_details values explicitly to preserve the long value of column_details['oid'].
         // If column_details is select, it will be returned as JSON using pgJDBC, resulting in an integer.
@@ -824,6 +843,15 @@ public class InformationSchemaTest extends IntegTestCase {
         assertThat(response.rows()[10][1]).isEqualTo(11L);
         assertThat(response.rows()[10][2]).isEqualTo(List.of("level1", "level2_nullable"));
         assertThat(response.rows()[10][3]).isEqualTo("strict");
+
+        // NUMERIC with NULL precision/scale
+        execute("CREATE VIEW v AS SELECT 123.456::NUMERIC");
+        execute("""
+            SELECT column_name, numeric_precision, numeric_scale
+            FROM information_schema.columns
+            WHERE table_schema = ? AND table_name = 'v'
+            """, new Object[]{defaultSchema});
+        assertThat(response).hasRows("123.456| NULL| NULL");
     }
 
     @Test
