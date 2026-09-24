@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -687,7 +688,20 @@ public class RestoreService implements ClusterStateApplier {
                 } else if (snapshotRelation instanceof RelationMetadata.ForeignTable foreignTable) {
                     // old ForeignTablesMetadata have already been migrated to RelationMetadata.ForeignTable in
                     // MetadataUpgradeService#upgradeMetadata()
-                    mdBuilder.setForeignTable(foreignTable);
+                    RelationMetadata.ForeignTable restoredForeignTable = foreignTable;
+                    if (!targetName.equals(foreignTable.name())) {
+                        LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
+                        for (var entry : foreignTable.references().entrySet()) {
+                            references.put(entry.getKey(), entry.getValue().withRelation(targetName));
+                        }
+                        restoredForeignTable = new RelationMetadata.ForeignTable(
+                            targetName,
+                            references,
+                            foreignTable.server(),
+                            foreignTable.settings()
+                        );
+                    }
+                    mdBuilder.setForeignTable(restoredForeignTable);
                 }
             } else {
                 throw new IllegalArgumentException(String.format(
