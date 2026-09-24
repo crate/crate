@@ -22,6 +22,7 @@
 package io.crate.expression.scalar.object;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
@@ -43,8 +44,7 @@ public final class ObjectKeysFunction {
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.UNTYPED_OBJECT,
-                    obj -> new ArrayList<>(obj.keySet())
+                    (Map<String, Object> obj) -> new ArrayList<>(obj.keySet())
                 )
         );
     }

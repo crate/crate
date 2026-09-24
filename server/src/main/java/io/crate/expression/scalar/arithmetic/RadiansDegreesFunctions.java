@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.math.BigDecimal;
 import java.math.MathContext;
 
 import ch.obermuhlner.math.big.BigDecimalMath;
@@ -41,7 +42,7 @@ public class RadiansDegreesFunctions {
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
-                new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, Math::toRadians));
+                new UnaryScalar<>(signature, boundSignature, Math::toRadians));
         module.add(
             Signature.builder("radians", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
@@ -52,8 +53,7 @@ public class RadiansDegreesFunctions {
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.NUMERIC,
-                    arg -> BigDecimalMath.toRadians(arg, MathContext.DECIMAL128)));
+                    (BigDecimal arg) -> BigDecimalMath.toRadians(arg, MathContext.DECIMAL128)));
 
         module.add(
             Signature.builder("degrees", FunctionType.SCALAR)
@@ -62,7 +62,7 @@ public class RadiansDegreesFunctions {
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
-                new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, Math::toDegrees));
+                new UnaryScalar<>(signature, boundSignature, Math::toDegrees));
         module.add(
             Signature.builder("degrees", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
@@ -73,7 +73,6 @@ public class RadiansDegreesFunctions {
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.NUMERIC,
-                    arg -> BigDecimalMath.toDegrees(arg, MathContext.DECIMAL128)));
+                    (BigDecimal arg) -> BigDecimalMath.toDegrees(arg, MathContext.DECIMAL128)));
     }
 }

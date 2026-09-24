@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.math.BigDecimal;
 import java.math.MathContext;
 
 import ch.obermuhlner.math.big.BigDecimalMath;
@@ -51,8 +52,7 @@ public class ExpFunction {
                 new UnaryScalar<>(
                     declaredSignature,
                     boundSignature,
-                    type,
-                    x -> type.sanitizeValue(Math.exp(((Number) x).doubleValue()))
+                    (Number x) -> type.sanitizeValue(Math.exp(x.doubleValue()))
                 )
         );
         builder.add(
@@ -64,8 +64,7 @@ public class ExpFunction {
             (declaredSignature, ignoredBoundSignature) -> new UnaryScalar<>(
                 declaredSignature,
                 BoundSignature.sameAsUnbound(declaredSignature),
-                DataTypes.NUMERIC,
-                x -> BigDecimalMath.exp(x, MathContext.DECIMAL128))
+                (BigDecimal x) -> BigDecimalMath.exp(x, MathContext.DECIMAL128))
         );
     }
 }

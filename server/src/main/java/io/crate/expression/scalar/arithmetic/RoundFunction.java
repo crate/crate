@@ -68,15 +68,13 @@ public final class RoundFunction {
                         return new UnaryScalar<>(
                             signature,
                             boundSignature,
-                            type,
-                            x -> Math.round(x.floatValue())
+                            (Number x) -> Math.round(x.floatValue())
                         );
                     } else {
                         return new UnaryScalar<>(
                             signature,
                             boundSignature,
-                            type,
-                            x -> Math.round(x.doubleValue())
+                            (Number x) -> Math.round(x.doubleValue())
                         );
                     }
                 }
@@ -92,14 +90,14 @@ public final class RoundFunction {
             (signature, boundSignature) -> new UnaryScalar<>(
                 signature,
                 boundSignature,
-                DataTypes.NUMERIC,
-                x -> x.setScale(0, RoundingMode.HALF_UP)
+                (BigDecimal x) -> x.setScale(0, RoundingMode.HALF_UP)
             )
         );
 
         builder.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(DataTypes.NUMERIC.getTypeSignature(),
+                .argumentTypes(
+                    DataTypes.NUMERIC.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)

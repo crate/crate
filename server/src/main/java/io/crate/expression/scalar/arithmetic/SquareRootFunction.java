@@ -62,8 +62,7 @@ public final class SquareRootFunction {
             (signature, ignoredBoundSignature) -> new UnaryScalar<>(
                 signature,
                 BoundSignature.sameAsUnbound(signature),
-                DataTypes.NUMERIC,
-                SquareRootFunction::sqrt
+                (BigDecimal x) -> SquareRootFunction.sqrt(x)
             )
         );
     }

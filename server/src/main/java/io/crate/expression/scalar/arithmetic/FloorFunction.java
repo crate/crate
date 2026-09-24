@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 import io.crate.expression.scalar.UnaryScalar;
@@ -52,8 +53,7 @@ public final class FloorFunction {
                     new UnaryScalar<>(
                         signature,
                         boundSignature,
-                        type,
-                        x -> returnType.sanitizeValue(Math.floor(x.doubleValue()))
+                        (Number x) -> returnType.sanitizeValue(Math.floor(x.doubleValue()))
                     )
             );
         }
@@ -66,8 +66,7 @@ public final class FloorFunction {
             (signature, boundSignature) -> new UnaryScalar<>(
                 signature,
                 boundSignature,
-                DataTypes.NUMERIC,
-                x -> x.setScale(0, RoundingMode.FLOOR)
+                (BigDecimal x) -> x.setScale(0, RoundingMode.FLOOR)
             )
         );
     }

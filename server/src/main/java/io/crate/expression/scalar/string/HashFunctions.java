@@ -51,7 +51,7 @@ public final class HashFunctions {
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
-                new UnaryScalar<>(signature, boundSignature, DataTypes.STRING, func)
+                new UnaryScalar<>(signature, boundSignature, func)
         );
     }
 

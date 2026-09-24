@@ -67,7 +67,6 @@ public final class AreaFunction {
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.GEO_SHAPE,
                     AreaFunction::getArea
                 )
         );
