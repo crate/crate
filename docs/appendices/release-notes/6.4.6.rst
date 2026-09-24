@@ -63,3 +63,13 @@ Fixes
   <information_schema_columns>` table. Now it returns the defined ``scale`` for
   ``NUMERIC``, ``0`` for integral numeric types (``BYTE``, ``SHORT``,
   ``INTEGER``, ``LONG``) and ``NULL`` for all other types.
+
+- Fixed an issue, introduced with :ref:`version_6.3.0`, which caused
+  :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>` to always restore all
+  :ref:`foreign tables <ref-create-foreign-table>` contained in the snapshot,
+  even if they weren't requested. Foreign tables are now only restored together
+  with their :ref:`servers <ref-create-server>`, e.g. by using
+  ``RESTORE SNAPSHOT ... ALL`` or ``RESTORE SNAPSHOT ... METADATA``. A foreign
+  table restored explicitly with ``RESTORE SNAPSHOT ... TABLE`` doesn't restore
+  its server and user mappings, so it's unusable unless they already exist or
+  created manually.
