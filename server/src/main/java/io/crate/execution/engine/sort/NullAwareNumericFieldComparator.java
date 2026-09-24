@@ -91,6 +91,7 @@ public class NullAwareNumericFieldComparator extends FieldComparator<NullAwareNu
 
     @Override
     public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
+        // TODO: have fall back if no doc value
         this.docValues = DocValues.getSortedNumeric(context.reader(), fieldName);
         return this;
     }
