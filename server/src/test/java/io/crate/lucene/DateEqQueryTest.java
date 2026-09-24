@@ -28,6 +28,8 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.junit.Test;
 
+import io.crate.types.DateType;
+
 public class DateEqQueryTest extends LuceneQueryBuilderTest {
 
     @Override
@@ -47,12 +49,12 @@ public class DateEqQueryTest extends LuceneQueryBuilderTest {
     }
 
     // '2020-01-01' is stored as 1577836800000L (midnight UTC of 2020-01-01)
-    private static final long DATE_2020_01_01 = 1577836800000L;
+    private static final int DATE_2020_01_01 = DateType.toEpochDay(1577836800000L);
 
     @Test
     public void test_DateEqQuery_termQuery() {
         Query query = convert("a1 = '2020-01-01'");
-        assertThat(query.getClass().getName()).endsWith("LongPoint$1");
+        assertThat(query.getClass().getName()).endsWith("IntPoint$1");
         assertThat(query).hasToString("a1:[" + DATE_2020_01_01 + " TO " + DATE_2020_01_01 + "]");
 
         query = convert("a2 = '2020-01-01'");
@@ -61,7 +63,7 @@ public class DateEqQueryTest extends LuceneQueryBuilderTest {
         assertThat(query).hasToString("a2:[" + DATE_2020_01_01 + " TO " + DATE_2020_01_01 + "]");
 
         query = convert("a3 = '2020-01-01'");
-        assertThat(query.getClass().getName()).endsWith("LongPoint$1");
+        assertThat(query.getClass().getName()).endsWith("IntPoint$1");
         assertThat(query).hasToString("a3:[" + DATE_2020_01_01 + " TO " + DATE_2020_01_01 + "]");
 
         query = convert("a4 = '2020-01-01'");
@@ -71,17 +73,17 @@ public class DateEqQueryTest extends LuceneQueryBuilderTest {
     @Test
     public void test_DateEqQuery_rangeQuery() {
         Query query = convert("a1 > '2020-01-01'");
-        assertThat(query.getClass().getName()).endsWith("LongPoint$1");
-        assertThat(query).hasToString("a1:[" + (DATE_2020_01_01 + 1) + " TO " + Long.MAX_VALUE + "]");
+        assertThat(query.getClass().getName()).endsWith("IntPoint$1");
+        assertThat(query).hasToString("a1:[" + (DATE_2020_01_01 + 1) + " TO " + Integer.MAX_VALUE + "]");
 
         query = convert("a2 < '2020-01-01'");
         // SortedNumericDocValuesRangeQuery.class is not public
         assertThat(query.getClass().getName()).endsWith("SortedNumericDocValuesRangeQuery");
-        assertThat(query).hasToString("a2:[" + Long.MIN_VALUE + " TO " + (DATE_2020_01_01 - 1) + "]");
+        assertThat(query).hasToString("a2:[" + Integer.MIN_VALUE + " TO " + (DATE_2020_01_01 - 1) + "]");
 
         query = convert("a3 >= '2020-01-01'");
-        assertThat(query.getClass().getName()).endsWith("LongPoint$1");
-        assertThat(query).hasToString("a3:[" + DATE_2020_01_01 + " TO " + Long.MAX_VALUE + "]");
+        assertThat(query.getClass().getName()).endsWith("IntPoint$1");
+        assertThat(query).hasToString("a3:[" + DATE_2020_01_01 + " TO " + Integer.MAX_VALUE + "]");
 
         query = convert("a4 <= '2020-01-01'");
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
@@ -93,7 +95,7 @@ public class DateEqQueryTest extends LuceneQueryBuilderTest {
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         BooleanClause clause = ((BooleanQuery) query).clauses().get(0);
         query = clause.query();
-        assertThat(query.getClass().getName()).endsWith("LongPoint$3");
+        assertThat(query.getClass().getName()).endsWith("IntPoint$3");
 
         query = convert("arr2 = ['2020-01-01', '2020-02-01', '2020-03-01']");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
@@ -105,7 +107,7 @@ public class DateEqQueryTest extends LuceneQueryBuilderTest {
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
         clause = ((BooleanQuery) query).clauses().get(0);
         query = clause.query();
-        assertThat(query.getClass().getName()).endsWith("LongPoint$3");
+        assertThat(query.getClass().getName()).endsWith("IntPoint$3");
 
         query = convert("arr4 = ['2020-01-01', '2020-02-01', '2020-03-01']");
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
