@@ -49,9 +49,6 @@ public class OrderByCollectorExpression extends LuceneCollectorExpression<Object
     }
 
     private void value(Object value) {
-        // NOTE: this currently knows internally how to interpret NullAwareNumber
-        // but callers of OrderByCollectorExpression usually pass in an anonymous function
-        // `valueConversion`. Should we change all callers or have it know internally?
         if (value instanceof NullAwareNumber nullAwareNumber) {
             this.value = nullAwareNumber.isNull()
                 ? null

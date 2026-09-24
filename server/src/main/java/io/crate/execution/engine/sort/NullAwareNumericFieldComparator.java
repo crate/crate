@@ -76,9 +76,6 @@ public class NullAwareNumericFieldComparator extends FieldComparator<NullAwareNu
         return Long.compare(leftVal, rightValue);
     }
 
-    // similar NumericColumnReference value(), but here
-    // we store additional data about the value being null or not
-    // in this class's state
     private void readDoc(int doc) throws IOException {
         if (docValues.advanceExact(doc) == false) {
             currentValue = 0;
@@ -94,9 +91,6 @@ public class NullAwareNumericFieldComparator extends FieldComparator<NullAwareNu
 
     @Override
     public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
-        // TODO: What if there are no docValues for the column?
-        // Do we need a fallback that handles the sentinel correctly?
-        // Read the document on every sentinel hit approach? (slow)
         this.docValues = DocValues.getSortedNumeric(context.reader(), fieldName);
         return this;
     }
