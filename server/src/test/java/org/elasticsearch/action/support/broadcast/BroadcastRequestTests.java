@@ -22,6 +22,7 @@
 package org.elasticsearch.action.support.broadcast;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,6 +41,28 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 public class BroadcastRequestTests extends ESTestCase {
+
+    @Test
+    public void test_streaming_table_oid() throws Exception {
+        var partition = new PartitionName(new RelationName("doc", "tbl"), List.of());
+        for (var version : List.of(Version.V_6_4_0, Version.V_6_5_0)) {
+            for (int tableOid : new int[] { OID_UNASSIGNED, 1234 }) {
+                var request = new BroadcastRequest(partition, tableOid);
+                var out = new BytesStreamOutput();
+                out.setVersion(version);
+                request.writeTo(out);
+                var in = out.bytes().streamInput();
+                in.setVersion(version);
+                var streamed = new BroadcastRequest(in);
+                assertThat(streamed.partitions()).hasSize(1);
+                assertThat(streamed.partitions().get(0).relationName()).isEqualTo(partition.relationName());
+                assertThat(streamed.partitions().get(0).values()).isEqualTo(partition.values());
+                assertThat(streamed.tableOid()).isEqualTo(
+                    version.onOrAfter(Version.V_6_5_0) ? tableOid : OID_UNASSIGNED);
+                assertThat(in.available()).isZero();
+            }
+        }
+    }
 
     private static List<PartitionName> partitions() {
         // Construct a bunch of relations, some with partitions, some with null values

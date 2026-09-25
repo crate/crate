@@ -34,7 +34,6 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.NoShardAvailableActionException;
-import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.action.support.broadcast.BroadcastRequest;
@@ -369,12 +368,12 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
     }
 
     static String[] concreteIndices(ClusterState clusterState, BroadcastRequest request) {
-        if (request instanceof IndicesStatsRequest statsRequest && statsRequest.tableOid() != OID_UNASSIGNED) {
-            assert statsRequest.partitions().size() == 1 : "Stats requests must target a single table/partition";
-            var partitionValues = statsRequest.partitions().get(0).values();
+        if (request.tableOid() != OID_UNASSIGNED) {
+            assert request.partitions().size() == 1 : "Requests with a table OID must target a single table/partition";
+            var partitionValues = request.partitions().get(0).values();
             return clusterState.metadata()
                 .getIndices(
-                    statsRequest.tableOid(),
+                    request.tableOid(),
                     partitionValues,
                     false,
                     im -> im.getIndex().uuid()
