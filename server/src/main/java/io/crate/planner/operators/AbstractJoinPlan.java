@@ -49,6 +49,9 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
     protected final Symbol joinCondition;
     protected final JoinType joinType;
     protected final LookUpJoin lookupJoin;
+    private final List<Symbol> outputs;
+    @Nullable
+    private List<RelationName> relationNames;
 
     public enum LookUpJoin {
         LEFT, RIGHT, NONE;
@@ -72,6 +75,7 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
         this.joinCondition = joinCondition;
         this.joinType = joinType;
         this.lookupJoin = lookupJoin;
+        this.outputs = getOutputs();
     }
 
     public LogicalPlan lhs() {
@@ -82,12 +86,28 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
         return rhs;
     }
 
+    /**
+     * Returns the leaf plans of a (possibly nested) join tree, in left-to-right order.
+     * Recurses through any {@link AbstractJoinPlan} (JoinPlan, HashJoin, NestedLoopJoin);
+     * any other plan is treated as a leaf.
+     */
+    public static List<LogicalPlan> orderedPlans(LogicalPlan plan) {
+        if (plan instanceof AbstractJoinPlan join) {
+            return Lists.concat(orderedPlans(join.lhs()), orderedPlans(join.rhs()));
+        }
+        return List.of(plan);
+    }
+
     public LookUpJoin lookUpJoin() {
         return lookupJoin;
     }
 
     @Override
     public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    private List<Symbol> getOutputs() {
         if (joinType == JoinType.SEMI) {
             return lhs.outputs();
         } else {
@@ -116,7 +136,12 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
 
     @Override
     public List<RelationName> relationNames() {
-        return Lists.concatUnique(lhs.relationNames(), rhs.relationNames());
+        List<RelationName> result = relationNames;
+        if (result == null) {
+            result = Lists.concatUnique(lhs.relationNames(), rhs.relationNames());
+            relationNames = result;
+        }
+        return result;
     }
 
     @Override

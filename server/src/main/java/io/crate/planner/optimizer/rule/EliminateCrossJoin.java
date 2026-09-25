@@ -143,6 +143,7 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
         HashSet<LogicalPlan> alreadyJoinedNodes = new HashSet<>();
         alreadyJoinedNodes.add(result);
 
+        int numCrossJoins = 0;
         for (int i = 1; i < order.size(); i++) {
             LogicalPlan rightNode = order.get(i);
             alreadyJoinedNodes.add(rightNode);
@@ -161,6 +162,7 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
             if (criteria.isEmpty()) {
                 joinType = JoinType.CROSS;
                 joinCondition = null;
+                numCrossJoins++;
             } else {
                 joinType = JoinType.INNER;
                 joinCondition = AndOperator.join(criteria);
@@ -178,6 +180,11 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
                 true,
                 AbstractJoinPlan.LookUpJoin.NONE
             );
+        }
+
+        // We didn't manage to reduce the number of cross joins.
+        if (numCrossJoins >= graph.numCrossJoins()) {
+            return null;
         }
 
         for (var filter : graph.filters()) {
