@@ -50,6 +50,10 @@ public final class RelationName implements Writeable, Accountable, Comparable<Re
     @Nullable
     private final String schema;
     private final String name;
+    @Nullable
+    private String fqn;
+    @Nullable
+    private String sqlFqn;
 
     public static RelationName of(QualifiedName name, @Nullable String defaultSchema) {
         List<String> parts = name.getParts();
@@ -136,17 +140,25 @@ public final class RelationName implements Writeable, Accountable, Comparable<Re
     }
 
     public String fqn() {
-        if (schema == null) {
-            return name;
+        if (fqn == null) {
+            if (schema == null) {
+                fqn = name;
+            } else {
+                fqn = schema + "." + name;
+            }
         }
-        return schema + "." + name;
+        return fqn;
     }
 
     public String sqlFqn() {
-        if (schema == null) {
-            return Identifiers.quoteIfNeeded(name);
+        if (sqlFqn == null) {
+            if (schema == null) {
+                sqlFqn = Identifiers.quoteIfNeeded(name);
+            } else {
+                sqlFqn = Identifiers.quoteIfNeeded(schema) + "." + Identifiers.quoteIfNeeded(name);
+            }
         }
-        return Identifiers.quoteIfNeeded(schema) + "." + Identifiers.quoteIfNeeded(name);
+        return sqlFqn;
     }
 
     public QualifiedName toQualifiedName() {
@@ -252,6 +264,8 @@ public final class RelationName implements Writeable, Accountable, Comparable<Re
     public long ramBytesUsed() {
         return SHALLOW_SIZE
             + RamUsageEstimator.sizeOf(schema)
-            + RamUsageEstimator.sizeOf(name);
+            + RamUsageEstimator.sizeOf(name)
+            + RamUsageEstimator.sizeOf(fqn)
+            + RamUsageEstimator.sizeOf(sqlFqn);
     }
 }
