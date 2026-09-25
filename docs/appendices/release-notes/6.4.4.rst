@@ -164,5 +164,4 @@ Fixes
     WHERE t1.x = t2.y
       AND t1.x = t3.z
       AND t2.y = t3.z;
->>>>>>> 106f917473 (Fix filtered nested CROSS JOIN rewrite to nested INNER JOINs)
 
