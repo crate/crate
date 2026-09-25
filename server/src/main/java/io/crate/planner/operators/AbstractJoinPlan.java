@@ -50,6 +50,8 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
     protected final JoinType joinType;
     protected final LookUpJoin lookupJoin;
     private final List<Symbol> outputs;
+    @Nullable
+    private List<RelationName> relationNames;
 
     public enum LookUpJoin {
         LEFT, RIGHT, NONE;
@@ -134,7 +136,12 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
 
     @Override
     public List<RelationName> relationNames() {
-        return Lists.concatUnique(lhs.relationNames(), rhs.relationNames());
+        List<RelationName> result = relationNames;
+        if (result == null) {
+            result = Lists.concatUnique(lhs.relationNames(), rhs.relationNames());
+            relationNames = result;
+        }
+        return result;
     }
 
     @Override
