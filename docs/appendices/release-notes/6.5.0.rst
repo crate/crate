@@ -144,6 +144,10 @@ Scalar and Aggregation Functions
 - `Gaurav K Ohri <https://github.com/gohri81-tech>`_ added support for the
   :ref:`regexp_match <scalar-regexp_match>` scalar.
 
+- `Manish Singh <https://github.com/manish9363>`_ added the
+  :ref:`ends_with(string, suffix) <scalar-ends_with>` scalar function, which
+  returns ``true`` if ``string`` ends with ``suffix``.
+
 Performance and Resilience Improvements
 ---------------------------------------
 
