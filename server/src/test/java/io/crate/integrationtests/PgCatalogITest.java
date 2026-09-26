@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -649,5 +648,51 @@ public class PgCatalogITest extends IntegTestCase {
                    1043::regtype::text;
             """);
         assertThat(response).hasRows("varchar| 1043| varchar| varchar");
+    }
+
+    @Test
+    public void test_pg_attribute_exposes_typmod() {
+        execute("create table doc.t_typmod (" +
+            "v varchar(10), " +
+            "c char(5), " +
+            "n1 numeric(10, 2), " +
+            "n2 numeric(10), " +
+            "b bit(3)" +
+            ")");
+
+        execute("select a.attname, a.atttypmod " +
+            "from pg_catalog.pg_attribute a join pg_catalog.pg_class c on a.attrelid = c.oid " +
+            "where c.relname = 't_typmod' " +
+            "order by a.attnum");
+
+        assertThat(response).hasRows(
+            "v| 14",
+            "c| 9",
+            "n1| 655366",
+            "n2| 655364",
+            "b| 3"
+        );
+    }
+
+    @Test
+    public void test_pg_attribute_exposes_typmod_for_arrays() {
+        execute("create table doc.t_typmod_arrays (" +
+            "ca array(char(5)), " +
+            "va array(varchar(10)), " +
+            "na array(numeric(12, 8)), " +
+            "ba array(bit(4))" +
+            ")");
+
+        execute("select a.attname, a.atttypmod " +
+            "from pg_catalog.pg_attribute a join pg_catalog.pg_class c on a.attrelid = c.oid " +
+            "where c.relname = 't_typmod_arrays' " +
+            "order by a.attnum");
+
+        assertThat(response).hasRows(
+            "ca| 9",
+            "va| 14",
+            "na| 786444",
+            "ba| 4"
+        );
     }
 }

@@ -234,6 +234,14 @@ public class StringType extends DataType<String> implements Streamer<String> {
         return lengthLimit;
     }
 
+    @Override
+    public int pgTypMod() {
+        if (unbound()) {
+            return -1;
+        }
+        return lengthLimit() + 4;
+    }
+
     public boolean unbound() {
         return lengthLimit == Integer.MAX_VALUE;
     }

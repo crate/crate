@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.systeminformation;
 
+import java.util.Objects;
+
 import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
@@ -61,27 +63,63 @@ public final class FormatTypeFunction extends Scalar<String, Object> {
     @SafeVarargs
     public final String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         var typeOid = (Integer) args[0].value();
+        var typmod = (Integer) args[1].value();
+
         if (typeOid == null) {
             return null;
         }
+
         var type = PGTypes.fromOID(typeOid);
-        if (type == null) {
+        var pgType = PGTypes.getByOid(typeOid);
+
+        if (type == null || pgType == null) {
             return "???";
-        } else {
-            int dimensions = 0;
-            while (type instanceof ArrayType) {
-                type = ((ArrayType<?>) type).innerType();
-                dimensions++;
-            }
-            if (dimensions == 0) {
-                return type.getName();
-            }
-            var sb = new StringBuilder();
-            sb.append(type.getName());
-            for (int i = 0; i < dimensions; i++) {
-                sb.append("[]");
-            }
-            return sb.toString();
         }
+
+        int dimensions = 0;
+        while (type instanceof ArrayType) {
+            type = ((ArrayType<?>) type).innerType();
+            dimensions++;
+        }
+
+        var basePgType = pgType;
+        if (dimensions > 0) {
+            basePgType = PGTypes.getByOid(pgType.typElem());
+        }
+
+        String baseName = switch (Objects.requireNonNull(basePgType).typName()) {
+            case "varchar" -> "character varying";
+            case "bpchar" -> "character";
+            default -> basePgType.typName();
+        };
+
+        var sb = new StringBuilder(baseName);
+
+        if (typmod != null && typmod != -1) {
+            switch (baseName) {
+                case "character varying", "character" -> sb.append("(").append(typmod - 4).append(")");
+                case "numeric" -> {
+                    int value = typmod - 4;
+                    int precision = (value >> 16) & 0xFFFF;
+                    int scale = value & 0xFFFF;
+
+                    sb.append("(")
+                        .append(precision);
+
+                    if (scale != 0) {
+                        sb.append(",").append(scale);
+                    }
+
+                    sb.append(")");
+                }
+                case "bit" -> sb.append("(").append(typmod).append(")");
+                default -> {
+                    // Keep the base type name for types without typmod formatting.
+                }
+            }
+        }
+
+        sb.repeat("[]", dimensions);
+        return sb.toString();
     }
 }

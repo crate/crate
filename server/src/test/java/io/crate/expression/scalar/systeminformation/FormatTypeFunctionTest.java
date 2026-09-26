@@ -46,4 +46,20 @@ public class FormatTypeFunctionTest extends ScalarTestCase {
     public void test_format_type_return_pg_array_notation_for_array_types() throws Exception {
         assertEvaluate("format_type(1009, null)", "text[]");
     }
+
+    @Test
+    public void test_format_type_uses_typmod() throws Exception {
+        assertEvaluate("format_type(1043, 14)", "character varying(10)");
+        assertEvaluate("format_type(1042, 9)", "character(5)");
+        assertEvaluate("format_type(1700, 786444)", "numeric(12,8)");
+        assertEvaluate("format_type(1560, 4)", "bit(4)");
+    }
+
+    @Test
+    public void test_format_type_uses_typmod_for_arrays() throws Exception {
+        assertEvaluate("format_type(1015, 14)", "character varying(10)[]");
+        assertEvaluate("format_type(1014, 9)", "character(5)[]");
+        assertEvaluate("format_type(1231, 786444)", "numeric(12,8)[]");
+        assertEvaluate("format_type(1561, 4)", "bit(4)[]");
+    }
 }

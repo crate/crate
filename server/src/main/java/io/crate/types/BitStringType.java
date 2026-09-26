@@ -263,6 +263,11 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     }
 
     @Override
+    public int pgTypMod() {
+        return length;
+    }
+
+    @Override
     public long valueBytes(BitString value) {
         return (long) Math.floor(length / 8.0);
     }

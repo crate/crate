@@ -52,7 +52,7 @@ public final class PgAttributeTable {
         .add("attnum", INTEGER, c -> c.ref().position())
         .add("attndims", INTEGER, c -> isArray(c.ref().valueType()) ? 1 : 0)
         .add("attcacheoff", INTEGER, c -> -1)
-        .add("atttypmod", INTEGER, c -> PGTypes.get(c.ref().valueType()).typeMod())
+        .add("atttypmod", INTEGER, c -> c.ref().valueType().pgTypMod())
         .add("attbyval", BOOLEAN, c -> false)
         .add("attalign", STRING, c -> null)
         .add("attstorage", STRING, c -> null)

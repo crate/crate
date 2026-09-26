@@ -113,6 +113,14 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     }
 
     @Override
+    public int pgTypMod() {
+        if (precision == null) {
+            return -1;
+        }
+        return ((precision << 16) | (scale == null ? 0 : scale)) + 4;
+    }
+
+    @Override
     public Precedence precedence() {
         return Precedence.NUMERIC;
     }

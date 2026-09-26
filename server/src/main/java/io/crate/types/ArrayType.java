@@ -462,6 +462,11 @@ public class ArrayType<T> extends DataType<List<T>> {
         return result;
     }
 
+    @Override
+    public int pgTypMod() {
+        return innerType.pgTypMod();
+    }
+
     public static DataType<?> unnest(DataType<?> dataType) {
         while (dataType instanceof ArrayType) {
             dataType = ((ArrayType<?>) dataType).innerType();
