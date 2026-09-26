@@ -923,6 +923,46 @@ Returns: ``integer``
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-starts_with:
+
+``starts_with(string, prefix)``
+-------------------------------
+
+Returns ``true`` if ``string`` begins with ``prefix``, otherwise ``false``.
+Returns ``NULL`` if any of the arguments is ``NULL``.
+
+Returns: ``boolean``
+
+::
+
+    cr> SELECT starts_with('crate', 'cr') AS starts_with;
+    +-------------+
+    | starts_with |
+    +-------------+
+    | TRUE        |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
+.. _scalar-ends_with:
+
+``ends_with(string, suffix)``
+-----------------------------
+
+Returns ``true`` if ``string`` ends with ``suffix``, otherwise ``false``.
+Returns ``NULL`` if any of the arguments is ``NULL``.
+
+Returns: ``boolean``
+
+::
+
+    cr> SELECT ends_with('crate', 'te') AS ends_with;
+    +-----------+
+    | ends_with |
+    +-----------+
+    | TRUE      |
+    +-----------+
+    SELECT 1 row in set (... sec)
+
 .. _scalar-position:
 
 ``position(substring in string)``
