@@ -271,3 +271,9 @@ SQL Standard and PostgreSQL Compatibility
 - `Somil Jain <https://github.com/somiljain2006>`_ added support for
   concatenating :ref:`bitstrings <data-types-bit-strings>` using the
   :ref:`concat function <scalar-concat>` or the ``||`` operator.
+
+- `Somil Jain <https://github.com/somiljain2006>`_ improved PostgreSQL compatibility by
+  exposing type parameters through `pg_catalog.pg_attribute.atttypmod` and
+  updating :ref:`format_type() <scalar-format_type>` to reconstruct parameterized
+  types such as `CHAR(n)`, `VARCHAR(n)`, `NUMERIC(p, s)`, and `BIT(n)`,
+  including their array types.

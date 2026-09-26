@@ -298,10 +298,6 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         return Integer.compare(id(), o.id());
     }
 
-    /**
-     * Returns the PostgreSQL typmod value for this data type.
-     * Defaults to -1 for types that do not define a typmod.
-     */
     public int pgTypMod() {
         return -1;
     }
