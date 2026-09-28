@@ -73,3 +73,7 @@ Fixes
   table restored explicitly with ``RESTORE SNAPSHOT ... TABLE`` doesn't restore
   its server and user mappings, so it's unusable unless they already exist or
   created manually.
+
+- Fixed a rare race condition causing the ``query`` CircuitBreaker’s state not
+  to be reset after ``KILL``, and leading to consequent queries to fail with
+  false positive ``CircuitBreakingException``.
