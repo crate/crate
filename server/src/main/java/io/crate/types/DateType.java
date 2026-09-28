@@ -70,7 +70,7 @@ public class DateType extends DataType<LocalDate>
     public static final int DAY_TO_MS = 86400000;
 
     // Date values are streamed as timestamp (in ms since epoch) to clients via HTTP
-    // So our max/min values are smaller than LocalDate.MAX/MIN and we're not using
+    // So our max/min values are smaller than LocalDate.MAX/MIN
     public static final LocalDate MAX_NULL_SENTINEL = ofTimestamp(Long.MAX_VALUE);
     public static final LocalDate MIN_NULL_SENTINEL = ofTimestamp(Long.MIN_VALUE);
     public static final LocalDate MAX = MAX_NULL_SENTINEL.minusDays(1);
@@ -137,7 +137,7 @@ public class DateType extends DataType<LocalDate>
 
         @Override
         public LocalDate decode(long input) {
-            return LocalDate.ofEpochDay(input);
+            return ofTimestamp(input);
         }
 
         @Override
@@ -149,8 +149,8 @@ public class DateType extends DataType<LocalDate>
 
         @Override
         public LocalDate decode(byte[] packedPoint) {
-            long epochDay = NumericUtils.sortableBytesToLong(packedPoint, 0);
-            return LocalDate.ofEpochDay(epochDay);
+            long timestamp = NumericUtils.sortableBytesToLong(packedPoint, 0);
+            return ofTimestamp(timestamp);
         }
 
         @Override
@@ -161,7 +161,7 @@ public class DateType extends DataType<LocalDate>
 
         @Override
         public LocalDate decode(DataType<LocalDate> type, XContentParser parser) throws IOException {
-            return LocalDate.ofEpochDay(parser.longValue());
+            return ofTimestamp(parser.longValue());
         }
     };
 
@@ -173,7 +173,7 @@ public class DateType extends DataType<LocalDate>
 
         @Override
         protected LocalDate convert(long input) {
-            return LocalDate.ofEpochDay(input);
+            return ofTimestamp(input);
         }
     }
 
@@ -190,18 +190,18 @@ public class DateType extends DataType<LocalDate>
         @Override
         public void indexValue(LocalDate value, IndexDocumentBuilder docBuilder) throws IOException {
             ensureInAllowedRange(value);
-            long epochDay = value.toEpochDay();
+            long timestamp = toTimestamp(value);
             if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
-                docBuilder.addField(new LongField(name, epochDay, Field.Store.NO));
+                docBuilder.addField(new LongField(name, timestamp, Field.Store.NO));
             } else {
                 if (ref.indexType() != IndexType.NONE) {
-                    docBuilder.addField(new LongPoint(name, epochDay));
+                    docBuilder.addField(new LongPoint(name, timestamp));
                 }
                 if (ref.hasDocValues()) {
-                    docBuilder.addField(new SortedNumericDocValuesField(name, epochDay));
+                    docBuilder.addField(new SortedNumericDocValuesField(name, timestamp));
                 } else {
                     if (docBuilder.maybeAddStoredField()) {
-                        docBuilder.addField(new StoredField(name, epochDay));
+                        docBuilder.addField(new StoredField(name, timestamp));
                     }
                     docBuilder.addField(new Field(
                         SysColumns.FieldNames.NAME,
@@ -209,7 +209,7 @@ public class DateType extends DataType<LocalDate>
                         SysColumns.FieldNames.FIELD_TYPE));
                 }
             }
-            docBuilder.translogWriter().writeValue(epochDay);
+            docBuilder.translogWriter().writeValue(timestamp);
         }
 
         @Override
@@ -222,12 +222,12 @@ public class DateType extends DataType<LocalDate>
 
         @Override
         public Query termQuery(String field, LocalDate value, boolean hasDocValues, boolean isIndexed) {
-            long epochDay = value.toEpochDay();
+            long timestamp = toTimestamp(value);
             if (isIndexed) {
-                return LongPoint.newExactQuery(field, epochDay);
+                return LongPoint.newExactQuery(field, timestamp);
             }
             if (hasDocValues) {
-                return SortedNumericDocValuesField.newSlowExactQuery(field, epochDay);
+                return SortedNumericDocValuesField.newSlowExactQuery(field, timestamp);
             }
             return null;
         }
@@ -242,13 +242,13 @@ public class DateType extends DataType<LocalDate>
                                 boolean isIndexed) {
             long lower = Long.MIN_VALUE;
             if (lowerTerm != null) {
-                long epochDay = lowerTerm.toEpochDay();
-                lower = includeLower ? epochDay : epochDay + 1;
+                long timestamp = toTimestamp(lowerTerm);
+                lower = includeLower ? timestamp : timestamp + 1;
             }
             long upper = Long.MAX_VALUE;
             if (upperTerm != null) {
-                long epochDay = upperTerm.toEpochDay();
-                upper = includeUpper ? epochDay : epochDay - 1;
+                long timestamp = toTimestamp(upperTerm);
+                upper = includeUpper ? timestamp : timestamp - 1;
             }
             if (isIndexed) {
                 return LongPoint.newRangeQuery(field, lower, upper);
@@ -262,11 +262,11 @@ public class DateType extends DataType<LocalDate>
         @Override
         public Query termsQuery(String field, List<LocalDate> nonNullValues, boolean hasDocValues, boolean isIndexed) {
             if (isIndexed) {
-                long[] epochDays = nonNullValues.stream().mapToLong(LocalDate::toEpochDay).toArray();
+                long[] epochDays = nonNullValues.stream().mapToLong(DateType::toTimestamp).toArray();
                 return LongPoint.newSetQuery(field, epochDays);
             }
             if (hasDocValues) {
-                long[] epochDays = nonNullValues.stream().mapToLong(LocalDate::toEpochDay).toArray();
+                long[] epochDays = nonNullValues.stream().mapToLong(DateType::toTimestamp).toArray();
                 return SortedNumericDocValuesField.newSlowSetQuery(field, epochDays);
             }
             return null;
@@ -315,8 +315,6 @@ public class DateType extends DataType<LocalDate>
     public LocalDate sanitizeValue(Object value) {
         return switch (value) {
             case null -> null;
-            case Integer i -> LocalDate.ofEpochDay(i);
-            case Long i -> LocalDate.ofEpochDay(i);
             case Number n -> ofTimestamp(n.longValue());
             default -> (LocalDate) value;
         };

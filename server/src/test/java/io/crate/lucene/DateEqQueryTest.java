@@ -30,6 +30,8 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.junit.Test;
 
+import io.crate.types.DateType;
+
 public class DateEqQueryTest extends LuceneQueryBuilderTest {
 
     @Override
@@ -48,7 +50,7 @@ public class DateEqQueryTest extends LuceneQueryBuilderTest {
             """;
     }
 
-    private static final long DATE_2020_01_01 = LocalDate.of(2020, 1, 1).toEpochDay();
+    private static final long DATE_2020_01_01 = DateType.toTimestamp(LocalDate.of(2020, 1, 1));
 
     @Test
     public void test_DateEqQuery_termQuery() {
