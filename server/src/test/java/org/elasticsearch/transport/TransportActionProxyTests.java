@@ -23,15 +23,25 @@ package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.transport.MockTransportService;
@@ -44,6 +54,7 @@ import org.junit.Test;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.netty.NettyBootstrap;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 
 public class TransportActionProxyTests extends ESTestCase {
     protected ThreadPool threadPool;
@@ -211,6 +222,38 @@ public class TransportActionProxyTests extends ESTestCase {
             }
         });
         latch.await();
+    }
+
+    @Test
+    public void test_sniff_remote_client_executes_request_using_proxy_connection() {
+        var action = new ActionType<SimpleTestResponse>("internal:test") {
+            @Override
+            public Writeable.Reader<SimpleTestResponse> getResponseReader() {
+                return SimpleTestResponse::new;
+            }
+        };
+        var transportService = mock(TransportService.class);
+        var connection = new ProxyConnection(mock(Transport.Connection.class), nodeC);
+        class Request extends TransportRequest implements RemoteClusterAwareRequest {
+            @Override
+            public DiscoveryNode getPreferredTargetNode() {
+                return nodeC;
+            }
+        }
+        var request = new Request();
+        try (var client = spy(new SniffRemoteClient(
+            Settings.EMPTY,
+            ConnectionInfo.fromURL("crate://localhost?mode=sniff"),
+            "publisher",
+            transportService
+        ))) {
+            doReturn(CompletableFuture.completedFuture(connection)).when(client).ensureConnected(nodeC);
+
+            client.execute(action, request);
+
+            verify(transportService).sendRequest(
+                same(connection), eq(action.name()), same(request), eq(TransportRequestOptions.EMPTY), any());
+        }
     }
 
     public static class SimpleTestRequest extends TransportRequest {
