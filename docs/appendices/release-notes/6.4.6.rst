@@ -83,3 +83,6 @@ Fixes
 
 - Fixed a race condition in ``EXPLAIN ANALYZE`` that could cause an intermittent
   ``NullPointerException``.
+
+- Fixed an issue that could cause logical replication of new partitions to fail
+  after restarting publisher nodes.
