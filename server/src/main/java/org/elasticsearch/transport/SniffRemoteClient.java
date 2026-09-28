@@ -301,9 +301,8 @@ public final class SniffRemoteClient implements Client {
             : null;
         return ensureConnected(targetNode).thenCompose(conn -> {
             FutureActionListener<Resp> future = new FutureActionListener<>();
-            var connection = targetNode == null ? conn : new ProxyConnection(conn, targetNode);
             transportService.sendRequest(
-                connection,
+                conn,
                 action.name(),
                 request,
                 TransportRequestOptions.EMPTY,
