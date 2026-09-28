@@ -44,6 +44,24 @@ public class DateType extends DataType<Long>
     public static final String NAME = "date";
     public static final DateType INSTANCE = new DateType();
     public static final int TYPE_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Long.class);
+    public static final int DAY_TO_MS = 86400000;
+
+    // Date values are streamed as timestamp (in ms since epoch) to clients via HTTP
+    // So our max/min values are smaller than LocalDate.MAX/MIN
+    public static final LocalDate MAX_NULL_SENTINEL = ofTimestamp(Long.MAX_VALUE);
+    public static final LocalDate MIN_NULL_SENTINEL = ofTimestamp(Long.MIN_VALUE);
+    public static final LocalDate MAX = MAX_NULL_SENTINEL.minusDays(1);
+    public static final LocalDate MIN = MIN_NULL_SENTINEL.plusDays(1);
+
+    public static LocalDate ofTimestamp(long msValue) {
+        return msValue >= 0
+            ? LocalDate.ofEpochDay(msValue / DAY_TO_MS)
+            : LocalDate.ofEpochDay(Math.floorDiv(msValue, DAY_TO_MS));
+    }
+
+    public static long toTimestamp(LocalDate date) {
+        return date.toEpochDay() * DAY_TO_MS;
+    }
 
     @Override
     public int id() {
@@ -99,8 +117,7 @@ public class DateType extends DataType<Long>
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
 
-        var epochDay = longVal / 1000 / 86400;
-        var localDate = LocalDate.ofEpochDay(epochDay);
+        LocalDate localDate = ofTimestamp(longVal);
         return localDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
     }
 

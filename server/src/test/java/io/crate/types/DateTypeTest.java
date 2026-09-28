@@ -62,4 +62,13 @@ public class DateTypeTest {
     public void testCastNull() {
         assertThat(DateType.INSTANCE.implicitCast(null)).isNull();
     }
+
+    @Test
+    public void test_cast_of_timestamps_near_1970_rounds_up_or_down() throws Exception {
+        Long timestamp = DataTypes.TIMESTAMP.implicitCast("1969-12-31 12:00");
+        assertThat(DataTypes.DATE.implicitCast(timestamp)).isEqualTo(-86400000L);
+
+        timestamp = DataTypes.TIMESTAMP.implicitCast("1970-01-01 12:00");
+        assertThat(DataTypes.DATE.implicitCast(timestamp)).isEqualTo(0L);
+    }
 }
