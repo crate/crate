@@ -503,7 +503,6 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 case IntegerType.ID:
                 case ShortType.ID:
                 case ByteType.ID:
-                case DateType.ID:
                 case TimestampType.ID_WITH_TZ:
                 case TimestampType.ID_WITHOUT_TZ:
                     return Long.INSTANCE;
@@ -512,12 +511,24 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 case IpType.ID:
                 case CharacterType.ID:
                     return Bytes64.INSTANCE;
+                case DateType.ID:
+                    return Date.INSTANCE;
                 default:
                     throw new IllegalArgumentException("data type \"" + dataType + "\" is not supported");
             }
         }
 
         abstract long hash(Object val);
+
+        private static class Date extends Murmur3Hash {
+
+            private static final Date INSTANCE = new Date();
+
+            @Override
+            long hash(Object val) {
+                return BitMixer.mix64(DateType.toTimestamp(DataTypes.DATE.sanitizeValue(val)));
+            }
+        }
 
         private static class Long extends Murmur3Hash {
 

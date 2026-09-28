@@ -37,6 +37,13 @@ public class DateTypeTest extends DataTypeTestCase<LocalDate> {
     }
 
     @Test
+    public void test_to_from_timestamp_roundtrip() throws Exception {
+        LocalDate localDate = getDataDef().data().get();
+        long timestamp = DateType.toTimestamp(localDate);
+        assertThat(DateType.ofTimestamp(timestamp)).isEqualTo(localDate);
+    }
+
+    @Test
     public void testCastFromInvalidString() {
         Assertions.assertThatThrownBy(() -> DateType.INSTANCE.implicitCast("not-a-number"))
             .isExactlyInstanceOf(ClassCastException.class)
