@@ -499,10 +499,10 @@ public class LogicalPlanner {
             LinkedHashSet<Symbol> result = new LinkedHashSet<>();
             SequencedSet<RelationName> relationNamesFromRelation = RelationNames.getShallow(relation);
             Predicate<Symbol> collectFiltered = node -> {
-                SequencedSet<RelationName> relationNamesFromSymbol = RelationNames.getShallow(node);
-                for (RelationName relationName : relationNamesFromSymbol) {
-                    if (relationNamesFromRelation.contains(relationName)) {
-                        if (node instanceof ScopedSymbol || node instanceof Reference) {
+                if (node instanceof ScopedSymbol || node instanceof Reference) {
+                    SequencedSet<RelationName> relationNamesFromSymbol = RelationNames.getShallow(node);
+                    for (RelationName relationName : relationNamesFromSymbol) {
+                        if (relationNamesFromRelation.contains(relationName)) {
                             result.add(node);
                             break;
                         }
