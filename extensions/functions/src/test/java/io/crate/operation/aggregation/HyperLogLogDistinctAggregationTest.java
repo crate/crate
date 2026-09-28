@@ -227,6 +227,9 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
         // ip type
         assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.IP).hash("127.0.0.1"))
             .isEqualTo(6044143379282500354L);
+
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.DATE).hash(DataTypes.DATE.implicitCast("2020-11-28")))
+            .isEqualTo(1653417147958603178L);
     }
 
     @Test
