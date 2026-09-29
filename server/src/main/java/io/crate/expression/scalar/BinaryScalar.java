@@ -59,6 +59,8 @@ public final class BinaryScalar<T1, T2, R> extends Scalar<R, Object> {
             return func.apply(arg0, arg1);
         } catch (ArithmeticException ae) {
             throw new IllegalArgumentException(ae.getMessage(), ae);
+        } catch (Throwable t) {
+            throw t;
         }
     }
 }

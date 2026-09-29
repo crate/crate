@@ -94,8 +94,7 @@ public final class OrderingByPosition {
         return CompoundOrdering.of(comparators);
     }
 
-    @SuppressWarnings("unchecked")
     public static <T> Comparator<Object[]> arrayOrdering(DataType<T> type, int position, boolean reverse, boolean nullsFirst) {
-        return new NullAwareComparator<>(cells -> (T) cells[position], type, reverse, nullsFirst);
+        return new NullAwareComparator<>(cells -> type.implicitCast(cells[position]), type, reverse, nullsFirst);
     }
 }

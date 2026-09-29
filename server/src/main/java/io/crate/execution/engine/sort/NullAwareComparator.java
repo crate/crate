@@ -62,6 +62,10 @@ class NullAwareComparator<T, U> implements Comparator<T> {
         if (val2 == null) {
             return rightNull;
         }
-        return type.compare(val1, val2) * mod;
+        try {
+            return type.compare(val1, val2) * mod;
+        } catch (Throwable t) {
+            throw t;
+        }
     }
 }

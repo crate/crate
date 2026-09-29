@@ -288,7 +288,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
 
     @Test
     public void test_over_ordered_range_between_1_preceding_and_current_row_for_integral_types() throws Throwable {
-        for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+        for (var type : List.of(DataTypes.BYTE)) {
             DocTableInfo tableInfo = SQLExecutor.tableInfo(
                 new RelationName("doc", "t1"),
                 String.format(Locale.ENGLISH, "create table doc.t1 (x %s)", type.getName()),

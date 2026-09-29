@@ -23,6 +23,7 @@ package io.crate.execution.engine.window;
 
 import static io.crate.analyze.SymbolEvaluator.evaluateWithoutParams;
 import static io.crate.execution.engine.sort.Comparators.createComparator;
+import static io.crate.execution.engine.sort.OrderingByPosition.arrayOrdering;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -38,6 +39,7 @@ import org.jspecify.annotations.Nullable;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.TypedCellsAccounting;
+import io.crate.data.ArrayRow;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
@@ -45,8 +47,10 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.expression.ExpressionsInput;
 import io.crate.expression.InputFactory;
+import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -55,6 +59,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.types.DataType;
@@ -208,17 +213,52 @@ public class WindowProjector {
         var frameDefinition = windowDefinition.windowFrameDefinition();
         var frameBoundStart = frameDefinition.start();
         var framingMode = frameDefinition.mode();
-        DataType offsetType = frameBoundStart.value().valueType();
+        OrderBy orderBy = windowDefinition.orderBy();
         Object offsetValue = evaluateWithoutParams(txnCtx, nodeCtx, frameBoundStart.value());
         Object[] startProbeValues = new Object[numCellsInSourceRow];
         BiFunction<Object[], Object[], Object[]> updateStartProbeValue;
-        if (offsetValue != null && framingMode == WindowFrame.Mode.RANGE) {
-            BiFunction<DataType<?>, DataType<?>, BiFunction> offsetFn = windowDefinition.orderBy().reverseFlags()[0]
-                ? WindowFrameBoundaryArithmetic::getAddFunction
-                : WindowFrameBoundaryArithmetic::getSubtractFunction;
-            updateStartProbeValue = createUpdateProbeValueFunction(windowDefinition, offsetFn, offsetValue, offsetType);
+        final Comparator<Object[]> comparator;
+        if (orderBy != null
+                && orderBy.orderBySymbols().get(0) instanceof InputColumn orderByInput
+                && offsetValue != null
+                && framingMode == WindowFrame.Mode.RANGE) {
+            String functionName = orderBy.reverseFlags()[0]
+                ? ArithmeticFunctions.Names.ADD
+                : ArithmeticFunctions.Names.SUBTRACT;
+            Scalar<?, ?> scalar = (Scalar<?, ?>) nodeCtx.functions().get(
+                null,
+                functionName,
+                List.of(orderByInput, frameBoundStart.value()),
+                txnCtx.sessionSettings().searchPath()
+            );
+            List<DataType<?>> argumentDataTypes = scalar.signature().getArgumentDataTypes();
+            DataType<?> orderByType = argumentDataTypes.get(0);
+            DataType<?> frameBoundType = argumentDataTypes.get(1);
+            RowCollectExpression orderByExpr = new RowCollectExpression(orderByInput.index());
+            ArrayRow row = new ArrayRow();
+            updateStartProbeValue = (currentRow, x) -> {
+                row.cells(currentRow);
+                orderByExpr.setNextRow(row);
+                Object orderValue = scalar.evaluate(
+                    txnCtx,
+                    nodeCtx,
+                    new Input[] {
+                        () -> orderByType.implicitCast(orderByExpr.value()),
+                        () -> frameBoundType.implicitCast(offsetValue)
+                    }
+                );
+                x[orderByInput.index()] = orderValue;
+                return x;
+            };
+            comparator = arrayOrdering(
+                scalar.boundSignature().returnType(),
+                orderByInput.index(),
+                orderBy.reverseFlags()[0],
+                orderBy.nullsFirst()[0]
+            );
         } else {
             updateStartProbeValue = (currentRow, x) -> x;
+            comparator = cmpOrderBy;
         }
         return (partitionStart, partitionEnd, currentIndex, sortedRows) -> frameBoundStart.type().getStart(
             framingMode,
@@ -227,7 +267,7 @@ public class WindowProjector {
             currentIndex,
             offsetValue,
             updateStartProbeValue.apply(sortedRows.get(currentIndex), startProbeValues),
-            cmpOrderBy,
+            comparator,
             sortedRows
         );
     }

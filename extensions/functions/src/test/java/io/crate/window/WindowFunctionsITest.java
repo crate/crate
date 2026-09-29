@@ -156,4 +156,72 @@ public class WindowFunctionsITest extends IntegTestCase {
             "1| 1842| a-1| 1| 1844"
         );
     }
+
+
+    @Test
+    public void test_over_ordered_on_date_with_interval_range() throws Exception {
+        execute("CREATE TABLE t_post (d DATE)");
+        execute("INSERT INTO t_post VALUES ('2020-01-01'), ('2020-01-02'), ('2020-01-03')");
+        execute("refresh table t_post");
+
+        execute("CREATE TABLE t_pre (d DATE)");
+        execute("INSERT INTO t_pre VALUES ('1960-01-01'), ('1960-01-02'), ('1960-01-03')");
+        execute("REFRESH TABLE t_post, t_pre");
+
+        // execute(
+        //     """
+        //     SELECT
+        //         d,
+        //         count(*) OVER (ORDER BY d RANGE BETWEEN CURRENT ROW AND INTERVAL '12 hours' FOLLOWING)
+        //     FROM t_pre
+        //     ORDER BY d
+        //     """);
+        // assertThat(response).hasRows(
+        //     "1960-01-01| 1",
+        //     "1960-01-02| 1",
+        //     "1960-01-03| 1"
+        // );
+        //
+        // execute(
+        //     """
+        //     SELECT
+        //         d,
+        //         count(*) OVER (ORDER BY d DESC RANGE BETWEEN INTERVAL '12 hours' PRECEDING AND CURRENT ROW)
+        //     FROM t_pre
+        //     ORDER BY d DESC
+        //     """);
+        // assertThat(response).hasRows(
+        //     "1960-01-03| 1",
+        //     "1960-01-02| 1",
+        //     "1960-01-01| 1"
+        // );
+
+        execute(
+            """
+            SELECT
+                d,
+                count(*) OVER (ORDER BY d RANGE BETWEEN INTERVAL '12 hours' PRECEDING AND CURRENT ROW)
+            FROM t_post
+            ORDER BY d
+            """);
+        assertThat(response).hasRows(
+            "1577836800000| 1",
+            "1577923200000| 1",
+            "1578009600000| 1"
+        );
+
+        execute(
+            """
+            SELECT
+                d,
+                count(*) OVER (ORDER BY d DESC RANGE BETWEEN CURRENT ROW AND INTERVAL '12 hours' FOLLOWING)
+            FROM t_post
+            ORDER BY d DESC
+            """);
+        assertThat(response).hasRows(
+            "2020-01-03| 1",
+            "2020-01-02| 1",
+            "2020-01-01| 1"
+        );
+    }
 }
