@@ -254,6 +254,12 @@ Administration and Operations
   Issuers that do not serve a discovery document are unaffected: CrateDB
   falls back to using ``iss`` as the JWK endpoint URL directly.
 
+- `Somil Jain <https://github.com/somiljain2006>`_  improved graceful node
+  decommissioning to reject new SQL operations once decommissioning starts,
+  including operations submitted through existing HTTP and PostgreSQL
+  connections. SQL operations that were already admitted before decommissioning
+  began are allowed to complete.
+
 Client interfaces
 -----------------
 
