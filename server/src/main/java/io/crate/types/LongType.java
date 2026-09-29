@@ -42,7 +42,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStatsSupport;
 
-public class LongType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
+public class LongType extends IntegralType<Long> implements FixedWidthType, Streamer<Long> {
 
     public static final LongType INSTANCE = new LongType();
     public static final int ID = 10;

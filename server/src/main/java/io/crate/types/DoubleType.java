@@ -35,6 +35,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.jspecify.annotations.Nullable;
 
 import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
 import io.crate.Streamer;
@@ -47,7 +48,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStatsSupport;
 
-public class DoubleType extends DataType<Double> implements FixedWidthType, Streamer<Double> {
+public class DoubleType extends NumberType<Double> implements FixedWidthType, Streamer<Double> {
 
     public static final DoubleType INSTANCE = new DoubleType();
     public static final int ID = 6;
@@ -253,5 +254,16 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     @Override
     public long valueBytes(Double value) {
         return DOUBLE_SIZE;
+    }
+
+    @Override
+    @Nullable
+    public Integer scale() {
+        return null;
+    }
+
+    @Override
+    public Integer precisionRadix() {
+        return 2;
     }
 }
