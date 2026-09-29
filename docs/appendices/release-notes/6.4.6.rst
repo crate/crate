@@ -80,3 +80,6 @@ Fixes
 - Fixed a rare race condition causing the ``query`` CircuitBreaker’s state not
   to be reset after ``KILL``, and leading to consequent queries to fail with
   false positive ``CircuitBreakingException``.
+
+- Fixed a race condition in ``EXPLAIN ANALYZE`` that could cause an intermittent
+  ``NullPointerException``.
