@@ -36,6 +36,7 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.transport.NodeDisconnectedException;
 import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mockito;
@@ -192,6 +193,16 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             sessionSettingRegistry
         );
         return sessions;
+    }
+
+    @Test
+    public void test_new_session_is_rejected_when_sql_operations_are_disabled() {
+        Sessions sessions = newSessions(createNodeContext());
+
+        sessions.disable();
+
+        assertThatThrownBy(() -> sessions.newSession(connectionProperties(), "doc", Role.CRATE_USER))
+            .isExactlyInstanceOf(NodeDisconnectedException.class);
     }
 
     private static Cursor newCursor() {

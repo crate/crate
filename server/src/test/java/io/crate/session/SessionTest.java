@@ -48,6 +48,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.NodeDisconnectedException;
 import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mockito;
@@ -730,5 +731,46 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         session.sync(false);
         assertThat(sqlExecutor.jobsLogs.activeJobs().iterator().hasNext()).isFalse();
+    }
+
+    @Test
+    public void test_existing_session_rejects_execute_when_sql_operations_are_disabled() {
+        SQLExecutor sqlExecutor = SQLExecutor.of(clusterService);
+        Session session = sqlExecutor.createSession();
+
+        session.parse("S1", "SELECT 1", List.of());
+        session.bind("P1", "S1", List.of(), null);
+
+        sqlExecutor.sqlOperations.disable();
+
+        assertThatThrownBy(() -> session.execute("P1", 0, new BaseResultReceiver()))
+            .isExactlyInstanceOf(NodeDisconnectedException.class);
+    }
+
+    @Test
+    public void test_deferred_execution_accepted_before_disable_is_still_executed() throws Exception {
+        SQLExecutor sqlExecutor = SQLExecutor.of(clusterService)
+            .addTable("create table t1 (x int)");
+
+        Session session = spy(sqlExecutor.createSession());
+        doReturn(completedFuture(null))
+            .when(session)
+            .singleExec(any(Portal.class), any(ResultReceiver.class), anyInt());
+
+        session.parse(UNNAMED, "INSERT INTO t1 (x) VALUES (?)", List.of());
+        session.bind(UNNAMED, UNNAMED, List.of(1), null);
+        session.execute(UNNAMED, 0, new BaseResultReceiver());
+
+        assertThat(session.deferredExecutionsByStmt).hasSize(1);
+
+        sqlExecutor.sqlOperations.disable();
+
+        assertThat(session.sync(false)).succeedsWithin(5, TimeUnit.SECONDS);
+
+        verify(session).singleExec(
+            any(Portal.class),
+            any(ResultReceiver.class),
+            anyInt()
+        );
     }
 }

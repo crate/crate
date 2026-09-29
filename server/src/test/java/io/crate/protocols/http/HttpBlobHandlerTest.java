@@ -326,7 +326,9 @@ public class HttpBlobHandlerTest extends CrateDummyClusterServiceUnitTest {
                     sessionSettings,
                     () -> {},
                     1,
-                    100);
+                    100,
+                    () -> {}
+                );
             }
         };
 

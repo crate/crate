@@ -165,6 +165,7 @@ public class Session implements AutoCloseable {
 
     private TransactionState currentTransactionState = TransactionState.IDLE;
     private volatile String lastStmt;
+    private final Runnable admissionCheck;
 
 
     /**
@@ -180,9 +181,11 @@ public class Session implements AutoCloseable {
                    CoordinatorSessionSettings sessionSettings,
                    Runnable onClose,
                    int tempErrorRetryCount,
-                   int statementMaxLength) {
+                   int statementMaxLength,
+                   Runnable admissionCheck) {
         this.id = sessionId;
         this.connectionProperties = connectionProperties;
+        this.admissionCheck = admissionCheck;
         this.timeCreated = System.currentTimeMillis();
         this.secret = ThreadLocalRandom.current().nextInt();
         this.analyzer = analyzer;
@@ -517,6 +520,7 @@ public class Session implements AutoCloseable {
 
     @Nullable
     public CompletableFuture<?> execute(String portalName, int maxRows, ResultReceiver<?> resultReceiver) {
+        admissionCheck.run();
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("method=execute portalName={} maxRows={}", portalName, maxRows);
         }

@@ -146,11 +146,22 @@ public class Sessions {
         this.sessionSettingRegistry = sessionSettingRegistry;
     }
 
-    private Session newSession(@Nullable ConnectionProperties connectionProperties,
-                               CoordinatorSessionSettings sessionSettings) {
+    private void ensureEnabled() {
         if (disabled) {
             throw new NodeDisconnectedException(clusterService.localNode(), "sql");
         }
+    }
+
+    private Session newSession(@Nullable ConnectionProperties connectionProperties,
+                               CoordinatorSessionSettings sessionSettings) {
+        boolean isSystemSession = connectionProperties == null;
+
+        if (!isSystemSession) {
+            ensureEnabled();
+        }
+
+        Runnable admissionCheck = isSystemSession ? () -> {} : this::ensureEnabled;
+
         int sessionId = nextSessionId.incrementAndGet();
         Session session = new Session(
             sessionId,
@@ -163,7 +174,8 @@ public class Sessions {
             sessionSettings,
             () -> sessions.remove(sessionId),
             tempErrorRetryCount,
-            statementMaxLength
+            statementMaxLength,
+            admissionCheck
         );
         sessions.put(sessionId, session);
         return session;
