@@ -79,6 +79,15 @@ public class DateTypeTest extends DataTypeTestCase<LocalDate> {
     }
 
     @Test
+    public void test_cast_of_timestamps_near_1970_rounds_up_or_down() throws Exception {
+        Long timestamp = DataTypes.TIMESTAMP.implicitCast("1969-12-31 12:00");
+        assertThat(DataTypes.DATE.implicitCast(timestamp)).isEqualTo(LocalDate.of(1969, 12, 31));
+
+        timestamp = DataTypes.TIMESTAMP.implicitCast("1970-01-01 12:00");
+        assertThat(DataTypes.DATE.implicitCast(timestamp)).isEqualTo(LocalDate.of(1970, 1, 1));
+    }
+
+    @Test
     public void test_cannot_use_local_date_unsafe_for_timestamp_conversion() throws Exception {
         assertThatThrownBy(() -> DateType.INSTANCE.implicitCast(LocalDate.MAX))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -86,6 +95,6 @@ public class DateTypeTest extends DataTypeTestCase<LocalDate> {
 
         assertThatThrownBy(() -> DateType.INSTANCE.implicitCast(LocalDate.MIN))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("date (-999999999-01-01) exceeds allowed min value (-292275055-05-18)");
+            .hasMessage("date (-999999999-01-01) exceeds allowed min value (-292275055-05-17)");
     }
 }

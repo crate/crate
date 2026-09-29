@@ -87,8 +87,9 @@ public class DateType extends DataType<LocalDate>
     }
 
     public static LocalDate ofTimestamp(long msValue) {
-        long epochDay = msValue / DAY_TO_MS;
-        return LocalDate.ofEpochDay(epochDay);
+        return msValue >= 0
+            ? LocalDate.ofEpochDay(msValue / DAY_TO_MS)
+            : LocalDate.ofEpochDay(Math.floorDiv(msValue, DAY_TO_MS));
     }
 
     public static long toTimestamp(LocalDate date) {
