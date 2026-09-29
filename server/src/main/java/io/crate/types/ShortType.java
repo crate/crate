@@ -42,7 +42,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStatsSupport;
 
-public class ShortType extends DataType<Short> implements Streamer<Short>, FixedWidthType {
+public class ShortType extends IntegralType<Short> implements Streamer<Short>, FixedWidthType {
 
     public static final ShortType INSTANCE = new ShortType();
     public static final int ID = 8;

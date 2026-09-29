@@ -42,7 +42,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStatsSupport;
 
-public class IntegerType extends DataType<Integer> implements Streamer<Integer>, FixedWidthType {
+public class IntegerType extends IntegralType<Integer> implements Streamer<Integer>, FixedWidthType {
 
     public static final IntegerType INSTANCE = new IntegerType();
     public static final int ID = 9;

@@ -26,6 +26,7 @@ import static java.util.stream.Collectors.toSet;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -37,8 +38,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -56,12 +55,6 @@ import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnPolicy;
 
 public final class DataTypes {
-
-    // DataTypes is initialized early before the Log configuration has been done;
-    // Need to defer the Logger initialized to first use.
-    static class Lazy {
-        private static final Logger LOGGER = LogManager.getLogger(DataTypes.class);
-    }
 
     /**
      * If you add types here make sure to update the SizeEstimatorFactory in the SQL module.
@@ -135,14 +128,17 @@ public final class DataTypes {
             .collect(toSet());
 
 
-    public static final List<DataType<? extends Number>> NUMERIC_PRIMITIVE_TYPES = List.of(
-        DOUBLE,
-        FLOAT,
-        BYTE,
-        SHORT,
-        INTEGER,
-        LONG
-    );
+    public static final List<NumberType<?>> NUMERIC_PRIMITIVE_TYPES = numberTypes();
+
+    private static List<NumberType<?>> numberTypes() {
+        ArrayList<NumberType<?>> result = new ArrayList<>();
+        for (var primitiveType : PRIMITIVE_TYPES) {
+            if (primitiveType instanceof NumberType<?> numberType) {
+                result.add(numberType);
+            }
+        }
+        return result;
+    }
 
     private static final Set<Integer> NUMERIC_PRIMITIVE_TYPE_IDS =
         NUMERIC_PRIMITIVE_TYPES.stream()
@@ -502,7 +498,7 @@ public final class DataTypes {
     }
 
     public static boolean isNumeric(DataType<?> type) {
-        return NUMERIC_PRIMITIVE_TYPE_IDS.contains(type.id()) || NUMERIC.id() == type.id();
+        return type instanceof NumberType;
     }
 
     /**
