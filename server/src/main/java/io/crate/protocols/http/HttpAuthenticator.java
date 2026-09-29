@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.auth;
+package io.crate.protocols.http;
 
 import static io.crate.auth.AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING;
 import static io.crate.protocols.SSL.getSession;
@@ -34,133 +34,98 @@ import java.util.function.Predicate;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.auth.AuthSettings;
+import io.crate.auth.Authentication;
+import io.crate.auth.AuthenticationMethod;
+import io.crate.auth.Credentials;
+import io.crate.auth.Protocol;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.protocols.SSL;
-import io.crate.protocols.http.Headers;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.util.ReferenceCountUtil;
 
+/**
+ * Authenticates a single HTTP request
+ * <p>
+ * Each request-handling handler ({@link io.crate.rest.action.SqlHttpHandler},
+ * {@link HttpBlobHandler}, {@link MainAndStaticFileHandler}) must authenticate
+ * the request using this class before creating a session.
+ */
+public final class HttpAuthenticator {
 
-public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object> {
-
-    private static final Logger LOGGER = LogManager.getLogger(HttpAuthUpstreamHandler.class);
     @VisibleForTesting
     // realm-value should not contain any special characters
     static final String WWW_AUTHENTICATE_REALM_MESSAGE = "Basic realm=\"CrateDB Authenticator\"";
 
     private final Authentication authService;
-    private final Settings settings;
     private final boolean checkJwtProperties;
-
+    private final boolean supportXRealIp;
+    private final String defaultUser;
     private final Roles roles;
-    private String authorizedUser = null;
 
-    public HttpAuthUpstreamHandler(Settings settings, Authentication authService, Roles roles) {
-        // do not auto-release reference counted messages which are just in transit here
-        super(false);
-        this.settings = settings;
+    public HttpAuthenticator(Settings settings, Authentication authService, Roles roles) {
         this.checkJwtProperties = settings.get(AUTH_HOST_BASED_JWT_ISS_SETTING.getKey()) == null;
+        this.supportXRealIp = AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.get(settings);
+        this.defaultUser = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
         this.authService = authService;
         this.roles = roles;
     }
 
-    @Override
-    protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (msg instanceof HttpRequest httpRequest) {
-            handleHttpRequest(ctx, httpRequest);
-        } else if (msg instanceof HttpContent httpContent) {
-            handleHttpChunk(ctx, httpContent);
-        } else {
-            // neither http request nor http chunk - send upstream and see ...
-            ctx.fireChannelRead(msg);
-        }
-    }
-
-
-    private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest request) {
-        SSLSession session = getSession(ctx.channel());
-        Credentials credentials;
-        try {
-            credentials = credentialsFromRequest(request, session, settings);
-        } catch (Throwable t) {
-            ReferenceCountUtil.release(request);
-            sendUnauthorized(ctx.channel(), t.getMessage());
-            return;
-        }
-        Predicate<Role> rolePredicate = credentials.matchByToken(checkJwtProperties);
-        if (rolePredicate != null) {
-            Role role = roles.findUser(rolePredicate);
-            if (role != null) {
-                credentials.setUsername(role.name());
-            }
-        }
-
-        String username = credentials.username();
-        InetAddress address = addressFromRequestOrChannel(request, ctx.channel());
-        ConnectionProperties connectionProperties = new ConnectionProperties(credentials, address, Protocol.HTTP, session);
-
-        AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, connectionProperties);
-        if (authMethod == null) {
-            String errorMessage = String.format(
-                Locale.ENGLISH,
-                "No valid auth.host_based.config entry found for host \"%s\", user \"%s\", protocol \"%s\". Did you enable TLS in your client?",
-                address.getHostAddress(), username, Protocol.HTTP);
-            // HttpAuthUpstreamHandler has auto-release disabled,
-            // releasing request as we are not forwarding it.
-            ReferenceCountUtil.release(request);
-            sendUnauthorized(ctx.channel(), errorMessage);
-        } else {
-            try {
-                Role user = authMethod.authenticate(credentials, connectionProperties);
-                if (user != null && LOGGER.isTraceEnabled()) {
-                    LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".", username, authMethod.name());
+    /**
+     * On success the authenticated user is returned. On failure a {@code 401} response
+     * is written to {@code channel}, the connection is closed and {@code null} is returned,
+     * so the caller has to stop processing the request.
+     */
+    @Nullable
+    public Role authenticate(HttpRequest request, Channel channel) {
+        SSLSession session = getSession(channel);
+        // The password object is released when the credentials are closed.
+        try (Credentials credentials = credentialsFromRequest(request, session, defaultUser)) {
+            Predicate<Role> rolePredicate = credentials.matchByToken(checkJwtProperties);
+            if (rolePredicate != null) {
+                Role role = roles.findUser(rolePredicate);
+                if (role != null) {
+                    credentials.setUsername(role.name());
                 }
-                authorizedUser = username;
-                ctx.fireChannelRead(request);
-            } catch (Exception e) {
-                if (LOGGER.isInfoEnabled()) {
-                    LOGGER.info("{} authentication failed for user={} from connection={}",
-                                authMethod.name(), username, connectionProperties.address());
-                }
-                // HttpAuthUpstreamHandler has auto-release disabled,
-                // releasing request as we are not forwarding it.
-                ReferenceCountUtil.release(request);
-                sendUnauthorized(ctx.channel(), e.getMessage());
-            } finally {
-                // Release the password object.
-                credentials.close();
             }
-        }
-    }
+            String username = credentials.username();
+            InetAddress address = addressFromRequestOrChannel(request, channel);
+            ConnectionProperties connectionProperties =
+                new ConnectionProperties(credentials, address, Protocol.HTTP, session);
 
-    private void handleHttpChunk(ChannelHandlerContext ctx, HttpContent msg) {
-        if (authorizedUser == null) {
-            // We won't forward the message downstream, thus we have to release
-            msg.release();
-            sendUnauthorized(ctx.channel(), null);
-        } else {
-            ctx.fireChannelRead(msg);
+            AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, connectionProperties);
+            if (authMethod == null) {
+                throw new RuntimeException(String.format(
+                    Locale.ENGLISH,
+                    "No valid auth.host_based.config entry found for host \"%s\", user \"%s\", protocol \"%s\". Did you enable TLS in your client?",
+                    address.getHostAddress(), username, Protocol.HTTP));
+            }
+            Role user = authMethod.authenticate(credentials, connectionProperties);
+            if (user == null) {
+                throw new IllegalStateException(String.format(
+                    Locale.ENGLISH,
+                    "%s authentication didn't resolve a user for user \"%s\"",
+                    authMethod.name(), username));
+            }
+            return user;
+        } catch (Exception e) {
+            sendUnauthorized(channel, e.getMessage());
+            return null;
         }
     }
 
@@ -177,19 +142,14 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         } else {
             response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED);
         }
-        // "Tell" the browser to open the credentials popup
-        // It helps to avoid custom login page in AdminUI
+        // "Tell" the browser to open the credentials popup.
+        // It helps to avoid custom login page in AdminUI.
         response.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, WWW_AUTHENTICATE_REALM_MESSAGE);
         channel.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
     }
 
     @VisibleForTesting
-    boolean authorized() {
-        return authorizedUser != null;
-    }
-
-    @VisibleForTesting
-    static Credentials credentialsFromRequest(HttpRequest request, @Nullable SSLSession session, Settings settings) {
+    static Credentials credentialsFromRequest(HttpRequest request, @Nullable SSLSession session, String defaultUser) {
         String username = null;
         String authHeader = request.headers().get(HttpHeaderNames.AUTHORIZATION);
         if (authHeader != null) {
@@ -206,14 +166,13 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                 }
             }
             if (username == null) {
-                username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
+                username = defaultUser;
             }
         }
         return new Credentials(username, null);
     }
 
     private InetAddress addressFromRequestOrChannel(HttpRequest request, Channel channel) {
-        boolean supportXRealIp = AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.get(settings);
         if (supportXRealIp) {
             String realIPHeader = request.headers().get(AuthSettings.HTTP_HEADER_REAL_IP);
             if (realIPHeader == null) {
@@ -228,4 +187,3 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         return Netty4HttpServerTransport.getRemoteAddress(channel);
     }
 }
-

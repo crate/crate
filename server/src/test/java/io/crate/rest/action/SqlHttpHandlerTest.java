@@ -21,14 +21,13 @@
 
 package io.crate.rest.action;
 
-import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
-import static io.crate.role.metadata.RolesHelper.JWT_USER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,12 +46,17 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import io.crate.auth.AuthSettings;
+import io.crate.auth.AlwaysOKAuthentication;
+import io.crate.auth.Authentication;
+import io.crate.auth.AuthenticationMethod;
+import io.crate.auth.Credentials;
 import io.crate.auth.Protocol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.protocols.http.HttpAuthenticator;
 import io.crate.protocols.http.MainAndStaticFileHandler;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.crate.role.metadata.RolesHelper;
 import io.crate.session.Session;
 import io.crate.session.Sessions;
@@ -71,48 +75,11 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 
+@SuppressWarnings("resource")
 public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
 
-    @Test
-    public void testDefaultUserIfHttpHeaderNotPresent() {
-        SqlHttpHandler handler = new SqlHttpHandler(
-            Settings.EMPTY,
-            mock(Sessions.class),
-            _ -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(Role.CRATE_USER)
-        );
-
-        Role user = handler.userFromAuthHeader(null);
-        assertThat(user).isEqualTo(Role.CRATE_USER);
-    }
-
-    @Test
-    public void testSettingUserIfHttpHeaderNotPresent() {
-        Settings settings = Settings.builder()
-            .put(AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.getKey(), "trillian")
-            .build();
-        SqlHttpHandler handler = new SqlHttpHandler(
-            settings,
-            mock(Sessions.class),
-            _ -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(RolesHelper.userOf("trillian"))
-        );
-
-        Role user = handler.userFromAuthHeader(null);
-        assertThat(user.name()).isEqualTo("trillian");
-    }
-
-    @Test
-    public void testUserIfHttpBasicAuthIsPresent() {
-        SqlHttpHandler handler = new SqlHttpHandler(
-            Settings.EMPTY,
-            mock(Sessions.class),
-            _ -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(RolesHelper.userOf("Aladdin"))
-        );
-
-        Role user = handler.userFromAuthHeader("Basic QWxhZGRpbjpPcGVuU2VzYW1l");
-        assertThat(user.name()).isEqualTo("Aladdin");
+    private static HttpAuthenticator authenticator(Roles roles) {
+        return new HttpAuthenticator(Settings.EMPTY, new AlwaysOKAuthentication(roles), roles);
     }
 
     @Test
@@ -131,15 +98,16 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
         var mockedRequest = mock(FullHttpRequest.class);
         when(mockedRequest.headers()).thenReturn(new DefaultHttpHeaders());
 
+        Roles roles = () -> List.of(dummyUser);
         SqlHttpHandler handler = new SqlHttpHandler(
-            Settings.EMPTY,
             mockedSqlOperations,
             _ -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(dummyUser)
+            roles,
+            authenticator(roles)
         );
 
         // 1st call to ensureSession creates a session instance bound to 'dummyUser'
-        var session = handler.ensureSession(connectionProperties, mockedRequest);
+        var session = handler.ensureSession(dummyUser, connectionProperties, mockedRequest);
         verify(mockedRequest, Mockito.atLeast(1)).headers();
         assertThat(session.sessionSettings().authenticatedUser()).isEqualTo(dummyUser);
         assertThat(session.sessionSettings().searchPath().currentSchema()).contains("doc");
@@ -150,22 +118,9 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
         session.sessionSettings().setHashJoinEnabled(false);
 
         // test that the 2nd call to ensureSession will retrieve the session settings modified previously
-        session = handler.ensureSession(connectionProperties, mockedRequest);
+        session = handler.ensureSession(dummyUser, connectionProperties, mockedRequest);
         assertThat(session.sessionSettings().hashJoinsEnabled()).isFalse();
         assertThat(session.sessionSettings().searchPath().currentSchema()).contains("dummy_path");
-    }
-
-    @Test
-    public void test_resolve_user_from_jwt_token() {
-        SqlHttpHandler handler = new SqlHttpHandler(
-            Settings.EMPTY,
-            mock(Sessions.class),
-            _ -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(JWT_USER)
-        );
-
-        Role resolvedUser = handler.userFromAuthHeader("bearer " + JWT_TOKEN);
-        assertThat(resolvedUser.name()).isEqualTo(JWT_USER.name());
     }
 
     @Test
@@ -178,11 +133,12 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
         var sessions = mock(Sessions.class);
         when(sessions.newSession(any(), any(), any())).thenReturn(mockedSession);
 
+        Roles roles = () -> List.of(Role.CRATE_USER);
         SqlHttpHandler handler = new SqlHttpHandler(
-            Settings.EMPTY,
             sessions,
             _ -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(Role.CRATE_USER)
+            roles,
+            authenticator(roles)
         );
 
         // Imitate buffer holding results of partial success.
@@ -199,7 +155,7 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
         when(ctx.writeAndFlush(responseCaptor.capture(), eq(promise))).thenReturn(promise);
 
         // Create internal session as it shouldn't be null for the test.
-        var session = handler.ensureSession(null, request);
+        var session = handler.ensureSession(dummyUser, null, request);
         handler.sendResponse(session.sessionSettings(), ctx, request, Map.of(), resultBuffer, new CircuitBreakingException("CBE"));
 
         FullHttpResponse response = responseCaptor.getValue();
@@ -220,11 +176,12 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
         var sessions = mock(Sessions.class);
         when(sessions.newSession(any(), any(), any())).thenThrow(new RuntimeException("dummy"));
 
+        Roles roles = () -> List.of(Role.CRATE_USER);
         SqlHttpHandler sqlHttpHandler = new SqlHttpHandler(
-            Settings.EMPTY,
             sessions,
             _ -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(Role.CRATE_USER)
+            roles,
+            authenticator(roles)
         );
 
         EmbeddedChannel channel = new EmbeddedChannel(sqlHttpHandler);
@@ -236,6 +193,61 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_unauthenticated_request_is_rejected_with_401_and_released() {
+        var sessions = mock(Sessions.class);
+        Roles roles = List::of;
+        SqlHttpHandler handler = new SqlHttpHandler(
+            sessions,
+            _ -> new NoopCircuitBreaker("dummy"),
+            roles,
+            authenticator(roles)
+        );
+
+        EmbeddedChannel channel = new EmbeddedChannel(handler);
+        var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        channel.writeInbound(request);
+
+        verify(sessions, never()).newSession(any(), any(), any());
+        assertThat(request.refCnt()).isEqualTo(0);
+        FullHttpResponse response = channel.readOutbound();
+        try {
+            assertThat(response.status()).isEqualTo(HttpResponseStatus.UNAUTHORIZED);
+        } finally {
+            response.release();
+        }
+    }
+
+    @Test
+    public void test_session_uses_user_resolved_by_authenticator_not_the_trusted_default_user() {
+        Role limitedUser = RolesHelper.userOf("limited_user");
+        AuthenticationMethod certAuth = mock(AuthenticationMethod.class);
+        when(certAuth.authenticate(any(Credentials.class), any(ConnectionProperties.class))).thenReturn(limitedUser);
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.resolveAuthenticationType(any(), any(ConnectionProperties.class))).thenReturn(certAuth);
+
+        var sessions = mock(Sessions.class);
+        when(sessions.newSession(any(), any(), any())).thenThrow(new RuntimeException("stop after session creation"));
+
+        Roles roles = () -> List.of(Role.CRATE_USER, limitedUser);
+        SqlHttpHandler handler = new SqlHttpHandler(
+            sessions,
+            _ -> new NoopCircuitBreaker("dummy"),
+            roles,
+            new HttpAuthenticator(Settings.EMPTY, authentication, roles)
+        );
+
+        EmbeddedChannel channel = new EmbeddedChannel(handler);
+        var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        try {
+            channel.writeInbound(request);
+        } catch (Exception ignored) { }
+
+        verify(sessions).newSession(any(), any(), eq(limitedUser));
+        verify(sessions, never()).newSession(any(), any(), eq(Role.CRATE_USER));
+        assertThat(request.refCnt()).isEqualTo(0);
+    }
+
+    @Test
     public void test_send_response_failure_sent_to_a_client() throws Exception {
         var mockedSession = mock(Session.class);
         // Imitate that sendResponse failed for whatever reason
@@ -243,17 +255,19 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
         var sessions = mock(Sessions.class);
         when(sessions.newSession(any(), any(), any())).thenReturn(mockedSession);
 
+        Roles roles = () -> List.of(RolesHelper.userOf("crate"));
+        HttpAuthenticator authenticator = authenticator(roles);
         SqlHttpHandler handler = new SqlHttpHandler(
-            Settings.EMPTY,
             sessions,
             _ -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(RolesHelper.userOf("crate"))
+            roles,
+            authenticator
         );
 
         EmbeddedChannel channel = new EmbeddedChannel(
             handler,
             // Last handler that is catching all exceptions and sending error back to the client.
-            new MainAndStaticFileHandler("node", Path.of("a", "b"), null)
+            new MainAndStaticFileHandler("node", Path.of("a", "b"), null, authenticator)
         );
         var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
 
@@ -279,11 +293,12 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_channel_unregistered_during_execution_can_send_response() throws Exception {
         var sessions = SQLExecutor.of(clusterService).sqlOperations;
+        Roles roles = () -> List.of(Role.CRATE_USER);
         SqlHttpHandler handler = spy(new SqlHttpHandler(
-            Settings.EMPTY,
             sessions,
             _ -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(Role.CRATE_USER)
+            roles,
+            authenticator(roles)
         ));
 
         doAnswer(invocation -> {
@@ -316,4 +331,3 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
         }
     }
 }
-
