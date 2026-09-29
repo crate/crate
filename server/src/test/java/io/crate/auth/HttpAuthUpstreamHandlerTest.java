@@ -45,7 +45,6 @@ import org.elasticsearch.common.network.DnsResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
@@ -145,7 +144,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         EmbeddedChannel ch = new EmbeddedChannel(handlerWithHBA);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
 
         ch.writeInbound(request);
         ch.releaseInbound();
@@ -165,7 +164,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         EmbeddedChannel ch = new EmbeddedChannel(handlerWithHBA);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
 
         request.headers().add("X-Real-IP", "10.1.0.100");
 
@@ -187,7 +186,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
 
         request.headers().add("X-Real-IP", "10.1.0.100");
 
@@ -209,7 +208,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
 
         request.headers().add("X-Real-IP", "::1");
 
@@ -297,7 +296,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic Y3JhdGU6");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic Y3JhdGU6");
         ch.writeInbound(request);
         ch.releaseInbound();
 
@@ -311,7 +310,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
 
         ch.writeInbound(request);
         ch.releaseInbound();
@@ -333,7 +332,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add(HttpHeaderNames.AUTHORIZATION, "Bearer " + JWT_TOKEN);
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + JWT_TOKEN);
 
         ch.writeInbound(request);
         ch.releaseInbound();
@@ -366,7 +365,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         EmbeddedChannel ch = new EmbeddedChannel(handlerWithHBA);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add(HttpHeaderNames.AUTHORIZATION, "Bearer " + JWT_TOKEN);
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + JWT_TOKEN);
 
         ch.writeInbound(request);
         ch.releaseInbound();
@@ -375,7 +374,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     }
 
     @Test
-    public void test_user_authentication_with_jwt_token_verified_per_request() throws Exception {
+    public void test_user_authentication_with_jwt_token_verified_per_connection() throws Exception {
         Roles roles = () -> List.of(JWT_USER);
         Authentication authentication = mock(Authentication.class);
         AuthenticationMethod jwtAuth = mock(JWTAuthenticationMethod.class);
@@ -387,7 +386,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add(HttpHeaderNames.AUTHORIZATION, "Bearer " + JWT_TOKEN);
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + JWT_TOKEN);
 
         ch.writeInbound(request);
         ch.releaseInbound();
@@ -395,38 +394,10 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         assertThat(handler.authorized()).isTrue();
 
         HttpRequest request2 = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request2.headers().add(HttpHeaderNames.AUTHORIZATION, "Bearer " + JWT_TOKEN);
+        request2.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + JWT_TOKEN);
         ch.writeInbound(request2);
         ch.releaseInbound();
-        verify(jwtAuth, times(2)).authenticate(any(Credentials.class), any(ConnectionProperties.class));
-    }
-
-    @Test
-    public void test_auth_header_verified_per_request() throws Exception {
-        Authentication authentication = mock(Authentication.class);
-        StubRoleManager roles = new StubRoleManager();
-        AuthenticationMethod authMethod = mock(AuthenticationMethod.class);
-        when(authMethod.authenticate(any(Credentials.class), any(ConnectionProperties.class)))
-            .thenReturn(Role.CRATE_USER);
-        when(authentication.resolveAuthenticationType(Mockito.anyString(), any(ConnectionProperties.class)))
-            .thenReturn(authMethod);
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authentication, roles);
-        EmbeddedChannel ch = new EmbeddedChannel(handler);
-
-        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic Y3JhdGU6d3Jvbmc=");
-
-        ch.writeInbound(request);
-        ch.releaseInbound();
-
-        assertThat(handler.authorized()).isTrue();
-
-        HttpRequest request2 = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request2.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic Y3JhdGU6d3Jvbmc=");
-        ch.writeInbound(request2);
-        ch.releaseInbound();
-
-        verify(authMethod, times(2)).authenticate(any(Credentials.class), any(ConnectionProperties.class));
+        verify(jwtAuth, times(1)).authenticate(any(Credentials.class), any(ConnectionProperties.class));
     }
 
     @Test
@@ -463,7 +434,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultFullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
         int initialRefCount = request.content().refCnt();
         assertThat(initialRefCount).isGreaterThan(0);
 
