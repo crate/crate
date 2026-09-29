@@ -59,7 +59,7 @@ public final class QueryProfiler {
      * Returns a {@link QueryProfileBreakdown} for a scoring query.  Scoring queries (e.g. those
      * that are past the rewrite phase and are now being wrapped by createWeight() ) follow
      * a recursive progression.  We can track the dependency tree by a simple stack
-     *
+     * <p>
      * The only hiccup is that the first scoring query will be identical to the last rewritten
      * query, so we need to take special care to fix that
      *
@@ -98,7 +98,7 @@ public final class QueryProfiler {
 
     /**
      * Helper method to add a new node to the dependency tree.
-     *
+     * <p>
      * Initializes a new list in the dependency tree, saves the query and
      * generates a new {@link QueryProfileBreakdown} to track the timings of
      * this query
@@ -129,7 +129,7 @@ public final class QueryProfiler {
     /**
      * Removes the last (e.g. most recent) value on the stack
      */
-    public void pollLast() {
+    public synchronized void pollLast() {
         stack.pollLast();
     }
 
