@@ -29,4 +29,44 @@ public abstract class NumberType<T extends Number> extends DataType<T> {
     public abstract Integer scale();
 
     public abstract Integer precisionRadix();
+
+    public T and(T x, T y) {
+        throw new UnsupportedOperationException("and not implemented for " + getName());
+    }
+
+    public T xor(T x, T y) {
+        throw new UnsupportedOperationException("xor not implemented for " + getName());
+    }
+
+    public T add(T x, T y) {
+        throw new UnsupportedOperationException("add not implemented for " + getName());
+    }
+
+    public T zero() {
+        throw new UnsupportedOperationException("zero not implemented for " + getName());
+    }
+
+    public T modulo(T x, T y) {
+        throw new UnsupportedOperationException("modulo not implemented for " + getName());
+    }
+
+    public final T addExact(T x, T y) {
+        T r = add(x, y);
+        if (compare(and(xor(x, r), xor(y, r)), zero()) < 0) {
+            throw new ArithmeticException(getName() + " overflow");
+        }
+        return r;
+    }
+
+    public T subtractExact(T x, T y) {
+        throw new UnsupportedOperationException("subtract not implemented for " + getName());
+    }
+
+    public T multiplyExact(T x, T y) {
+        throw new UnsupportedOperationException("multiply not implemented for " + getName());
+    }
+
+    public T divideExact(T x, T y) {
+        throw new UnsupportedOperationException("divide not implemented for " + getName());
+    }
 }
