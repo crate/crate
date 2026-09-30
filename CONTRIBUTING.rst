@@ -114,6 +114,40 @@ Once that is complete, you should:
 General Tips
 ============
 
+What to contribute
+------------------
+
+Contributions for small and self-contained changes are always welcome. Examples
+for that are typo fixes or small documentation improvements and narrowly scoped
+bug fixes with an obvious solution.
+
+For feature contributions a good starting place are issues labelled
+"contributions welcome" or "good first issue". If you want to start work on a
+feature that has no issue, please create one first to discuss if the feature is
+in scope and to clarify potential approaches.
+
+Discuss the design before writing code
+--------------------------------------
+
+Small and self-contained changes mentioned in the previous section are examples
+where you can go straight to a pull request.
+
+For anything beyond that, please agree on the design with the Core maintainer
+team before you start coding. Open an issue (or comment on the existing one)
+describing the problem and your proposed approach, and wait for a maintainer to
+confirm the direction.
+
+This helps to:
+
+- Make sure the design fits CrateDB's overall architecture and philosophy.
+
+- Avoid conflicts with planned or ongoing work you may not be aware of.
+
+- Save you time by catching problems early, rather than after you've
+  written a large pull request that needs significant rework.
+
+If you're unsure whether your change needs a discussion first, or you have any
+questions or suggestions, just ask in an issue. We're happy to help!
 
 Meaningful Commit Messages
 --------------------------
