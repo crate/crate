@@ -22,6 +22,7 @@
 package io.crate.planner.optimizer.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static java.util.Comparator.comparing;
 
 import java.util.ArrayList;
@@ -47,24 +48,33 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.sql.tree.JoinType;
 
-public class EliminateCrossJoin implements Rule<JoinPlan> {
+public class EliminateCrossJoin implements Rule<LogicalPlan> {
 
-    private final Pattern<JoinPlan> pattern = typeOf(JoinPlan.class)
-        .with(j -> j.eliminateCrossJoinRuleIsApplied() == false);
+    private final Pattern<LogicalPlan> pattern = typeOf(LogicalPlan.class)
+        .with(p -> p instanceof JoinPlan j ? !j.eliminateCrossJoinRuleIsApplied() : p instanceof Filter)
+        .with(source(), typeOf(JoinPlan.class).with(j -> !j.eliminateCrossJoinRuleIsApplied()));
 
     @Override
-    public Pattern<JoinPlan> pattern() {
+    public Pattern<LogicalPlan> pattern() {
         return pattern;
     }
 
     @Override
-    public LogicalPlan apply(JoinPlan join,
+    public LogicalPlan apply(LogicalPlan filterOrJoin,
                              Captures captures,
                              Rule.Context context) {
+        // First, let's check if we have at least 3 tables.
+        JoinPlan join;
+        if (filterOrJoin instanceof Filter filter) {
+            join = (JoinPlan) context.resolvePlan().apply(filter.source());
+        } else {
+            join = (JoinPlan) filterOrJoin;
+        }
         if (join.relationNames().size() < 3) {
             return null;
         }
-        var joinGraph = JoinGraph.create(join, context.resolvePlan());
+
+        var joinGraph = JoinGraph.create(filterOrJoin, context.resolvePlan());
         if (!joinGraph.hasCrossJoin()) {
             return null;
         }
