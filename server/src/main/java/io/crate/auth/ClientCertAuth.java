@@ -26,7 +26,6 @@ import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jspecify.annotations.Nullable;
 
 import io.crate.protocols.SSL;
 import io.crate.protocols.postgres.ConnectionProperties;
@@ -44,9 +43,8 @@ public class ClientCertAuth implements AuthenticationMethod {
         this.roles = roles;
     }
 
-    @Nullable
     @Override
-    public Role authenticate(Credentials credentials, ConnectionProperties connProperties) {
+    public AuthToken authenticate(Credentials credentials, ConnectionProperties connProperties) {
         var username = credentials.username();
         assert username != null : "User name must be not null on cert authentication method";
         Certificate clientCert = connProperties.clientCert();
@@ -55,7 +53,7 @@ public class ClientCertAuth implements AuthenticationMethod {
             if (Objects.equals(username, commonName) || connProperties.protocol() == Protocol.TRANSPORT) {
                 Role user = roles.findUser(username);
                 if (user != null) {
-                    return user;
+                    return AuthToken.of(user);
                 }
             } else {
                 throw new RuntimeException(

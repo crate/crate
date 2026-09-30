@@ -62,7 +62,7 @@ class AuthenticationContext implements Closeable {
 
     @Nullable
     Role authenticate() {
-        Role user = authMethod.authenticate(credentials, connProperties);
+        Role user = authMethod.authenticate(credentials, connProperties).role();
         if (user != null && logger.isTraceEnabled()) {
             logger.trace("Authentication succeeded user \"{}\" and method \"{}\".", user.name(), authMethod.name());
         }

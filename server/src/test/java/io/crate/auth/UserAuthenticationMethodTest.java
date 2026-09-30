@@ -88,7 +88,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
     public void testTrustAuthentication() throws Exception {
         TrustAuthenticationMethod trustAuth = new TrustAuthenticationMethod(new CrateOrNullRoles());
         assertThat(trustAuth.name()).isEqualTo("trust");
-        assertThat(trustAuth.authenticate(new Credentials("crate", null), null).name()).isEqualTo("crate");
+        assertThat(trustAuth.authenticate(new Credentials("crate", null), null).role().name()).isEqualTo("crate");
 
         assertThatThrownBy(() -> trustAuth.authenticate(new Credentials("cr8", null), null))
             .hasMessage("trust authentication failed for user \"cr8\"");
@@ -100,7 +100,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         AuthenticationMethod alwaysOkAuthMethod = alwaysOkAuth.resolveAuthenticationType("crate", null);
 
         assertThat(alwaysOkAuthMethod.name()).isEqualTo("trust");
-        assertThat(alwaysOkAuthMethod.authenticate(new Credentials("crate", null), null).name()).isEqualTo("crate");
+        assertThat(alwaysOkAuthMethod.authenticate(new Credentials("crate", null), null).role().name()).isEqualTo("crate");
 
         assertThatThrownBy(() -> alwaysOkAuthMethod.authenticate(new Credentials("cr8", null), null))
             .hasMessage("trust authentication failed for user \"cr8\"");
@@ -110,7 +110,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(new CrateOrNullRoles());
         assertThat(pwAuth.name()).isEqualTo("password");
 
-        assertThat(pwAuth.authenticate(new Credentials("crate", "pw".toCharArray()), null).name()).isEqualTo("crate");
+        assertThat(pwAuth.authenticate(new Credentials("crate", "pw".toCharArray()), null).role().name()).isEqualTo("crate");
     }
 
     @Test
@@ -145,7 +145,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         assertThat(credentials.username()).isNull();
         credentials.setUsername(JWT_USER.name());
 
-        Role authenticatedRole = jwtAuth.authenticate(credentials, null);
+        Role authenticatedRole = jwtAuth.authenticate(credentials, null).role();
         assertThat(authenticatedRole).isNotNull();
         assertThat(authenticatedRole.name()).isEqualTo(JWT_USER.name());
     }
@@ -174,7 +174,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         Credentials credentials = new Credentials(JWT_TOKEN);
         credentials.setUsername(JWT_USER.name());
 
-        Role authenticatedRole = jwtAuth.authenticate(credentials, null);
+        Role authenticatedRole = jwtAuth.authenticate(credentials, null).role();
         assertThat(authenticatedRole.name()).isEqualTo(JWT_USER.name());
     }
 
@@ -309,7 +309,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         Credentials credentials = new Credentials(JWT_TOKEN);
         assertThat(credentials.username()).isNull();
         credentials.setUsername(JWT_USER.name());
-        assertThat(jwtAuth.authenticate(credentials, null)).isEqualTo(JWT_USER);
+        assertThat(jwtAuth.authenticate(credentials, null).role()).isEqualTo(JWT_USER);
     }
 
     @Test
@@ -422,7 +422,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
         Credentials credentials = new Credentials(JWT_TOKEN);
         credentials.setUsername(tokenUsername);
 
-        Role authenticatedRole = jwtAuth.authenticate(credentials, null);
+        Role authenticatedRole = jwtAuth.authenticate(credentials, null).role();
         assertThat(authenticatedRole).isNotNull();
         assertThat(authenticatedRole.name()).isEqualTo(tokenUsername);
     }

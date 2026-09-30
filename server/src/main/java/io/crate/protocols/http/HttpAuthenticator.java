@@ -42,6 +42,7 @@ import org.jspecify.annotations.Nullable;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
+import io.crate.auth.AuthenticationMethod.AuthToken;
 import io.crate.auth.Credentials;
 import io.crate.auth.Protocol;
 import io.crate.common.annotations.VisibleForTesting;
@@ -65,6 +66,8 @@ import io.netty.handler.codec.http.HttpVersion;
  * Each request-handling handler ({@link io.crate.rest.action.SqlHttpHandler},
  * {@link HttpBlobHandler}, {@link MainAndStaticFileHandler}) must authenticate
  * the request using this class before creating a session.
+ *
+ * Must not be shared across threads, since the last {@link AuthToken} is not thread safe.
  */
 public final class HttpAuthenticator {
 
@@ -77,6 +80,9 @@ public final class HttpAuthenticator {
     private final boolean supportXRealIp;
     private final String defaultUser;
     private final Roles roles;
+
+    @Nullable
+    private AuthToken lastAuthToken;
 
     public HttpAuthenticator(Settings settings, Authentication authService, Roles roles) {
         this.checkJwtProperties = settings.get(AUTH_HOST_BASED_JWT_ISS_SETTING.getKey()) == null;
@@ -115,14 +121,15 @@ public final class HttpAuthenticator {
                     "No valid auth.host_based.config entry found for host \"%s\", user \"%s\", protocol \"%s\". Did you enable TLS in your client?",
                     address.getHostAddress(), username, Protocol.HTTP));
             }
-            Role user = authMethod.authenticate(credentials, connectionProperties);
-            if (user == null) {
-                throw new IllegalStateException(String.format(
-                    Locale.ENGLISH,
-                    "%s authentication didn't resolve a user for user \"%s\"",
-                    authMethod.name(), username));
+
+            if (lastAuthToken != null) {
+                lastAuthToken = authMethod.renew(lastAuthToken, credentials);
+                if (lastAuthToken != null) {
+                    return lastAuthToken.role();
+                }
             }
-            return user;
+            lastAuthToken = authMethod.authenticate(credentials, connectionProperties);
+            return lastAuthToken.role();
         } catch (Exception e) {
             sendUnauthorized(channel, e.getMessage());
             return null;

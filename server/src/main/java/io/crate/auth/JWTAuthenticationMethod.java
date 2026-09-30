@@ -32,7 +32,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.settings.Settings;
-import org.jspecify.annotations.Nullable;
 
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkException;
@@ -77,7 +76,7 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
     }
 
     @Override
-    public @Nullable Role authenticate(Credentials credentials, ConnectionProperties connProperties) {
+    public AuthToken authenticate(Credentials credentials, ConnectionProperties connProperties) {
         var username = credentials.username();
         assert username != null : "User name must be resolved before authentication attempt";
         var decodedJWT = credentials.decodedToken();
@@ -127,7 +126,7 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
             );
         }
 
-        return user;
+        return AuthToken.of(user);
     }
 
     @Override

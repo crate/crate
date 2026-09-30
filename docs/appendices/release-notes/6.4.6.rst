@@ -112,3 +112,7 @@ Fixes
 - Fixed an issue where :ref:`ORDER BY <sql-select-order-by>` using a
   :ref:`REAL <type-real>` or :ref:`DOUBLE PRECISION <type-double-precision>`
   column returned values of ``Infinity`` as ``NULL``.
+
+- Fixed a performance regression introduced in :ref:`version_6.4.3` that
+  affected all queries running over ``HTTP`` protocol with password
+  authentication.
