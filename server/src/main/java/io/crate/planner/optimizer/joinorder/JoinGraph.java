@@ -162,6 +162,12 @@ public record JoinGraph(List<LogicalPlan> nodes,
         @Override
         public JoinGraph visitFilter(Filter filter, Map<Symbol, LogicalPlan> context) {
             JoinGraph source = filter.source().accept(this, context);
+            if (resolvePlan.apply(filter.source()) instanceof JoinPlan) {
+                EdgesAndFilters ef = collectEdgesAndFilters(filter.query(), context);
+                return source
+                    .withEdges(ef.edges)
+                    .withFilters(ef.filters);
+            }
             return source.withFilters(List.of(filter.query()));
         }
 
@@ -182,6 +188,16 @@ public record JoinGraph(List<LogicalPlan> nodes,
                     : result.withFilters(List.of(joinCondition));
             }
 
+            EdgesAndFilters ef = collectEdgesAndFilters(joinCondition, context);
+            return left
+                .joinWith(right)
+                .withEdges(ef.edges)
+                .withFilters(ef.filters);
+        }
+
+        record EdgesAndFilters(ArrayList<Symbol> filters, Map<LogicalPlan, List<Edge>> edges) {}
+
+        private static EdgesAndFilters collectEdgesAndFilters(Symbol joinCondition, Map<Symbol, LogicalPlan> context) {
             ArrayList<Symbol> filters = new ArrayList<>();
             Map<LogicalPlan, List<Edge>> edges;
             if (joinCondition == null) {
@@ -207,10 +223,8 @@ public record JoinGraph(List<LogicalPlan> nodes,
                 assert (!edges.isEmpty() || !filters.isEmpty())
                     : "Must have either edges or filters - otherwise we'd be dropping the join condition";
             }
-            return left
-                .joinWith(right)
-                .withEdges(edges)
-                .withFilters(filters);
+
+            return new EdgesAndFilters(filters, edges);
         }
 
         private static class EdgeCollector extends SymbolVisitor<Set<LogicalPlan>, Void> {

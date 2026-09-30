@@ -160,6 +160,9 @@ public class LogicalPlanner {
         new MergeAggregateRenameAndCollectToCount(),
         new MergeFilters(),
         new RewriteFilterOnCrossJoinToInnerJoin(),
+        // Moved above all `MoveFilterXYZ` rules and just after `RewriteFilterOnCrossJoinToInnerJoin`
+        // so EliminateCrossJoin can take advantage of the `Filter` above a `Join` and eliminate cross joins.
+        new EliminateCrossJoin(),
         new MoveFilterBeneathRename(),
         new MoveFilterBeneathEval(),
         new MoveFilterBeneathOrder(),
@@ -184,7 +187,6 @@ public class LogicalPlanner {
         new RewriteGroupByKeysLimitToLimitDistinct(),
         new RewriteDistinctAggToGroupBy(),
         new MoveConstantJoinConditionsBeneathJoin(),
-        new EliminateCrossJoin(),
         new EquiJoinToLookupJoin(),
         new RewriteLeftOuterJoinToHashJoin(),
         new RewriteRightOuterJoinToHashJoin(),
