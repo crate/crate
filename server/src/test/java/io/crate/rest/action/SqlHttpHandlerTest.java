@@ -49,6 +49,7 @@ import org.mockito.Mockito;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
+import io.crate.auth.AuthenticationMethod.AuthToken;
 import io.crate.auth.Credentials;
 import io.crate.auth.Protocol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -221,7 +222,8 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
     public void test_session_uses_user_resolved_by_authenticator_not_the_trusted_default_user() {
         Role limitedUser = RolesHelper.userOf("limited_user");
         AuthenticationMethod certAuth = mock(AuthenticationMethod.class);
-        when(certAuth.authenticate(any(Credentials.class), any(ConnectionProperties.class))).thenReturn(limitedUser);
+        when(certAuth.authenticate(any(Credentials.class), any(ConnectionProperties.class)))
+            .thenReturn(AuthToken.of(limitedUser));
         Authentication authentication = mock(Authentication.class);
         when(authentication.resolveAuthenticationType(any(), any(ConnectionProperties.class))).thenReturn(certAuth);
 
