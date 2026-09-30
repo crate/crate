@@ -556,8 +556,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 _ -> {},
                 (_, _) -> new AuthenticationMethod() {
                     @Override
-                    public Role authenticate(Credentials credentials, ConnectionProperties connProperties) {
-                        return RolesHelper.userOf("dummy");
+                    public AuthToken authenticate(Credentials credentials, ConnectionProperties connProperties) {
+                        return AuthToken.of(RolesHelper.userOf("dummy"));
                     }
 
                     @Override
@@ -607,8 +607,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 _ -> {},
                 (_, _) -> new AuthenticationMethod() {
                     @Override
-                    public Role authenticate(Credentials credentials, ConnectionProperties connProperties) {
-                        return RolesHelper.userOf("dummy");
+                    public AuthToken authenticate(Credentials credentials, ConnectionProperties connProperties) {
+                        return AuthToken.of(RolesHelper.userOf("dummy"));
                     }
 
                     @Override
@@ -832,8 +832,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 _ -> {},
                 (_, _) -> new AuthenticationMethod() {
                     @Override
-                    public Role authenticate(Credentials credentials, ConnectionProperties connProperties) {
-                        return RolesHelper.userOf("dummy");
+                    public AuthToken authenticate(Credentials credentials, ConnectionProperties connProperties) {
+                        return AuthToken.of(RolesHelper.userOf("dummy"));
                     }
 
                     @Override

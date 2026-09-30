@@ -70,7 +70,7 @@ public class ClientCertAuthTest extends ESTestCase {
     public void testLookupValidUserWithCert() throws Exception {
         ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of(exampleUser));
 
-        Role user = clientCertAuth.authenticate(new Credentials("example.com", null), sslConnWithCert);
+        Role user = clientCertAuth.authenticate(new Credentials("example.com", null), sslConnWithCert).role();
         assertThat(user).isEqualTo(exampleUser);
     }
 
