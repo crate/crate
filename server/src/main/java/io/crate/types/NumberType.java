@@ -50,7 +50,7 @@ public abstract class NumberType<T extends Number> extends DataType<T> {
         throw new UnsupportedOperationException("modulo not implemented for " + getName());
     }
 
-    public final T addExact(T x, T y) {
+    public T addExact(T x, T y) {
         T r = add(x, y);
         if (compare(and(xor(x, r), xor(y, r)), zero()) < 0) {
             throw new ArithmeticException(getName() + " overflow");

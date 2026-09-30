@@ -227,6 +227,11 @@ public class IntegerType extends IntegralType<Integer> implements Streamer<Integ
     }
 
     @Override
+    public Integer addExact(Integer x, Integer y) {
+        return Math.addExact(x, y);
+    }
+
+    @Override
     public Integer multiplyExact(Integer x, Integer y) {
         return Math.multiplyExact(x, y);
     }
