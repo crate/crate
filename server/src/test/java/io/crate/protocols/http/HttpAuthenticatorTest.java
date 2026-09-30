@@ -22,8 +22,11 @@
 package io.crate.protocols.http;
 
 import static io.crate.protocols.http.HttpAuthenticator.WWW_AUTHENTICATE_REALM_MESSAGE;
+import static io.crate.role.metadata.RolesHelper.DUMMY_USERS;
 import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
 import static io.crate.role.metadata.RolesHelper.JWT_USER;
+import static io.crate.role.metadata.RolesHelper.getSecureHash;
+import static io.crate.role.metadata.RolesHelper.userOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -37,6 +40,8 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import javax.net.ssl.SSLSession;
@@ -54,6 +59,7 @@ import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Credentials;
 import io.crate.auth.HostBasedAuthentication;
 import io.crate.auth.JWTAuthenticationMethod;
+import io.crate.auth.PasswordAuthenticationMethod;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.Roles;
@@ -359,25 +365,98 @@ public class HttpAuthenticatorTest extends ESTestCase {
     }
 
     @Test
-    public void test_auth_header_verified_per_request() throws Exception {
+    public void test_auth_header_verified_once_per_connection() throws Exception {
         Authentication authentication = mock(Authentication.class);
-        StubRoleManager roles = new StubRoleManager();
+        Role user = DUMMY_USERS.get("Ford");
+        StubRoleManager roles = new StubRoleManager(List.of(user), false);
         AuthenticationMethod authMethod = mock(AuthenticationMethod.class);
         when(authMethod.authenticate(any(Credentials.class), any(ConnectionProperties.class)))
-            .thenReturn(Role.CRATE_USER);
+            .thenReturn(user);
         when(authentication.resolveAuthenticationType(Mockito.anyString(), any(ConnectionProperties.class)))
             .thenReturn(authMethod);
+        when(authMethod.name()).thenReturn(PasswordAuthenticationMethod.NAME);
         HttpAuthenticator authenticator = new HttpAuthenticator(Settings.EMPTY, authentication, roles);
         EmbeddedChannel ch = new EmbeddedChannel();
 
         HttpRequest request = sqlRequest();
-        request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic Y3JhdGU6d3Jvbmc=");
+        String header = "Basic " + Base64.getEncoder().encodeToString("Ford:fords-password".getBytes(StandardCharsets.UTF_8));
+
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, header);
         authenticator.authenticate(request, ch);
 
         HttpRequest request2 = sqlRequest();
-        request2.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic Y3JhdGU6d3Jvbmc=");
+        request2.headers().add(HttpHeaderNames.AUTHORIZATION, header);
         authenticator.authenticate(request2, ch);
 
-        verify(authMethod, times(2)).authenticate(any(Credentials.class), any(ConnectionProperties.class));
+        verify(authMethod, times(1)).authenticate(any(Credentials.class), any(ConnectionProperties.class));
     }
+
+    @Test
+    public void test_same_user_different_provided_credentials_not_authenticated() throws Exception {
+        Role user = DUMMY_USERS.get("Ford");
+        List<Role> users = new ArrayList<>(List.of(user));
+        Roles roles = () -> users;
+        Settings hba = Settings.builder()
+            .put("auth.host_based.enabled", true)
+            .put("auth.host_based.config.0.user", "Ford")
+            .put("auth.host_based.config.0.method", "password").build();
+        var authenticator = new HttpAuthenticator(
+            Settings.EMPTY,
+            new HostBasedAuthentication(hba, roles, DnsResolver.SYSTEM, () -> "dummy"),
+            roles
+        );
+        EmbeddedChannel ch = new EmbeddedChannel();
+
+        HttpRequest request = sqlRequest();
+        String header = "Basic " + Base64.getEncoder().encodeToString("Ford:fords-password".getBytes(StandardCharsets.UTF_8));
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, header);
+        assertThat(authenticator.authenticate(request, ch)).isEqualTo(user);
+
+        // Someone claims to be Ford with incorrect credentials.
+        // Cache must not be used and user must not be authenticated.
+        request = sqlRequest();
+        header = "Basic " + Base64.getEncoder().encodeToString("Ford:wrong-password".getBytes(StandardCharsets.UTF_8));
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, header);
+        assertThat(authenticator.authenticate(request, ch)).isNull();
+    }
+
+    @Test
+    public void test_cached_leaked_password_not_authenticated_after_password_change() throws Exception {
+        Role user = DUMMY_USERS.get("Ford");
+        List<Role> users = new ArrayList<>(List.of(user));
+        Roles roles = () -> users;
+        Settings hba = Settings.builder()
+            .put("auth.host_based.enabled", true)
+            .put("auth.host_based.config.0.user", "Ford")
+            .put("auth.host_based.config.0.method", "password").build();
+        var authenticator = new HttpAuthenticator(
+            Settings.EMPTY,
+            new HostBasedAuthentication(hba, roles, DnsResolver.SYSTEM, () -> "dummy"),
+            roles
+        );
+        EmbeddedChannel ch = new EmbeddedChannel();
+
+        String oldHeader = "Basic " +
+            Base64.getEncoder().encodeToString("Ford:fords-password".getBytes(StandardCharsets.UTF_8));
+        String newHeader = "Basic " +
+            Base64.getEncoder().encodeToString("Ford:new-password".getBytes(StandardCharsets.UTF_8));
+
+        // First auth, add a cache entry.
+        HttpRequest request = sqlRequest();
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, oldHeader);
+        assertThat(authenticator.authenticate(request, ch)).isEqualTo(user);
+
+        // Password is updated (because it was leaked).
+        // The old password is still in the cache, but auth with old password must fail anyway.
+        Role updatedUser = userOf("Ford", getSecureHash("new-password"));
+        users.set(0, updatedUser);
+        request = sqlRequest();
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, oldHeader);
+        assertThat(authenticator.authenticate(request, ch)).isNull();
+
+        request = sqlRequest();
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, newHeader);
+        assertThat(authenticator.authenticate(request, ch)).isEqualTo(updatedUser);
+    }
+
 }

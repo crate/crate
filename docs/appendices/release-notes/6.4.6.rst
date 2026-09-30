@@ -90,3 +90,7 @@ Fixes
 
 - Fixed an issue that could cause logical replication of new partitions to fail
   after restarting publisher nodes.
+
+- Fixed a performance regression introduced in :ref:`version_6.4.3` that
+  affected all queries running over ``HTTP`` protocol with password
+  authentication.
