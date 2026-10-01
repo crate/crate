@@ -50,9 +50,11 @@ import io.crate.sql.tree.JoinType;
 
 public class EliminateCrossJoin implements Rule<LogicalPlan> {
 
-    private final Pattern<LogicalPlan> pattern = typeOf(LogicalPlan.class)
-        .with(p -> p instanceof JoinPlan j ? !j.eliminateCrossJoinRuleIsApplied() : p instanceof Filter)
-        .with(source(), typeOf(JoinPlan.class).with(j -> !j.eliminateCrossJoinRuleIsApplied()));
+    private final Pattern<LogicalPlan> pattern = typeOf(JoinPlan.class)
+        .with(p -> !p.eliminateCrossJoinRuleIsApplied())
+        .or()
+        .typeOf(Filter.class)
+        .with(source(), typeOf(JoinPlan.class).with(p -> !p.eliminateCrossJoinRuleIsApplied()));
 
     @Override
     public Pattern<LogicalPlan> pattern() {
