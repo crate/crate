@@ -21,10 +21,23 @@
 
 package io.crate.expression.scalar.string;
 
+import java.util.List;
+
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.WildcardQuery;
+
 import io.crate.data.Input;
+import io.crate.expression.predicate.IsNullPredicate;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
@@ -37,7 +50,10 @@ public final class EndsWithFunction extends Scalar<Boolean, String> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.builder("ends_with", FunctionType.SCALAR)
-                .argumentTypes(DataTypes.STRING.getTypeSignature(), DataTypes.STRING.getTypeSignature())
+                .argumentTypes(
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                )
                 .returnType(DataTypes.BOOLEAN.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
@@ -50,14 +66,62 @@ public final class EndsWithFunction extends Scalar<Boolean, String> {
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<String>[] args) {
+    public Boolean evaluate(
+        TransactionContext txnCtx,
+        NodeContext nodeCtx,
+        Input<String>[] args
+    ) {
         assert args.length == 2 : "ends_with takes exactly two arguments";
+
         var text = args[0].value();
         var suffix = args[1].value();
+
         if (text == null || suffix == null) {
             return null;
         }
 
         return text.endsWith(suffix);
+    }
+
+    @Override
+    public Query toQuery(Function function, LuceneQueryBuilder.Context context) {
+        List<Symbol> arguments = function.arguments();
+
+        if (arguments.get(0) instanceof Reference ref
+            && arguments.get(1) instanceof Literal<?> suffixLiteral
+            && ref.indexType() != IndexType.NONE) {
+
+            Object value = suffixLiteral.value();
+
+            assert value instanceof String
+                : "EndsWithFunction is registered for string types";
+
+            String suffix = (String) value;
+
+            if (suffix.isEmpty()) {
+                return IsNullPredicate.refExistsQuery(ref, context);
+            }
+
+            String escapedSuffix = escapeLuceneWildcard(suffix);
+
+            return new WildcardQuery(
+                new Term(ref.storageIdent(), "*" + escapedSuffix)
+            );
+        }
+
+        return null;
+    }
+
+    private static String escapeLuceneWildcard(String value) {
+        StringBuilder result = new StringBuilder(value.length());
+
+        for (char c : value.toCharArray()) {
+            if (c == '\\' || c == '*' || c == '?') {
+                result.append('\\');
+            }
+            result.append(c);
+        }
+
+        return result.toString();
     }
 }
