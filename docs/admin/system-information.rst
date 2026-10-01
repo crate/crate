@@ -1564,6 +1564,10 @@ Table schema
     not directly correspond to a user request. These entries do not have
     corresponding entries in ``sys.jobs``.
 
+.. NOTE::
+
+   The ``sys.operations`` table is subject to :ref:`jobs_table_permissions`.
+
 .. _sys-logs:
 
 Logs
@@ -1599,7 +1603,7 @@ have corresponding log tables: ``sys.jobs_log`` and ``sys.operations_log``.
 +------------------------------+---------------------------------------+------------------------------+
 | ``classification['type']``   | The general type of the statement.    | ``TEXT``                     |
 |                              | Types are: ``INSERT``, ``SELECT``,    |                              |
-|                              | ``UPDATE``, ``DELETE``,``COPY``,      |                              |
+|                              | ``UPDATE``, ``DELETE``, ``COPY``,     |                              |
 |                              | ``DDL``, and ``MANAGEMENT``.          |                              |
 +------------------------------+---------------------------------------+------------------------------+
 | ``classification['labels']`` | Labels are only available for certain | ``TEXT_ARRAY``               |
@@ -1689,6 +1693,10 @@ See :ref:`conf_collecting_stats` for information on how to configure logs.
 .. CAUTION::
 
    If you deactivate statistics tracking, the logs tables will be truncated.
+
+.. NOTE::
+
+   The ``sys.operations_log`` table is subject to :ref:`jobs_table_permissions`.
 
 .. _sys-checks:
 
@@ -2542,17 +2550,18 @@ but no privilege at all on ``doc.locations``, when ``john`` issues a
 
 .. _jobs_table_permissions:
 
-``sys`` jobs tables permissions
-===============================
+``sys`` jobs/operations tables permissions
+==========================================
 
-Accessing :ref:`sys.jobs <sys-jobs>` and :ref:`sys.jobs_log <sys-logs>` tables
-is subjected to the same privileges constraints as other tables. To query
-them, the current user needs to have the ``DQL`` privilege on that particular
-table, either directly or inherited from the ``SCHEMA`` or ``CLUSTER``.
+Accessing :ref:`sys.jobs <sys-jobs>`, :ref:`sys.operations <sys-operations>`,
+and their respective :ref:`log tables <sys-logs>` (``sys.jobs_log``,
+``sys.operations_log``), are subjected to the same privileges constraints
+as other tables. To query them, the current user needs to have the ``DQL``
+privilege on that particular table, either directly or inherited from the
+``SCHEMA`` or ``CLUSTER``.
 
-A user that doesn't have superuser privileges is allowed to retrieve only
-their own job logs entries, while a user with superuser privileges has access
-to all.
+Users are by default allowed to retrieve only their own log entries,
+while users with superuser or ``AL`` privileges have access to all.
 
 
 .. _pg_stats:
