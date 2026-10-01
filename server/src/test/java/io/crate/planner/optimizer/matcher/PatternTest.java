@@ -37,7 +37,9 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
+import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.Order;
 import io.crate.planner.optimizer.iterative.GroupReference;
 import io.crate.planner.optimizer.iterative.GroupReferenceResolver;
 
@@ -69,6 +71,14 @@ public class PatternTest {
     }
 
     @Test
+    public void test_with_source_matching_null() {
+        // Collect has no source.
+        Collect collect = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL);
+        var pattern = typeOf(Collect.class).with(source(), typeOf(Filter.class));
+        assertMatch(pattern, collect);
+    }
+
+    @Test
     public void test_capture() {
         Filter source = new Filter(mock(LogicalPlan.class), mock(Symbol.class));
         Filter filter = new Filter(source, mock(Symbol.class));
@@ -77,6 +87,32 @@ public class PatternTest {
         Match<Filter> match = pattern.accept(filter, Captures.empty());
         assertMatch(pattern, filter);
         assertThat(filter).isEqualTo(match.captures().get(capture));
+    }
+
+    @Test
+    public void test_or_pattern() {
+        // first matches
+        assertMatch(typeOf(Filter.class).or().typeOf(JoinPlan.class), mock(Filter.class));
+        // second matches
+        assertMatch(typeOf(Filter.class).or().typeOf(JoinPlan.class), mock(JoinPlan.class));
+
+        // mismatch in type
+        assertNoMatch(
+            typeOf(Filter.class).or().typeOf(JoinPlan.class),
+            mock(Collect.class)
+        );
+        // match in type, but mismatch in source type
+        assertNoMatch(
+            typeOf(Filter.class).with(source(), typeOf(JoinPlan.class))
+                .or().typeOf(JoinPlan.class),
+            new Filter(mock(Collect.class), mock(Symbol.class))
+        );
+        // partial match in both sides
+        assertNoMatch(
+            typeOf(Filter.class).with(source(), typeOf(JoinPlan.class))
+                .or().typeOf(Order.class).with(source(), typeOf(Collect.class)),
+            new Filter(mock(Collect.class), mock(Symbol.class))
+        );
     }
 
     @Test
@@ -133,10 +169,9 @@ public class PatternTest {
         assertThat(match.captures().get(capture)).isInstanceOf(Collect.class);
     }
 
-    private <T> Match<T> assertMatch(Pattern<T> pattern, T expectedMatch) {
+    private <T> void assertMatch(Pattern<T> pattern, T expectedMatch) {
         Match<T> match = pattern.accept(expectedMatch, Captures.empty());
         assertThat(match.value()).isEqualTo(expectedMatch);
-        return match;
     }
 
     private <T> void assertNoMatch(Pattern<T> pattern, Object expectedNoMatch) {
