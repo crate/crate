@@ -41,6 +41,10 @@ public abstract class Pattern<T> {
         return new WithPropertyPattern<>(this, propertyPredicate);
     }
 
+    public OrPattern.Builder<T> or() {
+        return new OrPattern.Builder<>(this);
+    }
+
     public Pattern<T> capturedAs(Capture<T> capture) {
         return new CapturePattern<>(capture, this);
     }
