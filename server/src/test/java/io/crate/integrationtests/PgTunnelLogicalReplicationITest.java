@@ -171,6 +171,108 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
     }
 
     @Test
+    public void test_partitioned_replication_resumes_after_publisher_restart() throws Exception {
+        publisherCluster = newCluster("publisher", Settings.EMPTY);
+        subscriberCluster = newCluster("subscriber", Settings.EMPTY);
+        publisher = publisherCluster.createSQLTransportExecutor();
+        subscriber = subscriberCluster.createSQLTransportExecutor();
+        publisher.exec("""
+            CREATE TABLE doc.tbl (id int, p int) PARTITIONED BY (p)
+            CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)
+            """);
+        publisher.exec("INSERT INTO doc.tbl VALUES (1, 0)");
+        publisher.ensureGreen();
+        publisher.exec("CREATE PUBLICATION pub1 FOR TABLE doc.tbl");
+
+        var address = publisherCluster.getInstance(PostgresNetty.class).boundAddress().publishAddress().address();
+        subscriber.exec(String.format(Locale.ENGLISH, """
+            CREATE SUBSCRIPTION sub1
+            CONNECTION 'crate://%s:%d?user=crate&mode=pg_tunnel'
+            PUBLICATION pub1
+            """, address.getHostString(), address.getPort()));
+        assertBusy(() -> {
+            try {
+                subscriber.exec("REFRESH TABLE doc.tbl");
+                assertThat(subscriber.exec("SELECT id, p FROM doc.tbl ORDER BY id")).hasRows("1| 0");
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        });
+
+        publisherCluster.fullRestart();
+        publisher = publisherCluster.createSQLTransportExecutor();
+        publisher.ensureGreen();
+        assertThat(publisherCluster.getInstance(PostgresNetty.class).boundAddress().publishAddress().address().getPort())
+            .isEqualTo(address.getPort());
+
+        publisher.exec("INSERT INTO doc.tbl VALUES (2, 0), (3, 1)");
+        assertBusy(() -> {
+            try {
+                subscriber.exec("REFRESH TABLE doc.tbl");
+                assertThat(subscriber.exec("SELECT id, p FROM doc.tbl ORDER BY id")).hasRows("1| 0", "2| 0", "3| 1");
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        });
+    }
+
+    @Test
+    public void test_partitioned_replication_resumes_after_subscriber_restart() throws Exception {
+        publisherCluster = newCluster("publisher", Settings.EMPTY);
+        subscriberCluster = newCluster("subscriber", Settings.EMPTY);
+        publisher = publisherCluster.createSQLTransportExecutor();
+        subscriber = subscriberCluster.createSQLTransportExecutor();
+        publisher.exec("""
+            CREATE TABLE doc.tbl (id int, p int) PARTITIONED BY (p)
+            CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)
+            """);
+        publisher.exec("INSERT INTO doc.tbl VALUES (1, 0)");
+        publisher.ensureGreen();
+        publisher.exec("CREATE PUBLICATION pub1 FOR TABLE doc.tbl");
+
+        var address = publisherCluster.getInstance(PostgresNetty.class).boundAddress().publishAddress().address();
+        subscriber.exec(String.format(Locale.ENGLISH, """
+            CREATE SUBSCRIPTION sub1
+            CONNECTION 'crate://%s:%d?user=crate&mode=pg_tunnel'
+            PUBLICATION pub1
+            """, address.getHostString(), address.getPort()));
+        assertBusy(() -> {
+            try {
+                subscriber.exec("REFRESH TABLE doc.tbl");
+                assertThat(subscriber.exec("SELECT id, p FROM doc.tbl ORDER BY id")).hasRows("1| 0");
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        });
+
+        subscriberCluster.fullRestart(new TestCluster.RestartCallback() {
+            @Override
+            public void onAllNodesStopped() throws Exception {
+                publisher.exec("INSERT INTO doc.tbl VALUES (2, 0), (3, 1)");
+            }
+        });
+        subscriber = subscriberCluster.createSQLTransportExecutor();
+        assertBusy(() -> {
+            try {
+                subscriber.exec("REFRESH TABLE doc.tbl");
+                assertThat(subscriber.exec("SELECT id, p FROM doc.tbl ORDER BY id")).hasRows("1| 0", "2| 0", "3| 1");
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        });
+
+        publisher.exec("INSERT INTO doc.tbl VALUES (4, 0), (5, 1)");
+        assertBusy(() -> {
+            try {
+                subscriber.exec("REFRESH TABLE doc.tbl");
+                assertThat(subscriber.exec("SELECT id, p FROM doc.tbl ORDER BY id")).hasRows("1| 0", "2| 0", "3| 1", "4| 0", "5| 1");
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        });
+    }
+
+    @Test
     public void test_cannot_create_subscription_with_invalid_user_password() throws Exception {
         publisherCluster = newCluster("publisher", Settings.builder()
             .put("auth.host_based.enabled", true)
