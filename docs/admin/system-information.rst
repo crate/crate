@@ -2678,6 +2678,11 @@ publications created in the cluster.
 |                  | Always ``true``.                         |             |
 +------------------+------------------------------------------+-------------+
 
+.. NOTE::
+
+   Superusers and users with the ``AL`` privilege see all publications.
+   Other users only see the publications they own.
+
 .. _pg_publication_tables:
 
 pg_publication_tables
@@ -2695,6 +2700,11 @@ contains tables replicated by a publication.
 +----------------+--------------------------------------+-------------+
 | ``tablename``  | Name of the table.                   | ``TEXT``    |
 +----------------+--------------------------------------+-------------+
+
+.. NOTE::
+
+   Superusers and users with the ``AL`` privilege see the tables of all
+   publications. Other users only see the tables of the publications they own.
 
 .. _pg_subscription:
 
