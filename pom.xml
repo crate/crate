@@ -394,6 +394,7 @@
         <module>libs/sql-parser</module>
         <module>libs/pgwire</module>
         <module>libs/azure-testing</module>
+        <module>libs/gcs-testing</module>
         <module>libs/opendal</module>
         <module>server</module>
         <module>plugins/es-analysis-common</module>
@@ -406,6 +407,7 @@
         <module>plugins/dns-discovery</module>
         <module>plugins/cr8-copy-s3</module>
         <module>plugins/crate-copy-azure</module>
+        <module>plugins/crate-copy-gcs</module>
         <module>extensions/functions</module>
         <module>extensions/lang-js</module>
         <module>extensions/jmx-monitoring</module>

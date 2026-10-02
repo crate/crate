@@ -327,6 +327,44 @@ For example:
 Using the ``az://`` scheme automatically sets the
 :ref:`shared <sql-copy-from-shared>` to ``true``.
 
+.. _sql-copy-from-gs:
+
+``gs``
+''''''
+
+You can use the ``gs://`` scheme to access files on `Google Cloud Storage`_.
+
+URI must look like ``gs://<bucket>/<path>``.
+
+For example:
+
+.. code-block:: text
+
+    gs://my-bucket/dir1/dir2/file1.json
+
+The following authentication parameters must be provided in the ``WITH``
+clause: :ref:`sql-copy-from-project-id`, :ref:`sql-copy-from-private-key-id`,
+:ref:`sql-copy-from-private-key`, :ref:`sql-copy-from-client-email`, and
+:ref:`sql-copy-from-client-id`. These correspond to the fields of a `GCS
+service account key`_.
+
+For example:
+
+.. code-block:: text
+
+    COPY t
+    FROM 'gs://my-bucket/dir1/dir2/file1.json'
+    WITH (
+        project_id = 'my-project',
+        private_key_id = 'key-id',
+        private_key = '-----BEGIN RSA PRIVATE KEY-----\n...',
+        client_email = 'sa@my-project.iam.gserviceaccount.com',
+        client_id = '12345'
+    )
+
+Using the ``gs://`` scheme automatically sets the
+:ref:`shared <sql-copy-from-shared>` to ``true``.
+
 .. _sql-copy-from-other-schemes:
 
 Other schemes
@@ -676,6 +714,47 @@ The ``WITH`` clause supports the following options:
 
       It must be provided if :ref:`sql-copy-from-key` is not provided.
 
+.. _sql-copy-from-project-id:
+
+**project_id**
+  | *Type:*    ``text``
+  | *Required for* :ref:`gs <sql-copy-from-gs>` *scheme*
+
+  The Google Cloud project ID from the service account key.
+
+.. _sql-copy-from-private-key-id:
+
+**private_key_id**
+  | *Type:*    ``text``
+  | *Required for* :ref:`gs <sql-copy-from-gs>` *scheme*
+
+  The private key ID from the service account key.
+
+.. _sql-copy-from-private-key:
+
+**private_key**
+  | *Type:*    ``text``
+  | *Required for* :ref:`gs <sql-copy-from-gs>` *scheme*
+
+  The PEM-encoded private key from the service account key. Use ``\n`` for
+  newlines within the key.
+
+.. _sql-copy-from-client-email:
+
+**client_email**
+  | *Type:*    ``text``
+  | *Required for* :ref:`gs <sql-copy-from-gs>` *scheme*
+
+  The service account email address.
+
+.. _sql-copy-from-client-id:
+
+**client_id**
+  | *Type:*    ``text``
+  | *Required for* :ref:`gs <sql-copy-from-gs>` *scheme*
+
+  The client ID from the service account key.
+
 .. _sql-copy-from-return-summary:
 
 ``RETURN SUMMARY``
@@ -732,7 +811,9 @@ inserted records.
 .. _Account Key: https://learn.microsoft.com/en-us/purview/sit-defn-azure-storage-account-key-generic#format
 .. _SAS: https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview
 .. _Docker volume: https://docs.docker.com/engine/storage/volumes/
+.. _GCS service account key: https://cloud.google.com/iam/docs/keys-create-delete
 .. _GeoJSON: https://geojson.org/
+.. _Google Cloud Storage: https://cloud.google.com/storage
 .. _globbing: https://en.wikipedia.org/wiki/Glob_(programming)
 .. _percent-encoding: https://en.wikipedia.org/wiki/Percent-encoding
 .. _URI Scheme: https://en.wikipedia.org/wiki/URI_scheme
