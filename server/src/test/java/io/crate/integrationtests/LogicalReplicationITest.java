@@ -155,13 +155,25 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
     @Test
     public void test_create_publication_for_concrete_table() {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
-        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
-        var response = executeOnPublisher(
-            "SELECT oid, p.pubname, pubowner, puballtables, schemaname, tablename, pubinsert, pubupdate, pubdelete" +
+        executeOnPublisher("CREATE USER pub_owner");
+        executeOnPublisher("GRANT AL TO pub_owner");
+        executeOnPublisher("GRANT DQL, DML, DDL ON TABLE doc.t1 TO pub_owner");
+        executeOnPublisher("CREATE USER al_user");
+        executeOnPublisher("GRANT AL TO al_user");
+        executeOnPublisher("CREATE USER other_user");
+        Roles roles = publisherCluster.getInstance(Roles.class);
+        executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE doc.t1", roles.getUser("pub_owner"));
+
+        String stmt = "SELECT oid, p.pubname, pubowner, puballtables, schemaname, tablename, pubinsert, pubupdate, pubdelete" +
             " FROM pg_publication p" +
             " JOIN pg_publication_tables t ON p.pubname = t.pubname" +
-            " ORDER BY p.pubname, schemaname, tablename");
-        assertThat(response).hasRows("-119974068| pub1| -450373579| false| doc| t1| true| true| true");
+            " ORDER BY p.pubname, schemaname, tablename";
+        String expected = "-756208810| pub1| 554991752| false| doc| t1| true| true| true";
+        // Visible to the owner, superusers and users with AL
+        assertThat(executeOnPublisherAsUser(stmt, roles.getUser("pub_owner"))).hasRows(expected);
+        assertThat(executeOnPublisher(stmt)).hasRows(expected);
+        assertThat(executeOnPublisherAsUser(stmt, roles.getUser("al_user"))).hasRows(expected);
+        assertThat(executeOnPublisherAsUser(stmt, roles.getUser("other_user"))).hasRowCount(0);
     }
 
     @Test
