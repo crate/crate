@@ -90,3 +90,9 @@ Fixes
 
 - Fixed an issue that could cause logical replication of new partitions to fail
   after restarting publisher nodes.
+
+- Fixed an issue that caused :ref:`pg_catalog.pg_publication <pg_publication>`
+  and :ref:`pg_catalog.pg_publication_tables <pg_publication_tables>` to only
+  show the publications owned by the current user, even for superusers and
+  users with the :ref:`AL <privilege_types_al>` privilege. Superusers and users
+  with ``AL`` can now see all publications.
