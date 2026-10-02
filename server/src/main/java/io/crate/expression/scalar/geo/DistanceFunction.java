@@ -27,10 +27,8 @@ import java.util.List;
 import org.apache.lucene.document.LatLonPoint;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.geo.GeoUtils;
-import org.elasticsearch.common.lucene.search.Queries;
 import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.data.Input;
@@ -39,6 +37,7 @@ import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.LtOperator;
 import io.crate.expression.operator.LteOperator;
+import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -92,6 +91,7 @@ public class DistanceFunction extends Scalar<Double, Point> {
         return GeoUtils.arcDistance(value1.getY(), value1.getX(), value2.getY(), value2.getX());
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx, NodeContext nodeCtx) {
         Symbol arg1 = symbol.arguments().get(0);
@@ -110,7 +110,7 @@ public class DistanceFunction extends Scalar<Double, Point> {
         }
 
         if (numLiterals == 2) {
-            return Literal.of(evaluate((Input) arg1, (Input) arg2));
+            return Literal.of(evaluate((Input<Point>) arg1, (Input<Point>) arg2));
         }
 
         // ensure reference is the first argument.
@@ -141,16 +141,24 @@ public class DistanceFunction extends Scalar<Double, Point> {
             // can't use distance filter without literal, fallback to genericFunction
             return null;
         }
+        Point pointValue = (Point) pointLiteral.value();
+        if (pointValue == null) {
+            // distance(p, NULL) is always NULL, the generic function filter handles that
+            return null;
+        }
+        String parentName = parent.name();
+        if (parentName.equals(IsNullPredicate.NAME)) {
+            // distance(p, point) is only NULL if p is NULL
+            return IsNullPredicate.refIsNullQuery(pointRef, context);
+        }
         List<Symbol> parentArgs = parent.arguments();
-        if (!(parentArgs.get(1) instanceof Literal<?> parentRhs)) {
+        if (parentArgs.size() != 2
+            || !(parentArgs.get(1) instanceof Literal<?> parentRhs)) {  
             // must be something like cmp(distance(..), non-literal) - fallback to genericFunction
             return null;
         }
         Double distance = DataTypes.DOUBLE.implicitCast(parentRhs.value());
-        String parentName = parent.name();
-        Point pointValue = (Point) pointLiteral.value();
-        String fieldName = pointRef.storageIdent();
-        return esV5DistanceQuery(parent, context, parentName, fieldName, distance, pointValue);
+        return esV5DistanceQuery(parent, context, parentName, pointRef, distance, pointValue);
     }
 
     /**
@@ -171,7 +179,7 @@ public class DistanceFunction extends Scalar<Double, Point> {
      *        ' - , _ _ _ ,  '
      *
      *  lt and lte -> match everything WITHIN distance
-     *  gt and gte -> match everything OUTSIDE distance
+     *  gt and gte -> match everything OUTSIDE distance, excluding rows where the point is NULL
      *
      *  eq distance ~ 0 -> match everything within distance + tolerance
      *
@@ -182,9 +190,10 @@ public class DistanceFunction extends Scalar<Double, Point> {
     private static Query esV5DistanceQuery(Function parentFunction,
                                            LuceneQueryBuilder.Context context,
                                            String parentOperatorName,
-                                           String columnName,
+                                           Reference pointRef,
                                            Double distance,
                                            Point lonLat) {
+        String columnName = pointRef.storageIdent();
         switch (parentOperatorName) {
             // We documented that using distance in the WHERE clause utilizes the index which isn't precise so treating
             // lte & lt the same should be acceptable
@@ -192,12 +201,20 @@ public class DistanceFunction extends Scalar<Double, Point> {
             case LtOperator.NAME:
                 return LatLonPoint.newDistanceQuery(columnName, lonLat.getY(), lonLat.getX(), distance);
             case GteOperator.NAME:
-                if (distance - GeoUtils.TOLERANCE <= 0.0d) {
-                    return MatchAllDocsQuery.INSTANCE;
+            case GtOperator.NAME: {
+                // distance(NULL, ...) should be NULL, so rows without a point must not match
+                Query pointExists = IsNullPredicate.refExistsQuery(pointRef, context);
+                if (pointExists == null) {
+                    return null;
                 }
-                // fall through
-            case GtOperator.NAME:
-                return Queries.not(LatLonPoint.newDistanceQuery(columnName, lonLat.getY(), lonLat.getX(), distance));
+                if (parentOperatorName.equals(GteOperator.NAME) && distance - GeoUtils.TOLERANCE <= 0.0d) {
+                    return pointExists;
+                }
+                return new BooleanQuery.Builder()
+                    .add(pointExists, BooleanClause.Occur.MUST)
+                    .add(LatLonPoint.newDistanceQuery(columnName, lonLat.getY(), lonLat.getX(), distance), BooleanClause.Occur.MUST_NOT)
+                    .build();
+            }
             case EqOperator.NAME:
                 return eqDistance(parentFunction, context, columnName, distance, lonLat);
             default:
@@ -222,5 +239,4 @@ public class DistanceFunction extends Scalar<Double, Point> {
             .add(LuceneQueryBuilder.genericFunctionFilter(parentFunction, context), BooleanClause.Occur.FILTER)
             .build();
     }
-
 }
