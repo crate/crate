@@ -96,3 +96,12 @@ Fixes
   show the publications owned by the current user, even for superusers and
   users with the :ref:`AL <privilege_types_al>` privilege. Superusers and users
   with ``AL`` can now see all publications.
+
+- Fixed an issue that caused a ``>`` or ``>=`` comparison on the
+  :ref:`distance <scalar-distance>` function in a ``WHERE`` clause, e.g.
+  ``WHERE distance(p, 'POINT (0 0)') > 100``, to also match rows where the
+  :ref:`GEO_POINT <data-types-geo-point>` column ``p`` is ``NULL``.
+
+- Fixed an issue that caused ``WHERE distance(p, ...) IS NULL`` to fail with an
+  ``IndexOutOfBoundsException``, and comparisons like
+  ``WHERE distance(p, NULL) > 100`` to fail with a ``NullPointerException``.
