@@ -24,8 +24,10 @@ package io.crate.expression.scalar.string;
 import java.util.List;
 
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.AutomatonQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.WildcardQuery;
+import org.apache.lucene.util.automaton.Automata;
+import org.apache.lucene.util.automaton.Operations;
 
 import io.crate.data.Input;
 import io.crate.expression.predicate.IsNullPredicate;
@@ -102,26 +104,14 @@ public final class EndsWithFunction extends Scalar<Boolean, String> {
                 return IsNullPredicate.refExistsQuery(ref, context);
             }
 
-            String escapedSuffix = escapeLuceneWildcard(suffix);
-
-            return new WildcardQuery(
-                new Term(ref.storageIdent(), "*" + escapedSuffix)
+            var automaton = Operations.determinize(
+                Operations.concatenate(Automata.makeAnyString(), Automata.makeString(suffix)),
+                Operations.DEFAULT_DETERMINIZE_WORK_LIMIT
             );
+            return new AutomatonQuery(new Term(ref.storageIdent(), suffix), automaton);
         }
 
         return null;
     }
 
-    private static String escapeLuceneWildcard(String value) {
-        StringBuilder result = new StringBuilder(value.length());
-
-        for (char c : value.toCharArray()) {
-            if (c == '\\' || c == '*' || c == '?') {
-                result.append('\\');
-            }
-            result.append(c);
-        }
-
-        return result.toString();
-    }
 }

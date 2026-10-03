@@ -23,9 +23,10 @@ package io.crate.expression.scalar.string;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.apache.lucene.search.AutomatonQuery;
 import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.WildcardQuery;
+import org.apache.lucene.util.automaton.CharacterRunAutomaton;
 import org.junit.Test;
 
 import io.crate.lucene.LuceneQueryBuilderTest;
@@ -45,10 +46,10 @@ public class EndsWithFunctionQueryTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void test_ends_with_creates_wildcard_query() {
+    public void test_ends_with_creates_automaton_query() {
         Query query = convert("ends_with(a1, 'abc')");
-        assertThat(query).isExactlyInstanceOf(WildcardQuery.class);
-        assertThat(query).hasToString("a1:*abc");
+        assertThat(query).isExactlyInstanceOf(AutomatonQuery.class);
+        assertSuffixMatches(query, "abc");
     }
 
     // Every non-NULL value ends with '', therefore all rows which have a value must match
@@ -73,10 +74,10 @@ public class EndsWithFunctionQueryTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void test_ends_with_on_columnstore_disabled_creates_wildcard_query() {
+    public void test_ends_with_on_columnstore_disabled_creates_automaton_query() {
         Query query = convert("ends_with(a3, 'abc')");
-        assertThat(query).isExactlyInstanceOf(WildcardQuery.class);
-        assertThat(query).hasToString("a3:*abc");
+        assertThat(query).isExactlyInstanceOf(AutomatonQuery.class);
+        assertSuffixMatches(query, "abc");
     }
 
     @Test
@@ -92,17 +93,19 @@ public class EndsWithFunctionQueryTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void test_ends_with_escapes_literal_wildcard_characters() {
-        String[][] cases = {
-            {"a*b", "*a\\*b"},
-            {"a?b", "*a\\?b"},
-            {"a\\b", "*a\\\\b"},
-            {"a\\*?b", "*a\\\\\\*\\?b"}
-        };
-        for (String[] testCase : cases) {
-            Query query = convert("ends_with(a1, $1)", testCase[0]);
-            assertThat(query).isExactlyInstanceOf(WildcardQuery.class);
-            assertThat(((WildcardQuery) query).getTerm().text()).isEqualTo(testCase[1]);
+    public void test_ends_with_treats_special_characters_as_literal_suffixes() {
+        for (String suffix : new String[] {"a*b", "a?b", "a\\b", "a\\*?b", "é😀", "aaa"}) {
+            Query query = convert("ends_with(a1, $1)", suffix);
+            assertThat(query).isExactlyInstanceOf(AutomatonQuery.class);
+            assertSuffixMatches(query, suffix);
+        }
+    }
+
+    private static void assertSuffixMatches(Query query, String suffix) {
+        var automaton = new CharacterRunAutomaton(((AutomatonQuery) query).getAutomaton());
+        for (String text : new String[] {suffix, "prefix" + suffix, "😀" + suffix, "", "unrelated",
+                                         suffix + "x", suffix.replace("*", "XYZ").replace("?", "Q")}) {
+            assertThat(automaton.run(text)).as("text=%s, suffix=%s", text, suffix).isEqualTo(text.endsWith(suffix));
         }
     }
 }
