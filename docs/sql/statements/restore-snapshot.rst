@@ -114,8 +114,9 @@ Parameters
   The name of the snapshot as ident.
 
 :table_ident:
-  The name (optionally schema-qualified) of an existing table that is to be
-  restored from the snapshot.
+  The name (optionally schema-qualified) of an existing table,
+  :ref:`foreign table <ref-create-foreign-table>` or :ref:`view <ddl-views>`
+  that is to be restored from the snapshot.
 
 :data_section:
   The section name of the data to be restored. Multiple sections can be
@@ -229,8 +230,18 @@ is restored to the cluster:
   Example: ``prefix_$1`` combined with default ``table_rename_pattern`` adds
   'prefix' to all restored table names.
 
+.. NOTE::
+
+   The ``schema_rename_pattern``, ``schema_rename_replacement``,
+   ``table_rename_pattern`` and ``table_rename_replacement`` options also apply
+   to :ref:`foreign tables <ref-create-foreign-table>` and
+   :ref:`views <ddl-views>`. A renamed foreign table still refers to its
+   original :ref:`server <ref-create-server>`. The query of a renamed view
+   isn't changed, so it still refers to the same relations as the original
+   view.
+
 .. CAUTION::
 
    Restore will abort with a failure if there is a name collision after
-   evaluating the rename operations, or if a table with the same name as the
-   rename target already exists.
+   evaluating the rename operations, or if a table, foreign table or view with
+   the same name as the rename target already exists.
