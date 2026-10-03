@@ -254,6 +254,9 @@ Administration and Operations
   Issuers that do not serve a discovery document are unaffected: CrateDB
   falls back to using ``iss`` as the JWK endpoint URL directly.
 
+- Added initial support for a Parquet foreign data wrapper
+  :ref:`parquet foreign data wrapper _administration-fdw-parquet`
+
 Client interfaces
 -----------------
 
