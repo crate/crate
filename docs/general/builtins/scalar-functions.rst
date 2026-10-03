@@ -776,6 +776,27 @@ Examples::
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-ends_with:
+
+``ends_with(string, suffix)``
+-----------------------------
+
+Returns ``true`` if ``string`` ends with ``suffix``, otherwise ``false``.
+Returns ``NULL`` if any of the arguments is ``NULL``.
+
+Returns: ``boolean``
+
+::
+
+    cr> SELECT ends_with('crate', 'te') AS ends_with;
+    +-----------+
+    | ends_with |
+    +-----------+
+    | TRUE      |
+    +-----------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-lpad:
 
 ``lpad('string1', len[, 'string2'])``
