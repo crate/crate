@@ -58,6 +58,7 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
+import org.elasticsearch.action.support.broadcast.BroadcastRequest.Target;
 import org.elasticsearch.cluster.ClusterInfo;
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.InternalClusterInfoService;
@@ -256,7 +257,8 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
 
             RelationName relationName = RelationName.fromIndexName(tableName);
             String indexUUID = resolveIndex(tableName).uuid();
-            var indicesStats = client().stats(new IndicesStatsRequest(relationName).store(true)).get();
+            var indicesStats = client().stats(new IndicesStatsRequest(new Target(
+                relationName, clusterService().state().metadata().getRelation(relationName).oid(), List.of())).store(true)).get();
             final List<ShardStats> shardStatses = indicesStats.getIndex(indexUUID).getShards();
 
             final long[] shardSizes = new long[shardStatses.size()];

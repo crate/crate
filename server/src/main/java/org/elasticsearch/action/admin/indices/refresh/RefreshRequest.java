@@ -25,8 +25,6 @@ import java.util.List;
 import org.elasticsearch.action.support.broadcast.BroadcastRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 
-import io.crate.metadata.PartitionName;
-
 /**
  * A refresh request making all operations performed since the last refresh available for search. The (near) real-time
  * capabilities depends on the index engine used. For example, the internal one requires refresh to be called, but by
@@ -37,8 +35,8 @@ import io.crate.metadata.PartitionName;
  */
 public class RefreshRequest extends BroadcastRequest {
 
-    public RefreshRequest(List<PartitionName> partitions) {
-        super(partitions);
+    public RefreshRequest(List<Target> targets) {
+        super(targets);
     }
 
     public RefreshRequest(StreamInput in) throws IOException {

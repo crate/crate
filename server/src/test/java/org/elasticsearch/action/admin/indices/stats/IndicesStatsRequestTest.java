@@ -24,10 +24,10 @@ import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 import java.util.List;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.support.broadcast.BroadcastRequest.Target;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 public class IndicesStatsRequestTest {
@@ -38,7 +38,7 @@ public class IndicesStatsRequestTest {
         RelationName relation = new RelationName("doc", "tbl");
         int tableOid = 1234;
         IndicesStatsRequest request = new IndicesStatsRequest(
-            new PartitionName(relation, List.of()), tableOid);
+            new Target(relation, tableOid, List.of())).clear().docs(true);
 
         var out = new BytesStreamOutput();
         out.setVersion(Version.V_6_5_0);
@@ -48,10 +48,13 @@ public class IndicesStatsRequestTest {
         in.setVersion(Version.V_6_5_0);
         IndicesStatsRequest streamed = new IndicesStatsRequest(in);
 
-        assertThat(streamed.tableOid()).isEqualTo(tableOid);
+        assertThat(streamed.targets().getFirst().tableOid()).isEqualTo(tableOid);
+        assertThat(streamed.docs()).isTrue();
+        assertThat(streamed.store()).isFalse();
+        assertThat(in.available()).isZero();
 
         // streaming to nodes with unsupported versions
-        request = new IndicesStatsRequest(new PartitionName(relation, List.of()), tableOid);
+        request = new IndicesStatsRequest(new Target(relation, tableOid, List.of())).clear().docs(true);
 
         out = new BytesStreamOutput();
         out.setVersion(Version.V_6_4_0);
@@ -61,6 +64,9 @@ public class IndicesStatsRequestTest {
         in.setVersion(Version.V_6_4_0);
         streamed = new IndicesStatsRequest(in);
 
-        assertThat(streamed.tableOid()).isEqualTo(OID_UNASSIGNED);
+        assertThat(streamed.targets().getFirst().tableOid()).isEqualTo(OID_UNASSIGNED);
+        assertThat(streamed.docs()).isTrue();
+        assertThat(streamed.store()).isFalse();
+        assertThat(in.available()).isZero();
     }
 }

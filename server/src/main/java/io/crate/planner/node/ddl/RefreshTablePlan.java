@@ -30,6 +30,7 @@ import java.util.function.Function;
 
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.TransportRefresh;
+import org.elasticsearch.action.support.broadcast.BroadcastRequest.Target;
 
 import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.SymbolEvaluator;
@@ -75,18 +76,18 @@ public class RefreshTablePlan implements Plan {
             subQueryResults
         );
 
-        ArrayList<PartitionName> toRefresh = new ArrayList<>();
+        ArrayList<Target> toRefresh = new ArrayList<>();
         for (Map.Entry<Table<Symbol>, DocTableInfo> table : analysis.tables().entrySet()) {
             var tableInfo = table.getValue();
             var tableSymbol = table.getKey();
             if (tableSymbol.partitionProperties().isEmpty()) {
-                toRefresh.add(new PartitionName(tableInfo.ident(), List.of()));
+                toRefresh.add(new Target(tableInfo.ident(), tableInfo.oid(), List.of()));
             } else {
                 var partitionName = PartitionName.ofAssignments(
                     tableInfo,
                     Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval)),
                     plannerContext.clusterState().metadata());
-                toRefresh.add(partitionName);
+                toRefresh.add(new Target(tableInfo.ident(), tableInfo.oid(), partitionName.values()));
             }
         }
 

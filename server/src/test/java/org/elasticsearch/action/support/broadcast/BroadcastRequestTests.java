@@ -22,15 +22,21 @@
 package org.elasticsearch.action.support.broadcast;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
+import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
+import org.elasticsearch.action.admin.indices.retention.SyncRetentionLeasesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.support.broadcast.BroadcastRequest.Target;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -40,6 +46,68 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 public class BroadcastRequestTests extends ESTestCase {
+
+    @Test
+    public void test_streaming_table_oid() throws Exception {
+        var partition = new PartitionName(new RelationName("doc", "tbl"), List.of());
+        for (var version : List.of(Version.V_6_4_0, Version.V_6_5_0)) {
+            for (int tableOid : new int[] { OID_UNASSIGNED, 1234 }) {
+                var request = new BroadcastRequest(List.of(new Target(partition.relationName(), tableOid, partition.values())));
+                var out = new BytesStreamOutput();
+                out.setVersion(version);
+                request.writeTo(out);
+                var in = out.bytes().streamInput();
+                in.setVersion(version);
+                var streamed = new BroadcastRequest(in);
+                assertThat(streamed.targets()).hasSize(1);
+                assertThat(streamed.targets().get(0).relationName()).isEqualTo(partition.relationName());
+                assertThat(streamed.targets().get(0).partitionValues()).isEqualTo(partition.values());
+                assertThat(streamed.targets().getFirst().tableOid()).isEqualTo(
+                    version.onOrAfter(Version.V_6_5_0) ? tableOid : OID_UNASSIGNED);
+                assertThat(in.available()).isZero();
+            }
+        }
+    }
+
+    @Test
+    public void test_multiple_targets_streaming_for_all_request_types() throws Exception {
+        var relation = new RelationName("doc", "parted");
+        var targets = List.of(
+            new Target(relation, 1234, List.of("first")),
+            new Target(relation, 1234, Collections.singletonList(null)),
+            new Target(new RelationName("doc", "other"), 5678, List.of())
+        );
+        for (var version : List.of(Version.V_5_10_0, Version.V_6_0_0, Version.V_6_4_0, Version.V_6_5_0)) {
+            var expected = version.onOrAfter(Version.V_6_5_0) ? targets : targets.stream()
+                .map(t -> new Target(t.relationName(), OID_UNASSIGNED, t.partitionValues())).toList();
+            assertThat(roundTrip(new BroadcastRequest(targets), BroadcastRequest::new, version).targets()).isEqualTo(expected);
+            assertThat(roundTrip(new RefreshRequest(targets), RefreshRequest::new, version).targets()).isEqualTo(expected);
+            assertThat(roundTrip(new SyncRetentionLeasesRequest(targets), SyncRetentionLeasesRequest::new, version).targets())
+                .isEqualTo(expected);
+            var merge = new ForceMergeRequest(targets).maxNumSegments(2).onlyExpungeDeletes(true).flush(false);
+            var streamed = roundTrip(merge, ForceMergeRequest::new, version);
+            assertThat(streamed.targets()).isEqualTo(expected);
+            assertThat(streamed.maxNumSegments()).isEqualTo(2);
+            assertThat(streamed.onlyExpungeDeletes()).isTrue();
+            assertThat(streamed.flush()).isFalse();
+            assertThat(streamed.forceMergeUUID()).isEqualTo(merge.forceMergeUUID());
+            assertThat(roundTrip(new BroadcastRequest(List.of()), BroadcastRequest::new, version).targets()).isEmpty();
+        }
+    }
+
+    private static <T extends BroadcastRequest> T roundTrip(T request, Writeable.Reader<T> reader, Version version)
+        throws Exception {
+        try (var out = new BytesStreamOutput()) {
+            out.setVersion(version);
+            request.writeTo(out);
+            try (var in = out.bytes().streamInput()) {
+                in.setVersion(version);
+                T streamed = reader.read(in);
+                assertThat(in.available()).isZero();
+                return streamed;
+            }
+        }
+    }
 
     private static List<PartitionName> partitions() {
         // Construct a bunch of relations, some with partitions, some with null values
@@ -90,7 +158,8 @@ public class BroadcastRequestTests extends ESTestCase {
         si.setVersion(Version.V_5_10_0);
         BroadcastRequest req = new BroadcastRequest(si);
 
-        assertThat(req.partitions).isEqualTo(partitions);
+        assertThat(req.targets()).isEqualTo(partitions.stream()
+            .map(p -> new Target(p.relationName(), OID_UNASSIGNED, p.values())).toList());
 
     }
 
@@ -99,7 +168,8 @@ public class BroadcastRequestTests extends ESTestCase {
     public void testPre60WriteStreaming() throws Exception {
 
         List<PartitionName> partitions = partitions();
-        BroadcastRequest broadcastRequest = new BroadcastRequest(partitions);
+        BroadcastRequest broadcastRequest = new BroadcastRequest(partitions.stream()
+            .map(p -> new Target(p.relationName(), 1234, p.values())).toList());
 
         BytesStreamOutput out = new BytesStreamOutput();
         out.setVersion(Version.V_5_10_0);

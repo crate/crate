@@ -38,6 +38,7 @@ import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeAction;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.retention.SyncRetentionLeasesAction;
 import org.elasticsearch.action.admin.indices.retention.SyncRetentionLeasesRequest;
+import org.elasticsearch.action.support.broadcast.BroadcastRequest.Target;
 import org.elasticsearch.action.support.broadcast.BroadcastResponse;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
@@ -99,7 +100,7 @@ public class OptimizeTablePlan implements Plan {
         );
 
         var settings = stmt.settings();
-        var toOptimize = stmt.partitions();
+        var toOptimize = stmt.targets();
 
         if (UPGRADE_SEGMENTS.get(settings)) {
             consumer.accept(InMemoryBatchIterator.of(new Row1(-1L), SentinelRow.SENTINEL), null);
@@ -122,13 +123,13 @@ public class OptimizeTablePlan implements Plan {
         }
     }
 
-    private CompletableFuture<BroadcastResponse> trySyncRetentionLeases(DependencyCarrier dependencies, List<PartitionName> partitions) {
+    private CompletableFuture<BroadcastResponse> trySyncRetentionLeases(DependencyCarrier dependencies, List<Target> targets) {
         var minNodeVersion = dependencies.clusterService().state().nodes().getMinNodeVersion();
         if (minNodeVersion.before(SyncRetentionLeasesAction.SYNC_RETENTION_LEASES_MINIMUM_VERSION)) {
             return CompletableFuture.completedFuture(BroadcastResponse.EMPTY_RESPONSE);
         }
         return dependencies.client()
-            .execute(SyncRetentionLeasesAction.INSTANCE, new SyncRetentionLeasesRequest(partitions));
+            .execute(SyncRetentionLeasesAction.INSTANCE, new SyncRetentionLeasesRequest(targets));
     }
 
     @VisibleForTesting
@@ -151,17 +152,17 @@ public class OptimizeTablePlan implements Plan {
         var settings = Settings.builder().put(genericProperties).build();
         validateSettings(settings, genericProperties);
 
-        List<PartitionName> toOptimize = new ArrayList<>();
+        List<Target> toOptimize = new ArrayList<>();
         for (Map.Entry<Table<Symbol>, TableInfo> table : optimizeTable.tables().entrySet()) {
             var tableInfo = table.getValue();
             var tableSymbol = table.getKey();
             if (tableSymbol.partitionProperties().isEmpty()) {
-                toOptimize.add(new PartitionName(tableInfo.ident(), List.of()));
+                toOptimize.add(new Target(tableInfo.ident(), tableInfo.oid(), List.of()));
             } else {
                 assert tableInfo instanceof DocTableInfo : "Only DocTableInfo cases can have partition properties";
                 DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
                 var partitionName = PartitionName.ofAssignments(docTableInfo, Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval)), metadata);
-                toOptimize.add(partitionName);
+                toOptimize.add(new Target(tableInfo.ident(), tableInfo.oid(), partitionName.values()));
             }
         }
 
@@ -177,16 +178,16 @@ public class OptimizeTablePlan implements Plan {
 
     public static class BoundOptimizeTable {
 
-        private final List<PartitionName> partitions;
+        private final List<Target> targets;
         private final Settings settings;
 
-        BoundOptimizeTable(List<PartitionName> partitions, Settings settings) {
-            this.partitions = partitions;
+        BoundOptimizeTable(List<Target> targets, Settings settings) {
+            this.targets = targets;
             this.settings = settings;
         }
 
-        public List<PartitionName> partitions() {
-            return partitions;
+        public List<Target> targets() {
+            return targets;
         }
 
         public Settings settings() {
