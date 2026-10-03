@@ -39,17 +39,34 @@ import org.jspecify.annotations.Nullable;
 import io.crate.Streamer;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.execution.engine.sort.LuceneSort;
+import io.crate.expression.reference.doc.lucene.NullSentinelValues;
+import io.crate.expression.symbol.LiteralValueFormatter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationLookup;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
+import io.crate.protocols.postgres.types.PGType;
+import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.server.xcontent.ServerXContentExtension;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 import io.crate.statistics.ColumnStatsSupport;
 
+/// Represents a type supported in CrateDB, either in-memory only or also for persistence (via [#storageSupport()]
+///
+/// A full data type implementation needs an implementation of this class and some extensions in:
+/// - [DataTypes]
+/// - [LiteralValueFormatter] if the DataType uses a new value type
+/// - [PGTypes] and a [PGType] implementation if necessary
+/// - [ServerXContentExtension] for outgoing HTTP streaming
+/// - [LuceneSort] if [#sortSupport()] returns [Sort#SORT_FIELD] and [NullSentinelValues]
+/// - `DataTypeTesting.getDataGenerator`
+/// - A test case extending `DataTypeTestCase`
+/// - `SQLTransportExecutor` - `toJdbcCompatObject` and `executeAndConvertResult`
 public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable, Comparator<T>, Accountable {
 
     /**
