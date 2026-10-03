@@ -114,6 +114,36 @@ Once that is complete, you should:
 General Tips
 ============
 
+Discuss the design before writing code
+--------------------------------------
+
+For anything beyond a small, self-contained change, please agree on the design
+with the Core maintainer team before you start coding. Open an issue (or comment
+on the existing one) describing the problem and your proposed approach, and wait
+for a maintainer to confirm the direction.
+
+This helps to:
+
+- Make sure the design fits CrateDB's overall architecture and philosophy.
+
+- Avoid conflicts with planned or ongoing work you may not be aware of.
+
+- Save you time by catching problems early, rather than after you've
+  written a large pull request that needs significant rework.
+
+Some situations where you can go straight to a pull request:
+
+- Typo fixes.
+
+- Documentation improvements.
+
+- Small bug fixes with an obvious solution.
+
+- Adding a function or syntax that PostgreSQL or the SQL standard already
+  defines, where the expected behaviour is clear and self-contained.
+
+If you're unsure whether your change needs a discussion first, or you have any
+questions or suggestions, just ask in an issue. We're happy to help!
 
 Meaningful Commit Messages
 --------------------------
