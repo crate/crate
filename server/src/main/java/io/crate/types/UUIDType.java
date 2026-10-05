@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
@@ -226,6 +227,7 @@ public class UUIDType extends DataType<UUID> implements FixedWidthType, Streamer
             if (!isIndexed) {
                 return null;
             }
+            Collections.sort(nonNullValues);
             PointInSetQuery.Stream stream = new PointInSetQuery.Stream() {
 
                 int idx = 0;

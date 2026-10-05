@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.lucene.document.ShapeField;
 import org.apache.lucene.search.BooleanClause;
@@ -1130,6 +1131,27 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
             assertThat(tester.runQuery("a", "a = 'a    '")).containsExactly("a  ");
             assertThat(tester.runQuery("a", "a = '     '")).containsExactly("   ", "   ");
             assertThat(tester.runQuery("a", "a = e'\na'")).containsExactly("\na ");
+        }
+    }
+
+    @Test
+    public void test_any_on_uuid() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (x uuid)");
+
+        UUID val1 = UUID.fromString("5f0b6b4e-6d2a-4a55-9b0e-1c9a3f2d7e41");
+        UUID val2 = UUID.fromString("0c1a1f6e-8b55-4f0a-9d3e-2b6c7a8e9f10");
+        builder.indexValues("x", val1);
+        builder.indexValues("x", val2);
+        try (QueryTester tester = builder.build()) {
+            assertThat(tester.runQuery("x", "x = any([?, ?])", val1, val2))
+                .containsExactlyInAnyOrder(val1, val2);
+
+            assertThat(tester.runQuery("x", "x = any([?, ?])", val2, val1))
+                .containsExactlyInAnyOrder(val1, val2);
         }
     }
 }
