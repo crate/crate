@@ -47,7 +47,7 @@ Fixes
 =====
 
 - Fixed an issue that could cause ``= ANY (...)`` or ``IN (...)`` expressions to
-  fail on columns of type ``UUID``.
+  fail on columns of type ``UUID`` or ``NUMERIC``.
 
 - Fixed a rounding error if casting timestamp or long values before 1970-01-01
   to ``date``.
