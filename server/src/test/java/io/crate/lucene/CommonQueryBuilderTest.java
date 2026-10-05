@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import java.util.function.Supplier;
 
 import org.apache.lucene.document.ShapeField;
 import org.apache.lucene.search.BooleanClause;
@@ -1135,15 +1135,28 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void test_any_on_uuid() throws Exception {
+    public void test_any_is_value_order_independent() throws Exception {
+        for (DataType<?> type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
+            if (type.equals(DataTypes.GEO_POINT) || type.id() == ObjectType.ID) {
+                // - point doc-value storage changes/looses precision and would fail the assertion
+                // - object type is inner type dependent
+                continue;
+            }
+            assert_any_is_value_order_independent(type);
+        }
+    }
+
+    private <T> void assert_any_is_value_order_independent(DataType<T> type) throws Exception {
+        Supplier<T> dataGenerator = DataTypeTesting.getDataGenerator(type);
+        T val1 = dataGenerator.get();
+        T val2 = dataGenerator.get();
+        String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
         QueryTester.Builder builder = new QueryTester.Builder(
             THREAD_POOL,
             clusterService,
             Version.CURRENT,
-            "create table tbl (x uuid)");
+            "create table tbl (x " + typeDefinition + ")");
 
-        UUID val1 = UUID.fromString("5f0b6b4e-6d2a-4a55-9b0e-1c9a3f2d7e41");
-        UUID val2 = UUID.fromString("0c1a1f6e-8b55-4f0a-9d3e-2b6c7a8e9f10");
         builder.indexValues("x", val1);
         builder.indexValues("x", val2);
         try (QueryTester tester = builder.build()) {

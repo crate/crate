@@ -269,9 +269,13 @@ public class NumericEqQuery {
     }
 
     private static List<BigDecimal> filterOutOfBoundsAndSetScale(List<BigDecimal> values, int scale) {
-        return values.stream().map(val -> {
-            var scaledDown = val.setScale(scale, RoundingMode.DOWN);
-            return scaledDown.compareTo(val) == 0 ? scaledDown : null;
-        }).filter(Objects::nonNull).toList();
+        return values.stream()
+            .map(val -> {
+                var scaledDown = val.setScale(scale, RoundingMode.DOWN);
+                return scaledDown.compareTo(val) == 0 ? scaledDown : null;
+            })
+            .filter(Objects::nonNull)
+            .sorted()
+            .toList();
     }
 }
