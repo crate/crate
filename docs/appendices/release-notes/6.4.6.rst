@@ -46,6 +46,11 @@ series.
 Fixes
 =====
 
+- Fixed an issue that could cause PostgreSQL wire protocol clients to receive an
+  error like ``server sent data ("D" message) without prior row description ("T"
+  message)`` if executing write operations followed by a read operation using
+  pipelining.
+
 - Fixed an issue that could cause ``= ANY (...)`` or ``IN (...)`` expressions to
   fail on columns of type ``UUID`` or ``NUMERIC``.
 
