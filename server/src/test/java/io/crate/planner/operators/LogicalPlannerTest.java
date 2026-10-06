@@ -1096,6 +1096,29 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
+    @Test
+    public void test_cross_join_with_inner_join_and_left_join() {
+        LogicalPlan plan = sqlExecutor.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z, t4.id
+            FROM t1
+            CROSS JOIN t2
+            JOIN t3 ON t1.x = t3.z AND t2.y = t3.z
+            LEFT JOIN t4 ON t3.z = t4.id;
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "Eval[x, y, z, id]",
+            "  └ HashJoin[LEFT | (z = id)]",
+            "    ├ HashJoin[INNER | (y = z)]",
+            "    │  ├ HashJoin[INNER | (x = z)]",
+            "    │  │  ├ Collect[doc.t1 | [x] | true]",
+            "    │  │  └ Collect[doc.t3 | [z] | true]",
+            "    │  └ Collect[doc.t2 | [y] | true]",
+            "    └ Collect[doc.t4 | [id] | true]"
+        );
+    }
+
     /**
      * Related to https://github.com/crate/crate/issues/20120
      */
