@@ -618,10 +618,16 @@ public class Session implements AutoCloseable {
 
     public CompletableFuture<?> sync(boolean forceBulk) {
         if (activeExecution == null) {
-            return triggerDeferredExecutions(forceBulk);
+            CompletableFuture<?> result = triggerDeferredExecutions(forceBulk);
+            activeExecution = result;
+            return result.whenComplete((_, _) -> {
+                if (activeExecution == result) {
+                    activeExecution = null;
+                }
+            });
         } else {
             LOGGER.debug("method=sync activeExecution={}", activeExecution);
-            var result = activeExecution;
+            CompletableFuture<?> result = activeExecution;
             activeExecution = null;
             return result;
         }
