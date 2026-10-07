@@ -88,7 +88,7 @@ public class DoubleType extends NumberType<Double> implements FixedWidthType, St
 
                 double upper;
                 if (upperTerm == null) {
-                    upper = Double.POSITIVE_INFINITY;
+                    upper = Double.NaN;
                 } else {
                     upper = includeUpper ? upperTerm : DoublePoint.nextDown(upperTerm);
                 }

@@ -88,7 +88,7 @@ public class FloatType extends NumberType<Float> implements Streamer<Float>, Fix
 
                 float upper;
                 if (upperTerm == null) {
-                    upper = Float.POSITIVE_INFINITY;
+                    upper = Float.NaN;
                 } else {
                     upper = includeUpper ? upperTerm : FloatPoint.nextDown(upperTerm);
                 }
