@@ -610,7 +610,7 @@ public class Node implements Closeable {
                 pageCacheRecycler,
                 nettyBootstrap
             );
-            RemoteClusters remoteClusters = new RemoteClusters(settings, threadPool, pgClientFactory, transportService);
+            RemoteClusters remoteClusters = new RemoteClusters(settings, pgClientFactory, transportService);
             resourcesToClose.add(remoteClusters);
 
             final LogicalReplicationSettings logicalReplicationSettings = new LogicalReplicationSettings(

@@ -46,4 +46,8 @@ series.
 Fixes
 =====
 
-None
+- Fixed an issue where a logical replication subscription's active connection
+  could be unexpectedly closed when an earlier connection attempt for a
+  subscription with the same name failed afterwards. As a consequence, both
+  data replication and metadata tracking could stop for the affected
+  subscription.
