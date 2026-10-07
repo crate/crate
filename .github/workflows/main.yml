@@ -43,6 +43,7 @@ jobs:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
         run: |
           mvn test \
+            -Dtoolchain.skip=true \
             -Dtests.crate.run-windows-incompatible=true \
             -DforkCount=2 \
             -DthreadCount=2 \
@@ -70,7 +71,7 @@ jobs:
           cache: maven
       - name: Run forbiddenapis:check
         run: |
-          mvn compile forbiddenapis:check
+          mvn -Dtoolchain.skip=true compile forbiddenapis:check
 
   checkstyle:
     name: checkstyle
@@ -85,4 +86,4 @@ jobs:
           java-version: "25.0.3"
           distribution: "temurin"
       - name: Run checkstyle
-        run: mvn compile checkstyle:checkstyle
+        run: mvn -Dtoolchain.skip=true compile checkstyle:checkstyle
