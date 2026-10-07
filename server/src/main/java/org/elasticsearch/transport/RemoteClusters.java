@@ -99,20 +99,21 @@ public class RemoteClusters implements Closeable {
                 transportService
             );
             remoteClusters.put(name, remoteCluster);
-        }
-        var clientFuture = remoteCluster.connectAndGetClient();
-        var finalRemoteCluster = remoteCluster;
-        return clientFuture.whenComplete((c, err) -> {
-            if (err != null) {
-                synchronized (this) {
-                    // Only remove the RemoteCluster instance on which connectAndGetClient() was called.
-                    // Another thread may have already replaced the instance registered under this name.
-                    if (remoteClusters.get(name) == finalRemoteCluster) {
-                        remove(name);
+            var finalRemoteCluster = remoteCluster;
+            return remoteCluster.connectAndGetClient().whenComplete((c, err) -> {
+                if (err != null) {
+                    synchronized (this) {
+                        // Only remove the RemoteCluster instance on which connectAndGetClient() was called.
+                        // Another thread may have already replaced the instance registered under this name.
+                        if (remoteClusters.get(name) == finalRemoteCluster) {
+                            remove(name);
+                        }
                     }
                 }
-            }
-        });
+            });
+        } else {
+            return remoteCluster.getClient();
+        }
     }
 
     public synchronized void remove(String subscriptionName) {
