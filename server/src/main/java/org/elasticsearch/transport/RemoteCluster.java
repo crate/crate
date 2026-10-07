@@ -31,7 +31,7 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.io.IOUtils;
 import io.crate.protocols.postgres.PgClient;
@@ -64,31 +64,25 @@ public class RemoteCluster implements Closeable {
     private final ConnectionInfo connectionInfo;
     private final TransportService transportService;
     private final ConnectionStrategy connectionStrategy;
-    private final ThreadPool threadPool;
     private final Settings settings;
     private final List<Closeable> toClose = new ArrayList<>();
     private final PgClientFactory pgClientFactory;
 
-    private volatile Client client;
+    @Nullable
+    private volatile CompletableFuture<Client> clientFuture;
 
 
     public RemoteCluster(String name,
                          Settings settings,
                          ConnectionInfo connectionInfo,
                          PgClientFactory pgClientFactory,
-                         ThreadPool threadPool,
                          TransportService transportService) {
         this.settings = settings;
-        this.threadPool = threadPool;
         this.clusterName = name;
         this.connectionInfo = connectionInfo;
         this.pgClientFactory = pgClientFactory;
         this.transportService = transportService;
         this.connectionStrategy = connectionInfo.mode();
-    }
-
-    public Client client() {
-        return client;
     }
 
     @Override
@@ -97,19 +91,23 @@ public class RemoteCluster implements Closeable {
     }
 
     public CompletableFuture<Client> connectAndGetClient() {
+        if (clientFuture != null) {
+            return clientFuture;
+        }
         synchronized (this) {
-            Client currentClient = client;
-            if (currentClient != null) {
-                return CompletableFuture.completedFuture(currentClient);
+            if (clientFuture == null) {
+                clientFuture = switch (connectionStrategy) {
+                    case SNIFF -> connectSniff();
+                    case PG_TUNNEL -> connectPgTunnel();
+                };
             }
         }
-        var futureClient = switch (connectionStrategy) {
-            case SNIFF -> connectSniff();
-            case PG_TUNNEL -> connectPgTunnel();
-        };
-        return futureClient.whenComplete((c, err) -> {
-            client = c;
-        });
+        return clientFuture;
+    }
+
+    @Nullable
+    public CompletableFuture<Client> getClient() {
+        return clientFuture;
     }
 
     private CompletableFuture<Client> connectPgTunnel() {
