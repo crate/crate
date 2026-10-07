@@ -21,6 +21,7 @@
 
 package org.elasticsearch.transport;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.replication.logical.metadata.ConnectionInfo;
@@ -28,30 +29,27 @@ import io.crate.replication.logical.metadata.ConnectionInfo;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 
 public class RemoteClusters implements Closeable {
 
     private final Settings settings;
-    private final ThreadPool threadPool;
     private final TransportService transportService;
     private final Map<String, RemoteCluster> remoteClusters = new HashMap<>();
     private final PgClientFactory pgClientFactory;
     private boolean closed;
 
     public RemoteClusters(Settings settings,
-                          ThreadPool threadPool,
                           PgClientFactory pgClientFactory,
                           TransportService transportService) {
         this.settings = settings;
-        this.threadPool = threadPool;
         this.pgClientFactory = pgClientFactory;
         this.transportService = transportService;
     }
@@ -77,7 +75,16 @@ public class RemoteClusters implements Closeable {
         if (remoteCluster == null) {
             throw new NoSuchRemoteClusterException(subscriptionName);
         }
-        return remoteCluster.client();
+        var clientFuture = remoteCluster.getClient();
+        if (clientFuture == null || clientFuture.isDone() == false) {
+            throw new NoSuchRemoteClusterException(subscriptionName);
+        }
+        try {
+            // The future is already done, so join() does not block.
+            return clientFuture.join();
+        } catch (CompletionException e) {
+            throw Exceptions.toRuntimeException(e.getCause());
+        }
     }
 
     public synchronized CompletableFuture<Client> connect(String name,
@@ -92,15 +99,20 @@ public class RemoteClusters implements Closeable {
                 settings,
                 connectionInfo,
                 pgClientFactory,
-                threadPool,
                 transportService
             );
             remoteClusters.put(name, remoteCluster);
         }
-        var clientFuture = remoteCluster.connectAndGetClient();
-        return clientFuture.whenComplete((c, err) -> {
+        final RemoteCluster finalRemoteCluster = remoteCluster;
+        return remoteCluster.connectAndGetClient().whenComplete((c, err) -> {
             if (err != null) {
-                remove(name);
+                synchronized (this) {
+                    // Only remove the RemoteCluster instance on which connectAndGetClient() was called.
+                    // Another thread may have already replaced the instance registered under this name.
+                    if (remoteClusters.get(name) == finalRemoteCluster) {
+                        remove(name);
+                    }
+                }
             }
         });
     }
