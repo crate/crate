@@ -296,7 +296,7 @@ public class PgCatalogITest extends IntegTestCase {
             "optimizer_remove_order_beneath_insert| true| Indicates if the optimizer rule RemoveOrderBeneathInsert is activated.| NULL| NULL",
             "optimizer_remove_redundant_eval| true| Indicates if the optimizer rule RemoveRedundantEval is activated.| NULL| NULL",
             "optimizer_reorder_hash_join| true| Indicates if the optimizer rule ReorderHashJoin is activated.| NULL| NULL",
-            "optimizer_reorder_nested_loop_join| true| Indicates if the optimizer rule ReorderNestedLoopJoin is activated.| NULL| NULL",
+            "optimizer_reorder_nested_loop_join| false| Indicates if the optimizer rule ReorderNestedLoopJoin is activated.| NULL| NULL",
             "optimizer_rewrite_filter_on_cross_join_to_inner_join| true| Indicates if the optimizer rule RewriteFilterOnCrossJoinToInnerJoin is activated.| NULL| NULL",
             "optimizer_rewrite_filter_on_outer_join_to_inner_join| true| Indicates if the optimizer rule RewriteFilterOnOuterJoinToInnerJoin is activated.| NULL| NULL",
             "optimizer_rewrite_group_by_keys_limit_to_limit_distinct| true| Indicates if the optimizer rule RewriteGroupByKeysLimitToLimitDistinct is activated.| NULL| NULL",
