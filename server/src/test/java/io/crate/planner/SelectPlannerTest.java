@@ -690,7 +690,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                                     "  u1.name = 'Arthur'" +
                                     "  and u2.id = u1.id" +
                                     "  and u2.name = u1.name");
-        Join innerJoin = (Join) outerJoin.right();
+        Join innerJoin = (Join) outerJoin.left();
 
         assertThat(innerJoin.joinPhase().joinCondition()).isSQL("((INPUT(0) = INPUT(2)) AND (INPUT(1) = INPUT(3)))");
         assertThat(innerJoin.joinPhase().projections()).hasSize(2);
@@ -698,7 +698,6 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(outerJoin.joinPhase().joinCondition()).isNull();
         assertThat(outerJoin.joinPhase().projections()).satisfiesExactly(
-            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class),
             p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class),
             p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class));
     }

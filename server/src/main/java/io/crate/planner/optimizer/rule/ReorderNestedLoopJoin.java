@@ -42,6 +42,11 @@ public class ReorderNestedLoopJoin implements Rule<NestedLoopJoin> {
     }
 
     @Override
+    public boolean defaultEnabled() {
+        return false;
+    }
+
+    @Override
     public LogicalPlan apply(NestedLoopJoin nestedLoop,
                              Captures captures,
                              Rule.Context context) {
