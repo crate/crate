@@ -63,7 +63,7 @@ jobs:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
         run: |
           ./mvnw test \
-            -Dtoolchain.skip=true
+            -Dtoolchain.skip=true \
             -Dtests.crate.run-windows-incompatible=true \
             -DforkCount=2 \
             -DthreadCount=2 \
