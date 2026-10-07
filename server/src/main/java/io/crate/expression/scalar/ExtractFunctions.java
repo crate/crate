@@ -35,15 +35,18 @@ import static io.crate.sql.tree.Extract.Field.SECOND;
 import static io.crate.sql.tree.Extract.Field.WEEK;
 import static io.crate.sql.tree.Extract.Field.YEAR;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoField;
+import java.time.temporal.IsoFields;
+import java.time.temporal.TemporalField;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 
-import org.elasticsearch.common.joda.Joda;
-import org.joda.time.DateTimeField;
 import org.joda.time.DurationFieldType;
 import org.joda.time.Period;
-import org.joda.time.chrono.ISOChronology;
 
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
@@ -58,20 +61,34 @@ public class ExtractFunctions {
     public static final String NAME_PREFIX = "extract_";
 
     public static void register(Functions.Builder module) {
-        ISOChronology utcChronology = ISOChronology.getInstanceUTC();
         for (var argType : List.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP)) {
-            regExtractFromTS(module, argType, CENTURY, utcChronology.centuryOfEra());
-            regExtractFromTS(module, argType, YEAR, utcChronology.year());
-            regExtractFromTS(module, argType, QUARTER, Joda.QUARTER_OF_YEAR.getField(utcChronology));
-            regExtractFromTS(module, argType, MONTH, utcChronology.monthOfYear());
-            regExtractFromTS(module, argType, WEEK, utcChronology.weekOfWeekyear());
-            regExtractFromTS(module, argType, DAY, utcChronology.dayOfMonth());
-            regExtractFromTS(module, argType, DAY_OF_MONTH, utcChronology.dayOfMonth());
-            regExtractFromTS(module, argType, DAY_OF_WEEK, utcChronology.dayOfWeek());
-            regExtractFromTS(module, argType, DAY_OF_YEAR, utcChronology.dayOfYear());
-            regExtractFromTS(module, argType, HOUR, utcChronology.hourOfDay());
-            regExtractFromTS(module, argType, MINUTE, utcChronology.minuteOfHour());
-            regExtractFromTS(module, argType, SECOND, utcChronology.secondOfMinute());
+            Function<Long, Integer> extractCentury = x -> {
+                LocalDateTime datetime = LocalDateTime.ofInstant(Instant.ofEpochMilli(x), ZoneOffset.UTC);
+                int year = datetime.get(ChronoField.YEAR);
+                return year % 100 == 0
+                    ? year / 100
+                    : (year / 100) + 1;
+            };
+            module.add(
+                Signature.builder(functionNameFrom(CENTURY), FunctionType.SCALAR)
+                    .argumentTypes(argType.getTypeSignature())
+                    .returnType(DataTypes.INTEGER.getTypeSignature())
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
+                    .build(),
+                (signature, boundSignature) -> new UnaryScalar<>(signature, boundSignature, extractCentury)
+            );
+
+            regExtractFromTS(module, argType, YEAR, ChronoField.YEAR);
+            regExtractFromTS(module, argType, QUARTER, IsoFields.QUARTER_OF_YEAR);
+            regExtractFromTS(module, argType, MONTH, ChronoField.MONTH_OF_YEAR);
+            regExtractFromTS(module, argType, WEEK, ChronoField.ALIGNED_WEEK_OF_YEAR);
+            regExtractFromTS(module, argType, DAY, ChronoField.DAY_OF_MONTH);
+            regExtractFromTS(module, argType, DAY_OF_MONTH, ChronoField.DAY_OF_MONTH);
+            regExtractFromTS(module, argType, DAY_OF_WEEK, ChronoField.DAY_OF_WEEK);
+            regExtractFromTS(module, argType, DAY_OF_YEAR, ChronoField.DAY_OF_YEAR);
+            regExtractFromTS(module, argType, HOUR, ChronoField.HOUR_OF_DAY);
+            regExtractFromTS(module, argType, MINUTE, ChronoField.MINUTE_OF_HOUR);
+            regExtractFromTS(module, argType, SECOND, ChronoField.SECOND_OF_MINUTE);
             // extract(epoch from ...) is different as is returns a `double precision`
             module.add(
                 Signature.builder(functionNameFrom(EPOCH), FunctionType.SCALAR)
@@ -107,8 +124,11 @@ public class ExtractFunctions {
     private static void regExtractFromTS(Functions.Builder builder,
                                          DataType<Long> tzType,
                                          Extract.Field field,
-                                         DateTimeField dtf) {
-        Function<Long, Integer> extract = x -> dtf.get(x);
+                                         TemporalField tf) {
+        Function<Long, Integer> extract = x -> {
+            LocalDateTime datetime = LocalDateTime.ofInstant(Instant.ofEpochMilli(x), ZoneOffset.UTC);
+            return datetime.get(tf);
+        };
         builder.add(
             Signature.builder(functionNameFrom(field), FunctionType.SCALAR)
                 .argumentTypes(tzType.getTypeSignature())

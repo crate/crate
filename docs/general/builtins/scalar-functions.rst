@@ -1338,10 +1338,23 @@ The following fields are supported:
   | *Return type:* ``integer``
   | century of era
 
-  Returns the ISO representation which is a straight split of the date.
+  Returns the century according to the "strict" scheme where the first century
+  starts at 0001-01-01 00:00:00 AD and ends with AD 100. The n-th century starts
+  with a year that follows a year with a multiple of 100 and ends with the next
+  coming year with a multiple of 100
 
-  Year 2000 century 20 and year 2001 is also century 20. This is different to
-  the GregorianJulian (GJ) calendar system where 2001 would be century 21.
+  ::
+
+    cr> SELECT
+    ...   extract(century from '2000-12-14'::date) as x,
+    ...   extract(century from '2001-12-14'::date) as y;
+    +----+----+
+    |  x |  y |
+    +----+----+
+    | 20 | 21 |
+    +----+----+
+    SELECT 1 row in set (... sec)
+
 
 ``YEAR``
   | *Return type:* ``integer``

@@ -58,9 +58,11 @@ public class ExtractFunctionsTest extends ScalarTestCase {
 
     @Test
     public void testExtractCentury() throws Exception {
-        // ISO century, see http://joda-time.sourceforge.net/field.html
-        assertEvaluate("extract(century from timestamp_tz)", 20);
+        assertEvaluate("extract(century from timestamp_tz)", 21);
         assertEvaluateIntervalException("century");
+
+        assertEvaluate("extract(century from '1900-01-01'::date)", 19);
+        assertEvaluate("extract(century from '1901-01-01'::date)", 20);
     }
 
     @Test
