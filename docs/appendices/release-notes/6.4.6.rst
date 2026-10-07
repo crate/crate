@@ -46,6 +46,10 @@ series.
 Fixes
 =====
 
+- Fixed an issue that caused ``extract(century from ...)`` to return incorrect
+  values and updated its documentation to reflect that it uses the strict scheme
+  where 2001 is in the 21st century instead of 20th.
+
 - Fixed an issue that could cause ``= ANY (...)`` or ``IN (...)`` expressions to
   fail on columns of type ``UUID`` or ``NUMERIC``.
 
