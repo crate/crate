@@ -154,9 +154,13 @@ public class NestedLoopJoin extends AbstractJoinPlan {
         boolean expectedRowsAvailable = lhStats.numDocs() != -1 && rhStats.numDocs() != -1;
         if (expectedRowsAvailable) {
             if (!orderByWasPushedDown && joinType.supportsInversion() &&
-                (blockNlPossible && lhStats.numDocs() > rhStats.numDocs())) {
-                // For block nested loop, the left side should always be smaller. Benchmarks have shown that the
-                // performance decreases if the left side is much larger and no limit is applied.
+                ((isDistributed && lhStats.numDocs() < rhStats.numDocs() && left.resultDescription().orderBy() == null) ||
+                 (blockNlPossible && lhStats.numDocs() > rhStats.numDocs()))) {
+                // 1) The right side is always broadcast-ed, so for performance reasons we switch the tables so that
+                //    the right table is the smaller (numOfRows). If left relation has a pushed-down OrderBy that needs
+                //    to be preserved, then the switch is not possible.
+                // 2) For block nested loop, the left side should always be smaller. Benchmarks have shown that the
+                //    performance decreases if the left side is much larger and no limit is applied.
                 ExecutionPlan tmpExecutionPlan = left;
                 left = right;
                 right = tmpExecutionPlan;
