@@ -59,6 +59,7 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
+import io.crate.planner.optimizer.rule.ReorderNestedLoopJoin;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
@@ -1231,6 +1232,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         var plannerCtx = e.getPlannerContext();
         plannerCtx.transactionContext().sessionSettings().setHashJoinEnabled(false);
+        plannerCtx.transactionContext().sessionSettings().excludedOptimizerRules().remove(ReorderNestedLoopJoin.class);
         NestedLoopJoin result = (NestedLoopJoin) buildLogicalPlan(mss, plannerCtx);
 
         assertThat(result).isEqualTo(
