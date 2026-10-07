@@ -281,7 +281,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testAnyGreaterAndSmaller() throws Exception {
         Query ltQuery = convert("1.5 < any(d_array)");
-        assertThat(ltQuery).hasToString("d_array:[1.5000000000000002 TO Infinity]");
+        assertThat(ltQuery).hasToString("d_array:[1.5000000000000002 TO NaN]");
 
         // d < ANY ([1.2, 3.5])
         Query ltQuery2 = convert("d < any ([1.2, 3.5])");
@@ -289,7 +289,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
         // 1.5d <= ANY (d_array)
         Query lteQuery = convert("1.5 <= any(d_array)");
-        assertThat(lteQuery).hasToString("d_array:[1.5 TO Infinity]");
+        assertThat(lteQuery).hasToString("d_array:[1.5 TO NaN]");
 
         // d <= ANY ([1.2, 3.5])
         Query lteQuery2 = convert("d <= any([1.2, 3.5])");
@@ -302,7 +302,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         // d > ANY ([1.2, 3.5])
         Query gtQuery2 = convert("d > any ([1.2, 3.5])");
         assertThat(gtQuery2).hasToString(
-            "(d:[1.2000000000000002 TO Infinity] d:[3.5000000000000004 TO Infinity])~1");
+            "(d:[1.2000000000000002 TO NaN] d:[3.5000000000000004 TO NaN])~1");
 
         // 1.5d >= ANY (d_array)
         Query gteQuery = convert("1.5 >= any(d_array)");
@@ -310,7 +310,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
         // d >= ANY ([1.2, 3.5])
         Query gteQuery2 = convert("d >= any ([1.2, 3.5])");
-        assertThat(gteQuery2).hasToString("(d:[1.2 TO Infinity] d:[3.5 TO Infinity])~1");
+        assertThat(gteQuery2).hasToString("(d:[1.2 TO NaN] d:[3.5 TO NaN])~1");
     }
 
     @Test
