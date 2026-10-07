@@ -54,13 +54,10 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.TestShardRouting;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexService;
@@ -95,8 +92,6 @@ import io.crate.data.ArrayBucket;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
-import io.crate.execution.ddl.tables.MappingUtil;
-import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
 import io.crate.execution.dsl.phases.CollectPhase;
@@ -491,26 +486,13 @@ public abstract class AggregationTestCase extends ESTestCase {
         }
     }
 
-    private static XContentBuilder buildMapping(List<Reference> targetColumns) throws IOException {
-        Map<String, Map<String, Object>> properties = MappingUtil.toProperties(
-            AllocPosition.forNewTable(),
-            null,
-            Reference.buildTree(targetColumns)
-        );
-        return JsonXContent.builder()
-            .startObject()
-            .field("properties", properties == null ? Map.of() : properties)
-            .endObject();
-    }
-
     /**
      * Creates a new empty primary shard and starts it.
      */
     public static IndexShard newStartedPrimaryShard(NodeContext nodeCtx,
                                                     List<Reference> targetColumns,
                                                     ThreadPool threadPool) throws Exception {
-        var mapping = buildMapping(targetColumns);
-        IndexShard shard = newPrimaryShard(nodeCtx, mapping, threadPool);
+        IndexShard shard = newPrimaryShard(nodeCtx, threadPool);
         shard.markAsRecovering(
             "store",
             new RecoveryState(
@@ -549,7 +531,7 @@ public abstract class AggregationTestCase extends ESTestCase {
      * Creates a new initializing primary shard.
      * The shard will have its own unique data path.
      */
-    private static IndexShard newPrimaryShard(NodeContext nodeCtx, XContentBuilder mapping, ThreadPool threadPool) throws IOException {
+    private static IndexShard newPrimaryShard(NodeContext nodeCtx, ThreadPool threadPool) throws IOException {
         ShardRouting routing = TestShardRouting.newShardRouting(
             new ShardId(PARTITION_NAME.relationName().indexNameOrAlias(), UUIDs.base64UUID(), 0),
             randomAlphaOfLength(10),
@@ -567,7 +549,6 @@ public abstract class AggregationTestCase extends ESTestCase {
             .indexName(routing.index().name())
             .settings(indexSettings)
             .primaryTerm(0, 1)
-            .putMapping(Strings.toString(mapping))
             .build();
         var shardId = routing.shardId();
         var nodePath = new NodeEnvironment.NodePath(createTempDir());
