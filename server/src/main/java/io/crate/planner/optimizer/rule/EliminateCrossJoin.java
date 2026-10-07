@@ -29,15 +29,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
-import io.crate.exceptions.InvalidArgumentException;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Symbol;
-import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
@@ -51,10 +51,9 @@ import io.crate.sql.tree.JoinType;
 public class EliminateCrossJoin implements Rule<LogicalPlan> {
 
     private final Pattern<LogicalPlan> pattern = typeOf(JoinPlan.class)
-        .with(p -> !p.eliminateCrossJoinRuleIsApplied())
         .or()
         .typeOf(Filter.class)
-        .with(source(), typeOf(JoinPlan.class).with(p -> !p.eliminateCrossJoinRuleIsApplied()));
+        .with(source(), typeOf(JoinPlan.class));
 
     @Override
     public Pattern<LogicalPlan> pattern() {
@@ -65,30 +64,22 @@ public class EliminateCrossJoin implements Rule<LogicalPlan> {
     public LogicalPlan apply(LogicalPlan filterOrJoin,
                              Captures captures,
                              Rule.Context context) {
-        // First, let's check if we have at least 3 tables.
-        JoinPlan join;
-        if (filterOrJoin instanceof Filter filter) {
-            join = (JoinPlan) context.resolvePlan().apply(filter.source());
-        } else {
-            join = (JoinPlan) filterOrJoin;
-        }
-        if (join.relationNames().size() < 3) {
-            return null;
-        }
-
         var joinGraph = JoinGraph.create(filterOrJoin, context.resolvePlan());
         if (!joinGraph.hasCrossJoin()) {
             return null;
         }
         List<LogicalPlan> newOrder = orderNodes(joinGraph);
-        if (newOrder == null) {
+
+        if (!isBetterThanOriginal(joinGraph, newOrder)) {
             return null;
         }
+
         LogicalPlan newJoinPlan = rebuild(joinGraph, newOrder);
         if (newJoinPlan == null) {
             return null;
         }
-        return Eval.create(newJoinPlan, join.outputs());
+
+        return Eval.create(newJoinPlan, filterOrJoin.outputs());
     }
 
     /**
@@ -98,102 +89,95 @@ public class EliminateCrossJoin implements Rule<LogicalPlan> {
      * Therefore, we use a PriorityQueue where the priority of the node is the position of
      * the original join order.
      **/
-    @Nullable
     static List<LogicalPlan> orderNodes(JoinGraph joinGraph) {
-        if (joinGraph.edges().isEmpty()) {
-            return null;
-        }
-        // This is the minimum number of edges which we need to have to be able to visit each node in the graph
-        if (joinGraph.nodes().size() >= (joinGraph.edges().size() / 2) - 1 == false) {
-            return null;
-        }
-
-        ArrayList<LogicalPlan> newJoinOrder = new ArrayList<>();
-        HashMap<LogicalPlan, Integer> priorities = new HashMap<>();
+        Map<LogicalPlan, Integer> position = new HashMap<>();
         for (int i = 0; i < joinGraph.size(); i++) {
-            priorities.put(joinGraph.nodes().get(i), i);
+            position.put(joinGraph.nodes().get(i), i);
         }
-
-        PriorityQueue<LogicalPlan> nodesToVisit = new PriorityQueue<>(
-            joinGraph.size(),
-            comparing(priorities::get)
-        );
-        HashSet<LogicalPlan> visited = new HashSet<LogicalPlan>();
-        nodesToVisit.add(joinGraph.nodes().get(0));
-
-        while (!nodesToVisit.isEmpty()) {
-            var node = nodesToVisit.poll();
-            if (!visited.contains(node)) {
-                visited.add(node);
-                newJoinOrder.add(node);
-                for (var edge : joinGraph.edges(node)) {
-                    nodesToVisit.add(edge.to());
+        // Connected nodes/plans which aren't joined yet, lowest original position first
+        PriorityQueue<LogicalPlan> candidates = new PriorityQueue<>(comparing(position::get));
+        Set<LogicalPlan> joined = new HashSet<>();
+        List<LogicalPlan> order = new ArrayList<>(joinGraph.size());
+        int firstUnjoined = 0;
+        while (order.size() < joinGraph.size()) {
+            if (candidates.isEmpty()) {
+                // Nothing is connected to the joined nodes/plans.
+                // Only add the first unjoined one, so its neighbours are preferred again afterwards.
+                while (joined.contains(joinGraph.nodes().get(firstUnjoined))) {
+                    firstUnjoined++;
                 }
+                candidates.add(joinGraph.nodes().get(firstUnjoined));
             }
-            if (nodesToVisit.isEmpty() && visited.size() < joinGraph.size()) {
-                // disconnected graph, find new starting point
-                for (var graphNode : joinGraph.nodes()) {
-                    if (visited.contains(graphNode) == false) {
-                        nodesToVisit.add(graphNode);
+            LogicalPlan node = candidates.poll();
+            if (joined.add(node)) {
+                order.add(node);
+                for (JoinGraph.Edge edge : joinGraph.edges(node)) {
+                    if (!joined.contains(edge.to())) {
+                        candidates.add(edge.to());
                     }
                 }
             }
         }
-        assert visited.size() == joinGraph.size() : "Invalid state, each node needs to be visited";
-        return newJoinOrder;
+        return order;
     }
+
+    private static boolean isBetterThanOriginal(JoinGraph joinGraph, List<LogicalPlan> order) {
+        List<Integer> positions = crossJoinPositions(joinGraph, order);
+        if (positions.size() != joinGraph.originalCrossJoins()) {
+            return positions.size() < joinGraph.originalCrossJoins();
+        }
+        List<Integer> originalPositions = crossJoinPositions(joinGraph, joinGraph.nodes());
+        for (int i = 0; i < Math.min(positions.size(), originalPositions.size()); i++) {
+            int cmp = Integer.compare(positions.get(i), originalPositions.get(i));
+            if (cmp != 0) {
+                return cmp > 0;
+            }
+        }
+        return false;
+    }
+
+    private static List<Integer> crossJoinPositions(JoinGraph joinGraph, List<LogicalPlan> order) {
+        Set<LogicalPlan> joined = new HashSet<>();
+        joined.add(order.getFirst());
+        List<Integer> positions = new ArrayList<>();
+        for (int i = 1; i < order.size(); i++) {
+            LogicalPlan node = order.get(i);
+            boolean connected = false;
+            for (JoinGraph.Edge edge : joinGraph.edges(node)) {
+                if (joined.contains(edge.to())) {
+                    connected = true;
+                    break;
+                }
+            }
+            if (!connected) {
+                positions.add(i);
+            }
+            joined.add(node);
+        }
+        return positions;
+    }
+
 
     @Nullable
     static LogicalPlan rebuild(JoinGraph graph, List<LogicalPlan> order) {
-        assert graph.nodes().size() == order.size() : "Size must be equal";
-
-        if (graph.edges().isEmpty()) {
-            throw new InvalidArgumentException("JoinPlan cannot be built with the provided order.");
-        }
-
-        LogicalPlan result = order.get(0);
-        HashSet<LogicalPlan> alreadyJoinedNodes = new HashSet<>();
-        alreadyJoinedNodes.add(result);
-
-        for (int i = 1; i < order.size(); i++) {
-            LogicalPlan rightNode = order.get(i);
-            alreadyJoinedNodes.add(rightNode);
-
-            ArrayList<Symbol> criteria = new ArrayList<>();
-            for (var edge : graph.edges(rightNode)) {
-                LogicalPlan toNode = edge.to();
-                if (alreadyJoinedNodes.contains(toNode)) {
-                    criteria.add(EqOperator.of(edge.left(), edge.right()));
+        assert order.size() == graph.size() : "Order must contain all nodes/plans";
+        LogicalPlan result = order.getFirst();
+        Set<LogicalPlan> joined = new HashSet<>();
+        joined.add(result);
+        for (LogicalPlan node : order.subList(1, order.size())) {
+            List<Symbol> joinConditions = new ArrayList<>();
+            for (JoinGraph.Edge edge : graph.edges(node)) {
+                if (joined.contains(edge.to())) {
+                    joinConditions.add(EqOperator.of(edge.left(), edge.right()));
                 }
             }
-
-            final JoinType joinType;
-            final Symbol joinCondition;
-
-            if (criteria.isEmpty()) {
-                joinType = JoinType.CROSS;
-                joinCondition = null;
-            } else {
-                joinType = JoinType.INNER;
-                joinCondition = AndOperator.join(criteria);
-            }
-
-            result = new JoinPlan(
-                result,
-                rightNode,
-                joinType,
-                joinCondition,
-                false,
-                false,
-                false,
-                false,
-                true,
-                AbstractJoinPlan.LookUpJoin.NONE
-            );
+            result = joinConditions.isEmpty()
+                ? new JoinPlan(result, node, JoinType.CROSS, null)
+                : new JoinPlan(result, node, JoinType.INNER, AndOperator.join(joinConditions));
+            joined.add(node);
         }
-
-        for (var filter : graph.filters()) {
-            result = new Filter(result, filter);
+        for (Symbol leftover : graph.filters()) {
+            result = new Filter(result, leftover);
         }
         return result;
     }

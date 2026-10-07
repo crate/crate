@@ -130,7 +130,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
 
         // `c` has no equi-condition anywhere, so it's not possible to rewrite its cross join.
         // The rule fires (num of relations >= 3, has a cross join), but doesn't change anything.
-        assertThat(result).isEqualTo(join);
+        assertThat(result).isNull();
     }
 
     @Test

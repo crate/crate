@@ -1119,6 +1119,28 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
+    @Test
+    public void test_cross_joins_with_equi_and_non_equi_condition_between_same_tables() {
+        LogicalPlan plan = sqlExecutor.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1, t2, t3
+            WHERE t1.x = t2.y
+              AND t1.i > t2.i
+              AND t2.y = t3.z
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "Eval[x, y, z]",
+            "  └ HashJoin[INNER | (y = z)]",
+            "    ├ Filter[(i > i)]",
+            "    │  └ HashJoin[INNER | (x = y)]",
+            "    │    ├ Collect[doc.t1 | [x, i] | true]",
+            "    │    └ Collect[doc.t2 | [y, i] | true]",
+            "    └ Collect[doc.t3 | [z] | true]"
+        );
+    }
+
     /**
      * Related to https://github.com/crate/crate/issues/20120
      */

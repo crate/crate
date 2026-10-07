@@ -21,26 +21,21 @@
 
 package io.crate.planner.optimizer.joinorder;
 
-import static io.crate.planner.operators.EquiJoinDetector.isEquiJoin;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
-import io.crate.analyze.relations.QuerySplitter;
-import io.crate.common.collections.Lists;
-import io.crate.common.collections.Maps;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
@@ -84,212 +79,169 @@ import io.crate.sql.tree.JoinType;
  * b -> Edge[a, a.x, b.y]
  * </pre>
  */
+// todo comments for fields
 public record JoinGraph(List<LogicalPlan> nodes,
                         Map<LogicalPlan, List<Edge>> edges,
                         List<Symbol> filters,
-                        boolean hasCrossJoin) {
+                        int originalCrossJoins) {
 
     public record Edge(LogicalPlan to, Symbol left, Symbol right) {}
 
-    JoinGraph joinWith(JoinGraph other) {
-        for (var node : other.nodes) {
-            assert !edges.containsKey(node) : "LogicalPlan" + node + " can't be in both graphs";
-        }
-
-        var newNodes = Lists.concat(this.nodes, other.nodes);
-        var newEdges = Maps.merge(this.edges, other.edges, Lists::concat);
-        var newFilters = Lists.concat(this.filters, other.filters);
-        var hasCrossJoin = this.hasCrossJoin || other.hasCrossJoin();
-
-        return new JoinGraph(
-            newNodes,
-            newEdges,
-            newFilters,
-            hasCrossJoin
-        );
-    }
-
-    JoinGraph withEdges(Map<LogicalPlan, List<Edge>> edges) {
-        var newEdges = Maps.merge(this.edges, edges, Lists::concat);
-        return new JoinGraph(this.nodes, newEdges, this.filters, this.hasCrossJoin);
-    }
-
-    JoinGraph withFilters(List<Symbol> filters) {
-        if (filters.isEmpty()) {
-            return this;
-        }
-        var newFilters = Lists.concat(this.filters, filters);
-        return new JoinGraph(this.nodes, edges, newFilters, this.hasCrossJoin);
-    }
-
-    JoinGraph withCrossJoin() {
-        return new JoinGraph(this.nodes, edges, filters, true);
-    }
-
     public int size() {
-        return nodes.size();
+        return nodes().size();
     }
 
     public List<Edge> edges(LogicalPlan node) {
         return edges.getOrDefault(node, List.of());
     }
 
-    public static JoinGraph create(LogicalPlan plan, UnaryOperator<LogicalPlan> resolvePlan) {
-        return plan.accept(new GraphBuilder(resolvePlan), new LinkedHashMap<>());
+    public boolean hasCrossJoin() {
+        return originalCrossJoins > 0;
     }
 
-    private static class GraphBuilder extends LogicalPlanVisitor<Map<Symbol, LogicalPlan>, JoinGraph> {
+    public static JoinGraph create(LogicalPlan join, UnaryOperator<LogicalPlan> resolvePlan) {
+        var builder = new GraphBuilder(resolvePlan);
+        // todo figure out the context
+        join.accept(builder, join);
+        return builder.build();
+    }
 
+    private static class GraphBuilder extends LogicalPlanVisitor<LogicalPlan, Void> {
         private final UnaryOperator<LogicalPlan> resolvePlan;
+        private final List<LogicalPlan> nodes = new ArrayList<>();
+        // Maps symbols to source plan that produce those, i.e. that have them in their outputs.
+        // Needed to build edges.
+        private final Map<Symbol, LogicalPlan> symbolSources = new HashMap<>();
+        // Set, because the same condition can appear multiple times (e.g. in a join condition and a filter)
+        private final Set<Symbol> conditions = new LinkedHashSet<>();
+        private int crossJoins = 0;
 
         GraphBuilder(UnaryOperator<LogicalPlan> resolvePlan) {
             this.resolvePlan = resolvePlan;
         }
 
         @Override
-        public JoinGraph visitPlan(LogicalPlan logicalPlan, Map<Symbol, LogicalPlan> context) {
-            for (Symbol output : logicalPlan.outputs()) {
-                context.put(output, logicalPlan);
+        public Void visitPlan(LogicalPlan plan, LogicalPlan node) {
+            nodes.add(node);
+            for (Symbol output : node.outputs()) {
+                symbolSources.put(output, node);
             }
-            return new JoinGraph(List.of(logicalPlan), Map.of(), List.of(), false);
+            return null;
         }
 
         @Override
-        public JoinGraph visitGroupReference(GroupReference groupReference, Map<Symbol, LogicalPlan> context) {
+        public Void visitGroupReference(GroupReference groupReference, LogicalPlan context) {
             return resolvePlan.apply(groupReference).accept(this, context);
         }
 
         @Override
-        public JoinGraph visitFilter(Filter filter, Map<Symbol, LogicalPlan> context) {
-            JoinGraph source = filter.source().accept(this, context);
-            if (resolvePlan.apply(filter.source()) instanceof JoinPlan) {
-                EdgesAndFilters ef = collectEdgesAndFilters(filter.query(), context);
-                return source
-                    .withEdges(ef.edges)
-                    .withFilters(ef.filters);
+        public Void visitFilter(Filter filter, LogicalPlan node) {
+            if (!includeInGraph(filter)) {
+                return visitPlan(filter, node);
             }
-            return source.withFilters(List.of(filter.query()));
+            conditions.addAll(AndOperator.split(filter.query()));
+            filter.source().accept(this, filter.source());
+            return null;
         }
 
         @Override
-        public JoinGraph visitJoinPlan(JoinPlan joinPlan, Map<Symbol, LogicalPlan> context) {
-            JoinGraph left = joinPlan.lhs().accept(this, context);
-            JoinGraph right = joinPlan.rhs().accept(this, context);
-
-            if (joinPlan.joinType() == JoinType.CROSS) {
-                return left.joinWith(right).withCrossJoin();
+        public Void visitJoinPlan(JoinPlan join, LogicalPlan node) {
+            if (!includeInGraph(join)) {
+                return visitPlan(join, node);
             }
-
-            Symbol joinCondition = joinPlan.joinCondition();
-            if (joinPlan.joinType() != JoinType.INNER) {
-                JoinGraph result = left.joinWith(right);
-                return joinCondition == null
-                    ? result
-                    : result.withFilters(List.of(joinCondition));
+            join.lhs().accept(this, join.lhs());
+            join.rhs().accept(this, join.rhs());
+            if (join.joinType() == JoinType.CROSS) {
+                crossJoins++;
             }
-
-            EdgesAndFilters ef = collectEdgesAndFilters(joinCondition, context);
-            return left
-                .joinWith(right)
-                .withEdges(ef.edges)
-                .withFilters(ef.filters);
+            if (join.joinCondition() != null) {
+                conditions.addAll(AndOperator.split(join.joinCondition()));
+            }
+            return null;
         }
 
-        record EdgesAndFilters(ArrayList<Symbol> filters, Map<LogicalPlan, List<Edge>> edges) {}
+        /**
+         * INNER/CROSS joins, and Filters on top of them, can be included in the JoinGraph.
+         * A Filter on anything else belongs to the node/plan below it (e.g. Filter -> Collect).
+         */
+        private boolean includeInGraph(LogicalPlan plan) {
+            LogicalPlan resolved = resolvePlan.apply(plan);
+            if (resolved instanceof JoinPlan join) {
+                return join.joinType() == JoinType.INNER || join.joinType() == JoinType.CROSS;
+            }
+            return resolved instanceof Filter filter && includeInGraph(filter.source());
+        }
 
-        private static EdgesAndFilters collectEdgesAndFilters(Symbol joinCondition, Map<Symbol, LogicalPlan> context) {
-            ArrayList<Symbol> filters = new ArrayList<>();
-            Map<LogicalPlan, List<Edge>> edges;
-            if (joinCondition == null) {
-                edges = Map.of();
+        JoinGraph build() {
+            Map<LogicalPlan, List<Edge>> edges = new HashMap<>();
+            // Anything that isn't an equi-join is put into `filters`.
+            List<Symbol> filters = new ArrayList<>();
+            for (Symbol condition : conditions) {
+                if (!addEdges(condition, edges)) {
+                    filters.add(condition);
+                }
+            }
+            return new JoinGraph(List.copyOf(nodes), edges, filters, crossJoins);
+        }
+
+        /// Adds the edges for a `left = right` condition, if:
+        /// - each side references exactly one node/plan
+        /// - the referenced nodes/plans are different.
+        /// Examples:
+        /// - `t1.x = t2.y` -> edges are `t1 -> t2` and `t2 -> t1`
+        /// - `t1.x + t2.y = t3.z` -> not an edge (left side references two plans)
+        /// - `t1.x = 1` -> not an edge (right side references no plan)
+        /// - `t1.x = t1.y` -> not an edge (same plan on both sides)
+        private boolean addEdges(Symbol condition, Map<LogicalPlan, List<Edge>> edges) {
+            if (!(condition instanceof Function eq && eq.name().equals(EqOperator.NAME))) {
+                return false;
+            }
+            Symbol leftSym = eq.arguments().get(0);
+            Symbol rightSym = eq.arguments().get(1);
+            Set<LogicalPlan> leftPlans = sourceOf(leftSym);
+            Set<LogicalPlan> rightPlans = sourceOf(rightSym);
+            if (leftPlans.size() != 1 || rightPlans.size() != 1 || leftPlans.equals(rightPlans)) {
+                return false;
+            }
+            LogicalPlan leftNode = leftPlans.iterator().next();
+            LogicalPlan rightNode = rightPlans.iterator().next();
+            edges.computeIfAbsent(leftNode, _ -> new ArrayList<>()).add(new Edge(rightNode, leftSym, rightSym));
+            edges.computeIfAbsent(rightNode, _ -> new ArrayList<>()).add(new Edge(leftNode, leftSym, rightSym));
+            return true;
+        }
+
+        /// Returns the nodes/plans which produce the columns used in `symbol`.
+        /// For more details, see [#collectSources(Symbol, Set)].
+        private Set<LogicalPlan> sourceOf(Symbol symbol) {
+            Set<LogicalPlan> result = new HashSet<>();
+            collectSources(symbol, result);
+            return result;
+        }
+
+        /// Collects the nodes/plans which produce the columns used in `symbol`,
+        /// i.e. the nodes/plans which have those columns in their `outputs()`.
+        ///
+        /// Example: `t1.a = t2.b`
+        ///
+        /// - The whole `=` expression isn't in [#symbolSources], so its arguments are visited.
+        /// - `t1.a` maps to the plan which outputs it, e.g. `Collect[t1]`
+        /// - `t2.b` maps to `Collect[t2]`.
+        /// - Result: `{Collect[t1], Collect[t2]}`, the two plans this condition joins.
+        ///
+        /// The symbol itself is looked up first, so outputs which are expressions
+        /// (e.g. `x + 1` from an Eval) are resolved as a whole.
+        /// Symbols which aren't columns (literals, outer columns, ...) don't add any node/plan.
+        private void collectSources(Symbol symbol, Set<LogicalPlan> result) {
+            LogicalPlan node = symbolSources.get(symbol);
+            if (node != null) {
+                result.add(node);
+            } else if (symbol instanceof Function func) {
+                for (Symbol argument : func.arguments()) {
+                    collectSources(argument, result);
+                }
             } else {
-                var edgeCollector = new EdgeCollector(context);
-                Map<Set<RelationName>, Symbol> split = QuerySplitter.split(joinCondition);
-                for (var entry : split.entrySet()) {
-                    Set<RelationName> relations = entry.getKey();
-                    Symbol expression = entry.getValue();
-                    // we are only interested in equi-join conditions between
-                    // two tables e.g.: a.x = b.y will result in
-                    // (a,b) -> (a.x = b.y) and we can ignore any other
-                    // filters. Therefore, we only want entries where we have
-                    // two keys.
-                    if (relations.size() == 2 && isEquiJoin(expression)) {
-                        expression.accept(edgeCollector, null);
-                    } else {
-                        filters.add(expression);
-                    }
-                }
-                edges = edgeCollector.edges;
-                assert (!edges.isEmpty() || !filters.isEmpty())
-                    : "Must have either edges or filters - otherwise we'd be dropping the join condition";
-            }
-
-            return new EdgesAndFilters(filters, edges);
-        }
-
-        private static class EdgeCollector extends SymbolVisitor<Set<LogicalPlan>, Void> {
-
-            private final Map<LogicalPlan, List<Edge>> edges = new HashMap<>();
-            private final Map<Symbol, LogicalPlan> outputsToPlan;
-
-            private EdgeCollector(Map<Symbol, LogicalPlan> outputsToPlan) {
-                this.outputsToPlan = outputsToPlan;
-            }
-
-            @Override
-            public Void visitField(ScopedSymbol s, Set<LogicalPlan> sources) {
-                if (sources != null) {
-                    LogicalPlan logicalPlan = outputsToPlan.get(s);
-                    assert logicalPlan != null : "ScopedSymbol part of joinCondition must exist in outputsToPlan";
-                    sources.add(logicalPlan);
-                }
-                return null;
-            }
-
-            @Override
-            public Void visitReference(Reference ref, Set<LogicalPlan> sources) {
-                if (sources != null) {
-                    LogicalPlan logicalPlan = outputsToPlan.get(ref);
-                    assert logicalPlan != null : "Reference part of joinCondition must exist in outputsToPlan";
-                    sources.add(logicalPlan);
-                }
-                return null;
-            }
-
-            @Override
-            public Void visitFunction(io.crate.expression.symbol.Function f, Set<LogicalPlan> sources) {
-                List<Symbol> arguments = f.arguments();
-                if (f.name().equals(EqOperator.NAME)) {
-                    var lhsSymbol = arguments.get(0);
-                    var rhsSymbol = arguments.get(1);
-
-                    Set<LogicalPlan> lhsRelations = new HashSet<>();
-                    lhsSymbol.accept(this, lhsRelations);
-
-                    Set<LogicalPlan> rhsRelations = new HashSet<>();
-                    rhsSymbol.accept(this, rhsRelations);
-
-                    for (LogicalPlan lhsRelation : lhsRelations) {
-                        for (LogicalPlan rhsRelation : rhsRelations) {
-                            addEdge(lhsRelation, new Edge(rhsRelation, lhsSymbol, rhsSymbol));
-                            addEdge(rhsRelation, new Edge(lhsRelation, lhsSymbol, rhsSymbol));
-                        }
-                    }
-                } else {
-                    arguments.forEach(arg -> arg.accept(this, sources));
-                }
-                return null;
-            }
-
-            private void addEdge(LogicalPlan from, Edge edge) {
-                var values = edges.get(from);
-                if (values == null) {
-                    values = List.of(edge);
-                } else {
-                    values = new ArrayList<>(values);
-                    values.add(edge);
-                }
-                edges.put(from, values);
+                assert !(symbol instanceof Reference || symbol instanceof ScopedSymbol)
+                    : "Column " + symbol + " must be an output of a node in the graph";
             }
         }
     }
