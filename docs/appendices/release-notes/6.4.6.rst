@@ -121,3 +121,6 @@ Fixes
 - Fixed a performance regression introduced in :ref:`version_6.4.3` that
   affected all queries running over ``HTTP`` protocol with password
   authentication.
+
+- Fixed an issue where rows with ``NaN`` were not returned when a range filter
+  was used and the predicate evaluated to true
