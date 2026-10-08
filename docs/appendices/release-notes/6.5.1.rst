@@ -61,3 +61,24 @@ Fixes
   after a publisher restart when using
   :ref:`pg_tunnel mode <sql-create-subscription-conn-info>` for logical
   replication.
+
+- Fixed an issue which caused the ``optimizer_eliminate_cross_join`` rule to
+  drop non-equality filters (e.g., a greater-than condition) that are combined
+  with an equality filter over the same two tables. The issue also caused
+  ``NOT`` conditions to be negated. This led to wrong results. In this example::
+
+      SELECT t1.x, t2.y, t3.z
+      FROM t1, t2, t3
+      WHERE t1.x = t2.y
+        AND t1.i > t2.i
+        AND t2.y = t3.z;
+
+  The query would behave like::
+
+      SELECT t1.x, t2.y, t3.z
+      FROM t1, t2, t3
+      WHERE t1.x = t2.y
+        AND t2.y = t3.z;
+
+  A ``NOT`` condition like ``t1.x = t2.y AND NOT (t1.a = t2.b)`` was turned into
+  ``t1.x = t2.y AND (t1.a = t2.b)``.
