@@ -106,7 +106,7 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
             joinGraph.size(),
             comparing(priorities::get)
         );
-        HashSet<LogicalPlan> visited = new HashSet<LogicalPlan>();
+        HashSet<LogicalPlan> visited = HashSet.newHashSet(joinGraph.size());
         nodesToVisit.add(joinGraph.nodes().get(0));
 
         while (!nodesToVisit.isEmpty()) {
@@ -123,6 +123,9 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
                 for (var graphNode : joinGraph.nodes()) {
                     if (visited.contains(graphNode) == false) {
                         nodesToVisit.add(graphNode);
+                        // add only one node as a new starting point
+                        // the edges will give the rest (which results in fewer cross joins)
+                        break;
                     }
                 }
             }
