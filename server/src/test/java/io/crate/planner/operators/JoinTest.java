@@ -82,7 +82,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
             .addTable(T3.T3_DEFINITION)
-            .addTable(T3.T4_DEFINITION);
+            .addTable(T3.T4_DEFINITION)
+            .addTable(T3.T5_DEFINITION);
         projectionBuilder = new ProjectionBuilder(e.nodeCtx);
     }
 
@@ -1519,6 +1520,52 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "  │  ├ Collect[doc.t1 | [a, x, i] | true]",
             "  │  └ Collect[doc.t2 | [b, y, i] | true]",
             "  └ Collect[doc.t3 | [c, z] | true]"
+        );
+    }
+
+    @Test
+    public void test_eliminate_cross_join_with_disconnected_join_graph() {
+        // In the join graph we have: (t1) (t2 <-> t4 <-> t3)
+        // In the first part of the graph, there are no conditions.
+        var plan = e.logicalPlan("""
+            SELECT t1.a, t2.b, t3.c, t4.id
+            FROM t1, t2, t3, t4
+            WHERE t2.y = t4.id
+              AND t3.z = t4.id
+            """);
+
+        assertThat(plan).hasOperators(
+            "Eval[a, b, c, id]",
+            "  └ HashJoin[INNER | (z = id)]",
+            "    ├ HashJoin[INNER | (y = id)]",
+            "    │  ├ NestedLoopJoin[CROSS]",
+            "    │  │  ├ Collect[doc.t1 | [a] | true]",
+            "    │  │  └ Collect[doc.t2 | [b, y] | true]",
+            "    │  └ Collect[doc.t4 | [id] | true]",
+            "    └ Collect[doc.t3 | [c, z] | true]"
+        );
+
+        // In the join graph we have: (t1 <-> t2) (t3 <-> t5 <-> t4).
+        // There are conditions in both parts.
+        plan = e.logicalPlan("""
+            SELECT t1.a, t2.b, t3.c, t4.id, t5.i
+            FROM t1, t2, t3, t4, t5
+            WHERE t1.x = t2.y
+              AND t3.z = t5.i
+              AND t4.id = t5.i
+            """);
+
+        assertThat(plan).hasOperators(
+            "Eval[a, b, c, id, i]",
+            "  └ HashJoin[INNER | (id = i)]",
+            "    ├ HashJoin[INNER | (z = i)]",
+            "    │  ├ NestedLoopJoin[CROSS]",
+            "    │  │  ├ HashJoin[INNER | (x = y)]",
+            "    │  │  │  ├ Collect[doc.t1 | [a, x] | true]",
+            "    │  │  │  └ Collect[doc.t2 | [b, y] | true]",
+            "    │  │  └ Collect[doc.t3 | [c, z] | true]",
+            "    │  └ Collect[doc.t5 | [i] | true]",
+            "    └ Collect[doc.t4 | [id] | true]"
         );
     }
 }
