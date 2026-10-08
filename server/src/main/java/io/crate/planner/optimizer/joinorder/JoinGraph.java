@@ -21,8 +21,6 @@
 
 package io.crate.planner.optimizer.joinorder;
 
-import static io.crate.planner.operators.EquiJoinDetector.isEquiJoin;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,15 +32,15 @@ import java.util.function.UnaryOperator;
 
 import org.jspecify.annotations.Nullable;
 
-import io.crate.analyze.relations.QuerySplitter;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.Maps;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
@@ -221,84 +219,77 @@ public record JoinGraph(List<LogicalPlan> nodes,
                 this.outputsToPlan = outputsToPlan;
             }
 
-            /// Splits `condition` into edges (equi-join conditions between two tables) and filters.
+            /// Splits `condition` into its AND parts. Each part becomes either an edge or a filter.
             private void collect(@Nullable Symbol condition) {
                 if (condition == null) {
                     return;
                 }
-                Map<Set<RelationName>, Symbol> split = QuerySplitter.split(condition);
-                for (var entry : split.entrySet()) {
-                    Set<RelationName> relations = entry.getKey();
-                    Symbol expression = entry.getValue();
-                    // we are only interested in equi-join conditions between
-                    // two tables e.g.: a.x = b.y will result in
-                    // (a,b) -> (a.x = b.y) and we can ignore any other
-                    // filters. Therefore, we only want entries where we have
-                    // two keys.
-                    if (relations.size() == 2 && isEquiJoin(expression)) {
-                        expression.accept(this, null);
-                    } else {
-                        filters.add(expression);
+                for (Symbol part : AndOperator.split(condition)) {
+                    if (!addEdges(part)) {
+                        filters.add(part);
                     }
                 }
-                assert (!edges.isEmpty() || !filters.isEmpty())
-                    : "Must have either edges or filters - otherwise we'd be dropping the join condition";
+            }
+
+            /// Adds the edges for a `left = right` condition, if:
+            /// - it is an `=` itself (an `=` nested in another function, e.g. `NOT (t1.x = t2.y)`, isn't an edge)
+            /// - each side references exactly one node/plan
+            /// - the referenced nodes/plans are different.
+            ///
+            /// Examples:
+            /// - `t1.x = t2.y` -> edges are `t1 -> t2` and `t2 -> t1`
+            /// - `t1.x + t2.y = t3.z` -> not an edge (left side references two plans)
+            /// - `t1.x = 1` -> not an edge (right side references no plan)
+            /// - `t1.x = t1.y` -> not an edge (same plan on both sides)
+            ///
+            /// @return false if `condition` isn't an edge.
+            private boolean addEdges(Symbol condition) {
+                if (!(condition instanceof Function eq && eq.name().equals(EqOperator.NAME))) {
+                    return false;
+                }
+                Symbol lhsSymbol = eq.arguments().get(0);
+                Symbol rhsSymbol = eq.arguments().get(1);
+
+                Set<LogicalPlan> lhsSources = new HashSet<>();
+                lhsSymbol.accept(this, lhsSources);
+
+                Set<LogicalPlan> rhsSources = new HashSet<>();
+                rhsSymbol.accept(this, rhsSources);
+
+                if (lhsSources.size() != 1 || rhsSources.size() != 1 || lhsSources.equals(rhsSources)) {
+                    return false;
+                }
+                LogicalPlan lhsSource = lhsSources.iterator().next();
+                LogicalPlan rhsSource = rhsSources.iterator().next();
+                addEdge(lhsSource, new Edge(rhsSource, lhsSymbol, rhsSymbol));
+                addEdge(rhsSource, new Edge(lhsSource, lhsSymbol, rhsSymbol));
+                return true;
             }
 
             @Override
             public Void visitField(ScopedSymbol s, Set<LogicalPlan> sources) {
-                if (sources != null) {
-                    LogicalPlan logicalPlan = outputsToPlan.get(s);
-                    assert logicalPlan != null : "ScopedSymbol part of joinCondition must exist in outputsToPlan";
-                    sources.add(logicalPlan);
-                }
+                LogicalPlan logicalPlan = outputsToPlan.get(s);
+                assert logicalPlan != null : "ScopedSymbol part of joinCondition must exist in outputsToPlan";
+                sources.add(logicalPlan);
                 return null;
             }
 
             @Override
             public Void visitReference(Reference ref, Set<LogicalPlan> sources) {
-                if (sources != null) {
-                    LogicalPlan logicalPlan = outputsToPlan.get(ref);
-                    assert logicalPlan != null : "Reference part of joinCondition must exist in outputsToPlan";
-                    sources.add(logicalPlan);
-                }
+                LogicalPlan logicalPlan = outputsToPlan.get(ref);
+                assert logicalPlan != null : "Reference part of joinCondition must exist in outputsToPlan";
+                sources.add(logicalPlan);
                 return null;
             }
 
             @Override
-            public Void visitFunction(io.crate.expression.symbol.Function f, Set<LogicalPlan> sources) {
-                List<Symbol> arguments = f.arguments();
-                if (f.name().equals(EqOperator.NAME)) {
-                    var lhsSymbol = arguments.get(0);
-                    var rhsSymbol = arguments.get(1);
-
-                    Set<LogicalPlan> lhsRelations = new HashSet<>();
-                    lhsSymbol.accept(this, lhsRelations);
-
-                    Set<LogicalPlan> rhsRelations = new HashSet<>();
-                    rhsSymbol.accept(this, rhsRelations);
-
-                    for (LogicalPlan lhsRelation : lhsRelations) {
-                        for (LogicalPlan rhsRelation : rhsRelations) {
-                            addEdge(lhsRelation, new Edge(rhsRelation, lhsSymbol, rhsSymbol));
-                            addEdge(rhsRelation, new Edge(lhsRelation, lhsSymbol, rhsSymbol));
-                        }
-                    }
-                } else {
-                    arguments.forEach(arg -> arg.accept(this, sources));
-                }
+            public Void visitFunction(Function f, Set<LogicalPlan> sources) {
+                f.arguments().forEach(arg -> arg.accept(this, sources));
                 return null;
             }
 
             private void addEdge(LogicalPlan from, Edge edge) {
-                var values = edges.get(from);
-                if (values == null) {
-                    values = List.of(edge);
-                } else {
-                    values = new ArrayList<>(values);
-                    values.add(edge);
-                }
-                edges.put(from, values);
+                edges.computeIfAbsent(from, k -> new ArrayList<>()).add(edge);
             }
         }
     }
