@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
+import org.jspecify.annotations.Nullable;
+
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.Maps;
@@ -161,12 +163,23 @@ public record JoinGraph(List<LogicalPlan> nodes,
 
         @Override
         public JoinGraph visitFilter(Filter filter, Map<Symbol, LogicalPlan> context) {
+            if (!includeInGraph(filter)) {
+                return visitPlan(filter, context);
+            }
             JoinGraph source = filter.source().accept(this, context);
-            return source.withFilters(List.of(filter.query()));
+            var edgeCollector = new EdgeCollector(context);
+            edgeCollector.collect(filter.query());
+            return source
+                .withEdges(edgeCollector.edges)
+                .withFilters(edgeCollector.filters);
         }
 
         @Override
         public JoinGraph visitJoinPlan(JoinPlan joinPlan, Map<Symbol, LogicalPlan> context) {
+            if (!includeInGraph(joinPlan)) {
+                return visitPlan(joinPlan, context);
+            }
+
             JoinGraph left = joinPlan.lhs().accept(this, context);
             JoinGraph right = joinPlan.rhs().accept(this, context);
 
@@ -175,20 +188,45 @@ public record JoinGraph(List<LogicalPlan> nodes,
             }
 
             Symbol joinCondition = joinPlan.joinCondition();
-            if (joinPlan.joinType() != JoinType.INNER) {
-                JoinGraph result = left.joinWith(right);
-                return joinCondition == null
-                    ? result
-                    : result.withFilters(List.of(joinCondition));
+
+            var edgeCollector = new EdgeCollector(context);
+            edgeCollector.collect(joinCondition);
+            return left
+                .joinWith(right)
+                .withEdges(edgeCollector.edges)
+                .withFilters(edgeCollector.filters);
+        }
+
+        /**
+         * INNER/CROSS joins, and Filters on top of them, can be included in the JoinGraph.
+         * A Filter on anything else belongs to the node/plan below it (e.g. Filter -> Collect).
+         */
+        private boolean includeInGraph(LogicalPlan plan) {
+            LogicalPlan resolved = resolvePlan.apply(plan);
+            if (resolved instanceof JoinPlan join) {
+                return join.joinType() == JoinType.INNER || join.joinType() == JoinType.CROSS;
+            }
+            return resolved instanceof Filter filter && includeInGraph(filter.source());
+        }
+
+        /// Given a `condition`, the `EdgeCollector` extracts edges (conditions) that connect (join)
+        /// plans. Everything else is saved as a filter.
+        private static class EdgeCollector extends SymbolVisitor<Set<LogicalPlan>, Void> {
+
+            private final Map<LogicalPlan, List<Edge>> edges = new HashMap<>();
+            private final List<Symbol> filters = new ArrayList<>();
+            private final Map<Symbol, LogicalPlan> outputsToPlan;
+
+            private EdgeCollector(Map<Symbol, LogicalPlan> outputsToPlan) {
+                this.outputsToPlan = outputsToPlan;
             }
 
-            ArrayList<Symbol> filters = new ArrayList<>();
-            Map<LogicalPlan, List<Edge>> edges;
-            if (joinCondition == null) {
-                edges = Map.of();
-            } else {
-                var edgeCollector = new EdgeCollector(context);
-                Map<Set<RelationName>, Symbol> split = QuerySplitter.split(joinCondition);
+            /// Splits `condition` into edges (equi-join conditions between two tables) and filters.
+            private void collect(@Nullable Symbol condition) {
+                if (condition == null) {
+                    return;
+                }
+                Map<Set<RelationName>, Symbol> split = QuerySplitter.split(condition);
                 for (var entry : split.entrySet()) {
                     Set<RelationName> relations = entry.getKey();
                     Symbol expression = entry.getValue();
@@ -198,28 +236,13 @@ public record JoinGraph(List<LogicalPlan> nodes,
                     // filters. Therefore, we only want entries where we have
                     // two keys.
                     if (relations.size() == 2 && isEquiJoin(expression)) {
-                        expression.accept(edgeCollector, null);
+                        expression.accept(this, null);
                     } else {
                         filters.add(expression);
                     }
                 }
-                edges = edgeCollector.edges;
                 assert (!edges.isEmpty() || !filters.isEmpty())
                     : "Must have either edges or filters - otherwise we'd be dropping the join condition";
-            }
-            return left
-                .joinWith(right)
-                .withEdges(edges)
-                .withFilters(filters);
-        }
-
-        private static class EdgeCollector extends SymbolVisitor<Set<LogicalPlan>, Void> {
-
-            private final Map<LogicalPlan, List<Edge>> edges = new HashMap<>();
-            private final Map<Symbol, LogicalPlan> outputsToPlan;
-
-            private EdgeCollector(Map<Symbol, LogicalPlan> outputsToPlan) {
-                this.outputsToPlan = outputsToPlan;
             }
 
             @Override
