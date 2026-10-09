@@ -238,7 +238,8 @@ final class LooseIndexScan {
         /// PoC: drains the remaining distinct values into a long[], and hands them out as rows.
         /// A long-valued point is stored as the value, any other as its packed bytes (decoded when handed out).
         Iterable<Row> drain(RamAccounting ramAccounting) throws IOException {
-            long[] values = new long[16];
+            // PoC (t050 only): presized for ~1M distinct values per shard.
+            long[] values = new long[1_000_000];
             int size = 0;
             while (advance()) {
                 if (size == values.length) {

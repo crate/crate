@@ -95,10 +95,12 @@ public final class GroupByMaps {
                 Integer.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF
             );
 
+            // PoC (t050 only): presized for 5M distinct values. With a load factor of 0.5 that needs
+            // 2 * 5M slots, which Netty rounds up to 2^24, so the map never rehashes.
             case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ ->
                 () -> (ResizeAwareMap<K, V>) new ResizeAwareMap<>(
-                    new PrimitiveMapWithNulls<>(new LongObjectHashMap<>()),
-                    LongObjectHashMap.DEFAULT_CAPACITY,
+                    new PrimitiveMapWithNulls<>(new LongObjectHashMap<>(2 * 5_000_000)),
+                    2 * 5_000_000,
                     LongObjectHashMap.DEFAULT_LOAD_FACTOR,
                     true,
                     Long.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF
