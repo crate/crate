@@ -162,6 +162,9 @@ public class PGArray extends PGType<List<Object>> {
     @Override
     public List<Object> readBinaryValue(ByteBuf buffer, int valueLength) {
         int dimensions = buffer.readInt();
+        if (dimensions < 0 || dimensions > buffer.readableBytes()) {
+            throw new IllegalArgumentException("Invalid number of dimensions: " + dimensions);
+        }
         buffer.readInt(); // flags bit 0: 0=no-nulls, 1=has-nulls
         buffer.readInt(); // element oid
         if (dimensions == 0) {
