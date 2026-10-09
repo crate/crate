@@ -190,8 +190,6 @@ final class LooseIndexScan {
         private final StorageSupport<?> storageSupport;
         /// PoC: long, date and timestamp points decode to a long, so they're buffered as the value itself.
         private final boolean longValued;
-        /// PoC: number of points in all segments, an upper bound for the number of distinct values.
-        private final long numPoints;
         private final Object[] cells = new Object[1];
         private final Row row = new RowN(cells);
         private final RamAccounting ramAccounting;
@@ -229,11 +227,6 @@ final class LooseIndexScan {
                 Math.max(1, cursors.size()),
                 (a, b) -> cmp.compare(a.value(), 0, b.value(), 0)
             );
-            long points = 0;
-            for (var c : cursors) {
-                points += c.numPoints();
-            }
-            this.numPoints = points;
             // Only cursors that actually hold values can get into the queue (the comparator requires a value).
             for (var c : cursors) {
                 if (c.next()) {
@@ -245,8 +238,7 @@ final class LooseIndexScan {
         /// PoC: drains the remaining distinct values into a long[], and hands them out as rows.
         /// A long-valued point is stored as the value, any other as its packed bytes (decoded when handed out).
         Iterable<Row> drain(RamAccounting ramAccounting) throws IOException {
-            // PoC: presized to half the points. More distinct values than that make it grow.
-            long[] values = new long[(int) Math.min(numPoints / 2, ArrayUtil.MAX_ARRAY_LENGTH)];
+            long[] values = new long[16];
             int size = 0;
             while (advance()) {
                 if (size == values.length) {
@@ -412,7 +404,6 @@ final class LooseIndexScan {
     static final class SegmentCursor {
 
         private final PointTree tree;
-        private final long numPoints;
         @Nullable
         private final Bits liveDocs;
         // Number of bytes needed to store a value.
@@ -436,18 +427,12 @@ final class LooseIndexScan {
         private final CopyLeafValuesVisitor copyLeafValuesVisitor = new CopyLeafValuesVisitor();
         private final LiveDocVisitor liveDocVisitor = new LiveDocVisitor();
 
-        /// Number of points in the segment, including those of deleted docs.
-        long numPoints() {
-            return numPoints;
-        }
-
         SegmentCursor(PointValues values,
                       @Nullable Bits liveDocs,
                       int bytesPerValue,
                       RamAccounting ramAccounting,
                       Token killToken) throws IOException {
             this.tree = values.getPointTree();
-            this.numPoints = values.size();
             this.liveDocs = liveDocs;
             this.bytesPerValue = bytesPerValue;
             this.cmp = ArrayUtil.getUnsignedComparator(bytesPerValue);
