@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.PointValues;
@@ -45,10 +46,9 @@ import org.jspecify.annotations.Nullable;
 
 import io.crate.common.concurrent.Killable.Token;
 import io.crate.data.BatchIterator;
-import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.data.SentinelRow;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -110,12 +110,50 @@ final class LooseIndexScan {
                                        int bytesPerValue,
                                        RamAccounting ramAccounting,
                                        Token killToken) {
-        return InMemoryBatchIterator.of(
-            rows(searcher, keyRef, bytesPerValue, ramAccounting, killToken),
-            SentinelRow.SENTINEL,
-            // distinct values loaded lazily from each segment
+        // PoC: drain everything in loadNextBatch(), so that AsyncCompositeBI runs the shards in parallel.
+        return CollectingBatchIterator.newInstance(
+            () -> {},
+            killToken::kill,
+            () -> {
+                try {
+                    return CompletableFuture.completedFuture(
+                        materialize(rows(searcher, keyRef, bytesPerValue, ramAccounting, killToken), ramAccounting));
+                } catch (Throwable t) {
+                    return CompletableFuture.failedFuture(t);
+                }
+            },
             true
         );
+    }
+
+    // PoC: copies the values out of the shared row, then hands them out through one reused row.
+    private static Iterable<Row> materialize(Iterable<Row> rows, RamAccounting ramAccounting) {
+        ArrayList<Object> values = new ArrayList<>();
+        Iterator<Row> it = rows.iterator();
+        while (it.hasNext()) {
+            values.add(it.next().get(0));
+        }
+        if (it instanceof ShardDistinctValues distinctValues) {
+            distinctValues.close();
+        }
+        // NB: not released, the collect task's accounting goes away with the task.
+        ramAccounting.addBytes(values.size() * (RamUsageEstimator.NUM_BYTES_OBJECT_REF + 16L));
+        return () -> new Iterator<>() {
+            private final Object[] cells = new Object[1];
+            private final Row row = new RowN(cells);
+            private int idx = 0;
+
+            @Override
+            public boolean hasNext() {
+                return idx < values.size();
+            }
+
+            @Override
+            public Row next() {
+                cells[0] = values.get(idx++);
+                return row;
+            }
+        };
     }
 
     // The distinct values as single cell rows, produced lazily.
