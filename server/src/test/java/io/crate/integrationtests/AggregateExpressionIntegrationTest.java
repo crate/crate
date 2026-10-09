@@ -243,13 +243,30 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_filter_in_count_star_aggregate_function() {
-        execute("CREATE TABLE t (x int)");
-        execute("INSERT INTO t VALUES (1), (3), (2), (4)");
-        execute("REFRESH TABLE t");
+    public void test_aggregate_with_filter() {
+        execute("CREATE TABLE tbl (x INTEGER, y INTEGER, t TEXT)");
+        execute("INSERT INTO tbl (x, y, t) VALUES (?, ?, ?)",
+            new Object[][] {
+                new Object[] {1, 1, "a"},
+                new Object[] {2, 2, "a"},
+                new Object[] {3, 2, "b"},
+                new Object[] {4, 3, "b"},
+                new Object[] {5, 3, "c"}
+            }
+        );
+        execute("refresh table tbl");
 
-        execute("SELECT COUNT(*) FILTER (WHERE x > 2) FROM t");
-        assertThat(response).hasRows("2");
+        execute("SELECT sum(x), count(distinct t) FROM tbl WHERE y > 1");
+        assertThat(response).hasRows("14| 3");
+
+        execute("SELECT sum(x), count(distinct t) FILTER (WHERE x > 1) FROM tbl");
+        assertThat(response).hasRows("15| 3");
+
+        execute("SELECT sum(x) FILTER (WHERE x > 1), count(distinct t) FROM tbl");
+        assertThat(response).hasRows("14| 3");
+
+        execute("SELECT COUNT(*) FILTER (WHERE x > 2) FROM tbl");
+        assertThat(response).hasRows("3");
     }
 
     @Test
@@ -327,5 +344,57 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
         assertThat(resultRows).containsOnlyKeys("maximum_error", "frequencies");
         assertThat(resultRows.get("maximum_error")).isNotNull();
         assertThat(resultRows.get("frequencies")).isNotNull();
+    }
+
+    @Test
+    public void test_multiple_distinct_and_non_distinct() {
+        execute("CREATE TABLE tbl (x INTEGER, y INTEGER, t TEXT)");
+        execute("INSERT INTO tbl (x, y, t) VALUES (?, ?, ?)",
+            new Object[][] {
+                new Object[] {10, 100, "p"},
+                new Object[] {10, 100, "q"},
+                new Object[] {20, 200, "q"},
+                new Object[] {20, 300, "q"},
+                new Object[] {30, 300, "r"}
+            }
+        );
+        execute("refresh table tbl");
+
+        // one non-distinct, one distinct
+        execute("SELECT sum(x), count(distinct t) FROM tbl");
+        assertThat(response).hasRows("90| 3");
+
+        // multiple non-distinct, one distinct
+        execute("SELECT count(*), min(x), max(y), avg(x), count(y), count(distinct t) FROM tbl");
+        assertThat(response).hasRows("5| 10| 300| 18.0| 5| 3");
+
+        // one non-distinct, multiple distinct
+        execute("SELECT sum(y), count(distinct t), avg(distinct x) FROM tbl");
+        assertThat(response).hasRows("1000| 3| 20.0");
+
+        // all distinct
+        execute("SELECT count(distinct x), avg(distinct x) FROM tbl");
+        assertThat(response).hasRows("3| 20.0");
+    }
+
+    @Test
+    public void test_aggregate_and_scalar() {
+        execute("CREATE TABLE tbl (x INTEGER, t TEXT)");
+        execute("INSERT INTO tbl (x, t) VALUES (?, ?)",
+            new Object[][] {
+                new Object[] {1, "P"},
+                new Object[] {2, "p"},
+                new Object[] {3, "Q"},
+                new Object[] {4, "Q"},
+                new Object[] {5, "R"}
+            }
+        );
+        execute("refresh table tbl");
+
+        execute("SELECT variance(x), count(upper(t)), count(distinct t) FROM tbl");
+        assertThat(response).hasRows("2.0| 5| 4");
+
+        execute("SELECT sum(x), count(distinct upper(t)) FROM tbl");
+        assertThat(response).hasRows("15| 3");
     }
 }
