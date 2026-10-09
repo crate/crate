@@ -24,7 +24,6 @@ package io.crate.execution.engine.collect;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -251,8 +250,7 @@ final class LooseIndexScan {
             int size = 0;
             while (advance()) {
                 if (size == values.length) {
-                    // Doubles, so that a too small presize costs one copy, not many.
-                    values = Arrays.copyOf(values, (int) Math.min(Math.max(1L, 2L * values.length), ArrayUtil.MAX_ARRAY_LENGTH));
+                    values = ArrayUtil.grow(values, size + 1);
                 }
                 values[size++] = longValued
                     ? NumericUtils.sortableBytesToLong(current, 0)
