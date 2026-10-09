@@ -200,4 +200,39 @@ public class IntegerType extends IntegralType<Integer> implements Streamer<Integ
     public long valueBytes(Integer value) {
         return INTEGER_SIZE;
     }
+
+    @Override
+    public Integer zero() {
+        return 0;
+    }
+
+    @Override
+    public Integer and(Integer x, Integer y) {
+        return x & y;
+    }
+
+    @Override
+    public Integer xor(Integer x, Integer y) {
+        return x ^ y;
+    }
+
+    @Override
+    public Integer add(Integer x, Integer y) {
+        return x + y;
+    }
+
+    @Override
+    public Integer modulo(Integer x, Integer y) {
+        return x % y;
+    }
+
+    @Override
+    public Integer addExact(Integer x, Integer y) {
+        return Math.addExact(x, y);
+    }
+
+    @Override
+    public Integer multiplyExact(Integer x, Integer y) {
+        return Math.multiplyExact(x, y);
+    }
 }
