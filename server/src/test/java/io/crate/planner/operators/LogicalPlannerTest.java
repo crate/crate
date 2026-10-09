@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -77,6 +78,8 @@ import io.crate.types.DataTypes;
 
 public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
+    private static final AtomicBoolean WARM = new AtomicBoolean(false);
+
     private SQLExecutor sqlExecutor;
 
     @Before
@@ -87,6 +90,11 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(T3.T2_DEFINITION)
             .addView(new RelationName("doc", "v2"), "SELECT a, x FROM doc.t1")
             .addView(new RelationName("doc", "v3"), "SELECT a, x FROM doc.t1");
+        if (WARM.compareAndSet(false, true)) {
+            // Fills up ANTLR caches and triggers other lazy initialization.
+            // Run this here to exclude those allocations later for assertMaxBytesAllocated
+            sqlExecutor.logicalPlan("SELECT sum(x) FROM t1");
+        }
     }
 
     private LogicalPlan plan(String statement) {
