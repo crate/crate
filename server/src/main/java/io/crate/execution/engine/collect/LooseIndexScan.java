@@ -40,6 +40,7 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.ArrayUtil.ByteArrayComparator;
 import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.apache.lucene.util.bkd.BKDConfig;
 import org.jspecify.annotations.Nullable;
@@ -126,34 +127,14 @@ final class LooseIndexScan {
         );
     }
 
-    // PoC: copies the values out of the shared row, then hands them out through one reused row.
-    private static Iterable<Row> materialize(Iterable<Row> rows, RamAccounting ramAccounting) {
-        ArrayList<Object> values = new ArrayList<>();
-        Iterator<Row> it = rows.iterator();
-        while (it.hasNext()) {
-            values.add(it.next().get(0));
-        }
-        if (it instanceof ShardDistinctValues distinctValues) {
+    // PoC: drains the shard's distinct values into a long[], then hands them out through one reused row.
+    private static Iterable<Row> materialize(Iterable<Row> rows, RamAccounting ramAccounting) throws IOException {
+        ShardDistinctValues distinctValues = (ShardDistinctValues) rows.iterator();
+        try {
+            return distinctValues.drain(ramAccounting);
+        } finally {
             distinctValues.close();
         }
-        // NB: not released, the collect task's accounting goes away with the task.
-        ramAccounting.addBytes(values.size() * (RamUsageEstimator.NUM_BYTES_OBJECT_REF + 16L));
-        return () -> new Iterator<>() {
-            private final Object[] cells = new Object[1];
-            private final Row row = new RowN(cells);
-            private int idx = 0;
-
-            @Override
-            public boolean hasNext() {
-                return idx < values.size();
-            }
-
-            @Override
-            public Row next() {
-                cells[0] = values.get(idx++);
-                return row;
-            }
-        };
     }
 
     // The distinct values as single cell rows, produced lazily.
@@ -207,6 +188,8 @@ final class LooseIndexScan {
         private final ByteArrayComparator cmp;
         private final int bytesPerValue;
         private final StorageSupport<?> storageSupport;
+        /// PoC: long, date and timestamp points decode to a long, so they're buffered as the value itself.
+        private final boolean longValued;
         private final Object[] cells = new Object[1];
         private final Row row = new RowN(cells);
         private final RamAccounting ramAccounting;
@@ -229,6 +212,11 @@ final class LooseIndexScan {
             this.storageSupport = keyRef.valueType().storageSupportSafe();
             assert supportsType(keyRef.valueType())
                 : "ShardDistinctValues can only be used with types that decode points";
+            assert bytesPerValue <= Long.BYTES : "a point must fit into a long";
+            this.longValued = switch (keyRef.valueType().id()) {
+                case LongType.ID, DateType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ -> true;
+                default -> false;
+            };
 
             this.ramAccounting = ramAccounting;
             // bytesPerValue for the `current` field
@@ -244,6 +232,68 @@ final class LooseIndexScan {
                 if (c.next()) {
                     queue.add(c);
                 }
+            }
+        }
+
+        /// PoC: drains the remaining distinct values into a long[], and hands them out as rows.
+        /// A long-valued point is stored as the value, any other as its packed bytes (decoded when handed out).
+        Iterable<Row> drain(RamAccounting ramAccounting) throws IOException {
+            long[] values = new long[16];
+            int size = 0;
+            while (advance()) {
+                if (size == values.length) {
+                    values = ArrayUtil.grow(values, size + 1);
+                }
+                values[size++] = longValued
+                    ? NumericUtils.sortableBytesToLong(current, 0)
+                    : pack(current, bytesPerValue);
+            }
+            // NB: not released, the collect task's accounting goes away with the task.
+            ramAccounting.addBytes((long) values.length * Long.BYTES);
+
+            final long[] buffer = values;
+            final int numValues = size;
+            final boolean hasNull = returnNull;
+            return () -> new Iterator<>() {
+                private final Object[] rowCells = new Object[1];
+                private final Row outRow = new RowN(rowCells);
+                private final byte[] packed = new byte[bytesPerValue];
+                private boolean nullPending = hasNull;
+                private int idx = 0;
+
+                @Override
+                public boolean hasNext() {
+                    return nullPending || idx < numValues;
+                }
+
+                @Override
+                public Row next() {
+                    if (nullPending) {
+                        nullPending = false;
+                        rowCells[0] = null;
+                    } else if (longValued) {
+                        rowCells[0] = buffer[idx++];
+                    } else {
+                        unpack(buffer[idx++], packed);
+                        rowCells[0] = storageSupport.decode(packed);
+                    }
+                    return outRow;
+                }
+            };
+        }
+
+        private static long pack(byte[] bytes, int length) {
+            long value = 0;
+            for (int i = 0; i < length; i++) {
+                value = (value << 8) | (bytes[i] & 0xFF);
+            }
+            return value;
+        }
+
+        private static void unpack(long value, byte[] bytes) {
+            for (int i = bytes.length - 1; i >= 0; i--) {
+                bytes[i] = (byte) value;
+                value >>>= 8;
             }
         }
 
