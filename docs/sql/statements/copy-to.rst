@@ -305,6 +305,41 @@ For example:
         key = 'key'
     )
 
+.. _sql-copy-to-gs:
+
+``gs``
+''''''
+
+You can use the ``gs://`` scheme to access files on `Google Cloud Storage`_.
+
+URI must look like ``gs://<bucket>/<path>``.
+
+For example:
+
+.. code-block:: text
+
+    gs://my-bucket/dir1/dir2/file1.json
+
+The following authentication parameters must be provided in the ``WITH``
+clause: :ref:`sql-copy-to-project-id`, :ref:`sql-copy-to-private-key-id`,
+:ref:`sql-copy-to-private-key`, :ref:`sql-copy-to-client-email`, and
+:ref:`sql-copy-to-client-id`. These correspond to the fields of a `GCS
+service account key`_.
+
+For example:
+
+.. code-block:: text
+
+    COPY source
+    TO DIRECTORY 'gs://my-bucket/dir1/dir2/'
+    WITH (
+        project_id = 'my-project',
+        private_key_id = 'key-id',
+        private_key = '-----BEGIN RSA PRIVATE KEY-----\n...',
+        client_email = 'sa@my-project.iam.gserviceaccount.com',
+        client_id = '12345'
+    )
+
 .. _sql-copy-to-with:
 
 ``WITH``
@@ -410,6 +445,47 @@ The ``WITH`` clause supports the following copy parameters:
 
       It must be provided if :ref:`sql-copy-to-key` is not provided.
 
+.. _sql-copy-to-project-id:
+
+**project_id**
+  | *Type:*    ``text``
+  | *Required for* :ref:`gs <sql-copy-to-gs>` *scheme*
+
+  The Google Cloud project ID from the service account key.
+
+.. _sql-copy-to-private-key-id:
+
+**private_key_id**
+  | *Type:*    ``text``
+  | *Required for* :ref:`gs <sql-copy-to-gs>` *scheme*
+
+  The private key ID from the service account key.
+
+.. _sql-copy-to-private-key:
+
+**private_key**
+  | *Type:*    ``text``
+  | *Required for* :ref:`gs <sql-copy-to-gs>` *scheme*
+
+  The PEM-encoded private key from the service account key. Use ``\n`` for
+  newlines within the key.
+
+.. _sql-copy-to-client-email:
+
+**client_email**
+  | *Type:*    ``text``
+  | *Required for* :ref:`gs <sql-copy-to-gs>` *scheme*
+
+  The service account email address.
+
+.. _sql-copy-to-client-id:
+
+**client_id**
+  | *Type:*    ``text``
+  | *Required for* :ref:`gs <sql-copy-to-gs>` *scheme*
+
+  The client ID from the service account key.
+
 
 .. _Amazon S3: https://aws.amazon.com/s3/
 .. _Amazon Simple Storage Service: https://aws.amazon.com/s3/
@@ -419,6 +495,8 @@ The ``WITH`` clause supports the following copy parameters:
 .. _SAS: https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview
 .. _Account Key: https://learn.microsoft.com/en-us/purview/sit-defn-azure-storage-account-key-generic#format
 .. _Docker volume: https://docs.docker.com/storage/volumes/
+.. _GCS service account key: https://cloud.google.com/iam/docs/keys-create-delete
+.. _Google Cloud Storage: https://cloud.google.com/storage
 .. _gzip: https://www.gzip.org/
 .. _NFS: https://en.wikipedia.org/wiki/Network_File_System
 .. _URL encoded: https://en.wikipedia.org/wiki/Percent-encoding

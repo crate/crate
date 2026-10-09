@@ -118,6 +118,9 @@ Changes
 SQL Statements
 --------------
 
+- Added Google Cloud Storage support to the :ref:`COPY FROM <sql-copy-from>`
+  and :ref:`COPY TO <sql-copy-to>` statements.
+
 - `Manish Singh <https://github.com/manish9363>`_ added support for dropping
   multiple tables with a single :ref:`DROP TABLE <drop-table>` statement, e.g.
   ``DROP TABLE t1, t2, t3``.
