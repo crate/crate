@@ -87,6 +87,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(T3.T2_DEFINITION)
             .addView(new RelationName("doc", "v2"), "SELECT a, x FROM doc.t1")
             .addView(new RelationName("doc", "v3"), "SELECT a, x FROM doc.t1");
+        // warmup ANTLR by parsing a query with a function call.
+        // A cold run of ANTLR seems to allocate more memory than we expect which trips assertMaxBytesAllocated
+        // and results in flaky tests
+        sqlExecutor.logicalPlan("SELECT sum(x) FROM t1");
     }
 
     private LogicalPlan plan(String statement) {
