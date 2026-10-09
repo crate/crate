@@ -77,7 +77,11 @@ public class RemoteClusters implements Closeable {
         if (remoteCluster == null) {
             throw new NoSuchRemoteClusterException(subscriptionName);
         }
-        return remoteCluster.client();
+        var clientFuture = remoteCluster.getClient();
+        if (clientFuture == null || clientFuture.isDone() == false) {
+            throw new NoSuchRemoteClusterException(subscriptionName);
+        }
+        return clientFuture.join();
     }
 
     public synchronized CompletableFuture<Client> connect(String name,
@@ -92,15 +96,20 @@ public class RemoteClusters implements Closeable {
                 settings,
                 connectionInfo,
                 pgClientFactory,
-                threadPool,
                 transportService
             );
             remoteClusters.put(name, remoteCluster);
         }
-        var clientFuture = remoteCluster.connectAndGetClient();
-        return clientFuture.whenComplete((c, err) -> {
+        final RemoteCluster finalRemoteCluster = remoteCluster;
+        return remoteCluster.connectAndGetClient().whenComplete((c, err) -> {
             if (err != null) {
-                remove(name);
+                synchronized (this) {
+                    // Only remove the RemoteCluster instance on which connectAndGetClient() was called.
+                    // Another thread may have already replaced the instance registered under this name.
+                    if (remoteClusters.get(name) == finalRemoteCluster) {
+                        remove(name);
+                    }
+                }
             }
         });
     }
