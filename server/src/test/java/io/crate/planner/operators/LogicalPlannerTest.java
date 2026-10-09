@@ -23,7 +23,6 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -66,6 +65,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.optimizer.rule.EliminateCrossJoin;
 import io.crate.planner.optimizer.rule.EquiJoinToLookupJoin;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
@@ -85,6 +85,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
+            .addTable(T3.T3_DEFINITION)
+            .addTable(T3.T4_DEFINITION)
             .addView(new RelationName("doc", "v2"), "SELECT a, x FROM doc.t1")
             .addView(new RelationName("doc", "v3"), "SELECT a, x FROM doc.t1");
     }
@@ -996,6 +998,105 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "        └ Eval[1 AS col0]",
                 "          └ TableFunction[empty_row | [] | true]"
             );
+    }
+
+    @Test
+    public void test_eliminate_cross_joins_with_4_table() {
+        var plan = sqlExecutor.logicalPlan("""
+            SELECT *
+            FROM t1, t2, t3, t4
+            WHERE t1.i = t3.z
+              AND t2.i = t4.id
+              AND t3.z = t4.id;
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "Eval[a, x, i, b, y, i, c, z, id, obj, obj_array]",
+            "  └ HashJoin[INNER | (i = id)]",
+            "    ├ HashJoin[INNER | (z = id)]",
+            "    │  ├ HashJoin[INNER | (i = z)]",
+            "    │  │  ├ Collect[doc.t1 | [a, x, i] | true]",
+            "    │  │  └ Collect[doc.t3 | [c, z] | true]",
+            "    │  └ Collect[doc.t4 | [id, obj, obj_array] | true]",
+            "    └ Collect[doc.t2 | [b, y, i] | true]"
+        );
+    }
+
+    @Test
+    public void test_filter_on_nested_cross_join_to_nested_inner_joins() {
+        sqlExecutor.getSessionSettings().excludedOptimizerRules().remove(EliminateCrossJoin.class);
+
+        LogicalPlan plan = plan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1
+            CROSS JOIN t2
+            CROSS JOIN t3
+            WHERE t1.x = t2.y
+              AND t1.x = t3.z
+              AND t2.y = t3.z
+              AND t1.x > 1
+              AND t2.y > 2
+              AND t3.z > 3
+            """
+        );
+
+        assertThat(plan).isEqualTo(
+            """
+            HashJoin[INNER | ((x = z) AND (y = z))]
+              ├ HashJoin[INNER | (x = y)]
+              │  ├ Collect[doc.t1 | [x] | (x > 1)]
+              │  └ Collect[doc.t2 | [y] | (y > 2)]
+              └ Collect[doc.t3 | [z] | (z > 3)]
+            """
+        );
+
+        sqlExecutor.getSessionSettings().excludedOptimizerRules().add(EliminateCrossJoin.class);
+
+        plan = plan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1
+            CROSS JOIN t2
+            CROSS JOIN t3
+            WHERE t1.x = t2.y
+              AND t1.x = t3.z
+              AND t2.y = t3.z
+              AND t1.x > 1
+              AND t2.y > 2
+              AND t3.z > 3
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "HashJoin[INNER | (((x = y) AND (x = z)) AND (y = z))]",
+            "  ├ NestedLoopJoin[CROSS]",
+            "  │  ├ Collect[doc.t1 | [x] | (x > 1)]",
+            "  │  └ Collect[doc.t2 | [y] | (y > 2)]",
+            "  └ Collect[doc.t3 | [z] | (z > 3)]"
+        );
+    }
+
+    @Test
+    public void test_cross_join_with_inner_join_and_left_join() {
+        LogicalPlan plan = sqlExecutor.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z, t4.id
+            FROM t1
+            CROSS JOIN t2
+            JOIN t3 ON t1.x = t3.z AND t2.y = t3.z
+            LEFT JOIN t4 ON t3.z = t4.id;
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "HashJoin[LEFT | (z = id)]",
+            "  ├ Eval[x, y, z]",
+            "  │  └ HashJoin[INNER | (y = z)]",
+            "  │    ├ HashJoin[INNER | (x = z)]",
+            "  │    │  ├ Collect[doc.t1 | [x] | true]",
+            "  │    │  └ Collect[doc.t3 | [z] | true]",
+            "  │    └ Collect[doc.t2 | [y] | true]",
+            "  └ Collect[doc.t4 | [id] | true]"
+        );
     }
 
     /**
