@@ -55,6 +55,53 @@ import io.netty.pkitesting.CertificateBuilder;
 
 public class PgTunnelLogicalReplicationITest extends ESTestCase {
 
+    @Test
+    public void test_partitioned_replication_resumes_after_publisher_restart() throws Exception {
+        publisherCluster = newCluster("publisher", Settings.EMPTY);
+        subscriberCluster = newCluster("subscriber", Settings.EMPTY);
+        publisher = publisherCluster.createSQLTransportExecutor();
+        subscriber = subscriberCluster.createSQLTransportExecutor();
+        publisher.exec("""
+            CREATE TABLE doc.tbl (name text, p int) PARTITIONED BY (p)
+            CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)
+            """);
+        publisher.exec("INSERT INTO doc.tbl VALUES ('a', 0)");
+        publisher.ensureGreen();
+        publisher.exec("CREATE PUBLICATION pub1 FOR TABLE doc.tbl");
+
+        var address = publisherCluster.getInstance(PostgresNetty.class).boundAddress().publishAddress().address();
+        subscriber.exec(String.format(Locale.ENGLISH, """
+            CREATE SUBSCRIPTION sub1
+            CONNECTION 'crate://%s:%d?user=crate&mode=pg_tunnel'
+            PUBLICATION pub1
+            """, address.getHostString(), address.getPort()));
+        assertBusy(() -> {
+            try {
+                subscriber.exec("REFRESH TABLE doc.tbl");
+                assertThat(subscriber.exec("SELECT name, p FROM doc.tbl ORDER BY name")).hasRows("a| 0");
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        });
+
+        publisherCluster.fullRestart();
+        publisher = publisherCluster.createSQLTransportExecutor();
+        publisher.ensureGreen();
+        assertThat(publisherCluster.getInstance(PostgresNetty.class).boundAddress().publishAddress().address().getPort())
+            .isEqualTo(address.getPort());
+
+        publisher.exec("INSERT INTO doc.tbl VALUES ('b', 0), ('c', 1)");
+        assertBusy(() -> {
+            try {
+                subscriber.exec("REFRESH TABLE doc.tbl");
+                assertThat(subscriber.exec("SELECT name, p FROM doc.tbl ORDER BY name")).hasRows("a| 0", "b| 0", "c| 1");
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        });
+
+    }
+
     private TestCluster publisherCluster;
     private TestCluster subscriberCluster;
     private SQLTransportExecutor publisher;
