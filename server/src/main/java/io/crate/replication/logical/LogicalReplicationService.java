@@ -113,7 +113,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             threadPool,
             this,
             replicationSettings,
-            remoteClusters::getClient,
+            remoteClusters::connect,
             clusterService,
             allocationService,
             metadataUpgradeService
