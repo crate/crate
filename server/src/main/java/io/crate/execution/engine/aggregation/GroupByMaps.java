@@ -68,6 +68,19 @@ public final class GroupByMaps {
         };
     }
 
+    public static volatile int pocExpectedDistinct = -1;
+
+    public static int pocDistinctFromTableName(String tableName) {
+        if (tableName.length() != 4 || tableName.charAt(0) != 't') {
+            return -1;
+        }
+        try {
+            return Integer.parseInt(tableName, 1, 4, 10) * 100_000;
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static <K, V> Supplier<ResizeAwareMap<K, V>> mapForType(DataType<K> type) {
         return switch (type.id()) {
@@ -95,16 +108,17 @@ public final class GroupByMaps {
                 Integer.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF
             );
 
-            // PoC (t050 only): presized for 5M distinct values. With a load factor of 0.5 that needs
-            // 2 * 5M slots, which Netty rounds up to 2^24, so the map never rehashes.
-            case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ ->
-                () -> (ResizeAwareMap<K, V>) new ResizeAwareMap<>(
-                    new PrimitiveMapWithNulls<>(new LongObjectHashMap<>(2 * 5_000_000)),
-                    2 * 5_000_000,
+            case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ -> () -> {
+                int distinct = pocExpectedDistinct;
+                int capacity = distinct > 0 ? 2 * distinct : LongObjectHashMap.DEFAULT_CAPACITY;
+                return (ResizeAwareMap<K, V>) new ResizeAwareMap<>(
+                    new PrimitiveMapWithNulls<>(new LongObjectHashMap<>(capacity)),
+                    capacity,
                     LongObjectHashMap.DEFAULT_LOAD_FACTOR,
                     true,
                     Long.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF
                 );
+            };
 
             default -> () -> wrapperForJDKMap(new HashMap<>());
         };

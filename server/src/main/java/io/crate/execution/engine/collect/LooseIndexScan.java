@@ -110,7 +110,8 @@ final class LooseIndexScan {
                                        Reference keyRef,
                                        int bytesPerValue,
                                        RamAccounting ramAccounting,
-                                       Token killToken) {
+                                       Token killToken,
+                                       int initialCapacity) {
         // PoC: drain everything in loadNextBatch(), so that AsyncCompositeBI runs the shards in parallel.
         return CollectingBatchIterator.newInstance(
             () -> {},
@@ -118,7 +119,10 @@ final class LooseIndexScan {
             () -> {
                 try {
                     return CompletableFuture.completedFuture(
-                        materialize(rows(searcher, keyRef, bytesPerValue, ramAccounting, killToken), ramAccounting));
+                        materialize(
+                            rows(searcher, keyRef, bytesPerValue, ramAccounting, killToken),
+                            ramAccounting,
+                            initialCapacity));
                 } catch (Throwable t) {
                     return CompletableFuture.failedFuture(t);
                 }
@@ -128,10 +132,12 @@ final class LooseIndexScan {
     }
 
     // PoC: drains the shard's distinct values into a long[], then hands them out through one reused row.
-    private static Iterable<Row> materialize(Iterable<Row> rows, RamAccounting ramAccounting) throws IOException {
+    private static Iterable<Row> materialize(Iterable<Row> rows,
+                                             RamAccounting ramAccounting,
+                                             int initialCapacity) throws IOException {
         ShardDistinctValues distinctValues = (ShardDistinctValues) rows.iterator();
         try {
-            return distinctValues.drain(ramAccounting);
+            return distinctValues.drain(ramAccounting, initialCapacity);
         } finally {
             distinctValues.close();
         }
@@ -237,9 +243,8 @@ final class LooseIndexScan {
 
         /// PoC: drains the remaining distinct values into a long[], and hands them out as rows.
         /// A long-valued point is stored as the value, any other as its packed bytes (decoded when handed out).
-        Iterable<Row> drain(RamAccounting ramAccounting) throws IOException {
-            // PoC (t050 only): presized for ~1M distinct values per shard.
-            long[] values = new long[1_000_000];
+        Iterable<Row> drain(RamAccounting ramAccounting, int initialCapacity) throws IOException {
+            long[] values = new long[initialCapacity];
             int size = 0;
             while (advance()) {
                 if (size == values.length) {

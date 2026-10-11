@@ -275,13 +275,27 @@ final class GroupByOptimizedIterator {
         var searcherRef = sharedShardContext.acquireSearcher("loose-index-scan:" + formatSource(collectPhase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcherRef);
 
+        int distinct = GroupByMaps.pocDistinctFromTableName(keyRef.relation().name());
+        GroupByMaps.pocExpectedDistinct = distinct;
+        int distinctPerShard = pocExpectedDistinctPerShard(distinct, indexShard.indexSettings().getNumberOfShards());
+
         return LooseIndexScan.iterator(
             searcherRef.item(),
             keyRef,
             bytesPerValue,
             collectTask.getRamAccounting(),
-            collectTask.killToken()
+            collectTask.killToken(),
+            distinctPerShard
         );
+    }
+
+    private static int pocExpectedDistinctPerShard(int distinct, int numShards) {
+        if (distinct <= 0) {
+            return 16;
+        }
+        double copies = 10_000_000.0 / distinct;
+        double perShard = distinct * (1 - Math.pow(1 - 1.0 / numShards, copies));
+        return (int) Math.ceil(perShard * 1.01);
     }
 
     /**
