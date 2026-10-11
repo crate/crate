@@ -51,3 +51,8 @@ Fixes
   subscription with the same name failed afterwards. As a consequence, both
   data replication and metadata tracking could stop for the affected
   subscription.
+
+- Fixed an issue where logical replication metadata tracking could stop after a
+  subscriber restart if the connection to the publisher was not ready. As a
+  consequence, schema changes and new partitions could fail to replicate,
+  while data replication on existing partitions could continue.
