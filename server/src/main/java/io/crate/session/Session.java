@@ -622,10 +622,9 @@ public class Session implements AutoCloseable {
                 }
             }
             if (!deferredExecutionsByStmt.isEmpty()) {
-                throw new UnsupportedOperationException(
-                    "Only write operations are allowed in Batch statements");
-            }
-            if (activeExecution == null) {
+                activeExecution = triggerDeferredExecutions(false)
+                    .thenCompose(_ -> singleExec(portal, resultReceiver, maxRows));
+            } else if (activeExecution == null) {
                 activeExecution = singleExec(portal, resultReceiver, maxRows);
             } else {
                 activeExecution = activeExecution
