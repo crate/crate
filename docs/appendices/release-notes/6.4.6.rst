@@ -118,3 +118,11 @@ Fixes
 
 - Fixed an issue where rows with ``NaN`` were not returned when a range filter
   was used and the predicate evaluated to true
+
+- Fixed an `issue
+  <https://github.com/crate/crate/security/advisories/GHSA-49gw-4r68-7f6c>`__
+  that caused HTTP requests authenticated without an
+  ``Authorization`` header, e.g. using :ref:`client certificate authentication
+  <auth_cert>`, to run as the user set by
+  :ref:`auth.trust.http_default_user <auth_trust_http_default_user>`
+  (``crate`` by default) instead of the authenticated user.
