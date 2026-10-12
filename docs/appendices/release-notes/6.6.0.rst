@@ -63,6 +63,11 @@ SQL Standard and PostgreSQL Compatibility
 - Added a ``bool`` alias for the :ref:`boolean <type-boolean>` type for improved
   PostgreSQL compatibility.
 
+- Extended the PostgreSQL wire protocol support for pipelining DDL or DML
+  statements followed by DQL statements without an intermediate ``sync`` message
+  between the statements. This is for example used by the ``psycopg`` client if
+  using their experimental pipeline support.
+
 Data Types
 ----------
 
