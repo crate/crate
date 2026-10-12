@@ -26,7 +26,6 @@ import java.math.BigDecimal;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -65,11 +64,6 @@ public class LongType extends IntegralType<Long> implements FixedWidthType, Stre
         @Override
         public Long decode(long input) {
             return input;
-        }
-
-        @Override
-        public Long decode(byte[] packedPoint) {
-            return NumericUtils.sortableBytesToLong(packedPoint, 0);
         }
 
         @Override
