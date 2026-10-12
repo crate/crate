@@ -60,6 +60,11 @@ SQL Statements
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
+- Extended the PostgreSQL wire protocol support for pipelining DDL or DML
+  statements followed by DQL statements without an intermediate ``sync`` message
+  between the statements. This is for example used by the ``psycopg`` client if
+  using their experimental pipeline support.
+
 Data Types
 ----------
 
