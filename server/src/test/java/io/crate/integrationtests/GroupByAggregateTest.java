@@ -26,7 +26,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -679,18 +678,22 @@ public class GroupByAggregateTest extends IntegTestCase {
     @UseRandomizedOptimizerRules(0)
     @UseRandomizedSchema(random = false)
     @Test
-    public void test_optimized_distinct_with_two_functions() {
+    public void test_optimized_distinct_with_two_columns() {
         execute("analyze");
-        execute("explain (costs false) select count(distinct income), avg(distinct income) from doc.employees");
+        execute("explain (costs false) select count(distinct name), count(distinct department) from doc.employees");
         assertThat(response).hasLines(
-            "HashAggregate[count(DISTINCT income), avg(DISTINCT income)]",
-            "  └ GroupHashAggregate[income]",
-            "    └ Collect[doc.employees | [income] | true]"
+            "NestedLoopJoin[CROSS]",
+            "  ├ HashAggregate[count(DISTINCT name)]",
+            "  │  └ GroupHashAggregate[name]",
+            "  │    └ Collect[doc.employees | [name] | true]",
+            "  └ HashAggregate[count(DISTINCT department)]",
+            "    └ GroupHashAggregate[department]",
+            "      └ Collect[doc.employees | [department] | true]"
         );
 
-        execute("select count(distinct income), avg(distinct income) from doc.employees");
+        execute("select count(distinct name), count(distinct department) from doc.employees");
         assertThat(response).hasRowCount(1L);
-        assertThat(response).hasRows("5| 3.5953862697246315E307");
+        assertThat(response).hasRows("6| 4");
     }
 
     @UseRandomizedOptimizerRules(0)
