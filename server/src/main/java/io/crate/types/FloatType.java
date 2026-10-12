@@ -125,11 +125,6 @@ public class FloatType extends NumberType<Float> implements Streamer<Float>, Fix
         }
 
         @Override
-        public Float decode(byte[] packedPoint) {
-            return NumericUtils.sortableIntToFloat(NumericUtils.sortableBytesToInt(packedPoint, 0));
-        }
-
-        @Override
         public LuceneCollectorExpression<Float> getLuceneExpression(Reference ref,
                                                                     Predicate<Reference> isParentIgnored) {
             return new FloatColumnReference(ref.storageIdent());

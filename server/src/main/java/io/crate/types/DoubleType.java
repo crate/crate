@@ -125,11 +125,6 @@ public class DoubleType extends NumberType<Double> implements FixedWidthType, St
         }
 
         @Override
-        public Double decode(byte[] packedPoint) {
-            return NumericUtils.sortableLongToDouble(NumericUtils.sortableBytesToLong(packedPoint, 0));
-        }
-
-        @Override
         public LuceneCollectorExpression<Double> getLuceneExpression(Reference ref,
                                                                      Predicate<Reference> isParentIgnored) {
             return new DoubleColumnReference(ref.storageIdent());

@@ -26,7 +26,6 @@ import java.math.BigDecimal;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -61,11 +60,6 @@ public class IntegerType extends IntegralType<Integer> implements Streamer<Integ
         @Override
         public Integer decode(int input) {
             return input;
-        }
-
-        @Override
-        public Integer decode(byte[] packedPoint) {
-            return NumericUtils.sortableBytesToInt(packedPoint, 0);
         }
 
         @SuppressWarnings({ "rawtypes", "unchecked" })
