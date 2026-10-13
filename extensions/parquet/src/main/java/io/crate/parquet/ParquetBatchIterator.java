@@ -24,6 +24,7 @@ package io.crate.parquet;
 import static io.crate.parquet.ParquetTypes.getObject;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -104,7 +105,7 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
             try {
                 reader.close();
             } catch (IOException e) {
-                throw new IllegalStateException("Could not close ParquetBatchIterator: " + e.getMessage());
+                throw new UncheckedIOException(e);
             }
         }
     }
