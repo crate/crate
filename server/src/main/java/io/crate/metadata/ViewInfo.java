@@ -126,7 +126,7 @@ public final class ViewInfo implements RelationInfo {
 
     @Override
     public Set<Operation> supportedOperations() {
-        return EnumSet.of(Operation.READ, Operation.ALTER_TABLE_RENAME);
+        return EnumSet.of(Operation.READ, Operation.ALTER_TABLE_RENAME, Operation.RESTORE_SNAPSHOT);
     }
 
     @Override

@@ -503,7 +503,7 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata>
 
         @Override
         public Set<Operation> supportedOperations() {
-            return EnumSet.of(Operation.READ, Operation.SHOW_CREATE);
+            return EnumSet.of(Operation.READ, Operation.SHOW_CREATE, Operation.RESTORE_SNAPSHOT);
         }
 
         @Override
