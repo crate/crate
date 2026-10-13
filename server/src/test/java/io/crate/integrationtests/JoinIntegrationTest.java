@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -1554,6 +1553,101 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         execute(stmt);
         assertThat(response).hasRows("3");
+    }
+
+    @UseHashJoins(1)
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @Test
+    public void test_eliminate_cross_joins_and_reorder_tables() throws Exception {
+        execute("CREATE TABLE t1 (x INT, i INT)");
+        execute("CREATE TABLE t2 (y INT)");
+        execute("CREATE TABLE t3 (z INT)");
+        execute("CREATE TABLE t4 (id INT)");
+
+        // Rows 1 and 2 match all conditions, every other value fails exactly one:
+        // 3 -> t1.i > 0
+        // 4 -> t3.z = t4.id
+        // 5 -> t1.x = t3.z
+        // 6 -> t2.y = t4.id
+        execute("INSERT INTO t1 (x, i) VALUES (1, 1), (2, 2), (3, 0), (4, 4), (5, 5), (6, 6)");
+        execute("INSERT INTO t2 (y) VALUES (1), (2), (3), (4), (5)");
+        execute("INSERT INTO t3 (z) VALUES (1), (2), (3), (4), (6)");
+        execute("INSERT INTO t4 (id) VALUES (1), (2), (3), (5), (6)");
+
+        execute("REFRESH TABLE t1, t2, t3, t4");
+
+        var stmt = """
+            SELECT t1.x, t2.y, t3.z, t4.id
+            FROM t1
+            CROSS JOIN t2
+            CROSS JOIN t3
+            JOIN t4 ON t2.y = t4.id AND t3.z = t4.id
+            WHERE t1.x = t3.z
+              AND t1.i > 0;
+            """;
+
+        assertThat(execute("explain " + stmt)).hasLines(
+            "Eval[x, y, z, id] (rows=unknown)",
+            "  └ HashJoin[INNER | (y = id)] (rows=unknown)",
+            "    ├ HashJoin[INNER | (z = id)] (rows=unknown)",
+            "    │  ├ HashJoin[INNER | (x = z)] (rows=unknown)",
+            "    │  │  ├ Collect[doc.t1 | [x] | (i > 0)] (rows=unknown)",
+            "    │  │  └ Collect[doc.t3 | [z] | true] (rows=unknown)",
+            "    │  └ Collect[doc.t4 | [id] | true] (rows=unknown)",
+            "    └ Collect[doc.t2 | [y] | true] (rows=unknown)"
+        );
+
+        execute(stmt);
+        assertThat(response).hasRowsInAnyOrder(
+            "2| 2| 2| 2",
+            "1| 1| 1| 1"
+        );
+    }
+
+    @Test
+    @UseHashJoins(1)
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    public void test_cross_join_elimination_keeps_condition_between_both_sides_of_outer_join() throws Exception {
+        // See: https://github.com/crate/crate/issues/20414
+        execute("SET optimizer_eliminate_cross_join = TRUE;");
+
+        execute("CREATE TABLE t1 (a INT, x INT)");
+        execute("CREATE TABLE t2 (b INT, y INT)");
+        execute("CREATE TABLE t3 (z INT)");
+        execute("CREATE TABLE t4 (id INT)");
+        execute("INSERT INTO t1 (a, x) VALUES (1, 1)");
+        execute("INSERT INTO t2 (b, y) VALUES (1, 1), (1, 2)");
+        execute("INSERT INTO t3 (z) VALUES (1)");
+        execute("INSERT INTO t4 (id) VALUES (1)");
+        execute("REFRESH TABLE t1, t2, t3, t4");
+
+        var stmt = """
+            SELECT t1.x, t2.y, t3.z, t4.id
+            FROM t1
+            LEFT JOIN t2 ON t1.a = t2.b
+            CROSS JOIN t3
+            JOIN t4 ON t1.x = t2.y AND t1.x = t3.z AND t3.z = t4.id
+            """;
+
+        execute("EXPLAIN (COSTS FALSE) " + stmt);
+        assertThat(response).hasLines(
+            "Eval[x, y, z, id]",
+            "  └ HashJoin[INNER | (z = id)]",
+            "    ├ HashJoin[INNER | (x = z)]",
+            "    │  ├ Filter[(x = y)]",
+            "    │  │  └ HashJoin[LEFT | (a = b)]",
+            "    │  │    ├ Collect[doc.t1 | [x, a] | true]",
+            "    │  │    └ Collect[doc.t2 | [y, b] | true]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t4 | [id] | true]"
+        );
+
+        execute(stmt);
+        assertThat(response).hasRowsInAnyOrder(
+            "1| 1| 1| 1"
+        );
     }
 
     /**
