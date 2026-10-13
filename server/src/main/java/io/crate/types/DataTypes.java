@@ -415,6 +415,7 @@ public final class DataTypes {
         entry(REGTYPE.getName(), REGTYPE),
         entry(REGCLASS.getName(), REGCLASS),
         entry(OIDVECTOR.getName(), OIDVECTOR),
+        entry("bool", BOOLEAN),
         entry("int2", SHORT),
         entry("int", INTEGER),
         entry("int4", INTEGER),
