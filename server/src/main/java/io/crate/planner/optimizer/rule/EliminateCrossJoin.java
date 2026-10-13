@@ -29,13 +29,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
+import io.crate.analyze.RelationNames;
 import io.crate.exceptions.InvalidArgumentException;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
 import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.Filter;
@@ -134,19 +137,30 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
         return newJoinOrder;
     }
 
-    @Nullable
+    /// Builds a plan from `graph` by visiting it in the provided `order`.
+    /// The plan is built in the following way:
+    /// Every plan from `order` is "joined" with the next one in `order`,
+    /// if there are edges between them (join conditions or filters from the original plan).
+    /// Filters are added to a plan, if the filter references only the relation names from that plan.
+    /// [JoinGraph#topLevelCondition()] is added into the join condition of the last (top-level) plan.
     static LogicalPlan rebuild(JoinGraph graph, List<LogicalPlan> order) {
         assert graph.nodes().size() == order.size() : "Size must be equal";
 
         if (graph.edges().isEmpty()) {
             throw new InvalidArgumentException("JoinPlan cannot be built with the provided order.");
         }
+        // Holds filters that haven't been put on a plan
+        List<Symbol> unplacedFilters = new ArrayList<>(graph.filters());
 
-        LogicalPlan result = order.get(0);
-        HashSet<LogicalPlan> alreadyJoinedNodes = new HashSet<>();
-        alreadyJoinedNodes.add(result);
+        LogicalPlan firstNode = order.get(0);
+        // Holds the final result, gradually built by adding the next plan from `order` and matching filters.
+        LogicalPlan result = withFilters(firstNode, unplacedFilters);
+
+        HashSet<LogicalPlan> alreadyJoinedNodes = HashSet.newHashSet(graph.size());
+        alreadyJoinedNodes.add(firstNode);
 
         for (int i = 1; i < order.size(); i++) {
+            // the original node is the key for graph.edges() and alreadyJoinedNodes
             LogicalPlan rightNode = order.get(i);
             alreadyJoinedNodes.add(rightNode);
 
@@ -156,6 +170,10 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
                 if (alreadyJoinedNodes.contains(toNode)) {
                     criteria.add(EqOperator.of(edge.left(), edge.right()));
                 }
+            }
+
+            if (i == order.size() - 1 && graph.topLevelCondition() != null) {
+                criteria.add(graph.topLevelCondition());
             }
 
             final JoinType joinType;
@@ -171,7 +189,7 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
 
             result = new JoinPlan(
                 result,
-                rightNode,
+                withFilters(rightNode, unplacedFilters),
                 joinType,
                 joinCondition,
                 false,
@@ -181,11 +199,29 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
                 true,
                 AbstractJoinPlan.LookUpJoin.NONE
             );
+            result = withFilters(result, unplacedFilters);
         }
 
-        for (var filter : graph.filters()) {
-            result = new Filter(result, filter);
-        }
+        assert unplacedFilters.isEmpty() : "All filters must be placed, remaining: " + unplacedFilters;
+
         return result;
+    }
+
+    /// Wraps `plan` in a [Filter] with all `filters` that only reference relations of `plan`.
+    /// The used filters are removed from `filters`.
+    private static LogicalPlan withFilters(LogicalPlan plan, List<Symbol> filters) {
+        Set<RelationName> relations = new HashSet<>(plan.relationNames());
+        List<Symbol> covered = new ArrayList<>();
+
+        var iterator = filters.iterator();
+        while (iterator.hasNext()) {
+            Symbol f = iterator.next();
+            if (relations.containsAll(RelationNames.getShallow(f))) {
+                covered.add(f);
+                iterator.remove();
+            }
+        }
+
+        return covered.isEmpty() ? plan : new Filter(plan, AndOperator.join(covered));
     }
 }
