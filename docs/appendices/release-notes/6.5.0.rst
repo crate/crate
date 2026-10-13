@@ -189,8 +189,8 @@ Performance and Resilience Improvements
   executed.
 
 - Added an optimization for ``count(DISTINCT col)`` queries without a
-  ``GROUP BY``. Such a query is now rewritten to group by ``col``, so that it is
-  executed like::
+  ``GROUP BY``, where ``col`` is a string column. Such a query is now rewritten
+  to group by ``col``, so that it is executed like::
 
       SELECT count(col) FROM (SELECT col FROM tbl GROUP BY col) tmp
 
