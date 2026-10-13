@@ -46,9 +46,6 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.Stats;
-import io.crate.types.DataTypes;
-import io.crate.types.DateType;
-import io.crate.types.TimestampType;
 
 /// Deduplicates the argument of a global `agg(DISTINCT col)` with a keys-only `GROUP BY`, so the
 /// aggregate runs over the distinct values instead of over every row. Same result as
@@ -103,8 +100,6 @@ import io.crate.types.TimestampType;
 /// However, the join groups the outputs by column (one side per column), which means that
 /// the `Filter`'s references become invalid. For this reason, an [Eval] is added on top of
 /// the `JoinPlan` to keep the same order.
-///
-/// Note: currently, numeric, timestamp, and date types aren't supported due to a performance regression.
 public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
     /// Generally, the rule doesn't care about which aggregate functions are present.
     /// However, the default implementation of distinct functions is limited to the ones below
@@ -138,16 +133,8 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
                     SUPPORTED_AGGREGATES.contains(fn.name()) &&
                     // NB: distinct functions can have one and only one argument
                     !fn.arguments().isEmpty() &&
-                    fn.arguments().getFirst() instanceof Reference col &&
-                    isColumnTypeSupported(col)
+                    fn.arguments().getFirst() instanceof Reference
             );
-    }
-
-    private static boolean isColumnTypeSupported(Reference col) {
-        return !DataTypes.isNumeric(col.valueType()) &&
-            col.valueType().id() != DateType.ID &&
-            col.valueType().id() != TimestampType.ID_WITH_TZ &&
-            col.valueType().id() != TimestampType.ID_WITHOUT_TZ;
     }
 
     private static boolean hasNoFilter(Function aggregate) {
