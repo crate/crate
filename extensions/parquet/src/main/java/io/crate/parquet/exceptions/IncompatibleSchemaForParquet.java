@@ -32,7 +32,7 @@ public class IncompatibleSchemaForParquet extends IllegalArgumentException {
                 Locale.ENGLISH,
                 "The requested column `%s` has type `%s`, but that is not compatible with the column in the parquet file",
                 fullyQualifiedName,
-                dataType));
+                dataType.getName()));
     }
 
 }
