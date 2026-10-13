@@ -61,14 +61,16 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws Exception {
         e = SQLExecutor.of(clusterService)
                 .addTable(
-                        "create table doc.taxi" +
-                                "(trip_distance double, passenger_count bigint," +
-                                "big_car boolean, trip_type text," +
-                                "car_id uuid, car_sensor object," +
-                                "tire_health array(integer), tpep_pickup_datetime timestamp without time zone," +
-                                "taxi_start date, taxi_start_shift timestamp with time zone," +
-                                "steering_wheel_count smallint, total_amount_earned decimal(18,3)," +
-                                "bstr bit, ip_address ip, ip_address_long ip)");
+                    """
+                    create table doc.taxi
+                    (trip_distance double, passenger_count bigint,
+                    big_car boolean, trip_type text,
+                    car_id uuid, car_sensor object,
+                    tire_health array(integer), tpep_pickup_datetime timestamp without time zone,
+                    taxi_start date, taxi_start_shift timestamp with time zone,
+                    steering_wheel_count smallint, total_amount_earned decimal(18,3),
+                    bstr bit, ip_address ip, ip_address_long ip)
+                    """);
     }
 
     @Test
