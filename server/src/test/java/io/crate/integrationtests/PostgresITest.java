@@ -653,7 +653,7 @@ public class PostgresITest extends IntegTestCase {
             conn.setAutoCommit(true);
 
             Statement stmt = conn.createStatement();
-            stmt.executeUpdate("create table t (x string, b boolean) with (number_of_replicas = 0)");
+            stmt.executeUpdate("create table t (x string, b bool) with (number_of_replicas = 0)");
             ensureYellow();
 
             PreparedStatement preparedStatement = conn.prepareStatement("insert into t (x, b) values (?, ?)");

@@ -60,6 +60,9 @@ SQL Statements
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
+- Added a ``bool`` alias for the :ref:`boolean <type-boolean>` type for improved
+  PostgreSQL compatibility.
+
 Data Types
 ----------
 
