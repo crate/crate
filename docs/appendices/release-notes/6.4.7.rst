@@ -90,3 +90,19 @@ Fixes
 - Fixed an issue preventing creation of a
   :ref:`publication <logical-replication-publication>` if it included a table
   that is included into another publication.
+
+- Fixed an issue where the ``optimizer_eliminate_cross_join`` rule wouldn't
+  eliminate a cross join even though there's a matching equality condition in
+  the ``WHERE`` clause that can transform it into an inner join. Here's an
+  example::
+
+      SELECT t1.x, t2.y, t3.z, t4.id
+      FROM t1
+      CROSS JOIN t2
+      CROSS JOIN t3
+      JOIN t4 ON t2.y = t4.id AND t3.z = t4.id
+      WHERE t1.x = t3.z
+        AND t1.i > 0;
+
+  Previously, the resulting plan would contain a cross join. With the fix, the
+  plan contains inner joins only and hence the query performs better.
