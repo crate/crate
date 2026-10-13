@@ -52,13 +52,8 @@ import io.crate.types.TimestampType;
 
 public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
     private final List<Path> parquetFile = List.of(
-            Paths.get(getClass().getResource("/data").toURI())
-                    .resolve("yellow_taxi_01.parquet"),
-            Paths.get(getClass().getResource("/data").toURI())
-                    .resolve("yellow_taxi_02.parquet"));
-
-    public ParquetBatchIteratorTest() throws URISyntaxException {
-    }
+            getDataPath("/data").resolve("yellow_taxi_01.parquet"),
+            getDataPath("/data").resolve("yellow_taxi_02.parquet"));
 
     private SQLExecutor e;
 
