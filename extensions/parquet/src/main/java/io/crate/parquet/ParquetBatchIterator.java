@@ -116,16 +116,7 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
         releaseReader();
         // Hardwood does not support moving the cursor backwards
         // so we reopen the file to start from the beginning
-        try {
-            reader = ParquetFileReader.openAll(inputFiles);
-            rowReader = reader.buildRowReader()
-                    .projection(ColumnProjection.columns(columns.stream()
-                            .map(ref -> ref.column().fqn())
-                            .toArray(String[]::new)))
-                    .build();
-        } catch (IOException e) {
-            Exceptions.rethrowUnchecked(e);
-        }
+        initReader();
     }
 
     @Override
@@ -147,14 +138,22 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
     @Override
     public CompletionStage<?> loadNextBatch() throws Exception {
         if (reader == null) {
+            initReader();
+            return CompletableFuture.completedFuture(null);
+        }
+        throw new IllegalStateException("BatchIterator already loaded");
+    }
+
+    private void initReader() {
+        try {
             reader = ParquetFileReader.openAll(inputFiles);
             rowReader = reader.buildRowReader()
                     .projection(ColumnProjection.columns(columns.stream()
                             .map(ref -> ref.column().fqn())
                             .toArray(String[]::new)))
                     .build();
-            return CompletableFuture.completedFuture(null);
+        } catch (IOException e) {
+            Exceptions.rethrowUnchecked(e);
         }
-        throw new IllegalStateException("BatchIterator already loaded");
     }
 }
