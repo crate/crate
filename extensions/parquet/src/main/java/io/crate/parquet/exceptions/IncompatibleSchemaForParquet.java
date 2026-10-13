@@ -23,10 +23,11 @@ package io.crate.parquet.exceptions;
 
 import java.util.Locale;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.types.DataType;
 
-public class IncompatibleSchemaForParquetException extends IllegalArgumentException {
-    public IncompatibleSchemaForParquetException(String fullyQualifiedName, DataType<?> dataType) {
+public class IncompatibleSchemaForParquet extends IllegalArgumentException {
+    public IncompatibleSchemaForParquet(ColumnIdent fullyQualifiedName, DataType<?> dataType) {
         super(String.format(
                 Locale.ENGLISH,
                 "The requested column `%s` has type `%s`, but that is not compatible with the column in the parquet file",

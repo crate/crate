@@ -41,7 +41,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.Reference;
-import io.crate.parquet.exceptions.IncompatibleSchemaForParquetException;
+import io.crate.parquet.exceptions.IncompatibleSchemaForParquet;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.BitStringType;
@@ -555,7 +555,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                 table.getReadReference(ColumnIdent.of("trip_distance")));
         ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, query);
         assertThatThrownBy(() -> Utils.getRows(it))
-                .isExactlyInstanceOf(IncompatibleSchemaForParquetException.class)
+                .isExactlyInstanceOf(IncompatibleSchemaForParquet.class)
                 .hasMessage(
                         "The requested column `trip_distance` has type `text`, but that is not compatible with the column in the parquet file");
     }

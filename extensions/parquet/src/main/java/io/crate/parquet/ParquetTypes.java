@@ -28,8 +28,9 @@ import java.time.ZoneOffset;
 
 import dev.hardwood.reader.RowReader;
 import dev.hardwood.row.PqList;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.parquet.exceptions.IncompatibleSchemaForParquetException;
+import io.crate.parquet.exceptions.IncompatibleSchemaForParquet;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
@@ -49,9 +50,10 @@ import io.crate.types.UUIDType;
 
 public class ParquetTypes {
 
-    public static Object getObject(RowReader rowReader, Reference ref) throws IncompatibleSchemaForParquetException {
+    public static Object getObject(RowReader rowReader, Reference ref) throws IncompatibleSchemaForParquet {
         DataType<?> crateType = ref.valueType();
-        String fqn = ref.column().fqn();
+        ColumnIdent col = ref.column();
+        String fqn = col.fqn();
 
         try {
             Object object = switch (crateType.id()) {
@@ -98,7 +100,7 @@ public class ParquetTypes {
             };
             return object;
         } catch (RuntimeException e) {
-            throw new IncompatibleSchemaForParquetException(fqn, crateType);
+            throw new IncompatibleSchemaForParquet(col, crateType);
         }
     }
 }

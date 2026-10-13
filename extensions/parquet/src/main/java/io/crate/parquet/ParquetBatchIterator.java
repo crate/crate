@@ -28,9 +28,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import dev.hardwood.InputFile;
 import dev.hardwood.reader.ParquetFileReader;
 import dev.hardwood.reader.RowReader;
@@ -45,7 +42,6 @@ import io.crate.metadata.Reference;
 
 public class ParquetBatchIterator implements BatchIterator<Row> {
 
-    private static final Logger LOGGER = LogManager.getLogger(ParquetBatchIterator.class);
 
     private final Object[] cells;
     private final Row row;
@@ -53,7 +49,6 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
     private RowReader rowReader;
     private final List<Reference> columns;
     private final List<InputFile> inputFiles;
-    private final Symbol query;
     private volatile Throwable killed = null;
 
     public ParquetBatchIterator(List<InputFile> inputFiles, List<Reference> columns, Symbol query) {
@@ -61,7 +56,6 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
         this.columns = columns;
         this.cells = new Object[columns.size()];
         this.row = new RowN(cells);
-        this.query = query;
     }
 
     private void raiseIfKilled() {
