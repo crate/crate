@@ -200,8 +200,3 @@ The parquet foreign data wrapper supports the following ``OPTIONS`` for use with
 
   You can provide multiple files, but they all must have the same schema.
   Otherwise an error will be raised when executing the query.
-
-Example::
-
-  CREATE SERVER my_parquet FOREIGN DATA WRAPPER parquet
-  OPTIONS (input_files ['file01.parquet', 'file02.parquet']);
