@@ -87,6 +87,7 @@ import io.crate.sql.tree.JoinType;
 public record JoinGraph(List<LogicalPlan> nodes,
                         Map<LogicalPlan, List<Edge>> edges,
                         List<Symbol> filters,
+                        @Nullable Symbol topLevelCondition,
                         boolean hasCrossJoin) {
 
     public record Edge(LogicalPlan to, Symbol left, Symbol right) {}
@@ -105,13 +106,20 @@ public record JoinGraph(List<LogicalPlan> nodes,
             newNodes,
             newEdges,
             newFilters,
+            null, // top-level filters cannot be joined
             hasCrossJoin
         );
     }
 
     JoinGraph withEdges(Map<LogicalPlan, List<Edge>> edges) {
         var newEdges = Maps.merge(this.edges, edges, Lists::concat);
-        return new JoinGraph(this.nodes, newEdges, this.filters, this.hasCrossJoin);
+        return new JoinGraph(
+            this.nodes,
+            newEdges,
+            this.filters,
+            this.topLevelCondition,
+            this.hasCrossJoin
+        );
     }
 
     JoinGraph withFilters(List<Symbol> filters) {
@@ -119,11 +127,36 @@ public record JoinGraph(List<LogicalPlan> nodes,
             return this;
         }
         var newFilters = Lists.concat(this.filters, filters);
-        return new JoinGraph(this.nodes, edges, newFilters, this.hasCrossJoin);
+        return new JoinGraph(
+            this.nodes,
+            edges,
+            newFilters,
+            this.topLevelCondition,
+            this.hasCrossJoin
+        );
+    }
+
+    JoinGraph withTopLevelCondition(@Nullable Symbol condition) {
+        if (condition == null) {
+            return this;
+        }
+        return new JoinGraph(
+            this.nodes,
+            edges,
+            filters,
+            condition,
+            this.hasCrossJoin
+        );
     }
 
     JoinGraph withCrossJoin() {
-        return new JoinGraph(this.nodes, edges, filters, true);
+        return new JoinGraph(
+            this.nodes,
+            edges,
+            filters,
+            this.topLevelCondition,
+            true
+        );
     }
 
     public int size() {
@@ -135,7 +168,43 @@ public record JoinGraph(List<LogicalPlan> nodes,
     }
 
     public static JoinGraph create(LogicalPlan plan, UnaryOperator<LogicalPlan> resolvePlan) {
-        return plan.accept(new GraphBuilder(resolvePlan), new LinkedHashMap<>());
+        // Non-deterministic conditions need to stay where they are in the join conditions.
+        // Moving them around can change the semantics.
+        // Example: `random() > 0.5`.
+        // As a join condition, that means that all input rows are kept, but join results are filtered.
+        // As a filter in `Collect`, that means that input rows will be filtered.
+        // Hence, if we find non-det. conditions in the top level join's condition, we keep them,
+        // and store them in `graph.topLevelCondition`, so they can later be put back into the plan.
+        if (!(plan instanceof JoinPlan join) || join.joinCondition() == null || join.joinCondition().isDeterministic()) {
+            return plan.accept(new GraphBuilder(resolvePlan), new LinkedHashMap<>());
+        }
+
+        // Deterministic and non-det. filters are segregated.
+        List<Symbol> nonDetFilters = new ArrayList<>();
+        List<Symbol> detFilters = new ArrayList<>();
+        for (Symbol condition : AndOperator.split(join.joinCondition())) {
+            if (condition.isDeterministic()) {
+                detFilters.add(condition);
+            } else {
+                nonDetFilters.add(condition);
+            }
+        }
+
+        var planDetFilters = new JoinPlan(
+            join.lhs(),
+            join.rhs(),
+            join.joinType(),
+            AndOperator.join(detFilters, null),
+            join.isFiltered(),
+            join.isRewriteFilterOnOuterJoinToInnerJoinDone(),
+            join.isLookUpJoinRuleApplied(),
+            join.moveConstantJoinConditionRuleApplied(),
+            join.eliminateCrossJoinRuleIsApplied(),
+            join.lookUpJoin()
+        );
+
+        JoinGraph graph = planDetFilters.accept(new GraphBuilder(resolvePlan), new LinkedHashMap<>());
+        return graph.withTopLevelCondition(AndOperator.join(nonDetFilters));
     }
 
     private static class GraphBuilder extends LogicalPlanVisitor<Map<Symbol, LogicalPlan>, JoinGraph> {
@@ -151,7 +220,7 @@ public record JoinGraph(List<LogicalPlan> nodes,
             for (Symbol output : logicalPlan.outputs()) {
                 context.put(output, logicalPlan);
             }
-            return new JoinGraph(List.of(logicalPlan), Map.of(), List.of(), false);
+            return new JoinGraph(List.of(logicalPlan), Map.of(), List.of(), null, false);
         }
 
         @Override
@@ -161,12 +230,23 @@ public record JoinGraph(List<LogicalPlan> nodes,
 
         @Override
         public JoinGraph visitFilter(Filter filter, Map<Symbol, LogicalPlan> context) {
+            if (!includeInGraph(filter)) {
+                return visitPlan(filter, context);
+            }
             JoinGraph source = filter.source().accept(this, context);
-            return source.withFilters(List.of(filter.query()));
+            var edgeCollector = new EdgeCollector(context);
+            edgeCollector.collect(filter.query());
+            return source
+                .withEdges(edgeCollector.edges)
+                .withFilters(edgeCollector.filters);
         }
 
         @Override
         public JoinGraph visitJoinPlan(JoinPlan joinPlan, Map<Symbol, LogicalPlan> context) {
+            if (!includeInGraph(joinPlan)) {
+                return visitPlan(joinPlan, context);
+            }
+
             JoinGraph left = joinPlan.lhs().accept(this, context);
             JoinGraph right = joinPlan.rhs().accept(this, context);
 
@@ -175,22 +255,36 @@ public record JoinGraph(List<LogicalPlan> nodes,
             }
 
             Symbol joinCondition = joinPlan.joinCondition();
-            if (joinPlan.joinType() != JoinType.INNER) {
-                JoinGraph result = left.joinWith(right);
-                return joinCondition == null
-                    ? result
-                    : result.withFilters(List.of(joinCondition));
-            }
 
-            EdgeCollector collector = new EdgeCollector(context);
-            collector.collect(joinCondition);
-
+            var edgeCollector = new EdgeCollector(context);
+            edgeCollector.collect(joinCondition);
             return left
                 .joinWith(right)
-                .withEdges(collector.edges)
-                .withFilters(collector.filters);
+                .withEdges(edgeCollector.edges)
+                .withFilters(edgeCollector.filters);
         }
 
+        /**
+         * INNER/CROSS joins, and Filters on top of them, can be included in the JoinGraph.
+         * A Filter on anything else belongs to the node/plan below it (e.g. Filter -> Collect).
+         * Joins with non-deterministic conditions are not included either. For the reason,
+         * see comment in {@link JoinGraph#create(LogicalPlan, UnaryOperator)}.
+         */
+        private boolean includeInGraph(LogicalPlan plan) {
+            LogicalPlan resolved = resolvePlan.apply(plan);
+            if (resolved instanceof JoinPlan join) {
+                if (join.joinCondition() != null && !join.joinCondition().isDeterministic()) {
+                    return false;
+                }
+                return join.joinType() == JoinType.INNER || join.joinType() == JoinType.CROSS;
+            }
+            return resolved instanceof Filter filter
+                && filter.query().isDeterministic()
+                && includeInGraph(filter.source());
+        }
+
+        /// Given a `condition`, the `EdgeCollector` extracts edges (conditions) that connect (join)
+        /// plans. Everything else is saved as a filter.
         private static class EdgeCollector extends SymbolVisitor<Set<LogicalPlan>, Void> {
 
             private final Map<LogicalPlan, List<Edge>> edges = new HashMap<>();
