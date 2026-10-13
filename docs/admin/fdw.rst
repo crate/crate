@@ -39,7 +39,7 @@ by using the :ref:`ref-explain` statement.
 For example, in the following explain output there is a dedicated ``Filter``
 node, indicating that the filter is executed within CrateDB::
 
-    cr> explain select * from summits where mountain like 'H%';
+    > explain select * from summits where mountain like 'H%';
     +--------------------------------------------------------------------+
     | QUERY PLAN                                                         |
     +--------------------------------------------------------------------+
@@ -52,7 +52,7 @@ Compare this to the following output, where the query became part of the
 system::
 
 
-    cr> explain select * from summits where mountain = 'Monte Verena';
+    > explain select * from summits where mountain = 'Monte Verena';
     +---------------------------------------------------------------------------------------+
     | QUERY PLAN                                                                            |
     +---------------------------------------------------------------------------------------+
@@ -157,3 +157,46 @@ Example::
    - :ref:`ref-alter-server`
    - :ref:`ref-create-foreign-table`
    - :ref:`ref-create-user-mapping`
+
+.. _administration-fdw-parquet:
+
+``parquet``
+========
+
+The ``parquet`` foreign data wrapper allows CrateDB to read local parquet files.
+
+Usage::
+
+  cr> CREATE SERVER my_parquet FOREIGN DATA WRAPPER parquet
+  ... OPTIONS (local_files ['testdata/departments.parquet']);
+  CREATE OK, 1 row affected (... sec)
+
+  cr> CREATE FOREIGN TABLE departments (id bigint, name text, manager_id bigint, location bigint) SERVER my_parquet;
+  CREATE OK, 1 row affected (... sec)
+
+  -- your queries on `tbl` now scan the parquet file
+  cr> SELECT * FROM departments;
+  +------------+-----------------+----------+------+
+  | manager_id | name            | location |   id |
+  +------------+-----------------+----------+------+
+  |        501 | Administration  |    17000 | 4001 |
+  |        511 | Marketing       |    18000 | 4002 |
+  |        518 | Purchasing      |    17000 | 4003 |
+  |        517 | Human Resources |    24000 | 4004 |
+  |        121 | Shipping        |    15000 | 4005 |
+  |        502 | IT              |    14000 | 4006 |
+  +------------+-----------------+----------+------+
+  SELECT 6 rows in set (... sec)
+
+``CREATE SERVER OPTIONS``
+-------------------------
+
+The parquet foreign data wrapper supports the following ``OPTIONS`` for use with
+:ref:`ref-create-server`:
+
+:local_files:
+
+  A list of paths to local parquet files. This is required.
+
+  You can provide multiple files, but they all must have the same schema.
+  Otherwise an error will be raised when executing the query.
