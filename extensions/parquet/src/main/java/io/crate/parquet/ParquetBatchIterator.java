@@ -100,7 +100,7 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
         return false;
     }
 
-    private void releaseReader() throws IllegalStateException {
+    private void releaseReader() {
         if (reader != null) {
             try {
                 reader.close();
