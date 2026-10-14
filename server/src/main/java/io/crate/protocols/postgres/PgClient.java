@@ -189,6 +189,16 @@ public class PgClient implements Client {
         bootstrap.channel(NettyBootstrap.clientChannel());
         bootstrap.option(ChannelOption.TCP_NODELAY, TransportSettings.TCP_NO_DELAY.get(settings));
         bootstrap.option(ChannelOption.SO_KEEPALIVE, TransportSettings.TCP_KEEP_ALIVE.get(settings));
+        CompletableFuture<Transport.Connection> newConnectionFuture = new CompletableFuture<>();
+        newConnectionFuture.whenComplete((connection, error) -> {
+            if (error == null) {
+                // Register the close listener before exposing the connection to callers.
+                connection.addCloseListener(ActionListener.wrap(() -> transportService.onConnectionClosed(connection)));
+                future.complete(connection);
+            } else {
+                future.completeExceptionally(error);
+            }
+        });
         bootstrap.handler(new ClientChannelInitializer(
             profile,
             host,
@@ -196,7 +206,7 @@ public class PgClient implements Client {
             pageCacheRecycler,
             sslContextProvider,
             connectionInfo,
-            future
+            newConnectionFuture
         ));
         bootstrap.remoteAddress(host.getAddress().address());
         ChannelFuture connectFuture = bootstrap.connect();
