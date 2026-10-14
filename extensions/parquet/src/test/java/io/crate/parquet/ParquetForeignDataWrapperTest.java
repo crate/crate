@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
@@ -87,10 +87,10 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
         RelationMetadata.ForeignTable foreignTable = new RelationMetadata.ForeignTable(relationName, references,
                 server.name(), Settings.EMPTY);
 
-        CompletableFuture<BatchIterator<Row>> it = fdw.getIterator(role, server, foreignTable, txnCtx,
+        BatchIterator<Row> it = fdw.getIterator(role, server, foreignTable, txnCtx,
                 List.of(e.asSymbol("passenger_count * 2")),
-                Literal.BOOLEAN_TRUE);
-        List<Object[]> rows = Utils.getRows(it.get());
+                Literal.BOOLEAN_TRUE).get();
+        List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
             new Object[]{2L},
             new Object[]{0L},
