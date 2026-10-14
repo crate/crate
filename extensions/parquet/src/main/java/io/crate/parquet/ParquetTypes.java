@@ -54,11 +54,9 @@ public class ParquetTypes {
             Object object = switch (crateType.id()) {
                 case BooleanType.ID -> rowReader.getBoolean(fqn);
                 case IntegerType.ID -> rowReader.getInt(fqn);
-                case ShortType.ID -> {
-                    yield ShortType.INSTANCE.implicitCast(rowReader.getInt(fqn));
-                }
+                case ShortType.ID -> crateType.implicitCast(rowReader.getInt(fqn));
                 case LongType.ID -> rowReader.getLong(fqn);
-                case NumericType.ID -> rowReader.getDecimal(fqn);
+                case NumericType.ID -> crateType.implicitCast(rowReader.getDecimal(fqn));
                 case FloatType.ID -> rowReader.getFloat(fqn);
                 case DoubleType.ID -> rowReader.getDouble(fqn);
                 case StringType.ID -> rowReader.getString(fqn);
@@ -67,11 +65,8 @@ public class ParquetTypes {
                 case TimestampType.ID_WITHOUT_TZ -> crateType.implicitCast(rowReader.getLocalTimestamp(fqn));
                 case UUIDType.ID -> rowReader.getUuid(fqn);
                 case ObjectType.ID -> crateType.implicitCast(rowReader.getString(fqn));
-                case ArrayType.ID -> {
-                    PqList pqList = rowReader.getList(fqn);
-                    yield crateType.implicitCast(pqList.values());
-                }
-                case BitStringType.ID -> rowReader.getString(fqn);
+                case ArrayType.ID -> crateType.implicitCast(rowReader.getList(fqn).values());
+                case BitStringType.ID -> crateType.implicitCast(rowReader.getString(fqn));
                 case IpType.ID -> {
                     try {
                         yield crateType.implicitCast(rowReader.getString(fqn));
