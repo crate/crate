@@ -42,6 +42,31 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.sql.tree.JoinType;
 
+/**
+ * Copies eligible predicates from a filter above a RIGHT JOIN to its left input.
+ *
+ * <p>A RIGHT JOIN preserves rows from its right input and may produce rows where
+ * all columns from its left input are NULL. This rule copies a predicate only if
+ * it references relations from the left input and cannot evaluate to TRUE when
+ * its referenced values are NULL.
+ *
+ * <p>This optimization is safe for null-rejecting predicates because the
+ * original filter would reject any NULL-extended row produced for an unmatched
+ * right-side row. Likewise, any left-side row that fails the predicate could
+ * not contribute to the final result, since the original filter would reject
+ * the corresponding joined rows. Filtering such rows before the join therefore
+ * does not change the query result. The original filter is retained above the
+ * join to preserve the semantics of the complete filter.
+ *
+ * <p>Predicates that reference the right input or both inputs are not copied,
+ * because they cannot be evaluated solely against the left input. Predicates
+ * that can evaluate to TRUE when the left-side values are NULL must also not
+ * be copied. For example, {@code lhs.col IS NULL} or
+ * {@code COALESCE(lhs.col, 1) = 1} can match NULL-extended rows. Filtering the
+ * left input with such a predicate could create additional unmatched
+ * right-side rows that pass the original filter, changing the result.
+ *
+ */
 public class CopyFilterToLeftOfRightJoin implements Rule<Filter> {
 
     private final Capture<AbstractJoinPlan> joinCapture;
@@ -80,6 +105,9 @@ public class CopyFilterToLeftOfRightJoin implements Rule<Filter> {
                 && lhsRelations.containsAll(relationNames)
                 && Sets.intersection(rhsRelations, relationNames).isEmpty()) {
 
+                // Only copy predicates that cannot match a NULL-extended left input.
+                // Otherwise, filtering the left input could create unmatched right-side
+                // rows that would pass the original filter.
                 Symbol nullEvaluated = splitQuery.accept(symbolEvaluator, null);
 
                 if (!WhereClause.canMatch(nullEvaluated)) {
