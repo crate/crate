@@ -36,6 +36,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -90,6 +91,7 @@ import io.crate.protocols.postgres.JobsLogsUpdateListener;
 import io.crate.protocols.postgres.Portal;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.protocols.postgres.parser.PgArrayParser;
+import io.crate.role.Role;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Declare;
@@ -166,6 +168,10 @@ public class Session implements AutoCloseable {
     private TransactionState currentTransactionState = TransactionState.IDLE;
     private volatile String lastStmt;
 
+    /// Name of the authenticated or session user if it was dropped while the session was open.
+    @Nullable
+    private volatile String droppedUser;
+
 
     /**
      * @param connectionProperties client connection details. If null this is considered a system session
@@ -239,6 +245,7 @@ public class Session implements AutoCloseable {
      */
     public void quickExec(String statement, ResultReceiver<?> resultReceiver, Row params) {
         lastStmt = statement;
+        ensureUserNotDropped();
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(sessionSettings);
         validateStatementLength(statement);
         Statement parsedStmt = SqlParser.createStatement(statement);
@@ -318,6 +325,30 @@ public class Session implements AutoCloseable {
         Plan.execute(plan, executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
     }
 
+    /// Invalidates the session if its authenticated or session user doesn't exist anymore.
+    void invalidateIfUserDropped(Predicate<String> userExists) {
+        for (Role user : List.of(sessionSettings.authenticatedUser(), sessionSettings.sessionUser())) {
+            if (!userExists.test(user.name())) {
+                droppedUser = user.name();
+                return;
+            }
+        }
+    }
+
+    private void ensureUserNotDropped() {
+        String user = droppedUser;
+        if (user != null) {
+            throw new IllegalStateException("User \"" + user + "\" was dropped");
+        }
+    }
+
+    /// Statements are authorized when they're analyzed, but prepared statements and portals can be
+    /// executed later on, so the authorization checks must be repeated.
+    private void ensureMayExecute(AnalyzedStatement analyzedStatement) {
+        ensureUserNotDropped();
+        analyzer.ensureMayExecute(analyzedStatement, sessionSettings);
+    }
+
     private Portal getSafePortal(String portalName) {
         Portal portal = portals.get(portalName);
         if (portal == null) {
@@ -376,6 +407,7 @@ public class Session implements AutoCloseable {
         AnalyzedStatement analyzedStatement;
         DataType<?>[] parameterTypes;
         try {
+            ensureUserNotDropped();
             analyzedStatement = analyzer.analyze(
                 statement,
                 sessionSettings,
@@ -523,6 +555,8 @@ public class Session implements AutoCloseable {
         Portal portal = getSafePortal(portalName);
         var activeConsumer = portal.activeConsumer();
         if (activeConsumer != null && activeConsumer.suspended()) {
+            // The user may have been dropped or lost privileges since the portal was executed initially
+            ensureMayExecute(portal.analyzedStatement());
             activeConsumer.replaceResultReceiver(resultReceiver, maxRows);
             activeConsumer.resume();
             return resultReceiver.completionFuture();
@@ -748,6 +782,7 @@ public class Session implements AutoCloseable {
 
         Plan plan;
         try {
+            ensureMayExecute(analyzedStatement);
             plan = planner.plan(analyzedStatement, plannerContext);
             timeoutToken.check("bulkExec:plan");
         } catch (Throwable t) {
@@ -897,6 +932,7 @@ public class Session implements AutoCloseable {
         }
         Plan plan;
         try {
+            ensureMayExecute(analyzedStmt);
             plan = planner.plan(analyzedStmt, plannerContext);
             timeoutToken.check("singleExec:plan");
         } catch (Throwable t) {

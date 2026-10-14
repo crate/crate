@@ -57,22 +57,29 @@ public class RolesService implements Roles, ClusterStateListener {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public void clusterChanged(ClusterChangedEvent event) {
         Metadata prevMetadata = event.previousState().metadata();
         Metadata newMetadata = event.state().metadata();
 
-        UsersMetadata prevUsers = prevMetadata.custom(UsersMetadata.TYPE);
-        UsersMetadata newUsers = newMetadata.custom(UsersMetadata.TYPE);
-        RolesMetadata prevRoles = prevMetadata.custom(RolesMetadata.TYPE);
-        RolesMetadata newRoles = newMetadata.custom(RolesMetadata.TYPE);
-
-        UsersPrivilegesMetadata prevUsersPrivileges = prevMetadata.custom(UsersPrivilegesMetadata.TYPE);
-        UsersPrivilegesMetadata newUsersPrivileges = newMetadata.custom(UsersPrivilegesMetadata.TYPE);
-
-        if (prevUsers != newUsers || prevRoles != newRoles || prevUsersPrivileges != newUsersPrivileges) {
-            roles = getRoles(newUsers, newRoles, newUsersPrivileges);
+        if (rolesChanged(prevMetadata, newMetadata)) {
+            roles = getRoles(newMetadata);
         }
+    }
+
+    @SuppressWarnings("deprecation")
+    public static boolean rolesChanged(Metadata prevMetadata, Metadata newMetadata) {
+        return prevMetadata.custom(UsersMetadata.TYPE) != newMetadata.custom(UsersMetadata.TYPE)
+            || prevMetadata.custom(RolesMetadata.TYPE) != newMetadata.custom(RolesMetadata.TYPE)
+            || prevMetadata.custom(UsersPrivilegesMetadata.TYPE) != newMetadata.custom(UsersPrivilegesMetadata.TYPE);
+    }
+
+    @SuppressWarnings("deprecation")
+    public static Map<String, Role> getRoles(Metadata metadata) {
+        return getRoles(
+            metadata.custom(UsersMetadata.TYPE),
+            metadata.custom(RolesMetadata.TYPE),
+            metadata.custom(UsersPrivilegesMetadata.TYPE)
+        );
     }
 
     @SuppressWarnings("deprecation")
