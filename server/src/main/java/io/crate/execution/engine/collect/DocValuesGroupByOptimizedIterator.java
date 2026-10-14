@@ -50,7 +50,6 @@ import org.jspecify.annotations.Nullable;
 
 import io.crate.common.TriConsumer;
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Iterators;
 import io.crate.common.collections.Lists;
 import io.crate.common.concurrent.Killable;
 import io.crate.data.BatchIterator;
@@ -352,7 +351,7 @@ final class DocValuesGroupByOptimizedIterator {
                     }
                     return row;
                 };
-                return Iterators.transform(groupedStates.entrySet().iterator(), mapper);
+                return groupedStates.entrySet().stream().map(mapper).iterator();
             };
         }
 
