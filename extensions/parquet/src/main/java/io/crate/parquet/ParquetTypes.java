@@ -22,7 +22,6 @@
 package io.crate.parquet;
 
 import dev.hardwood.reader.RowReader;
-import dev.hardwood.row.PqList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.parquet.exceptions.IncompatibleSchemaForParquet;
