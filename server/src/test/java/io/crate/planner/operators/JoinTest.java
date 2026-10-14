@@ -28,7 +28,6 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isInputColumn;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -1391,6 +1390,103 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "    │  ├ Collect[doc.t1 | [x] | true]",
             "    │  └ Collect[doc.t3 | [z] | true]",
             "    └ Collect[doc.t2 | [y] | true]"
+        );
+    }
+
+    @Test
+    public void test_cross_joins_with_equi_and_non_equi_condition_between_same_tables() {
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1, t2, t3
+            WHERE t1.x = t2.y
+              AND t1.i > t2.i
+              AND t2.y = t3.z
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "Eval[x, y, z]",
+            "  └ Filter[(i > i)]",
+            "    └ HashJoin[INNER | (y = z)]",
+            "      ├ HashJoin[INNER | (x = y)]",
+            "      │  ├ Collect[doc.t1 | [x, i] | true]",
+            "      │  └ Collect[doc.t2 | [y, i] | true]",
+            "      └ Collect[doc.t3 | [z] | true]"
+        );
+    }
+
+    @Test
+    public void test_cross_joins_with_not_condition() {
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT * FROM t1, t2, t3
+            WHERE t1.x = t2.y
+              AND NOT (t1.a = t2.b)
+              AND t2.y = t3.z;
+            """);
+
+        assertThat(plan).hasOperators(
+            "Filter[(NOT (a = b))]",
+            "  └ HashJoin[INNER | (y = z)]",
+            "    ├ HashJoin[INNER | (x = y)]",
+            "    │  ├ Collect[doc.t1 | [a, x, i] | true]",
+            "    │  └ Collect[doc.t2 | [b, y, i] | true]",
+            "    └ Collect[doc.t3 | [c, z] | true]"
+        );
+    }
+
+    @Test
+    public void test_cross_joins_with_or_condition() {
+        // OR condition mustn't become a join condition
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT * FROM t1, t2, t3
+            WHERE (t1.x = t2.y OR t1.a = t2.b)
+              AND t2.y = t3.z;
+            """);
+
+        assertThat(plan).hasOperators(
+            "Filter[((x = y) OR (a = b))]",
+            "  └ HashJoin[INNER | (y = z)]",
+            "    ├ NestedLoopJoin[CROSS]",
+            "    │  ├ Collect[doc.t1 | [a, x, i] | true]",
+            "    │  └ Collect[doc.t2 | [b, y, i] | true]",
+            "    └ Collect[doc.t3 | [c, z] | true]"
+        );
+    }
+
+    @Test
+    public void test_cross_joins_with_equality_on_same_table() {
+        // t1.x = t1.i should be a filter on t1
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT * FROM t1, t2, t3
+            WHERE t1.x = t2.y
+              AND t1.x = t1.i
+              AND t2.y = t3.z;
+            """);
+
+        assertThat(plan).hasOperators(
+            "HashJoin[INNER | (y = z)]",
+            "  ├ HashJoin[INNER | (x = y)]",
+            "  │  ├ Collect[doc.t1 | [a, x, i] | (x = i)]",
+            "  │  └ Collect[doc.t2 | [b, y, i] | true]",
+            "  └ Collect[doc.t3 | [c, z] | true]"
+        );
+    }
+
+    @Test
+    public void test_cross_joins_with_extra_operator() {
+        // t1.x = t1.i should be a filter on t1
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT * FROM t1, t2, t3
+            WHERE t1.x = t2.y + 10
+              AND t2.y = t3.z;
+            """);
+
+        assertThat(plan).hasOperators(
+            "HashJoin[INNER | (y = z)]",
+            "  ├ HashJoin[INNER | (x = (y + 10))]",
+            "  │  ├ Collect[doc.t1 | [a, x, i] | true]",
+            "  │  └ Collect[doc.t2 | [b, y, i] | true]",
+            "  └ Collect[doc.t3 | [c, z] | true]"
         );
     }
 }
