@@ -53,6 +53,19 @@ public class GroupingProjector implements Projector {
                              RamAccounting ramAccounting,
                              MemoryManager memoryManager,
                              Version minNodeVersion) {
+        this(keys, keyInputs, collectExpressions, mode, aggregations, ramAccounting, memoryManager, minNodeVersion, 0);
+    }
+
+    @SuppressWarnings("unchecked")
+    public GroupingProjector(List<? extends Symbol> keys,
+                             List<Input<?>> keyInputs,
+                             CollectExpression<Row, ?>[] collectExpressions,
+                             AggregateMode mode,
+                             AggregationContext[] aggregations,
+                             RamAccounting ramAccounting,
+                             MemoryManager memoryManager,
+                             Version minNodeVersion,
+                             int expectedGroups) {
         assert keys.size() == keyInputs.size() : "number of key types must match with number of key inputs";
 
         AggregationFunction<?, ?>[] functions = new AggregationFunction[aggregations.length];
@@ -76,7 +89,8 @@ public class GroupingProjector implements Projector {
                 memoryManager,
                 minNodeVersion,
                 keyInputs.get(0),
-                key.valueType()
+                key.valueType(),
+                expectedGroups
             );
         } else {
             collector = GroupingCollector.manyKeys(
