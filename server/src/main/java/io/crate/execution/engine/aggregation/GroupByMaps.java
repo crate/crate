@@ -68,28 +68,6 @@ public final class GroupByMaps {
         };
     }
 
-    /// PoC: presizes the map for `expectedSize` entries (long keys only). `expectedSize <= 0` means unknown.
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static <K, V> Supplier<ResizeAwareMap<K, V>> mapForType(DataType<K> type, int expectedSize) {
-        if (expectedSize <= 0) {
-            return mapForType(type);
-        }
-        return switch (type.id()) {
-            case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ -> () -> {
-                // Netty maps rehash once size exceeds capacity * loadFactor
-                int capacity = (int) Math.min(1 << 30, (long) Math.ceil(expectedSize / LongObjectHashMap.DEFAULT_LOAD_FACTOR) + 1);
-                return (ResizeAwareMap<K, V>) new ResizeAwareMap<>(
-                    new PrimitiveMapWithNulls<>(new LongObjectHashMap<>(capacity)),
-                    capacity,
-                    LongObjectHashMap.DEFAULT_LOAD_FACTOR,
-                    true,
-                    Long.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF
-                );
-            };
-            default -> mapForType(type);
-        };
-    }
-
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static <K, V> Supplier<ResizeAwareMap<K, V>> mapForType(DataType<K> type) {
         return switch (type.id()) {

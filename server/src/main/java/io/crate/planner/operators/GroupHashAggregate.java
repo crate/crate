@@ -31,8 +31,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.SequencedCollection;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.jspecify.annotations.Nullable;
 
@@ -52,7 +50,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -190,17 +187,15 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                         RowGranularity.SHARD
                     )
                 );
-                GroupProjection toFinal = projectionBuilder.groupProjection(
-                    rewritten.outputs(),
-                    groupKeys,
-                    rewritten.aggregates(),
-                    paramBinder,
-                    AggregateMode.PARTIAL_FINAL,
-                    RowGranularity.NODE
-                );
-                toFinal.expectedGroups(pocExpectedGroups(plannerContext));
                 executionPlan.addProjection(
-                    toFinal,
+                    projectionBuilder.groupProjection(
+                        rewritten.outputs(),
+                        groupKeys,
+                        rewritten.aggregates(),
+                        paramBinder,
+                        AggregateMode.PARTIAL_FINAL,
+                        RowGranularity.NODE
+                    ),
                     NO_LIMIT,
                     0,
                     null
@@ -210,17 +205,15 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                 }
                 return executionPlan;
             } else {
-                GroupProjection toFinal = projectionBuilder.groupProjection(
-                    sourceOutputs,
-                    groupKeys,
-                    rewritten.aggregates(),
-                    paramBinder,
-                    AggregateMode.ITER_FINAL,
-                    RowGranularity.NODE
-                );
-                toFinal.expectedGroups(pocExpectedGroups(plannerContext));
                 executionPlan.addProjection(
-                    toFinal,
+                    projectionBuilder.groupProjection(
+                        sourceOutputs,
+                        groupKeys,
+                        rewritten.aggregates(),
+                        paramBinder,
+                        AggregateMode.ITER_FINAL,
+                        RowGranularity.NODE
+                    ),
                     NO_LIMIT,
                     0,
                     null
@@ -251,36 +244,12 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
             AggregateMode.PARTIAL_FINAL,
             RowGranularity.CLUSTER
         );
-        // PoC: over-estimates per node; each node gets only its share of the keys
-        toFinal.expectedGroups(pocExpectedGroups(plannerContext));
         return createMerge(
             plannerContext,
             executionPlan,
             rewritten.evalProjection() == null ? List.of(toFinal) : List.of(toFinal, rewritten.evalProjection()),
             executionPlan.resultDescription().nodeIds()
         );
-    }
-
-    private static final Pattern POC_CARDINALITY_SUFFIX = Pattern.compile("(\\d{3})$");
-
-    /// PoC: derives the expected number of groups from the benchmark table name.
-    /// A suffix like `005` means ~5% distinct values, so the result is `numDocs * 5%`.
-    /// Needs table stats (`ANALYZE`), returns 0 (unknown) otherwise.
-    private int pocExpectedGroups(PlannerContext plannerContext) {
-        List<RelationName> relationNames = source.relationNames();
-        if (relationNames.size() != 1) {
-            return 0;
-        }
-        Matcher matcher = POC_CARDINALITY_SUFFIX.matcher(relationNames.getFirst().name());
-        if (!matcher.find()) {
-            return 0;
-        }
-        long numDocs = plannerContext.planStats().get(source).numDocs();
-        if (numDocs <= 0) {
-            return 0;
-        }
-        int percent = Integer.parseInt(matcher.group(1));
-        return (int) Math.min(Integer.MAX_VALUE, numDocs * percent / 100);
     }
 
     @Override

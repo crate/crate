@@ -48,9 +48,6 @@ public class GroupProjection extends Projection {
     private final AggregateMode mode;
     private final RowGranularity requiredGranularity;
 
-    // PoC: expected number of groups, used to presize the grouping map. 0 = unknown.
-    private int expectedGroups = 0;
-
     public GroupProjection(List<Symbol> keys,
                            List<Aggregation> values,
                            AggregateMode mode,
@@ -76,16 +73,6 @@ public class GroupProjection extends Projection {
             values.add((Aggregation) Symbol.fromStream(in));
         }
         requiredGranularity = RowGranularity.fromStream(in);
-        // PoC: no BWC handling
-        expectedGroups = in.readVInt();
-    }
-
-    public int expectedGroups() {
-        return expectedGroups;
-    }
-
-    public void expectedGroups(int expectedGroups) {
-        this.expectedGroups = expectedGroups;
     }
 
     public List<Symbol> keys() {
@@ -126,7 +113,6 @@ public class GroupProjection extends Projection {
         Symbols.toStream(keys, out);
         Symbols.toStream(values, out);
         RowGranularity.toStream(requiredGranularity, out);
-        out.writeVInt(expectedGroups);
     }
 
     @Override

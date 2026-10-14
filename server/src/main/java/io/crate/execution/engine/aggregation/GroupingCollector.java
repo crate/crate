@@ -81,21 +81,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                Version minNodeVersion,
                                                Input<?> keyInput,
                                                DataType keyType) {
-        return singleKey(expressions, mode, aggregations, inputs, filters, ramAccounting, memoryManager,
-            minNodeVersion, keyInput, keyType, 0);
-    }
-
-    static GroupingCollector<Object> singleKey(CollectExpression<Row, ?>[] expressions,
-                                               AggregateMode mode,
-                                               AggregationFunction[] aggregations,
-                                               Input[][] inputs,
-                                               Input<Boolean>[] filters,
-                                               RamAccounting ramAccounting,
-                                               MemoryManager memoryManager,
-                                               Version minNodeVersion,
-                                               Input<?> keyInput,
-                                               DataType keyType,
-                                               int expectedGroups) {
         return new GroupingCollector<>(
             expressions,
             aggregations,
@@ -109,7 +94,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             1,
             GroupByMaps.accountForNewEntry(ramAccounting, keyType),
             row -> keyInput.value(),
-            GroupByMaps.mapForType(keyType, expectedGroups)
+            GroupByMaps.mapForType(keyType)
         );
     }
 
