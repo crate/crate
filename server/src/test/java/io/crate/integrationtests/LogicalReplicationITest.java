@@ -192,6 +192,55 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
     }
 
     @Test
+    public void test_table_can_be_added_to_multiple_publications() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
+                           defaultTableSettings() +
+                           ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+
+        createPublication("pub1", false, List.of("doc.t1"));
+        createPublicationWithoutUser("pub2", false, List.of("doc.t1"));
+        createPublicationWithoutUser("pub3", true, List.of("doc.t1"));
+
+        var response = executeOnPublisher(
+            "SELECT pubname, schemaname, tablename FROM pg_publication_tables ORDER BY pubname");
+        assertThat(response).hasRows(
+            "pub1| doc| t1",
+            "pub2| doc| t1",
+            "pub3| doc| t1");
+
+        createSubscription("sub1", List.of("pub1", "pub2", "pub3"));
+
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
+        assertThat(response).hasRows(
+            "1",
+            "2"
+        );
+
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (3)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1", "2", "3");
+        });
+
+        executeOnPublisher("ALTER PUBLICATION pub1 DROP TABLE doc.t1");
+        executeOnPublisher("ALTER PUBLICATION pub2 DROP TABLE doc.t1");
+        response = executeOnPublisher(
+            "SELECT pubname, schemaname, tablename FROM pg_publication_tables ORDER BY pubname");
+        assertThat(response).hasRows("pub3| doc| t1");
+
+        // Table is still replicated via the remaining publication
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (4)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1", "2", "3", "4");
+        });
+    }
+
+    @Test
     public void test_drop_publication() {
         executeOnPublisher("CREATE TABLE doc.t3 (id INT)");
         executeOnPublisher("CREATE PUBLICATION pub2 FOR TABLE doc.t3");
