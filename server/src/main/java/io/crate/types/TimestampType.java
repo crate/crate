@@ -26,9 +26,11 @@ import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
@@ -161,6 +163,10 @@ public final class TimestampType extends DataType<Long>
             return ((Number) (((Float) value) * 1000)).longValue();
         } else if (value instanceof Number number) {
             return number.longValue();
+        } else if (value instanceof Instant instant) {
+            return instant.toEpochMilli();
+        } else if (value instanceof LocalDateTime localDateTime) {
+            return localDateTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }

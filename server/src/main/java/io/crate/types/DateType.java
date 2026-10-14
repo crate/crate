@@ -148,6 +148,8 @@ public class DateType extends DataType<Long>
             longVal = ((Number) (f * 1000)).longValue();
         } else if (value instanceof Number number) {
             longVal = number.longValue();
+        } else if (value instanceof LocalDate localDate) {
+            longVal = localDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
