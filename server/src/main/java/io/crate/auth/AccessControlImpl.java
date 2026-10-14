@@ -23,6 +23,7 @@ package io.crate.auth;
 
 import static io.crate.role.Permission.READ_WRITE_DEFINE;
 
+import java.util.List;
 import java.util.Locale;
 
 import io.crate.analyze.AnalyzedAlterRepository;
@@ -152,9 +153,12 @@ public final class AccessControlImpl implements AccessControl {
 
     @Override
     public void ensureMayExecute(AnalyzedStatement statement) {
-        if (roles.findRole(sessionUser.name()) == null) {
-            // Check that user was not dropped in a meantime.
-            throw new IllegalStateException("User \"" + sessionUser.name() + "\" was dropped");
+        // Check that the users were not dropped in the meantime.
+        // Statements can be executed long after the session was created (e.g. prepared statements)
+        for (Role user : List.of(authenticatedUser, sessionUser)) {
+            if (roles.findRole(user.name()) == null) {
+                throw new IllegalStateException("User \"" + user.name() + "\" was dropped");
+            }
         }
         StatementVisitor visitor = new StatementVisitor(roles, authenticatedUser);
         statement.accept(visitor, sessionUser);
@@ -315,7 +319,8 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitFetch(AnalyzedFetch fetch, Role user) {
-            // We always allow to fetch. The privileges are checked through `Declare` when the user creates the cursor.
+            // Check again in case privileges were revoked after the cursor was declared.
+            fetch.cursor().query().accept(this, user);
             return null;
         }
 
