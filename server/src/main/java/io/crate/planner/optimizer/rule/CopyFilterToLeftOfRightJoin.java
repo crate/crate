@@ -101,9 +101,7 @@ public class CopyFilterToLeftOfRightJoin implements Rule<Filter> {
             var relationNames = entry.getKey();
             var splitQuery = entry.getValue();
 
-            if (!relationNames.isEmpty()
-                && lhsRelations.containsAll(relationNames)
-                && Sets.intersection(rhsRelations, relationNames).isEmpty()) {
+            if (Sets.haveEmptyIntersection(relationNames, rhsRelations)) {
 
                 // Only copy predicates that cannot match a NULL-extended left input.
                 // Otherwise, filtering the left input could create unmatched right-side
