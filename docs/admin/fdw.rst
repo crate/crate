@@ -163,7 +163,8 @@ Example::
 ``parquet``
 ========
 
-The ``parquet`` foreign data wrapper allows CrateDB to read local parquet files.
+The ``parquet`` foreign data wrapper allows CrateDB to read local parquet
+files. Only the ``crate`` superuser is allowed to do this.
 
 Usage::
 

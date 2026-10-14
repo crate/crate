@@ -23,6 +23,7 @@ package io.crate.parquet;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Paths;
 import java.util.List;
@@ -54,29 +55,25 @@ import io.crate.testing.SQLExecutor;
 
 public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
+    private Server server;
+    private RelationMetadata.ForeignTable foreignTable;
+    private CoordinatorTxnCtx txnCtx;
+    private Reference nameRef;
 
     @Before
     public void prepare() throws Exception {
         e = SQLExecutor.of(clusterService)
                 .addTable("create table doc.taxi (passenger_count bigint)");
-    }
 
-    @Test
-    public void test_evaluates_references() throws Exception {
-        Role role = RolesHelper.userOf("max");
-        NodeContext nodeCtx = createNodeContext(List.of(role));
-        ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx),
-                Runnable::run);
         Settings options = Settings.builder()
                 .put("local_files", List.of(Paths.get(
                         getClass().getResource("/data").toURI())
                         .resolve("yellow_taxi_01.parquet")
                         .toString()))
                 .build();
-        Server server = new Server("self", "parquet", "crate", Map.of(), options);
-        CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+        server = new Server("self", "parquet", "crate", Map.of(), options);
         RelationName relationName = new RelationName("doc", "taxi");
-        Reference nameRef = new SimpleReference(
+        nameRef = new SimpleReference(
                 relationName,
                 ColumnIdent.of("passenger_count"),
                 RowGranularity.DOC,
@@ -84,11 +81,19 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
                 1,
                 null);
         Map<ColumnIdent, Reference> references = Map.of(nameRef.column(), nameRef);
-        RelationMetadata.ForeignTable foreignTable = new RelationMetadata.ForeignTable(relationName, references,
-                server.name(), Settings.EMPTY);
+        foreignTable = new RelationMetadata.ForeignTable(relationName, references, server.name(), Settings.EMPTY);
+        txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+    }
 
+
+    @Test
+    public void test_evaluates_references() throws Exception {
+        Role role = Role.CRATE_USER;
+        NodeContext nodeCtx = createNodeContext(List.of(role));
+        ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx),
+                Runnable::run);
         BatchIterator<Row> it = fdw.getIterator(role, server, foreignTable, txnCtx,
-                List.of(e.asSymbol("passenger_count * 2")),
+                List.of(e.asSymbol(nameRef + "* 2")),
                 Literal.BOOLEAN_TRUE).get();
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
@@ -103,5 +108,16 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
             new Object[]{2L},
             new Object[]{6L}
         );
+    }
+
+    @Test
+    public void test_read_from_local_is_only_allowed_for_superusers() throws Exception {
+        Role role = RolesHelper.userOf("typical_user");
+        NodeContext nodeCtx = createNodeContext(List.of(role));
+        ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx),
+                Runnable::run);
+        assertThatThrownBy(() -> {
+            fdw.getIterator(role, server, foreignTable, txnCtx, List.of(nameRef), Literal.BOOLEAN_TRUE);
+        });
     }
 }

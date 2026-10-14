@@ -36,6 +36,7 @@ import org.elasticsearch.common.settings.Settings;
 import dev.hardwood.InputFile;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.InputColumns.SourceSymbols;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -53,9 +54,9 @@ import io.crate.role.Role;
 public class ParquetForeignDataWrapper implements ForeignDataWrapper {
 
     private final InputFactory inputFactory;
-    private final Setting<List<String>> inputFilesSetting = Setting.listSetting("local_files", new ArrayList<>(),
+    private final Setting<List<String>> localFilesSetting = Setting.listSetting("local_files", new ArrayList<>(),
             s -> s.toString(), STRING_ARRAY);
-    private final List<Setting<?>> mandatoryServerOptions = List.of(inputFilesSetting);
+    private final List<Setting<?>> mandatoryServerOptions = List.of(localFilesSetting);
 
     public ParquetForeignDataWrapper(Settings settings, InputFactory inputFactory, Executor executor) {
         this.inputFactory = inputFactory;
@@ -79,15 +80,18 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
             List<Symbol> collect,
             Symbol query) {
         Settings options = server.options();
-        List<String> paths = inputFilesSetting.get(options);
-        List<Path> parquetFiles = paths.stream().map(Paths::get).toList();
+        List<String> pathsToLocalFiles = localFilesSetting.get(options);
+        if (pathsToLocalFiles.size() > 0 && !currentUser.isSuperUser()) {
+            throw new UnauthorizedException("Only a superuser can read from the local file system");
+        }
+        List<Path> localParquetFiles = pathsToLocalFiles.stream().map(Paths::get).toList();
 
         List<Reference> columns = new ArrayList<>();
         for (Symbol symbol : collect) {
             symbol.visit(Reference.class, columns::add);
         }
 
-        BatchIterator<Row> it = new ParquetBatchIterator(InputFile.ofPaths(parquetFiles), columns, query);
+        BatchIterator<Row> it = new ParquetBatchIterator(InputFile.ofPaths(localParquetFiles), columns, query);
 
         // Evaluate any expressions in `collect` that aren't plain column references
         // (i.e. select x * 2 from parquet_file)
