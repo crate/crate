@@ -38,7 +38,6 @@ import java.util.function.Function;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -57,8 +56,10 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.netty.AccountedByteBuf;
 import io.crate.protocols.http.Headers;
+import io.crate.protocols.http.HttpAuthenticator;
 import io.crate.protocols.http.HttpHandler;
 import io.crate.protocols.postgres.ConnectionProperties;
+import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.session.DescribeResult;
 import io.crate.session.ResultReceiver;
@@ -89,11 +90,11 @@ public class SqlHttpHandler extends HttpHandler<FullHttpRequest> {
     @VisibleForTesting
     Session session;
 
-    public SqlHttpHandler(Settings settings,
-                          Sessions sessions,
+    public SqlHttpHandler(Sessions sessions,
                           Function<String, CircuitBreaker> circuitBreakerProvider,
-                          Roles roles) {
-        super(settings, sessions, roles);
+                          Roles roles,
+                          HttpAuthenticator authenticator) {
+        super(sessions, roles, authenticator);
         this.circuitBreakerProvider = circuitBreakerProvider;
     }
 
@@ -104,10 +105,17 @@ public class SqlHttpHandler extends HttpHandler<FullHttpRequest> {
             return;
         }
 
+        Role authenticatedUser = authenticate(ctx, request);
+        if (authenticatedUser == null) {
+            request.release();
+            return;
+        }
+
         Session session;
         Map<String, List<String>> parameters;
         try {
             session = ensureSession(
+                authenticatedUser,
                 new ConnectionProperties(
                     null, // not used
                     Netty4HttpServerTransport.getRemoteAddress(ctx.channel()),

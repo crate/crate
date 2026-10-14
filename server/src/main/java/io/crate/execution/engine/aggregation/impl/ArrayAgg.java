@@ -28,15 +28,16 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
+import io.crate.collections.accountable.AccountableList;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -48,7 +49,7 @@ public class ArrayAgg extends AggregationFunction<List<Object>, List<Object>> {
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.AGGREGATE)
         .argumentTypes(TypeSignature.E)
         .returnType(TypeSignature.ARRAY_E)
-        .features(Scalar.Feature.DETERMINISTIC)
+        .features(Feature.DETERMINISTIC, Feature.ORDER_SENSITIVE)
         .typeVariableConstraints(TypeVariableConstraint.E)
         .build();
 
@@ -82,8 +83,7 @@ public class ArrayAgg extends AggregationFunction<List<Object>, List<Object>> {
     public List<Object> newState(RamAccounting ramAccounting,
                                  Version minNodeInCluster,
                                  MemoryManager memoryManager) {
-        ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(ArrayType.ARRAY_LIST_SHALLOW_SIZE));
-        return new ArrayList<>();
+        return new AccountableList<>(ramAccounting::addBytes);
     }
 
     @Override

@@ -38,9 +38,9 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.operation.aggregation.LTTBAggregation.LttbState;
 import io.crate.testing.PlainRamAccounting;
 import io.crate.types.DataType;
@@ -71,7 +71,7 @@ public class LTTBAggregationTest extends AggregationTestCase {
                                 DataTypes.DOUBLE.getTypeSignature(),
                                 DataTypes.INTEGER.getTypeSignature())
                         .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 data,
                 List.of());

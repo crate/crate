@@ -62,12 +62,14 @@ import io.crate.expression.scalar.geo.WithinFunction;
 import io.crate.expression.scalar.object.ObjectKeysFunction;
 import io.crate.expression.scalar.postgres.CurrentSettingFunction;
 import io.crate.expression.scalar.postgres.PgBackendPidFunction;
+import io.crate.expression.scalar.postgres.PgIsInRecoveryFunction;
 import io.crate.expression.scalar.postgres.PgEncodingToCharFunction;
 import io.crate.expression.scalar.postgres.PgGetUserByIdFunction;
 import io.crate.expression.scalar.postgres.PgPostmasterStartTime;
 import io.crate.expression.scalar.postgres.PgSleepFunction;
 import io.crate.expression.scalar.postgres.PgTableIsVisibleFunction;
 import io.crate.expression.scalar.regex.RegexpCountFunction;
+import io.crate.expression.scalar.regex.RegexpMatchFunction;
 import io.crate.expression.scalar.regex.RegexpPositionFunction;
 import io.crate.expression.scalar.regex.RegexpReplaceFunction;
 import io.crate.expression.scalar.string.AsciiFunction;
@@ -89,6 +91,7 @@ import io.crate.expression.scalar.string.StringPositionFunction;
 import io.crate.expression.scalar.string.StringRepeatFunction;
 import io.crate.expression.scalar.string.StringSplitPartFunction;
 import io.crate.expression.scalar.string.StartsWithFunction;
+import io.crate.expression.scalar.string.EndsWithFunction;
 import io.crate.expression.scalar.string.TranslateFunction;
 import io.crate.expression.scalar.string.TrimFunctions;
 import io.crate.expression.scalar.systeminformation.ColDescriptionFunction;
@@ -129,6 +132,7 @@ public class ScalarFunctions implements FunctionsProvider {
         RegexpCountFunction.register(builder);
         RegexpReplaceFunction.register(builder);
         RegexpPositionFunction.register(builder);
+        RegexpMatchFunction.register(builder);
 
         ArithmeticFunctions.register(builder);
         BitwiseFunctions.register(builder);
@@ -189,6 +193,7 @@ public class ScalarFunctions implements FunctionsProvider {
         StringRepeatFunction.register(builder);
         StringSplitPartFunction.register(builder);
         StartsWithFunction.register(builder);
+        EndsWithFunction.register(builder);
         ChrFunction.register(builder);
         GenRandomTextUUIDFunction.register(builder);
         ReverseFunction.register(builder);
@@ -242,6 +247,7 @@ public class ScalarFunctions implements FunctionsProvider {
         CurrentSettingFunction.register(builder, sessionSettingRegistry);
 
         PgBackendPidFunction.register(builder);
+        PgIsInRecoveryFunction.register(builder);
         PgEncodingToCharFunction.register(builder);
         PgGetUserByIdFunction.register(builder);
         PgTypeofFunction.register(builder);

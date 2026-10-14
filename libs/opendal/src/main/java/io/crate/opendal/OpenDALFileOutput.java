@@ -21,6 +21,7 @@
 
 package io.crate.opendal;
 
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.concurrent.Executor;
@@ -28,15 +29,11 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.opendal.Operator;
 
+import io.crate.Constants;
 import io.crate.execution.dsl.projection.WriterProjection.CompressionType;
 import io.crate.execution.engine.export.FileOutput;
 
 public class OpenDALFileOutput implements FileOutput {
-
-    // 256 KiB, 16x size of the OperatorOutputStream's default buffer size.
-    // Helps to avoid uploading too many chunks (which causes BlockCountExceedsLimit error on azure).
-    // This also speeds up file upload
-    private static final int MAX_BYTES = 262144;
 
     private final Operator operator;
     private final String path;
@@ -49,7 +46,7 @@ public class OpenDALFileOutput implements FileOutput {
 
     @Override
     public OutputStream acquireOutputStream(Executor executor, CompressionType compressionType) throws IOException {
-        OutputStream outputStream = operator.createOutputStream(path, MAX_BYTES);
+        OutputStream outputStream = operator.createOutputStream(path, Constants.READ_WRITE_BLOB_BUFFER_SIZE);
         if (compressionType != null) {
             outputStream = new GZIPOutputStream(outputStream);
         }

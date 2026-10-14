@@ -37,15 +37,18 @@ import java.time.temporal.TemporalAccessor;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
-import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.Streamer;
 import io.crate.common.StringUtils;
 import io.crate.execution.dml.LongIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.LongColumnReference;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -88,10 +91,15 @@ public final class TimestampType extends DataType<Long>
         }
 
         @Override
-        public Long decode(byte[] packedPoint) {
-            return NumericUtils.sortableBytesToLong(packedPoint, 0);
+        public LuceneCollectorExpression<Long> getLuceneExpression(Reference ref,
+                                                                   Predicate<Reference> isParentIgnored) {
+            return new LongColumnReference(ref.storageIdent());
         }
 
+        @Override
+        public Long decode(DataType<Long> type, XContentParser parser) throws IOException {
+            return parser.longValue();
+        }
     };
 
     private final int id;

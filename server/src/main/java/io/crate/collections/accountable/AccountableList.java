@@ -43,7 +43,7 @@ import org.apache.lucene.util.RamUsageEstimator;
  * Supports boundary checks since some features (lag/lead) rely on IndexOutOfBoundsException.
  */
 public class AccountableList<T> extends AbstractList<T> {
-
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(AccountableList.class);
     private static final int SOFT_MAX_ARRAY_LENGTH = Integer.MAX_VALUE - 8;
     private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
     private static final int DEFAULT_CAPACITY = 10;
@@ -55,7 +55,7 @@ public class AccountableList<T> extends AbstractList<T> {
     public AccountableList(LongConsumer allocateBytes) {
         this.allocateBytes = allocateBytes;
         this.elementData = DEFAULTCAPACITY_EMPTY_ELEMENTDATA; // Empty now, will be accounted on the first growth.
-        allocateBytes.accept(4); // internal 'size' integer;
+        allocateBytes.accept(SHALLOW_SIZE); // internal 'size' integer;
     }
 
     private static class SubList<T> extends AbstractList<T> implements RandomAccess {
@@ -147,6 +147,26 @@ public class AccountableList<T> extends AbstractList<T> {
         return true;
     }
 
+    @Override
+    public T remove(int index) {
+        // Allocated bytes don't change, since elementData is not resized,
+        // and trimToSize() is not implemented (as in ArrayList).
+        Objects.checkIndex(index, size);
+        final Object[] es = elementData;
+
+        @SuppressWarnings("unchecked") T oldValue = (T) es[index];
+        fastRemove(es, index);
+
+        return oldValue;
+    }
+
+    private void fastRemove(Object[] es, int i) {
+        final int newSize;
+        if ((newSize = size - 1) > i)
+            System.arraycopy(es, i + 1, es, i, newSize - i);
+        es[size = newSize] = null;
+    }
+
     /**
      *
      * @param fromIndex low endpoint (inclusive) of the subList
@@ -166,16 +186,26 @@ public class AccountableList<T> extends AbstractList<T> {
             int newCapacity = newLength(oldCapacity,
                 minCapacity - oldCapacity, /* minimum growth */
                 oldCapacity >> 1           /* preferred growth */);
-            // Same as RamUsageEstimator.shallowSizeOf(array) but without NUM_BYTES_ARRAY_HEADER as we are accounting only for expansion.
-            allocateBytes.accept(RamUsageEstimator.alignObjectSize((long) NUM_BYTES_OBJECT_REF * (newCapacity - oldCapacity)));
+            allocateBytes.accept(calculateAdditionalMem(newCapacity, oldCapacity));
             elementData = Arrays.copyOf(elementData, newCapacity);
         } else {
             int length = Math.max(DEFAULT_CAPACITY, minCapacity);
-            // Inlining RamUsageEstimator.shallowSizeOf(array) since we want to account before allocation.
-            allocateBytes.accept(RamUsageEstimator.alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + (long) NUM_BYTES_OBJECT_REF * length));
+            allocateBytes.accept(shallowSizeOfArray(length));
             elementData = new Object[length];
         }
         return elementData;
+    }
+
+    private static long calculateAdditionalMem(int newCapacity, int oldCapacity) {
+        // NB: Cannot be simplified as: alignObjectSize(OBJECT_REF * (newCapacity - oldCapacity)),
+        // because alignObjectSize() isn't an additive function.
+        // Example is: NUM_BYTES_ARRAY_HEADER = 16, NUM_BYTES_OBJECT_REF = 4, newCapacity = 22, oldCapacity = 15.
+        return shallowSizeOfArray(newCapacity) - shallowSizeOfArray(oldCapacity);
+    }
+
+    // Inlining RamUsageEstimator.shallowSizeOf(array) since we want to account before allocation.
+    private static long shallowSizeOfArray(int length) {
+        return RamUsageEstimator.alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + (long) NUM_BYTES_OBJECT_REF * length);
     }
 
     /**

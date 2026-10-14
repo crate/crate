@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -35,24 +36,33 @@ import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.HashAggregate;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.statistics.Stats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.T3;
 
 public class RewriteDistinctAggToGroupByTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
     private LogicalPlan collectA;
     private LogicalPlan collectAX;
+    private LogicalPlan collectAB;
     private final RewriteDistinctAggToGroupBy rule = new RewriteDistinctAggToGroupBy();
 
     @Before
     public void setup() throws IOException {
         e = SQLExecutor.of(clusterService)
-            .addTable(T3.T1_DEFINITION);
+            .addTable("""
+                create table doc.t1 (
+                  a text,
+                  b text,
+                  x int,
+                  i int
+                )"""
+            );
 
         collectA = e.logicalPlan("SELECT a FROM t1");
         collectAX = e.logicalPlan("SELECT a, x FROM t1");
+        collectAB = e.logicalPlan("SELECT a, b FROM t1");
     }
 
     private void assertApplied(LogicalPlan plan, String expectedPlan) {
@@ -76,6 +86,22 @@ public class RewriteDistinctAggToGroupByTest extends CrateDummyClusterServiceUni
         assertThat(match.isPresent()).isFalse();
     }
 
+    /// Pattern matches structurally, but `apply` bails out (returns null), leaving `plan` untouched.
+    private void assertNotApplied(LogicalPlan plan) {
+        var match = rule.pattern().accept(plan, Captures.empty());
+        assertThat(match.isPresent()).isTrue();
+
+        var result = rule.apply(match.value(), match.captures(), e.ruleContext());
+        assertThat(result).isNull();
+    }
+
+    private void setTableStats(long numDocs) {
+        e.updateTableStats(Map.of(
+            e.resolveTableInfo("t1").ident(),
+            new Stats(numDocs, 0L, Map.of())
+        ));
+    }
+
     @Test
     public void test_count_distinct_is_grouped_by_the_counted_column() {
         // SELECT count(distinct a) FROM t1
@@ -93,51 +119,6 @@ public class RewriteDistinctAggToGroupByTest extends CrateDummyClusterServiceUni
             HashAggregate[count(DISTINCT a)]
               └ GroupHashAggregate[a]
                 └ Collect[doc.t1 | [a] | true]
-            """
-        );
-    }
-
-    @Test
-    public void test_avg_distinct_is_grouped_by_the_averaged_column() {
-        // SELECT avg(distinct x) FROM t1
-        var collectX = e.logicalPlan("SELECT x FROM t1");
-        var avgFn = (Function) e.asSymbol("avg(distinct x)");
-        var hashAgg = new HashAggregate(collectX, List.of(avgFn));
-
-        assertThat(hashAgg).hasOperators(
-            "HashAggregate[avg(DISTINCT x)]",
-            "  └ Collect[doc.t1 | [x] | true]"
-        );
-
-        assertApplied(
-            hashAgg,
-            """
-            HashAggregate[avg(DISTINCT x)]
-              └ GroupHashAggregate[x]
-                └ Collect[doc.t1 | [x] | true]
-            """
-        );
-    }
-
-    @Test
-    public void test_multiple_functions_with_same_column() {
-        // SELECT avg(distinct x) FROM t1
-        var collectX = e.logicalPlan("SELECT x FROM t1");
-        var avgFn = (Function) e.asSymbol("avg(distinct x)");
-        var countFn = (Function) e.asSymbol("count(distinct x)");
-        var hashAgg = new HashAggregate(collectX, List.of(avgFn, countFn));
-
-        assertThat(hashAgg).hasOperators(
-            "HashAggregate[avg(DISTINCT x), count(DISTINCT x)]",
-            "  └ Collect[doc.t1 | [x] | true]"
-        );
-
-        assertApplied(
-            hashAgg,
-            """
-            HashAggregate[avg(DISTINCT x), count(DISTINCT x)]
-              └ GroupHashAggregate[x]
-                └ Collect[doc.t1 | [x] | true]
             """
         );
     }
@@ -277,5 +258,105 @@ public class RewriteDistinctAggToGroupByTest extends CrateDummyClusterServiceUni
                 └ Collect[doc.t1 | [a] | true]
             """
         );
+    }
+
+    @Test
+    public void test_distinct_aggregates_on_different_columns_are_split_and_joined() {
+        // SELECT count(distinct a), count(distinct x) FROM t1
+        var countA = (Function) e.asSymbol("count(distinct a)");
+        var countB = (Function) e.asSymbol("count(distinct b)");
+        var hashAgg = new HashAggregate(collectAB, List.of(countA, countB));
+
+        assertThat(hashAgg).hasOperators(
+            "HashAggregate[count(DISTINCT a), count(DISTINCT b)]",
+            "  └ Collect[doc.t1 | [a, b] | true]"
+        );
+
+        setTableStats(1000);
+        // No Eval here, because the join's natural output order already matches the original aggregate order.
+        assertApplied(
+            hashAgg,
+            """
+            Join[CROSS]
+              ├ HashAggregate[count(DISTINCT a)]
+              │  └ Collect[doc.t1 | [a, b] | true]
+              └ HashAggregate[count(DISTINCT b)]
+                └ Collect[doc.t1 | [a, b] | true]
+            """
+        );
+
+        // Each join side is a single-column distinct aggregate. On a later optimizer
+        // iteration, the same rule dedups it via GROUP BY instead of splitting it again.
+        var match = rule.pattern().accept(hashAgg, Captures.empty());
+        var result = rule.apply(match.value(), match.captures(), e.ruleContext());
+        assertApplied(
+            result.sources().get(0),
+            """
+            HashAggregate[count(DISTINCT a)]
+              └ GroupHashAggregate[a]
+                └ Collect[doc.t1 | [a, b] | true]
+            """
+        );
+        assertApplied(
+            result.sources().get(1),
+            """
+            HashAggregate[count(DISTINCT b)]
+              └ GroupHashAggregate[b]
+                └ Collect[doc.t1 | [a, b] | true]
+            """
+        );
+    }
+
+    @Test
+    public void test_not_applied_when_table_is_too_large() {
+        // SELECT count(distinct a), count(distinct x) FROM t1
+        setTableStats((long) (RewriteDistinctAggToGroupBy.MAX_TABLE_SIZE + 1));
+
+        var countA = (Function) e.asSymbol("count(distinct a)");
+        var countB = (Function) e.asSymbol("count(distinct b)");
+        var hashAgg = new HashAggregate(collectAB, List.of(countA, countB));
+
+        assertNotApplied(hashAgg);
+    }
+
+    @Test
+    public void test_where_clause_kept_on_different_columns_split() {
+        // SELECT count(distinct a), count(distinct x) FROM t1 WHERE i > 1
+        var filteredCollect = e.logicalPlan("SELECT a, b FROM t1 WHERE i > 1");
+        var countA = (Function) e.asSymbol("count(distinct a)");
+        var countB = (Function) e.asSymbol("count(distinct b)");
+        var hashAgg = new HashAggregate(filteredCollect, List.of(countA, countB));
+
+        setTableStats(1000);
+        assertApplied(
+            hashAgg,
+            """
+            Join[CROSS]
+              ├ HashAggregate[count(DISTINCT a)]
+              │  └ Collect[doc.t1 | [a, b] | (i > 1)]
+              └ HashAggregate[count(DISTINCT b)]
+                └ Collect[doc.t1 | [a, b] | (i > 1)]
+            """
+        );
+    }
+
+    @Test
+    public void test_cannot_apply_for_distinct_aggregate_with_filter_on_different_columns() {
+        // SELECT count(distinct a), count(distinct x) FILTER (WHERE x > 1) FROM t1
+        var countA = (Function) e.asSymbol("count(distinct a)");
+        var countX = (Function) e.asSymbol("count(distinct x) FILTER (WHERE x > 1)");
+        var hashAgg = new HashAggregate(collectAX, List.of(countA, countX));
+
+        assertNotMatched(hashAgg);
+    }
+
+    @Test
+    public void test_cannot_apply_for_distinct_aggregate_over_scalar_on_multiple_columns() {
+        // SELECT count(distinct upper(a)), count(distinct x) FROM t1
+        var countUpperA = (Function) e.asSymbol("count(distinct upper(a))");
+        var countX = (Function) e.asSymbol("count(distinct x)");
+        var hashAgg = new HashAggregate(collectAX, List.of(countUpperA, countX));
+
+        assertNotMatched(hashAgg);
     }
 }

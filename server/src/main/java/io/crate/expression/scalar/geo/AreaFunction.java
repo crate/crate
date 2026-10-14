@@ -31,8 +31,8 @@ import io.crate.expression.scalar.UnaryScalar;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoShapeType;
 
@@ -61,13 +61,12 @@ public final class AreaFunction {
             Signature.builder(FUNCTION_NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.GEO_SHAPE.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.GEO_SHAPE,
                     AreaFunction::getArea
                 )
         );

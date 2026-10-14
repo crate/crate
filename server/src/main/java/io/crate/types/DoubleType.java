@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -33,17 +34,21 @@ import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.jspecify.annotations.Nullable;
 
 import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
 import io.crate.Streamer;
 import io.crate.execution.dml.DoubleIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.DoubleColumnReference;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStatsSupport;
 
-public class DoubleType extends DataType<Double> implements FixedWidthType, Streamer<Double> {
+public class DoubleType extends NumberType<Double> implements FixedWidthType, Streamer<Double> {
 
     public static final DoubleType INSTANCE = new DoubleType();
     public static final int ID = 6;
@@ -83,7 +88,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
 
                 double upper;
                 if (upperTerm == null) {
-                    upper = Double.POSITIVE_INFINITY;
+                    upper = Double.NaN;
                 } else {
                     upper = includeUpper ? upperTerm : DoublePoint.nextDown(upperTerm);
                 }
@@ -120,10 +125,15 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
         }
 
         @Override
-        public Double decode(byte[] packedPoint) {
-            return NumericUtils.sortableLongToDouble(NumericUtils.sortableBytesToLong(packedPoint, 0));
+        public LuceneCollectorExpression<Double> getLuceneExpression(Reference ref,
+                                                                     Predicate<Reference> isParentIgnored) {
+            return new DoubleColumnReference(ref.storageIdent());
         }
 
+        @Override
+        public Double decode(DataType<Double> type, XContentParser parser) throws IOException {
+            return parser.doubleValue();
+        }
     };
 
     private static final BigDecimal DOUBLE_MAX = BigDecimal.valueOf(Double.MAX_VALUE);
@@ -239,5 +249,16 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     @Override
     public long valueBytes(Double value) {
         return DOUBLE_SIZE;
+    }
+
+    @Override
+    @Nullable
+    public Integer scale() {
+        return null;
+    }
+
+    @Override
+    public Integer precisionRadix() {
+        return 2;
     }
 }

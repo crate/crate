@@ -46,6 +46,7 @@ import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
@@ -57,6 +58,8 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.sql.tree.JoinType;
+import io.crate.types.DataType;
+import io.crate.types.TypeCompatibility;
 
 public class HashJoin extends AbstractJoinPlan {
 
@@ -312,7 +315,7 @@ public class HashJoin extends AbstractJoinPlan {
                                          List<RelationName> rhsRelationNames,
                                          Symbol symbol) {
         /* It is important here to process the hashSymbols in order as there values are used for building the
-         *  hash codes. For example:
+         * hash codes. For example:
          *
          *      join-condition:     t1.a = t2.c AND t1.b = t2.d
          *      left hashSymbols:   [t1.a, t1.b]
@@ -340,7 +343,37 @@ public class HashJoin extends AbstractJoinPlan {
             }
         }
         assert rhsHashSymbols.size() == lhsHashSymbols.size() : "Number of hash values for left and right hand side of a hash-join must be equal";
+        castToCommonType(lhsHashSymbols, rhsHashSymbols);
         return new HashSymbols(lhsHashSymbols, rhsHashSymbols);
+    }
+
+    /**
+     * Casts both symbols of each hash symbol pair to their common type.
+     * <p>
+     * The hash codes are built from the values of these symbols, and the join condition is
+     * evaluated using {@link DataType#valueEq(Object, Object)}. For types which are parametrized the two
+     * can disagree, e.g.: `character(n)` values are padded to match the defined length, so "a" for a
+     * `char(2)` column, becomes "a ", and for a `char(3) becomes "a  ".
+     * Both values are equal under SQL semantics but their hash codes are not, so without normalizing the
+     * type pairs the rows can end up in different hash buckets, or even on different nodes if the join
+     * executes as modulo-distributed.
+     */
+    private static void castToCommonType(List<Symbol> lhsHashSymbols, List<Symbol> rhsHashSymbols) {
+        for (int i = 0; i < lhsHashSymbols.size(); i++) {
+            Symbol lhs = lhsHashSymbols.get(i);
+            Symbol rhs = rhsHashSymbols.get(i);
+            DataType<?> lhsType = lhs.valueType();
+            DataType<?> rhsType = rhs.valueType();
+            if (lhsType.id() != rhsType.id() || lhsType.equals(rhsType)) {
+                continue;
+            }
+            DataType<?> commonType = TypeCompatibility.getCommonType(lhsType, rhsType);
+            if (commonType == null) {
+                continue;
+            }
+            lhsHashSymbols.set(i, lhs.cast(commonType, CastMode.EXPLICIT));
+            rhsHashSymbols.set(i, rhs.cast(commonType, CastMode.EXPLICIT));
+        }
     }
 
     record HashSymbols(List<Symbol> lhsHashSymbols, List<Symbol> rhsHashSymbols) { }

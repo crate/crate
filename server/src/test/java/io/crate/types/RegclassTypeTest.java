@@ -136,4 +136,26 @@ public class RegclassTypeTest extends DataTypeTestCase<Regclass> {
         var regclass = RegclassType.INSTANCE.explicitCast("\"tbl\"", SESSION_SETTINGS, e.schemas());
         assertThat(regclass.oid()).isEqualTo(-579575814);
     }
+
+    @Override
+    public void test_supports_casting_null_to_type() throws Exception {
+        // overridden because regclass doesn't support implicit casts
+
+        DataType<Regclass> type = getDataDef().type();
+        var sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
+        Regclass explicitCast = type.explicitCast(null, sessionSettings, new RelationLookup() {
+
+            @Override
+            public int getDisplayRelationOid(RelationName relationName) {
+                return Metadata.OID_UNASSIGNED;
+            }
+
+            @Override
+            public @Nullable RelationName getRelationName(int displayOid) {
+                return null;
+            }
+
+        });
+        assertThat(explicitCast).isNull();
+    }
 }

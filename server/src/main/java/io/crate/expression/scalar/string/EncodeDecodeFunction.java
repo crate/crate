@@ -32,8 +32,8 @@ import io.crate.common.Octal;
 import io.crate.expression.scalar.BinaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
 
 public class EncodeDecodeFunction {
@@ -44,14 +44,13 @@ public class EncodeDecodeFunction {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new BinaryScalar<>(
                     new Encode(),
                     signature,
-                    boundSignature,
-                    DataTypes.STRING
+                    boundSignature
                 )
         );
         module.add(
@@ -59,14 +58,13 @@ public class EncodeDecodeFunction {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new BinaryScalar<>(
                     new Decode(),
                     signature,
-                    boundSignature,
-                    DataTypes.STRING
+                    boundSignature
                 )
         );
     }

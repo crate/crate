@@ -7,6 +7,11 @@ Privileges
 
 To execute statements, a user needs to have the required privileges.
 
+CrateDB follows the PostgreSQL naming convention and refers to these
+permissions as *privileges*. Both terms are used interchangeably throughout
+this document: granting a privilege gives a user or a role the permission to
+execute a certain group of statements on a certain set of objects.
+
 
 .. _privileges-intro:
 
@@ -47,6 +52,9 @@ themselves to other users or roles as well.
 
 Privilege types
 ===============
+
+Each privilege type bundles the permissions for a group of related
+statements. A user or role can hold several privilege types at the same time.
 
 .. _privilege_types_dql:
 

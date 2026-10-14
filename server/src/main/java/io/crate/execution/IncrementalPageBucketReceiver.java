@@ -30,6 +30,7 @@ import java.util.function.Function;
 import java.util.stream.Collector;
 
 import io.crate.Streamer;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -49,7 +50,8 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
     private final Streamer<?>[] streamers;
 
     private CompletableFuture<?> currentlyAccumulating;
-    private volatile boolean killed = false;
+    private volatile Throwable killed;
+    private volatile boolean processing = false;
 
     public IncrementalPageBucketReceiver(Collector<Row, T, Iterable<Row>> collector,
                                          RowConsumer rowConsumer,
@@ -73,16 +75,34 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
         });
     }
 
-    private void processRows(Bucket rows) {
+    @VisibleForTesting
+    void processRows(Bucket rows) {
+        processing = true;
         try {
+            if (processingFuture.isDone()) {
+                // Asynchronously chained processRows can arrive
+                // after previous one failed with CBE and closed task/closed accounting.
+                // Also, we could have completed future via KILL before processing started.
+                // We shouldn't process anything as we end up increasing CB after close().
+                return;
+            }
             for (Row row : rows) {
-                if (killed) {
+                Throwable lKilled = killed;
+                if (lKilled != null) {
                     return;
                 }
+                // KILL can arrive here, but it won't complete future/close CB while processing.
+                // It's safe to continue here and increase CB.
                 accumulator.accept(state, row);
             }
         } catch (Exception e) {
             processingFuture.completeExceptionally(e);
+        } finally {
+            processing = false;
+            // Ensure that KILL that arrived while processing was in progress is not lost.
+            if (killed != null) {
+                processingFuture.completeExceptionally(killed);
+            }
         }
     }
 
@@ -132,16 +152,36 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
 
     @Override
     public void consumeRows() {
+        processing = true;
         try {
+            Throwable lKilled = killed;
+            if (lKilled != null || processingFuture.isDone()) {
+                // Asynchronously chained consumeRows can arrive
+                // after processRows() failed with CBE and closed task/closed accounting.
+                // Also, we could have completed future via KILL before processing started.
+                // We shouldn't process anything as we end up increasing CB after close().
+                return;
+            }
             processingFuture.complete(finisher.apply(state));
         } catch (Exception e) {
             processingFuture.completeExceptionally(e);
+        } finally {
+            processing = false;
+            // Ensure that KILL that arrived while processing was in progress is not lost.
+            if (killed != null) {
+                processingFuture.completeExceptionally(killed);
+            }
         }
     }
 
     @Override
     public void kill(Throwable t) {
-        killed = true;
-        processingFuture.completeExceptionally(t);
+        killed = t;
+        boolean lProcessing = processing;
+        if (lProcessing == false) {
+            // Don't complete future while processing, otherwise CB might increase after close().
+            // We will complete future once processing is done.
+            processingFuture.completeExceptionally(t);
+        }
     }
 }

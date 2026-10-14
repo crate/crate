@@ -33,9 +33,8 @@ import io.crate.common.TriConsumer;
 import io.crate.expression.scalar.BinaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
-import io.crate.metadata.Scalar.Feature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.sql.tree.BitString;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
@@ -58,9 +57,9 @@ public class BitwiseFunctions {
             .argumentTypes(typeSignature,
                 typeSignature)
             .returnType(typeSignature)
-            .features(Scalar.Feature.DETERMINISTIC, Feature.STRICTNULL)
+            .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
             .build();
-        module.add(scalar, (signature, boundSignature) -> new BinaryScalar<>(operator, signature, boundSignature, type));
+        module.add(scalar, (signature, boundSignature) -> new BinaryScalar<>(operator, signature, boundSignature));
     }
 
     public static void register(Functions.Builder module) {

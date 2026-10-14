@@ -24,21 +24,24 @@ package io.crate.types;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
-import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.Streamer;
 import io.crate.execution.dml.IntIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.ShortColumnReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStatsSupport;
 
-public class ShortType extends DataType<Short> implements Streamer<Short>, FixedWidthType {
+public class ShortType extends IntegralType<Short> implements Streamer<Short>, FixedWidthType {
 
     public static final ShortType INSTANCE = new ShortType();
     public static final int ID = 8;
@@ -59,12 +62,17 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
             return (short) input;
         }
 
-        // smallint is indexed by IntIndexer, so its points are 4 bytes wide.
+        @SuppressWarnings({ "unchecked", "rawtypes" })
         @Override
-        public Short decode(byte[] packedPoint) {
-            return (short) NumericUtils.sortableBytesToInt(packedPoint, 0);
+        public LuceneCollectorExpression<Number> getLuceneExpression(Reference ref,
+                                                                     Predicate<Reference> isParentIgnored) {
+            return (LuceneCollectorExpression) new ShortColumnReference(ref.storageIdent());
         }
 
+        @Override
+        public Short decode(DataType<Number> type, XContentParser parser) throws IOException {
+            return parser.shortValue(true);
+        }
     };
 
     private ShortType() {

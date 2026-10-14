@@ -2033,9 +2033,6 @@ must be prefixed by the plus or minus symbol. See also `Year.parse Javadoc`_::
     - :ref:`TIME <type-time>` types cannot be added to or subtracted from
       ``DATE`` types.
 
-    - :ref:`INTERVAL <type-interval>` types cannot be added to or subtracted
-      from ``DATE`` types.
-
     This behaviour does not comply with standard SQL and is incompatible with
     PostgreSQL. This behavior may change in a future version of CrateDB (see
     `tracking issue #11528`_).
@@ -2302,6 +2299,17 @@ Inserting values that are either too short or too long results in an error::
     cr> DROP TABLE my_table;
     DROP OK, 1 row affected (... sec)
 
+
+Strings can be cast to the `bit` type. If the length of the string doesn't match
+the `bit` type length, it is trimmed or extended on the right side::
+
+  cr> SELECT '011'::bit(4), '10101'::bit(4)
+  +-----------------------+-------------------------+
+  | CAST('011' AS bit(4)) | CAST('10101' AS bit(4)) |
+  +-----------------------+-------------------------+
+  | B'0110'               | B'1010'                 |
+  +-----------------------+-------------------------+
+  SELECT 1 row in set (... sec)
 
 
 .. _data-types-ip-addresses:
@@ -3853,6 +3861,8 @@ See the table below for a full list of aliases:
 +-----------------------+---------------------------------+
 | Alias                 | CrateDB Type                    |
 +=======================+=================================+
+| ``BOOL``              | ``BOOLEAN``                     |
++-----------------------+---------------------------------+
 | ``SHORT``             | ``SMALLINT``                    |
 +-----------------------+---------------------------------+
 | ``INT``               | ``INTEGER``                     |

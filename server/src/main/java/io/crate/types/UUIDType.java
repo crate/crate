@@ -22,9 +22,11 @@
 package io.crate.types;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -39,6 +41,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.Streamer;
@@ -81,6 +84,25 @@ public class UUIDType extends DataType<UUID> implements FixedWidthType, Streamer
                            byte[] bytes) {
 
             return UUIDType.decode(bytes);
+        }
+
+        @Override
+        public LuceneCollectorExpression<UUID> getLuceneExpression(Reference ref,
+                                                                   Predicate<Reference> isParentIgnored) {
+            return new BinaryColumnReference<UUID>(ref.storageIdent()) {
+
+                @Override
+                protected UUID convert(BytesRef input) {
+                    long mostSigBits = (long) BitUtil.VH_LE_LONG.get(input.bytes, input.offset);
+                    long leastSigBits = (long) BitUtil.VH_LE_LONG.get(input.bytes, input.offset + 8);
+                    return new UUID(mostSigBits, leastSigBits);
+                }
+            };
+        }
+
+        @Override
+        public UUID decode(DataType<UUID> type, XContentParser parser) throws IOException {
+            return type.sanitizeValue(parser.text());
         }
     };
 
@@ -226,6 +248,7 @@ public class UUIDType extends DataType<UUID> implements FixedWidthType, Streamer
             if (!isIndexed) {
                 return null;
             }
+            Collections.sort(nonNullValues);
             PointInSetQuery.Stream stream = new PointInSetQuery.Stream() {
 
                 int idx = 0;
@@ -293,18 +316,6 @@ public class UUIDType extends DataType<UUID> implements FixedWidthType, Streamer
         public String storageIdentLeafName() {
             return ref.storageIdentLeafName();
         }
-    }
-
-    public static LuceneCollectorExpression<UUID> getCollectorExpression(String fqn) {
-        return new BinaryColumnReference<UUID>(fqn) {
-
-            @Override
-            protected UUID convert(BytesRef input) {
-                long mostSigBits = (long) BitUtil.VH_LE_LONG.get(input.bytes, input.offset);
-                long leastSigBits = (long) BitUtil.VH_LE_LONG.get(input.bytes, input.offset + 8);
-                return new UUID(mostSigBits, leastSigBits);
-            }
-        };
     }
 
     @Override

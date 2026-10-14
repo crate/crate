@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -33,17 +34,21 @@ import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.jspecify.annotations.Nullable;
 
 import ch.randelshofer.fastdoubleparser.JavaFloatParser;
 import io.crate.Streamer;
 import io.crate.execution.dml.FloatIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.FloatColumnReference;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStatsSupport;
 
-public class FloatType extends DataType<Float> implements Streamer<Float>, FixedWidthType {
+public class FloatType extends NumberType<Float> implements Streamer<Float>, FixedWidthType {
 
     public static final FloatType INSTANCE = new FloatType();
     public static final int ID = 7;
@@ -83,7 +88,7 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
 
                 float upper;
                 if (upperTerm == null) {
-                    upper = Float.POSITIVE_INFINITY;
+                    upper = Float.NaN;
                 } else {
                     upper = includeUpper ? upperTerm : FloatPoint.nextDown(upperTerm);
                 }
@@ -120,10 +125,15 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         }
 
         @Override
-        public Float decode(byte[] packedPoint) {
-            return NumericUtils.sortableIntToFloat(NumericUtils.sortableBytesToInt(packedPoint, 0));
+        public LuceneCollectorExpression<Float> getLuceneExpression(Reference ref,
+                                                                    Predicate<Reference> isParentIgnored) {
+            return new FloatColumnReference(ref.storageIdent());
         }
 
+        @Override
+        public Float decode(DataType<Float> type, XContentParser parser) throws IOException {
+            return parser.floatValue();
+        }
     };
 
     private static final BigDecimal MAX = BigDecimal.valueOf(Float.MAX_VALUE);
@@ -243,5 +253,16 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     @Override
     public long valueBytes(Float value) {
         return FLOAT_SIZE;
+    }
+
+    @Override
+    @Nullable
+    public Integer scale() {
+        return null;
+    }
+
+    @Override
+    public Integer precisionRadix() {
+        return 2;
     }
 }

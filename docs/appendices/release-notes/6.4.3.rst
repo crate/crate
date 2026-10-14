@@ -81,7 +81,8 @@ Breaking Changes
   * ``RESTORE SNAPSHOT ... METADATA``
   * ``RESTORE SNAPSHOT ... USERMANAGEMENT``
 
-  Previously the ``DDL`` privilege alone was sufficient.
+  Previously the ``DDL`` privilege alone was sufficient. For more details see
+  the `security advisory <https://github.com/crate/crate/security/advisories/GHSA-q2wh-fx2h-rqfh>`__.
 
 
 Fixes
@@ -92,23 +93,30 @@ Fixes
   together with a ``RANGE BETWEEN`` window definition.
 
 - Authentication via HTTP is no longer cached on connection level to support
-  proxy use-cases with keepalive.
+  proxy use-cases with keepalive. For more details see the
+  `security advisory <https://github.com/crate/crate/security/advisories/GHSA-8jr8-9wjf-7m2h>`__.
 
 - Limited the duration clients using the PostgreSQL wire protocol can remain
   unauthenticated to make it more difficult to launch Denial of Service attacks.
+  For more details see the
+  `security advisory <https://github.com/crate/crate/security/advisories/GHSA-gvhg-w5hf-g282>`__.
 
 - Limited the size of messages accepted from unauthenticated clients using the
   PostgreSQL wire protocol to make it more difficult to launch Denial of Service
-  attacks.
+  attacks. For more details see the
+  `security advisory <https://github.com/crate/crate/security/advisories/GHSA-gvhg-w5hf-g282>`__.
 
 - Fixed an issue that allowed authenticated users to bypass the ``COPY FROM``
   restriction to read from ``file`` URIs - which is supposed to be restricted to
-  superusers.
+  superusers. For more details see the
+  `security advisory <https://github.com/crate/crate/security/advisories/GHSA-xw2x-w5xq-9w8r>`__.
 
 - Fixed a security vulnerability that could allow clients to spoof the IP
   address used for host based authentication as a ``_local`` address if
   ``auth.trust.http_support_x_real_ip=true`` was set to true, and if there
   wasn't a trusted proxy in use that filters or sanitizes ``X-Real-IP`` headers.
+  For more details see the
+  `security advisory <https://github.com/crate/crate/security/advisories/GHSA-x296-hxfr-jq2h>`__.
 
 - Fixed an issue that could cause partitions of tables to be excluded from a
   query if the ``WHERE`` clause contained a complex expression nesting an ``IS
@@ -198,6 +206,8 @@ Fixes
   by using sub-queries inside :ref:`UPDATE <ref-update>` or
   :ref:`DELETE <sql_reference_delete>` statements. Sub-queries used in such
   statements now require the ``DQL`` privilege on all involved tables and views.
+  For more details see the
+  `security advisory <https://github.com/crate/crate/security/advisories/GHSA-cf3f-xgm5-jfrm>`__.
 
 - Fixed incorrect results in :ref:`rank() <window-functions-rank>` and
   :ref:`dense_rank() <window-functions-dense-rank>` window functions when an

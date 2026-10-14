@@ -48,6 +48,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
 
 public class NotPredicate extends Scalar<Boolean, Boolean> {
@@ -82,6 +83,12 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
             if (value instanceof Boolean b) {
                 return Literal.of(!b);
             }
+        }
+        // NOT (NOT x) -> x. Besides saving the evaluation, this keeps `x` visible to the
+        // optimizer; e.g. an `op_and` below a double negation would otherwise not be split
+        // into its parts and pushed down.
+        if (arg instanceof Function inner && inner.name().equals(NAME)) {
+            return inner.arguments().get(0);
         }
         return symbol;
     }

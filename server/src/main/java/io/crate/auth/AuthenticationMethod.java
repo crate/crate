@@ -28,13 +28,32 @@ import io.crate.role.Role;
 
 public interface AuthenticationMethod {
 
+    interface AuthToken {
+
+        Role role();
+
+        static AuthToken of(Role role) {
+            return () -> role;
+        }
+    }
+
     /**
      * @param credentials contains username, password or token - depending on the used method.
-     * @return the user or null; null should be handled as if it's a "guest" user
-     * @throws RuntimeException if the authentication failed
+     * @return token holding the user.
+     * @throws RuntimeException if the authentication failed.
+     */
+    AuthToken authenticate(Credentials credentials, ConnectionProperties connProperties);
+
+    /**
+     * @return token as is if it's still valid or return null to enforce authentication.
+     *
+     * All implementations must check that incoming token is instance of the same class:
+     * We can get previous token from a proxied connection, and it can have a different type.
      */
     @Nullable
-    Role authenticate(Credentials credentials, ConnectionProperties connProperties);
+    default AuthToken renew(AuthToken token, Credentials credentials) {
+        return null;
+    }
 
     /**
      * @return unique name of the authentication method

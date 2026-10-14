@@ -26,8 +26,8 @@ import java.util.Locale;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
 
 public final class StringCaseFunction {
@@ -37,28 +37,26 @@ public final class StringCaseFunction {
             Signature.builder("upper", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.STRING,
-                    val -> val.toUpperCase(Locale.ENGLISH)
+                    (String val) -> val.toUpperCase(Locale.ENGLISH)
                 )
         );
         module.add(
             Signature.builder("lower", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.STRING,
-                    val -> val.toLowerCase(Locale.ENGLISH)
+                    (String val) -> val.toLowerCase(Locale.ENGLISH)
                 )
         );
 

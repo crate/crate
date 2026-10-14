@@ -30,6 +30,7 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.opendal.S3;
 import io.crate.types.DataTypes;
 
 class S3RepositorySettings {
@@ -140,7 +141,7 @@ class S3RepositorySettings {
      */
     static final Setting<String> ENDPOINT_SETTING = new Setting<>(
         "endpoint",
-        "s3.amazonaws.com",
+        S3.DEFAULT_ENDPOINT,
         s -> s.toLowerCase(Locale.ROOT),
         DataTypes.STRING,
         Setting.Property.NodeScope);

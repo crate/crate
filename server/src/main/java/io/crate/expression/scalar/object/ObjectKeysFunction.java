@@ -22,12 +22,13 @@
 package io.crate.expression.scalar.object;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
 
 public final class ObjectKeysFunction {
@@ -37,14 +38,13 @@ public final class ObjectKeysFunction {
             Signature.builder("object_keys", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.UNTYPED_OBJECT.getTypeSignature())
                 .returnType(DataTypes.STRING_ARRAY.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.UNTYPED_OBJECT,
-                    obj -> new ArrayList<>(obj.keySet())
+                    (Map<String, Object> obj) -> new ArrayList<>(obj.keySet())
                 )
         );
     }

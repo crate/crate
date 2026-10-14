@@ -45,6 +45,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Rename;
 import io.crate.planner.operators.Union;
@@ -124,7 +125,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(edge.left()).isEqualTo(x);
         assertThat(edge.right()).isEqualTo(y);
 
-        var reordered = EliminateCrossJoin.reorder(joinGraph, List.of(b, a));
+        var reordered = EliminateCrossJoin.rebuild(joinGraph, List.of(b, a));
         assertThat(reordered).hasOperators(
             "Join[INNER | (x = y)]",
             "  ├ Collect[doc.b | [y] | true]",
@@ -167,7 +168,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             new JoinGraph.Edge(c, y, z)
         );
 
-        var reordered = EliminateCrossJoin.reorder(joinGraph, List.of(c, b, a));
+        var reordered = EliminateCrossJoin.rebuild(joinGraph, List.of(c, b, a));
         assertThat(reordered).hasOperators(
             "Join[INNER | (x = y)]",
             "  ├ Join[INNER | (y = z)]",
@@ -176,7 +177,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.a | [x] | true]"
         );
 
-        var orderWithCrossJoin = EliminateCrossJoin.reorder(joinGraph, List.of(a, c, b));
+        var orderWithCrossJoin = EliminateCrossJoin.rebuild(joinGraph, List.of(a, c, b));
         assertThat(orderWithCrossJoin).hasOperators(
             "Join[INNER | ((x = y) AND (y = z))]",
             "  ├ Join[CROSS]",
@@ -209,7 +210,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
 
         JoinGraph joinGraph = JoinGraph.create(topJoin, UnaryOperator.identity());
 
-        assertThat(EliminateCrossJoin.reorder(joinGraph, List.of(a, c, b, d))).isEqualTo(
+        assertThat(EliminateCrossJoin.rebuild(joinGraph, List.of(a, c, b, d))).isEqualTo(
             "Join[INNER | (y = w)]\n" +
             "  ├ Join[INNER | (x = y)]\n" +
             "  │  ├ Join[INNER | (x = z)]\n" +
@@ -239,7 +240,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
 
         JoinGraph joinGraph = JoinGraph.create(filter, UnaryOperator.identity());
 
-        assertThat(EliminateCrossJoin.reorder(joinGraph, List.of(c, b, a))).hasOperators(
+        assertThat(EliminateCrossJoin.rebuild(joinGraph, List.of(c, b, a))).hasOperators(
             "Filter[(x > 1)]",
             "  └ Join[INNER | (x = y)]",
             "    ├ Join[INNER | (y = z)]",
@@ -252,7 +253,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
 
         joinGraph = JoinGraph.create(secondFilter, UnaryOperator.identity());
 
-        assertThat(EliminateCrossJoin.reorder(joinGraph, List.of(c, b, a))).hasOperators(
+        assertThat(EliminateCrossJoin.rebuild(joinGraph, List.of(c, b, a))).hasOperators(
             "Filter[(y < 10)]",
             "  └ Filter[(x > 1)]",
             "    └ Join[INNER | (x = y)]",
@@ -279,7 +280,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         var joinGraph = JoinGraph.create(join, UnaryOperator.identity());
         var originalOrder = joinGraph.nodes();
         assertThat(originalOrder).isEqualTo(List.of(a, b, c));
-        var newOrder = EliminateCrossJoin.eliminateCrossJoin(joinGraph);
+        var newOrder = EliminateCrossJoin.orderNodes(joinGraph);
         assertThat(newOrder).isEqualTo(List.of(a, c, b));
 
         var rule = new EliminateCrossJoin();
@@ -316,7 +317,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         );
 
         var joinGraph = JoinGraph.create(join, UnaryOperator.identity());
-        var newOrder = EliminateCrossJoin.eliminateCrossJoin(joinGraph);
+        var newOrder = EliminateCrossJoin.orderNodes(joinGraph);
         var originalOrder = joinGraph.nodes();
         assertThat(originalOrder).isEqualTo(newOrder);
 
@@ -339,6 +340,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
+    @Test
     public void test_do_not_reorder_with_outer_joins() throws Exception {
         var firstJoin = new JoinPlan(a, b, JoinType.CROSS, null);
         Symbol joinCondition = e.asSymbol("c.z = a.x AND c.z = b.y");
@@ -358,7 +360,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(match.isPresent()).isTrue();
         assertThat(match.value()).isEqualTo(join);
 
-        var result = rule.apply(match.value(),
+        LogicalPlan result = rule.apply(match.value(),
             match.captures(),
             e.ruleContext());
 
@@ -476,7 +478,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         JoinGraph joinGraph = JoinGraph.create(join, UnaryOperator.identity());
         assertThat(joinGraph.nodes()).containsExactly(order, b, c);
 
-        var reordered = EliminateCrossJoin.reorder(joinGraph, List.of(c, b, order));
+        var reordered = EliminateCrossJoin.rebuild(joinGraph, List.of(c, b, order));
         assertThat(reordered).hasOperators(
             "Join[INNER | (x = y)]",
             "  ├ Join[INNER | (y = z)]",
@@ -506,7 +508,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         JoinGraph joinGraph = JoinGraph.create(secondJoin, UnaryOperator.identity());
         assertThat(joinGraph.nodes()).containsExactly(union, c, d);
 
-        var reordered = EliminateCrossJoin.reorder(joinGraph, List.of(union, d, c));
+        var reordered = EliminateCrossJoin.rebuild(joinGraph, List.of(union, d, c));
         assertThat(reordered).hasOperators(
             "Join[INNER | (y = z)]",
             "  ├ Join[INNER | (x = w)]",
@@ -538,7 +540,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(joinGraph.filters()).hasSize(1);
         assertThat(joinGraph.filters().getFirst()).isEqualTo(e.asSymbol("a.x > 1"));
 
-        var reordered = EliminateCrossJoin.reorder(joinGraph, List.of(b, a));
+        var reordered = EliminateCrossJoin.rebuild(joinGraph, List.of(b, a));
         assertThat(reordered).hasOperators(
             "Filter[(x > 1)]",
             "  └ Join[INNER | (x = y)]",

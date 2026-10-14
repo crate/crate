@@ -24,6 +24,7 @@ package io.crate.planner.consumer;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -390,7 +391,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             "select id from users group by id having id > 0");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        Asserts.assertThat(collectPhase.where()).isSQL("(doc.users.id > 0::bigint)");
+        Asserts.assertThat(collectPhase.where()).isSQL("(doc.users.id > 0)");
         assertThat(collectPhase.projections()).satisfiesExactly(
             x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class)
         );

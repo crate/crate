@@ -47,93 +47,89 @@ import org.joda.time.chrono.ISOChronology;
 
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.sql.tree.Extract;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class ExtractFunctions {
 
     public static final String NAME_PREFIX = "extract_";
 
-    private record TsFieldWithDateTimeField(Extract.Field extractField, DateTimeField dtf) {}
-
-    private record IntervalFieldWithFunction(Extract.Field extractField, Function<Period, Integer> function) {}
-
     public static void register(Functions.Builder module) {
-
-        List<TsFieldWithDateTimeField> fieldsMapWithIntReturn = List.of(
-            new TsFieldWithDateTimeField(CENTURY, ISOChronology.getInstanceUTC().centuryOfEra()),
-            new TsFieldWithDateTimeField(YEAR, ISOChronology.getInstanceUTC().year()),
-            new TsFieldWithDateTimeField(QUARTER, Joda.QUARTER_OF_YEAR.getField(ISOChronology.getInstanceUTC())),
-            new TsFieldWithDateTimeField(MONTH, ISOChronology.getInstanceUTC().monthOfYear()),
-            new TsFieldWithDateTimeField(WEEK, ISOChronology.getInstanceUTC().weekOfWeekyear()),
-            new TsFieldWithDateTimeField(DAY, ISOChronology.getInstanceUTC().dayOfMonth()),
-            new TsFieldWithDateTimeField(DAY_OF_MONTH, ISOChronology.getInstanceUTC().dayOfMonth()),
-            new TsFieldWithDateTimeField(DAY_OF_WEEK, ISOChronology.getInstanceUTC().dayOfWeek()),
-            new TsFieldWithDateTimeField(DAY_OF_YEAR, ISOChronology.getInstanceUTC().dayOfYear()),
-            new TsFieldWithDateTimeField(HOUR, ISOChronology.getInstanceUTC().hourOfDay()),
-            new TsFieldWithDateTimeField(MINUTE, ISOChronology.getInstanceUTC().minuteOfHour()),
-            new TsFieldWithDateTimeField(SECOND, ISOChronology.getInstanceUTC().secondOfMinute())
-        );
-
+        ISOChronology utcChronology = ISOChronology.getInstanceUTC();
         for (var argType : List.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP)) {
-            for (var entry : fieldsMapWithIntReturn) {
-                final DateTimeField dtf = entry.dtf();
-                module.add(
-                    Signature.builder(functionNameFrom(entry.extractField()), FunctionType.SCALAR)
-                        .argumentTypes(argType.getTypeSignature())
-                        .returnType(DataTypes.INTEGER.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
-                        .build(),
-                    (signature, boundSignature) ->
-                        new UnaryScalar<Number, Long>(signature, boundSignature, argType, dtf::get)
-                );
-            }
+            regExtractFromTS(module, argType, CENTURY, utcChronology.centuryOfEra());
+            regExtractFromTS(module, argType, YEAR, utcChronology.year());
+            regExtractFromTS(module, argType, QUARTER, Joda.QUARTER_OF_YEAR.getField(utcChronology));
+            regExtractFromTS(module, argType, MONTH, utcChronology.monthOfYear());
+            regExtractFromTS(module, argType, WEEK, utcChronology.weekOfWeekyear());
+            regExtractFromTS(module, argType, DAY, utcChronology.dayOfMonth());
+            regExtractFromTS(module, argType, DAY_OF_MONTH, utcChronology.dayOfMonth());
+            regExtractFromTS(module, argType, DAY_OF_WEEK, utcChronology.dayOfWeek());
+            regExtractFromTS(module, argType, DAY_OF_YEAR, utcChronology.dayOfYear());
+            regExtractFromTS(module, argType, HOUR, utcChronology.hourOfDay());
+            regExtractFromTS(module, argType, MINUTE, utcChronology.minuteOfHour());
+            regExtractFromTS(module, argType, SECOND, utcChronology.secondOfMinute());
             // extract(epoch from ...) is different as is returns a `double precision`
             module.add(
                 Signature.builder(functionNameFrom(EPOCH), FunctionType.SCALAR)
                     .argumentTypes(argType.getTypeSignature())
                     .returnType(DataTypes.DOUBLE.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .build(),
                 (signature, boundSignature) ->
-                    new UnaryScalar<>(signature, boundSignature, argType, v -> (double) v / 1000)
+                    new UnaryScalar<>(signature, boundSignature, (Long v) -> (double) v / 1000)
             );
         }
 
         // Intervals
-        List<IntervalFieldWithFunction> intervalFieldsMapWithIntReturn = List.of(
-            new IntervalFieldWithFunction(YEAR, p -> p.get(DurationFieldType.years())),
-            new IntervalFieldWithFunction(QUARTER, p -> p.get(DurationFieldType.months()) / 4),
-            new IntervalFieldWithFunction(MONTH, p -> p.get(DurationFieldType.months())),
-            new IntervalFieldWithFunction(DAY, p -> p.get(DurationFieldType.days())),
-            new IntervalFieldWithFunction(HOUR, p -> p.get(DurationFieldType.hours())),
-            new IntervalFieldWithFunction(MINUTE, p -> p.get(DurationFieldType.minutes())),
-            new IntervalFieldWithFunction(SECOND, p -> p.get(DurationFieldType.seconds()))
-        );
-
-        for (var entry : intervalFieldsMapWithIntReturn) {
-            final Function<Period, Integer> function = entry.function();
-            module.add(
-                Signature.builder(functionNameFrom(entry.extractField()), FunctionType.SCALAR)
-                    .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
-                    .returnType(DataTypes.INTEGER.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
-                    .build(),
-                (signature, boundSignature) ->
-                    new UnaryScalar<Number, Period>(signature, boundSignature, DataTypes.INTERVAL, function::apply)
-            );
-        }
+        regExtractFromInterval(module, YEAR, p -> p.get(DurationFieldType.years()));
+        regExtractFromInterval(module, QUARTER, p -> p.get(DurationFieldType.months()) / 4);
+        regExtractFromInterval(module, MONTH, p -> p.get(DurationFieldType.months()));
+        regExtractFromInterval(module, DAY, p -> p.get(DurationFieldType.days()));
+        regExtractFromInterval(module, HOUR, p -> p.get(DurationFieldType.hours()));
+        regExtractFromInterval(module, MINUTE, p -> p.get(DurationFieldType.minutes()));
+        regExtractFromInterval(module, SECOND, p -> p.get(DurationFieldType.seconds()));
         // extract(epoch from ...) is different as is returns a `double precision`
         module.add(
             Signature.builder(functionNameFrom(EPOCH), FunctionType.SCALAR)
                 .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
-                new UnaryScalar<>(signature, boundSignature, DataTypes.INTERVAL, ExtractFunctions::toMillis)
+                new UnaryScalar<>(signature, boundSignature, ExtractFunctions::toMillis)
+        );
+    }
+
+    private static void regExtractFromTS(Functions.Builder builder,
+                                         DataType<Long> tzType,
+                                         Extract.Field field,
+                                         DateTimeField dtf) {
+        Function<Long, Integer> extract = x -> dtf.get(x);
+        builder.add(
+            Signature.builder(functionNameFrom(field), FunctionType.SCALAR)
+                .argumentTypes(tzType.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) -> new UnaryScalar<>(signature, boundSignature, extract)
+        );
+    }
+
+
+    private static void regExtractFromInterval(Functions.Builder builder,
+                                               Extract.Field field,
+                                               Function<Period, Integer> func) {
+        builder.add(
+            Signature.builder(functionNameFrom(field), FunctionType.SCALAR)
+                .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) -> new UnaryScalar<>(signature, boundSignature, func)
         );
     }
 

@@ -26,7 +26,6 @@ import java.util.function.Predicate;
 
 import org.elasticsearch.Version;
 
-import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.VoidReference;
@@ -34,26 +33,9 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.SysColumns;
-import io.crate.types.ArrayType;
-import io.crate.types.BitStringType;
-import io.crate.types.BooleanType;
-import io.crate.types.ByteType;
-import io.crate.types.CharacterType;
 import io.crate.types.DataType;
-import io.crate.types.DateType;
-import io.crate.types.DoubleType;
-import io.crate.types.FloatType;
-import io.crate.types.FloatVectorType;
-import io.crate.types.GeoPointType;
-import io.crate.types.IntegerType;
-import io.crate.types.IpType;
-import io.crate.types.LongType;
-import io.crate.types.NumericStorage;
-import io.crate.types.NumericType;
-import io.crate.types.ShortType;
+import io.crate.types.StorageSupport;
 import io.crate.types.StringType;
-import io.crate.types.TimestampType;
-import io.crate.types.UUIDType;
 
 public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 
@@ -132,7 +114,6 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
 
     public static LuceneCollectorExpression<?> typeSpecializedExpression(final Reference ref,
                                                                          Predicate<Reference> isParentRefIgnored) {
-        final String fqn = ref.storageIdent();
         // non-ignored dynamic references should have been resolved to void references by this point
         if (ref instanceof VoidReference) {
             return new LiteralValueExpression(null);
@@ -141,24 +122,8 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             return DocCollectorExpression.create(DocReferences.toDocLookup(ref), isParentRefIgnored);
         }
         DataType<?> valueType = ref.valueType();
-        return switch (valueType.id()) {
-            case BitStringType.ID -> new BitStringColumnReference(fqn, ((BitStringType) valueType).length());
-            case ByteType.ID -> new ByteColumnReference(fqn);
-            case ShortType.ID -> new ShortColumnReference(fqn);
-            case IpType.ID -> new IpColumnReference(fqn);
-            case StringType.ID, CharacterType.ID -> new StringColumnReference(fqn);
-            case DoubleType.ID -> new DoubleColumnReference(fqn);
-            case BooleanType.ID -> new BooleanColumnReference(fqn);
-            case FloatType.ID -> new FloatColumnReference(fqn);
-            case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ, DateType.ID -> new LongColumnReference(fqn);
-            case IntegerType.ID -> new IntegerColumnReference(fqn);
-            case GeoPointType.ID -> new GeoPointColumnReference(fqn);
-            case ArrayType.ID -> DocCollectorExpression.create(DocReferences.toDocLookup(ref), isParentRefIgnored);
-            case FloatVectorType.ID -> new FloatVectorColumnReference(fqn);
-            case NumericType.ID -> NumericStorage.getCollectorExpression(fqn, (NumericType) valueType);
-            case UUIDType.ID -> UUIDType.getCollectorExpression(fqn);
-            default -> throw new UnhandledServerException("Unsupported type: " + valueType.getName());
-        };
+        StorageSupport<?> storageSupport = valueType.storageSupportSafe();
+        return storageSupport.getLuceneExpression(ref, isParentRefIgnored);
     }
 
     static class LiteralValueExpression extends LuceneCollectorExpression<Object> {

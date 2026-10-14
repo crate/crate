@@ -28,10 +28,10 @@ import io.crate.data.Row;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.RowType;
 
@@ -47,7 +47,7 @@ public class EmptyRowTableFunction {
             Signature.builder(NAME, FunctionType.TABLE)
                 .argumentTypes()
                 .returnType(RowType.EMPTY.getTypeSignature())
-                .features(Scalar.Feature.NOTNULL, Scalar.Feature.DETERMINISTIC)
+                .features(Feature.NOTNULL, Feature.DETERMINISTIC)
                 .build(),
             EmptyRowTableFunctionImplementation::new
         );

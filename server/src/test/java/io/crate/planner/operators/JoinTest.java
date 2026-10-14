@@ -28,6 +28,7 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isInputColumn;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -601,7 +602,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "Rename[user_type, domain] AS doc.user_session_visitortype",
             "  └ Eval[CASE WHEN (event_time = first_event_time) THEN 'new_user' ELSE 'returning_user' END AS user_type, domain]",
             "    └ Fetch[event_time, domain, first_event_time]",
-            "      └ Limit[1::bigint;0]",
+            "      └ Limit[1;0]",
             "        └ Eval[_fetchid, first_event_time]",
             "          └ HashJoin[INNER | (user_id = user_id)]",
             "            ├ Rename[user_id, first_event_time] AS first_visit",
@@ -666,7 +667,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Eval[name AS usr]
-              └ Limit[10::bigint;0]
+              └ Limit[10;0]
                 └ NestedLoopJoin[CROSS]
                   ├ OrderBy[name ASC]
                   │  └ Collect[doc.users | [name] | true]
@@ -754,7 +755,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                   │    └ HashAggregate[max(ts)]
                   │      └ Collect[doc.metric_mini | [ts] | true]
                   └ Rename[ts_production] AS b
-                    └ Collect[doc.metric_mini | [ts_production] | ((ts_production AS start >= 1638316800000::bigint) AND (ts_production AS start <= 1638320399000::bigint))]
+                    └ Collect[doc.metric_mini | [ts_production] | ((ts_production AS start >= 1638316800000) AND (ts_production AS start <= 1638320399000))]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
 
@@ -908,7 +909,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                   └ Collect[doc.d | [] | true]
                 └ SubPlan
                   └ Eval[1]
-                    └ Limit[2::bigint;0::bigint]
+                    └ Limit[2;0]
                       └ Filter[(((x = 1) AND (x = 1)) AND (x = 1))]
                         └ TableFunction[empty_row | [] | true]
             """
@@ -1165,10 +1166,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             .hasMessageContaining("column z specified in USING clause does not exist in left table");
     }
 
-    /**
-     * Verifies a bug fix (and regression that was introduced with 5.2.4)
-     * See https://github.com/crate/crate/issues/13808
-     */
+    // Verifies a bug fix (and regression that was introduced with 5.2.4)
+    // See https://github.com/crate/crate/issues/13808
     @Test
     public void test_nested_joins_with_explicit_and_implicit_join_condition() throws Exception {
         var executor = SQLExecutor.of(clusterService)
@@ -1370,6 +1369,58 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "  │    │  └ Collect[doc.t3 | [c] | true]",
             "  │    └ Collect[doc.t5 | [e] | true]",
             "  └ Collect[doc.t6 | [f] | true]"
+        );
+    }
+
+    @Test
+    public void test_eliminate_cross_join() {
+        QueriedSelectRelation mss = e.analyze("SELECT x, y, z FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t1.x = t3.z AND t3.z = t2.y");
+        var plannerCtx = e.getPlannerContext();
+        var result = buildLogicalPlan(mss, plannerCtx);
+
+        assertThat(result).hasOperators(
+            "Eval[x, y, z]",
+            "  └ HashJoin[INNER | (y = z)]",
+            "    ├ HashJoin[INNER | (x = z)]",
+            "    │  ├ Collect[doc.t1 | [x] | true]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t2 | [y] | true]"
+        );
+    }
+
+    @Test
+    public void test_eliminate_cross_join_with_filter() {
+        QueriedSelectRelation mss = e.analyze("SELECT x, y, z FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t1.x = t3.z AND t3.z = t2.y WHERE t1.x > 1");
+        var plannerCtx = e.getPlannerContext();
+        var result = buildLogicalPlan(mss, plannerCtx);
+
+        assertThat(result).hasOperators(
+            "Eval[x, y, z]",
+            "  └ HashJoin[INNER | (y = z)]",
+            "    ├ HashJoin[INNER | (x = z)]",
+            "    │  ├ Collect[doc.t1 | [x] | (x > 1)]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t2 | [y] | true]"
+        );
+    }
+
+    @Test
+    public void test_cross_join_elimination_with_one_side_occuring_multiple_times_in_equi_join() throws Exception {
+        resetClusterService(); // drop existing tables
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table t1 (x int)")
+            .addTable("create table t2 (y int)")
+            .addTable("create table t3 (z int)");
+
+        LogicalPlan plan = e.logicalPlan(
+            "SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON (t1.x + t1.x) = t3.z AND t3.z = t2.y");
+        assertThat(plan).hasOperators(
+            "Eval[x, y, z]",
+            "  └ HashJoin[INNER | (y = z)]",
+            "    ├ HashJoin[INNER | (z = (x + x))]",
+            "    │  ├ Collect[doc.t1 | [x] | true]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t2 | [y] | true]"
         );
     }
 }

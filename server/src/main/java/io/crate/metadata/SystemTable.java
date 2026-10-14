@@ -49,6 +49,7 @@ import io.crate.expression.NestableInput;
 import io.crate.expression.reference.MapLookupByPathExpression;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.ColumnPolicy;
@@ -68,6 +69,7 @@ public final class SystemTable<T> implements TableInfo {
     private final Map<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns;
     private final Set<Operation> supportedOperations;
     private final RowGranularity rowGranularity;
+    private final int oid;
 
     /// @param columns top level and child columns ordered by position and name
     public SystemTable(RelationName name,
@@ -91,6 +93,12 @@ public final class SystemTable<T> implements TableInfo {
         this.expressions = expressions;
         this.primaryKeys = primaryKeys;
         this.dynamicColumns = dynamicColumns;
+        this.oid = OidHash.relationOid(this);
+    }
+
+    @Override
+    public int oid() {
+        return oid;
     }
 
     @Nullable

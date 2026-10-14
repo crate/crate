@@ -58,8 +58,8 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 
@@ -96,7 +96,7 @@ public class IntervalAggregationBenchmark {
                 Signature.builder(IntervalSumAggregation.NAME, FunctionType.AGGREGATE)
                         .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
                         .returnType(DataTypes.INTERVAL.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 List.of(DataTypes.INTERVAL),
                 DataTypes.INTERVAL
@@ -106,7 +106,7 @@ public class IntervalAggregationBenchmark {
                 Signature.builder(AverageAggregation.NAME, FunctionType.AGGREGATE)
                         .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
                         .returnType(DataTypes.INTERVAL.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 List.of(DataTypes.INTERVAL),
                 DataTypes.INTERVAL

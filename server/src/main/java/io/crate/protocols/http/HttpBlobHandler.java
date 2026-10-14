@@ -35,7 +35,6 @@ import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.jspecify.annotations.Nullable;
@@ -111,8 +110,8 @@ public class HttpBlobHandler extends HttpHandler<Object> {
     private String index;
     private String digest;
 
-    public HttpBlobHandler(BlobService blobService, Settings settings, Sessions sessions, Roles roles) {
-        super(settings, sessions, roles);
+    public HttpBlobHandler(BlobService blobService, Sessions sessions, Roles roles, HttpAuthenticator authenticator) {
+        super(sessions, roles, authenticator);
         this.blobService = blobService;
     }
 
@@ -150,7 +149,12 @@ public class HttpBlobHandler extends HttpHandler<Object> {
             }
 
             try {
+                Role authenticatedUser = authenticate(ctx, request);
+                if (authenticatedUser == null) {
+                    return;
+                }
                 session = ensureSession(
+                    authenticatedUser,
                     new ConnectionProperties(
                         null, // not used
                         Netty4HttpServerTransport.getRemoteAddress(ctx.channel()),
@@ -364,7 +368,7 @@ public class HttpBlobHandler extends HttpHandler<Object> {
                     return;
                 }
                 end = raf.length() - 1;
-                if (!matcher.group(2).equals("")) {
+                if (!matcher.group(2).isEmpty()) {
                     end = Long.parseLong(matcher.group(2));
                 }
             } catch (NumberFormatException ex) {

@@ -38,8 +38,8 @@ import io.crate.execution.engine.aggregation.sum.SumAggregation;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 
@@ -52,7 +52,7 @@ public class WindowFunctionSerializationTest {
                 Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
                         .argumentTypes(DataTypes.FLOAT.getTypeSignature())
                         .returnType(DataTypes.FLOAT.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 List.of(DataTypes.FLOAT),
                 DataTypes.FLOAT

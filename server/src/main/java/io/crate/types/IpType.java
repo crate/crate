@@ -26,6 +26,7 @@ import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.document.SortedSetDocValuesField;
@@ -36,11 +37,14 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkAddress;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.Streamer;
 import io.crate.common.collections.Lists;
 import io.crate.execution.dml.IpIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.IpColumnReference;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -122,6 +126,17 @@ public class IpType extends DataType<String> implements Streamer<String> {
                                                  Reference ref,
                                                  Function<ColumnIdent, Reference> getRef) {
             return new IpIndexer(ref);
+        }
+
+        @Override
+        public LuceneCollectorExpression<String> getLuceneExpression(Reference ref,
+                                                                     Predicate<Reference> isParentIgnored) {
+            return new IpColumnReference(ref.storageIdent());
+        }
+
+        @Override
+        public String decode(DataType<String> type, XContentParser parser) throws IOException {
+            return parser.text();
         }
     };
 

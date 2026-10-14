@@ -32,4 +32,7 @@ public class Constants {
     public static final String DEFAULT_MAPPING_TYPE = "default";
 
     public static final String DEFAULT_DATE_STYLE = "ISO";
+
+    // Aligned with Constants.DEFAULT_STREAM_WRITE_IN_BYTES in Azure SDK.
+    public static final int READ_WRITE_BLOB_BUFFER_SIZE = 4 * 1024 * 1024;
 }

@@ -120,7 +120,7 @@ public class ViewPlannerTest extends CrateDummyClusterServiceUnitTest {
             "Rename[new_name, ts, val] AS doc.v",
             "  └ Eval[name AS new_name, ts, val]",
             "    └ Fetch[ts, val, id, name, id]",
-            "      └ Limit[100::bigint;0]",
+            "      └ Limit[100;0]",
             "        └ OrderBy[ts ASC name AS new_name ASC]",
             "          └ HashJoin[INNER | (id = id)]",
             "            ├ Rename[x._fetchid, ts, id] AS x",

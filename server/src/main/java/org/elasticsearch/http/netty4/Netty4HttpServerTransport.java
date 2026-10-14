@@ -101,11 +101,11 @@ import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 
 import io.crate.auth.Authentication;
-import io.crate.auth.HttpAuthUpstreamHandler;
 import io.crate.auth.Protocol;
 import io.crate.blob.BlobService;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.netty.NettyBootstrap;
+import io.crate.protocols.http.HttpAuthenticator;
 import io.crate.protocols.http.HttpBlobHandler;
 import io.crate.protocols.http.MainAndStaticFileHandler;
 import io.crate.protocols.ssl.SslContextProvider;
@@ -598,12 +598,12 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             final HttpObjectAggregator aggregator = new HttpObjectAggregator(Math.toIntExact(transport.maxContentLength.getBytes()));
             aggregator.setMaxCumulationBufferComponents(transport.maxCompositeBufferComponents);
             pipeline.addLast("chunked", new ChunkedWriteHandler());
-            pipeline.addLast("auth_handler", new HttpAuthUpstreamHandler(settings, authentication, roles));
+            HttpAuthenticator authenticator = new HttpAuthenticator(settings, authentication, roles);
             pipeline.addLast("blob_handler", new HttpBlobHandler(
                 blobService,
-                settings,
                 sessions,
-                roles
+                roles,
+                authenticator
             ));
 
             pipeline.addLast("aggregator", aggregator);
@@ -611,15 +611,16 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
                 pipeline.addLast("encoder_compress", new HttpContentCompressor(transport.compressionLevel));
             }
             pipeline.addLast("sql_handler", new SqlHttpHandler(
-                settings,
                 sessions,
                 breakerService::getBreaker,
-                roles
+                roles,
+                authenticator
             ));
             pipeline.addLast("handler", new MainAndStaticFileHandler(
                 nodeName,
                 home,
-                nodeClient
+                nodeClient,
+                authenticator
             ));
             if (SETTING_CORS_ENABLED.get(transport.settings())) {
                 pipeline.addAfter("encoder", "cors", new Netty4CorsHandler(transport.getCorsConfig()));

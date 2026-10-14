@@ -28,6 +28,7 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -45,6 +46,8 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 import io.crate.Streamer;
 import io.crate.execution.dml.GeoPointIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.GeoPointColumnReference;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -76,6 +79,17 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
             // so when we're retrieving for display or exact comparisons, go to the stored
             // value
             return true;
+        }
+
+        @Override
+        public LuceneCollectorExpression<Point> getLuceneExpression(Reference ref,
+                                                                    Predicate<Reference> isParentIgnored) {
+            return new GeoPointColumnReference(ref.storageIdent());
+        }
+
+        @Override
+        public Point decode(DataType<Point> type, XContentParser parser) throws IOException {
+            return type.implicitCast(parser.list());
         }
     };
 

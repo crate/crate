@@ -47,9 +47,9 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.operation.aggregation.HyperLogLogDistinctAggregation.HllState;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
@@ -67,7 +67,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
                 Signature.builder(HyperLogLogDistinctAggregation.NAME, FunctionType.AGGREGATE)
                         .argumentTypes(argumentType.getTypeSignature())
                         .returnType(DataTypes.LONG.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 data,
                 List.of()
@@ -80,7 +80,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
                         .argumentTypes(argumentType.getTypeSignature(),
                                 DataTypes.INTEGER.getTypeSignature())
                         .returnType(DataTypes.LONG.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 data,
                 optionalParams
@@ -227,6 +227,9 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
         // ip type
         assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.IP).hash("127.0.0.1"))
             .isEqualTo(6044143379282500354L);
+
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.DATE).hash(DataTypes.DATE.implicitCast("2020-11-28")))
+            .isEqualTo(1653417147958603178L);
     }
 
     @Test

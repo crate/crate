@@ -51,7 +51,6 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.junit.Before;
@@ -66,6 +65,7 @@ import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dml.StringIndexer;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.engine.aggregation.AggregationContext;
+import io.crate.execution.engine.aggregation.GroupByMaps;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.execution.engine.aggregation.sum.SumAggregation;
 import io.crate.execution.engine.fetch.ReaderContext;
@@ -76,6 +76,7 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.ColumnIdent;
@@ -83,12 +84,14 @@ import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingHelpers;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTest {
@@ -126,9 +129,8 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
 
     private BatchIterator<Row> createBatchIterator(Runnable onNextReader) {
         return GroupByOptimizedIterator.getIterator(
-            BigArrays.NON_RECYCLING_INSTANCE,
             indexSearcher,
-            columnName,
+            List.of(columnName),
             aggregationContexts,
             List.of(new LuceneCollectorExpression<Object>() {
 
@@ -144,6 +146,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             }),
             Collections.singletonList(inExpr),
             RamAccounting.NO_ACCOUNTING,
+            GroupByMaps.accountForNewEntry(RamAccounting.NO_ACCOUNTING, List.of(DataTypes.STRING)),
             new OnHeapMemoryManager(usedBytes -> {}),
             Version.CURRENT,
             new InputRow(Collections.singletonList(inExpr)),
@@ -176,7 +179,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
                     indexSearcher.getQueryCachingPolicy(),
                     () -> {}
                 ),
-                "x"
+                List.of("x")
             )
         ).isTrue();
     }
@@ -204,7 +207,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
                     indexSearcher.getQueryCachingPolicy(),
                     () -> {}
                 ),
-                "x"
+                List.of("x")
             )
         ).isFalse();
     }
@@ -240,14 +243,13 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         var nodeCtx = createNodeContext();
         var referenceResolver = new LuceneReferenceResolver(PARTITION_NAME.values(), List.of(), List.of(), Version.CURRENT, (_) -> false);
 
-        var it = GroupByOptimizedIterator.tryOptimizeSingleStringKey(
+        var it = GroupByOptimizedIterator.tryOptimizeStringKeys(
             nodeCtx.functions(),
             referenceResolver,
             shard,
             mock(DocTableInfo.class),
             PARTITION_NAME.values(),
             new LuceneQueryBuilder(nodeCtx),
-            mock(BigArrays.class),
             nodeCtx,
             new DocInputFactory(nodeCtx, referenceResolver),
             collectPhase,
@@ -358,14 +360,13 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         var nodeCtx = createNodeContext();
 
         var referenceResolver = new LuceneReferenceResolver(PARTITION_NAME.values(), List.of(), List.of(), Version.CURRENT, (_) -> false);
-        var it = GroupByOptimizedIterator.tryOptimizeSingleStringKey(
+        var it = GroupByOptimizedIterator.tryOptimizeStringKeys(
             nodeCtx.functions(),
             referenceResolver,
             shard,
             mock(DocTableInfo.class),
             PARTITION_NAME.values(),
             new LuceneQueryBuilder(nodeCtx),
-            mock(BigArrays.class),
             nodeCtx,
             new DocInputFactory(nodeCtx, referenceResolver),
             collectPhase,
@@ -376,6 +377,73 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         collectTask.kill(JobKilledException.of(null));
         closeShard(shard);
     }
+
+    @Test
+    public void test_create_optimized_iterator_for_multiple_string_keys() throws Exception {
+        assertOptimizedIteratorForKeys(true, DataTypes.STRING, DataTypes.STRING);
+    }
+
+    @Test
+    public void test_no_optimized_iterator_if_a_key_is_not_a_string() throws Exception {
+        assertOptimizedIteratorForKeys(false, DataTypes.STRING, DataTypes.INTEGER);
+    }
+
+    private void assertOptimizedIteratorForKeys(boolean expectOptimized, DataType<?>... keyTypes) throws Exception {
+        List<Reference> refs = new ArrayList<>(keyTypes.length);
+        List<Symbol> keys = new ArrayList<>(keyTypes.length);
+        for (int i = 0; i < keyTypes.length; i++) {
+            refs.add(new SimpleReference(
+                new RelationName("doc", "test"),
+                ColumnIdent.of("x" + i),
+                RowGranularity.DOC,
+                keyTypes[i],
+                IndexType.PLAIN,
+                true,
+                true,
+                i,
+                111 + i,
+                false,
+                null
+            ));
+            keys.add(new InputColumn(i, keyTypes[i]));
+        }
+        GroupProjection groupProjection = new GroupProjection(
+            keys,
+            List.of(),
+            AggregateMode.ITER_PARTIAL,
+            RowGranularity.SHARD
+        );
+        IndexShard shard = newStartedPrimaryShard(TestingHelpers.createNodeContext(), refs, THREAD_POOL);
+        List<Symbol> toCollect = new ArrayList<>(refs);
+        var collectPhase = createCollectPhase(toCollect, List.of(groupProjection));
+        var collectTask = createCollectTask(shard, collectPhase, Version.CURRENT);
+        var nodeCtx = createNodeContext();
+        var referenceResolver = new LuceneReferenceResolver(PARTITION_NAME.values(), List.of(), List.of(), Version.CURRENT, (_) -> false);
+        try {
+            var it = GroupByOptimizedIterator.tryOptimizeStringKeys(
+                nodeCtx.functions(),
+                referenceResolver,
+                shard,
+                mock(DocTableInfo.class),
+                PARTITION_NAME.values(),
+                new LuceneQueryBuilder(nodeCtx),
+                nodeCtx,
+                new DocInputFactory(nodeCtx, referenceResolver),
+                collectPhase,
+                collectTask
+            );
+            if (expectOptimized) {
+                assertThat(it).isNotNull();
+            } else {
+                assertThat(it).isNull();
+            }
+        } finally {
+            collectTask.kill(JobKilledException.of(null));
+            closeShard(shard);
+        }
+    }
+
+
 
     @Test
     public void test_optimized_iterator_behaviour() throws Exception {
@@ -427,5 +495,61 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         pauseOnDocumentCollecting.countDown();
         batchLoadingCompleted.await(5, TimeUnit.SECONDS);
         return exception.get();
+    }
+
+    // Verifies the nested per-segment ordinal structure end to end: one group per distinct key combination
+    @Test
+    public void test_optimized_iterator_groups_by_multiple_string_keys() throws Exception {
+        IndexWriter iw = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
+        addTagAndCountry(iw, "foo", "AT");
+        addTagAndCountry(iw, "foo", "AT");
+        addTagAndCountry(iw, "foo", "DE");
+        addTagAndCountry(iw, "bar", "DE");
+        addTagAndCountry(iw, "bar", "DE");
+        addTagAndCountry(iw, "bar", null);
+        addTagAndCountry(iw, "bar", null);
+        addTagAndCountry(iw, null, null);
+        iw.commit();
+        IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(iw));
+
+        var tester = BatchIteratorTester.forRows(
+            () -> GroupByOptimizedIterator.getIterator(
+                searcher,
+                List.of("tag", "country"),
+                aggregationContexts,
+                List.of(),
+                Collections.singletonList(inExpr),
+                RamAccounting.NO_ACCOUNTING,
+                GroupByMaps.accountForNewEntry(
+                    RamAccounting.NO_ACCOUNTING,
+                    List.of(DataTypes.STRING, DataTypes.STRING)
+                ),
+                new OnHeapMemoryManager(usedBytes -> {}),
+                Version.CURRENT,
+                new InputRow(Collections.singletonList(inExpr)),
+                MatchAllDocsQuery.INSTANCE,
+                new CollectorContext(() -> null),
+                AggregateMode.ITER_FINAL
+            ),
+            ResultOrder.ANY
+        );
+        tester.verifyResultAndEdgeCaseBehaviour(List.of(
+            new Object[] { "bar", null, 2L },
+            new Object[] { "bar", "DE", 2L },
+            new Object[] { null, null, 1L },
+            new Object[] { "foo", "DE", 1L },
+            new Object[] { "foo", "AT", 2L }
+        ));
+    }
+
+    private static void addTagAndCountry(IndexWriter iw, String tag, String country) throws IOException {
+        Document doc = new Document();
+        if (tag != null) {
+            doc.add(new SortedSetDocValuesField("tag", new BytesRef(tag)));
+        }
+        if (country != null) {
+            doc.add(new SortedSetDocValuesField("country", new BytesRef(country)));
+        }
+        iw.addDocument(doc);
     }
 }

@@ -85,6 +85,14 @@ public class ScalarIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    public void testPgIsInRecovery() {
+        execute("select pg_is_in_recovery()");
+        assertThat(response)
+            .hasColumns("pg_is_in_recovery")
+            .hasRows("false");
+    }
+
+    @Test
     public void test_subscript_of_missing_column_when_object_type_cannot_be_inferred() {
         execute("CREATE TABLE tbl (obj OBJECT(IGNORED))");
         execute("INSERT INTO tbl VALUES ({arr = [{}]})");

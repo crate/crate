@@ -32,6 +32,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -49,6 +50,7 @@ import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.RowGenerator;
 import io.crate.data.testing.TestingBatchIterators;
+import io.crate.exceptions.JobKilledException;
 
 public class BatchPagingIteratorTest {
 
@@ -147,13 +149,41 @@ public class BatchPagingIteratorTest {
         assertThat(pagingIterator.finishedCalled).isTrue();
     }
 
+    @Test
+    public void test_pending_fetch_completing_right_after_kill_is_ignored() throws Exception {
+        AtomicBoolean closed = new AtomicBoolean(false);
+        TestPagingIterator pagingIterator = new TestPagingIterator();
+        CompletableFuture<List<KeyIterable<Integer, Row>>> fetch = new CompletableFuture<>();
+
+        BatchPagingIterator<Integer> iterator = new BatchPagingIterator<>(
+            pagingIterator,
+            _ -> fetch,
+            () -> false,
+            throwable -> closed.set(true)
+        );
+
+        iterator.loadNextBatch();
+        iterator.kill(JobKilledException.of("dummy"));
+
+        // Imitate that fetch completes right after kill and wins the race for currentPage future completion.
+        // currentPage.completeExceptionally is not done, so BatchPagingIterator.onNextPage gets ex = null.
+        fetch.complete(List.of(new KeyIterable<>(0, List.<Row>of())));
+
+        assertThat(pagingIterator.mergeCalled)
+            .as("merge() must not run for pages that arrive after BatchPagingIterator was closed")
+            .isFalse();
+    }
+
+
     private static class TestPagingIterator implements PagingIterator<Integer, Row> {
 
         boolean finishedCalled = false;
 
+        boolean mergeCalled = false;
+
         @Override
         public void merge(Iterable<? extends KeyIterable<Integer, Row>> keyIterables) {
-
+            mergeCalled = true;
         }
 
         @Override

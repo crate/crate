@@ -38,6 +38,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import org.apache.lucene.search.Query;
@@ -58,6 +59,7 @@ import io.crate.common.collections.Lists;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ObjectIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -112,6 +114,17 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
+        }
+
+        @Override
+        public LuceneCollectorExpression<Map<String, Object>> getLuceneExpression(Reference ref,
+                                                                                  Predicate<Reference> isParentIgnored) {
+            throw new AssertionError("ObjectType has no doc values. Must use DocCollectorExpression instead");
+        }
+
+        @Override
+        public Map<String, Object> decode(DataType<Map<String, Object>> type, XContentParser parser) throws IOException {
+            return parser.map();
         }
     };
 

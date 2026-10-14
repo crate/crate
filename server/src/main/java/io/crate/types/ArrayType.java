@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -55,9 +56,12 @@ import io.crate.common.collections.Lists;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ArrayIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.DocCollectorExpression;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationLookup;
 import io.crate.metadata.RelationName;
@@ -128,8 +132,7 @@ public class ArrayType<T> extends DataType<List<T>> {
                 @Override
                 public List<T> decode(ColumnIdent column, SourceParser sourceParser, Version tableVersion, byte[] bytes) {
                     try {
-                        var col = column.leafName();
-                        var map = sourceParser.parse(new BytesArray(bytes), Map.of(col, objectType.innerTypes()), false);
+                        var map = sourceParser.parse(new BytesArray(bytes), column, objectType);
                         if (map.isEmpty()) {
                             return List.of();
                         }
@@ -148,6 +151,20 @@ public class ArrayType<T> extends DataType<List<T>> {
                 @Override
                 public boolean retrieveFromStoredFields() {
                     return true;
+                }
+
+                @Override
+                public LuceneCollectorExpression<List<T>> getLuceneExpression(Reference ref,
+                                                                              Predicate<Reference> isParentIgnored) {
+                    return (LuceneCollectorExpression) DocCollectorExpression.create(
+                        DocReferences.toDocLookup(ref),
+                        isParentIgnored
+                    );
+                }
+
+                @Override
+                public List<T> decode(DataType<List<T>> type, XContentParser parser) throws IOException {
+                    throw new UnsupportedOperationException("Must not decode source value directly from ArrayType");
                 }
             };
         } else {
@@ -182,6 +199,20 @@ public class ArrayType<T> extends DataType<List<T>> {
                 @Override
                 public boolean retrieveFromStoredFields() {
                     return true;
+                }
+
+                @Override
+                public LuceneCollectorExpression<List<T>> getLuceneExpression(Reference ref,
+                                                                              Predicate<Reference> isParentIgnored) {
+                    return (LuceneCollectorExpression) DocCollectorExpression.create(
+                        DocReferences.toDocLookup(ref),
+                        isParentIgnored
+                    );
+                }
+
+                @Override
+                public List<T> decode(DataType<List<T>> type, XContentParser parser) throws IOException {
+                    throw new UnsupportedOperationException("Must not decode source value directly from ArrayType");
                 }
             };
         }

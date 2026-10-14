@@ -348,10 +348,9 @@ public class ExpressionAnalyzer {
             WindowFrame windowFrame = window.windowFrame().get();
             validateFrame(window, windowFrame);
             FrameBound start = windowFrame.getStart();
-            FrameBoundDefinition startBound = convertToAnalyzedFrameBound(context, start);
-
+            FrameBoundDefinition startBound = convertToAnalyzedFrameBound(context, windowFrame.mode(), start);
             FrameBoundDefinition endBound = windowFrame.getEnd()
-                .map(end -> convertToAnalyzedFrameBound(context, end))
+                .map(end -> convertToAnalyzedFrameBound(context, windowFrame.mode(), end))
                 .orElse(new FrameBoundDefinition(FrameBound.Type.CURRENT_ROW, Literal.NULL));
             windowFrameDefinition = new WindowFrameDefinition(windowFrame.mode(), startBound, endBound);
         }
@@ -418,10 +417,32 @@ public class ExpressionAnalyzer {
         });
     }
 
-    private FrameBoundDefinition convertToAnalyzedFrameBound(ExpressionAnalysisContext context, FrameBound frameBound) {
+    private FrameBoundDefinition convertToAnalyzedFrameBound(ExpressionAnalysisContext context,
+                                                             WindowFrame.Mode mode,
+                                                             FrameBound frameBound) {
         Expression offsetExpression = frameBound.getValue();
         Symbol offsetSymbol = offsetExpression == null ? Literal.NULL : convert(offsetExpression, context);
+        if (offsetExpression != null) {
+            validateFrameBoundOffset(mode, offsetSymbol);
+        }
         return new FrameBoundDefinition(frameBound.getType(), offsetSymbol);
+    }
+
+    private static void validateFrameBoundOffset(WindowFrame.Mode mode, Symbol offset) {
+        DataType<?> offsetType = offset.valueType();
+        if (offset instanceof Literal<?> literal) {
+            if (literal.value() == null) {
+                throw new IllegalArgumentException(
+                    "The offset of a `<offset> PRECEDING/FOLLOWING` frame bound must not be null");
+            }
+        }
+        if (mode == WindowFrame.Mode.ROWS
+            && offsetType.id() != UndefinedType.ID
+            && !DataTypes.isNumeric(offsetType)) {
+            throw new IllegalArgumentException(
+                "The offset of a `ROWS <offset> PRECEDING/FOLLOWING` frame bound must be of type bigint, not "
+                    + offsetType.getName());
+        }
     }
 
     /**

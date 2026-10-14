@@ -30,6 +30,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.role.Role;
 import io.crate.types.DataTypes;
@@ -42,7 +43,7 @@ public class PgGetUserByIdFunction extends Scalar<String, Integer> {
             Signature.builder(name, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             PgGetUserByIdFunction::new
         );

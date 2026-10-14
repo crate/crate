@@ -21,16 +21,8 @@
 
 package io.crate.protocols.http;
 
-import static io.crate.auth.AuthSettings.AUTH_HOST_BASED_JWT_ISS_SETTING;
-
-import java.util.function.Predicate;
-
-import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
 
-import io.crate.auth.AuthSettings;
-import io.crate.auth.Credentials;
-import io.crate.auth.HttpAuthUpstreamHandler;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
@@ -39,29 +31,25 @@ import io.crate.session.Session;
 import io.crate.session.Sessions;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpMessage;
+import io.netty.handler.codec.http.HttpRequest;
 
 public abstract class HttpHandler<T> extends SimpleChannelInboundHandler<T> {
 
     private static final String REQUEST_HEADER_SCHEMA = "Default-Schema";
 
-    private final Settings settings;
     private final Sessions sessions;
     private final Roles roles;
-    private final boolean checkJwtProperties;
+    private final HttpAuthenticator authenticator;
 
     @VisibleForTesting
     Session session;
 
-    public HttpHandler(Settings settings,
-                       Sessions sessions,
-                       Roles roles) {
+    public HttpHandler(Sessions sessions, Roles roles, HttpAuthenticator authenticator) {
         super(false);
-        this.settings = settings;
         this.sessions = sessions;
         this.roles = roles;
-        this.checkJwtProperties = settings.get(AUTH_HOST_BASED_JWT_ISS_SETTING.getKey()) == null;
+        this.authenticator = authenticator;
     }
 
     protected Roles roles() {
@@ -77,10 +65,18 @@ public abstract class HttpHandler<T> extends SimpleChannelInboundHandler<T> {
         super.channelUnregistered(ctx);
     }
 
+    /**
+     * On failure a {@code 401} has already been sent and {@code null} is returned;
+     * the caller must stop processing and release the request.
+     */
+    @Nullable
+    protected Role authenticate(ChannelHandlerContext ctx, HttpRequest request) {
+        return authenticator.authenticate(request, ctx.channel());
+    }
+
     @VisibleForTesting
-    public Session ensureSession(ConnectionProperties connectionProperties, HttpMessage request) {
+    public Session ensureSession(Role authenticatedUser, ConnectionProperties connectionProperties, HttpMessage request) {
         String defaultSchema = request.headers().get(REQUEST_HEADER_SCHEMA);
-        Role authenticatedUser = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
         Session session = this.session;
         if (session == null) {
             session = sessions.newSession(connectionProperties, defaultSchema, authenticatedUser);
@@ -90,30 +86,5 @@ public abstract class HttpHandler<T> extends SimpleChannelInboundHandler<T> {
         }
         this.session = session;
         return session;
-    }
-
-    /**
-     * Doesn't do authentication as it's already done
-     * in {@link HttpAuthUpstreamHandler} which is registered before this handler
-     * Checks user existence and if not possible to resolve from header (basic or jwt),
-     * returns trusted user from configuration.
-     */
-    @VisibleForTesting
-    public Role userFromAuthHeader(@Nullable String authHeaderValue) {
-        try (Credentials credentials = Headers.extractCredentialsFromHttpAuthHeader(authHeaderValue)) {
-            Predicate<Role> rolePredicate = credentials.matchByToken(checkJwtProperties);
-            if (rolePredicate != null) {
-                Role role = roles.findUser(rolePredicate);
-                if (role != null) {
-                    credentials.setUsername(role.name());
-                }
-            }
-            String username = credentials.username();
-            // Fallback to trusted user from configuration
-            if (username == null || username.isEmpty()) {
-                username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
-            }
-            return roles.findUser(username);
-        }
     }
 }

@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.apache.lucene.document.ShapeField;
 import org.apache.lucene.search.BooleanClause;
@@ -47,7 +48,6 @@ import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeQuery;
 import org.elasticsearch.Version;
 import org.junit.Test;
-import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -71,9 +71,6 @@ import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FloatVectorType;
-import io.crate.types.GeoPointType;
-import io.crate.types.GeoShapeType;
-import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
 
 public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
@@ -284,7 +281,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testAnyGreaterAndSmaller() throws Exception {
         Query ltQuery = convert("1.5 < any(d_array)");
-        assertThat(ltQuery).hasToString("d_array:[1.5000000000000002 TO Infinity]");
+        assertThat(ltQuery).hasToString("d_array:[1.5000000000000002 TO NaN]");
 
         // d < ANY ([1.2, 3.5])
         Query ltQuery2 = convert("d < any ([1.2, 3.5])");
@@ -292,7 +289,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
         // 1.5d <= ANY (d_array)
         Query lteQuery = convert("1.5 <= any(d_array)");
-        assertThat(lteQuery).hasToString("d_array:[1.5 TO Infinity]");
+        assertThat(lteQuery).hasToString("d_array:[1.5 TO NaN]");
 
         // d <= ANY ([1.2, 3.5])
         Query lteQuery2 = convert("d <= any([1.2, 3.5])");
@@ -305,7 +302,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         // d > ANY ([1.2, 3.5])
         Query gtQuery2 = convert("d > any ([1.2, 3.5])");
         assertThat(gtQuery2).hasToString(
-            "(d:[1.2000000000000002 TO Infinity] d:[3.5000000000000004 TO Infinity])~1");
+            "(d:[1.2000000000000002 TO NaN] d:[3.5000000000000004 TO NaN])~1");
 
         // 1.5d >= ANY (d_array)
         Query gteQuery = convert("1.5 >= any(d_array)");
@@ -313,7 +310,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
         // d >= ANY ([1.2, 3.5])
         Query gteQuery2 = convert("d >= any ([1.2, 3.5])");
-        assertThat(gteQuery2).hasToString("(d:[1.2 TO Infinity] d:[3.5 TO Infinity])~1");
+        assertThat(gteQuery2).hasToString("(d:[1.2 TO NaN] d:[3.5 TO NaN])~1");
     }
 
     @Test
@@ -487,19 +484,19 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testArrayAccessResultsInTermAndFunctionQuery() {
         assertThat(convert("ts_array[1] = 1129224512000")).hasToString(
             "+ts_array:[1129224512000 TO 1129224512000] " +
-            "#(ts_array[1] = 1129224512000::bigint)");
+            "#(ts_array[1] = 1129224512000)");
         assertThat(convert("ts_array[1] >= 1129224512000")).hasToString(
             "+ts_array:[1129224512000 TO 9223372036854775807] " +
-            "#(ts_array[1] >= 1129224512000::bigint)");
+            "#(ts_array[1] >= 1129224512000)");
         assertThat(convert("ts_array[1] > 1129224512000")).hasToString(
             "+ts_array:[1129224512001 TO 9223372036854775807] " +
-            "#(ts_array[1] > 1129224512000::bigint)");
+            "#(ts_array[1] > 1129224512000)");
         assertThat(convert("ts_array[1] <= 1129224512000")).hasToString(
             "+ts_array:[-9223372036854775808 TO 1129224512000] " +
-            "#(ts_array[1] <= 1129224512000::bigint)");
+            "#(ts_array[1] <= 1129224512000)");
         assertThat(convert("ts_array[1] < 1129224512000")).hasToString(
             "+ts_array:[-9223372036854775808 TO 1129224511999] " +
-            "#(ts_array[1] < 1129224512000::bigint)");
+            "#(ts_array[1] < 1129224512000)");
     }
 
     @Test
@@ -999,19 +996,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
                 builder.indexValue("a", listOfVal1AndNull);
                 builder.indexValue("a", listOfVal2AndNull);
 
-                String val1Str = Literal.ofUnchecked(type, val1).toString();
-                if (type.id() == GeoPointType.ID) {
-                    PointImpl p = (PointImpl) val1;
-                    val1Str = "[" + p.getX() + "," + p.getY() + "]";
-                } else if (type.id() == GeoShapeType.ID) {
-                    // DataTypeTesting.getDataGenerator generates points only
-                    List<Double> c = (List<Double>) ((Map<String, Object>) val1).get("coordinates");
-                    val1Str = String.format("'POINT (%s %s)'", c.get(0), c.get(1));
-                } else if (type.id() == NumericType.ID) {
-                    // TODO: quoting the numeric literals to preserve precision then correctly match - https://github.com/crate/crate/issues/18220
-                    val1Str = "'" + val1 + "'";
-                }
-                assertThat(tester.runQuery("a", String.format("%s = all(a)", val1Str)))
+                assertThat(tester.runQuery("a", "? = all(a)", val1))
                     .containsExactly(List.of(val1), List.of(val1, val1), List.of());
             }
         }
@@ -1054,12 +1039,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
                 builder.indexValue("a", listOfVal1AndNull);
                 builder.indexValue("a", listOfVal2AndNull);
 
-                String val1Str = Literal.ofUnchecked(type, val1).toString();
-                if (type.id() == NumericType.ID) {
-                    // TODO: quoting the numeric literals to preserve precision then correctly match - https://github.com/crate/crate/issues/18220
-                    val1Str = "'" + val1 + "'";
-                }
-                assertThat(tester.runQuery("a", String.format("%s = all(a)", val1Str)))
+                assertThat(tester.runQuery("a", "? = all(a)", val1))
                     .containsExactly(List.of(val1), List.of(val1, val1), List.of());
             }
         }
@@ -1130,6 +1110,40 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
             assertThat(tester.runQuery("a", "a = 'a    '")).containsExactly("a  ");
             assertThat(tester.runQuery("a", "a = '     '")).containsExactly("   ", "   ");
             assertThat(tester.runQuery("a", "a = e'\na'")).containsExactly("\na ");
+        }
+    }
+
+    @Test
+    public void test_any_is_value_order_independent() throws Exception {
+        for (DataType<?> type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
+            if (type.equals(DataTypes.GEO_POINT) || type.id() == ObjectType.ID) {
+                // - point doc-value storage changes/looses precision and would fail the assertion
+                // - object type is inner type dependent
+                continue;
+            }
+            assert_any_is_value_order_independent(type);
+        }
+    }
+
+    private <T> void assert_any_is_value_order_independent(DataType<T> type) throws Exception {
+        Supplier<T> dataGenerator = DataTypeTesting.getDataGenerator(type);
+        T val1 = dataGenerator.get();
+        T val2 = dataGenerator.get();
+        String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (x " + typeDefinition + ")");
+
+        builder.indexValues("x", val1);
+        builder.indexValues("x", val2);
+        try (QueryTester tester = builder.build()) {
+            assertThat(tester.runQuery("x", "x = any([?, ?])", val1, val2))
+                .containsExactlyInAnyOrder(val1, val2);
+
+            assertThat(tester.runQuery("x", "x = any([?, ?])", val2, val1))
+                .containsExactlyInAnyOrder(val1, val2);
         }
     }
 }

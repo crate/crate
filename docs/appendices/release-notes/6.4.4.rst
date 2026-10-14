@@ -110,7 +110,6 @@ Fixes
     FROM t q;
 
   In this example, the ``q.flag`` filter was dropped.
-  :ref:`array_agg() <aggregation-array-agg>` aggregation function.
 
 - Fixed an issue that caused wrong results when
   :ref:`array_agg() <aggregation-array-agg>` aggregation function was used with

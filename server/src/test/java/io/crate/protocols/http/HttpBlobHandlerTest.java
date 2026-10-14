@@ -39,6 +39,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
 
+import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.blob.BlobContainer;
 import io.crate.blob.BlobService;
 import io.crate.blob.RemoteDigestBlob;
@@ -47,6 +48,7 @@ import io.crate.blob.v2.BlobShard;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.crate.session.Session;
 import io.crate.session.Sessions;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -65,6 +67,7 @@ public class HttpBlobHandlerTest extends CrateDummyClusterServiceUnitTest {
 
     private static final String VALID_DIGEST = "a".repeat(40);
     private static final String BLOB_URI = "/_blobs/mytable/" + VALID_DIGEST;
+    private static final Roles ROLES = () -> List.of(Role.CRATE_USER);
 
     // An instance for cases where it returns some data and doesn't throw.
     private final BlobService blobService = mock(BlobService.class);
@@ -332,19 +335,18 @@ public class HttpBlobHandlerTest extends CrateDummyClusterServiceUnitTest {
 
         return new EmbeddedChannel(new HttpBlobHandler(
             blobService,
-            Settings.EMPTY,
             mockedSessions,
-            () -> List.of(Role.CRATE_USER)
+            ROLES,
+            new HttpAuthenticator(Settings.EMPTY, new AlwaysOKAuthentication(ROLES), ROLES)
         ));
     }
 
     private EmbeddedChannel createEmbeddedChannel(BlobService blobService, Sessions sessions) {
         return new EmbeddedChannel(new HttpBlobHandler(
             blobService,
-            Settings.EMPTY,
             sessions,
-            () -> List.of(Role.CRATE_USER)
+            ROLES,
+            new HttpAuthenticator(Settings.EMPTY, new AlwaysOKAuthentication(ROLES), ROLES)
         ));
-
     }
 }

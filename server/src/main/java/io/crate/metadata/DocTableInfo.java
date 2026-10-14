@@ -315,17 +315,7 @@ public final class DocTableInfo implements TableInfo, ShardedTable, StoredTable 
 
     @Nullable
     public Reference getReference(long oid) {
-        for (var ref : allColumns.values()) {
-            if (ref.oid() == oid) {
-                return ref;
-            }
-        }
-        for (var ref: indexColumns.values()) {
-            if (ref.oid() == oid) {
-                return ref;
-            }
-        }
-        return null;
+        return oid == OID_UNASSIGNED ? null : leafByOid.get(Long.toString(oid));
     }
 
     @Nullable

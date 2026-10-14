@@ -24,8 +24,8 @@ package io.crate.expression.scalar.geo;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
 
 public final class CoordinateFunction {
@@ -35,13 +35,12 @@ public final class CoordinateFunction {
             Signature.builder("latitude", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.GEO_POINT.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.GEO_POINT,
                     CoordinateFunction::getLatitude
                 )
         );
@@ -49,13 +48,12 @@ public final class CoordinateFunction {
             Signature.builder("longitude", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.GEO_POINT.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.GEO_POINT,
                     CoordinateFunction::getLongitude
                 )
         );

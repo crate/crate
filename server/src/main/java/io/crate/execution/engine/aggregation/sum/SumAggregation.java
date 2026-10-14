@@ -51,9 +51,9 @@ import io.crate.metadata.FunctionProvider.FunctionFactory;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -79,7 +79,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
                 Signature.builder(NAME, FunctionType.AGGREGATE)
                         .argumentTypes(DataTypes.FLOAT.getTypeSignature())
                         .returnType(DataTypes.FLOAT.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 getSumAggregationForFloatFactory()
         );
@@ -87,7 +87,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
                 Signature.builder(NAME, FunctionType.AGGREGATE)
                         .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
                         .returnType(DataTypes.DOUBLE.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 getSumAggregationForDoubleFactory()
         );
@@ -97,7 +97,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
                     Signature.builder(NAME, FunctionType.AGGREGATE)
                             .argumentTypes(supportedType.getTypeSignature())
                             .returnType(DataTypes.LONG.getTypeSignature())
-                            .features(Scalar.Feature.DETERMINISTIC)
+                            .features(Feature.DETERMINISTIC)
                             .build(),
                     (signature, boundSignature) ->
                             new SumAggregation<>(DataTypes.LONG, add, sub, signature, boundSignature)

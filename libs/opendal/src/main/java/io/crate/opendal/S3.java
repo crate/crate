@@ -38,6 +38,7 @@ import org.jspecify.annotations.Nullable;
 
 public final class S3 {
 
+    public static final String DEFAULT_ENDPOINT = "s3.amazonaws.com";
     private static final Logger LOGGER = LogManager.getLogger(S3.class);
     private static final String DEFAULT_REGION = "us-east-1";
     private static final Pattern AWS_ENDPOINT = Pattern.compile("https://s3\\.(.*)\\.amazonaws\\.com");

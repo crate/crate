@@ -786,6 +786,14 @@ attribute awareness*.
 
   The ``awareness.attributes`` setting supports using several values.
 
+  Awareness is best effort mechanism: if no node with an unused attribute value
+  is available, CrateDB still allocates the copy to a node with an already used
+  value. Use :ref:`cluster.routing.allocation.awareness.force.\*.values` to
+  enforce the separation.
+
+  Awareness attributes also affect reads: a node prefers shards on nodes that
+  share its own attribute values, which reduces traffic between zones.
+
 .. _cluster.routing.allocation.awareness.force.\*.values:
 
 **cluster.routing.allocation.awareness.force.\*.values**
@@ -803,6 +811,9 @@ attribute awareness*.
   will be allocated (with no replicas). The replicas will only be allocated
   when we start one or more nodes with ``node.attr.zone`` set to
   ``zone2``.
+
+  If no node with a given value is available, the affected copies stay
+  unassigned and the table remains ``YELLOW`` until such a node joins.
 
 
 .. _conf-routing-allocation-filtering:

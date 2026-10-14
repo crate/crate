@@ -1,16 +1,10 @@
 .. _version_6.4.5:
 
-==========================
-Version 6.4.5 - Unreleased
-==========================
+=============
+Version 6.4.5
+=============
 
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-.. NOTE::
-
-    In development. 6.4.5 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2026-09-16.
 
 .. NOTE::
 
@@ -46,6 +40,26 @@ series.
 Fixes
 =====
 
+- HTTP clients sending an invalid JWT token in the Authentication header now
+  receive a ``401`` error instead of ``500``.
+
+- Fixed an issue that could cause statements including a cross join with two
+  other relations to apply an incorrect filter if one of the join conditions
+  included an equijoin where one relation appeared multiple times on one side of
+  the equal condition. An example query::
+
+      SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON (t1.x + t1.x) = t3.z AND t3.z = t2.y
+
+- Fixed an issue that could cause statements including a cross join and an outer
+  join plus any other join to drop the outer join condition, leading to
+  incorrect results.
+
+- Fixed an issue that caused casting string values to a longer ``bit`` string to
+  fail with an ``StringIndexOutOfBoundsException`` instead of filling up the gap
+  with ``0``.
+
+- Fixed an issue that caused casting ``null`` to the ``bit`` type to fail.
+
 - Fixed an issue that caused CrateDB to choose the wrong relation if a parent
   relation alias clashed with a local scoped relation name.
 
@@ -57,3 +71,34 @@ Fixes
 
 - Fixed an issue causing cache to retain some heavy structures, potentially
   leading to an ``OutOfMemoryError``.
+
+- Fixed an issue where a select statement containing a correlated subquery and
+  a group by would lose the subquery and result in an error, e.g.::
+
+    SELECT o.c1,
+       (SELECT i.c1
+        FROM source_symbols_t AS i
+        WHERE i.c1 > o.c1
+        ORDER BY i.c1
+        LIMIT 1) AS next_c1
+    FROM source_symbols_t AS o
+    GROUP BY o.c1
+    ORDER BY o.c1;
+
+    > Couldn't create execution plan from logical plan because of:
+    Couldn't find (SELECT c1 FROM (i)) in SourceSymbols
+
+- Fixed performance regression introduced in :ref:`version_6.3.0` that caused
+  ``CREATE SNAPSHOT`` to run slower if repository was created with
+  :ref:`Azure storage <sql-create-repo-azure>`.
+
+- Fixed an issue that could cause an error message to reference a wrong relation
+  if a column used in a query could not be resolved and multiple relations are
+  involved. This could also lead to privileges being checked on the wrong
+  relation while generating the error.
+
+- Fixed a regression introduced in :ref:`version_6.4.0` which caused a join,
+  executed with the hash join implementation, to not match rows when the join
+  condition used :ref:`CHAR(n) <data-type-character>` join keys of different
+  length but same value, because of the blank padding, which is applied to match
+  the defined ``n`` length.

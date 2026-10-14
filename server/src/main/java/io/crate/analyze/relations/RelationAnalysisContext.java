@@ -37,6 +37,7 @@ public class RelationAnalysisContext {
     // keep order of sources.
     //  e.g. something like:  select * from t1, t2 must not become select t2.*, t1.*
     private final Map<RelationName, AnalyzedRelation> sources = new LinkedHashMap<>();
+    private final Map<RelationName, AnalyzedRelation> withQueries = new LinkedHashMap<>();
 
     RelationAnalysisContext(boolean aliasedRelation,
                             ParentRelations parents,
@@ -54,10 +55,22 @@ public class RelationAnalysisContext {
         return sources;
     }
 
+    public Map<RelationName, AnalyzedRelation> withQueries() {
+        return withQueries;
+    }
+
     void addSourceRelation(AnalyzedRelation relation) {
         RelationName relationName = relation.relationName();
         if (sources.put(relationName, relation) != null) {
             String errorMessage = String.format(Locale.ENGLISH, "\"%s\" specified more than once in the FROM clause", relationName);
+            throw new IllegalArgumentException(errorMessage);
+        }
+    }
+
+    void addWithRelation(AnalyzedRelation relation) {
+        RelationName relationName = relation.relationName();
+        if (withQueries.put(relationName, relation) != null) {
+            String errorMessage = String.format(Locale.ENGLISH, "WITH query name \"%s\" specified more than once", relationName);
             throw new IllegalArgumentException(errorMessage);
         }
     }

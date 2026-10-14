@@ -34,6 +34,7 @@ import static io.crate.testing.Asserts.isScopedSymbol;
 import static io.crate.testing.Asserts.toCondition;
 import static io.crate.types.ArrayType.makeArray;
 import static org.assertj.core.api.Assertions.anyOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -61,6 +62,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LteOperator;
 import io.crate.expression.operator.OrOperator;
@@ -558,7 +560,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         QueriedSelectRelation relation = executor.analyze("select distinct id + 1 from users");
         assertThat(relation.isDistinct()).isTrue();
-        assertList(relation.outputs()).isSQL("(doc.users.id + 1::bigint)");
+        assertList(relation.outputs()).isSQL("(doc.users.id + 1)");
     }
 
     @Test
@@ -1505,6 +1507,17 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .hasMessage("System column '_score' can only be used within a '>=' comparison without any surrounded predicate");
     }
 
+    // The double negation is normalized away before the where clause is validated, so `_score` is no
+    // longer below a `not`. A single `not` is still rejected above.
+    @Test
+    public void test_score_reference_below_double_negation_is_allowed() throws Exception {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
+        QueriedSelectRelation relation = executor.analyze(
+            "select * from users where not not \"_score\" >= 0.9");
+        assertThat(relation.where()).isFunction(GteOperator.NAME);
+    }
+
     @Test
     public void testScoreReferenceInvalidLikePredicate() throws Exception {
         var executor = SQLExecutor.of(clusterService)
@@ -1583,7 +1596,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         assertThatThrownBy(() -> executor.analyze("select tags[-2147483649] from users"))
             .isExactlyInstanceOf(ConversionException.class)
-            .hasMessage("Cannot cast `-2147483649::bigint` of type `bigint` to type `integer`");
+            .hasMessage("Cannot cast `-2147483649` of type `bigint` to type `integer`");
     }
 
     @Test
@@ -1592,7 +1605,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         assertThatThrownBy(() -> executor.analyze("select tags[2147483648] from users"))
             .isExactlyInstanceOf(ConversionException.class)
-            .hasMessage("Cannot cast `2147483648::bigint` of type `bigint` to type `integer`");
+            .hasMessage("Cannot cast `2147483648` of type `bigint` to type `integer`");
     }
 
     @Test

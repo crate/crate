@@ -60,9 +60,11 @@ public class ProfilingContext {
         HashMap<String, Object> builder = new HashMap<>(durationInMSByTimer);
         ArrayList<Map<String, Object>> queryTimings = new ArrayList<>();
         for (var entry : profilers.entrySet()) {
+            ShardId shardId = entry.getKey();
+            PartitionName partitionName = currentState.metadata().getPartitionName(shardId.getIndexUUID());
             var profiler = entry.getValue();
             for (var profileResult : profiler.getTree()) {
-                queryTimings.add(resultAsMap(entry.getKey(), profileResult, currentState));
+                queryTimings.add(resultAsMap(shardId, profileResult, partitionName));
             }
         }
         if (!queryTimings.isEmpty()) {
@@ -71,9 +73,10 @@ public class ProfilingContext {
         return Collections.unmodifiableMap(builder);
     }
 
-    private static Map<String, Object> resultAsMap(ShardId shardId, ProfileResult profileResult, ClusterState currentState) {
+    private static Map<String, Object> resultAsMap(ShardId shardId,
+                                                   ProfileResult profileResult,
+                                                   PartitionName partitionName) {
         TreeMap<String, Object> queryTimingsBuilder = new TreeMap<>();
-        PartitionName partitionName = currentState.metadata().getPartitionName(shardId.getIndexUUID());
         queryTimingsBuilder.put("SchemaName", partitionName.relationName().schema());
         queryTimingsBuilder.put("TableName", partitionName.relationName().name());
         if (partitionName.values().isEmpty() == false) {
@@ -92,7 +95,7 @@ public class ProfilingContext {
             ))
         );
         List<Map<String, Object>> children = profileResult.getProfiledChildren().stream()
-            .map((ProfileResult pr) -> resultAsMap(shardId, pr, currentState))
+            .map((ProfileResult pr) -> resultAsMap(shardId, pr, partitionName))
             .collect(Collectors.toList());
         if (!children.isEmpty()) {
             queryTimingsBuilder.put("Children", children);

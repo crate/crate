@@ -281,10 +281,10 @@ public class PostgresWireProtocol {
     }
 
     private static class ReadyForQueryCallback implements BiConsumer<Object, Throwable> {
-        private final Channel channel;
+        private final DelayableWriteChannel channel;
         private final TransactionState transactionState;
 
-        private ReadyForQueryCallback(Channel channel, TransactionState transactionState) {
+        private ReadyForQueryCallback(DelayableWriteChannel channel, TransactionState transactionState) {
             this.channel = channel;
             this.transactionState = transactionState;
         }
@@ -803,8 +803,25 @@ public class PostgresWireProtocol {
             return;
         }
         try {
-            ReadyForQueryCallback readyForQueryCallback = new ReadyForQueryCallback(channel, session.transactionState());
-            session.sync(false).whenComplete(readyForQueryCallback);
+            session.sync(false);
+
+            // The readyForQuery msg must only be sent _after_ an operation
+            // started in a prior E(execute) msg is completed.
+            //
+            // We ensure this via the DelayWritableChannel mechanism
+            // (The ResultReceiver triggers the delayed writes after its
+            // commandComplete/errorResponse).
+            //
+            // This ensures the readyForQuery message is in the correct order
+            // if the sync is immediately followed by more messages like Parse
+            // or Bind which would have a synchronous response too. Examples:
+            //
+            // P (insert) D S -> B E S -> P (select) D S
+            //
+            // Or
+            //
+            // P (insert) B D E S -> P (select) B D E S -> S
+            sendReadyForQuery(channel, session.transactionState());
         } catch (Throwable t) {
             channel.discardDelayedWrites();
             Messages.sendErrorResponse(channel, getAccessControl.apply(session.sessionSettings()), t);

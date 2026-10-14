@@ -1,16 +1,10 @@
 .. _version_6.5.0:
 
-==========================
-Version 6.5.0 - Unreleased
-==========================
+=============
+Version 6.5.0
+=============
 
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-.. NOTE::
-
-    In development. 6.5.0 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2026-10-13.
 
 .. NOTE::
 
@@ -125,7 +119,10 @@ SQL Statements
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
-None
+- `Manish Singh <https://github.com/manish9363>`_ added the
+  ``pg_is_in_recovery()`` scalar function for improved compatibility with
+  PostgreSQL tools. It returns ``true`` when the cluster health is ``RED``
+  and ``false`` otherwise.
 
 Data Types
 ----------
@@ -138,10 +135,18 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
-None
+- `Gaurav K Ohri <https://github.com/gohri81-tech>`_ added support for the
+  :ref:`regexp_match <scalar-regexp_match>` scalar.
 
 Performance and Resilience Improvements
 ---------------------------------------
+
+- `Dhruv Patel <https://github.com/DHRUV6029>`_ improved query planning by
+  normalizing a double negation to the predicate it negates, so that
+  ``NOT NOT <predicate>`` is now optimized the same way as ``<predicate>``.
+  Previously the redundant negation made the predicate opaque to the optimizer.
+  For example, in ``WHERE NOT NOT (a = 1 AND b = 2)`` the ``AND`` was no longer
+  visible, so neither part could be pushed down to the relation it belongs to.
 
 - Re-added the change to :ref:`swapping <alter_cluster_swap_table>` and
   :ref:`renaming <sql-alter-table-rename-to>` of tables to no longer re-allocate
@@ -153,9 +158,11 @@ Performance and Resilience Improvements
 - `Bing O'Dowd <https://github.com/bodowd>`_ improved query planning by
   deduplicating identical join conditions joined by the ``AND`` operator.
 
-- Improved the performance of ``GROUP BY`` queries on a single ``STRING`` column
+- Improved the performance of ``GROUP BY`` queries on ``STRING`` columns
   with doc values enabled: aggregation values are now read directly from doc
-  values where possible.
+  values where possible. Benchmarks showed a performance increase that can
+  exceed 100%, but this depends on the number of such columns in the
+  ``GROUP BY`` clause and by their combined cardinality in the table.
 
 - `Somil Jain <https://github.com/somiljain2006>`_ improved metadata query
   performance by caching analyzed ``ViewInfo`` instances, reducing repeated
@@ -181,15 +188,35 @@ Performance and Resilience Improvements
   target relation name points to a different table while the statement is being
   executed.
 
-- Added an optimization for ``count(DISTINCT col)`` and ``avg(DISTINCT col)``
-  queries without a ``GROUP BY``. Such a query is now rewritten to group by
-  ``col``, so that it is executed like::
+- Added an optimization for ``count(DISTINCT col)`` queries without a
+  ``GROUP BY``, where ``col`` is a string column. Such a query is now rewritten
+  to group by ``col``, so that it is executed like::
 
       SELECT count(col) FROM (SELECT col FROM tbl GROUP BY col) tmp
 
   In our benchmarks this improvement made certain queries up to 21x
-  faster. The amount of improvement you'll see depends on the data type
-  and cardinality.
+  faster. The amount of improvement you'll see depends on the column's
+  cardinality.
+
+  If multiple such aggregates reference different columns, each one is
+  deduplicated on its own, e.g.::
+
+      SELECT count(DISTINCT "cCode"), count(DISTINCT "sourceIP")
+      FROM uservisits
+
+  is executed like::
+
+      SELECT a.c, b.c
+      FROM (SELECT count("cCode")   AS c
+            FROM (SELECT "cCode"   FROM uservisits GROUP BY "cCode")   d1) a
+      CROSS JOIN
+           (SELECT count("sourceIP") AS c
+            FROM (SELECT "sourceIP" FROM uservisits GROUP BY "sourceIP") d2) b
+
+  Our benchmarks have shown a decrease of 36% in query time for a mix of
+  low-cardinality and high-cardinality columns. The rule currently applies
+  based on table size (up to 6.6 million rows) rather than column
+  cardinality.
 
 - `Somil Jain <https://github.com/somiljain2006>`_ added support for collecting
   table-level statistics for foreign tables during ``ANALYZE``, enabling the
@@ -200,16 +227,6 @@ Performance and Resilience Improvements
   (e.g. ``SELECT text_column from tbl GROUP BY text_column``) by utilizing
   Lucene's term dictionary. Such queries now take 41% less time to complete in
   our benchmark for high-cardinality columns.
-
-- Improved the performance of ``GROUP BY`` queries where the grouping key is a
-  numeric column by taking advantage of Lucene's BKD trees. The speed up depends
-  on a number of factors, such as a column's cardinality ratio, but can range
-  from 20% up to two orders of magnitude.
-
-- `Somil Jain <https://github.com/somiljain2006>`_ improved query planning for
-  ``RIGHT JOIN`` queries by pushing null-rejecting ``WHERE`` predicates
-  referencing columns from the non-preserved side closer to their source
-  tables.
 
 Administration and Operations
 -----------------------------

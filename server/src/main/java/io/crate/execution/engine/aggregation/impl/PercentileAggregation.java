@@ -39,16 +39,16 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionProvider.FunctionFactory;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntervalType;
 import io.crate.types.TypeSignature;
 
-class PercentileAggregation<T> extends AggregationFunction<TDigestState, Object> {
+public class PercentileAggregation<T> extends AggregationFunction<TDigestState, Object> {
 
     public static final String NAME = "percentile";
 
@@ -65,7 +65,7 @@ class PercentileAggregation<T> extends AggregationFunction<TDigestState, Object>
                         DataTypes.DOUBLE.getTypeSignature()
                     )
                     .returnType(DataTypes.DOUBLE.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
+                    .features(Feature.DETERMINISTIC)
                     .build(),
                 PercentileAggregation::new
             );
@@ -76,7 +76,7 @@ class PercentileAggregation<T> extends AggregationFunction<TDigestState, Object>
                         DataTypes.DOUBLE_ARRAY.getTypeSignature()
                     )
                     .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
+                    .features(Feature.DETERMINISTIC)
                     .build(),
                 PercentileAggregation::new
             );
@@ -90,7 +90,7 @@ class PercentileAggregation<T> extends AggregationFunction<TDigestState, Object>
                         DataTypes.DOUBLE.getTypeSignature()
                     )
                     .returnType(DataTypes.DOUBLE.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
+                    .features(Feature.DETERMINISTIC)
                     .build(),
                 PercentileAggregation::new
             );
@@ -102,7 +102,7 @@ class PercentileAggregation<T> extends AggregationFunction<TDigestState, Object>
                         DataTypes.DOUBLE.getTypeSignature()
                     )
                     .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
+                    .features(Feature.DETERMINISTIC)
                     .build(),
                 PercentileAggregation::new
             );
@@ -126,7 +126,7 @@ class PercentileAggregation<T> extends AggregationFunction<TDigestState, Object>
                     DataTypes.DOUBLE.getTypeSignature()
                 )
                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build(),
             newIntervalPercentileAgg
         );
@@ -138,7 +138,7 @@ class PercentileAggregation<T> extends AggregationFunction<TDigestState, Object>
                     DataTypes.DOUBLE_ARRAY.getTypeSignature()
                 )
                 .returnType(intervalArraySignature)
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build(),
             newIntervalPercentileAgg
         );
@@ -151,7 +151,7 @@ class PercentileAggregation<T> extends AggregationFunction<TDigestState, Object>
                     DataTypes.DOUBLE.getTypeSignature()
                 )
                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build(),
             newIntervalPercentileAgg
         );
@@ -164,7 +164,7 @@ class PercentileAggregation<T> extends AggregationFunction<TDigestState, Object>
                     DataTypes.DOUBLE.getTypeSignature()
                 )
                 .returnType(intervalArraySignature)
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build(),
             newIntervalPercentileAgg
         );

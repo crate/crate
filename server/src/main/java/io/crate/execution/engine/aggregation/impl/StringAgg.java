@@ -22,9 +22,9 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.LongConsumer;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
@@ -34,16 +34,16 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import io.crate.Streamer;
+import io.crate.collections.accountable.AccountableList;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.ArrayType;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -59,11 +59,9 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
                     .argumentTypes(DataTypes.STRING.getTypeSignature(),
                             DataTypes.STRING.getTypeSignature())
                     .returnType(DataTypes.STRING.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
+                    .features(Feature.DETERMINISTIC, Feature.ORDER_SENSITIVE)
                     .build();
 
-
-    private static final int LIST_ENTRY_OVERHEAD = 32;
 
     static {
         DataTypes.register(StringAggStateType.INSTANCE.id(), _ -> StringAggStateType.INSTANCE);
@@ -77,14 +75,13 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     }
 
     public static class StringAggState implements Writeable {
-
         private final List<String> values;
         private String firstDelimiter;
 
-        public static final long SHALLOW_SIZE = ArrayType.ARRAY_LIST_SHALLOW_SIZE;
+        public static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(StringAgg.StringAggState.class);
 
-        private StringAggState() {
-            values = new ArrayList<>();
+        private StringAggState(LongConsumer allocateBytes) {
+            values = new AccountableList<>(allocateBytes);
         }
 
         private StringAggState(StreamInput in) throws IOException {
@@ -162,7 +159,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
                                    Version minNodeInCluster,
                                    MemoryManager memoryManager) {
         ramAccounting.addBytes(StringAggState.SHALLOW_SIZE);
-        return new StringAggState();
+        return new StringAggState(ramAccounting::addBytes);
     }
 
     @Override
@@ -174,22 +171,23 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
         if (expression == null) {
             return state;
         }
-        ramAccounting.addBytes(LIST_ENTRY_OVERHEAD + RamUsageEstimator.sizeOf(expression));
         String delimiter = (String) args[1].value();
         if (delimiter == null) {
             delimiter = "";
         }
+
+        if (!delimiter.isEmpty()) {
+            ramAccounting.addBytes(RamUsageEstimator.sizeOf(delimiter));
+        }
         if (state.firstDelimiter == null && state.values.isEmpty()) {
             state.firstDelimiter = delimiter;
         } else {
-            if (!delimiter.isEmpty()) {
-                ramAccounting.addBytes(LIST_ENTRY_OVERHEAD + RamUsageEstimator.sizeOf(delimiter));
-            } else {
-                ramAccounting.addBytes(LIST_ENTRY_OVERHEAD);
-            }
             state.values.add(delimiter);
         }
+
+        ramAccounting.addBytes(RamUsageEstimator.sizeOf(expression));
         state.values.add(expression);
+
         return state;
     }
 
@@ -208,7 +206,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
         }
         String removed = previousAggState.values.removeFirst();
         assert removed.equals(expression) : "AggregateToWindowFunctionAdapter should always remove the first state";
-        ramAccounting.addBytes(-(LIST_ENTRY_OVERHEAD + RamUsageEstimator.sizeOf(expression)));
+        ramAccounting.addBytes(-RamUsageEstimator.sizeOf(expression));
 
         String delimiter = (String) stateToRemove[1].value();
         if (delimiter == null) {
@@ -220,7 +218,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
             previousAggState.firstDelimiter = null;
         } else {
             previousAggState.firstDelimiter = previousAggState.values.removeFirst();
-            ramAccounting.addBytes(-(LIST_ENTRY_OVERHEAD + RamUsageEstimator.sizeOf(previousAggState.firstDelimiter)));
+            ramAccounting.addBytes(-RamUsageEstimator.sizeOf(previousAggState.firstDelimiter));
         }
 
         return previousAggState;

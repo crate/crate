@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import org.apache.lucene.index.VectorSimilarityFunction;
@@ -35,11 +36,14 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.execution.dml.FloatVectorIndexer;
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.FloatVectorColumnReference;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -97,6 +101,17 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
             float[] floats = new float[bytes.length / Float.BYTES];
             ByteBuffer.wrap(bytes).asFloatBuffer().get(floats);
             return floats;
+        }
+
+        @Override
+        public LuceneCollectorExpression<float[]> getLuceneExpression(Reference ref,
+                                                                      Predicate<Reference> isParentIgnored) {
+            return new FloatVectorColumnReference(ref.storageIdent());
+        }
+
+        @Override
+        public float[] decode(DataType<float[]> type, XContentParser parser) throws IOException {
+            return type.implicitCast(parser.list());
         }
     };
 

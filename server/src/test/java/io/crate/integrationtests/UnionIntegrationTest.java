@@ -241,7 +241,7 @@ public class UnionIntegrationTest extends IntegTestCase {
     public void testUnionAllArrayAndObjectColumns() {
         execute("select * from (select t1.id, t1.text, t3.arr, t3.obj from t1 join t3 on arr is not null) a " +
                 "union all " +
-                "select id, text, [1::bigint, 2::bigint], {custom = true} from t3 where arr is not null " +
+                "select id, text, [1, 2], {custom = true} from t3 where arr is not null " +
                 "order by id");
         assertThat(response).hasRows(
             "1| text| [1, 2, 3]| {temperature=42}",
@@ -303,6 +303,22 @@ public class UnionIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @UseRandomizedOptimizerRules(0)
+    public void test_array_agg_over_ordered_union_all_preserves_global_order() throws Exception {
+        execute("""
+               SELECT array_agg(x) AS arr FROM (
+                SELECT x FROM unnest([3, 1]) AS a(x)
+                UNION ALL
+                SELECT x FROM unnest([4, 2]) AS b(x)
+                ORDER BY x
+            ) AS u
+            """);
+        assertThat(response).hasRows(
+            "[1, 2, 3, 4]"
+        );
+    }
+
+    @Test
     @UseJdbc(0)
     public void test_union_on_object_columns_with_different_schema() throws Exception {
         execute("CREATE TABLE tbl1 (obj object (strict)  as (a int, c int))");
@@ -353,9 +369,9 @@ public class UnionIntegrationTest extends IntegTestCase {
                   └ HashAggregate[count(*)]
                     └ Rename[] AS u
                       └ Union[]
-                        ├ Filter[(1 AS x > 2147483647::bigint)]
+                        ├ Filter[(1 AS x > 2147483647)]
                         │  └ TableFunction[empty_row | [] | true]
-                        └ Filter[(2147483648::bigint AS x > 2147483647::bigint)]
+                        └ Filter[(2147483648 AS x > 2147483647)]
                           └ TableFunction[empty_row | [] | true]""");
         execute(query);
         assertThat(response).hasRows("1");

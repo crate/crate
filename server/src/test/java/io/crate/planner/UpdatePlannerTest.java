@@ -199,7 +199,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         Map<LogicalPlan, SelectSymbol> rootPlanDependencies = plan.dependencies;
         LogicalPlan outerSubSelectPlan = rootPlanDependencies.keySet().iterator().next();
         Asserts.assertThat(outerSubSelectPlan).withPlanStats(e.planStats()).hasOperators(
-            "Limit[2::bigint;0::bigint] (rows=1)",
+            "Limit[2;0] (rows=1)",
             "  └ MultiPhase (rows=1)",
             "    └ Count[doc.users | (id = ANY((SELECT unnest([1, 2, 3, 4]) FROM (empty_row))))] (rows=1)",
             "    └ OrderBy[unnest([1, 2, 3, 4]) ASC] (rows=unknown)",

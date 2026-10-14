@@ -34,6 +34,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
 import io.crate.types.IntervalType;
 
@@ -45,7 +46,7 @@ public class IntervalArithmeticFunctions {
                 .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
                     DataTypes.INTERVAL.getTypeSignature())
                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new IntervalIntervalArithmeticScalar(Period::plus, signature, boundSignature)
@@ -55,7 +56,7 @@ public class IntervalArithmeticFunctions {
                 .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
                     DataTypes.INTERVAL.getTypeSignature())
                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new IntervalIntervalArithmeticScalar(Period::minus, signature, boundSignature)
@@ -65,7 +66,7 @@ public class IntervalArithmeticFunctions {
                 .argumentTypes(DataTypes.INTEGER.getTypeSignature(),
                     DataTypes.INTERVAL.getTypeSignature())
                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             MultiplyIntervalByIntegerScalar::new
         );
@@ -74,7 +75,7 @@ public class IntervalArithmeticFunctions {
                 .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             MultiplyIntervalByIntegerScalar::new
         );

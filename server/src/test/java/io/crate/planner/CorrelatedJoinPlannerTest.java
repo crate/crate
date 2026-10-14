@@ -57,13 +57,13 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
         assertThat(result).isEqualTo(
             """
                 Eval[(SELECT mountain FROM (empty_row))]
-                  └ Limit[5::bigint;0]
+                  └ Limit[5;0]
                     └ OrderBy[(SELECT mountain FROM (empty_row)) ASC]
                       └ CorrelatedJoin[mountain, (SELECT mountain FROM (empty_row))]
                         └ Collect[sys.summits | [mountain] | true]
                         └ SubPlan
                           └ Eval[mountain]
-                            └ Limit[2::bigint;0::bigint]
+                            └ Limit[2;0]
                               └ TableFunction[empty_row | [] | true]"""
         );
     }
@@ -81,7 +81,7 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
                       └ Collect[sys.summits | [mountain] | true]
                     └ SubPlan
                       └ Eval[mountain]
-                        └ Limit[2::bigint;0::bigint]
+                        └ Limit[2;0]
                           └ TableFunction[empty_row | [] | true]"""
         );
     }

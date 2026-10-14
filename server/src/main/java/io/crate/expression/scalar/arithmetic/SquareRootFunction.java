@@ -29,9 +29,9 @@ import io.crate.expression.scalar.DoubleScalar;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
 
 public final class SquareRootFunction {
@@ -47,7 +47,7 @@ public final class SquareRootFunction {
                 Signature.builder(NAME, FunctionType.SCALAR)
                     .argumentTypes(typeSignature)
                     .returnType(DataTypes.DOUBLE.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .build(),
                 (signature, boundSignature) ->
                     new DoubleScalar(signature, boundSignature, SquareRootFunction::sqrt)
@@ -57,13 +57,12 @@ public final class SquareRootFunction {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, ignoredBoundSignature) -> new UnaryScalar<>(
                 signature,
                 BoundSignature.sameAsUnbound(signature),
-                DataTypes.NUMERIC,
-                SquareRootFunction::sqrt
+                (BigDecimal x) -> SquareRootFunction.sqrt(x)
             )
         );
     }

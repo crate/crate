@@ -22,7 +22,6 @@
 package io.crate.execution.engine.window;
 
 import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
 
 import org.joda.time.DateTime;
 
@@ -40,21 +39,44 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 
-class ArithmeticOperatorsFactory {
+// Clamps integral overflow instead of wrapping around.
+class WindowFrameBoundaryArithmetic {
 
-    private static final BinaryOperator<Double> ADD_DOUBLE_FUNCTION = Double::sum;
-    private static final BinaryOperator<Byte> ADD_BYTE_FUNCTION = (Byte x, Byte y) -> (byte) (x.intValue() + y.intValue());
-    private static final BinaryOperator<Short> ADD_SHORT_FUNCTION = (Short x, Short y) -> (short) (x.intValue() + y.intValue());
-    private static final BinaryOperator<Integer> ADD_INTEGER_FUNCTION = Integer::sum;
-    private static final BinaryOperator<Long> ADD_LONG_FUNCTION = Long::sum;
-    private static final BinaryOperator<Float> ADD_FLOAT_FUNCTION = Float::sum;
+    private static final BiFunction<Double, Number, Double> ADD_DOUBLE_FUNCTION =
+        (x, y) -> x + y.doubleValue();
+    private static final BiFunction<Float, Number, Float> ADD_FLOAT_FUNCTION =
+        (x, y) -> (float) (x.doubleValue() + y.doubleValue());
+    private static final BiFunction<Long, Number, Long> ADD_LONG_FUNCTION = (Long x, Number y) -> {
+        try {
+            return Math.addExact(x, y.longValue());
+        } catch (ArithmeticException e) {
+            return y.longValue() > 0 ? Long.MAX_VALUE : Long.MIN_VALUE;
+        }
+    };
+    private static final BiFunction<Byte, Number, Byte> ADD_BYTE_FUNCTION = (Byte x, Number y) ->
+        (byte) Math.clamp(ADD_LONG_FUNCTION.apply(x.longValue(), y), Byte.MIN_VALUE, Byte.MAX_VALUE);
+    private static final BiFunction<Short, Number, Short> ADD_SHORT_FUNCTION = (Short x, Number y) ->
+        (short) Math.clamp(ADD_LONG_FUNCTION.apply(x.longValue(), y), Short.MIN_VALUE, Short.MAX_VALUE);
+    private static final BiFunction<Integer, Number, Integer> ADD_INTEGER_FUNCTION = (Integer x, Number y) ->
+        Math.clamp(ADD_LONG_FUNCTION.apply(x.longValue(), y), Integer.MIN_VALUE, Integer.MAX_VALUE);
 
-    private static final BinaryOperator<Double> SUB_DOUBLE_FUNCTION = (arg0, arg1) -> arg0 - arg1;
-    private static final BinaryOperator<Byte> SUB_BYTE_FUNCTION = (arg0, arg1) -> (byte) (arg0.intValue() - arg1.intValue());
-    private static final BinaryOperator<Short> SUB_SHORT_FUNCTION = (arg0, arg1) -> (short) (arg0.intValue() - arg1.intValue());
-    private static final BinaryOperator<Integer> SUB_INTEGER_FUNCTION = (arg0, arg1) -> arg0 - arg1;
-    private static final BinaryOperator<Long> SUB_LONG_FUNCTION = (arg0, arg1) -> arg0 - arg1;
-    private static final BinaryOperator<Float> SUB_FLOAT_FUNCTION = (arg0, arg1) -> arg0 - arg1;
+    private static final BiFunction<Double, Number, Double> SUB_DOUBLE_FUNCTION =
+        (x, y) -> x - y.doubleValue();
+    private static final BiFunction<Float, Number, Float> SUB_FLOAT_FUNCTION =
+        (x, y) -> (float) (x.doubleValue() - y.doubleValue());
+    private static final BiFunction<Long, Number, Long> SUB_LONG_FUNCTION = (Long x, Number y) -> {
+        try {
+            return Math.subtractExact(x, y.longValue());
+        } catch (ArithmeticException e) {
+            return y.longValue() < 0 ? Long.MAX_VALUE : Long.MIN_VALUE;
+        }
+    };
+    private static final BiFunction<Byte, Number, Byte> SUB_BYTE_FUNCTION = (Byte x, Number y) ->
+        (byte) Math.clamp(SUB_LONG_FUNCTION.apply(x.longValue(), y), Byte.MIN_VALUE, Byte.MAX_VALUE);
+    private static final BiFunction<Short, Number, Short> SUB_SHORT_FUNCTION = (Short x, Number y) ->
+        (short) Math.clamp(SUB_LONG_FUNCTION.apply(x.longValue(), y), Short.MIN_VALUE, Short.MAX_VALUE);
+    private static final BiFunction<Integer, Number, Integer> SUB_INTEGER_FUNCTION = (Integer x, Number y) ->
+        Math.clamp(SUB_LONG_FUNCTION.apply(x.longValue(), y), Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     static BiFunction getAddFunction(DataType<?> fstArgDataType, DataType<?> sndArgDataType) {
         switch (fstArgDataType.id()) {

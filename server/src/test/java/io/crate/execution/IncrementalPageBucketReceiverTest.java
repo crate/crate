@@ -33,6 +33,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -248,5 +250,40 @@ public class IncrementalPageBucketReceiverTest {
 
         assertThat(projectingRowConsumer.completionFuture()).isCompleted();
         assertThat(pageBucketReceiver.completionFuture()).isCompleted();
+    }
+
+    @Test
+    public void test_no_accumulation_or_finisher_after_processing_future_completed() {
+        AtomicInteger accumulation = new AtomicInteger(0);
+        AtomicBoolean finish = new AtomicBoolean(false);
+        Collector<Row, List<Object>, Iterable<Row>> collector = Collector.of(
+            ArrayList::new,
+            (_, _) -> {
+                accumulation.incrementAndGet();
+                throw new CircuitBreakingException("dummy");
+            },
+            (a, _) -> a,
+            _ -> {
+                finish.set(true);
+                return List.of();
+            }
+        );
+        var pageBucketReceiver = new IncrementalPageBucketReceiver<>(
+            collector,
+            new TestingRowConsumer(),
+            Runnable::run,
+            new Streamer[1],
+            1
+        );
+        pageBucketReceiver.processRows(new ArrayBucket(new Object[][] {{1}}));
+        assertThat(accumulation.get()).isEqualTo(1);
+        assertThat(pageBucketReceiver.completionFuture()).isCompletedExceptionally();
+
+        // Imitate processRows/consumeRows chained before the failure.
+        pageBucketReceiver.processRows(new ArrayBucket(new Object[][] {{2}}));
+        pageBucketReceiver.consumeRows();
+
+        assertThat(accumulation.get()).isEqualTo(1);
+        assertThat(finish.get()).isFalse();
     }
 }

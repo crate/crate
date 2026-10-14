@@ -58,8 +58,8 @@ import io.crate.memory.OffHeapMemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 
@@ -89,7 +89,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
                 Signature.builder(HyperLogLogDistinctAggregation.NAME, FunctionType.AGGREGATE)
                         .argumentTypes(DataTypes.STRING.getTypeSignature())
                         .returnType(DataTypes.LONG.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 List.of(DataTypes.STRING),
                 DataTypes.STRING

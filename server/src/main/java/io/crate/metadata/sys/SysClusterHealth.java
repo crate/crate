@@ -91,6 +91,21 @@ public class SysClusterHealth {
         return List.of(new ClusterHealth(health, finalDescription, missingShards, underreplicatedShards, numPendingTasks));
     }
 
+    public static Health computeHealth(ClusterState clusterState) {
+        Set<ClusterBlock> blocksRed = clusterState.blocks().global(HttpErrorStatus.SERVICE_UNAVAILABLE);
+        if (!blocksRed.isEmpty()) {
+            return Health.RED;
+        }
+        Set<ClusterBlock> blocksYellow = clusterState.blocks().global(ClusterBlockLevel.METADATA_WRITE);
+        Health health = !blocksYellow.isEmpty() ? Health.YELLOW : Health.GREEN;
+        for (var tableHealth : TableHealth.compute(clusterState)) {
+            if (tableHealth.health().severity() > health.severity()) {
+                health = tableHealth.health();
+            }
+        }
+        return health;
+    }
+
     public record ClusterHealth(Health health,
                                 String description,
                                 long missingShards,

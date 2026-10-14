@@ -26,6 +26,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -78,7 +79,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         assertThat(response).hasLines(
             "Rename[i, name] AS t",
             "  └ Fetch[ord AS i, name]",
-            "    └ Limit[20::bigint;0]",
+            "    └ Limit[20;0]",
             "      └ OrderBy[ord AS i DESC]",
             "        └ Collect[doc.tbl | [_fetchid, ord AS i] | true]"
         );

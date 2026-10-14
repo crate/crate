@@ -48,10 +48,10 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.BitStringType;
 import io.crate.types.ByteType;
@@ -77,7 +77,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
             Signature.builder(NAME, FunctionType.AGGREGATE)
                     .argumentTypes(TypeSignature.V)
                     .returnType(DataTypes.LONG.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
+                    .features(Feature.DETERMINISTIC)
                     .typeVariableConstraints(TypeVariableConstraint.V)
                     .build();
 
@@ -85,7 +85,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
             Signature.builder(NAME, FunctionType.AGGREGATE)
                     .argumentTypes()
                     .returnType(DataTypes.LONG.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
+                    .features(Feature.DETERMINISTIC)
                     .build();
 
     static {

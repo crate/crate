@@ -114,12 +114,14 @@ import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.expression.InputFactory;
 import io.crate.expression.RowFilter;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.Aggregation;
 import io.crate.memory.MemoryManager;
 import io.crate.memory.MemoryManagerFactory;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.operators.PKAndVersion;
@@ -700,10 +702,13 @@ public class JobSetup {
 
             Collector<Row, ?, Iterable<Row>> collector = null;
             List<Projection> projections = phase.projections();
+            // We need to ensure that global order is not broken for order sensitive aggregations.
+            // Enforcing data going through CumulativePageBucketReceiver -> SortedMergeIterator
+            // if phase has ORDER BY.
             if (projections.size() > 0) {
                 Projection firstProjection = projections.get(0);
-                if (firstProjection instanceof GroupProjection) {
-                    GroupProjection groupProjection = (GroupProjection) firstProjection;
+                if (firstProjection instanceof GroupProjection groupProjection
+                    && (phase.orderByPositions() != null && isOrderSensitive(groupProjection.values())) == false) {
                     GroupingProjector groupingProjector = (GroupingProjector) projectorFactory.create(
                         groupProjection,
                         context.txnCtx(),
@@ -713,8 +718,8 @@ public class JobSetup {
                     );
                     collector = groupingProjector.getCollector();
                     projections = projections.subList(1, projections.size());
-                } else if (firstProjection instanceof AggregationProjection) {
-                    AggregationProjection aggregationProjection = (AggregationProjection) firstProjection;
+                } else if (firstProjection instanceof AggregationProjection aggregationProjection
+                           && (phase.orderByPositions() != null && isOrderSensitive(aggregationProjection.aggregations())) == false) {
                     AggregationPipe aggregationPipe = (AggregationPipe) projectorFactory.create(
                         aggregationProjection,
                         context.txnCtx(),
@@ -1057,6 +1062,15 @@ public class JobSetup {
                 mergePhase.numUpstreams()
             );
         }
+    }
+
+    private boolean isOrderSensitive(List<Aggregation> aggregations) {
+        for (Aggregation aggregation : aggregations) {
+            if (aggregation.signature().hasFeature(Feature.ORDER_SENSITIVE)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static long toKey(int phaseId, byte inputId) {

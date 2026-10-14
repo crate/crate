@@ -26,6 +26,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -38,6 +39,7 @@ import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.execution.dml.IndexDocumentBuilder;
 import io.crate.execution.dml.ValueIndexer;
@@ -203,7 +205,10 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
         }
     }
 
-    public static LuceneCollectorExpression<BigDecimal> getCollectorExpression(String fqn, NumericType type) {
+    @Override
+    public LuceneCollectorExpression<BigDecimal> getLuceneExpression(Reference ref,
+                                                                     Predicate<Reference> isParentIgnored) {
+        String fqn = ref.storageIdent();
         final Integer precision = type.numericPrecision();
         final MathContext mathContext = type.mathContext();
 
@@ -228,5 +233,10 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
                 return new BigDecimal(bigInt, scale == null ? 0 : scale, mathContext);
             }
         };
+    }
+
+    @Override
+    public BigDecimal decode(DataType<BigDecimal> type, XContentParser parser) throws IOException {
+        return type.sanitizeValue(parser.text());
     }
 }

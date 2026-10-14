@@ -85,6 +85,7 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
                                                    "\"<column>\", \"<table>.<column>\" or \"<schema>.<table>.<column>\"");
         }
 
+        String matchedSchema = null;
         boolean schemaMatched = false;
         boolean tableNameMatched = false;
         Symbol lastField = null;
@@ -98,6 +99,9 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
             schemaMatched = true;
             if (columnTableName != null && !relName.name().equals(columnTableName)) {
                 continue;
+            }
+            if (tableNameMatched == false) {
+                matchedSchema = relName.schema();
             }
             tableNameMatched = true;
 
@@ -137,6 +141,9 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
             if (columnTableName != null && !relName.name().equals(columnTableName)) {
                 continue;
             }
+            if (tableNameMatched == false) {
+                matchedSchema = relName.schema();
+            }
             tableNameMatched = true;
 
             Symbol newField = relation.getField(columnIdent, operation, errorOnUnknownObjectKey);
@@ -164,8 +171,14 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
             RelationName relationName = new RelationName(schema, columnTableName);
             throw new RelationUnknown(relationName);
         }
-        RelationName relationName = sources.entrySet().iterator().next().getKey();
         if (firstColUnknownException == null) {
+            RelationName relationName;
+            if (columnTableName == null) {
+                // Unqualified reference, no relation matches
+                relationName = sources.entrySet().iterator().next().getKey();
+            } else {
+                relationName = new RelationName(matchedSchema, columnTableName);
+            }
             firstColUnknownException = new ColumnUnknownException(columnIdent, relationName);
         }
         throw firstColUnknownException;

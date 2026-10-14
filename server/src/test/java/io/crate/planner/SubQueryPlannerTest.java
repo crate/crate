@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLimitAndOffset;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -262,8 +263,8 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
             "  └ Filter[((SELECT mountain FROM (sys.summits)) AS mountain = 'Brandstein')]",
             "    └ MultiPhase",
             "      └ Collect[doc.t1 | [a, x, i, (SELECT mountain FROM (sys.summits)) AS mountain] | true]",
-            "      └ Limit[2::bigint;0::bigint]",
-            "        └ Limit[1::bigint;0]",
+            "      └ Limit[2;0]",
+            "        └ Limit[1;0]",
             "          └ Collect[sys.summits | [mountain] | true]"
         );
 
@@ -273,8 +274,8 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
             "  └ Filter[((SELECT mountain FROM (sys.summits)) AS mountain = 'Brandstein')]",
             "    └ MultiPhase",
             "      └ Collect[doc.t1 | [a, x, i, (SELECT mountain FROM (sys.summits)) AS mountain] | (a = 'foo')]",
-            "      └ Limit[2::bigint;0::bigint]",
-            "        └ Limit[1::bigint;0]",
+            "      └ Limit[2;0]",
+            "        └ Limit[1;0]",
             "          └ Collect[sys.summits | [mountain] | true]"
         );
     }

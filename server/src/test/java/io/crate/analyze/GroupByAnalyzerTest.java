@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -248,7 +249,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.isDistinct()).isTrue();
         assertThat(relation)
             .isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name " +
-                  "ORDER BY max(doc.users.id) LIMIT 5::bigint OFFSET 10::bigint");
+                  "ORDER BY max(doc.users.id) LIMIT 5 OFFSET 10");
     }
 
     @Test

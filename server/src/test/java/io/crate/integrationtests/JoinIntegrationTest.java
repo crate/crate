@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -44,6 +45,7 @@ import io.crate.data.Paging;
 import io.crate.execution.engine.join.RamBlockSizeCalculator;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
+import io.crate.planner.optimizer.rule.EliminateCrossJoin;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStatsService;
 import io.crate.testing.Asserts;
@@ -427,7 +429,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("explain (costs false) select * from doc.t as t1, doc.t as t2 order by t1.x, t2.x limit 3");
         assertThat(response).hasLines(
             "Fetch[x, y, x, y]",
-            "  └ Limit[3::bigint;0]",
+            "  └ Limit[3;0]",
             "    └ OrderBy[x ASC x ASC]",
             "      └ NestedLoopJoin[CROSS]",
             "        ├ Rename[t1._fetchid, x] AS t1",
@@ -1176,6 +1178,7 @@ public class JoinIntegrationTest extends IntegTestCase {
             "  └ Collect[doc.t4 | [id, d] | true]"
         );
         execute(stmt);
+        assertThat(response).hasRows("1| 1| 1| 2| 1| 2| 1| 3");
     }
 
     @Test
@@ -1219,6 +1222,7 @@ public class JoinIntegrationTest extends IntegTestCase {
                 "  │  └ Get[doc.t2 | id, b | DocKeys{1} | (id = 1)]",
                 "  └ Get[doc.t3 | id, c | DocKeys{1} | (id = 1)]");
         execute(stmt);
+        assertThat(response).hasRows("1| 1| 1| 2| 1| 10");
     }
 
     @Test
@@ -1506,7 +1510,7 @@ public class JoinIntegrationTest extends IntegTestCase {
             "    └ Rename[a] AS i",
             "      └ Eval[a]",
             "        └ Fetch[a, b]",
-            "          └ Limit[1::bigint;0]",
+            "          └ Limit[1;0]",
             "            └ OrderBy[b DESC]",
             "              └ Collect[doc.tt1 | [_fetchid, b] | true]"
         );
@@ -1551,50 +1555,6 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         execute(stmt);
         assertThat(response).hasRows("3");
-    }
-
-    @Test
-    @UseRandomizedSchema(random = false)
-    @UseRandomizedOptimizerRules(0)
-    @UseHashJoins(1)
-    public void test_eliminate_cross_join() throws Exception {
-        execute("create table t1 (x int)");
-        execute("create table t2 (y int)");
-        execute("create table t3 (z int)");
-
-        String stmt = "SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t1.x = t3.z AND t3.z = t2.y;";
-        execute("explain (costs false) " + stmt);
-
-        assertThat(response).hasLines(
-            "Eval[x, y, z]",
-            "  └ HashJoin[INNER | (y = z)]",
-            "    ├ HashJoin[INNER | (x = z)]",
-            "    │  ├ Collect[doc.t1 | [x] | true]",
-            "    │  └ Collect[doc.t3 | [z] | true]",
-            "    └ Collect[doc.t2 | [y] | true]"
-        );
-    }
-
-    @Test
-    @UseRandomizedSchema(random = false)
-    @UseRandomizedOptimizerRules(0)
-    @UseHashJoins(1)
-    public void test_eliminate_cross_join_with_filter() throws Exception {
-        execute("create table t1 (x int)");
-        execute("create table t2 (y int)");
-        execute("create table t3 (z int)");
-
-        String stmt = "SELECT * FROM t1 CROSS JOIN t2 INNER JOIN t3 ON t1.x = t3.z AND t3.z = t2.y WHERE t1.x > 1";
-        execute("explain (costs false) " + stmt);
-
-        assertThat(response).hasLines(
-            "Eval[x, y, z]",
-            "  └ HashJoin[INNER | (y = z)]",
-            "    ├ HashJoin[INNER | (x = z)]",
-            "    │  ├ Collect[doc.t1 | [x] | (x > 1)]",
-            "    │  └ Collect[doc.t3 | [z] | true]",
-            "    └ Collect[doc.t2 | [y] | true]"
-        );
     }
 
     /**
@@ -1893,5 +1853,34 @@ public class JoinIntegrationTest extends IntegTestCase {
         } finally {
             Paging.PAGE_SIZE = originalPageSize;
         }
+    }
+
+    @Test
+    @UseRandomizedOptimizerRules (alwaysKeep = EliminateCrossJoin.class)
+    public void test_cross_join_mixed_with_left_outer_and_inner_join_preserves_all_filters() throws Exception {
+        // https://github.com/crate/crate/issues/20143
+        execute(
+            """
+            SELECT
+                a.x,
+                b.y,
+                c.z,
+                d.w
+            FROM
+                generate_series(1, 3) AS a (x)
+                INNER JOIN generate_series(1, 3) AS b (y) ON a.x = b.y
+                LEFT JOIN generate_series(1, 3) AS c (z) ON a.x = c.z
+                CROSS JOIN generate_series(1, 1) AS d (w)
+            ORDER BY
+                a.x,
+                c.z;
+
+            """
+        );
+        assertThat(response).hasRows(
+            "1| 1| 1| 1",
+            "2| 2| 2| 1",
+            "3| 3| 3| 1"
+        );
     }
 }

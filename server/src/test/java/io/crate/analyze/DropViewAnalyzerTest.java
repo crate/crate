@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
@@ -49,5 +49,14 @@ public class DropViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.analyze("drop view v1, v2"))
             .isExactlyInstanceOf(RelationsUnknown.class)
             .hasMessage("Relations not found: doc.v1, doc.v2");
+    }
+
+    @Test
+    public void test_validates_view_name() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService);
+        assertThatThrownBy(() -> e.analyze("drop view if exists foo.bar.v1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Unexpected catalog name: foo. Only available catalog is crate");
+
     }
 }

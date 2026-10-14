@@ -72,7 +72,7 @@ public class FloatEqQueryTest extends LuceneQueryBuilderTest {
     public void test_FloatEqQuery_rangeQuery() {
         Query query = convert("a1 > 1.1");
         assertThat(query.getClass().getName()).endsWith("FloatPoint$1"); // the query class is anonymous
-        assertThat(query).hasToString("a1:[1.1000001 TO Infinity]");
+        assertThat(query).hasToString("a1:[1.1000001 TO NaN]");
 
         query = convert("a2 < 1.1");
         // SortedNumericDocValuesRangeQuery.class is not public
@@ -83,7 +83,7 @@ public class FloatEqQueryTest extends LuceneQueryBuilderTest {
 
         query = convert("a3 >= 1.1");
         assertThat(query.getClass().getName()).endsWith("FloatPoint$1"); // the query class is anonymous
-        assertThat(query).hasToString("a3:[1.1 TO Infinity]");
+        assertThat(query).hasToString("a3:[1.1 TO NaN]");
 
         query = convert("a4 <= 1.1");
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);

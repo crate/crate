@@ -22,12 +22,16 @@
 package io.crate.types;
 
 
+import java.io.IOException;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.execution.dml.ValueIndexer;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
@@ -58,6 +62,10 @@ public abstract class StorageSupport<T> {
         return docValuesDefault && indexType != IndexType.FULLTEXT;
     }
 
+    /// Return a collector expression that reads values from docValues
+    /// Must _not_ be called if ref.hasDocValues() is false
+    public abstract LuceneCollectorExpression<T> getLuceneExpression(Reference ref,
+                                                                     Predicate<Reference> isParentIgnored);
 
     /**
      * Creates a valueIndexer
@@ -88,12 +96,7 @@ public abstract class StorageSupport<T> {
         throw new UnsupportedOperationException("decodeFromInt not supported");
     }
 
-    /**
-     * Decode a value from the packed bytes of a point in the BKD index.
-     */
-    public T decode(byte[] packedPoint) {
-        throw new UnsupportedOperationException("decodeFromPackedPoint not supported");
-    }
+    public abstract T decode(DataType<T> type, XContentParser parser) throws IOException;
 
     /**
      * @return {@code true} if values should always be loaded from stored fields

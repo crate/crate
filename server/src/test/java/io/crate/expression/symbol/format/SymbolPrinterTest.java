@@ -49,10 +49,10 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
@@ -145,7 +145,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         Signature signature = Signature.builder("agg", FunctionType.AGGREGATE)
                 .argumentTypes(DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.LONG.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build();
         Aggregation a = new Aggregation(
             signature,
@@ -258,8 +258,8 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtract() {
-        assertPrintIsParseable("extract(century from '1970-01-01')::bigint");
-        assertPrintIsParseable("extract(day_of_week from current_timestamp)::bigint");
+        assertPrintIsParseable("extract(century from '1970-01-01')");
+        assertPrintIsParseable("extract(day_of_week from current_timestamp)");
     }
 
     @Test
@@ -330,9 +330,9 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testStyles() {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(bar+cast(\"select\" as long)+1+1+1+1+1+1)))");
         assertThat(nestedFn.toString(Style.QUALIFIED)).isEqualTo(
-                   "abs(sqrt(ln((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS BIGINT)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint))))");
+                   "abs(sqrt(ln((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS BIGINT)) + 1) + 1) + 1) + 1) + 1) + 1))))");
         assertThat(nestedFn.toString(Style.UNQUALIFIED)).isEqualTo(
-                   "abs(sqrt(ln((((((((bar + cast(\"select\" AS BIGINT)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint))))");
+                   "abs(sqrt(ln((((((((bar + cast(\"select\" AS BIGINT)) + 1) + 1) + 1) + 1) + 1) + 1))))");
     }
 
     @Test
@@ -340,7 +340,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         Symbol comparisonOperator = sqlExpressions.asSymbol("bar = 1 and foo = '2'");
         String printed = comparisonOperator.toString(Style.QUALIFIED);
         assertThat(printed).isEqualTo(
-            "((doc.formatter.bar = 1::bigint) AND (doc.formatter.foo = '2'))");
+            "((doc.formatter.bar = 1) AND (doc.formatter.foo = '2'))");
     }
 
     @Test

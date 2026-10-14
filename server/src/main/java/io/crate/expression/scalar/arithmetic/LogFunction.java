@@ -34,6 +34,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
@@ -150,8 +151,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
                 (signature, ignoredBoundSignature) -> new UnaryScalar<>(
                     signature,
                     BoundSignature.sameAsUnbound(signature),
-                    DataTypes.NUMERIC,
-                    x -> BigDecimalMath.log10(validateArgument(x, "log(x)"), MathContext.DECIMAL128)
+                    (BigDecimal x) -> BigDecimalMath.log10(validateArgument(x, "log(x)"), MathContext.DECIMAL128)
                 )
             );
         }
@@ -197,8 +197,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
                 (signature, ignoredBoundSignature) -> new UnaryScalar<>(
                     signature,
                     BoundSignature.sameAsUnbound(signature),
-                    DataTypes.NUMERIC,
-                    x -> BigDecimalMath.log(validateArgument(x, "ln(x)"), MathContext.DECIMAL128)
+                    (BigDecimal x) -> BigDecimalMath.log(validateArgument(x, "ln(x)"), MathContext.DECIMAL128)
                 )
             );
         }

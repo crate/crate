@@ -27,6 +27,7 @@ import java.net.URI;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.opendal.S3;
 
 public record S3URI(String bucket,
                     String path,
@@ -36,7 +37,6 @@ public record S3URI(String bucket,
                     @Nullable String secretKey) {
 
     private static final String INVALID_URI_MSG = "Invalid URI. Ensure it is in the format: s3://[<accesskey>:<secretkey>@][<host>:<port>/]<bucketname>/<path> and that the secretkey is URL encoded.";
-    static final String DEFAULT_ENDPOINT = "s3.amazonaws.com";
 
     /// Parse a S3 URI as described in https://crate.io/docs/crate/reference/en/latest/sql/statements/copy-from.html#sql-copy-from-s3
     public static S3URI of(URI uri) {
@@ -82,7 +82,7 @@ public record S3URI(String bucket,
                 path = uriPath.substring(bucketEnd + 1);
             }
             if (host == null) {
-                host = DEFAULT_ENDPOINT;
+                host = S3.DEFAULT_ENDPOINT;
             }
             endpoint = port == -1
                 ? host
@@ -92,7 +92,7 @@ public record S3URI(String bucket,
                 ? authority
                 : authority.substring(atIdx + 1);
             path = uriPath;
-            endpoint = DEFAULT_ENDPOINT;
+            endpoint = S3.DEFAULT_ENDPOINT;
         }
         return new S3URI(
             bucket,

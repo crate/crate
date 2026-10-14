@@ -21,14 +21,15 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.math.BigDecimal;
 import java.math.MathContext;
 
 import ch.obermuhlner.math.big.BigDecimalMath;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
 
 public class RadiansDegreesFunctions {
@@ -38,42 +39,40 @@ public class RadiansDegreesFunctions {
             Signature.builder("radians", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
-                new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, Math::toRadians));
+                new UnaryScalar<>(signature, boundSignature, Math::toRadians));
         module.add(
             Signature.builder("radians", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.NUMERIC,
-                    arg -> BigDecimalMath.toRadians(arg, MathContext.DECIMAL128)));
+                    (BigDecimal arg) -> BigDecimalMath.toRadians(arg, MathContext.DECIMAL128)));
 
         module.add(
             Signature.builder("degrees", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
-                new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, Math::toDegrees));
+                new UnaryScalar<>(signature, boundSignature, Math::toDegrees));
         module.add(
             Signature.builder("degrees", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.NUMERIC,
-                    arg -> BigDecimalMath.toDegrees(arg, MathContext.DECIMAL128)));
+                    (BigDecimal arg) -> BigDecimalMath.toDegrees(arg, MathContext.DECIMAL128)));
     }
 }

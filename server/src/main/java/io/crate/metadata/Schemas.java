@@ -101,10 +101,11 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     private List<String> getSimilarTables(Role user, String tableName, Iterable<TableInfo> tables) {
         LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
         ArrayList<Candidate> candidates = new ArrayList<>();
+        String lTableName = tableName.toLowerCase(Locale.ENGLISH);
         for (TableInfo table : tables) {
             if (roles.hasAnyPrivilege(user, Securable.TABLE, table.ident().fqn())) {
                 String candidate = table.ident().name();
-                float score = levenshteinDistance.getDistance(tableName.toLowerCase(Locale.ENGLISH), candidate.toLowerCase(Locale.ENGLISH));
+                float score = levenshteinDistance.getDistance(lTableName, candidate.toLowerCase(Locale.ENGLISH));
                 if (score > 0.7f) {
                     candidates.add(new Candidate(score, candidate));
                 }
@@ -120,9 +121,10 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     private List<String> getSimilarSchemas(Role user, String schema) {
         LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
         ArrayList<Candidate> candidates = new ArrayList<>();
+        String lSchema = schema.toLowerCase(Locale.ENGLISH);
         for (String availableSchema : schemas.keySet()) {
             if (roles.hasAnyPrivilege(user, Securable.SCHEMA, availableSchema)) {
-                float score = levenshteinDistance.getDistance(schema.toLowerCase(Locale.ENGLISH), availableSchema.toLowerCase(Locale.ENGLISH));
+                float score = levenshteinDistance.getDistance(lSchema, availableSchema.toLowerCase(Locale.ENGLISH));
                 if (score > 0.7f) {
                     candidates.add(new Candidate(score, availableSchema));
                 }
@@ -135,14 +137,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
             .toList();
     }
 
-    static class Candidate {
-        final double score;
-        final String name;
-
-        Candidate(double score, String name) {
-            this.score = score;
-            this.name = name;
-        }
+    record Candidate(double score, String name) {
     }
 
     /**
@@ -234,25 +229,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 relationInfo.ident(),
                 "The relation " + relationInfo.ident().sqlFqn() + " doesn't support " + operation + " operations");
         }
-    }
-
-    @Nullable
-    private static String schemaName(QualifiedName ident) {
-        assert ident.getParts().size() <=
-               3 : "When identifying schemas or tables a qualified name should not have more the 3 parts";
-        List<String> parts = ident.getParts();
-        if (parts.size() >= 2) {
-            return parts.get(parts.size() - 2);
-        } else {
-            return null;
-        }
-    }
-
-    private static String relationName(QualifiedName ident) {
-        assert ident.getParts().size() <=
-               3 : "When identifying schemas or tables a qualified name should not have more the 3 parts";
-        List<String> parts = ident.getParts();
-        return parts.get(parts.size() - 1);
     }
 
     /// @throws [IndexNotFoundException]
@@ -451,8 +427,9 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      * @throws RelationUnknown if the view cannot be resolved against the search path.
      */
     public ViewInfo findView(QualifiedName ident, SearchPath searchPath) {
-        String identSchema = schemaName(ident);
-        String viewName = relationName(ident);
+        RelationName relName = RelationName.of(ident, null);
+        String identSchema = relName.schema();
+        String viewName = relName.name();
         ViewInfo viewInfo = null;
         if (identSchema == null) {
             for (String pathSchema : searchPath) {

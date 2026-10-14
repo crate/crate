@@ -22,9 +22,13 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
+
+import io.crate.exceptions.SQLParseException;
+import io.crate.testing.UseJdbc;
 
 public class WindowFunctionsIntegrationTest extends IntegTestCase {
 
@@ -333,5 +337,33 @@ public class WindowFunctionsIntegrationTest extends IntegTestCase {
             "5",   // ts=2days, 2+3=5
             "7"    // ts=3days, 3+4=7
         );
+    }
+
+    @UseJdbc(0)
+    @Test
+    public void test_rows_frame_bound_parameter_must_not_be_null() {
+        assertThatThrownBy(() -> execute("""
+                SELECT count(*) OVER (
+                    ORDER BY x
+                    ROWS BETWEEN ? PRECEDING AND CURRENT ROW
+                )
+                FROM (VALUES (1)) AS t(x)
+                """,
+            new Object[]{null}
+        ))
+            .isExactlyInstanceOf(SQLParseException.class)
+            .hasMessage("The offset of a `<offset> PRECEDING/FOLLOWING` frame bound must not be null");
+
+        assertThatThrownBy(() -> execute("""
+                SELECT count(*) OVER (
+                    ORDER BY x
+                    ROWS BETWEEN CURRENT ROW AND ? FOLLOWING
+                )
+                FROM (VALUES (1)) AS t(x)
+                """,
+            new Object[]{null}
+        ))
+            .isExactlyInstanceOf(SQLParseException.class)
+            .hasMessage("The offset of a `<offset> PRECEDING/FOLLOWING` frame bound must not be null");
     }
 }

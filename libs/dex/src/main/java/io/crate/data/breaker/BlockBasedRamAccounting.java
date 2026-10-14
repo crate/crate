@@ -23,11 +23,16 @@ package io.crate.data.breaker;
 
 import java.util.function.LongConsumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 /**
  * A RamAccounting implementation that reserves blocks of memory up-front.
  * This implementation should be used from a single thread only.
  */
 public final class BlockBasedRamAccounting implements RamAccounting {
+
+    private static final Logger LOGGER = LogManager.getLogger(BlockBasedRamAccounting.class);
 
     public static final int MAX_BLOCK_SIZE_IN_BYTES = 2 * 1024 * 1024;
 
@@ -68,7 +73,11 @@ public final class BlockBasedRamAccounting implements RamAccounting {
 
     @Override
     public void addBytes(long bytes) {
-        assert !closed : "Cannot account bytes if BlockBasedRamAccounting instance was closed";
+        if (closed == true) {
+            LOGGER.warn("BlockBasedRamAccounting added bytes after instance was closed");
+            assert false : "Cannot account bytes if BlockBasedRamAccounting instance was closed";
+        }
+
         usedBytes += bytes;
         if ((reservedBytes - usedBytes) < 0) {
             long reserveBytes = bytes > blockSizeInBytes ? bytes : blockSizeInBytes;

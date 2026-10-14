@@ -72,7 +72,7 @@ public class AndOperatorTest extends ScalarTestCase {
         Symbol query = sqlExpressions.asSymbol("(a = 1::int or a = 2::int) AND x = 2::int AND name = 'foo'");
         List<Symbol> split = AndOperator.split(query);
         assertList(split).isSQL("((doc.users.a = 1) OR (doc.users.a = 2)), " +
-                                "(doc.users.x = 2::bigint), " +
+                                "(doc.users.x = 2), " +
                                 "(doc.users.name = 'foo')");
     }
 
