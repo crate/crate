@@ -86,3 +86,7 @@ Fixes
 - Disabled the optimizer rule ``optimizer_reorder_nested_loop_join`` by default
   to fix a performance regression of cross and outer joins that could happen if
   a query was run on multiple nodes and table statistics were available.
+
+- Fixed an issue preventing creation of a
+  :ref:`publication <logical-replication-publication>` if it included a table
+  that is included into another publication.
