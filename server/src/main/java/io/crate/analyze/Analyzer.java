@@ -261,9 +261,22 @@ public class Analyzer {
                 paramTypeHints,
                 cursors
             ));
-        roles.getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser())
-            .ensureMayExecute(analyzedStatement);
+        ensureMayExecute(analyzedStatement, sessionSettings);
         return analyzedStatement;
+    }
+
+    public void ensureMayExecute(AnalyzedStatement analyzedStatement, CoordinatorSessionSettings sessionSettings) {
+        Role authenticatedUser = currentRole(sessionSettings.authenticatedUser());
+        Role sessionUser = currentRole(sessionSettings.sessionUser());
+        roles.getAccessControl(authenticatedUser, sessionUser).ensureMayExecute(analyzedStatement);
+    }
+
+    /// Returns the current version of the role, e.g. with privileges granted
+    /// or revoked since the session was created. If the role was dropped,
+    /// the given role is returned.
+    private Role currentRole(Role role) {
+        Role currentRole = roles.findRole(role.name());
+        return currentRole == null ? role : currentRole;
     }
 
     AnalyzedStatement analyzedStatement(Statement statement, Analysis analysis) {

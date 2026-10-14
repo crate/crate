@@ -53,7 +53,7 @@ public class AnalyzedFetch implements AnalyzedStatement {
 
     @Override
     public List<Symbol> outputs() {
-        return cursor.outputs();
+        return cursor.query().outputs();
     }
 
     @Override
