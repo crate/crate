@@ -92,7 +92,6 @@ public class CopyFilterToLeftOfRightJoin implements Rule<Filter> {
         Symbol query = filter.query();
 
         var splitQueries = QuerySplitter.split(query);
-        var lhsRelations = new HashSet<>(join.lhs().relationNames());
         var rhsRelations = new HashSet<>(join.rhs().relationNames());
         var symbolEvaluator = new NullSymbolEvaluator(context.txnCtx(), context.nodeCtx());
         List<Symbol> pushableConjuncts = new ArrayList<>();
