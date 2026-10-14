@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -213,7 +214,8 @@ final class DocValuesGroupByOptimizedIterator {
                 (expressions) -> expressions.get(0).value(),
                 (key, cells) -> cells[0] = key,
                 query,
-                collectorContext
+                collectorContext,
+                GroupByMaps.mapForType(valueType)
             );
         }
 
@@ -269,6 +271,35 @@ final class DocValuesGroupByOptimizedIterator {
                                                   BiConsumer<K, Object[]> applyKeyToCells,
                                                   Query query,
                                                   CollectorContext collectorContext) {
+            return getIterator(
+                aggregators,
+                indexSearcher,
+                keyExpressions,
+                ramAccounting,
+                memoryManager,
+                minNodeVersion,
+                accountForNewKeyEntry,
+                keyExtractor,
+                applyKeyToCells,
+                query,
+                collectorContext,
+                () -> GroupByMaps.wrapperForJDKMap(new HashMap<>())
+            );
+        }
+
+        @SuppressWarnings("rawtypes")
+        static <K> BatchIterator<Row> getIterator(List<DocValueAggregator> aggregators,
+                                                  IndexSearcher indexSearcher,
+                                                  List<? extends LuceneCollectorExpression<?>> keyExpressions,
+                                                  RamAccounting ramAccounting,
+                                                  MemoryManager memoryManager,
+                                                  Version minNodeVersion,
+                                                  TriConsumer<ResizeAwareMap<K, Object[]>, K, Object[]> accountForNewKeyEntry,
+                                                  Function<List<? extends LuceneCollectorExpression<?>>, K> keyExtractor,
+                                                  BiConsumer<K, Object[]> applyKeyToCells,
+                                                  Query query,
+                                                  CollectorContext collectorContext,
+                                                  Supplier<ResizeAwareMap<K, Object[]>> mapSupplier) {
             for (int i = 0; i < keyExpressions.size(); i++) {
                 keyExpressions.get(i).startCollect(collectorContext);
             }
@@ -287,7 +318,8 @@ final class DocValuesGroupByOptimizedIterator {
                         memoryManager,
                         minNodeVersion,
                         query,
-                        killToken
+                        killToken,
+                        mapSupplier
                     ),
                     keyExpressions.size(),
                     applyKeyToCells,
@@ -335,10 +367,11 @@ final class DocValuesGroupByOptimizedIterator {
             MemoryManager memoryManager,
             Version minNodeVersion,
             Query query,
-            Killable.Token killToken
+            Killable.Token killToken,
+            Supplier<ResizeAwareMap<K, Object[]>> mapSupplier
         ) throws IOException {
 
-            ResizeAwareMap<K, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(new HashMap<>());
+            ResizeAwareMap<K, Object[]> statesByKey = mapSupplier.get();
             Weight weight = indexSearcher.createWeight(
                 indexSearcher.rewrite(query),
                 ScoreMode.COMPLETE_NO_SCORES,
