@@ -27,9 +27,10 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.breaker.TypedCellsAccounting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.ArrayRow;
 import io.crate.data.BatchIterator;
@@ -42,7 +43,6 @@ import io.crate.data.RowConsumer;
 import io.crate.data.SentinelRow;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RowAccounting;
-import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.sql.tree.Declare.Hold;
 import io.crate.sql.tree.Fetch.ScrollMode;
@@ -52,7 +52,6 @@ public final class Cursor implements AutoCloseable {
     private final Hold hold;
     private final CompletableFuture<BatchIterator<Row>> queryIterator;
     private final CompletableFuture<Void> finalResult;
-    private final List<Symbol> outputs;
     private final boolean scroll;
     private final List<Object[]> rows = new ArrayList<>();
     private final ArrayRow sharedRow = new ArrayRow();
@@ -60,6 +59,7 @@ public final class Cursor implements AutoCloseable {
     private final long creationTime;
     private final String name;
     private final String declareStatement;
+    private final AnalyzedStatement query;
     private boolean exhausted = false;
     @VisibleForTesting
     int cursorPosition = 0;
@@ -71,16 +71,16 @@ public final class Cursor implements AutoCloseable {
                   Hold hold,
                   CompletableFuture<BatchIterator<Row>> queryIterator,
                   CompletableFuture<Void> finalResult,
-                  List<Symbol> outputs) {
+                  AnalyzedStatement query) {
         this.name = name;
+        this.query = query;
         this.declareStatement = declareStatement;
         this.scroll = scroll;
         this.hold = hold;
         this.queryIterator = queryIterator;
         this.finalResult = finalResult;
-        this.outputs = outputs;
         this.rowAccounting = new TypedCellsAccounting(
-            Symbols.typeView(outputs),
+            Symbols.typeView(query.outputs()),
             new BlockBasedRamAccounting(
                 bytes -> circuitBreaker.addEstimateBytesAndMaybeBreak(bytes, "cursor-scroll"),
                 BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES
@@ -92,6 +92,10 @@ public final class Cursor implements AutoCloseable {
 
     public String name() {
         return name;
+    }
+
+    public AnalyzedStatement query() {
+        return query;
     }
 
     public String declareStatement() {
@@ -307,10 +311,6 @@ public final class Cursor implements AutoCloseable {
             sharedRow.cells(cells);
             return sharedRow;
         });
-    }
-
-    public List<Symbol> outputs() {
-        return outputs;
     }
 
     @Override
