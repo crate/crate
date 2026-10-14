@@ -40,6 +40,7 @@ import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mockito;
 
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.auth.Protocol;
 import io.crate.common.unit.TimeValue;
@@ -203,7 +204,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             Hold.WITH,
             CompletableFuture.completedFuture(InMemoryBatchIterator.empty(null)),
             new CompletableFuture<>(),
-            List.of()
+            mock(AnalyzedStatement.class)
         );
     }
 

@@ -266,7 +266,7 @@ public class SysShardsTableInfo {
                                      Roles roles) {
         Metadata metadata = clusterState.metadata();
         ArrayList<String> indexUUIDs = new ArrayList<>();
-        Role user = sessionSettings != null ? sessionSettings.sessionUser() : null;
+        Role user = sessionSettings != null ? roles.findRole(sessionSettings.sessionUser().name()) : null;
         if (user != null) {
             for (var table : metadata.relations(RelationMetadata.Table.class)) {
                 if (roles.hasAnyPrivilege(user, Securable.TABLE, table.name().fqn())) {
