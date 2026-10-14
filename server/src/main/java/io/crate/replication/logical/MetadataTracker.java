@@ -35,7 +35,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -73,6 +73,7 @@ import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.PublicationsStateAction.Response;
 import io.crate.replication.logical.action.UpdateSubscriptionAction;
 import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
+import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.Subscription.RelationState;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
@@ -85,7 +86,7 @@ public final class MetadataTracker implements Closeable {
     private final ThreadPool threadPool;
     private final LogicalReplicationService replicationService;
     private final LogicalReplicationSettings replicationSettings;
-    private final Function<String, Client> remoteClient;
+    private final BiFunction<String, ConnectionInfo, CompletableFuture<Client>> remoteClient;
     private final ClusterService clusterService;
     private final IndexScopedSettings indexScopedSettings;
     private final AllocationService allocationService;
@@ -101,7 +102,7 @@ public final class MetadataTracker implements Closeable {
                            ThreadPool threadPool,
                            LogicalReplicationService replicationService,
                            LogicalReplicationSettings replicationSettings,
-                           Function<String, Client> remoteClient,
+                           BiFunction<String, ConnectionInfo, CompletableFuture<Client>> remoteClient,
                            ClusterService clusterService,
                            AllocationService allocationService,
                            MetadataUpgradeService metadataUpgradeService) {
@@ -203,18 +204,19 @@ public final class MetadataTracker implements Closeable {
             }
             return CompletableFuture.completedFuture(null);
         }
-        Client client;
+        CompletableFuture<Client> clientFuture;
         try {
-            client = remoteClient.apply(subscriptionName);
+            clientFuture = remoteClient.apply(subscriptionName, subscription.connectionInfo());
         } catch (Exception e) {
-            return CompletableFuture.failedFuture(e);
+            clientFuture = CompletableFuture.failedFuture(e);
         }
 
         var request = new PublicationsStateAction.Request(
             subscription.publications(),
             subscription.connectionInfo().user()
         );
-        CompletableFuture<Response> publicationsState = client.execute(PublicationsStateAction.INSTANCE, request)
+        CompletableFuture<Response> publicationsState = clientFuture
+            .thenCompose(client -> client.execute(PublicationsStateAction.INSTANCE, request))
             .thenApply(r ->
                 new Response(
                     metadataUpgradeService.upgradeMetadata(r.metadata()),
