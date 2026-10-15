@@ -33,6 +33,7 @@ import dev.hardwood.InputFile;
 import dev.hardwood.reader.ParquetFileReader;
 import dev.hardwood.reader.RowReader;
 import dev.hardwood.schema.ColumnProjection;
+import dev.hardwood.schema.FileSchema;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -47,6 +48,7 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
     private final Object[] cells;
     private final Row row;
     private ParquetFileReader reader;
+    private FileSchema fileSchema;
     private RowReader rowReader;
     private final List<Reference> columns;
     private final List<InputFile> inputFiles;
@@ -86,7 +88,7 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
             rowReader.next();
             for (int i = 0; i < columns.size(); i++) {
                 Reference ref = columns.get(i);
-                Object object = getObject(rowReader, ref);
+                Object object = getObject(fileSchema, rowReader, ref);
                 try {
                     cells[i] = ref.valueType().implicitCast(object);
                 } catch (ClassCastException | IllegalArgumentException e) {
@@ -147,6 +149,7 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
     private void initReader() {
         try {
             reader = ParquetFileReader.openAll(inputFiles);
+            fileSchema = reader.getFileSchema();
             rowReader = reader.buildRowReader()
                     .projection(ColumnProjection.columns(columns.stream()
                             .map(ref -> ref.column().fqn())

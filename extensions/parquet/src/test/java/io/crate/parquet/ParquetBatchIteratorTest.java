@@ -128,6 +128,28 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
     public void test_raises_if_cratedb_foreign_table_schema_is_incompatible_with_the_underlying_parquet_schema()
             throws Exception {
         SQLExecutor executor = SQLExecutor.of(clusterService)
+                .addTable("create table doc.taxi_wrong_data_type (total_amount_earned text)");
+        DocTableInfo table = executor.resolveTableInfo("doc.taxi_wrong_data_type");
+
+        Symbol query = executor.asSymbol("true");
+        List<Reference> columns = List.of(
+                table.getReadReference(ColumnIdent.of("total_amount_earned")));
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, query);
+        assertThatThrownBy(() -> {
+            try {
+                it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
+            } catch (ExecutionException e) {
+                throw Exceptions.toRuntimeException(e);
+            }
+        })
+            .isExactlyInstanceOf(IncompatibleSchemaForParquet.class)
+            .hasMessage(
+                "The requested column `total_amount_earned` has type `text` in the foreign table, but in the parquet file it has type `DECIMAL(18, 3)`. These are incompatible.");
+    }
+
+    @Test
+    public void test_error_message_falls_back_to_physical_type_if_no_logical_type() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
                 .addTable("create table doc.taxi_wrong_data_type (trip_distance text)");
         DocTableInfo table = executor.resolveTableInfo("doc.taxi_wrong_data_type");
 
@@ -144,6 +166,6 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         })
             .isExactlyInstanceOf(IncompatibleSchemaForParquet.class)
             .hasMessage(
-                "The requested column `trip_distance` has type `text`, but that is not compatible with the column in the parquet file");
+                "The requested column `trip_distance` has type `text` in the foreign table, but in the parquet file it has type `DOUBLE`. These are incompatible.");
     }
 }

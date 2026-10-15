@@ -23,16 +23,28 @@ package io.crate.parquet.exceptions;
 
 import java.util.Locale;
 
+import dev.hardwood.metadata.LogicalType;
+import dev.hardwood.metadata.PhysicalType;
+import dev.hardwood.schema.ColumnSchema;
 import io.crate.metadata.ColumnIdent;
 import io.crate.types.DataType;
 
 public class IncompatibleSchemaForParquet extends IllegalArgumentException {
-    public IncompatibleSchemaForParquet(ColumnIdent fullyQualifiedName, DataType<?> dataType) {
+    private IncompatibleSchemaForParquet(ColumnIdent fullyQualifiedName, DataType<?> dataType, Object dataTypeParquet) {
         super(String.format(
                 Locale.ENGLISH,
-                "The requested column `%s` has type `%s`, but that is not compatible with the column in the parquet file",
+                "The requested column `%s` has type `%s` in the foreign table, but in the parquet file it has type `%s`. These are incompatible.",
                 fullyQualifiedName,
-                dataType.getName()));
+                dataType.getName(),
+                dataTypeParquet
+        ));
     }
 
+    public IncompatibleSchemaForParquet(ColumnIdent fullyQualifiedName, DataType<?> dataType, LogicalType dataTypeParquet) {
+        this(fullyQualifiedName, dataType, (Object) dataTypeParquet);
+    }
+
+    public IncompatibleSchemaForParquet(ColumnIdent fullyQualifiedName, DataType<?> dataType, PhysicalType dataTypeParquet) {
+        this(fullyQualifiedName, dataType, (Object) dataTypeParquet);
+    }
 }

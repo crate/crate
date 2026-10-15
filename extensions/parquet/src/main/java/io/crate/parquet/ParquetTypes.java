@@ -21,7 +21,10 @@
 
 package io.crate.parquet;
 
+import dev.hardwood.metadata.LogicalType;
 import dev.hardwood.reader.RowReader;
+import dev.hardwood.schema.ColumnSchema;
+import dev.hardwood.schema.FileSchema;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.parquet.exceptions.IncompatibleSchemaForParquet;
@@ -44,7 +47,7 @@ import io.crate.types.UUIDType;
 
 public class ParquetTypes {
 
-    public static Object getObject(RowReader rowReader, Reference ref) throws IncompatibleSchemaForParquet {
+    public static Object getObject(FileSchema fileSchema, RowReader rowReader, Reference ref) throws IncompatibleSchemaForParquet {
         DataType<?> crateType = ref.valueType();
         ColumnIdent col = ref.column();
         String fqn = col.fqn();
@@ -79,7 +82,12 @@ public class ParquetTypes {
             };
             return object;
         } catch (RuntimeException e) {
-            throw new IncompatibleSchemaForParquet(col, crateType);
+            ColumnSchema columnSchema = fileSchema.getColumn(fqn);
+            LogicalType logicalType = columnSchema.logicalType();
+            if (logicalType != null) {
+                throw new IncompatibleSchemaForParquet(col, crateType, logicalType);
+            }
+            throw new IncompatibleSchemaForParquet(col, crateType, columnSchema.type());
         }
     }
 }
