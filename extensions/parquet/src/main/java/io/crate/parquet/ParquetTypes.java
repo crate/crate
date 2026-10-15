@@ -54,26 +54,26 @@ public class ParquetTypes {
 
         try {
             Object object = switch (crateType.id()) {
-                case BooleanType.ID -> rowReader.getBoolean(fqn);
-                case IntegerType.ID -> rowReader.getInt(fqn);
-                case ShortType.ID -> crateType.implicitCast(rowReader.getInt(fqn));
-                case LongType.ID -> rowReader.getLong(fqn);
+                case BooleanType.ID -> rowReader.isNull(fqn) ? null : rowReader.getBoolean(fqn);
+                case IntegerType.ID -> rowReader.isNull(fqn) ? null : rowReader.getInt(fqn);
+                case ShortType.ID -> rowReader.isNull(fqn) ? null : crateType.implicitCast(rowReader.getInt(fqn));
+                case LongType.ID -> rowReader.isNull(fqn) ? null : rowReader.getLong(fqn);
                 case NumericType.ID -> crateType.implicitCast(rowReader.getDecimal(fqn));
-                case FloatType.ID -> rowReader.getFloat(fqn);
-                case DoubleType.ID -> rowReader.getDouble(fqn);
+                case FloatType.ID -> rowReader.isNull(fqn) ? null : rowReader.getFloat(fqn);
+                case DoubleType.ID -> rowReader.isNull(fqn) ? null : rowReader.getDouble(fqn);
                 case StringType.ID -> rowReader.getString(fqn);
                 case DateType.ID -> crateType.implicitCast(rowReader.getDate(fqn));
                 case TimestampType.ID_WITH_TZ -> crateType.implicitCast(rowReader.getTimestamp(fqn));
                 case TimestampType.ID_WITHOUT_TZ -> crateType.implicitCast(rowReader.getLocalTimestamp(fqn));
                 case UUIDType.ID -> rowReader.getUuid(fqn);
                 case ObjectType.ID -> crateType.implicitCast(rowReader.getString(fqn));
-                case ArrayType.ID -> crateType.implicitCast(rowReader.getList(fqn).values());
+                case ArrayType.ID -> rowReader.isNull(fqn) ? null : crateType.implicitCast(rowReader.getList(fqn).values());
                 case BitStringType.ID -> crateType.implicitCast(rowReader.getString(fqn));
                 case IpType.ID -> {
                     try {
                         yield crateType.implicitCast(rowReader.getString(fqn));
                     } catch (RuntimeException e) {
-                        yield crateType.implicitCast(rowReader.getLong(fqn));
+                        yield rowReader.isNull(fqn) ? null : crateType.implicitCast(rowReader.getLong(fqn));
                     }
                 }
                 default ->

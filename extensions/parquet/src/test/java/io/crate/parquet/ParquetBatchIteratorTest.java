@@ -54,7 +54,8 @@ import io.crate.types.TimestampType;
 public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
     private final List<Path> parquetFile = List.of(
             getDataPath("/data").resolve("yellow_taxi_01.parquet"),
-            getDataPath("/data").resolve("yellow_taxi_02.parquet"));
+            getDataPath("/data").resolve("yellow_taxi_02.parquet"),
+            getDataPath("/data").resolve("yellow_taxi_03.parquet"));
 
     private SQLExecutor e;
 
@@ -120,7 +121,8 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                 new Object[] {1024.128f, 7, 5.38, false, (short) 1, 1L, NumericType.INSTANCE.implicitCast("748.944"), "local", DateType.INSTANCE.implicitCast("2024-01-01"), TimestampType.INSTANCE_WITHOUT_TZ.implicitCast("2026-01-01T00:45:00Z"), TimestampType.INSTANCE_WITH_TZ.implicitCast("2026-09-15 14:05:54.143503+02"), UUID.fromString("c7237362-8280-46d6-9110-f47fddfa14de"), Map.ofEntries(Map.entry("engine_temp", 50), Map.entry("outdoor_temp", 0)), List.of(1, 1, 0, 0), BitStringType.INSTANCE_ONE.implicitCast("101010"), IpType.INSTANCE.implicitCast("127.0.0.1"), IpType.INSTANCE.implicitCast(2130706433) },
                 new Object[] {1024.128f, 7, 1.22, false, (short) 1, 2L, NumericType.INSTANCE.implicitCast("6.757"), "local", DateType.INSTANCE.implicitCast("2024-01-01"), TimestampType.INSTANCE_WITHOUT_TZ.implicitCast("2026-01-01T00:51:33Z"), TimestampType.INSTANCE_WITH_TZ.implicitCast("2026-09-15 14:05:54.143503+02"), UUID.fromString("612240cb-ab6b-4a30-9e38-c351bb3f3499"), Map.ofEntries(Map.entry("engine_temp", 50), Map.entry("outdoor_temp", 0)), List.of(1, 1, 0, 0), BitStringType.INSTANCE_ONE.implicitCast("101010"), IpType.INSTANCE.implicitCast("127.0.0.1"), IpType.INSTANCE.implicitCast(2130706433) },
                 new Object[] {1024.128f, 7, 1.69, false, (short) 1, 3L, NumericType.INSTANCE.implicitCast("806.736"), "local", DateType.INSTANCE.implicitCast("2024-01-01"), TimestampType.INSTANCE_WITHOUT_TZ.implicitCast("2026-01-01T00:40:03Z"), TimestampType.INSTANCE_WITH_TZ.implicitCast("2026-09-15 14:05:54.143503+02"), UUID.fromString("87c114e3-30a4-415a-bd75-e1ef37e331e5"), Map.ofEntries(Map.entry("engine_temp", 50), Map.entry("outdoor_temp", 0)), List.of(1, 1, 0, 0), BitStringType.INSTANCE_ONE.implicitCast("101010"), IpType.INSTANCE.implicitCast("127.0.0.1"), IpType.INSTANCE.implicitCast(2130706433) },
-                new Object[] {1024.128f, 7, 1.13, false, (short) 1, 1L, NumericType.INSTANCE.implicitCast("300.954"), "local", DateType.INSTANCE.implicitCast("2024-01-01"), TimestampType.INSTANCE_WITHOUT_TZ.implicitCast("2026-01-01T00:36:07Z"), TimestampType.INSTANCE_WITH_TZ.implicitCast("2026-09-15 14:05:54.143503+02"), UUID.fromString("edb3c0b8-1345-43a1-bf98-acdb9f35948a"), Map.ofEntries(Map.entry("engine_temp", 50), Map.entry("outdoor_temp", 0)), List.of(1, 1, 0, 0), BitStringType.INSTANCE_ONE.implicitCast("101010"), IpType.INSTANCE.implicitCast("127.0.0.1"), IpType.INSTANCE.implicitCast(2130706433) });
+                new Object[] {1024.128f, 7, 1.13, false, (short) 1, 1L, NumericType.INSTANCE.implicitCast("300.954"), "local", DateType.INSTANCE.implicitCast("2024-01-01"), TimestampType.INSTANCE_WITHOUT_TZ.implicitCast("2026-01-01T00:36:07Z"), TimestampType.INSTANCE_WITH_TZ.implicitCast("2026-09-15 14:05:54.143503+02"), UUID.fromString("edb3c0b8-1345-43a1-bf98-acdb9f35948a"), Map.ofEntries(Map.entry("engine_temp", 50), Map.entry("outdoor_temp", 0)), List.of(1, 1, 0, 0), BitStringType.INSTANCE_ONE.implicitCast("101010"), IpType.INSTANCE.implicitCast("127.0.0.1"), IpType.INSTANCE.implicitCast(2130706433) },
+                new Object[] {null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null });
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
