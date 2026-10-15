@@ -25,7 +25,6 @@ import java.util.Locale;
 
 import dev.hardwood.metadata.LogicalType;
 import dev.hardwood.metadata.PhysicalType;
-import dev.hardwood.schema.ColumnSchema;
 import io.crate.metadata.ColumnIdent;
 import io.crate.types.DataType;
 
