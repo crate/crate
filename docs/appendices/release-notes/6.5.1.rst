@@ -148,3 +148,9 @@ Fixes
     JOIN t3 ON t1.x = t2.y AND t1.x = t3.z;
 
   A query like this used to fail with ``Index 1 out of bounds for length 1``.
+
+- Fixed an issue causing :ref:`CREATE SUBSCRIPTION<sql-create-subscription>` to
+  get stuck if :ref:`pg_tunnel mode <sql-create-subscription-conn-info>` was
+  used together with  ``sslmode`` set to ``prefer`` or ``required`` and
+  subscriber cluster didn't trust publisher cluster's certificate.
+
