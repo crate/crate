@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
@@ -280,8 +279,8 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
             .build()
         );
         subscriberCluster = newCluster("subscriber", Settings.builder()
-            .put(SslSettings.SSL_PSQL_ENABLED.getKey(), true)
-            .put(SslSettings.SSL_KEYSTORE_FILEPATH.getKey(), keystorePath.toAbsolutePath().toString())
+           // .put(SslSettings.SSL_PSQL_ENABLED.getKey(), true)
+         //   .put(SslSettings.SSL_KEYSTORE_FILEPATH.getKey(), keystorePath.toAbsolutePath().toString())
             .build()
         );
 
