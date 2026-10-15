@@ -25,8 +25,8 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.rule.MoveFilterBeneathJoin.getNewSource;
 
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -83,8 +83,8 @@ public class MoveConstantJoinConditionsBeneathJoin implements Rule<JoinPlan> {
         var resolvePlan = context.resolvePlan();
         var conditions = joinPlan.joinCondition();
         var allConditions = QuerySplitter.split(conditions);
-        var constantConditions = new HashMap<Set<RelationName>, Symbol>(allConditions.size());
-        var nonConstantConditions = new HashSet<Symbol>(allConditions.size());
+        var constantConditions = new LinkedHashMap<Set<RelationName>, Symbol>(allConditions.size());
+        var nonConstantConditions = LinkedHashSet.<Symbol>newLinkedHashSet(allConditions.size());
         for (var condition : allConditions.entrySet()) {
             if (numberOfRelationsUsed(condition.getValue()) <= 1) {
                 constantConditions.put(condition.getKey(), condition.getValue());
