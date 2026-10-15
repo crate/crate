@@ -96,6 +96,13 @@ public abstract class StorageSupport<T> {
         throw new UnsupportedOperationException("decodeFromInt not supported");
     }
 
+    /**
+     * Decode a value from the packed bytes of a point in the BKD index.
+     */
+    public T decode(byte[] packedPoint) {
+        throw new UnsupportedOperationException("decodeFromPackedPoint not supported");
+    }
+
     public abstract T decode(DataType<T> type, XContentParser parser) throws IOException;
 
     /**

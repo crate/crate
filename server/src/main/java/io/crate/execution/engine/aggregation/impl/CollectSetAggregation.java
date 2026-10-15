@@ -76,7 +76,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     private final DataType<Object> elementType;
 
     @SuppressWarnings("unchecked")
-    private CollectSetAggregation(Signature signature, BoundSignature boundSignature) {
+    CollectSetAggregation(Signature signature, BoundSignature boundSignature) {
         this.elementType = (DataType<Object>) ((ArrayType<?>) boundSignature.returnType()).innerType();
         this.signature = signature;
         this.boundSignature = boundSignature;

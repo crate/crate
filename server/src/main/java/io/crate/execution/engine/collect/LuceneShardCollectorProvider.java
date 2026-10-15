@@ -198,6 +198,15 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         if (it != null) {
             return it;
         }
+        it = LooseIndexScan.tryCollectNumericSet(
+            nodeCtx.functions(),
+            indexShard,
+            normalizedPhase,
+            collectTask
+        );
+        if (it != null) {
+            return it;
+        }
         return DocValuesAggregates.tryOptimize(
             nodeCtx.functions(),
             referenceResolver,
