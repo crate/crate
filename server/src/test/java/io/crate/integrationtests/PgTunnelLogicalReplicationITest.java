@@ -57,7 +57,9 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
 
     @Test
     public void test_partitioned_replication_resumes_after_publisher_restart() throws Exception {
-        publisherCluster = newCluster("publisher", Settings.EMPTY);
+        publisherCluster = newCluster("publisher", Settings.builder()
+            .put(PostgresNetty.PSQL_PORT_SETTING.getKey(), getPortRange())
+            .build());
         subscriberCluster = newCluster("subscriber", Settings.EMPTY);
         publisher = publisherCluster.createSQLTransportExecutor();
         subscriber = subscriberCluster.createSQLTransportExecutor();
@@ -105,7 +107,6 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
                 throw new AssertionError(e);
             }
         });
-
     }
 
     private TestCluster publisherCluster;
