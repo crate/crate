@@ -25,12 +25,17 @@ Version 6.5.1 - Unreleased
 
 .. WARNING::
 
+    Downgrading from 6.5.1 to 6.5.0 is not supported. This is due to an Apache
+    Lucene upgrade that's included in 6.5.1 and that prevents segment
+    corruption. More information can be found in `the change log`_.
+
     Tables that were created before CrateDB 5.x will not function with 6.x
     and must be recreated before moving to 6.x.x.
 
     You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
     `inserting the data into a new table`_.
 
+.. _the change log: https://lucene.apache.org/core/10_5_2/changes/Changes.html#v10.5.2
 .. _back up your data: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
 .. _inserting the data into a new table: https://cratedb.com/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
