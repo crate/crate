@@ -1623,7 +1623,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(plan).hasOperators(
             "Eval[x, y, z]",
-            "  └ HashJoin[INNER | (((y = z) AND (random() < 0.5)) AND (NOT (gen_random_text_uuid() = 'abc')))]",
+            "  └ HashJoin[INNER | ((y = z) AND ((random() < 0.5) AND (NOT (gen_random_text_uuid() = 'abc'))))]",
             "    ├ HashJoin[INNER | (x = z)]",
             "    │  ├ Collect[doc.t1 | [x] | true]",
             "    │  └ Collect[doc.t3 | [z] | true]",
@@ -1643,7 +1643,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(plan).hasOperators(
             "Filter[(random() < 0.5)]",
-            "  └ HashJoin[INNER | (y = z)]",
+            "  └ HashJoin[INNER | (z = y)]",
             "    ├ HashJoin[INNER | (x = y)]",
             "    │  ├ Collect[doc.t1 | [x] | true]",
             "    │  └ Collect[doc.t2 | [y] | true]",
@@ -1660,7 +1660,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(plan).hasOperators(
             "Filter[((random() < 0.5) AND (NOT (gen_random_text_uuid() = 'abc')))]",
-            "  └ HashJoin[INNER | (y = z)]",
+            "  └ HashJoin[INNER | (z = y)]",
             "    ├ HashJoin[INNER | (x = y)]",
             "    │  ├ Collect[doc.t1 | [x] | true]",
             "    │  └ Collect[doc.t2 | [y] | true]",
@@ -1705,7 +1705,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "Eval[x, y, z, id]",
             "  └ HashJoin[INNER | (z = id)]",
             "    ├ HashJoin[INNER | (x = id)]",
-            "    │  ├ HashJoin[INNER | (((x = y) AND (random() < 0.5)) AND (NOT (gen_random_text_uuid() = 'abc')))]",
+            "    │  ├ HashJoin[INNER | ((x = y) AND ((random() < 0.5) AND (NOT (gen_random_text_uuid() = 'abc'))))]",
             "    │  │  ├ Collect[doc.t1 | [x] | true]",
             "    │  │  └ Collect[doc.t2 | [y] | true]",
             "    │  └ Collect[doc.t4 | [id] | true]",
@@ -1746,7 +1746,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(plan).hasOperators(
             "Eval[x, y, z]",
-            "  └ HashJoin[INNER | (((y = z) AND (random() < 0.5)) AND (NOT (gen_random_text_uuid() = 'abc')))]",
+            "  └ HashJoin[INNER | ((y = z) AND ((random() < 0.5) AND (NOT (gen_random_text_uuid() = 'abc'))))]",
             "    ├ HashJoin[INNER | (x = z)]",
             "    │  ├ Collect[doc.t1 | [x] | true]",
             "    │  └ Collect[doc.t3 | [z] | true]",
@@ -1826,7 +1826,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         );
 
         assertThat(plan).hasOperators(
-            "HashJoin[INNER | ((z = x) AND (z = y))]",
+            "HashJoin[INNER | ((x = z) AND (y = z))]",
             "  ├ Rename[x, y] AS s",
             "  │  └ Filter[(random() < 0.5)]",
             "  │    └ NestedLoopJoin[CROSS]",
