@@ -22,6 +22,7 @@
 package io.crate.protocols.postgres;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.Version;
@@ -45,13 +47,13 @@ import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.auth.AlwaysOKAuthentication;
-import io.crate.auth.Authentication;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
@@ -65,7 +67,15 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 public class PgClientTest extends CrateDummyClusterServiceUnitTest {
 
     private List<LifecycleComponent> toClose = new ArrayList<>();
+    private NettyBootstrap nettyBootstrap;
     private PgClient pgClient;
+
+    @Before
+    public void init() {
+        nettyBootstrap = new NettyBootstrap(Settings.EMPTY);
+        nettyBootstrap.start();
+        toClose.add(nettyBootstrap);
+    }
 
     @After
     public void stop() throws Exception {
@@ -73,7 +83,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
             lifecycleComponent.close();
         }
         assertBusy(() -> {
-            assertThat(pgClient.nettyBootstrap.workerIsShutdown()).isTrue();
+            assertThat(nettyBootstrap.workerIsShutdown()).isTrue();
         });
     }
 
@@ -85,88 +95,9 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
         var serverNodeSettings = Settings.builder()
             .put("node.name", "server")
             .build();
-        var clientSettings = Settings.builder()
-            .put("node.name", "client")
-            .build();
-        var nettyBootstrap = new NettyBootstrap(Settings.EMPTY);
-        nettyBootstrap.start();
-        toClose.add(nettyBootstrap);
-        var pageCacheRecycler = PageCacheRecycler.NON_RECYCLING_INSTANCE;
-        var networkService = new NetworkService(List.of());
-        var namedWriteableRegistry = new NamedWriteableRegistry(List.of());
-        var circuitBreakerService = new NoneCircuitBreakerService();
-        Authentication authentication = new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER));
-        var sslContextProvider = new SslContextProvider(serverNodeSettings);
-        var serverTransport = new Netty4Transport(
-            serverNodeSettings,
-            Version.CURRENT,
-            THREAD_POOL,
-            networkService,
-            pageCacheRecycler,
-            namedWriteableRegistry,
-            circuitBreakerService,
-            nettyBootstrap,
-            authentication,
-            sslContextProvider
-        );
-        toClose.add(serverTransport);
-        var clientTransport = new Netty4Transport(
-            clientSettings,
-            Version.CURRENT,
-            THREAD_POOL,
-            networkService,
-            pageCacheRecycler,
-            namedWriteableRegistry,
-            circuitBreakerService,
-            nettyBootstrap,
-            authentication,
-            sslContextProvider
-        ); // clientTransport is closed via clientTransportService
-        var sqlOperations = mock(Sessions.class);
-        when(sqlOperations.newSession(
-            any(ConnectionProperties.class),
-            any(String.class),
-            any(Role.class))
-        ).thenReturn(mock(Session.class, Answers.RETURNS_MOCKS));
-        PostgresNetty postgresNetty = new PostgresNetty(
-            serverNodeSettings,
-            new SessionSettingRegistry(Set.of()),
-            sqlOperations,
-            new StubRoleManager(),
-            networkService,
-            authentication,
-            nettyBootstrap,
-            serverTransport,
-            pageCacheRecycler,
-            sslContextProvider
-        );
-        toClose.add(postgresNetty);
-        postgresNetty.start();
-        TransportAddress serverAddress = postgresNetty.boundAddress().publishAddress();
-        DiscoveryNode localNode = new DiscoveryNode("client", serverAddress, Version.CURRENT);
-        var clientTransportService = new TransportService(
-            clientSettings,
-            clientTransport,
-            THREAD_POOL,
-            address -> localNode,
-            null
-        );
-        toClose.add(clientTransportService);
-        clientTransportService.start();
-        clientTransportService.acceptIncomingRequests();
-        pgClient = new PgClient(
-            "dummy",
-            clientSettings,
-            clientTransportService,
-            nettyBootstrap,
-            clientTransport,
-            null, // sslContextProvider
-            pageCacheRecycler,
-            new ConnectionInfo(
-                List.of(serverAddress.getAddress() + ':' + serverAddress.getPort()),
-                Settings.builder().put("user", "crate").build()
-            )
-        );
+        TransportAddress serverAddress = startPostgresNetty(serverNodeSettings);
+        pgClient = pgClient(serverAddress, Settings.EMPTY);
+
 
         CompletableFuture<Connection> connect = pgClient.ensureConnected();
         Connection connection = connect.get(10, TimeUnit.SECONDS);
@@ -191,5 +122,89 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
 
         pgClient.close();
         assertThat(connection.isClosed()).as("pgClient.close must close connection").isTrue();
+    }
+
+    @Test
+    public void test_connect_fails_if_ssl_is_required_but_server_does_not_support_it() throws Exception {
+        TransportAddress serverAddress = startPostgresNetty(Settings.builder().put("node.name", "server").build());
+        pgClient = pgClient(serverAddress, Settings.builder().put("sslmode", "require").build());
+
+        CompletableFuture<Connection> connect = pgClient.ensureConnected();
+        assertThatThrownBy(() -> connect.get(10, TimeUnit.SECONDS))
+            .isExactlyInstanceOf(ExecutionException.class)
+            .hasMessageContaining("SSL required but not supported");
+        pgClient.close();
+    }
+
+    private Netty4Transport newTransport(Settings settings) {
+        return new Netty4Transport(
+            settings,
+            Version.CURRENT,
+            THREAD_POOL,
+            new NetworkService(List.of()),
+            PageCacheRecycler.NON_RECYCLING_INSTANCE,
+            new NamedWriteableRegistry(List.of()),
+            new NoneCircuitBreakerService(),
+            nettyBootstrap,
+            new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+            new SslContextProvider(settings)
+        );
+    }
+
+    private TransportAddress startPostgresNetty(Settings serverNodeSettings) {
+        var transport = newTransport(serverNodeSettings);
+        toClose.add(transport); // postgresNetty doesn't close transport.
+
+        var sqlOperations = mock(Sessions.class);
+        when(sqlOperations.newSession(
+            any(ConnectionProperties.class),
+            any(String.class),
+            any(Role.class))
+        ).thenReturn(mock(Session.class, Answers.RETURNS_MOCKS));
+
+        PostgresNetty postgresNetty = new PostgresNetty(
+            serverNodeSettings,
+            new SessionSettingRegistry(Set.of()),
+            sqlOperations,
+            new StubRoleManager(),
+            new NetworkService(List.of()),
+            new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+            nettyBootstrap,
+            transport,
+            PageCacheRecycler.NON_RECYCLING_INSTANCE,
+            new SslContextProvider(serverNodeSettings));
+
+        toClose.add(postgresNetty);
+        postgresNetty.start();
+        return postgresNetty.boundAddress().publishAddress();
+    }
+
+    private PgClient pgClient(TransportAddress serverAddress, Settings connectionSettings) {
+        var clientSettings = Settings.builder().put("node.name", "client").build();
+        var clientTransport = newTransport(clientSettings); // clientTransport is closed via clientTransportService
+        DiscoveryNode localNode = new DiscoveryNode("client", serverAddress, Version.CURRENT);
+        var clientTransportService = new TransportService(
+            clientSettings,
+            clientTransport,
+            THREAD_POOL,
+            address -> localNode,
+            null
+        );
+        toClose.add(clientTransportService);
+        clientTransportService.start();
+        clientTransportService.acceptIncomingRequests();
+        return new PgClient(
+            "dummy",
+            clientSettings,
+            clientTransportService,
+            nettyBootstrap,
+            clientTransport,
+            new SslContextProvider(clientSettings),
+            PageCacheRecycler.NON_RECYCLING_INSTANCE,
+            new ConnectionInfo(
+                List.of(serverAddress.getAddress() + ':' + serverAddress.getPort()),
+                Settings.builder().put("user", "crate").put(connectionSettings).build()
+            )
+        );
     }
 }
