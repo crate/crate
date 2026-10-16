@@ -150,7 +150,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         }
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
-        DistinctRewriter.Result rewritten = DistinctRewriter.rewrite(
+        DistinctRewriter.Result rewritten = new DistinctRewriter.CollectSet().rewrite(
             aggregates,
             outputs,
             paramBinder,

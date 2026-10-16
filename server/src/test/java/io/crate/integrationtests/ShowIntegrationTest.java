@@ -447,6 +447,7 @@ public class ShowIntegrationTest extends IntegTestCase {
             "optimizer_rewrite_filter_on_outer_join_to_inner_join| true| Indicates if the optimizer rule RewriteFilterOnOuterJoinToInnerJoin is activated.",
             "optimizer_rewrite_group_by_keys_limit_to_limit_distinct| true| Indicates if the optimizer rule RewriteGroupByKeysLimitToLimitDistinct is activated.",
             "optimizer_rewrite_left_outer_join_to_hash_join| true| Indicates if the optimizer rule RewriteLeftOuterJoinToHashJoin is activated.",
+            "optimizer_rewrite_mixed_distinct_agg_to_group_by| true| Indicates if the optimizer rule RewriteMixedDistinctAggToGroupBy is activated.",
             "optimizer_rewrite_right_outer_join_to_hash_join| true| Indicates if the optimizer rule RewriteRightOuterJoinToHashJoin is activated.",
             "optimizer_rewrite_to_query_then_fetch| true| Indicates if the optimizer rule RewriteToQueryThenFetch is activated.",
             "search_path| doc| Sets the schema search order.",
