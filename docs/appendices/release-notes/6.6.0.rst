@@ -76,6 +76,10 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
+- `Somil Jain <https://github.com/somiljain2006>`_ improved query planning for
+  ``RIGHT JOIN`` queries by pushing null-rejecting ``WHERE`` predicates
+  referencing columns from the non-preserved side closer to their source
+  tables.
 - Improved the ``optimizer_eliminate_cross_join`` rule to eliminate more
   cross joins. Previously, some cross joins may have been left when the tables
   form groups that aren't connected with join conditions, like in::

@@ -32,6 +32,7 @@ import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.planner.optimizer.matcher.Match;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -42,13 +43,15 @@ public class RewriteFilterOnOuterJoinToInnerJoinTest extends CrateDummyClusterSe
     private PlanStats planStats;
     private LogicalPlan t1;
     private LogicalPlan t2;
+    private LogicalPlan t3;
     private SQLExecutor e;
 
     @Before
     public void prepare() throws Exception {
         e = SQLExecutor.of(clusterService)
             .addTable("create table t1 (a int)")
-            .addTable("create table t2 (b int)");
+            .addTable("create table t2 (b int)")
+            .addTable("create table t3 (c int)");
         planStats = new PlanStats(e.nodeCtx,
             CoordinatorTxnCtx.systemTransactionContext(),
             new TableStats());
@@ -56,6 +59,7 @@ public class RewriteFilterOnOuterJoinToInnerJoinTest extends CrateDummyClusterSe
 
         t1 = e.logicalPlan("SELECT a FROM t1");
         t2 = e.logicalPlan("SELECT b FROM t2");
+        t3 = e.logicalPlan("SELECT c FROM t3");
     }
 
     @Test
@@ -267,5 +271,236 @@ public class RewriteFilterOnOuterJoinToInnerJoinTest extends CrateDummyClusterSe
             e.ruleContext());
 
         assertThat(result).isNull();
+    }
+
+    @Test
+    public void test_rewrite_right_join_to_inner_join_for_nested_left_relation() {
+        var joinCondition1 = e.asSymbol("doc.t1.a = doc.t2.b");
+        var join1 = new JoinPlan(t1, t2, JoinType.INNER, joinCondition1);
+
+        var joinCondition2 = e.asSymbol("doc.t2.b = doc.t3.c");
+        var join2 = new JoinPlan(join1, t3, JoinType.RIGHT, joinCondition2);
+
+        var filter = new Filter(join2, e.asSymbol("doc.t2.b > 1"));
+
+        var rule = new RewriteFilterOnOuterJoinToInnerJoin();
+        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+
+        var result = rule.apply(
+            match.value(),
+            match.captures(),
+            e.ruleContext()
+        );
+
+        assertThat(result).hasOperators(
+            "Join[INNER | (b = c)]",
+            "  ├ Filter[(b > 1)]",
+            "  │  └ Join[INNER | (a = b)]",
+            "  │    ├ Collect[doc.t1 | [a] | true]",
+            "  │    └ Collect[doc.t2 | [b] | true]",
+            "  └ Collect[doc.t3 | [c] | true]"
+        );
+    }
+
+    @Test
+    public void test_rewrite_right_join_to_inner_join_when_left_contains_multiple_relations() {
+        var joinCondition1 = e.asSymbol("doc.t1.a = doc.t2.b");
+        var join1 = new JoinPlan(t1, t2, JoinType.INNER, joinCondition1);
+
+        var joinCondition2 = e.asSymbol("doc.t1.a = doc.t3.c");
+        var join2 = new JoinPlan(join1, t3, JoinType.RIGHT, joinCondition2);
+
+        var filter = new Filter(
+            join2,
+            e.asSymbol("doc.t1.a > 1 AND doc.t2.b < 10")
+        );
+
+        var rule = new RewriteFilterOnOuterJoinToInnerJoin();
+        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+
+        var result = rule.apply(
+            match.value(),
+            match.captures(),
+            e.ruleContext()
+        );
+
+        assertThat(result).hasOperators(
+            "Join[INNER | (a = c)]",
+            "  ├ Filter[((a > 1) AND (b < 10))]",
+            "  │  └ Join[INNER | (a = b)]",
+            "  │    ├ Collect[doc.t1 | [a] | true]",
+            "  │    └ Collect[doc.t2 | [b] | true]",
+            "  └ Collect[doc.t3 | [c] | true]"
+        );
+    }
+
+    @Test
+    public void test_do_not_rewrite_when_filter_references_both_sides() {
+        var joinCondition1 = e.asSymbol("doc.t1.a = doc.t2.b");
+        var join1 = new JoinPlan(t1, t2, JoinType.INNER, joinCondition1);
+
+        var joinCondition2 = e.asSymbol("doc.t2.b = doc.t3.c");
+        var join2 = new JoinPlan(join1, t3, JoinType.RIGHT, joinCondition2);
+
+        var filter = new Filter(
+            join2,
+            e.asSymbol("doc.t2.b = doc.t3.c")
+        );
+
+        var rule = new RewriteFilterOnOuterJoinToInnerJoin();
+        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+
+        var result = rule.apply(
+            match.value(),
+            match.captures(),
+            e.ruleContext()
+        );
+
+        assertThat(result).isNull();
+    }
+
+    @Test
+    public void test_do_not_rewrite_when_filter_references_only_preserved_side() {
+        var joinCondition1 = e.asSymbol("doc.t1.a = doc.t2.b");
+        var join1 = new JoinPlan(t1, t2, JoinType.INNER, joinCondition1);
+
+        var joinCondition2 = e.asSymbol("doc.t2.b = doc.t3.c");
+        var join2 = new JoinPlan(join1, t3, JoinType.RIGHT, joinCondition2);
+
+        var filter = new Filter(join2, e.asSymbol("doc.t3.c > 1"));
+
+        var rule = new RewriteFilterOnOuterJoinToInnerJoin();
+        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+
+        var result = rule.apply(
+            match.value(),
+            match.captures(),
+            e.ruleContext()
+        );
+
+        assertThat(result).isNull();
+    }
+
+    @Test
+    public void test_sql_integration_rewrite_right_join_to_inner_join_and_push_filter_down() {
+        LogicalPlan plan = e.logicalPlan(
+            "SELECT count(*) FROM t1 JOIN t2 ON t2.b > 1 RIGHT JOIN t3 ON t2.b = t3.c WHERE t2.b > 1"
+        );
+
+        assertThat(plan).hasOperators(
+            "HashAggregate[count(*)]",
+            "  └ HashJoin[INNER | (b = c)]",
+            "    ├ NestedLoopJoin[INNER | (b > 1)]",
+            "    │  ├ Collect[doc.t1 | [] | true]",
+            "    │  └ Collect[doc.t2 | [b] | (b > 1)]",
+            "    └ Collect[doc.t3 | [c] | true]"
+        );
+    }
+
+    @Test
+    public void test_do_not_rewrite_when_filter_matches_nulls() {
+        var joinCondition = e.asSymbol("doc.t1.a = doc.t2.b");
+        var join = new JoinPlan(t1, t2, JoinType.RIGHT, joinCondition);
+        var filter = new Filter(join, e.asSymbol("doc.t1.a IS NULL"));
+
+        var rule = new RewriteFilterOnOuterJoinToInnerJoin();
+        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+
+        var result = rule.apply(
+            match.value(),
+            match.captures(),
+            e.ruleContext()
+        );
+
+        assertThat(result).isNull();
+    }
+
+    @Test
+    public void test_do_not_rewrite_when_filter_matches_nulls_semantically() {
+        var joinCondition = e.asSymbol("doc.t1.a = doc.t2.b");
+        var join = new JoinPlan(t1, t2, JoinType.RIGHT, joinCondition);
+        var filter = new Filter(join, e.asSymbol("coalesce(doc.t1.a, 1) = 1"));
+        var rule = new RewriteFilterOnOuterJoinToInnerJoin();
+        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+
+        var result = rule.apply(
+            match.value(),
+            match.captures(),
+            e.ruleContext()
+        );
+
+        assertThat(result).isNull();
+    }
+
+    @Test
+    public void test_mixed_conjuncts_are_split_correctly_on_outer_join() {
+        var joinCondition = e.asSymbol("doc.t1.a = 10");
+        var join = new JoinPlan(t1, t2, JoinType.RIGHT, joinCondition);
+
+        var filter = new Filter(join, e.asSymbol("doc.t1.a > 1 AND doc.t1.a = doc.t2.b"));
+
+        var rule = new RewriteFilterOnOuterJoinToInnerJoin();
+        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+
+        var result = rule.apply(
+            match.value(),
+            match.captures(),
+            e.ruleContext()
+        );
+
+        assertThat(result).hasOperators(
+            "Filter[(a = b)]",
+            "  └ Join[INNER | (a = 10)]",
+            "    ├ Filter[(a > 1)]",
+            "    │  └ Collect[doc.t1 | [a] | true]",
+            "    └ Collect[doc.t2 | [b] | true]"
+        );
+    }
+
+    @Test
+    public void test_rewrite_full_join_to_inner_join_with_nested_left_relation() {
+        var joinCondition1 = e.asSymbol("doc.t1.a = doc.t2.b");
+        var join1 = new JoinPlan(t1, t2, JoinType.INNER, joinCondition1);
+
+        var joinCondition2 = e.asSymbol("doc.t1.a = doc.t3.c");
+        var join2 = new JoinPlan(join1, t3, JoinType.FULL, joinCondition2);
+
+        var filter = new Filter(join2, e.asSymbol("doc.t1.a > 1 AND doc.t3.c > 1"));
+
+        var rule = new RewriteFilterOnOuterJoinToInnerJoin();
+        Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+
+        var result = rule.apply(
+            match.value(),
+            match.captures(),
+            e.ruleContext()
+        );
+
+        assertThat(result).hasOperators(
+            "Filter[((a > 1) AND (c > 1))]",
+            "  └ Join[INNER | (a = c)]",
+            "    ├ Filter[(a > 1)]",
+            "    │  └ Join[INNER | (a = b)]",
+            "    │    ├ Collect[doc.t1 | [a] | true]",
+            "    │    └ Collect[doc.t2 | [b] | true]",
+            "    └ Filter[(c > 1)]",
+            "      └ Collect[doc.t3 | [c] | true]"
+        );
     }
 }

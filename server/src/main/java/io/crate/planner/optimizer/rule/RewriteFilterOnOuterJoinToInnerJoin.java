@@ -25,7 +25,9 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.MoveFilterBeneathJoin.getNewSource;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -127,8 +129,27 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         Set<RelationName> leftName = new HashSet<>(lhs.relationNames());
         Set<RelationName> rightName = new HashSet<>(rhs.relationNames());
 
-        Symbol leftQuery = splitQueries.remove(leftName);
-        Symbol rightQuery = splitQueries.remove(rightName);
+        List<Symbol> leftQueryList = new ArrayList<>();
+        List<Symbol> rightQueryList = new ArrayList<>();
+
+        var iterator = splitQueries.entrySet().iterator();
+        while (iterator.hasNext()) {
+            var entry = iterator.next();
+            Set<RelationName> relationNames = entry.getKey();
+
+            if (!relationNames.isEmpty()) {
+                if (leftName.containsAll(relationNames)) {
+                    leftQueryList.add(entry.getValue());
+                    iterator.remove();
+                } else if (rightName.containsAll(relationNames)) {
+                    rightQueryList.add(entry.getValue());
+                    iterator.remove();
+                }
+            }
+        }
+
+        Symbol leftQuery = leftQueryList.isEmpty() ? null : AndOperator.join(leftQueryList);
+        Symbol rightQuery = rightQueryList.isEmpty() ? null : AndOperator.join(rightQueryList);
 
         LogicalPlan newLhs = lhs;
         LogicalPlan newRhs = rhs;
