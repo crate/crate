@@ -80,6 +80,17 @@ Performance and Resilience Improvements
   ``RIGHT JOIN`` queries by pushing null-rejecting ``WHERE`` predicates
   referencing columns from the non-preserved side closer to their source
   tables.
+- Improved the ``optimizer_eliminate_cross_join`` rule to eliminate more
+  cross joins. Previously, some cross joins may have been left when the tables
+  form groups that aren't connected with join conditions, like in::
+
+    SELECT *
+    FROM t1, t2, t3, t4
+    WHERE t2.y = t4.id
+      AND t3.z = t4.id
+
+  Previously, the resulting logical plan would contain 1 inner join and 2 cross
+  joins. Now, the logical plan has 2 inner joins and 1 cross join.
 
 Administration and Operations
 -----------------------------

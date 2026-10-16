@@ -25,12 +25,17 @@ Version 6.5.1 - Unreleased
 
 .. WARNING::
 
+    Downgrading from 6.5.1 to 6.5.0 is not supported. This is due to an Apache
+    Lucene upgrade that's included in 6.5.1 and that prevents segment
+    corruption. More information can be found in `the change log`_.
+
     Tables that were created before CrateDB 5.x will not function with 6.x
     and must be recreated before moving to 6.x.x.
 
     You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
     `inserting the data into a new table`_.
 
+.. _the change log: https://lucene.apache.org/core/10_5_2/changes/Changes.html#v10.5.2
 .. _back up your data: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
 .. _inserting the data into a new table: https://cratedb.com/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
@@ -82,3 +87,27 @@ Fixes
 
   A ``NOT`` condition like ``t1.x = t2.y AND NOT (t1.a = t2.b)`` was turned into
   ``t1.x = t2.y AND (t1.a = t2.b)``.
+
+- Disabled the optimizer rule ``optimizer_reorder_nested_loop_join`` by default
+  to fix a performance regression of cross and outer joins that could happen if
+  a query was run on multiple nodes and table statistics were available.
+
+- Fixed an issue preventing creation of a
+  :ref:`publication <logical-replication-publication>` if it included a table
+  that is included into another publication.
+
+- Fixed an issue where the ``optimizer_eliminate_cross_join`` rule wouldn't
+  eliminate a cross join even though there's a matching equality condition in
+  the ``WHERE`` clause that can transform it into an inner join. Here's an
+  example::
+
+      SELECT t1.x, t2.y, t3.z, t4.id
+      FROM t1
+      CROSS JOIN t2
+      CROSS JOIN t3
+      JOIN t4 ON t2.y = t4.id AND t3.z = t4.id
+      WHERE t1.x = t3.z
+        AND t1.i > 0;
+
+  Previously, the resulting plan would contain a cross join. With the fix, the
+  plan contains inner joins only and hence the query performs better.

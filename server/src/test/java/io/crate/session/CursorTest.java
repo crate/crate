@@ -23,6 +23,7 @@ package io.crate.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -36,6 +37,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -49,7 +51,6 @@ import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.distribution.merge.BatchPagingIterator;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.execution.engine.distribution.merge.PagingIterator;
-import io.crate.expression.symbol.InputColumn;
 import io.crate.sql.tree.Declare.Hold;
 import io.crate.sql.tree.Fetch.ScrollMode;
 import io.crate.testing.TestingHelpers;
@@ -85,7 +86,7 @@ public class CursorTest extends ESTestCase {
             Hold.WITHOUT,
             queryIterator,
             result,
-            List.of()
+            mock(AnalyzedStatement.class)
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         cursor.fetch(consumer, ScrollMode.RELATIVE, 1);
@@ -109,7 +110,7 @@ public class CursorTest extends ESTestCase {
             Hold.WITHOUT,
             CompletableFuture.completedFuture(rows),
             result,
-            List.of()
+            mock(AnalyzedStatement.class)
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         cursor.fetch(consumer, ScrollMode.RELATIVE, -2);
@@ -161,7 +162,7 @@ public class CursorTest extends ESTestCase {
             Hold.WITHOUT,
             CompletableFuture.completedFuture(batchIterator),
             result,
-            List.of()
+            mock(AnalyzedStatement.class)
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         cursor.fetch(consumer, ScrollMode.MOVE, 2);
@@ -203,7 +204,7 @@ public class CursorTest extends ESTestCase {
             Hold.WITHOUT,
             CompletableFuture.completedFuture(rows),
             result,
-            List.of(new InputColumn(0, DataTypes.INTEGER))
+            mock(AnalyzedStatement.class)
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         cursor.fetch(consumer, ScrollMode.MOVE, 2);
@@ -239,7 +240,7 @@ public class CursorTest extends ESTestCase {
             Hold.WITHOUT,
             CompletableFuture.completedFuture(rows),
             result,
-            List.of(new InputColumn(0, DataTypes.INTEGER))
+            mock(AnalyzedStatement.class)
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         cursor.fetch(consumer, ScrollMode.MOVE, -5);
@@ -274,7 +275,7 @@ public class CursorTest extends ESTestCase {
             Hold.WITHOUT,
             CompletableFuture.completedFuture(rows),
             result,
-            List.of(new InputColumn(0, DataTypes.INTEGER))
+            mock(AnalyzedStatement.class)
         );
 
         final TestingRowConsumer errorConsumer = new TestingRowConsumer();
@@ -304,7 +305,7 @@ public class CursorTest extends ESTestCase {
             Hold.WITHOUT,
             CompletableFuture.completedFuture(rows),
             result,
-            List.of(new InputColumn(0, DataTypes.INTEGER))
+            mock(AnalyzedStatement.class)
         );
 
         TestingRowConsumer consumer = new TestingRowConsumer();
@@ -342,7 +343,7 @@ public class CursorTest extends ESTestCase {
             Hold.WITHOUT,
             CompletableFuture.completedFuture(rows),
             result,
-            List.of(new InputColumn(0, DataTypes.INTEGER))
+            mock(AnalyzedStatement.class)
         );
 
         // Move forward to last row
@@ -417,7 +418,7 @@ public class CursorTest extends ESTestCase {
             Hold.WITHOUT,
             CompletableFuture.completedFuture(rows),
             result,
-            List.of(new InputColumn(0, DataTypes.INTEGER))
+            mock(AnalyzedStatement.class)
         );
 
         // Move forward to last row
@@ -457,7 +458,7 @@ public class CursorTest extends ESTestCase {
             Hold.WITHOUT,
             CompletableFuture.completedFuture(rows),
             result,
-            List.of(new InputColumn(0, DataTypes.INTEGER))
+            mock(AnalyzedStatement.class)
         );
 
         TestingRowConsumer consumer = new TestingRowConsumer();

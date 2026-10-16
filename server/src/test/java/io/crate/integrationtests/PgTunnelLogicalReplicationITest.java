@@ -84,7 +84,13 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
             }
         });
 
-        publisherCluster.fullRestart();
+        publisherCluster.fullRestart(new TestCluster.RestartCallback() {
+            @Override
+            public Settings onNodeStopped(String nodeName) {
+                // Reuse the port configured in the subscription so it can reconnect after restart.
+                return Settings.builder().put("psql.port", address.getPort()).build();
+            }
+        });
         publisher = publisherCluster.createSQLTransportExecutor();
         publisher.ensureGreen();
         assertThat(publisherCluster.getInstance(PostgresNetty.class).boundAddress().publishAddress().address().getPort())

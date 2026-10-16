@@ -29,6 +29,8 @@ import java.util.stream.StreamSupport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
@@ -54,6 +56,7 @@ import io.crate.planner.optimizer.LoadedRules;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.protocols.postgres.KeyData;
 import io.crate.role.Role;
+import io.crate.role.RolesService;
 
 
 @Singleton
@@ -144,6 +147,18 @@ public class Sessions {
             this.memoryLimit = newLimit;
         });
         this.sessionSettingRegistry = sessionSettingRegistry;
+        clusterService.addListener(this::invalidateSessionsOfDroppedUsers);
+    }
+
+    private void invalidateSessionsOfDroppedUsers(ClusterChangedEvent event) {
+        Metadata newMetadata = event.state().metadata();
+        if (!RolesService.rolesChanged(event.previousState().metadata(), newMetadata)) {
+            return;
+        }
+        Map<String, Role> roles = RolesService.getRoles(newMetadata);
+        for (Session session : sessions.values()) {
+            session.invalidateIfUserDropped(roles::containsKey);
+        }
     }
 
     private Session newSession(@Nullable ConnectionProperties connectionProperties,
