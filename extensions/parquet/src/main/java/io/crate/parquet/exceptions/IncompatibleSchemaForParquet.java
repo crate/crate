@@ -24,26 +24,59 @@ package io.crate.parquet.exceptions;
 import java.util.Locale;
 
 import dev.hardwood.metadata.LogicalType;
-import dev.hardwood.metadata.PhysicalType;
+import dev.hardwood.schema.ColumnSchema;
+import dev.hardwood.schema.SchemaNode.GroupNode;
 import io.crate.metadata.ColumnIdent;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
+import io.crate.types.ObjectType;
 
 public class IncompatibleSchemaForParquet extends IllegalArgumentException {
-    private IncompatibleSchemaForParquet(ColumnIdent fullyQualifiedName, DataType<?> dataType, Object dataTypeParquet) {
-        super(String.format(
+
+    public IncompatibleSchemaForParquet(ColumnIdent fullyQualifiedName, ObjectType objectType, GroupNode node) {
+        super(message(fullyQualifiedName, objectType, node));
+    }
+
+    public IncompatibleSchemaForParquet(ColumnIdent fullyQualifiedName, DataType<?> dataType, ColumnSchema parquetColumnSchema) {
+        super(message(fullyQualifiedName, dataType, parquetColumnSchema));
+    }
+
+    private static String message(ColumnIdent fullyQualifiedName, DataType<?> dataType, ColumnSchema parquetColumnSchema) {
+        LogicalType logicalType = parquetColumnSchema.logicalType();
+        Object dataTypeParquet = logicalType != null ? logicalType : parquetColumnSchema.type();
+        return String.format(
                 Locale.ENGLISH,
                 "The requested column `%s` has type `%s` in the foreign table, but in the parquet file it has type `%s`. These are incompatible.",
                 fullyQualifiedName,
                 dataType.getName(),
-                dataTypeParquet
-        ));
+                dataTypeParquet);
     }
 
-    public IncompatibleSchemaForParquet(ColumnIdent fullyQualifiedName, DataType<?> dataType, LogicalType dataTypeParquet) {
-        this(fullyQualifiedName, dataType, (Object) dataTypeParquet);
+    private static String message(ColumnIdent fullyQualifiedName, ObjectType objectType, GroupNode node) {
+        String errorMsg = "The requested column `%s` has type `%s` with column policy `%s` in the foreign table, but in the parquet file it has type `%s`.";
+        String dataTypeParquet = "UNKNOWN";
+        if (node.isStruct()) {
+            dataTypeParquet = "STRUCT";
+        } else if (node.isMap()) {
+            dataTypeParquet = "MAP";
+        } else if (node.isVariant()) {
+            dataTypeParquet = "VARIANT";
+        } else if (node.isList()) {
+            dataTypeParquet = "LIST";
+        }
+
+        if (objectType.columnPolicy() == ColumnPolicy.DYNAMIC || objectType.columnPolicy() == ColumnPolicy.IGNORED) {
+            errorMsg = errorMsg + " This column and column policy requires the data in parquet to be stored as JSON.";
+        } else if (objectType.columnPolicy() == ColumnPolicy.STRICT) {
+            errorMsg = errorMsg + " This column and column policy requires the data in parquet to be stored as STRUCT.";
+        }
+        return String.format(
+                Locale.ENGLISH,
+                errorMsg,
+                fullyQualifiedName,
+                objectType.getName(),
+                objectType.columnPolicy(),
+                dataTypeParquet);
     }
 
-    public IncompatibleSchemaForParquet(ColumnIdent fullyQualifiedName, DataType<?> dataType, PhysicalType dataTypeParquet) {
-        this(fullyQualifiedName, dataType, (Object) dataTypeParquet);
-    }
 }

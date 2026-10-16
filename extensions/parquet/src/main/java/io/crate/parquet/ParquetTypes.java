@@ -21,13 +21,17 @@
 
 package io.crate.parquet;
 
-import dev.hardwood.metadata.LogicalType;
+
 import dev.hardwood.reader.RowReader;
+import dev.hardwood.row.PqStruct;
 import dev.hardwood.schema.ColumnSchema;
 import dev.hardwood.schema.FileSchema;
+import dev.hardwood.schema.SchemaNode;
+import dev.hardwood.schema.SchemaNode.GroupNode;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.parquet.exceptions.IncompatibleSchemaForParquet;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
@@ -66,7 +70,38 @@ public class ParquetTypes {
                 case TimestampType.ID_WITH_TZ -> crateType.implicitCast(rowReader.getTimestamp(fqn));
                 case TimestampType.ID_WITHOUT_TZ -> crateType.implicitCast(rowReader.getLocalTimestamp(fqn));
                 case UUIDType.ID -> rowReader.getUuid(fqn);
-                case ObjectType.ID -> crateType.implicitCast(rowReader.getString(fqn));
+                case ObjectType.ID -> {
+                    if (crateType instanceof ObjectType objectType) {
+                        if (objectType.columnPolicy() == ColumnPolicy.DYNAMIC) {
+                            // Object DYNAMIC maps to JSON because no schema required.
+                            // But the parquet file may not have saved the data as a JSON.
+                            // That would cause hardwood to error out
+                            try {
+                                String s = rowReader.getString(fqn);
+                                yield crateType.implicitCast(s);
+                            } catch (ClassCastException e) {
+                                SchemaNode schemaNode = fileSchema.getField(fqn);
+                                if (schemaNode instanceof GroupNode node) {
+                                    throw new IncompatibleSchemaForParquet(col, objectType, node);
+                                }
+                            }
+                        } else if (objectType.columnPolicy() == ColumnPolicy.STRICT) {
+                            // TODO: traverse the struct
+                            SchemaNode schemaNode = fileSchema.getField(fqn);
+                            ColumnSchema columnSchema = fileSchema.getColumn(fqn);
+                            // Object STRICT seems to map to Struct because both require a schema
+                            // Should we have two implementations here, or just cast everything to JSON?
+                            PqStruct pqStruct = rowReader.getStruct(fqn);
+                            if (pqStruct == null) {
+                                yield null;
+                            }
+                            yield null;
+                        } else {
+                            throw new UnsupportedOperationException("Parquet foreign data wrapper does not support OBJECT column policy " + objectType.columnPolicy());
+                        }
+                    }
+                    throw new UnsupportedOperationException("Expected ObjectType, got " + crateType.toString());
+                }
                 case ArrayType.ID -> rowReader.isNull(fqn) ? null : crateType.implicitCast(rowReader.getList(fqn).values());
                 case BitStringType.ID -> crateType.implicitCast(rowReader.getString(fqn));
                 case IpType.ID -> {
@@ -81,13 +116,11 @@ public class ParquetTypes {
                             + " is not supported in the parquet foreign data wrapper");
             };
             return object;
+        } catch (IncompatibleSchemaForParquet e) {
+            throw e;
         } catch (RuntimeException e) {
-            ColumnSchema columnSchema = fileSchema.getColumn(fqn);
-            LogicalType logicalType = columnSchema.logicalType();
-            if (logicalType != null) {
-                throw new IncompatibleSchemaForParquet(col, crateType, logicalType);
-            }
-            throw new IncompatibleSchemaForParquet(col, crateType, columnSchema.type());
+            throw new IncompatibleSchemaForParquet(col, crateType, fileSchema.getColumn(fqn));
         }
+
     }
 }
