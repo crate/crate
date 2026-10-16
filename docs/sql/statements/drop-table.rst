@@ -18,6 +18,12 @@ Description
 
 DROP TABLE removes tables from the cluster.
 
+Dropped tables are also removed from any publications that explicitly list them.
+Recreating a table with the same name does not add it back to those publications.
+Publications defined with ``FOR ALL TABLES`` include newly created tables as usual.
+Existing copies on subscriber clusters are retained and become writable once the
+subscribers detect the removal.
+
 Use the ``BLOB`` keyword in order to remove a blob table (see
 :ref:`blob_support`).
 

@@ -192,6 +192,33 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
     }
 
     @Test
+    public void test_drop_table_removes_it_from_explicit_publications() {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
+        executeOnPublisher("CREATE TABLE doc.t2 (id INT, p INT) PARTITIONED BY (p)");
+        executeOnPublisher("INSERT INTO doc.t2 (id, p) VALUES (1, 1)");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1, doc.t2");
+        executeOnPublisher("CREATE PUBLICATION pub2 FOR TABLE doc.t2");
+        executeOnPublisher("CREATE PUBLICATION pub_all FOR ALL TABLES");
+
+        executeOnPublisher("DROP TABLE doc.t2");
+        assertThat(executeOnPublisher(
+            "SELECT pubname, tablename FROM pg_publication_tables ORDER BY pubname, tablename"
+        )).hasRows("pub1| t1", "pub_all| t1");
+        assertThat(executeOnPublisher("SELECT pubname FROM pg_publication ORDER BY pubname"))
+            .hasRows("pub1", "pub2", "pub_all");
+
+        executeOnPublisher("CREATE TABLE doc.t2 (name TEXT)");
+        assertThat(executeOnPublisher(
+            "SELECT pubname, tablename FROM pg_publication_tables ORDER BY pubname, tablename"
+        )).hasRows("pub1| t1", "pub_all| t1", "pub_all| t2");
+
+        executeOnPublisher("DROP TABLE doc.t1");
+        assertThat(executeOnPublisher(
+            "SELECT pubname, tablename FROM pg_publication_tables ORDER BY pubname, tablename"
+        )).hasRows("pub_all| t2");
+    }
+
+    @Test
     public void test_table_can_be_added_to_multiple_publications() throws Exception {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
                            defaultTableSettings() +
