@@ -191,7 +191,7 @@ public class GatewayMetaState implements Closeable {
 
     // exposed so it can be overridden by tests
     Metadata upgradeMetadataForNode(Metadata metadata, MetadataUpgradeService metadataUpgradeService) {
-        return metadataUpgradeService.upgradeMetadata(metadata);
+        return metadataUpgradeService.upgradeMetadata(metadata, true);
     }
 
     @Override

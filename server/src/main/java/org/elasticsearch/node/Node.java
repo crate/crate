@@ -211,6 +211,7 @@ import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslContextProviderService;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
+import io.crate.replication.logical.PublicationDDLModifier;
 import io.crate.replication.logical.ShardReplicationService;
 import io.crate.role.RoleManager;
 import io.crate.role.RoleManagerService;
@@ -706,6 +707,7 @@ public class Node implements Closeable {
             );
             this.nodeService = new NodeService(monitorService, indicesService, transportService);
             DDLClusterStateService ddlClusterStateService = new DDLClusterStateService();
+            ddlClusterStateService.addModifier(new PublicationDDLModifier());
             RoleManagerService rolesManager = new RoleManagerService(
                 client,
                 roles,

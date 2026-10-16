@@ -149,3 +149,7 @@ Fixes
   used together with  ``sslmode`` set to ``prefer`` or ``required`` and
   subscriber cluster didn't trust publisher cluster's certificate.
 
+- Fixed an issue where dropping a table on the publisher cluster left it in
+  publications that explicitly listed it. Dropping a table now also removes it
+  from those publications. References to non-existent tables in publications
+  are also removed when a node restarts.
