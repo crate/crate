@@ -55,6 +55,8 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
+import io.crate.replication.logical.metadata.Publication;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -89,6 +91,32 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
             e.nodeCtx,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
             e.udfService());
+    }
+
+    @Test
+    public void test_removes_dangling_publication_tables_only_on_node_start() throws Exception {
+        e.addTable("create table doc.t (x int)");
+        RelationName existing = new RelationName("doc", "t");
+        RelationName missing = new RelationName("doc", "missing");
+        PublicationsMetadata publications = new PublicationsMetadata(Map.of(
+            "pub", new Publication("crate", false, List.of(existing, missing)),
+            "pub_missing", new Publication("crate", false, List.of(missing)),
+            "pub_all", new Publication("crate", true, List.of())
+        ));
+        Metadata metadata = Metadata.builder(clusterService.state().metadata())
+            .putCustom(PublicationsMetadata.TYPE, publications)
+            .build();
+
+        Metadata upgraded = metadataUpgradeService.upgradeMetadata(metadata);
+        assertThat((PublicationsMetadata) upgraded.custom(PublicationsMetadata.TYPE)).isEqualTo(publications);
+
+        upgraded = metadataUpgradeService.upgradeMetadata(metadata, true);
+        PublicationsMetadata updated = upgraded.custom(PublicationsMetadata.TYPE);
+        assertThat(updated.publications()).containsOnlyKeys("pub", "pub_missing", "pub_all");
+        assertThat(updated.publications().get("pub").tables()).containsExactly(existing);
+        assertThat(updated.publications().get("pub_missing").tables()).isEmpty();
+        assertThat(updated.publications().get("pub_all")).isEqualTo(publications.publications().get("pub_all"));
+        assertThat(publications.publications().get("pub").tables()).containsExactly(existing, missing);
     }
 
     @Test
