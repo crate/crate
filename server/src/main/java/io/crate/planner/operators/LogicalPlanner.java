@@ -95,7 +95,6 @@ import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.iterative.IterativeOptimizer;
-import io.crate.planner.optimizer.rule.CopyFilterToLeftOfRightJoin;
 import io.crate.planner.optimizer.rule.DeduplicateJoinConditions;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.EliminateCrossJoin;
@@ -166,7 +165,6 @@ public class LogicalPlanner {
         new MoveFilterBeneathOrder(),
         new MoveFilterBeneathProjectSet(),
         new MoveFilterBeneathJoin(),
-        new CopyFilterToLeftOfRightJoin(),
         new MoveFilterBeneathCorrelatedJoin(),
         new MoveFilterBeneathUnion(),
         new MoveFilterBeneathGroupBy(),
