@@ -1912,4 +1912,36 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.t3 | [z] | true]"
         );
     }
+
+    @Test
+    public void test_join_condition_referencing_one_side_is_pushed_below_join() {
+        e.getSessionSettings().excludedOptimizerRules().remove(EliminateCrossJoin.class);
+
+        String stmt = """
+            SELECT t1.x, t2.y, t3.z, t4.id
+            FROM t1
+            LEFT JOIN t2 ON t1.a = t2.b
+            CROSS JOIN t3
+            JOIN t4 ON t1.x = t2.y AND t1.x = t3.z AND t3.z = t4.id
+            """;
+        String[] expectedPlan = {
+            "Eval[x, y, z, id]",
+            "  └ HashJoin[INNER | (z = id)]",
+            "    ├ HashJoin[INNER | (x = z)]",
+            "    │  ├ Filter[(x = y)]",
+            "    │  │  └ HashJoin[LEFT | (a = b)]",
+            "    │  │    ├ Collect[doc.t1 | [x, a] | true]",
+            "    │  │    └ Collect[doc.t2 | [y, b] | true]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t4 | [id] | true]"
+        };
+
+        LogicalPlan plan = e.logicalPlan(stmt);
+        assertThat(plan).hasOperators(expectedPlan);
+
+        e.getSessionSettings().excludedOptimizerRules().add(EliminateCrossJoin.class);
+
+        plan = e.logicalPlan(stmt);
+        assertThat(plan).hasOperators(expectedPlan);
+    }
 }
