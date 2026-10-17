@@ -219,6 +219,24 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
     }
 
     @Test
+    public void test_drop_schema_cascade_removes_tables_from_explicit_publications() {
+        executeOnPublisher("CREATE TABLE s1.t1 (id INT)");
+        executeOnPublisher("CREATE TABLE s1.t2 (id INT, p INT) PARTITIONED BY (p)");
+        executeOnPublisher("INSERT INTO s1.t2 (id, p) VALUES (1, 1)");
+        executeOnPublisher("CREATE TABLE s2.t1 (id INT)");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE s1.t1, s1.t2, s2.t1");
+        executeOnPublisher("CREATE PUBLICATION pub2 FOR TABLE s1.t1, s1.t2");
+
+        executeOnPublisher("DROP SCHEMA s1 CASCADE");
+
+        assertThat(executeOnPublisher(
+            "SELECT pubname, schemaname, tablename FROM pg_publication_tables ORDER BY pubname, schemaname, tablename"
+        )).hasRows("pub1| s2| t1");
+        assertThat(executeOnPublisher("SELECT pubname FROM pg_publication ORDER BY pubname"))
+            .hasRows("pub1", "pub2");
+    }
+
+    @Test
     public void test_table_can_be_added_to_multiple_publications() throws Exception {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
                            defaultTableSettings() +

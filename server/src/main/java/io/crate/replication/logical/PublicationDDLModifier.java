@@ -39,20 +39,19 @@ public class PublicationDDLModifier implements DDLClusterStateModifier {
         if (publications == null) {
             return currentState;
         }
-        PublicationsMetadata updated = null;
+        PublicationsMetadata updated = PublicationsMetadata.newInstance(publications);
+        boolean isUpdated = false;
         for (var entry : publications.publications().entrySet()) {
             Publication publication = entry.getValue();
             if (publication.isForAllTables() || publication.tables().contains(relationName) == false) {
                 continue;
             }
-            if (updated == null) {
-                updated = PublicationsMetadata.newInstance(publications);
-            }
             var tables = new ArrayList<>(publication.tables());
             tables.remove(relationName);
             updated.publications().put(entry.getKey(), new Publication(publication.owner(), false, tables));
+            isUpdated = true;
         }
-        if (updated == null) {
+        if (isUpdated == false) {
             return currentState;
         }
         return ClusterState.builder(currentState)
