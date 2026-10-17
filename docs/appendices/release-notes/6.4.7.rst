@@ -122,3 +122,6 @@ Fixes
       AND t1.x = t3.z
       AND t2.y = t3.z;
 
+- Fixed an issue where dropping a table on the publisher cluster left it in
+  publications that explicitly listed it. Dropping a table now also removes it
+  from those publications.
