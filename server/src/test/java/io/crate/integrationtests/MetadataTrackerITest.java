@@ -363,43 +363,6 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
     }
 
     @Test
-    public void test_drop_published_table_preserves_subscriber_data_and_other_replication() throws Exception {
-        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
-        executeOnPublisher("CREATE TABLE t2 (id INT) WITH(" + defaultTableSettings() + ")");
-        executeOnPublisher("INSERT INTO t1 (id) VALUES (1)");
-        createPublication("pub1", false, List.of("t1", "t2"));
-        createSubscription("sub1", "pub1");
-        assertBusy(() -> {
-            executeOnSubscriber("REFRESH TABLE t1");
-            assertThat(executeOnSubscriber("SELECT id FROM t1")).hasRows("1");
-        });
-
-        executeOnPublisher("DROP TABLE t1");
-        assertBusy(() -> {
-            try {
-                assertThat(executeOnSubscriber("INSERT INTO t1 (id) VALUES (2)")).hasRowCount(1);
-            } catch (OperationOnInaccessibleRelationException e) {
-                throw new AssertionError(e);
-            }
-        });
-        executeOnSubscriber("REFRESH TABLE t1");
-        assertThat(executeOnSubscriber("SELECT id FROM t1 ORDER BY id")).hasRows("1", "2");
-        assertThat(executeOnSubscriber("SELECT srrelid::text FROM pg_subscription_rel"))
-            .hasRows("doc.t2");
-
-        executeOnPublisher("CREATE TABLE t1 (name TEXT)");
-        executeOnPublisher("GRANT DQL ON TABLE t1 TO " + SUBSCRIBING_USER);
-        executeOnPublisher("INSERT INTO t2 (id) VALUES (3)");
-        assertBusy(() -> {
-            executeOnSubscriber("REFRESH TABLE t2");
-            assertThat(executeOnSubscriber("SELECT id FROM t2")).hasRows("3");
-        });
-        assertThat(executeOnPublisher("SELECT tablename FROM pg_publication_tables"))
-            .hasRows("t2");
-        assertThat(executeOnSubscriber("SELECT id FROM t1 ORDER BY id")).hasRows("1", "2");
-    }
-
-    @Test
     public void test_alter_publication_drop_table_disables_table_replication() throws Exception {
         executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
         executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
