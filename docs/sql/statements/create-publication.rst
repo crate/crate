@@ -56,6 +56,11 @@ Parameters
   Specifies a list of tables to add to the publication. The partitions of a
   partitioned table are always implicitly considered part of the publication.
 
+  .. NOTE::
+
+     Dropping a table on the publisher cluster also removes it from publications
+     that explicitly list it.
+
 **FOR ALL TABLES**
   Marks the publication as one that replicates changes for all tables in the
   cluster, including tables created in the future.
