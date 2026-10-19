@@ -586,7 +586,7 @@ public class PostgresWireProtocol {
             // (That we've been holding back, as we don't eager react to `execute` requests. (We do that to optimize batch inserts))
             // The sync will also trigger a flush eventually if there are deferred executions.
             if (session.hasDeferredExecutions()) {
-                session.flush();
+                wait(channel, session.flush());
             } else {
                 channel.flush();
             }
@@ -797,10 +797,7 @@ public class PostgresWireProtocol {
         }
         CompletableFuture<?> result = session.execute(portalName, maxRows, resultReceiver);
         if (result != null) {
-            channel.config().setAutoRead(false);
-            result.whenComplete((_, f) -> {
-                channel.config().setAutoRead(true);
-            });
+            wait(channel, result);
         }
     }
 
@@ -823,11 +820,6 @@ public class PostgresWireProtocol {
         }
         try {
             CompletableFuture<?> sync = session.sync(false);
-            channel.config().setAutoRead(false);
-            sync.whenComplete((_, _) -> {
-                channel.config().setAutoRead(true);
-            });
-
             // The readyForQuery msg must only be sent _after_ an operation
             // started in a prior E(execute) msg is completed.
             //
@@ -845,6 +837,7 @@ public class PostgresWireProtocol {
             //
             // P (insert) B D E S -> P (select) B D E S -> S
             sendReadyForQuery(channel, session.transactionState());
+            wait(channel, sync);
         } catch (Throwable t) {
             channel.discardDelayedWrites();
             Messages.sendErrorResponse(channel, getAccessControl.apply(session.sessionSettings()), t);
@@ -860,6 +853,14 @@ public class PostgresWireProtocol {
         String portalOrStatementName = readCString(buffer);
         session.close(b, portalOrStatementName);
         Messages.sendCloseComplete(channel);
+    }
+
+    /// Disable autoRead until future is completed to avoid processing pipelined messages in the meantime
+    private static CompletableFuture<?> wait(Channel channel, CompletableFuture<?> future) {
+        channel.config().setAutoRead(false);
+        return future.whenComplete((_, _) -> {
+            channel.config().setAutoRead(true);
+        });
     }
 
     @VisibleForTesting
@@ -889,15 +890,15 @@ public class PostgresWireProtocol {
             String query = locStmt.querySubset(queryString);
             composedFuture = composedFuture.thenCompose(_ -> handleSingleQuery(stmt, query, channel, timeoutToken));
         }
-        composedFuture.whenComplete(new ReadyForQueryCallback(channel, session.transactionState()));
+        wait(
+            channel,
+            composedFuture.whenComplete(new ReadyForQueryCallback(channel, session.transactionState())));
     }
 
     private CompletableFuture<?> handleSingleQuery(Statement statement,
                                                    String query,
                                                    DelayableWriteChannel channel,
                                                    Session.TimeoutToken timeoutToken) {
-        CompletableFuture<?> result = new CompletableFuture<>();
-
         AccessControl accessControl = getAccessControl.apply(session.sessionSettings());
         try {
 
@@ -912,6 +913,7 @@ public class PostgresWireProtocol {
             DescribeResult describeResult = session.describe('P', "");
             List<Symbol> fields = describeResult.getFields();
 
+            CompletableFuture<?> executeResult;
             if (fields == null) {
                 DelayedWrites delayedWrites = channel.delayWrites();
                 RowCountReceiver rowCountReceiver = new RowCountReceiver(
@@ -920,7 +922,7 @@ public class PostgresWireProtocol {
                     delayedWrites,
                     accessControl
                 );
-                session.execute("", 0, rowCountReceiver);
+                executeResult = session.execute("", 0, rowCountReceiver);
             } else {
                 Messages.sendRowDescription(
                     channel,
@@ -938,14 +940,15 @@ public class PostgresWireProtocol {
                     Lists.map(fields, x -> PGTypes.get(x.valueType())),
                     null
                 );
-                session.execute("", 0, resultSetReceiver);
+                executeResult = session.execute("", 0, resultSetReceiver);
             }
-            return session.sync(false);
+            return executeResult == null
+                ? session.sync(false)
+                : executeResult.thenCompose(_ -> session.sync(false));
         } catch (Throwable t) {
             channel.discardDelayedWrites();
             Messages.sendErrorResponse(channel, accessControl, t);
-            result.completeExceptionally(t);
-            return result;
+            return CompletableFuture.failedFuture(t);
         }
     }
 
