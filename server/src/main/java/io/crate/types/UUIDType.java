@@ -91,7 +91,7 @@ public class UUIDType extends DataType<UUID> implements FixedWidthType, Streamer
         return new UUID(mostSigBits, leastSigBits);
     }
 
-    private static byte[] encode(UUID value) {
+    public static byte[] encode(UUID value) {
         byte[] bytes = new byte[STORAGE_BYTE_SIZE];
         final long mostSigBits = value.getMostSignificantBits();
         final long leastSigBits = value.getLeastSignificantBits();
