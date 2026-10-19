@@ -25,11 +25,7 @@ import static io.crate.protocols.postgres.PostgresWireProtocol.PG_SERVER_VERSION
 import static io.crate.protocols.postgres.PostgresWireProtocol.readCString;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyChar;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -64,6 +60,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import io.crate.analyze.AnalyzedInsertStatement;
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AlwaysOKAuthentication;
@@ -77,7 +74,6 @@ import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -89,7 +85,6 @@ import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.role.Role;
 import io.crate.role.metadata.RolesHelper;
-import io.crate.session.DescribeResult;
 import io.crate.session.Session;
 import io.crate.session.Sessions;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -680,11 +675,9 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testHandleSimpleQueryFailing() {
-        CompletableFuture<?> completableFuture = new CompletableFuture<>();
         submitQueriesThroughSimpleQueryMode("SELECT 'fail'",
-                                            new RuntimeException("fail"),
-                                            completableFuture);
-        // the completableFuture is not completed but the channel is flushed
+                                            new RuntimeException("fail"));
+        readRowDescription();
         readErrorResponse(channel);
         readReadyForQueryMessage(channel);
         assertThat(channel.outboundMessages()).isEmpty();
@@ -693,6 +686,10 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testHandleMultipleSimpleQueries() {
         Session session = submitQueriesThroughSimpleQueryMode("select 'first'; select 'second';");
+        readRowDescription();
+        readCommandComplete();
+        readRowDescription();
+        readCommandComplete();
         readReadyForQueryMessage(channel);
         assertThat(channel.outboundMessages()).isEmpty();
         String query = session.getQuery("");
@@ -702,6 +699,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testHandleMultipleSimpleQueriesWithQueryFailure() {
         submitQueriesThroughSimpleQueryMode("select 'first'; select 'second';", new RuntimeException("fail"));
+        readRowDescription();
         readErrorResponse(channel);
         readReadyForQueryMessage(channel);
         assertThat(channel.outboundMessages()).isEmpty();
@@ -710,6 +708,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testKillExceptionSendsReadyForQuery() {
         submitQueriesThroughSimpleQueryMode("select 1;", JobKilledException.of("with fire"));
+        readRowDescription();
         readErrorResponse(channel);
         readReadyForQueryMessage(channel);
     }
@@ -1262,37 +1261,39 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private Session submitQueriesThroughSimpleQueryMode(String statements) {
-        return submitQueriesThroughSimpleQueryMode(statements, null, null);
+        return submitQueriesThroughSimpleQueryMode(statements, null);
     }
 
-    private void submitQueriesThroughSimpleQueryMode(String statements, Throwable failure) {
-        submitQueriesThroughSimpleQueryMode(statements, failure, null);
-    }
+    private Session submitQueriesThroughSimpleQueryMode(String statements, @Nullable Throwable failure) {
+        Planner planner = mock(Planner.class);
+        executor = SQLExecutor.builder(clusterService)
+            .setPlanner(planner)
+            .build();
 
-    private Session submitQueriesThroughSimpleQueryMode(String statements,
-                                                     @Nullable Throwable failure,
-                                                     @Nullable CompletableFuture<?> future) {
-        Sessions sqlOperations = Mockito.mock(Sessions.class);
-        Session session = spy(this.sessions.newSystemSession());
-        doReturn(future).when(session).execute(any(String.class), any(int.class), any(RowCountReceiver.class));
-        var sessionSettings = new CoordinatorSessionSettings(Role.CRATE_USER);
-        when(session.sessionSettings()).thenReturn(sessionSettings);
-        when(session.newTimeoutToken()).thenReturn(
-            new Session.TimeoutToken(sessionSettings.statementTimeout(), System.nanoTime())
-        );
-        when(sqlOperations.newSession(
-            any(ConnectionProperties.class),
-            any(String.class),
-            any(Role.class))
-        ).thenReturn(session);
-        DescribeResult describeResult = mock(DescribeResult.class);
-        when(describeResult.getFields()).thenReturn(null);
-        doReturn(describeResult).when(session).describe(anyChar(), anyString());
-        when(session.transactionState()).thenReturn(TransactionState.IDLE);
+        when(planner.plan(any(AnalyzedStatement.class), any())).thenReturn(new Plan() {
+
+            @Override
+            public StatementType type() {
+                return StatementType.UNDEFINED;
+            }
+
+            @Override
+            public void executeOrFail(DependencyCarrier dependencies,
+                                      PlannerContext plannerContext,
+                                      RowConsumer consumer,
+                                      Row params,
+                                      SubQueryResults subQueryResults) throws Exception {
+                if (failure == null) {
+                    consumer.accept(InMemoryBatchIterator.empty(null), null);
+                } else {
+                    consumer.accept(null, failure);
+                }
+            }
+        });
 
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
-                sqlOperations,
+                executor.sqlOperations,
                 new SessionSettingRegistry(Set.of()),
                 _ -> AccessControl.DISABLED,
                 _ -> {},
@@ -1300,12 +1301,6 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 () -> null
             );
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
-
-        if (failure != null) {
-            when(session.sync(false)).thenThrow(failure);
-        } else {
-            when(session.sync(false)).thenReturn(CompletableFuture.completedFuture(null));
-        }
 
         sendStartupMessage(channel);
         readAuthenticationOK(channel);
@@ -1323,7 +1318,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         } finally {
             query.release();
         }
-        return session;
+        return ctx.session;
     }
 
     private static void sendStartupMessage(EmbeddedChannel channel) {
@@ -1380,6 +1375,9 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     private static void readReadyForQueryMessage(EmbeddedChannel channel) {
         ByteBuf response = channel.readOutbound();
+        assertThat(response)
+            .as("Expected readyForQuery message")
+            .isNotNull();
         try {
             assertThat((char) response.readByte())
                 .as("expecting readyForQuery message")
@@ -1397,8 +1395,13 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     private static ArrayList<String> readErrorResponse(EmbeddedChannel channel) {
         ByteBuf response = channel.readOutbound();
+        assertThat(response)
+            .as("expected error response")
+            .isNotNull();
         ArrayList<String> errorFragments = new ArrayList<>();
-        // the byte would actually indicate the field type, but we don't care about that here
+        assertThat((char) response.readByte())
+            .as("expecting errorResponse")
+            .isEqualTo('E');
         while (response.readByte() != 0) {
             String error = PostgresWireProtocol.readCString(response);
             errorFragments.add(error);
