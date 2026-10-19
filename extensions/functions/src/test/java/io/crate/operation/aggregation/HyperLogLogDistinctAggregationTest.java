@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -40,6 +41,7 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import io.crate.Streamer;
+import io.crate.common.collections.Lists;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
@@ -54,6 +56,7 @@ import io.crate.operation.aggregation.HyperLogLogDistinctAggregation.HllState;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.UUIDType;
 
 public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
 
@@ -171,7 +174,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_random_type_random_values() throws Exception {
-        var validTypes = DataTypes.PRIMITIVE_TYPES.stream()
+        var validTypes = Lists.concat(DataTypes.PRIMITIVE_TYPES, UUIDType.INSTANCE).stream()
             .filter(x -> x.storageSupport() != null)
             .collect(Collectors.toList());
         var type = RandomPicks.randomFrom(RandomizedContext.current().getRandom(), validTypes);
@@ -201,35 +204,39 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
     @Test
     public void testMurmur3HashCalculationsForAllTypes() {
         // double types
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.DOUBLE).hash(1.3d))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.DOUBLE).hash(1.3d))
             .isEqualTo(3706823019612663850L);
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.FLOAT).hash(1.3f))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.FLOAT).hash(1.3f))
             .isEqualTo(1386670595997310747L);
 
         // long types
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.LONG).hash(1L))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.LONG).hash(1L))
             .isEqualTo(-2508561340476696217L);
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.INTEGER).hash(1))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.INTEGER).hash(1))
             .isEqualTo(-2508561340476696217L);
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.SHORT).hash(Short.valueOf("1")))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.SHORT).hash(Short.valueOf("1")))
             .isEqualTo(-2508561340476696217L);
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.BYTE).hash(Byte.valueOf("1")))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.BYTE).hash(Byte.valueOf("1")))
             .isEqualTo(-2508561340476696217L);
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.TIMESTAMPZ).hash(1512569562000L))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.TIMESTAMPZ).hash(1512569562000L))
             .isEqualTo(-3066297687939346384L);
 
         // bytes types
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.STRING).hash("foo"))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.STRING).hash("foo"))
             .isEqualTo(1208210750032620489L);
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.BOOLEAN).hash(true))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.BOOLEAN).hash(true))
             .isEqualTo(4312328700069294139L);
 
         // ip type
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.IP).hash("127.0.0.1"))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.IP).hash("127.0.0.1"))
             .isEqualTo(6044143379282500354L);
 
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.DATE).hash(DataTypes.DATE.implicitCast("2020-11-28")))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.DATE).hash(DataTypes.DATE.implicitCast("2020-11-28")))
             .isEqualTo(1653417147958603178L);
+
+        UUID uuid = UUID.fromString("85f39f41-c438-4043-9192-8b18419caf21");
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(UUIDType.INSTANCE).hash(uuid))
+            .isEqualTo(-6882910959831981196L);
     }
 
     @Test
