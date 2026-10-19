@@ -130,3 +130,6 @@ Fixes
       AND t1.x = t3.z
       AND t2.y = t3.z;
 
+- Fixed an issue where double quotes and backslashes in array elements (e.g.
+  ``TEXT[]``) weren't escaped when sent over the PostgreSQL wire protocol in
+  text format. This caused clients to parse the elements incorrectly.
