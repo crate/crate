@@ -134,6 +134,17 @@ public class HyperLogLogDistinctAggregationBenchmark {
     }
 
     @Benchmark
+    public long benchmarkHLLPlusPlusMurmurhash128x64() throws Exception {
+        for (int i = 0; i < rows.size(); i++) {
+            String value = DataTypes.STRING.sanitizeValue(rows.get(i).get(0));
+            byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+            long[] hash128x64 = org.apache.commons.codec.digest.MurmurHash3.hash128x64(bytes);
+            hyperLogLogPlusPlus.collect(hash128x64[0]);
+        }
+        return hyperLogLogPlusPlus.cardinality();
+    }
+
+    @Benchmark
     public Iterable<Row> benchmarkHLLAggregationOnHeap() throws Exception {
         Object[] state = onHeapCollector.supplier().get();
         BiConsumer<Object[], Row> accumulator = onHeapCollector.accumulator();
