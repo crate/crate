@@ -756,11 +756,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             );
 
         channel = new EmbeddedChannel(pg1.decoder, pg1.handler);
-        sendStartupMessage(channel);
-        readAuthenticationOK(channel);
-        skipParameterMessages(channel);
-        readKeyData(channel);
-        readReadyForQueryMessage(channel);
+        startupHandshake();
         ByteBuf buffer = Unpooled.buffer();
         ClientMessages.sendParseMessage(buffer, "", "select 1", new int[0]);
         ClientMessages.sendBindMessage(buffer, "", "", List.of());
@@ -934,12 +930,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             }
         });
 
-        sendStartupMessage(channel);
-        readAuthenticationOK(channel);
-        skipParameterMessages(channel);
-        readKeyData(channel);
-        readReadyForQueryMessage(channel);
-        assertThat(channel.outboundMessages()).isEmpty();
+        startupHandshake();
 
         ByteBuf buffer = Unpooled.buffer();
         PGType<?> textType = PGTypes.get(DataTypes.STRING);
@@ -1030,12 +1021,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             );
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
-        sendStartupMessage(channel);
-        readAuthenticationOK(channel);
-        skipParameterMessages(channel);
-        readKeyData(channel);
-        readReadyForQueryMessage(channel);
-        assertThat(channel.outboundMessages()).isEmpty();
+        startupHandshake();
 
         ByteBuf buffer = Unpooled.buffer();
         PGType<?> textType = PGTypes.get(DataTypes.STRING);
@@ -1123,6 +1109,46 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         } finally {
             response.release();
         }
+    }
+
+    @Test
+    public void test_ddl_executes_immediately() throws Exception {
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sessions,
+                new SessionSettingRegistry(Set.of()),
+                _ -> AccessControl.DISABLED,
+                _ -> {},
+                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                () -> null
+            );
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        startupHandshake();
+        ByteBuf buffer = Unpooled.buffer();
+        ClientMessages.sendParseMessage(buffer, "", "create table tbl_ddl (x int)", new int[0]);
+        ClientMessages.sendBindMessage(buffer, "", "", List.of());
+        ClientMessages.sendExecute(buffer, "", 0);
+
+        ClientMessages.sendParseMessage(buffer, "", "select x from tbl_ddl", new int[0]);
+        ClientMessages.sendBindMessage(buffer, "", "", List.of());
+        ClientMessages.sendExecute(buffer, "", 0);
+
+        channel.writeInbound(buffer);
+
+        readParseComplete();
+        readBindComplete();
+        assertThat(ctx.session.hasDeferredExecutions()).isFalse();
+    }
+
+
+    private void startupHandshake() {
+        sendStartupMessage(channel);
+        readAuthenticationOK(channel);
+        skipParameterMessages(channel);
+        readKeyData(channel);
+        readReadyForQueryMessage(channel);
+        assertThat(channel.outboundMessages()).isEmpty();
     }
 
 
