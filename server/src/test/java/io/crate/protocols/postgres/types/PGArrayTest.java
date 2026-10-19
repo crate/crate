@@ -89,6 +89,22 @@ public class PGArrayTest extends BasePGTypeTest<List<Object>> {
     }
 
     @Test
+    public void test_string_encode_decode_round_trip_with_escaped_quotes_slashes() {
+        List<Object> actual = List.of("crate\"db", "crate\\db");
+        String expected = "{\"crate\\\"db\",\"crate\\\\db\"}";
+
+        for (var arrayType : List.of(PGArray.VARCHAR_ARRAY, PGArray.TEXT_ARRAY)) {
+            byte[] bytes = arrayType.encodeAsUTF8Text(actual);
+            assertThat(new String(bytes, StandardCharsets.UTF_8))
+                .as(arrayType.typName())
+                .isEqualTo(expected);
+            assertThat(arrayType.decodeUTF8Text(bytes, null))
+                .as(arrayType.typName())
+                .isEqualTo(actual);
+        }
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     public void testDecodeEncodeEscapedJson() {
         // Decode

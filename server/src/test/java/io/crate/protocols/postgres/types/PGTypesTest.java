@@ -231,6 +231,18 @@ public class PGTypesTest extends ESTestCase {
         assertThat(new String(bytes, StandardCharsets.UTF_8)).isEqualTo("{\"(foobar)\"}");
     }
 
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void test_array_of_varchar_with_length_escapes_elements() throws Exception {
+        var pgType = PGTypes.get(new ArrayType<>(StringType.of(10)));
+        assertThat(pgType.oid()).isEqualTo(PGArray.VARCHAR_ARRAY.oid());
+
+        List<Object> values = List.of("crate\"db", "crate\\db");
+        byte[] bytes = ((PGType) pgType).encodeAsUTF8Text(values);
+        assertThat(new String(bytes, StandardCharsets.UTF_8)).isEqualTo("{\"crate\\\"db\",\"crate\\\\db\"}");
+        assertThat(((PGType) pgType).decodeUTF8Text(bytes, null)).isEqualTo(values);
+    }
+
     private <V> void assertEntryOfPgType(Entry<?> entry, PGType<V> pgType) {
         assertThat(writeAndReadBinary(entry, pgType))
             .as("Binary write/read round-trip for `" + pgType.typName() + "` must not change value")
