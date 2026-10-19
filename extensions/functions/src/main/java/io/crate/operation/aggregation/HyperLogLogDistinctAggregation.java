@@ -550,17 +550,5 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 return MurmurHash3.hash64(bytes,0, bytes.length);
             }
         }
-
-        static class Bytes extends Murmur3Hash {
-
-            private final MurmurHash3.Hash128 hash = new MurmurHash3.Hash128();
-
-            @Override
-            long hash(Object val) {
-                byte[] bytes = DataTypes.STRING.implicitCast(val).getBytes(StandardCharsets.UTF_8);
-                MurmurHash3.hash128(bytes, 0, bytes.length, 0, hash);
-                return hash.h1;
-            }
-        }
     }
 }
