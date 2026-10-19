@@ -76,6 +76,7 @@ import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelConfig;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -784,9 +785,21 @@ public class PostgresWireProtocol {
             );
         }
         CompletableFuture<?> result = session.execute(portalName, maxRows, resultReceiver);
-        if (result != null) {
-            wait(channel, result);
+        if (result == null) {
+            return;
         }
+        if (result.isDone()) {
+            ignoreTillSync = ignoreTillSync || result.isCompletedExceptionally();
+            return;
+        }
+        channel.config().setAutoRead(false);
+        result.whenComplete((_, f) -> {
+            if (f != null) {
+                LOGGER.trace("ignoreTillSync=true", f);
+                ignoreTillSync = true;
+            }
+            channel.config().setAutoRead(true);
+        });
     }
 
     private void handleSync(DelayableWriteChannel channel) {
@@ -845,9 +858,10 @@ public class PostgresWireProtocol {
 
     /// Disable autoRead until future is completed to avoid processing pipelined messages in the meantime
     private static CompletableFuture<?> wait(Channel channel, CompletableFuture<?> future) {
-        channel.config().setAutoRead(false);
-        return future.whenComplete((_, _) -> {
-            channel.config().setAutoRead(true);
+        ChannelConfig config = channel.config();
+        config.setAutoRead(false);
+        return future.whenComplete((_, f) -> {
+            config.setAutoRead(true);
         });
     }
 

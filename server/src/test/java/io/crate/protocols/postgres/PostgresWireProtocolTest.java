@@ -1141,6 +1141,59 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         assertThat(ctx.session.hasDeferredExecutions()).isFalse();
     }
 
+    @Test
+    public void test_messages_are_ignored_till_sync_after_execute_error() throws Exception {
+        Planner planner = mock(Planner.class);
+        executor = SQLExecutor.builder(clusterService)
+            .setPlanner(planner)
+            .build();
+
+        when(planner.plan(any(AnalyzedStatement.class), any())).thenReturn(new Plan() {
+
+            @Override
+            public StatementType type() {
+                return StatementType.UNDEFINED;
+            }
+
+            @Override
+            public void executeOrFail(DependencyCarrier dependencies,
+                                      PlannerContext plannerContext,
+                                      RowConsumer consumer,
+                                      Row params,
+                                      SubQueryResults subQueryResults) throws Exception {
+                consumer.accept(null, new ArithmeticException("1/0"));
+            }
+        });
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sessions,
+                new SessionSettingRegistry(Set.of()),
+                _ -> AccessControl.DISABLED,
+                _ -> {},
+                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                () -> null
+            );
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        startupHandshake();
+        ByteBuf buffer = Unpooled.buffer();
+        ClientMessages.sendParseMessage(buffer, "", "select 1/x from generate_series(0, 2) as t(x)", new int[0]);
+        ClientMessages.sendBindMessage(buffer, "", "", List.of());
+        ClientMessages.sendExecute(buffer, "", 0);
+
+        ClientMessages.sendParseMessage(buffer, "", "select x from tbl", new int[0]);
+        sendSync(buffer);
+
+        channel.writeInbound(buffer);
+
+        readParseComplete();
+        readBindComplete();
+        readErrorResponse(channel);
+        readReadyForQueryMessage(channel, 'E');
+        // No parseComplete for sequent query
+        assertThat(channel.outboundMessages()).isEmpty();
+    }
+
 
     private void startupHandshake() {
         sendStartupMessage(channel);
@@ -1400,6 +1453,10 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private static void readReadyForQueryMessage(EmbeddedChannel channel) {
+        readReadyForQueryMessage(channel, 'I');
+    }
+
+    private static void readReadyForQueryMessage(EmbeddedChannel channel, char transactionState) {
         ByteBuf response = channel.readOutbound();
         assertThat(response)
             .as("Expected readyForQuery message")
@@ -1412,27 +1469,27 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 .as("length of readyForQuery message")
                 .isEqualTo(5);
             assertThat((char) response.readByte())
-                .as("Transaction status must be idle")
-                .isEqualTo('I');
+                .as("Transaction status")
+                .isEqualTo(transactionState);
         } finally {
             response.release();
         }
     }
 
-    private static ArrayList<String> readErrorResponse(EmbeddedChannel channel) {
+    private static void readErrorResponse(EmbeddedChannel channel) {
         ByteBuf response = channel.readOutbound();
-        assertThat(response)
-            .as("expected error response")
-            .isNotNull();
-        ArrayList<String> errorFragments = new ArrayList<>();
-        assertThat((char) response.readByte())
-            .as("expecting errorResponse")
-            .isEqualTo('E');
-        while (response.readByte() != 0) {
-            String error = PostgresWireProtocol.readCString(response);
-            errorFragments.add(error);
+        try {
+            assertThat(response)
+                .as("expected error response")
+                .isNotNull();
+            assertThat((char) response.readByte())
+                .as("expecting errorResponse")
+                .isEqualTo('E');
+
+            int length = response.readInt();
+            response.skipBytes(length - 4); // -4 to exclude length itself
+        } finally {
+            response.release();
         }
-        response.release();
-        return errorFragments;
     }
 }
