@@ -49,8 +49,11 @@ import io.crate.analyze.AnalyzedClose;
 import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDeclare;
+import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedDiscard;
+import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterTypes;
@@ -592,9 +595,11 @@ public class Session implements AutoCloseable {
                 close();
             }
             resultReceiver.allFinished();
-        } else if (analyzedStmt.isWriteOperation()) {
-            /* We defer the execution for any other statements to `sync` messages so that we can efficiently process
-             * bulk operations. E.g. If we receive `INSERT INTO (x) VALUES (?)` bindings/execute multiple times
+        } else if (analyzedStmt instanceof AnalyzedInsertStatement
+                || analyzedStmt instanceof AnalyzedUpdateStatement
+                || analyzedStmt instanceof AnalyzedDeleteStatement) {
+            /* We defer the execution for insert, update and delete to `sync` for efficient bulk operations
+             * E.g. If we receive `INSERT INTO (x) VALUES (?)` bindings/execute multiple times
              * We want to create bulk requests internally:                                                          /
              * - To reduce network overhead
              * - To have 1 disk flush per shard instead of 1 disk flush per item
@@ -610,7 +615,7 @@ public class Session implements AutoCloseable {
                 portal.preparedStmt().parsedStatement(),
                 _ -> new ArrayList<>()
             ).add(new DeferredExecution(portal, maxRows, resultReceiver));
-            return resultReceiver.completionFuture();
+            return null;
         } else {
             if (analyzedStmt instanceof AnalyzedClose close) {
                 String cursorName = close.cursorName();

@@ -544,6 +544,7 @@ public class PostgresWireProtocol {
     private void switchToTransportProtocol(Channel channel) {
         var pipeline = channel.pipeline();
         pipeline.remove("frame-decoder");
+        pipeline.remove("flow-control");
         pipeline.remove("handler");
 
         // SSL is already done via PostgreSQL handshake/auth
@@ -782,7 +783,13 @@ public class PostgresWireProtocol {
                 session.getResultFormatCodes(portalName)
             );
         }
-        session.execute(portalName, maxRows, resultReceiver);
+        CompletableFuture<?> result = session.execute(portalName, maxRows, resultReceiver);
+        if (result != null) {
+            channel.config().setAutoRead(false);
+            result.whenComplete((_, f) -> {
+                channel.config().setAutoRead(true);
+            });
+        }
     }
 
     private void handleSync(DelayableWriteChannel channel) {
@@ -803,7 +810,11 @@ public class PostgresWireProtocol {
             return;
         }
         try {
-            session.sync(false);
+            CompletableFuture<?> sync = session.sync(false);
+            channel.config().setAutoRead(false);
+            sync.whenComplete((_, _) -> {
+                channel.config().setAutoRead(true);
+            });
 
             // The readyForQuery msg must only be sent _after_ an operation
             // started in a prior E(execute) msg is completed.

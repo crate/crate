@@ -70,6 +70,7 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
+import io.netty.handler.flow.FlowControlHandler;
 import io.netty.handler.ssl.SslContext;
 
 @Singleton
@@ -192,6 +193,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                     sslContextProvider
                 );
                 pipeline.addLast("frame-decoder", postgresWireProtocol.decoder);
+                pipeline.addLast("flow-control", new FlowControlHandler());
                 pipeline.addLast("handler", postgresWireProtocol.handler);
             }
         });
