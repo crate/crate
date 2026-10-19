@@ -51,6 +51,9 @@ series.
 Fixes
 =====
 
+- Added missing support for the :ref:`UUID <type-uuid>` type to the
+  :ref:`hyperloglog_distinct <aggregation-hyperloglog-distinct>` aggregation.
+
 - Fixed an issue where a logical replication subscription's active connection
   could be unexpectedly closed when an earlier connection attempt for a
   subscription with the same name failed afterwards. As a consequence, both
