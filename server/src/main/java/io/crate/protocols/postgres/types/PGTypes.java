@@ -181,7 +181,7 @@ public class PGTypes {
                 } else if (innerType.id() == ObjectType.ID) {
                     return PGArray.JSON_ARRAY;
                 } else if (innerType.id() == RowType.ID) {
-                    return new PGArray(PGArray.EMPTY_RECORD_ARRAY.oid(), get(innerType));
+                    return new PGArray(PGArray.EMPTY_RECORD_ARRAY.oid(), get(innerType), false);
                 }
 
                 PGType<?> pgType = CRATE_TO_PG_TYPES.get(type);
@@ -190,9 +190,10 @@ public class PGTypes {
                     if (innerPGType == null) {
                         throw new IllegalArgumentException(
                             String.format(Locale.ENGLISH, "No type mapping from '%s' to pg_type", type.getName()));
-                    } else {
-                        return new PGArray(innerPGType.typArray(), innerPGType);
                     }
+                    int arrayOid = innerPGType.typArray();
+                    boolean escapeElements = getByOid(arrayOid) instanceof PGArray template && template.escapeElements();
+                    return new PGArray(arrayOid, innerPGType, escapeElements);
                 }
                 return pgType;
             }
