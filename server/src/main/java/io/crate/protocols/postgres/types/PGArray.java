@@ -35,37 +35,42 @@ import io.netty.buffer.ByteBuf;
 public class PGArray extends PGType<List<Object>> {
 
     private final PGType<?> innerType;
+    /// Whether double quotes and backslashes are escaped (with a backslash) in the text representation.
+    /// This is because array elements are always enclosed in double quotes, so elements of certain types need
+    /// to be escaped.
+    private final boolean escapeElements;
 
-    static final PGArray CHAR_ARRAY = new PGArray(1002, CharType.INSTANCE);
-    static final PGArray INT2_ARRAY = new PGArray(1005, SmallIntType.INSTANCE);
-    static final PGArray INT4_ARRAY = new PGArray(1007, IntegerType.INSTANCE);
-    static final PGArray OID_ARRAY = new PGArray(1028, OidType.INSTANCE);
-    static final PGArray INT8_ARRAY = new PGArray(1016, BigIntType.INSTANCE);
-    static final PGArray FLOAT4_ARRAY = new PGArray(1021, RealType.INSTANCE);
-    static final PGArray FLOAT8_ARRAY = new PGArray(1022, DoubleType.INSTANCE);
-    static final PGArray NUMERIC_ARRAY = new PGArray(1231, NumericType.INSTANCE);
-    static final PGArray BOOL_ARRAY = new PGArray(1000, BooleanType.INSTANCE);
-    static final PGArray TIMESTAMPZ_ARRAY = new PGArray(1185, TimestampZType.INSTANCE);
-    static final PGArray TIMESTAMP_ARRAY = new PGArray(1115, TimestampType.INSTANCE);
-    static final PGArray TIMETZ_ARRAY = new PGArray(1270, TimeTZType.INSTANCE);
-    static final PGArray DATE_ARRAY = new PGArray(1182, DateType.INSTANCE);
-    static final PGArray CHARACTER_ARRAY = new PGArray(1014, CharacterType.INSTANCE);
-    static final PGArray VARCHAR_ARRAY = new PGArray(1015, VarCharType.INSTANCE);
-    static final PGArray TEXT_ARRAY = new PGArray(1009, VarCharType.TextType.INSTANCE);
-    static final PGArray NAME_ARRAY = new PGArray(1003, VarCharType.NameType.INSTANCE);
-    static final PGArray JSON_ARRAY = new PGArray(199, JsonType.INSTANCE);
-    static final PGArray POINT_ARRAY = new PGArray(1017, PointType.INSTANCE);
-    static final PGArray INTERVAL_ARRAY = new PGArray(1187, IntervalType.INSTANCE);
-    static final PGArray EMPTY_RECORD_ARRAY = new PGArray(2287, RecordType.EMPTY_RECORD);
-    static final PGArray REGPROC_ARRAY = new PGArray(1008, RegprocType.INSTANCE);
-    static final PGArray REGCLASS_ARRAY = new PGArray(2210, RegclassType.INSTANCE);
-    static final PGArray REGTYPE_ARRAY = new PGArray(2211, RegtypeType.INSTANCE);
-    static final PGArray UUID_ARRAY = new PGArray(2951, PgUUIDType.INSTANCE);
-    public static final PGArray BIT_ARRAY = new PGArray(1561, BitType.INSTANCE);
+    static final PGArray CHAR_ARRAY = new PGArray(1002, CharType.INSTANCE, false);
+    static final PGArray INT2_ARRAY = new PGArray(1005, SmallIntType.INSTANCE, false);
+    static final PGArray INT4_ARRAY = new PGArray(1007, IntegerType.INSTANCE, false);
+    static final PGArray OID_ARRAY = new PGArray(1028, OidType.INSTANCE, false);
+    static final PGArray INT8_ARRAY = new PGArray(1016, BigIntType.INSTANCE, false);
+    static final PGArray FLOAT4_ARRAY = new PGArray(1021, RealType.INSTANCE, false);
+    static final PGArray FLOAT8_ARRAY = new PGArray(1022, DoubleType.INSTANCE, false);
+    static final PGArray NUMERIC_ARRAY = new PGArray(1231, NumericType.INSTANCE, false);
+    static final PGArray BOOL_ARRAY = new PGArray(1000, BooleanType.INSTANCE, false);
+    static final PGArray TIMESTAMPZ_ARRAY = new PGArray(1185, TimestampZType.INSTANCE, false);
+    static final PGArray TIMESTAMP_ARRAY = new PGArray(1115, TimestampType.INSTANCE, false);
+    static final PGArray TIMETZ_ARRAY = new PGArray(1270, TimeTZType.INSTANCE, false);
+    static final PGArray DATE_ARRAY = new PGArray(1182, DateType.INSTANCE, false);
+    static final PGArray CHARACTER_ARRAY = new PGArray(1014, CharacterType.INSTANCE, false);
+    static final PGArray VARCHAR_ARRAY = new PGArray(1015, VarCharType.INSTANCE, true);
+    static final PGArray TEXT_ARRAY = new PGArray(1009, VarCharType.TextType.INSTANCE, true);
+    static final PGArray NAME_ARRAY = new PGArray(1003, VarCharType.NameType.INSTANCE, true);
+    static final PGArray JSON_ARRAY = new PGArray(199, JsonType.INSTANCE, true);
+    static final PGArray POINT_ARRAY = new PGArray(1017, PointType.INSTANCE, false);
+    static final PGArray INTERVAL_ARRAY = new PGArray(1187, IntervalType.INSTANCE, false);
+    static final PGArray EMPTY_RECORD_ARRAY = new PGArray(2287, RecordType.EMPTY_RECORD, false);
+    static final PGArray REGPROC_ARRAY = new PGArray(1008, RegprocType.INSTANCE, false);
+    static final PGArray REGCLASS_ARRAY = new PGArray(2210, RegclassType.INSTANCE, false);
+    static final PGArray REGTYPE_ARRAY = new PGArray(2211, RegtypeType.INSTANCE, false);
+    static final PGArray UUID_ARRAY = new PGArray(2951, PgUUIDType.INSTANCE, false);
+    public static final PGArray BIT_ARRAY = new PGArray(1561, BitType.INSTANCE, false);
     public static final PGArray ANY_ARRAY = new PGArray(
         2277,
         AnyType.INSTANCE.typName() + "array",
-        AnyType.INSTANCE) {
+        AnyType.INSTANCE,
+        false) {
 
         @Override
         public String typeCategory() {
@@ -83,16 +88,20 @@ public class PGArray extends PGType<List<Object>> {
         }
     };
 
-
     private static final byte[] NULL_BYTES = new byte[]{'N', 'U', 'L', 'L'};
 
-    PGArray(int oid, String name, PGType<?> innerType) {
+    PGArray(int oid, String name, PGType<?> innerType, boolean escapeElements) {
         super(oid, -1, -1, name);
         this.innerType = innerType;
+        this.escapeElements = escapeElements;
     }
 
-    PGArray(int oid, PGType<?> innerType) {
-        this(oid, "_" + innerType.typName(), innerType);
+    PGArray(int oid, PGType<?> innerType, boolean escapeElements) {
+        this(oid, "_" + innerType.typName(), innerType, escapeElements);
+    }
+
+    boolean escapeElements() {
+        return escapeElements;
     }
 
     @Override
@@ -181,7 +190,6 @@ public class PGArray extends PGType<List<Object>> {
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     byte[] encodeAsUTF8Text(List<Object> array) {
-        boolean isJson = JsonType.OID == innerType.oid();
         ByteArrayList encodedValues = new ByteArrayList();
         encodedValues.add((byte) '{');
         for (int i = 0; i < array.size(); i++) {
@@ -203,9 +211,8 @@ public class PGArray extends PGType<List<Object>> {
                     bytes = ((PGType) innerType).encodeAsUTF8Text(o);
 
                     encodedValues.add((byte) '"');
-                    if (isJson) {
+                    if (escapeElements) {
                         for (byte aByte : bytes) {
-                            // Escape double quotes with backslash for json
                             var ch = (char) aByte;
                             if (ch == '"' || ch == '\\') {
                                 encodedValues.add((byte) '\\');
