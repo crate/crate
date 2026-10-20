@@ -52,6 +52,7 @@ public class PGArray extends PGType<List<Object>> {
     static final PGArray CHARACTER_ARRAY = new PGArray(1014, CharacterType.INSTANCE);
     static final PGArray VARCHAR_ARRAY = new PGArray(1015, VarCharType.INSTANCE);
     static final PGArray TEXT_ARRAY = new PGArray(1009, VarCharType.TextType.INSTANCE);
+    static final PGArray NAME_ARRAY = new PGArray(1003, VarCharType.NameType.INSTANCE);
     static final PGArray JSON_ARRAY = new PGArray(199, JsonType.INSTANCE);
     static final PGArray POINT_ARRAY = new PGArray(1017, PointType.INSTANCE);
     static final PGArray INTERVAL_ARRAY = new PGArray(1187, IntervalType.INSTANCE);
