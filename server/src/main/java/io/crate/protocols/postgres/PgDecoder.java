@@ -32,6 +32,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.ssl.SslContext;
+import io.netty.util.ReferenceCounted;
 
 public class PgDecoder extends ByteToMessageDecoder {
 
@@ -100,11 +101,51 @@ public class PgDecoder extends ByteToMessageDecoder {
         setCumulator(COMPOSITE_CUMULATOR);
     }
 
+    public record PgMsg(State state, char type, ByteBuf buf, int length) implements ReferenceCounted {
+
+        @Override
+        public int refCnt() {
+            return buf.refCnt();
+        }
+
+        @Override
+        public boolean release() {
+            return buf.release();
+        }
+
+        @Override
+        public boolean release(int decrement) {
+            return buf.release(decrement);
+        }
+
+        @Override
+        public ReferenceCounted retain() {
+            buf.retain();
+            return this;
+        }
+
+        @Override
+        public ReferenceCounted retain(int increment) {
+            buf.retain(increment);
+            return this;
+        }
+
+        @Override
+        public ReferenceCounted touch() {
+            buf.touch();
+            return this;
+        }
+
+        @Override
+        public ReferenceCounted touch(Object hint) {
+            buf.touch(hint);
+            return this;
+        }
+    }
+
     private final Supplier<SslContext> getSslContext;
 
     private State state = State.STARTUP;
-    private byte msgType;
-    private int payloadLength;
     private boolean authenticated = true;
 
 
@@ -114,7 +155,7 @@ public class PgDecoder extends ByteToMessageDecoder {
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
-        ByteBuf decode = decode(ctx, in);
+        PgMsg decode = decode(ctx, in);
         if (decode != null) {
             out.add(decode);
         }
@@ -125,7 +166,7 @@ public class PgDecoder extends ByteToMessageDecoder {
         super.channelRead(ctx, msg);
     }
 
-    private ByteBuf decode(ChannelHandlerContext ctx, ByteBuf in) {
+    private PgMsg decode(ChannelHandlerContext ctx, ByteBuf in) {
         switch (state) {
             case STARTUP: {
                 LOGGER.trace("Readable bytes: {}", in.readableBytes());
@@ -139,7 +180,7 @@ public class PgDecoder extends ByteToMessageDecoder {
                 }
 
                 in.markReaderIndex();
-                payloadLength = in.readInt();
+                int payloadLength = in.readInt();
 
                 if (payloadLength < MIN_STARTUP_LENGTH || payloadLength > MAX_STARTUP_LENGTH) {
                     in.skipBytes(in.readableBytes());
@@ -175,7 +216,7 @@ public class PgDecoder extends ByteToMessageDecoder {
                         return null;
                     }
                     state = State.CANCEL;
-                    return in.readBytes(payloadLength);
+                    return new PgMsg(State.CANCEL, '0', in.readBytes(payloadLength), payloadLength);
                 }
 
                 if (requestCode >> 16 == PROTOCOL_VERSION_MAJOR) {
@@ -190,7 +231,7 @@ public class PgDecoder extends ByteToMessageDecoder {
                         in.resetReaderIndex();
                         return null;
                     }
-                    return in.readBytes(payloadLength);
+                    return new PgMsg(state, 'C', in.readBytes(payloadLength), payloadLength);
                 }
 
                 // bad message, skip any remaining data
@@ -211,8 +252,8 @@ public class PgDecoder extends ByteToMessageDecoder {
                     return null;
                 }
                 in.markReaderIndex();
-                msgType = in.readByte();
-                payloadLength = in.readInt() - 4; // exclude length itself
+                char msgType = (char) in.readByte();
+                int payloadLength = in.readInt() - 4; // exclude length itself
                 if (!authenticated && payloadLength > MAX_STARTUP_LENGTH) {
                     in.skipBytes(in.readableBytes());
                     throw new IllegalStateException("Message too large for unauthenticated user");
@@ -221,7 +262,14 @@ public class PgDecoder extends ByteToMessageDecoder {
                     in.resetReaderIndex();
                     return null;
                 }
-                return in.readBytes(payloadLength);
+                LOGGER.trace(
+                    "msg={} length={} readableBytes={}",
+                    (char) msgType,
+                    payloadLength,
+                    in.readableBytes()
+                );
+                ByteBuf buf = in.readBytes(payloadLength);
+                return new PgMsg(State.MSG, msgType, buf, payloadLength);
             }
             default:
                 // bad message, skip any remaining data
@@ -234,18 +282,6 @@ public class PgDecoder extends ByteToMessageDecoder {
         assert state == State.STARTUP_PARAMETERS
             : "Must only call startupDone if state == STARTUP_PARAMETERS";
         state = State.MSG;
-    }
-
-    public byte msgType() {
-        return msgType;
-    }
-
-    public int payloadLength() {
-        return payloadLength;
-    }
-
-    public State state() {
-        return state;
     }
 
     public void setAuthenticated(boolean value) {
