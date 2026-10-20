@@ -26,6 +26,7 @@ import static io.crate.role.metadata.RolesHelper.userOf;
 import static io.crate.session.Session.UNNAMED;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -51,9 +52,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
@@ -160,14 +161,12 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         assertThat(session.portals).hasSize(1);
         assertThat(session.preparedStatements).hasSize(1);
         assertThat(session.deferredExecutionsByStmt).hasSize(0);
-        assertThat(session.activeExecution).isEqualTo(activeExecutionFuture);
 
         session.close();
 
         assertThat(session.portals).hasSize(0);
         assertThat(session.preparedStatements).hasSize(0);
         assertThat(session.deferredExecutionsByStmt).hasSize(0);
-        assertThat(session.activeExecution).isNull();
     }
 
     @Test
@@ -182,11 +181,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.execute("", -1, new BaseResultReceiver());
         assertThat(session.deferredExecutionsByStmt).hasSize(1);
         session.flush();
-        var activeExecution = session.activeExecution;
-        assertThat(activeExecution).isNotNull();
-
-        CompletableFuture<?> sync = session.sync(false);
-        assertThat(sync).isSameAs(activeExecution);
+        assertThat(session.deferredExecutionsByStmt).hasSize(0);
     }
 
     @Test
@@ -212,7 +207,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         assertThat(session.portals).hasSize(0);
         assertThat(session.preparedStatements).hasSize(0);
         assertThat(session.deferredExecutionsByStmt).hasSize(0);
-        assertThat(session.activeExecution).isNull();
     }
 
     @Test

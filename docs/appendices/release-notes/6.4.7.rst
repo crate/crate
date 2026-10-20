@@ -46,6 +46,11 @@ series.
 Fixes
 =====
 
+- Fixed an issue that caused queries on partitioned tables to exclude matching
+  partitions if it had a partitioned column derived via a generated expression,
+  and if that generated expression was included within the query via range
+  filter.
+
 - Added missing support for the :ref:`UUID <type-uuid>` type to the
   :ref:`hyperloglog_distinct <aggregation-hyperloglog-distinct>` aggregation.
 

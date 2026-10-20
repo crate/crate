@@ -150,9 +150,6 @@ public class Session implements AutoCloseable {
     @VisibleForTesting
     final Map<Statement, List<DeferredExecution>> deferredExecutionsByStmt = new LinkedHashMap<>();
 
-    @VisibleForTesting
-    @Nullable
-    CompletableFuture<?> activeExecution;
     @Nullable
     private UUID mostRecentJobID;
 
@@ -627,48 +624,23 @@ public class Session implements AutoCloseable {
                 }
             }
             if (!deferredExecutionsByStmt.isEmpty()) {
-                activeExecution = triggerDeferredExecutions(false)
+                return triggerDeferredExecutions(false)
                     .thenCompose(_ -> singleExec(portal, resultReceiver, maxRows));
-            } else if (activeExecution == null) {
-                activeExecution = singleExec(portal, resultReceiver, maxRows);
             } else {
-                activeExecution = activeExecution
-                    .thenCompose(_ -> singleExec(portal, resultReceiver, maxRows));
+                return singleExec(portal, resultReceiver, maxRows);
             }
-            return activeExecution;
         }
         return null;
     }
 
-    public void flush() {
+    public CompletableFuture<?> flush() {
         assert !deferredExecutionsByStmt.isEmpty()
             : "Session.flush() must only be called if there are deferred executions";
-
-        // This will make `sync` use the triggered execution instead of
-        // returning a new completed future.
-        //
-        // We need to wait for the operation that is now being triggered to complete
-        // before any further messages are sent to clients.
-        // E.g. PostgresWireProtocol would otherwise send a `ReadyForQuery` message too
-        // early.
-        activeExecution = triggerDeferredExecutions(false);
+        return triggerDeferredExecutions(false);
     }
 
     public CompletableFuture<?> sync(boolean forceBulk) {
-        if (activeExecution == null) {
-            CompletableFuture<?> result = triggerDeferredExecutions(forceBulk);
-            activeExecution = result;
-            return result.whenComplete((_, _) -> {
-                if (activeExecution == result) {
-                    activeExecution = null;
-                }
-            });
-        } else {
-            LOGGER.debug("method=sync activeExecution={}", activeExecution);
-            CompletableFuture<?> result = activeExecution;
-            activeExecution = null;
-            return result;
-        }
+        return triggerDeferredExecutions(forceBulk);
     }
 
     public List<LocStmt> simpleQuery(String queryString) {
@@ -1060,7 +1032,6 @@ public class Session implements AutoCloseable {
     public void close() {
         currentTransactionState = TransactionState.IDLE;
         resetDeferredExecutions();
-        activeExecution = null;
         for (Portal portal : portals.values()) {
             portal.closeActiveConsumer();
         }
