@@ -2305,4 +2305,33 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "1| true| 11",
             "1| true| 111");
     }
+
+    @Test
+    public void test_partition_narrowing_with_closed_partitions() throws Exception {
+        execute(
+            """
+            CREATE TABLE IF NOT EXISTS tbl (
+                ts TIMESTAMP WITHOUT TIME ZONE,
+                pdate TIMESTAMP WITHOUT TIME ZONE GENERATED ALWAYS AS date_trunc('day', ts)
+            )
+            PARTITIONED BY (pdate)
+            CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)
+            """
+        );
+        execute(
+            """
+            INSERT INTO tbl (ts) VALUES
+                ('2026-10-13 10:00:00'),
+                ('2026-10-13 11:00:00'),
+                ('2026-10-14 10:00:00'),
+                ('2026-10-14 11:00:00'),
+                ('2026-10-15 10:00:00'),
+                ('2026-10-15 11:00:00')
+            """
+        );
+        execute("refresh table tbl");
+        execute("alter table tbl partition (pdate = '2026-10-14') close");
+        execute("select count(*) from tbl where pdate >= '2026-10-14'");
+        assertThat(response).hasRows("2");
+    }
 }
