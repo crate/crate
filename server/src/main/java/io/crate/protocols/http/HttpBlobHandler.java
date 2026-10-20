@@ -110,8 +110,8 @@ public class HttpBlobHandler extends HttpHandler<Object> {
     private String index;
     private String digest;
 
-    public HttpBlobHandler(BlobService blobService, Sessions sessions, Roles roles, HttpAuthenticator authenticator) {
-        super(sessions, roles, authenticator);
+    public HttpBlobHandler(BlobService blobService, Sessions sessions, Roles roles) {
+        super(sessions, roles);
         this.blobService = blobService;
     }
 
@@ -149,7 +149,7 @@ public class HttpBlobHandler extends HttpHandler<Object> {
             }
 
             try {
-                Role authenticatedUser = authenticate(ctx, request);
+                Role authenticatedUser = HttpAuthenticator.authenticatedRole(ctx.channel());
                 if (authenticatedUser == null) {
                     return;
                 }

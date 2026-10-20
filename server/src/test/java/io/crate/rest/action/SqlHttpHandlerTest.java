@@ -103,8 +103,7 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
         SqlHttpHandler handler = new SqlHttpHandler(
             mockedSqlOperations,
             _ -> new NoopCircuitBreaker("dummy"),
-            roles,
-            authenticator(roles)
+            roles
         );
 
         // 1st call to ensureSession creates a session instance bound to 'dummyUser'
@@ -138,8 +137,7 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
         SqlHttpHandler handler = new SqlHttpHandler(
             sessions,
             _ -> new NoopCircuitBreaker("dummy"),
-            roles,
-            authenticator(roles)
+            roles
         );
 
         // Imitate buffer holding results of partial success.
@@ -181,11 +179,10 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
         SqlHttpHandler sqlHttpHandler = new SqlHttpHandler(
             sessions,
             _ -> new NoopCircuitBreaker("dummy"),
-            roles,
-            authenticator(roles)
+            roles
         );
 
-        EmbeddedChannel channel = new EmbeddedChannel(sqlHttpHandler);
+        EmbeddedChannel channel = new EmbeddedChannel(authenticator(roles), sqlHttpHandler);
         var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
         try {
             channel.writeInbound(request);
@@ -200,11 +197,10 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
         SqlHttpHandler handler = new SqlHttpHandler(
             sessions,
             _ -> new NoopCircuitBreaker("dummy"),
-            roles,
-            authenticator(roles)
+            roles
         );
 
-        EmbeddedChannel channel = new EmbeddedChannel(handler);
+        EmbeddedChannel channel = new EmbeddedChannel(authenticator(roles), handler);
         var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
         channel.writeInbound(request);
 
@@ -234,11 +230,13 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
         SqlHttpHandler handler = new SqlHttpHandler(
             sessions,
             _ -> new NoopCircuitBreaker("dummy"),
-            roles,
-            new HttpAuthenticator(Settings.EMPTY, authentication, roles)
+            roles
         );
 
-        EmbeddedChannel channel = new EmbeddedChannel(handler);
+        EmbeddedChannel channel = new EmbeddedChannel(
+            new HttpAuthenticator(Settings.EMPTY, authentication, roles),
+            handler
+        );
         var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
         try {
             channel.writeInbound(request);
@@ -258,18 +256,17 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
         when(sessions.newSession(any(), any(), any())).thenReturn(mockedSession);
 
         Roles roles = () -> List.of(RolesHelper.userOf("crate"));
-        HttpAuthenticator authenticator = authenticator(roles);
         SqlHttpHandler handler = new SqlHttpHandler(
             sessions,
             _ -> new NoopCircuitBreaker("dummy"),
-            roles,
-            authenticator
+            roles
         );
 
         EmbeddedChannel channel = new EmbeddedChannel(
+            authenticator(roles),
             handler,
             // Last handler that is catching all exceptions and sending error back to the client.
-            new MainAndStaticFileHandler("node", Path.of("a", "b"), null, authenticator)
+            new MainAndStaticFileHandler("node", Path.of("a", "b"), null)
         );
         var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
 
@@ -299,8 +296,7 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
         SqlHttpHandler handler = spy(new SqlHttpHandler(
             sessions,
             _ -> new NoopCircuitBreaker("dummy"),
-            roles,
-            authenticator(roles)
+            roles
         ));
 
         doAnswer(invocation -> {
@@ -310,7 +306,7 @@ public class SqlHttpHandlerTest extends CrateDummyClusterServiceUnitTest {
             handler.session = null;
             return CompletableFuture.failedFuture(new RuntimeException("dummy"));
         }).when(handler).handleSQLRequest(any(), any(), any(), anyBoolean());
-        EmbeddedChannel channel = new EmbeddedChannel(handler);
+        EmbeddedChannel channel = new EmbeddedChannel(authenticator(roles), handler);
 
         var request = new DefaultFullHttpRequest(
             HttpVersion.HTTP_1_1, HttpMethod.POST,
