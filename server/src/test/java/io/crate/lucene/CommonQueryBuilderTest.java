@@ -71,6 +71,7 @@ import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FloatVectorType;
+import io.crate.types.IpType;
 import io.crate.types.ObjectType;
 
 public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
@@ -999,6 +1000,47 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
                 assertThat(tester.runQuery("a", "? = all(a)", val1))
                     .containsExactly(List.of(val1), List.of(val1, val1), List.of());
             }
+        }
+    }
+
+    private <T> void assert_cmp_op_matches_type_compare_for_primitive_type(DataType<T> type) throws Exception {
+        String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (x " + typeDefinition + ")");
+        try (QueryTester tester = builder.build()) {
+            var dataGenerator = DataTypeTesting.getDataGenerator(type);
+            T val1 = dataGenerator.get();
+            T val2;
+            do {
+                val2 = dataGenerator.get();
+            } while (type.compare(val1, val2) == 0);
+
+            builder.indexValues("x", val1);
+            builder.indexValues("x", val2);
+
+            String query = type.compare(val1, val2) > 0
+                ? "x < ?"
+                : "x > ?";
+            assertThat(tester.runQuery("x", query, val1))
+                .as("range query for `" + type.getName() + "` must match second value")
+                .containsExactly(val2);
+        }
+    }
+
+    @Test
+    public void test_cmp_op_matches_type_compare_for_all_primitive_types() throws Exception {
+        for (DataType<?> type : DataTypes.PRIMITIVE_TYPES) {
+            if (type.storageSupport() == null) {
+                continue;
+            }
+            if (type.id() == IpType.ID) {
+                // TODO: type.compareTo & rangeQuery have different semantics(?)
+                continue;
+            }
+            assert_cmp_op_matches_type_compare_for_primitive_type(type);
         }
     }
 
