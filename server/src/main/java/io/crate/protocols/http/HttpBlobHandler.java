@@ -115,6 +115,10 @@ public class HttpBlobHandler extends HttpHandler<Object> {
         this.blobService = blobService;
     }
 
+    static boolean isNotBlobRequest(String uri) {
+        return uri.startsWith(BLOBS_ENDPOINT) == false;
+    }
+
     private boolean possibleRedirect(String index, String digest) {
         if (method.equals(HttpMethod.GET) ||
             method.equals(HttpMethod.HEAD) ||
@@ -142,7 +146,7 @@ public class HttpBlobHandler extends HttpHandler<Object> {
         if (msg instanceof HttpRequest request) {
             String uri = request.uri();
 
-            if (!uri.startsWith(BLOBS_ENDPOINT)) {
+            if (isNotBlobRequest(uri)) {
                 reset();
                 ctx.fireChannelRead(msg);
                 return;
