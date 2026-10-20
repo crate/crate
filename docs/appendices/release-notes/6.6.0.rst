@@ -68,6 +68,11 @@ SQL Standard and PostgreSQL Compatibility
   between the statements. This is for example used by the ``psycopg`` client if
   using their experimental pipeline support.
 
+- Added the ``_name`` array type (OID ``1003``) to the
+  :ref:`pg_type <postgres-pg_type>` table, allowing PostgreSQL clients to bind
+  ``name[]`` parameters. The ``typarray`` of ``name`` changed from ``-1`` to
+  ``1003``.
+
 Data Types
 ----------
 

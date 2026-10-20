@@ -104,7 +104,7 @@ class VarCharType extends PGType<Object> {
 
     static class NameType {
         static final int OID = 19;
-        private static final int ARRAY_OID = -1;
+        private static final int ARRAY_OID = 1003;
         private static final int TYPE_LEN = 64;
 
         static final VarCharType INSTANCE = new VarCharType(OID, ARRAY_OID, TYPE_LEN, "name");

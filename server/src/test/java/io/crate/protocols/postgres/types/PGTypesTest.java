@@ -122,6 +122,12 @@ public class PGTypesTest extends ESTestCase {
     }
 
     @Test
+    public void testNameOidIsMappedToString() {
+        assertThat(PGTypes.fromOID(19)).isEqualTo(DataTypes.STRING);
+        assertThat(PGTypes.fromOID(1003)).isEqualTo(new ArrayType<>(DataTypes.STRING));
+    }
+
+    @Test
     public void testCrateCollection2PgType() {
         for (DataType<?> type : PRIMITIVE_TYPES) {
             assertThat(PGTypes.get(new ArrayType<>(type))).isExactlyInstanceOf(PGArray.class);

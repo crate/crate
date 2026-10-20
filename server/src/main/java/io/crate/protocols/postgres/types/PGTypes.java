@@ -130,6 +130,7 @@ public class PGTypes {
         PG_TYPES_TO_CRATE_TYPE.put(AnyType.OID, DataTypes.UNDEFINED);
         PG_TYPES_TO_CRATE_TYPE.put(PGArray.ANY_ARRAY.oid(), new ArrayType<>(DataTypes.UNDEFINED));
         PG_TYPES_TO_CRATE_TYPE.put(VarCharType.NameType.OID, DataTypes.STRING);
+        PG_TYPES_TO_CRATE_TYPE.put(PGArray.NAME_ARRAY.oid(), new ArrayType<>(DataTypes.STRING));
         PG_TYPES_TO_CRATE_TYPE.put(OidType.OID, DataTypes.INTEGER);
         PG_TYPES_TO_CRATE_TYPE.put(CharType.OID, DataTypes.CHARACTER);
         PG_TYPES_TO_CRATE_TYPE.put(PGArray.CHAR_ARRAY.oid(), new ArrayType<>(DataTypes.CHARACTER));
@@ -138,13 +139,14 @@ public class PGTypes {
         // There is no entry in `CRATE_TO_PG_TYPES` for these because we have no 1:1 mapping from dataType to pgType
         TYPES.add(AnyType.INSTANCE);
         TYPES.add(PGArray.ANY_ARRAY);
-        TYPES.add(VarCharType.NameType.INSTANCE);
         TYPES.add(OidType.INSTANCE);
 
         // We map DataTypes.STRING to varchar (for no good reason, other than history)
-        // But want to expose text additionally as well
+        // But want to expose text and name additionally as well
         TYPES.add(VarCharType.TextType.INSTANCE);
         TYPES.add(PGArray.TEXT_ARRAY);
+        TYPES.add(VarCharType.NameType.INSTANCE);
+        TYPES.add(PGArray.NAME_ARRAY);
 
         for (PGType<?> pgType: TYPES) {
             OID_TO_PG_TYPE.put(pgType.oid(), pgType);
