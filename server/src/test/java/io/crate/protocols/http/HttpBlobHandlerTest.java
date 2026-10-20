@@ -333,20 +333,16 @@ public class HttpBlobHandlerTest extends CrateDummyClusterServiceUnitTest {
             }
         };
 
-        return new EmbeddedChannel(new HttpBlobHandler(
-            blobService,
-            mockedSessions,
-            ROLES,
-            new HttpAuthenticator(Settings.EMPTY, new AlwaysOKAuthentication(ROLES), ROLES)
-        ));
+        return new EmbeddedChannel(
+            new HttpAuthenticator(Settings.EMPTY, new AlwaysOKAuthentication(ROLES), ROLES),
+            new HttpBlobHandler(blobService, mockedSessions, ROLES)
+        );
     }
 
     private EmbeddedChannel createEmbeddedChannel(BlobService blobService, Sessions sessions) {
-        return new EmbeddedChannel(new HttpBlobHandler(
-            blobService,
-            sessions,
-            ROLES,
-            new HttpAuthenticator(Settings.EMPTY, new AlwaysOKAuthentication(ROLES), ROLES)
-        ));
+        return new EmbeddedChannel(
+            new HttpAuthenticator(Settings.EMPTY, new AlwaysOKAuthentication(ROLES), ROLES),
+            new HttpBlobHandler(blobService, sessions, ROLES)
+        );
     }
 }
