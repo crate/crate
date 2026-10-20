@@ -117,7 +117,7 @@ public final class BlobTableInfo implements TableInfo, ShardedTable, StoredTable
                               WhereClause whereClause,
                               RoutingProvider.ShardSelection shardSelection,
                               CoordinatorSessionSettings sessionSettings) {
-        String[] indices = state.metadata().getIndices(ident, List.of(), true, IndexMetadata::getIndexUUID).toArray(new String[0]);
+        List<String> indices = state.metadata().getIndices(ident, List.of(), true, IndexMetadata::getIndexUUID);
         return routingProvider.forIndices(state, ident, indices, Set.of(), false, shardSelection);
     }
 
@@ -184,10 +184,9 @@ public final class BlobTableInfo implements TableInfo, ShardedTable, StoredTable
     }
 
     @Override
-    public String[] concreteIndices(Metadata metadata) {
+    public List<String> concreteIndices(Metadata metadata) {
         return metadata
-            .getIndices(ident, List.of(), true, imd -> imd.getIndex().uuid())
-            .toArray(String[]::new);
+            .getIndices(ident, List.of(), true, imd -> imd.getIndex().uuid());
     }
 
     @Override
