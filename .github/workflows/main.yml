@@ -75,6 +75,9 @@ jobs:
       - name: Publish Test Report
         if: needs.changes.outputs.java == 'true' && (success() || failure())
         uses: ScalableCapital/action-surefire-report@1e92f48016e566e4eed2d81560edbfe0f524cfb7 #v2.0.3
+        with:
+          # GITHUB_TOKEN is read-only for PRs from forks, so the step fails with 403
+          skip_publishing: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
 
   forbiddenApis:
     name: forbiddenApis
