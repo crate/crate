@@ -64,6 +64,7 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
+import io.crate.protocols.postgres.PgDecoder.PgMsg;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.role.Role;
@@ -296,7 +297,7 @@ public class PostgresWireProtocol {
         }
     }
 
-    private class MessageHandler extends SimpleChannelInboundHandler<ByteBuf> {
+    private class MessageHandler extends SimpleChannelInboundHandler<PgMsg> {
 
         private void interrupt(ChannelHandlerContext ctx) {
             if (session == null) {
@@ -317,10 +318,10 @@ public class PostgresWireProtocol {
         }
 
         @Override
-        public void channelRead0(ChannelHandlerContext ctx, ByteBuf buffer) throws Exception {
+        public void channelRead0(ChannelHandlerContext ctx, PgMsg msg) throws Exception {
             assert channel != null : "Channel must be initialized";
             try {
-                dispatchState(buffer, channel);
+                dispatchState(msg, channel);
             } catch (Throwable t) {
                 ignoreTillSync = true;
                 try {
@@ -334,10 +335,10 @@ public class PostgresWireProtocol {
             }
         }
 
-        private void dispatchState(ByteBuf buffer, DelayableWriteChannel channel) {
-            switch (decoder.state()) {
+        private void dispatchState(PgMsg msg, DelayableWriteChannel channel) {
+            switch (msg.state()) {
                 case STARTUP_VERSION_NEGOTIATE:
-                    properties = readStartupMessage(buffer);
+                    properties = readStartupMessage(msg.buf());
                     List<String> unsupportedProperties = properties.stringPropertyNames().stream()
                         .filter(name -> !SUPPORTED_STARTUP_PROPERTIES.contains(name))
                         .toList();
@@ -347,47 +348,45 @@ public class PostgresWireProtocol {
                     return;
 
                 case STARTUP_PARAMETERS:
-                    handleStartupBody(buffer, channel);
+                    handleStartupBody(msg.buf(), channel);
                     decoder.startupDone();
                     return;
 
                 case CANCEL:
-                    handleCancelRequestBody(buffer, channel);
+                    handleCancelRequestBody(msg.buf(), channel);
                     return;
 
                 case MSG:
-                    LOGGER.trace("msg={} msgLength={} readableBytes={}", ((char) decoder.msgType()), decoder.payloadLength(), buffer.readableBytes());
-
-                    if (ignoreTillSync && decoder.msgType() != 'S') {
-                        buffer.skipBytes(decoder.payloadLength());
+                    if (ignoreTillSync && msg.type() != 'S') {
+                        msg.buf().skipBytes(msg.length());
                         return;
                     }
-                    dispatchMessage(buffer, channel);
+                    dispatchMessage(msg, channel);
                     return;
                 default:
-                    throw new IllegalStateException("Illegal state: " + decoder.state());
+                    throw new IllegalStateException("Illegal state: " + msg.state());
             }
         }
 
-        private void dispatchMessage(ByteBuf buffer, DelayableWriteChannel channel) {
-            switch (decoder.msgType()) {
+        private void dispatchMessage(PgMsg msg, DelayableWriteChannel channel) {
+            switch (msg.type()) {
                 case 'Q': // Query (simple)
-                    handleSimpleQuery(buffer, channel);
+                    handleSimpleQuery(msg.buf(), channel);
                     return;
                 case 'P':
-                    handleParseMessage(buffer, channel);
+                    handleParseMessage(msg.buf(), channel);
                     return;
                 case 'p':
-                    handlePassword(buffer, channel);
+                    handlePassword(msg.buf(), channel);
                     return;
                 case 'B':
-                    handleBindMessage(buffer, channel);
+                    handleBindMessage(msg.buf(), channel);
                     return;
                 case 'D':
-                    handleDescribeMessage(buffer, channel);
+                    handleDescribeMessage(msg.buf(), channel);
                     return;
                 case 'E':
-                    handleExecute(buffer, channel);
+                    handleExecute(msg.buf(), channel);
                     return;
                 case 'H':
                     handleFlush(channel);
@@ -396,7 +395,7 @@ public class PostgresWireProtocol {
                     handleSync(channel);
                     return;
                 case 'C':
-                    handleClose(buffer, channel);
+                    handleClose(msg.buf(), channel);
                     return;
                 case 'X': // Terminate (called when jdbc connection is closed)
                     closeSession();
@@ -408,7 +407,7 @@ public class PostgresWireProtocol {
                         session == null
                             ? AccessControl.DISABLED
                             : getAccessControl.apply(session.sessionSettings()),
-                        new UnsupportedOperationException("Unsupported messageType: " + decoder.msgType()));
+                        new UnsupportedOperationException("Unsupported messageType: " + msg.type()));
             }
         }
 
@@ -858,6 +857,9 @@ public class PostgresWireProtocol {
 
     /// Disable autoRead until future is completed to avoid processing pipelined messages in the meantime
     private static CompletableFuture<?> wait(Channel channel, CompletableFuture<?> future) {
+        if (future.isDone()) {
+            return future;
+        }
         ChannelConfig config = channel.config();
         config.setAutoRead(false);
         return future.whenComplete((_, f) -> {
