@@ -74,6 +74,8 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
+- Added a :ref:`gen_random_uuid <scalar-gen_random_uuid>` scalar.
+
 - `Manish Singh <https://github.com/manish9363>`_ added the
   :ref:`ends_with(string, suffix) <scalar-ends_with>` scalar function, which
   returns ``true`` if ``string`` ends with ``suffix``.

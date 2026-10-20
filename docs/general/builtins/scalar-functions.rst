@@ -2474,6 +2474,17 @@ Note that the ID is opaque (i.e., not to be considered meaningful in any way)
 and the implementation is free to change.
 
 
+.. _scalar-gen_random_uuid:
+
+``gen_random_uuid()``
+---------------------
+
+Returns a type 4 UUID as ``uuid``. The UUID is generated using a
+cryptographically strong pseudo random number generator.
+
+Also accessible via its alias ``uuidv4``.
+
+
 .. _scalar-round:
 
 ``round(number[, precision])``
