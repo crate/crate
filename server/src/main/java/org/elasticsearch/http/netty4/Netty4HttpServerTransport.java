@@ -64,6 +64,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.network.InetAddresses;
@@ -107,6 +108,7 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.http.HttpAuthenticator;
 import io.crate.protocols.http.HttpBlobHandler;
+import io.crate.protocols.http.InFlightRequestsBreakerHandler;
 import io.crate.protocols.http.MainAndStaticFileHandler;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
@@ -598,6 +600,10 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             final HttpObjectAggregator aggregator = new HttpObjectAggregator(Math.toIntExact(transport.maxContentLength.getBytes()));
             aggregator.setMaxCumulationBufferComponents(transport.maxCompositeBufferComponents);
             pipeline.addLast("chunked", new ChunkedWriteHandler());
+            // Must be after the decompressor and before the aggregator to account the decompressed content
+            pipeline.addLast("inflight_breaker", new InFlightRequestsBreakerHandler(
+                () -> breakerService.getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS)
+            ));
             HttpAuthenticator authenticator = new HttpAuthenticator(settings, authentication, roles);
             pipeline.addLast("blob_handler", new HttpBlobHandler(
                 blobService,
