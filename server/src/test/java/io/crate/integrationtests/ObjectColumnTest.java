@@ -27,6 +27,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import java.util.HashMap;
@@ -36,6 +37,7 @@ import java.util.Map;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
@@ -67,15 +69,17 @@ public class ObjectColumnTest extends IntegTestCase {
     @Test
     public void testAddColumnToDynamicObject() throws Exception {
         this.setup.setUpObjectTable();
-        Map<String, Object> authorMap = new HashMap<>() {{
-                put("name", new HashMap<String, Object>() {{
-                        put("first_name", "Douglas");
-                        put("last_name", "Adams");
-                    }}
-                );
-                put("dead", true);
-                put("age", 49);
-            }};
+        Map<String, Object> authorMap = MapBuilder.<String, Object>newMapBuilder()
+            .put(
+                "name",
+                Map.of(
+                    "first_name", "Douglas",
+                    "last_name", "Adams"
+                )
+            )
+            .put("dead", true)
+            .put("age", 49)
+            .map();
         execute("insert into ot (title, author) values (?, ?)",
             new Object[]{
                 "Life, the Universe and Everything",

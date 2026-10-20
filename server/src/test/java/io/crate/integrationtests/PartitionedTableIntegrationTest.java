@@ -40,7 +40,6 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -1075,14 +1074,9 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   author object(dynamic) as (name string)" +
             ") partitioned by(date) with (number_of_replicas=0)");
         execute("insert into quotes (id, quote, date, author) values(?, ?, ?, ?), (?, ?, ?, ?)",
-            new Object[]{1, "Don't panic", 1395874800000L,
-                new HashMap<String, Object>() {{
-                        put("name", "Douglas");
-                    }},
-                2, "Time is an illusion. Lunchtime doubly so", 1395961200000L,
-                new HashMap<String, Object>() {{
-                        put("name", "Ford");
-                    }}
+            new Object[]{
+                1, "Don't panic", 1395874800000L, Map.of("name", "Douglas"),
+                2, "Time is an illusion. Lunchtime doubly so", 1395961200000L, Map.of("name", "Ford")
             });
         ensureYellow();
         execute("refresh table quotes");
@@ -1091,11 +1085,12 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(5L);
 
         execute("insert into quotes (id, quote, date, author) values(?, ?, ?, ?)",
-            new Object[]{3, "I'd far rather be happy than right any day", 1395874800000L,
-                new HashMap<String, Object>() {{
-                        put("name", "Douglas");
-                        put("surname", "Adams");
-                    }}
+            new Object[]{
+                3, "I'd far rather be happy than right any day", 1395874800000L,
+                Map.of(
+                    "name", "Douglas",
+                    "surname", "Adams"
+                )
             });
         ensureYellow();
         execute("refresh table quotes");
