@@ -251,7 +251,8 @@ public final class DataTypes {
         entry(GEO_SHAPE.id(), Set.of(ObjectType.ID)),
         entry(ObjectType.ID, Set.of(GEO_SHAPE.id(), JsonType.ID)),
         entry(BitStringType.ID, Set.of(BitStringType.ID)),
-        entry(JsonType.ID, Set.of(ObjectType.ID))
+        entry(JsonType.ID, Set.of(ObjectType.ID)),
+        entry(UUIDType.ID, Set.of(StringType.ID))
     );
 
     public static boolean isArray(DataType<?> type) {
