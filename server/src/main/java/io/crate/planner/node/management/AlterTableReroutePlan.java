@@ -313,8 +313,8 @@ public class AlterTableReroutePlan implements Plan {
                     IndexMetadata::getIndexUUID
                 );
             }
-            assert shardedTable.concreteIndices(metadata).length == 1 : "table has to contain only 1 index name";
-            return shardedTable.concreteIndices(metadata)[0];
+            assert shardedTable.concreteIndices(metadata).size() == 1 : "table has to contain only 1 index name";
+            return shardedTable.concreteIndices(metadata).get(0);
         }
 
         private static boolean validateCancelRerouteProperty(String propertyKey,
