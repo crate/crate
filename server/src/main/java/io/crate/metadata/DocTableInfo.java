@@ -509,7 +509,7 @@ public final class DocTableInfo implements TableInfo, ShardedTable, StoredTable 
         if (partitions.isEmpty()) {
             return new String[0];
         }
-        String[] uuids = new String[partitions.size()];
+        ArrayList<String> uuids = new ArrayList<>(partitions.size());
         for (int i = 0; i < partitions.size(); i++) {
             List<String> partitionValues = partitions.get(i).values();
             List<String> indexUUIDS = metadata.getIndices(
@@ -518,11 +518,9 @@ public final class DocTableInfo implements TableInfo, ShardedTable, StoredTable 
                 false,
                 imd -> imd.getState() == State.OPEN ? imd.getIndex().uuid() : null
             );
-            if (!indexUUIDS.isEmpty()) {
-                uuids[i] = indexUUIDS.getFirst();
-            }
+            uuids.addAll(indexUUIDS);
         }
-        return uuids;
+        return uuids.toArray(String[]::new);
     }
 
     /**
