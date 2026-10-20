@@ -26,6 +26,17 @@ import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATIO
 import static io.crate.role.Role.CRATE_USER;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
@@ -33,6 +44,8 @@ import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
@@ -41,6 +54,11 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
@@ -645,4 +663,92 @@ public class MetadataTrackerTest extends ESTestCase {
         assertThat(restoreDiff.relationsForStateUpdate()).isEmpty();
         assertThat(restoreDiff.toRestore()).isEmpty();
     }
+
+    @Test
+    public void test_removed_source_failure_is_tolerated_only_when_surviving_sources_are_active() throws Exception {
+        var publisher = new Builder("publisher")
+            .addTable("gone", List.of(), Settings.EMPTY)
+            .addTable("kept", List.of(), Settings.EMPTY).build();
+        var gone = new RelationName("doc", "gone");
+        var kept = new RelationName("doc", "kept");
+        String goneUUID = ((RelationMetadata.Table) publisher.metadata().getRelation(gone)).indexUUIDs().getFirst();
+        String keptUUID = ((RelationMetadata.Table) publisher.metadata().getRelation(kept)).indexUUIDs().getFirst();
+        var subscriber = new Builder(publisher)
+            .updateTableSettings("gone", Settings.builder().put(PUBLISHER_INDEX_UUID.getKey(), goneUUID).build())
+            .updateTableSettings("kept", Settings.builder().put(PUBLISHER_INDEX_UUID.getKey(), keptUUID).build()).build();
+        Metadata afterDrop = Metadata.builder(publisher.metadata()).remove(goneUUID).build();
+        assertThat(MetadataTracker.onlyRemovedSourcesFailed(
+            publisher.metadata(), afterDrop, subscriber, Set.of(gone, kept))).isTrue();
+        // An unrelated failure cannot be hidden just because another source disappeared.
+        var incomplete = ClusterState.builder(subscriber)
+            .routingTable(RoutingTable.builder(subscriber.routingTable()).remove(keptUUID).build()).build();
+        assertThat(MetadataTracker.onlyRemovedSourcesFailed(
+            publisher.metadata(), afterDrop, incomplete, Set.of(gone, kept))).isFalse();
+        assertThat(MetadataTracker.onlyRemovedSourcesFailed(
+            publisher.metadata(), publisher.metadata(), subscriber, Set.of(gone, kept))).isFalse();
+    }
+
+    @Test
+    public void test_metadata_polling_continues_during_pending_restore_without_duplicate_restore() throws Exception {
+        var publisher = new Builder("publisher").addTable("t1", List.of(), Settings.EMPTY)
+            .addPublication("pub1", List.of("t1")).build();
+        var subscriber = new Builder("subscriber").addSubscription("sub1", List.of("pub1"), List.of("t1")).build();
+        var response = buildPublisherResponse(publisher, "pub1");
+        var clusterService = mock(ClusterService.class);
+        when(clusterService.state()).thenReturn(subscriber);
+        var client = mock(Client.class);
+        when(client.execute(any(PublicationsStateAction.class), any()))
+            .thenReturn(CompletableFuture.completedFuture(response));
+        var upgrade = mock(MetadataUpgradeService.class);
+        when(upgrade.upgradeMetadata(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        var service = mock(LogicalReplicationService.class);
+        var pendingRestore = new CompletableFuture<Boolean>();
+        when(service.updateSubscriptionState(eq("sub1"), anySet(), eq(Subscription.State.INITIALIZING), any()))
+            .thenReturn(CompletableFuture.completedFuture(true));
+        when(service.restore(eq("sub1"), any(), anyList())).thenReturn(pendingRestore);
+        var tracker = spy(new MetadataTracker(Settings.EMPTY, IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            mock(ThreadPool.class), service, mock(LogicalReplicationSettings.class),
+            (name, connection) -> CompletableFuture.completedFuture(client), clusterService,
+            mock(AllocationService.class), upgrade));
+        doReturn(CompletableFuture.completedFuture(true)).when(tracker).updateClusterState(eq("sub1"), any());
+        assertThat(tracker.processSubscription("sub1").isDone()).isTrue();
+        assertThat(pendingRestore.isDone()).isFalse();
+        assertThat(tracker.processSubscription("sub1").isDone()).isTrue();
+        verify(tracker, times(2)).updateClusterState(eq("sub1"), any());
+        verify(service, times(1)).restore(eq("sub1"), any(), anyList());
+        tracker.close();
+    }
+
+    @Test
+    public void test_dropped_table_cancels_unfinished_restores_but_preserves_started_local_data() throws Exception {
+        var relation = new RelationName("doc", "gone");
+        var allocation = mock(AllocationService.class);
+        when(allocation.reroute(any(), anyString())).thenAnswer(invocation -> invocation.getArgument(0));
+        var tracker = new MetadataTracker(Settings.EMPTY, IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            mock(ThreadPool.class), mock(LogicalReplicationService.class), mock(LogicalReplicationSettings.class),
+            (name, connection) -> new CompletableFuture<>(), mock(ClusterService.class), allocation,
+            mock(MetadataUpgradeService.class));
+        for (var state : List.of(ShardRoutingState.INITIALIZING, ShardRoutingState.STARTED)) {
+            var subscriber = new Builder("subscriber").addSubscription("sub1", List.of("pub"), List.of("gone"))
+                .addReplicatingTable("sub1", "gone", List.of(), Settings.EMPTY).build();
+            var table = (RelationMetadata.Table) subscriber.metadata().getRelation(relation);
+            String uuid = table.indexUUIDs().getFirst();
+            var index = subscriber.metadata().index(uuid).getIndex();
+            subscriber = ClusterState.builder(subscriber).routingTable(RoutingTable.builder()
+                .add(IndexRoutingTable.builder(index)
+                    .addShard(newShardRouting(index.name(), 0, "node", true, state)).build()).build()).build();
+            var subscription = SubscriptionsMetadata.get(subscriber.metadata()).get("sub1");
+            var reconciled = tracker.processDroppedTablesOrPartitions("sub1", subscription, subscriber, Metadata.EMPTY_METADATA);
+            assertThat(SubscriptionsMetadata.get(reconciled.metadata()).get("sub1").relations()).doesNotContainKey(relation);
+            if (state == ShardRoutingState.INITIALIZING) {
+                assertThat(reconciled.metadata().index(uuid)).isNull();
+                assertThat(reconciled.routingTable().index(uuid)).isNull();
+            } else {
+                assertThat(reconciled.metadata().index(uuid)).isNotNull();
+                assertThat(REPLICATION_SUBSCRIPTION_NAME.get(reconciled.metadata().index(uuid).getSettings())).isEmpty();
+            }
+        }
+        tracker.close();
+    }
+
 }

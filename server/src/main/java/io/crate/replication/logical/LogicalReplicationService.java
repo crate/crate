@@ -362,7 +362,12 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         }
         HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>(oldSubscription.relations());
         for (var relationName : relationNames) {
-            relations.put(relationName, new Subscription.RelationState(newState, failureReason));
+            // A metadata poll can detach a dropped relation while a restore is
+            // completing. Its completion must not add the relation back.
+            if ((newState != Subscription.State.RESTORING && newState != Subscription.State.MONITORING)
+                || relations.containsKey(relationName)) {
+                relations.put(relationName, new Subscription.RelationState(newState, failureReason));
+            }
         }
         return updateSubscriptionState(subscriptionName, oldSubscription, relations);
     }

@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -64,6 +65,7 @@ import org.jspecify.annotations.Nullable;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.exceptions.SubscriptionRestoreException;
 import io.crate.execution.support.RetryRunnable;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationMetadata;
@@ -96,6 +98,12 @@ public final class MetadataTracker implements Closeable {
     private volatile Set<String> subscriptionsToTrack = Set.of();
     private volatile Scheduler.Cancellable cancellable;
     private volatile boolean isActive = false;
+    private final Map<String, PendingRestore> pendingRestores = new ConcurrentHashMap<>();
+
+    private record PendingRestore(CompletableFuture<Boolean> completion,
+                                  Metadata publisherMetadata,
+                                  Set<RelationName> relations) {
+    }
 
     public MetadataTracker(Settings settings,
                            IndexScopedSettings indexScopedSettings,
@@ -134,6 +142,7 @@ public final class MetadataTracker implements Closeable {
 
     private void stop() {
         isActive = false;
+        pendingRestores.clear();
         Cancellable currentCancellable = cancellable;
         if (currentCancellable != null) {
             currentCancellable.cancel();
@@ -170,6 +179,7 @@ public final class MetadataTracker implements Closeable {
 
     public boolean stopTracking(String subscriptionName) {
         synchronized (this) {
+            pendingRestores.remove(subscriptionName);
             var copy = new HashSet<>(subscriptionsToTrack);
             var updated = copy.remove(subscriptionName);
             if (isActive && copy.isEmpty()) {
@@ -195,7 +205,8 @@ public final class MetadataTracker implements Closeable {
         }
     }
 
-    private CompletableFuture<?> processSubscription(String subscriptionName) {
+    @VisibleForTesting
+    CompletableFuture<?> processSubscription(String subscriptionName) {
         final ClusterState subscriberState = clusterService.state();
         var subscription = SubscriptionsMetadata.get(subscriberState.metadata()).get(subscriptionName);
         if (subscription == null) {
@@ -261,7 +272,33 @@ public final class MetadataTracker implements Closeable {
             assert publicationsState.isDone() : "If thenCompose triggers, publicationsState must be done";
             var publicationResponse = publicationsState.join();
 
-            RestoreDiff restoreDiff = getRestoreDiff(subscription, subscriberState, publicationResponse);
+            PendingRestore pending = pendingRestores.get(subscriptionName);
+            if (pending != null) {
+                if (!pending.completion().isDone()) {
+                    // Metadata deletions must not wait for the restore they invalidate.
+                    return CompletableFuture.completedFuture(true);
+                }
+                pendingRestores.remove(subscriptionName, pending);
+                try {
+                    pending.completion().join();
+                } catch (Exception e) {
+                    if (SQLExceptions.unwrap(e) instanceof SubscriptionRestoreException
+                        && onlyRemovedSourcesFailed(pending.publisherMetadata(), publicationResponse.metadata(),
+                                                    clusterService.state(), pending.relations())) {
+                        Subscription current = SubscriptionsMetadata.get(clusterService.state().metadata()).get(subscriptionName);
+                        Set<RelationName> remaining = new HashSet<>(pending.relations());
+                        if (current == null) {
+                            return CompletableFuture.completedFuture(false);
+                        }
+                        remaining.retainAll(current.relations().keySet());
+                        return replicationService.updateSubscriptionState(
+                            subscriptionName, remaining, Subscription.State.MONITORING, null);
+                    }
+                    return CompletableFuture.failedFuture(SQLExceptions.unwrap(e));
+                }
+            }
+            // Reconciliation may have removed indices since this poll began.
+            RestoreDiff restoreDiff = getRestoreDiff(subscription, clusterService.state(), publicationResponse);
             if (restoreDiff.isEmpty()) {
                 return CompletableFuture.completedFuture(true);
             }
@@ -275,11 +312,16 @@ public final class MetadataTracker implements Closeable {
                     null
                 );
 
-            return updateState.thenCompose(_ -> replicationService.restore(
+            CompletableFuture<Boolean> completion = updateState.thenCompose(_ -> replicationService.restore(
                 subscriptionName,
                 subscription.settings(),
                 restoreDiff.toRestore
             ));
+            Set<RelationName> restoringRelations = restoreDiff.toRestore.stream()
+                .map(TableOrPartition::table).collect(Collectors.toSet());
+            pendingRestores.put(subscriptionName, new PendingRestore(completion, publicationResponse.metadata(), restoringRelations));
+            // Observe completion on a later poll, while continuing deletion reconciliation.
+            return CompletableFuture.completedFuture(true);
         }).exceptionallyCompose(err -> {
             var e = SQLExceptions.unwrap(err);
             if (SQLExceptions.maybeTemporary(e)) {
@@ -300,7 +342,8 @@ public final class MetadataTracker implements Closeable {
         });
     }
 
-    private CompletableFuture<Boolean> updateClusterState(String subscriptionName, Response response) {
+    @VisibleForTesting
+    CompletableFuture<Boolean> updateClusterState(String subscriptionName, Response response) {
         var updateTask = new AckedClusterStateUpdateTask<AcknowledgedResponse>(new AckMetadataUpdateRequest()) {
 
             @Override
@@ -502,7 +545,32 @@ public final class MetadataTracker implements Closeable {
         return new RestoreDiff(toRestore.stream().toList(), relationNamesForStateUpdate);
     }
 
-    private ClusterState processDroppedTablesOrPartitions(String subscriptionName,
+    @VisibleForTesting
+    static boolean onlyRemovedSourcesFailed(Metadata originalPublisher,
+                                            Metadata currentPublisher,
+                                            ClusterState subscriberState,
+                                            Set<RelationName> restoredRelations) {
+        boolean removedSource = false;
+        for (RelationName relation : restoredRelations) {
+            for (IndexMetadata original : originalPublisher.getIndices(relation, List.of(), false, x -> x)) {
+                if (currentPublisher.index(original.getIndexUUID()) == null) {
+                    removedSource = true;
+                    continue;
+                }
+                String localUUID = subscriberState.metadata().getIndices(relation, List.of(), false, x -> x).stream()
+                    .filter(index -> original.getIndexUUID().equals(PUBLISHER_INDEX_UUID.get(index.getSettings())))
+                    .map(IndexMetadata::getIndexUUID).findFirst().orElse(null);
+                var routing = localUUID == null ? null : subscriberState.routingTable().index(localUUID);
+                if (routing == null || !routing.allPrimaryShardsActive()) {
+                    return false;
+                }
+            }
+        }
+        return removedSource;
+    }
+
+    @VisibleForTesting
+    ClusterState processDroppedTablesOrPartitions(String subscriptionName,
                                                           Subscription subscription,
                                                           ClusterState subscriberClusterState,
                                                           Metadata publisherMetadata) {
@@ -514,6 +582,20 @@ public final class MetadataTracker implements Closeable {
             RelationMetadata.Table publisherTable = publisherMetadata.getRelation(relationName);
             if (publisherTable == null) {
                 changedRelations.add(relationName);
+                // Keep fully recovered detached data, but cancel unfinished restores
+                // whose publisher table has disappeared. Deletion completes their
+                // restore entries so the remaining relations can finish.
+                for (IndexMetadata index : subscriberMetadata.getIndices(relationName, List.of(), false, x -> x)) {
+                    var routing = subscriberClusterState.routingTable().index(index.getIndexUUID());
+                    if (routing != null && !routing.allPrimaryShardsActive()) {
+                        partitionsToRemove.add(index.getIndex());
+                        RelationMetadata.Table localTable = subscriberMetadata.getRelation(relationName);
+                        if (localTable != null && localTable.partitionedBy().isEmpty()) {
+                            // Non-partitioned relations cannot remain with zero indices.
+                            updatedMetadataBuilder.dropRelation(relationName);
+                        }
+                    }
+                }
                 continue;
             }
             RelationMetadata.Table subscriberTable = subscriberMetadata.getRelation(relationName);

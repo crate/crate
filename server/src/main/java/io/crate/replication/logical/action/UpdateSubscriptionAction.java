@@ -68,6 +68,13 @@ public class UpdateSubscriptionAction extends ActionType<AcknowledgedResponse> {
         HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
         for (var entry : newSubscription.relations().entrySet()) {
             var relationName = entry.getKey();
+            var state = entry.getValue().state();
+            if (!oldSubscription.relations().containsKey(relationName)
+                && (state == Subscription.State.RESTORING || state == Subscription.State.MONITORING)) {
+                // Restore callbacks can arrive after metadata reconciliation detached
+                // the relation. Check at cluster-state application time, not dispatch.
+                continue;
+            }
             relations.put(
                 relationName,
                 Subscription.updateRelationState(

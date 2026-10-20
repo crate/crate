@@ -40,6 +40,8 @@ import org.elasticsearch.indices.recovery.MultiFileWriter;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.common.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.replication.logical.action.GetFileChunkAction;
 
 public class RemoteClusterMultiChunkTransfer extends MultiChunkTransfer<StoreFileMetadata, RemoteClusterRepositoryFileChunk> {
@@ -139,6 +141,7 @@ public class RemoteClusterMultiChunkTransfer extends MultiChunkTransfer<StoreFil
                     request.offset(),
                     err
                 );
+                listener.onFailure(Exceptions.toException(SQLExceptions.unwrap(err)));
             }
         });
     }

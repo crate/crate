@@ -60,4 +60,20 @@ public class UpdateSubscriptionActionTest {
 
         assertThat(UpdateSubscriptionAction.updateSubscription(oldSubscription, newSubscription)).isEqualTo(oldSubscription);
     }
+
+    @Test
+    public void test_late_restore_completion_does_not_readd_a_detached_relation() {
+        var current = new Subscription("user", ConnectionInfo.fromURL("crate://localhost"),
+            List.of("pub"), Settings.EMPTY, Map.of());
+        var relation = new RelationName("doc", "dropped");
+        for (var state : List.of(Subscription.State.RESTORING, Subscription.State.MONITORING)) {
+            var stale = new Subscription(current.owner(), current.connectionInfo(), current.publications(),
+                current.settings(), Map.of(relation, new Subscription.RelationState(state, null)));
+            assertThat(UpdateSubscriptionAction.updateSubscription(current, stale).relations()).isEmpty();
+        }
+        var newlyDiscovered = new Subscription(current.owner(), current.connectionInfo(), current.publications(),
+            current.settings(), Map.of(relation, new Subscription.RelationState(Subscription.State.INITIALIZING, null)));
+        assertThat(UpdateSubscriptionAction.updateSubscription(current, newlyDiscovered).relations()).containsKey(relation);
+    }
+
 }

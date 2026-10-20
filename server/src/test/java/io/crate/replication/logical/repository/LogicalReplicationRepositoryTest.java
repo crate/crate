@@ -24,14 +24,23 @@ package io.crate.replication.logical.repository;
 import static io.crate.replication.logical.repository.LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.store.Store;
+import org.elasticsearch.indices.recovery.RecoveryState;
+import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterName;
@@ -46,7 +55,11 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 import org.junit.Test;
 
+import io.crate.concurrent.FutureActionListener;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.replication.logical.action.PublicationsStateAction;
+import io.crate.replication.logical.metadata.ConnectionInfo;
+import io.crate.replication.logical.metadata.Subscription;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationMetadata;
 import io.crate.replication.logical.LogicalReplicationService;
@@ -106,4 +119,33 @@ public class LogicalReplicationRepositoryTest extends CrateDummyClusterServiceUn
             .getFirst().name().toString()
         ).isEqualTo("doc.test");
     }
+
+    @Test
+    public void test_deleted_publisher_shard_completes_recovery_listener_with_failure() throws Exception {
+        Client remoteClient = mock(Client.class);
+        RemoteClusters remoteClusters = mock(RemoteClusters.class);
+        when(remoteClusters.getClient(any())).thenReturn(remoteClient);
+        when(remoteClient.execute(any(PublicationsStateAction.class), any()))
+            .thenReturn(CompletableFuture.completedFuture(new PublicationsStateAction.Response(Metadata.EMPTY_METADATA, List.of())));
+        when(remoteClient.state(any())).thenReturn(CompletableFuture.completedFuture(
+            new ClusterStateResponse(ClusterName.DEFAULT, ClusterState.builder(ClusterName.DEFAULT).build(), false)));
+        LogicalReplicationService service = mock(LogicalReplicationService.class);
+        when(service.subscriptions()).thenReturn(Map.of("sub", new Subscription(
+            "crate", ConnectionInfo.fromURL("crate://localhost?user=crate"), List.of("pub"), Settings.EMPTY, Map.of())));
+        RepositoryMetadata repositoryMetadata = mock(RepositoryMetadata.class);
+        when(repositoryMetadata.name()).thenReturn(REMOTE_REPOSITORY_PREFIX + "sub");
+        var nodeContext = createNodeContext();
+        try (var repository = new LogicalReplicationRepository(
+                clusterService, service,
+                new MetadataUpgradeService(nodeContext, IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+                    new UserDefinedFunctionService(clusterService, nodeContext)),
+                remoteClusters, repositoryMetadata, mock(ThreadPool.class), mock(LogicalReplicationSettings.class))) {
+            var completion = new FutureActionListener<Void>();
+            repository.restoreShardUsingMultiChunkTransfer(mock(Store.class), new IndexId("test", "gone"),
+                new ShardId("test", "gone", 0), mock(RecoveryState.class), completion);
+            assertThatThrownBy(() -> completion.get(1, TimeUnit.SECONDS))
+                .hasCauseInstanceOf(IndexNotFoundException.class);
+        }
+    }
+
 }

@@ -368,7 +368,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
 
     }
 
-    private void restoreShardUsingMultiChunkTransfer(Store store,
+    @VisibleForTesting
+    void restoreShardUsingMultiChunkTransfer(Store store,
                                                      IndexId indexId,
                                                      ShardId snapshotShardId,
                                                      RecoveryState recoveryState,
@@ -383,11 +384,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 : relation.name();
             return getRemoteClusterState(true, true, List.of(relationName));
         });
-        remoteClusterState.whenComplete((resp, err) -> {
-            if (err != null) {
-                listener.onFailure(Exceptions.toException(err));
-                return;
-            }
+        remoteClusterState.thenAccept(resp -> {
             ClusterState publisherClusterState = resp.getState();
             var publisherShardRouting = publisherClusterState.routingTable()
                 .shardRoutingTable(
@@ -469,6 +466,9 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                     multiChunkTransfer.start();
                 }
             }, listener::onFailure);
+        }).exceptionally(err -> {
+            listener.onFailure(Exceptions.toException(SQLExceptions.unwrap(err)));
+            return null;
         });
     }
 
