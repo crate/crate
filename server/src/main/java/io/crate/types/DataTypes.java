@@ -105,6 +105,9 @@ public final class DataTypes {
     public static final RegclassType REGCLASS = RegclassType.INSTANCE;
     public static final RegtypeType REGTYPE = RegtypeType.INSTANCE;
 
+
+    /// non-collection types as documented in docs/general/ddl/data-types.rst
+    /// Types listed here _must_ implement a accurate [DataType#compare(Object, Object)]
     public static final List<DataType<?>> PRIMITIVE_TYPES = List.of(
         BYTE,
         BOOLEAN,
@@ -119,7 +122,8 @@ public final class DataTypes {
         LONG,
         TIMESTAMPZ,
         TIMESTAMP,
-        DATE
+        DATE,
+        UUIDType.INSTANCE
     );
 
     private static final Set<Integer> PRIMITIVE_TYPE_IDS =
