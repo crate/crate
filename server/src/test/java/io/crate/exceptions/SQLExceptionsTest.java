@@ -27,8 +27,12 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.lucene.index.CorruptIndexException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.UnavailableShardsException;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 
@@ -36,6 +40,29 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.metadata.RelationName;
 
 public class SQLExceptionsTest {
+
+    @Test
+    public void test_transport_not_ready_is_temporary() throws Exception {
+        TransportNotReady error = new TransportNotReady();
+        assertThat(SQLExceptions.maybeTemporary(error)).isTrue();
+
+        for (Version version : new Version[] { Version.V_6_5_0, Version.V_6_6_0 }) {
+            try (BytesStreamOutput out = new BytesStreamOutput()) {
+                out.setVersion(version);
+                out.writeException(error);
+                try (StreamInput in = out.bytes().streamInput()) {
+                    in.setVersion(version);
+                    Exception deserialized = in.readException();
+                    if (version.before(Version.V_6_6_0)) {
+                        assertThat(deserialized).isExactlyInstanceOf(NotSerializableExceptionWrapper.class);
+                    } else {
+                        assertThat(deserialized).isExactlyInstanceOf(TransportNotReady.class);
+                    }
+                    assertThat(SQLExceptions.maybeTemporary(deserialized)).isTrue();
+                }
+            }
+        }
+    }
 
     @Test
     public void test_unavailable_shard_exception_is_shard_failure() throws Exception {
