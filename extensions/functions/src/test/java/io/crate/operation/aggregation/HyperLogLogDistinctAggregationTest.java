@@ -41,7 +41,6 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import io.crate.Streamer;
-import io.crate.common.collections.Lists;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
@@ -174,7 +173,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_random_type_random_values() throws Exception {
-        var validTypes = Lists.concat(DataTypes.PRIMITIVE_TYPES, UUIDType.INSTANCE).stream()
+        var validTypes = DataTypes.PRIMITIVE_TYPES.stream()
             .filter(x -> x.storageSupport() != null)
             .collect(Collectors.toList());
         var type = RandomPicks.randomFrom(RandomizedContext.current().getRandom(), validTypes);

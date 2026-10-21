@@ -21,6 +21,8 @@
 
 package io.crate.metadata.table;
 
+import java.util.List;
+
 import org.elasticsearch.cluster.metadata.Metadata;
 
 import io.crate.metadata.ColumnIdent;
@@ -38,5 +40,5 @@ public interface ShardedTable {
 
     boolean isClosed();
 
-    String[] concreteIndices(Metadata metadata);
+    List<String> concreteIndices(Metadata metadata);
 }

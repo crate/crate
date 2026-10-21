@@ -113,7 +113,6 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
             register(builder, supportedType);
         }
-        register(builder, UUIDType.INSTANCE);
     }
 
     private final Signature signature;

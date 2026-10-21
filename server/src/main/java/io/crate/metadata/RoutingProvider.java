@@ -119,7 +119,7 @@ public final class RoutingProvider {
 
     public Routing forIndices(ClusterState state,
                               RelationName relation,
-                              String[] concreteIndicesUUIDs,
+                              Iterable<String> concreteIndicesUUIDs,
                               Set<String> routingValues,
                               boolean ignoreMissingShards,
                               ShardSelection shardSelection) {
@@ -189,7 +189,7 @@ public final class RoutingProvider {
     }
 
     private static Set<IndexShardRoutingTable> computeTargetedShards(ClusterState clusterState,
-                                                                     String[] concreteIndices,
+                                                                     Iterable<String> concreteIndices,
                                                                      Set<String> routingValues) {
         LinkedHashSet<IndexShardRoutingTable> set = new LinkedHashSet<>();
         for (String indexUUID : concreteIndices) {

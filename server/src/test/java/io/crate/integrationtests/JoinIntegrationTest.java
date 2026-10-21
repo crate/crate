@@ -1609,10 +1609,8 @@ public class JoinIntegrationTest extends IntegTestCase {
     @UseHashJoins(1)
     @UseRandomizedSchema(random = false)
     @UseRandomizedOptimizerRules(0)
-    public void test_cross_join_elimination_keeps_condition_between_both_sides_of_outer_join() throws Exception {
+    public void test_join_condition_referencing_multiple_tables_on_one_side_of_join() throws Exception {
         // See: https://github.com/crate/crate/issues/20414
-        execute("SET optimizer_eliminate_cross_join = TRUE;");
-
         execute("CREATE TABLE t1 (a INT, x INT)");
         execute("CREATE TABLE t2 (b INT, y INT)");
         execute("CREATE TABLE t3 (z INT)");
@@ -1631,23 +1629,29 @@ public class JoinIntegrationTest extends IntegTestCase {
             JOIN t4 ON t1.x = t2.y AND t1.x = t3.z AND t3.z = t4.id
             """;
 
-        execute("EXPLAIN (COSTS FALSE) " + stmt);
-        assertThat(response).hasLines(
-            "Eval[x, y, z, id]",
-            "  └ HashJoin[INNER | (z = id)]",
-            "    ├ HashJoin[INNER | (x = z)]",
-            "    │  ├ Filter[(x = y)]",
-            "    │  │  └ HashJoin[LEFT | (a = b)]",
-            "    │  │    ├ Collect[doc.t1 | [x, a] | true]",
-            "    │  │    └ Collect[doc.t2 | [y, b] | true]",
-            "    │  └ Collect[doc.t3 | [z] | true]",
-            "    └ Collect[doc.t4 | [id] | true]"
-        );
+        for (String eliminateCrossJoin : new String[] {"TRUE", "FALSE"}) {
+            try (var session = sqlExecutor.newSession()) {
+                execute("SET optimizer_eliminate_cross_join = " + eliminateCrossJoin, session);
 
-        execute(stmt);
-        assertThat(response).hasRowsInAnyOrder(
-            "1| 1| 1| 1"
-        );
+                execute("EXPLAIN (COSTS FALSE) " + stmt, session);
+                assertThat(response).hasLines(
+                    "Eval[x, y, z, id]",
+                    "  └ HashJoin[INNER | (z = id)]",
+                    "    ├ HashJoin[INNER | (x = z)]",
+                    "    │  ├ Filter[(x = y)]",
+                    "    │  │  └ HashJoin[LEFT | (a = b)]",
+                    "    │  │    ├ Collect[doc.t1 | [x, a] | true]",
+                    "    │  │    └ Collect[doc.t2 | [y, b] | true]",
+                    "    │  └ Collect[doc.t3 | [z] | true]",
+                    "    └ Collect[doc.t4 | [id] | true]"
+                );
+
+                execute(stmt, session);
+                assertThat(response).hasRowsInAnyOrder(
+                    "1| 1| 1| 1"
+                );
+            }
+        }
     }
 
     /**

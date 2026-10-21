@@ -79,40 +79,43 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepareFunctions() {
         String createTableStmt =
-            "create table doc.users (" +
-            "  id int," +
-            "  name text," +
-            "  tags array(text)," +
-            "  age int," +
-            "  a int," +
-            "  ip ip," +
-            "  c byte," +
-            "  x bigint," +
-            "  shape geo_shape," +
-            "  timestamp_tz timestamp with time zone," +
-            "  timestamp timestamp without time zone," +
-            "  timezone text," +
-            "  interval text," +
-            "  time_format text," +
-            "  long_array array(bigint)," +
-            "  int_array array(int)," +
-            "  short_array array(short)," +
-            "  double_array array(double precision)," +
-            "  numeric_array array(numeric(38, 8))," +
-            "  regex_pattern text," +
-            "  geoshape geo_shape," +
-            "  geopoint geo_point," +
-            "  geostring text," +
-            "  is_awesome boolean," +
-            "  numeric_val numeric(38, 37)," +
-            "  numeric_4_2 numeric(4, 2)," +
-            "  double_val double precision," +
-            "  float_val real," +
-            "  short_val smallint," +
-            "  obj object," +
-            "  obj_typed object as (a object as (b int))," +
-            "  obj_ignored object(ignored)" +
-            ")";
+            """
+            create table doc.users (
+              id int,
+              name text,
+              tags array(text),
+              age int,
+              a int,
+              ip ip,
+              c byte,
+              x bigint,
+              shape geo_shape,
+              timestamp_tz timestamp with time zone,
+              timestamp timestamp without time zone,
+              timezone text,
+              interval text,
+              time_format text,
+              long_array array(bigint),
+              int_array array(int),
+              short_array array(short),
+              double_array array(double precision),
+              numeric_array array(numeric(38, 8)),
+              regex_pattern text,
+              geoshape geo_shape,
+              geopoint geo_point,
+              geostring text,
+              is_awesome boolean,
+              numeric_val numeric(38, 37),
+              numeric_4_2 numeric(4, 2),
+              double_val double precision,
+              float_val real,
+              short_val smallint,
+              obj object,
+              obj_typed object as (a object as (b int)),
+              obj_ignored object(ignored),
+              uuid uuid
+            )
+            """;
 
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
             new RelationName(DocSchemaInfo.NAME, "users"),

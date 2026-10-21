@@ -55,6 +55,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertEvaluateNull("null <= 1");
         assertEvaluateNull("null <= 'abc'");
         assertEvaluateNull("null <= null");
+        assertNormalize("uuid <= 'a5857231-05f3-4257-b59a-fd5eb2681dac'::uuid", isFunction("op_<="));
+        assertNormalize("'6907e963-6446-4903-a239-5c2dae350f72'::uuid <= 'a5857231-05f3-4257-b59a-fd5eb2681dac'::uuid", isLiteral(false));
     }
 
     @Test
@@ -77,6 +79,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertEvaluateNull("null < 1");
         assertEvaluateNull("null < name", Literal.of("foo"));
         assertEvaluateNull("null < null");
+        assertNormalize("uuid < 'a5857231-05f3-4257-b59a-fd5eb2681dac'::uuid", isFunction("op_<"));
+        assertNormalize("'6907e963-6446-4903-a239-5c2dae350f72'::uuid < 'a5857231-05f3-4257-b59a-fd5eb2681dac'::uuid", isLiteral(false));
     }
 
     @Test
@@ -96,6 +100,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertEvaluateNull("null >= 1");
         assertEvaluateNull("null >= 'abc'");
         assertEvaluateNull("null >= null");
+        assertNormalize("uuid >= 'a5857231-05f3-4257-b59a-fd5eb2681dac'::uuid", isFunction("op_>="));
+        assertNormalize("'6907e963-6446-4903-a239-5c2dae350f72'::uuid >= 'a5857231-05f3-4257-b59a-fd5eb2681dac'::uuid", isLiteral(true));
     }
 
     @Test
@@ -112,6 +118,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertEvaluateNull("null > 1");
         assertEvaluateNull("name > null", Literal.of("foo"));
         assertEvaluateNull("null > null");
+        assertNormalize("uuid > 'a5857231-05f3-4257-b59a-fd5eb2681dac'::uuid", isFunction("op_>"));
+        assertNormalize("'6907e963-6446-4903-a239-5c2dae350f72'::uuid > 'a5857231-05f3-4257-b59a-fd5eb2681dac'::uuid", isLiteral(true));
     }
 
     @Test
