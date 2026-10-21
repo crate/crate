@@ -87,10 +87,15 @@ public class PGFloatVectorType extends PGType<float[]> {
     @Override
     public float[] readBinaryValue(ByteBuf buffer, int valueLength) {
         int dimensions = buffer.readInt();
-        assert dimensions == 1 : "float_vector should have only 1 dimension";
+        if (dimensions != 1) {
+            throw new AssertionError("float_vector must only have 1 dimension");
+        }
         buffer.readInt(); // flags bit 0: 0=no-nulls, 1=has-nulls
         buffer.readInt(); // element oid
         int dimension = buffer.readInt();
+        if (dimension > buffer.readableBytes()) {
+            throw new IllegalArgumentException("Invalid vector dimension: " + dimension);
+        }
         buffer.readInt();  // lowerBound ignored
         return readArrayAsBinary(buffer, dimension);
     }

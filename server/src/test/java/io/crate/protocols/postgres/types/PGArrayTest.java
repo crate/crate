@@ -22,6 +22,7 @@
 package io.crate.protocols.postgres.types;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -224,6 +225,19 @@ public class PGArrayTest extends BasePGTypeTest<List<Object>> {
         Object targetArray = pgArray.readBinaryValue(buffer, length);
         buffer.release();
         assertThat(targetArray).isEqualTo(source);
+    }
+
+    @Test
+    public void test_dimensions_larger_than_readable_bytes_fail() throws Exception {
+        ByteBuf buf = Unpooled.buffer();
+        try {
+            buf.writeInt(200_000);
+            assertThatThrownBy(() -> pgArray.readBinaryValue(buf, 20))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid number of dimensions: 200000");
+        } finally {
+            buf.release();
+        }
     }
 
     @Test
