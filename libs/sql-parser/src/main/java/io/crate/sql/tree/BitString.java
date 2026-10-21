@@ -29,7 +29,7 @@ public record BitString(BitSet bitSet, int length) implements Literal, Comparabl
 
     public static BitString ofBitString(String bitString) {
         assert bitString.startsWith("B'") : "Bitstring must start with B'";
-        assert bitString.endsWith("'") : "Bitstrign must end with '";
+        assert bitString.endsWith("'") : "Bitstring must end with '";
         return ofRawBits(bitString.substring(2, bitString.length() - 1));
     }
 
