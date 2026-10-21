@@ -768,6 +768,12 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
             IncompatibleSchemaForRestoreException::new,
             187,
             Version.V_6_3_3
+        ),
+        TRANSPORT_NOT_READY(
+            io.crate.exceptions.TransportNotReady.class,
+            io.crate.exceptions.TransportNotReady::new,
+            188,
+            Version.V_6_6_0
         );
 
         final Class<? extends ElasticsearchException> exceptionClass;
