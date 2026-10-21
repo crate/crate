@@ -90,7 +90,7 @@ public class BitType extends PGType<BitString> {
     public BitString readBinaryValue(ByteBuf buffer, int valueLength) {
         int bitLen = buffer.readInt();
         int byteLen = (bitLen + 7) / 8;
-        if (bitLen < 0 || byteLen < 0 || byteLen > buffer.readableBytes()) {
+        if (byteLen > buffer.readableBytes()) {
             throw new IllegalArgumentException("Invalid bit length: " + bitLen);
         }
         byte[] bytes = new byte[byteLen];
