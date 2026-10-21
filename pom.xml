@@ -195,18 +195,6 @@
                                     </ignoreVersion>
                                 </ignoreVersions>
                             </rule>
-                            <!-- Ignore checkstyle 13.x and above.
-                            For more info, see: https://github.com/crate/crate/issues/19483. -->
-                            <rule>
-                                <groupId>com.puppycrawl.tools</groupId>
-                                <artifactId>checkstyle</artifactId>
-                                <ignoreVersions>
-                                    <ignoreVersion>
-                                        <version>^(1[3-9]|[2-9][0-9])\..*</version>
-                                        <type>regex</type>
-                                    </ignoreVersion>
-                                </ignoreVersions>
-                            </rule>
                             <!-- Ignore anything above 3.5.6: 3.6.0 discovers 0 tests when forkCount > 1.
                                  Drop these rules once a release with the fix is out. -->
                             <rule>
@@ -402,7 +390,7 @@
         <versions.plugin.compiler>3.16.0</versions.plugin.compiler>
         <versions.plugin.surefire>3.5.6</versions.plugin.surefire>
         <versions.plugin.checkstyle>3.6.0</versions.plugin.checkstyle>
-        <versions.plugin.puppycrawl>12.3.1</versions.plugin.puppycrawl>
+        <versions.plugin.puppycrawl>14.3.0</versions.plugin.puppycrawl>
         <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
         <versions.plugin.jacoco>0.8.15</versions.plugin.jacoco>
         <versions.plugin.forbiddenapis>3.11</versions.plugin.forbiddenapis>

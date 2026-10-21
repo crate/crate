@@ -289,10 +289,9 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNullKey() {
-        assertPrint(Literal.of(new HashMap<>() {{
-                put("null", null);
-            }}
-        ), "{\"null\"=NULL}");
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("null", null);
+        assertPrint(Literal.of(map), "{\"null\"=NULL}");
     }
 
     @Test

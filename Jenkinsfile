@@ -2,7 +2,7 @@ pipeline {
   agent any
   tools {
     // used to run maven
-    jdk 'jdk17'
+    jdk 'jdk25'
   }
   options {
     timeout(time: 45, unit: 'MINUTES') 
