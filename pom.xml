@@ -92,7 +92,6 @@
                     <skip>${skipRunTests}</skip>
                     <argLine>
                         @{argLine}
-                        -XX:+UseSerialGC
                         -XX:TieredStopAtLevel=1
                         -XX:ReservedCodeCacheSize=512M
                         -XX:+UseCompactObjectHeaders
