@@ -61,3 +61,8 @@ Fixes
 
 - Fixed an issue that could discard recently replicated data from the
   subscriber cluster when dropping a subscription shortly after shard recovery.
+
+- Fixed an issue causing ``RESTORE SNAPSHOT`` to silently restore only one
+  of several tables if the rename options ``schema_rename_replacement``
+  or ``table_rename_replacement`` mapped them to the same name.
+  Now it fails with an error, similar to clashes with an existing table.
