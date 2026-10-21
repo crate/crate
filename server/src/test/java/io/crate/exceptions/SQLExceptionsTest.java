@@ -38,6 +38,12 @@ import io.crate.metadata.RelationName;
 public class SQLExceptionsTest {
 
     @Test
+    public void test_transport_not_ready_is_temporary() throws Exception {
+        TransportNotReady error = new TransportNotReady();
+        assertThat(SQLExceptions.maybeTemporary(error)).isTrue();
+    }
+
+    @Test
     public void test_unavailable_shard_exception_is_shard_failure() throws Exception {
         ShardId shardId = new ShardId("idx1", UUIDs.randomBase64UUID(), 0);
         UnavailableShardsException ex = new UnavailableShardsException(new RelationName("doc", "tbl"), shardId);
