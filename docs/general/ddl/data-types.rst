@@ -779,54 +779,6 @@ Query data::
    There is no difference in storage costs among all character data types.
 
 
-.. _data-type-json:
-
-``json``
-''''''''
-
-A type representing a JSON string.
-
-This type only exists for compatibility and interoperability with PostgreSQL. It cannot to be
-used in data definition statements and it is not possible to use it to store data.
-To store JSON data use the existing :ref:`OBJECT <data-types-objects>` type. It is a more powerful
-alternative that offers more flexibility but delivers the same benefits.
-
-The primary use of the JSON type is in :ref:`type casting <data-types-casting>` for
-interoperability with PostgreSQL clients which may use the ``JSON`` type.
-The following type casts are example of supported usage of the ``JSON`` data type:
-
-Casting from ``STRING`` to ``JSON``::
-
-    cr> SELECT '{"x": 10}'::json;
-    +---------------------------+
-    | CAST('{"x": 10}' AS json) |
-    +---------------------------+
-    | {"x": 10}                 |
-    +---------------------------+
-    SELECT 1 row in set (... sec)
-
-Casting from ``JSON`` to ``OBJECT``::
-
-    cr> SELECT ('{"x": 10}'::json)::object;
-    +-------------------------------------------+
-    | CAST(CAST('{"x": 10}' AS json) AS object) |
-    +-------------------------------------------+
-    | {"x": 10}                                 |
-    +-------------------------------------------+
-    SELECT 1 row in set (... sec)
-
-
-Casting from ``OBJECT`` to ``JSON``::
-
-    cr> SELECT {x=10}::json;
-    +-------------------------+
-    | CAST({"x"= 10} AS json) |
-    +-------------------------+
-    | {"x":10}                |
-    +-------------------------+
-    SELECT 1 row in set (... sec)
-
-
 .. _data-types-numeric:
 
 Numeric data
@@ -3151,6 +3103,54 @@ if the table function returns more than one column.
     | [2, "Trillian"] |
     +-----------------+
     SELECT 2 rows in set (... sec)
+
+.. _data-type-json:
+
+``JSON``
+========
+
+A type representing a JSON string.
+
+This type only exists for compatibility and interoperability with PostgreSQL. It cannot to be
+used in data definition statements and it is not possible to use it to store data.
+To store JSON data use the existing :ref:`OBJECT <data-types-objects>` type. It is a more powerful
+alternative that offers more flexibility but delivers the same benefits.
+
+The primary use of the JSON type is in :ref:`type casting <data-types-casting>` for
+interoperability with PostgreSQL clients which may use the ``JSON`` type.
+The following type casts are example of supported usage of the ``JSON`` data type:
+
+Casting from ``STRING`` to ``JSON``::
+
+    cr> SELECT '{"x": 10}'::json;
+    +---------------------------+
+    | CAST('{"x": 10}' AS json) |
+    +---------------------------+
+    | {"x": 10}                 |
+    +---------------------------+
+    SELECT 1 row in set (... sec)
+
+Casting from ``JSON`` to ``OBJECT``::
+
+    cr> SELECT ('{"x": 10}'::json)::object;
+    +-------------------------------------------+
+    | CAST(CAST('{"x": 10}' AS json) AS object) |
+    +-------------------------------------------+
+    | {"x": 10}                                 |
+    +-------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+Casting from ``OBJECT`` to ``JSON``::
+
+    cr> SELECT {x=10}::json;
+    +-------------------------+
+    | CAST({"x"= 10} AS json) |
+    +-------------------------+
+    | {"x":10}                |
+    +-------------------------+
+    SELECT 1 row in set (... sec)
+
 
 .. _type-float_vector:
 
