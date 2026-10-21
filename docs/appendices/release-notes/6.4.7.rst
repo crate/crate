@@ -70,6 +70,10 @@ Fixes
   :ref:`pg_tunnel mode <sql-create-subscription-conn-info>` for logical
   replication.
 
+- Fixed an issue where a logical replication subscription could enter a failed
+  state and stop replicating after a publisher restart if the subscriber sent
+  requests before the publisher's transport service was ready to handle them.
+
 - Fixed an issue which caused the ``optimizer_eliminate_cross_join`` rule to
   drop non-equality filters (e.g., a greater-than condition) that are combined
   with an equality filter over the same two tables. The issue also caused
