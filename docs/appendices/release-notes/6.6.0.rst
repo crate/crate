@@ -88,6 +88,13 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
+- `Somil Jain <https://github.com/somiljain2006>`_ improved query planning for
+  ``LEFT``, ``RIGHT``, and ``FULL OUTER JOIN`` queries with nested join inputs.
+  Null-rejecting ``WHERE`` predicates referencing relations within a nested
+  input can now be pushed below the outer join. When the predicates reject
+  all NULL-extended rows produced by the outer join, it can also be rewritten
+  to an ``INNER JOIN``.
+
 - Improved the ``optimizer_eliminate_cross_join`` rule to eliminate more
   cross joins. Previously, some cross joins may have been left when the tables
   form groups that aren't connected with join conditions, like in::

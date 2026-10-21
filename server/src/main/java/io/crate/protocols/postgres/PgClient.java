@@ -335,6 +335,20 @@ public class PgClient implements Client {
         }
 
         @Override
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+            result.completeExceptionally(cause);
+            ctx.fireExceptionCaught(cause);
+        }
+
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+            result.completeExceptionally(
+                new ConnectTransportException(node, "connection closed before switching to transport protocol")
+            );
+            ctx.fireChannelInactive();
+        }
+
+        @Override
         public boolean acceptInboundMessage(Object msg) throws Exception {
             return true;
         }
