@@ -330,7 +330,30 @@ public class RestoreService implements ClusterStateApplier {
                 resolver.accept(relation.name(), List.of());
             }
         }
+        ensureUniqueTargets(restoreRelations);
         return restoreRelations;
+    }
+
+    /**
+     * Renamed pattern can map different tables to the same name.
+     * Check if renamed tables won't be clashing with each other.
+     */
+    private static void ensureUniqueTargets(Map<RelationName, RestoreRelation> restoreRelations) {
+        HashMap<RelationName, RelationName> sourceByTarget = new HashMap<>();
+        for (var entry : restoreRelations.entrySet()) {
+            RelationName source = entry.getKey();
+            RelationName target = entry.getValue().targetName();
+            RelationName otherSource = sourceByTarget.put(target, source);
+            if (otherSource != null) {
+                throw new RelationAlreadyExists(target, String.format(
+                    Locale.ENGLISH,
+                    "Cannot restore relations '%s' and '%s' to the same name '%s'",
+                    otherSource,
+                    source,
+                    target
+                ));
+            }
+        }
     }
 
     private static boolean includeForeignTables(RestoreSnapshotRequest request) {
