@@ -77,7 +77,8 @@
             <!--<property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>-->
         <!--</module>-->
         <module name="AvoidStarImport"/>
-        <module name="UnusedImports"/>
+        <!-- Imports only used in markdown comments lead to false positives: https://github.com/checkstyle/checkstyle/issues/16100 -->
+        <!-- <module name="UnusedImports"/> -->
         <module name="IllegalImport">
             <property name="illegalPkgs" value="
                 org.junit.Assert,
