@@ -85,6 +85,9 @@ Scalar and Aggregation Functions
   :ref:`ends_with(string, suffix) <scalar-ends_with>` scalar function, which
   returns ``true`` if ``string`` ends with ``suffix``.
 
+- `Somil Jain <https://github.com/somiljain2006>`_ added support for UUID values
+  in the ``collect_set`` and ``COUNT(DISTINCT ...)`` aggregations.
+
 Performance and Resilience Improvements
 ---------------------------------------
 
