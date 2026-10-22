@@ -53,6 +53,8 @@ import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.metadata.upgrade.MetadataIndexUpgrader;
 import io.crate.metadata.view.ViewMetadata;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.replication.logical.metadata.Publication;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.sql.tree.CheckConstraint;
 
 /**
@@ -89,6 +91,10 @@ public class MetadataUpgradeService {
     }
 
     public Metadata upgradeMetadata(Metadata metadata) {
+        return upgradeMetadata(metadata, false);
+    }
+
+    public Metadata upgradeMetadata(Metadata metadata, boolean nodeStart) {
         final Metadata.Builder newMetadata = Metadata.builder(upgradeUDFMetadata(metadata));
         ViewsMetadata viewsMetadata = metadata.custom(ViewsMetadata.TYPE);
         if (viewsMetadata != null) {
@@ -233,8 +239,35 @@ public class MetadataUpgradeService {
                     : "If there exists a RelationMetadata.BlobTable entry the incoming IndexMetadata indexUUID must match";
             }
         }
-
+        if (nodeStart) {
+            removeDanglingPublicationTables(newMetadata);
+        }
         return newMetadata.build();
+    }
+
+    private static void removeDanglingPublicationTables(Metadata.Builder metadata) {
+        PublicationsMetadata publications = (PublicationsMetadata) metadata.getCustom(PublicationsMetadata.TYPE);
+        if (publications == null) {
+            return;
+        }
+        PublicationsMetadata updated = PublicationsMetadata.newInstance(publications);
+        boolean isUpdated = false;
+        for (var entry : publications.publications().entrySet()) {
+            Publication publication = entry.getValue();
+            if (publication.isForAllTables()) {
+                continue;
+            }
+            var tables = publication.tables().stream()
+                .filter(table -> metadata.getRelation(table) instanceof RelationMetadata.Table)
+                .toList();
+            if (tables.size() != publication.tables().size()) {
+                updated.publications().put(entry.getKey(), new Publication(publication.owner(), false, tables));
+                isUpdated = true;
+            }
+        }
+        if (isUpdated) {
+            metadata.putCustom(PublicationsMetadata.TYPE, updated);
+        }
     }
 
     private static Metadata upgradeUDFMetadata(Metadata metadata) {

@@ -38,6 +38,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Rule;
 import org.junit.Test;
 
+import io.crate.exceptions.DependentObjectsExists;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
@@ -189,6 +190,67 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertThat(response).hasRows(
             "284890074| pub1| -450373579| true| doc| t1| true| true| true",
             "284890074| pub1| -450373579| true| my_schema| t2| true| true| true");
+    }
+
+    @Test
+    public void test_drop_table_removes_it_from_explicit_publications() {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
+        executeOnPublisher("CREATE TABLE doc.t2 (id INT, p INT) PARTITIONED BY (p)");
+        executeOnPublisher("INSERT INTO doc.t2 (id, p) VALUES (1, 1)");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1, doc.t2");
+        executeOnPublisher("CREATE PUBLICATION pub2 FOR TABLE doc.t2");
+        executeOnPublisher("CREATE PUBLICATION pub_all FOR ALL TABLES");
+
+        executeOnPublisher("DROP TABLE doc.t2");
+        assertThat(executeOnPublisher(
+            "SELECT pubname, array_agg(tablename) FROM " +
+            "(SELECT pubname, tablename FROM pg_publication_tables ORDER BY pubname, tablename) t " +
+            "GROUP BY pubname ORDER BY pubname"
+        )).hasRows("pub1| [t1]", "pub_all| [t1]");
+        assertThat(executeOnPublisher("SELECT pubname FROM pg_publication ORDER BY pubname"))
+            .hasRows("pub1", "pub2", "pub_all");
+
+        executeOnPublisher("CREATE TABLE doc.t2 (name TEXT)");
+        assertThat(executeOnPublisher(
+            "SELECT pubname, array_agg(tablename) FROM " +
+            "(SELECT pubname, tablename FROM pg_publication_tables ORDER BY pubname, tablename) t " +
+            "GROUP BY pubname ORDER BY pubname"
+        )).hasRows("pub1| [t1]", "pub_all| [t1, t2]");
+
+        executeOnPublisher("DROP TABLE doc.t1");
+        assertThat(executeOnPublisher(
+            "SELECT pubname, array_agg(tablename) FROM " +
+            "(SELECT pubname, tablename FROM pg_publication_tables ORDER BY pubname, tablename) t " +
+            "GROUP BY pubname ORDER BY pubname"
+        )).hasRows("pub_all| [t2]");
+    }
+
+    @Test
+    public void test_drop_schema_restrict_rejects_schema_with_published_table() {
+        executeOnPublisher("CREATE TABLE s1.t1 (id INT)");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE s1.t1");
+        assertThatThrownBy(() -> executeOnPublisher("DROP SCHEMA s1 RESTRICT"))
+            .isExactlyInstanceOf(DependentObjectsExists.class)
+            .hasMessage("Cannot drop schema \"s1\" because other objects depend on it");
+    }
+
+    @Test
+    public void test_drop_schema_cascade_removes_tables_from_explicit_publications() {
+        executeOnPublisher("CREATE TABLE s1.t1 (id INT)");
+        executeOnPublisher("CREATE TABLE s1.t2 (id INT, p INT) PARTITIONED BY (p)");
+        executeOnPublisher("INSERT INTO s1.t2 (id, p) VALUES (1, 1)");
+        executeOnPublisher("CREATE TABLE s2.t1 (id INT)");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE s1.t1, s1.t2, s2.t1");
+        executeOnPublisher("CREATE PUBLICATION pub2 FOR TABLE s1.t1, s1.t2");
+
+        executeOnPublisher("DROP SCHEMA s1 CASCADE");
+
+        assertThat(executeOnPublisher(
+            "SELECT pubname, array_agg(schemaname || '.' || tablename) " +
+            "FROM pg_publication_tables GROUP BY pubname ORDER BY pubname"
+        )).hasRows("pub1| [s2.t1]");
+        assertThat(executeOnPublisher("SELECT pubname FROM pg_publication ORDER BY pubname"))
+            .hasRows("pub1", "pub2");
     }
 
     @Test
