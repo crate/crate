@@ -206,6 +206,97 @@ public class GroupByAggregateTest extends IntegTestCase {
     }
 
     @Test
+    public void testCollectSetUUID() throws Exception {
+        execute("CREATE TABLE doc.uuid_collect_set (id UUID) " +
+            "WITH (number_of_replicas = 0)");
+        ensureYellow();
+
+        execute("INSERT INTO doc.uuid_collect_set (id) VALUES " +
+            "('85f39f41-c438-4043-9192-8b18419caf21'), " +
+            "('85f39f41-c438-4043-9192-8b18419caf21'), " +
+            "('c4a1b392-4c5b-43e1-8a87-9e80dba0b938')");
+        execute("REFRESH TABLE doc.uuid_collect_set");
+
+        execute("SELECT collect_set(id) FROM doc.uuid_collect_set");
+
+        assertThat((java.util.Collection<?>) response.rows()[0][0])
+            .extracting(Object::toString)
+            .containsExactlyInAnyOrder(
+                "85f39f41-c438-4043-9192-8b18419caf21",
+                "c4a1b392-4c5b-43e1-8a87-9e80dba0b938"
+            );
+    }
+
+    @Test
+    public void testCountDistinctUUIDWithoutRewrite() throws Exception {
+        execute("CREATE TABLE doc.uuid_count_distinct (id UUID) " +
+            "CLUSTERED INTO 3 SHARDS WITH (number_of_replicas = 0)");
+        ensureYellow();
+        execute("INSERT INTO doc.uuid_count_distinct (id) VALUES " +
+            "('85f39f41-c438-4043-9192-8b18419caf21'), " +
+            "('85f39f41-c438-4043-9192-8b18419caf21'), " +
+            "('c4a1b392-4c5b-43e1-8a87-9e80dba0b938'), " +
+            "('03c7b7f8-59c4-4db0-bb66-2e80c62ac47d'), " +
+            "('c4a1b392-4c5b-43e1-8a87-9e80dba0b938'), " +
+            "('85f39f41-c438-4043-9192-8b18419caf21')");
+        execute("REFRESH TABLE doc.uuid_count_distinct");
+
+        try (var session = sqlExecutor.newSession()) {
+            execute("SET optimizer_rewrite_distinct_agg_to_group_by = false", session);
+            execute("SELECT count(DISTINCT id) FROM doc.uuid_count_distinct", session);
+            assertThat(response).hasRowCount(1L);
+            assertThat(response.rows()[0][0]).isEqualTo(3L);
+        }
+    }
+
+    @Test
+    public void testCountDistinctUUIDWithNulls() throws Exception {
+        execute("CREATE TABLE doc.uuid_count_distinct_nulls (id UUID) " +
+            "CLUSTERED INTO 3 SHARDS WITH (number_of_replicas = 0)");
+        ensureYellow();
+        execute("INSERT INTO doc.uuid_count_distinct_nulls (id) VALUES " +
+            "('85f39f41-c438-4043-9192-8b18419caf21'), " +
+            "('85f39f41-c438-4043-9192-8b18419caf21'), " +
+            "('c4a1b392-4c5b-43e1-8a87-9e80dba0b938'), " +
+            "(NULL), (NULL)");
+        execute("REFRESH TABLE doc.uuid_count_distinct_nulls");
+
+        execute("SELECT count(DISTINCT id), count(*) FROM doc.uuid_count_distinct_nulls");
+        assertThat(response).hasRowCount(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
+        assertThat(response.rows()[0][1]).isEqualTo(5L);
+
+        execute("SELECT count(DISTINCT id) FROM doc.uuid_count_distinct_nulls WHERE id IS NULL");
+        assertThat(response).hasRowCount(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(0L);
+    }
+
+    @Test
+    public void testCountDistinctUUIDGroupBy() throws Exception {
+        execute("CREATE TABLE doc.uuid_count_distinct_group_by (bucket STRING, id UUID) " +
+            "CLUSTERED INTO 3 SHARDS WITH (number_of_replicas = 0)");
+        ensureYellow();
+        execute("INSERT INTO doc.uuid_count_distinct_group_by (bucket, id) VALUES " +
+            "('alpha', '85f39f41-c438-4043-9192-8b18419caf21'), " +
+            "('alpha', '85f39f41-c438-4043-9192-8b18419caf21'), " +
+            "('alpha', 'c4a1b392-4c5b-43e1-8a87-9e80dba0b938'), " +
+            "('alpha', NULL), " +
+            "('beta', '85f39f41-c438-4043-9192-8b18419caf21'), " +
+            "('beta', '03c7b7f8-59c4-4db0-bb66-2e80c62ac47d'), " +
+            "('beta', '03c7b7f8-59c4-4db0-bb66-2e80c62ac47d'), " +
+            "('empty', NULL), ('empty', NULL)");
+        execute("REFRESH TABLE doc.uuid_count_distinct_group_by");
+
+        execute("SELECT bucket, count(DISTINCT id) " +
+            "FROM doc.uuid_count_distinct_group_by GROUP BY bucket ORDER BY bucket");
+        assertThat(response).hasRows(
+            "alpha| 2",
+            "beta| 2",
+            "empty| 0"
+        );
+    }
+
+    @Test
     public void testCountDistinctGroupBy() throws Exception {
         this.setup.groupBySetup("integer");
         execute("select count(distinct gender), count(*), race from characters group by race order by count(*) desc");
