@@ -21,6 +21,12 @@
 
 package io.crate.statistics;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -32,17 +38,89 @@ import java.util.Random;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
-import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 import io.crate.types.IntegerType;
 
-public class ApproxDistinctAccuracyTest extends ESTestCase {
+public class ApproxDistinctAccuracyTest {
 
     private static final int NUM_ROWS = 2_000_000;
     private static final int NUM_NODES = 3;
 
+    private static final String URL = "jdbc:postgresql://localhost:5433/doc";
+    private static final String USER = "crate";
+    private static final String PASSWORD = "mysecretpassword";
+    private static final int TABLE_ROWS = 5_000_000;
+    private static final int CHUNK_ROWS = 500_000;
+
+    @Test
+    public void test_create_cardinality_table() throws Exception {
+        int[] percents = {0, 5, 15, 25, 35, 45, 55, 65, 75, 85, 95};
+        List<String> columns = new ArrayList<>();
+        List<String> definitions = new ArrayList<>();
+        List<String> expressions = new ArrayList<>();
+        for (int percent : percents) {
+            String suffix = String.format(Locale.ENGLISH, "%02d", percent);
+            int distinct = percent == 0 ? 50 : TABLE_ROWS / 100 * percent;
+            columns.add("str_" + suffix);
+            definitions.add("str_" + suffix + " TEXT");
+            expressions.add("'s' || CAST(generate_series % " + distinct + " AS TEXT)");
+            columns.add("int_" + suffix);
+            definitions.add("int_" + suffix + " INTEGER");
+            expressions.add("generate_series % " + distinct);
+        }
+
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+             Statement stmt = conn.createStatement()) {
+            if (isLoaded(stmt) == false) {
+                stmt.execute("DROP TABLE IF EXISTS approx_distinct");
+                stmt.execute("CREATE TABLE approx_distinct (" + String.join(", ", definitions) + ")");
+                String insertSql = "INSERT INTO approx_distinct (" + String.join(", ", columns) + ") "
+                    + "SELECT " + String.join(", ", expressions) + " FROM generate_series(?, ?)";
+                try (PreparedStatement insert = conn.prepareStatement(insertSql)) {
+                    for (int start = 1; start <= TABLE_ROWS; start += CHUNK_ROWS) {
+                        insert.setInt(1, start);
+                        insert.setInt(2, start + CHUNK_ROWS - 1);
+                        insert.executeUpdate();
+                    }
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT version()")) {
+                    rs.next();
+                    if (rs.getString(1).startsWith("CrateDB")) {
+                        stmt.execute("REFRESH TABLE approx_distinct");
+                    }
+                }
+            }
+            stmt.execute("ANALYZE");
+            StringBuilder sb = new StringBuilder();
+            sb.append(String.format(Locale.ENGLISH, "%n%-10s %15s%n", "attname", "n_distinct"));
+            try (ResultSet rs = stmt.executeQuery(
+                "SELECT attname, n_distinct FROM pg_stats WHERE tablename = 'approx_distinct' ORDER BY attname")) {
+                while (rs.next()) {
+                    sb.append(String.format(Locale.ENGLISH, "%-10s %15s%n", rs.getString(1), rs.getString(2)));
+                }
+            }
+            System.out.println(sb);
+        }
+    }
+
+    private static boolean isLoaded(Statement stmt) throws SQLException {
+        try (ResultSet rs = stmt.executeQuery(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'approx_distinct'")) {
+            rs.next();
+            if (rs.getLong(1) == 0) {
+                return false;
+            }
+        }
+        try (ResultSet rs = stmt.executeQuery("SELECT count(*) FROM approx_distinct")) {
+            rs.next();
+            return rs.getLong(1) == TABLE_ROWS;
+        }
+    }
+
+    @Test
     public void test_print_approx_distinct_accuracy() {
-        Random random = random();
+        Random random = new Random();
         Map<String, Supplier<int[]>> populations = new LinkedHashMap<>();
         populations.put("unique", () -> IntStream.range(0, NUM_ROWS).toArray());
         populations.put("uniform 1M", () -> uniform(random, 1_000_000));
