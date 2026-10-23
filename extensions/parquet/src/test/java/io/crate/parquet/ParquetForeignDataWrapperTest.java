@@ -93,20 +93,20 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
         NodeContext nodeCtx = createNodeContext(List.of(role));
         ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(new InputFactory(nodeCtx));
         BatchIterator<Row> it = fdw.getIterator(role, server, foreignTable, txnCtx,
-                List.of(e.asSymbol(nameRef + "* 2")),
+                List.of(e.asSymbol(nameRef + "* 2"), nameRef),
                 Literal.BOOLEAN_TRUE).get();
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
-            new Object[]{2L},
-            new Object[]{0L},
-            new Object[]{0L},
-            new Object[]{8L},
-            new Object[]{0L},
-            new Object[]{4L},
-            new Object[]{2L},
-            new Object[]{0L},
-            new Object[]{2L},
-            new Object[]{6L}
+            new Object[]{2L, 1L},
+            new Object[]{0L, 0L},
+            new Object[]{0L, 0L},
+            new Object[]{8L, 4L},
+            new Object[]{0L, 0L},
+            new Object[]{4L, 2L},
+            new Object[]{2L, 1L},
+            new Object[]{0L, 0L},
+            new Object[]{2L, 1L},
+            new Object[]{6L, 3L}
         );
     }
 
