@@ -25,13 +25,12 @@ import java.io.IOException;
 import java.lang.foreign.MemorySegment;
 
 
-import org.apache.datasketches.tuple.TupleSketch;
-import org.apache.datasketches.tuple.TupleSketchIterator;
-import org.apache.datasketches.tuple.TupleUnion;
-import org.apache.datasketches.tuple.aninteger.IntegerSummary;
-import org.apache.datasketches.tuple.aninteger.IntegerSummaryDeserializer;
-import org.apache.datasketches.tuple.aninteger.IntegerSummarySetOperations;
-import org.apache.datasketches.tuple.aninteger.IntegerTupleSketch;
+import org.apache.datasketches.tuple.arrayofdoubles.ArrayOfDoublesSetOperationBuilder;
+import org.apache.datasketches.tuple.arrayofdoubles.ArrayOfDoublesSketch;
+import org.apache.datasketches.tuple.arrayofdoubles.ArrayOfDoublesSketchIterator;
+import org.apache.datasketches.tuple.arrayofdoubles.ArrayOfDoublesUnion;
+import org.apache.datasketches.tuple.arrayofdoubles.ArrayOfDoublesUpdatableSketch;
+import org.apache.datasketches.tuple.arrayofdoubles.ArrayOfDoublesUpdatableSketchBuilder;
 import org.elasticsearch.common.io.stream.StreamInput;
 
 /**
@@ -39,9 +38,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
  */
 public abstract class DistinctValuesSketch {
 
-    private static final int LG_K = 12;
-    private static final IntegerSummarySetOperations SUM_OPERATIONS =
-        new IntegerSummarySetOperations(IntegerSummary.Mode.Sum, IntegerSummary.Mode.Sum);
+    private static final int NOMINAL_ENTRIES = 4096;
+    private static final double[] ONE = {1.0};
 
     /**
      * Add a new value to the sketch
@@ -56,21 +54,21 @@ public abstract class DistinctValuesSketch {
     /**
      * Get the internal sketch data structure
      */
-    public abstract TupleSketch<IntegerSummary> getSketch();
+    public abstract ArrayOfDoublesSketch getSketch();
 
     /**
      * Estimated number of distinct values that were added exactly once
      */
     public double singletons() {
-        TupleSketch<IntegerSummary> sketch = getSketch();
+        ArrayOfDoublesSketch sketch = getSketch();
         int retainedSingletons = 0;
-        TupleSketchIterator<IntegerSummary> it = sketch.iterator();
+        ArrayOfDoublesSketchIterator it = sketch.iterator();
         while (it.next()) {
-            if (it.getSummary().getValue() == 1) {
+            if (it.getValues()[0] == 1.0) {
                 retainedSingletons++;
             }
         }
-        return sketch.getEstimate(retainedSingletons);
+        return retainedSingletons / sketch.getTheta();
     }
 
     /**
@@ -79,29 +77,37 @@ public abstract class DistinctValuesSketch {
     public static DistinctValuesSketch newSketch() {
         return new DistinctValuesSketch() {
 
-            final IntegerTupleSketch distinctSketch = new IntegerTupleSketch(LG_K, IntegerSummary.Mode.Sum);
+            final ArrayOfDoublesUpdatableSketch distinctSketch = new ArrayOfDoublesUpdatableSketchBuilder()
+                .setNominalEntries(NOMINAL_ENTRIES)
+                .build();
 
             @Override
             public void update(String v) {
-                distinctSketch.update(v, 1);
+                distinctSketch.update(v, ONE);
             }
 
             @Override
             public DistinctValuesSketch merge(DistinctValuesSketch other) {
-                TupleUnion<IntegerSummary> union = new TupleUnion<>(1 << LG_K, SUM_OPERATIONS);
+                ArrayOfDoublesUnion union = newUnion();
                 union.union(distinctSketch);
                 union.union(other.getSketch());
                 return mergedSketch(union);
             }
 
             @Override
-            public TupleSketch<IntegerSummary> getSketch() {
+            public ArrayOfDoublesSketch getSketch() {
                 return distinctSketch;
             }
         };
     }
 
-    private static DistinctValuesSketch mergedSketch(TupleUnion<IntegerSummary> union) {
+    private static ArrayOfDoublesUnion newUnion() {
+        return new ArrayOfDoublesSetOperationBuilder()
+            .setNominalEntries(NOMINAL_ENTRIES)
+            .buildUnion();
+    }
+
+    private static DistinctValuesSketch mergedSketch(ArrayOfDoublesUnion union) {
         return new DistinctValuesSketch() {
             @Override
             public void update(String v) {
@@ -115,7 +121,7 @@ public abstract class DistinctValuesSketch {
             }
 
             @Override
-            public TupleSketch<IntegerSummary> getSketch() {
+            public ArrayOfDoublesSketch getSketch() {
                 return union.getResult();
             }
         };
@@ -126,7 +132,7 @@ public abstract class DistinctValuesSketch {
      */
     public static DistinctValuesSketch fromStream(StreamInput in) throws IOException {
         byte[] distinctSketchBytes = in.readByteArray();
-        var sketch = TupleSketch.heapifySketch(MemorySegment.ofArray(distinctSketchBytes), new IntegerSummaryDeserializer());
+        var sketch = ArrayOfDoublesSketch.heapify(MemorySegment.ofArray(distinctSketchBytes));
         return new DistinctValuesSketch() {
             @Override
             public void update(String v) {
@@ -135,14 +141,14 @@ public abstract class DistinctValuesSketch {
 
             @Override
             public DistinctValuesSketch merge(DistinctValuesSketch other) {
-                TupleUnion<IntegerSummary> union = new TupleUnion<>(1 << LG_K, SUM_OPERATIONS);
+                ArrayOfDoublesUnion union = newUnion();
                 union.union(sketch);
                 union.union(other.getSketch());
                 return mergedSketch(union);
             }
 
             @Override
-            public TupleSketch<IntegerSummary> getSketch() {
+            public ArrayOfDoublesSketch getSketch() {
                 return sketch;
             }
         };
