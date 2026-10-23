@@ -67,7 +67,7 @@ public abstract class ColumnSketchBuilder<T> {
         out.writeLong(sampleCount);
         out.writeLong(nullCount);
         out.writeLong(totalBytes);
-        out.writeByteArray(distinctSketch.getSketch().compact().toByteArray());
+        distinctSketch.writeTo(out);
         writeSketches(out);
     }
 
@@ -113,7 +113,7 @@ public abstract class ColumnSketchBuilder<T> {
     }
 
     double approxDistinct(long numTotalDocs) {
-        double distinctSamples = distinctSketch.getSketch().getEstimate();
+        double distinctSamples = distinctSketch.getEstimate();
         double singletons = distinctSketch.singletons();
         return approximateNumDistinct(
             nullFraction(),
