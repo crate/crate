@@ -29,28 +29,33 @@ import org.apache.datasketches.hash.MurmurHash3;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import com.carrotsearch.hppc.LongIntHashMap;
-import com.carrotsearch.hppc.cursors.LongIntCursor;
+import com.carrotsearch.hppc.LongHashSet;
+import com.carrotsearch.hppc.cursors.LongCursor;
 
 /**
- * A streamable count of the hashes of all sampled values
+ * A streamable set of the hashes of all sampled values.
+ * <p>
+ * The lowest bit of each hash is used as a flag that is set once the value has been seen more than once,
+ * so the set provides the exact number of distinct values and of values seen exactly once in the sample.
  */
 public final class DistinctValuesSketch {
 
     private static final int INITIAL_CAPACITY = 16;
     private static final double LOAD_FACTOR = 15.0 / 16.0;
+    private static final long DUPLICATE_FLAG = 1L;
+    private static final long KEY_MASK = ~DUPLICATE_FLAG;
 
-    private final LongIntHashMap countsByHash;
+    private final LongHashSet hashes;
 
-    private DistinctValuesSketch(LongIntHashMap countsByHash) {
-        this.countsByHash = countsByHash;
+    private DistinctValuesSketch(LongHashSet hashes) {
+        this.hashes = hashes;
     }
 
     /**
      * Creates a new empty sketch
      */
     public static DistinctValuesSketch newSketch() {
-        return new DistinctValuesSketch(new LongIntHashMap(INITIAL_CAPACITY, LOAD_FACTOR));
+        return new DistinctValuesSketch(new LongHashSet(INITIAL_CAPACITY, LOAD_FACTOR));
     }
 
     /**
@@ -60,15 +65,16 @@ public final class DistinctValuesSketch {
         if (v.isEmpty()) {
             return;
         }
-        countsByHash.addTo(MurmurHash3.hash(v.getBytes(StandardCharsets.UTF_8), Util.DEFAULT_UPDATE_SEED)[0], 1);
+        long key = MurmurHash3.hash(v.getBytes(StandardCharsets.UTF_8), Util.DEFAULT_UPDATE_SEED)[0] & KEY_MASK;
+        add(key);
     }
 
     /**
      * Merge another sketch into this one
      */
     public DistinctValuesSketch merge(DistinctValuesSketch other) {
-        for (LongIntCursor cursor : other.countsByHash) {
-            countsByHash.addTo(cursor.key, cursor.value);
+        for (LongCursor cursor : other.hashes) {
+            add(cursor.value);
         }
         return this;
     }
@@ -77,7 +83,7 @@ public final class DistinctValuesSketch {
      * Number of distinct values
      */
     public double getEstimate() {
-        return countsByHash.size();
+        return hashes.size();
     }
 
     /**
@@ -85,8 +91,8 @@ public final class DistinctValuesSketch {
      */
     public double singletons() {
         int singletons = 0;
-        for (LongIntCursor cursor : countsByHash) {
-            if (cursor.value == 1) {
+        for (LongCursor cursor : hashes) {
+            if ((cursor.value & DUPLICATE_FLAG) == 0) {
                 singletons++;
             }
         }
@@ -94,10 +100,9 @@ public final class DistinctValuesSketch {
     }
 
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(countsByHash.size());
-        for (LongIntCursor cursor : countsByHash) {
-            out.writeLong(cursor.key);
-            out.writeVInt(cursor.value);
+        out.writeVInt(hashes.size());
+        for (LongCursor cursor : hashes) {
+            out.writeLong(cursor.value);
         }
     }
 
@@ -106,10 +111,27 @@ public final class DistinctValuesSketch {
      */
     public static DistinctValuesSketch fromStream(StreamInput in) throws IOException {
         int size = in.readVInt();
-        LongIntHashMap countsByHash = new LongIntHashMap(size, LOAD_FACTOR);
+        LongHashSet hashes = new LongHashSet(size, LOAD_FACTOR);
         for (int i = 0; i < size; i++) {
-            countsByHash.put(in.readLong(), in.readVInt());
+            hashes.add(in.readLong());
         }
-        return new DistinctValuesSketch(countsByHash);
+        return new DistinctValuesSketch(hashes);
+    }
+
+    /**
+     * Adds an entry, or flags its key as duplicate if the key is already present.
+     * A new key keeps the entry's flag, which is set if the key was already seen more than once in another sketch.
+     */
+    private void add(long entry) {
+        long key = entry & KEY_MASK;
+        long duplicate = key | DUPLICATE_FLAG;
+        if (hashes.contains(duplicate)) {
+            return;
+        }
+        if (hashes.remove(key)) {
+            hashes.add(duplicate);
+        } else {
+            hashes.add(entry);
+        }
     }
 }
