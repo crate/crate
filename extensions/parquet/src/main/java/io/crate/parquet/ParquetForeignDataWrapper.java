@@ -28,7 +28,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -58,7 +57,7 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
             s -> s.toString(), STRING_ARRAY);
     private final List<Setting<?>> mandatoryServerOptions = List.of(localFilesSetting);
 
-    public ParquetForeignDataWrapper(Settings settings, InputFactory inputFactory, Executor executor) {
+    public ParquetForeignDataWrapper(InputFactory inputFactory) {
         this.inputFactory = inputFactory;
     }
 

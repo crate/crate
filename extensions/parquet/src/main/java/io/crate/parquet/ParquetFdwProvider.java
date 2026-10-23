@@ -38,6 +38,6 @@ public class ParquetFdwProvider implements FdwProvider {
 
     @Override
     public ForeignDataWrapper create(Settings settings, InputFactory inputFactory, Executor executor) {
-        return new ParquetForeignDataWrapper(settings, inputFactory, executor);
+        return new ParquetForeignDataWrapper(inputFactory);
     }
 }

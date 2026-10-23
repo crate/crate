@@ -91,8 +91,7 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
     public void test_evaluates_references() throws Exception {
         Role role = Role.CRATE_USER;
         NodeContext nodeCtx = createNodeContext(List.of(role));
-        ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx),
-                Runnable::run);
+        ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(new InputFactory(nodeCtx));
         BatchIterator<Row> it = fdw.getIterator(role, server, foreignTable, txnCtx,
                 List.of(e.asSymbol(nameRef + "* 2")),
                 Literal.BOOLEAN_TRUE).get();
@@ -115,8 +114,7 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
     public void test_read_from_local_is_only_allowed_for_superusers() throws Exception {
         Role role = RolesHelper.userOf("typical_user");
         NodeContext nodeCtx = createNodeContext(List.of(role));
-        ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx),
-                Runnable::run);
+        ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(new InputFactory(nodeCtx));
         assertThatThrownBy(() -> {
             fdw.getIterator(role, server, foreignTable, txnCtx, List.of(nameRef), Literal.BOOLEAN_TRUE);
         }).isInstanceOf(UnauthorizedException.class);
