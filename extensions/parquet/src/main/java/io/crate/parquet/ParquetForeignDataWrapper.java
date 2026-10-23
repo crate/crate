@@ -53,8 +53,7 @@ import io.crate.role.Role;
 public class ParquetForeignDataWrapper implements ForeignDataWrapper {
 
     private final InputFactory inputFactory;
-    private final Setting<List<String>> localFilesSetting = Setting.listSetting("local_files", new ArrayList<>(),
-            s -> s.toString(), STRING_ARRAY);
+    private final Setting<List<String>> localFilesSetting = Setting.listSetting("local_files", new ArrayList<>(), s -> s, STRING_ARRAY);
     private final List<Setting<?>> mandatoryServerOptions = List.of(localFilesSetting);
 
     public ParquetForeignDataWrapper(InputFactory inputFactory) {
