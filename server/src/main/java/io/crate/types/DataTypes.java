@@ -123,7 +123,8 @@ public final class DataTypes {
         TIMESTAMPZ,
         TIMESTAMP,
         DATE,
-        UUIDType.INSTANCE
+        UUIDType.INSTANCE,
+        BitStringType.INSTANCE_ONE
     );
 
     private static final Set<Integer> PRIMITIVE_TYPE_IDS =

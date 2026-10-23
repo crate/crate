@@ -2264,6 +2264,11 @@ the `bit` type length, it is trimmed or extended on the right side::
   SELECT 1 row in set (... sec)
 
 
+.. NOTE::
+
+    Range queries (like ``x > '011'::bit(3)``) on bit strings are expensive.
+
+
 .. _data-types-ip-addresses:
 
 IP addresses
