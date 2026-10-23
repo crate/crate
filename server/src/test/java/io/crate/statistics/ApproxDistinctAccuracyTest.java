@@ -47,7 +47,7 @@ public class ApproxDistinctAccuracyTest {
     private static final int NUM_ROWS = 2_000_000;
     private static final int NUM_NODES = 3;
 
-    private static final String URL = "jdbc:postgresql://localhost:5433/doc";
+    private static final String URL = "jdbc:postgresql://localhost:5432/doc";
     private static final String USER = "crate";
     private static final String PASSWORD = "mysecretpassword";
     private static final int TABLE_ROWS = 5_000_000;
@@ -93,6 +93,10 @@ public class ApproxDistinctAccuracyTest {
             }
             stmt.execute("ANALYZE");
             StringBuilder sb = new StringBuilder();
+            try (ResultSet rs = stmt.executeQuery("SELECT version()")) {
+                rs.next();
+                sb.append(String.format(Locale.ENGLISH, "%n%s%n", rs.getString(1)));
+            }
             sb.append(String.format(Locale.ENGLISH, "%n%-10s %15s%n", "attname", "n_distinct"));
             try (ResultSet rs = stmt.executeQuery(
                 "SELECT attname, n_distinct FROM pg_stats WHERE tablename = 'approx_distinct' ORDER BY attname")) {
