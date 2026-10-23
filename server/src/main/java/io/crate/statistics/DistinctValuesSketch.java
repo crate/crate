@@ -25,16 +25,23 @@ import java.io.IOException;
 import java.lang.foreign.MemorySegment;
 
 
-import org.apache.datasketches.theta.ThetaSetOperation;
-import org.apache.datasketches.theta.ThetaSketch;
-import org.apache.datasketches.theta.ThetaUnion;
-import org.apache.datasketches.theta.UpdatableThetaSketch;
+import org.apache.datasketches.tuple.TupleSketch;
+import org.apache.datasketches.tuple.TupleSketchIterator;
+import org.apache.datasketches.tuple.TupleUnion;
+import org.apache.datasketches.tuple.aninteger.IntegerSummary;
+import org.apache.datasketches.tuple.aninteger.IntegerSummaryDeserializer;
+import org.apache.datasketches.tuple.aninteger.IntegerSummarySetOperations;
+import org.apache.datasketches.tuple.aninteger.IntegerTupleSketch;
 import org.elasticsearch.common.io.stream.StreamInput;
 
 /**
  * A streamable representation of a distinct values sketch
  */
 public abstract class DistinctValuesSketch {
+
+    private static final int LG_K = 12;
+    private static final IntegerSummarySetOperations SUM_OPERATIONS =
+        new IntegerSummarySetOperations(IntegerSummary.Mode.Sum, IntegerSummary.Mode.Sum);
 
     /**
      * Add a new value to the sketch
@@ -49,7 +56,22 @@ public abstract class DistinctValuesSketch {
     /**
      * Get the internal sketch data structure
      */
-    public abstract ThetaSketch getSketch();
+    public abstract TupleSketch<IntegerSummary> getSketch();
+
+    /**
+     * Estimated number of distinct values that were added exactly once
+     */
+    public double singletons() {
+        TupleSketch<IntegerSummary> sketch = getSketch();
+        int retainedSingletons = 0;
+        TupleSketchIterator<IntegerSummary> it = sketch.iterator();
+        while (it.next()) {
+            if (it.getSummary().getValue() == 1) {
+                retainedSingletons++;
+            }
+        }
+        return sketch.getEstimate(retainedSingletons);
+    }
 
     /**
      * Creates a new empty sketch
@@ -57,33 +79,33 @@ public abstract class DistinctValuesSketch {
     public static DistinctValuesSketch newSketch() {
         return new DistinctValuesSketch() {
 
-            final UpdatableThetaSketch distinctSketch = UpdatableThetaSketch.builder().build();
+            final IntegerTupleSketch distinctSketch = new IntegerTupleSketch(LG_K, IntegerSummary.Mode.Sum);
 
             @Override
             public void update(String v) {
-                distinctSketch.update(v);
+                distinctSketch.update(v, 1);
             }
 
             @Override
             public DistinctValuesSketch merge(DistinctValuesSketch other) {
-                ThetaUnion union = ThetaSetOperation.builder().buildUnion();
+                TupleUnion<IntegerSummary> union = new TupleUnion<>(1 << LG_K, SUM_OPERATIONS);
                 union.union(distinctSketch);
                 union.union(other.getSketch());
                 return mergedSketch(union);
             }
 
             @Override
-            public ThetaSketch getSketch() {
+            public TupleSketch<IntegerSummary> getSketch() {
                 return distinctSketch;
             }
         };
     }
 
-    private static DistinctValuesSketch mergedSketch(ThetaUnion union) {
+    private static DistinctValuesSketch mergedSketch(TupleUnion<IntegerSummary> union) {
         return new DistinctValuesSketch() {
             @Override
             public void update(String v) {
-                union.update(v);
+                throw new UnsupportedOperationException();
             }
 
             @Override
@@ -93,7 +115,7 @@ public abstract class DistinctValuesSketch {
             }
 
             @Override
-            public ThetaSketch getSketch() {
+            public TupleSketch<IntegerSummary> getSketch() {
                 return union.getResult();
             }
         };
@@ -104,7 +126,7 @@ public abstract class DistinctValuesSketch {
      */
     public static DistinctValuesSketch fromStream(StreamInput in) throws IOException {
         byte[] distinctSketchBytes = in.readByteArray();
-        var sketch = ThetaSketch.wrap(MemorySegment.ofArray(distinctSketchBytes));
+        var sketch = TupleSketch.heapifySketch(MemorySegment.ofArray(distinctSketchBytes), new IntegerSummaryDeserializer());
         return new DistinctValuesSketch() {
             @Override
             public void update(String v) {
@@ -113,14 +135,14 @@ public abstract class DistinctValuesSketch {
 
             @Override
             public DistinctValuesSketch merge(DistinctValuesSketch other) {
-                ThetaUnion union = ThetaSetOperation.builder().buildUnion();
+                TupleUnion<IntegerSummary> union = new TupleUnion<>(1 << LG_K, SUM_OPERATIONS);
                 union.union(sketch);
                 union.union(other.getSketch());
                 return mergedSketch(union);
             }
 
             @Override
-            public ThetaSketch getSketch() {
+            public TupleSketch<IntegerSummary> getSketch() {
                 return sketch;
             }
         };
