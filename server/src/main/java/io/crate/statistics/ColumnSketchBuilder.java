@@ -67,7 +67,7 @@ public abstract class ColumnSketchBuilder<T> {
         out.writeLong(sampleCount);
         out.writeLong(nullCount);
         out.writeLong(totalBytes);
-        out.writeByteArray(distinctSketch.getSketch().toByteArray());
+        out.writeByteArray(distinctSketch.getSketch().compact().toByteArray());
         writeSketches(out);
     }
 
@@ -103,13 +103,72 @@ public abstract class ColumnSketchBuilder<T> {
     /**
      * Produce a streamable and merge-able representation of the sketch
      */
-    public abstract ColumnStats<T> toStats();
+    public abstract ColumnStats<T> toStats(long numTotalDocs);
 
     double nullFraction() {
         if (nullCount == 0 || sampleCount == 0) {
             return 0;
         }
         return (double) nullCount / (double) sampleCount;
+    }
+
+    double approxDistinct(long numTotalDocs) {
+        double distinctSamples = distinctSketch.getSketch().getEstimate();
+        double singletons = distinctSketch.singletons();
+        return approximateNumDistinct(
+            nullFraction(),
+            distinctSamples,
+            distinctSamples - singletons,
+            sampleCount - nullCount,
+            numTotalDocs
+        );
+    }
+
+    static double approximateNumDistinct(double nullFraction,
+                                         double distinctSamples,
+                                         double numValuesWithDuplicates,
+                                         long samplesWithoutNulls,
+                                         long totalRows) {
+        if (numValuesWithDuplicates == 0) {
+            // All sample values are unique; We assume it is a unique column, but we've to discount for null values:
+            return (1.0 - nullFraction) * totalRows;
+        }
+        if (numValuesWithDuplicates == distinctSamples) {
+            // Every value appeared more than once. Assume the column has just these columns.
+            // This should address cases like boolean or enum columns, where there is a small fixed set of possible values.
+            return distinctSamples;
+        }
+        /* From PostgreSQL:
+         *
+         * Estimate the number of distinct values using the estimator
+         * proposed by Haas and Stokes in IBM Research Report RJ 10025:
+         *    n*d / (n - f1 + f1*n/N)
+         * where f1 is the number of distinct values that occurred
+         * exactly once in our sample of n rows (from a total of N),
+         * and d is the total number of distinct values in the sample.
+         * This is their Duj1 estimator; the other estimators they
+         * recommend are considerably more complex, and are numerically
+         * very unstable when n is much smaller than N.
+         */
+        double f1 = distinctSamples - numValuesWithDuplicates;
+        double d = f1 + numValuesWithDuplicates;
+        //noinspection UnnecessaryLocalVariable
+        double n = samplesWithoutNulls;
+        double N = totalRows * (1.0 - nullFraction);
+        double approxDistinct;
+        if (N > 0) {
+            approxDistinct = (n * d) / ((n - f1) + f1 * n / N);
+        } else {
+            approxDistinct = 0;
+        }
+        /* Clamp to sane range in case of round-off error */
+        if (approxDistinct < d) {
+            approxDistinct = d;
+        }
+        if (approxDistinct > N) {
+            approxDistinct = N;
+        }
+        return Math.floor(approxDistinct + 0.5);
     }
 
     /**
@@ -164,10 +223,10 @@ public abstract class ColumnSketchBuilder<T> {
         }
 
         @Override
-        public ColumnStats<T> toStats() {
+        public ColumnStats<T> toStats(long numTotalDocs) {
             double nullFraction = nullFraction();
             double avgSizeInBytes = (double) totalBytes / ((double) sampleCount - nullCount);
-            double approxDistinct = this.distinctSketch.getSketch().getEstimate();
+            double approxDistinct = approxDistinct(numTotalDocs);
             MostCommonValues<T> mcv = this.mostCommonValuesSketch.toMostCommonValues(sampleCount, approxDistinct);
             return new ColumnStats<>(
                 nullFraction,
@@ -236,10 +295,10 @@ public abstract class ColumnSketchBuilder<T> {
         }
 
         @Override
-        public ColumnStats<T> toStats() {
+        public ColumnStats<T> toStats(long numTotalDocs) {
             double nullFraction = nullFraction();
             double avgSizeInBytes = (double) totalBytes / ((double) sampleCount - nullCount);
-            double approxDistinct = this.distinctSketch.getSketch().getEstimate();
+            double approxDistinct = approxDistinct(numTotalDocs);
             MostCommonValues<T> mcv =
                 this.mostCommonValuesSketch.toMostCommonValues(sampleCount, approxDistinct, this::fromByteStream);
             return new ColumnStats<>(
