@@ -73,8 +73,8 @@ SQL Standard and PostgreSQL Compatibility
   ``name[]`` parameters. The ``typarray`` of ``name`` changed from ``-1`` to
   ``1003``.
 
-- Added initial support for a Parquet foreign data wrapper
-  :ref:`administration-fdw-parquet`
+- Added initial Parquet foreign data wrapper that can read local parquet files
+  :ref:`administration-fdw-parquet`.
 
 Data Types
 ----------
