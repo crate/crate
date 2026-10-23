@@ -24,7 +24,6 @@ package io.crate.statistics;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-import org.apache.datasketches.common.QuickSelect;
 import org.apache.datasketches.common.Util;
 import org.apache.datasketches.hash.MurmurHash3;
 import org.apache.datasketches.thetacommon.HashOperations;
@@ -32,39 +31,32 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 /**
- * A streamable representation of a distinct values sketch.
+ * A streamable set of the hashes of all sampled values.
  * <p>
- * Works like a Theta QuickSelect sketch: it retains the hashes below theta and estimates the number of distinct
- * values as {@code retained / theta}. The lowest bit of each retained hash is used as a flag that is set once the
- * value has been seen more than once, so the sketch can also estimate the number of values seen exactly once.
- * Distinct hashes differ in their higher bits, so the flag doesn't change their order.
+ * The lowest bit of each hash is used as a flag that is set once the value has been seen more than once,
+ * so the set provides the exact number of distinct values and of values seen exactly once in the sample.
  */
 public final class DistinctValuesSketch {
 
-    private static final int NOMINAL_ENTRIES = 4096;
     private static final int LG_MIN_CAPACITY = 5;
-    private static final int LG_MAX_CAPACITY = 13;
-    private static final double RESIZE_THRESHOLD = 0.5;
-    private static final double REBUILD_THRESHOLD = 15.0 / 16.0;
+    private static final double RESIZE_THRESHOLD = 15.0 / 16.0;
     private static final long DUPLICATE_FLAG = 1L;
     private static final long KEY_MASK = ~DUPLICATE_FLAG;
 
     private long[] table;
     private int lgCapacity;
     private int count;
-    private long theta;
 
-    private DistinctValuesSketch(int lgCapacity, long theta) {
+    private DistinctValuesSketch(int lgCapacity) {
         this.table = new long[1 << lgCapacity];
         this.lgCapacity = lgCapacity;
-        this.theta = theta;
     }
 
     /**
      * Creates a new empty sketch
      */
     public static DistinctValuesSketch newSketch() {
-        return new DistinctValuesSketch(LG_MIN_CAPACITY, Long.MAX_VALUE);
+        return new DistinctValuesSketch(LG_MIN_CAPACITY);
     }
 
     /**
@@ -82,10 +74,6 @@ public final class DistinctValuesSketch {
      * Merge another sketch into this one
      */
     public DistinctValuesSketch merge(DistinctValuesSketch other) {
-        if (other.theta < theta) {
-            theta = other.theta;
-            rebuild(lgCapacity);
-        }
         for (long entry : other.table) {
             if (entry != 0) {
                 add(entry & KEY_MASK, entry & DUPLICATE_FLAG);
@@ -95,27 +83,26 @@ public final class DistinctValuesSketch {
     }
 
     /**
-     * Estimated number of distinct values
+     * Number of distinct values
      */
     public double getEstimate() {
-        return count / thetaFraction();
+        return count;
     }
 
     /**
-     * Estimated number of distinct values that were added exactly once
+     * Number of distinct values that were added exactly once
      */
     public double singletons() {
-        int retainedSingletons = 0;
+        int singletons = 0;
         for (long entry : table) {
             if (entry != 0 && (entry & DUPLICATE_FLAG) == 0) {
-                retainedSingletons++;
+                singletons++;
             }
         }
-        return retainedSingletons / thetaFraction();
+        return singletons;
     }
 
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeLong(theta);
         out.writeVInt(count);
         for (long entry : table) {
             if (entry != 0) {
@@ -128,21 +115,16 @@ public final class DistinctValuesSketch {
      * Reads a sketch from a StreamInput
      */
     public static DistinctValuesSketch fromStream(StreamInput in) throws IOException {
-        long theta = in.readLong();
         int count = in.readVInt();
         int lgCapacity = LG_MIN_CAPACITY;
-        while (lgCapacity < LG_MAX_CAPACITY && count > RESIZE_THRESHOLD * (1 << lgCapacity)) {
+        while (count > RESIZE_THRESHOLD * (1 << lgCapacity)) {
             lgCapacity++;
         }
-        DistinctValuesSketch sketch = new DistinctValuesSketch(lgCapacity, theta);
+        DistinctValuesSketch sketch = new DistinctValuesSketch(lgCapacity);
         for (int i = 0; i < count; i++) {
             sketch.insert(in.readLong());
         }
         return sketch;
-    }
-
-    private double thetaFraction() {
-        return (double) theta / Long.MAX_VALUE;
     }
 
     /**
@@ -150,7 +132,7 @@ public final class DistinctValuesSketch {
      * A new key keeps the given flag, which is set if the key was already seen more than once in another sketch.
      */
     private void add(long key, long flag) {
-        if (key == 0 || key >= theta) {
+        if (key == 0) {
             return;
         }
         int mask = table.length - 1;
@@ -162,13 +144,8 @@ public final class DistinctValuesSketch {
             if (entry == 0) {
                 table[index] = key | flag;
                 count++;
-                if (lgCapacity < LG_MAX_CAPACITY) {
-                    if (count > RESIZE_THRESHOLD * table.length) {
-                        rebuild(lgCapacity + 1);
-                    }
-                } else if (count > REBUILD_THRESHOLD * table.length) {
-                    theta = QuickSelect.selectExcludingZeros(table, count, NOMINAL_ENTRIES + 1) & KEY_MASK;
-                    rebuild(lgCapacity);
+                if (count > RESIZE_THRESHOLD * table.length) {
+                    resize(lgCapacity + 1);
                 }
                 return;
             }
@@ -180,16 +157,13 @@ public final class DistinctValuesSketch {
         }
     }
 
-    /**
-     * Re-inserts all entries below theta into a new table
-     */
-    private void rebuild(int newLgCapacity) {
+    private void resize(int newLgCapacity) {
         long[] oldTable = table;
         table = new long[1 << newLgCapacity];
         lgCapacity = newLgCapacity;
         count = 0;
         for (long entry : oldTable) {
-            if (entry != 0 && (entry & KEY_MASK) < theta) {
+            if (entry != 0) {
                 insert(entry);
             }
         }
