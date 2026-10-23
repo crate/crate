@@ -21,10 +21,19 @@
 
 package io.crate.exceptions;
 
-public class TransportNotReady extends RuntimeException {
+import java.io.IOException;
+
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+
+public class TransportNotReady extends ElasticsearchException {
 
     public TransportNotReady() {
         super("transport not ready yet to handle incoming requests");
+    }
+
+    public TransportNotReady(StreamInput in) throws IOException {
+        super(in);
     }
 
     @Override

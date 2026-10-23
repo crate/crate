@@ -167,6 +167,10 @@ public class SQLExceptions {
         return maybeTemporaryNetworkError(t)
             || isShardNotAvailable(t)
             || t instanceof ClusterBlockException
+            || t instanceof TransportNotReady
+            // Older nodes cannot serialize TransportNotReady and send a wrapper instead.
+            || (t instanceof NotSerializableExceptionWrapper wrapper
+                && wrapper.getExceptionName().equals(TransportNotReady.class.getSimpleName()))
             || t instanceof ElasticsearchTimeoutException;
     }
 
