@@ -38,7 +38,6 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.exceptions.ConversionException;
 import io.crate.metadata.Reference;
 
 public class ParquetBatchIterator implements BatchIterator<Row> {
@@ -87,14 +86,7 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
             rowReader.next();
             for (int i = 0; i < columns.size(); i++) {
                 Reference ref = columns.get(i);
-                Object value = readColumn(fileSchema, rowReader, ref);
-                try {
-                    cells[i] = ref.valueType().implicitCast(value);
-                } catch (ClassCastException | IllegalArgumentException e) {
-                    var conversionException = new ConversionException(value, ref.valueType());
-                    conversionException.addSuppressed(e);
-                    throw conversionException;
-                }
+                cells[i] = readColumn(fileSchema, rowReader, ref);
             }
             return true;
         }
