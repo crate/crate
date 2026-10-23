@@ -257,7 +257,8 @@ The parquet foreign data wrapper supports the following ``OPTIONS`` for use with
 
 :local_files:
 
-  A list of paths, relative to the CrateDB process, to local parquet files. This is required.
+  A list of absolute or relative paths to local parquet files. This is required. The files must be
+  present on all nodes.
 
   You can provide multiple files, but they all must have the same schema.
   Otherwise an error will be raised when executing the query.
