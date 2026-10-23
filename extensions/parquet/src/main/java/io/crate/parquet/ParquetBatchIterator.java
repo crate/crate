@@ -1,0 +1,158 @@
+/*
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
+package io.crate.parquet;
+
+import static io.crate.parquet.ParquetTypes.readColumn;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
+import dev.hardwood.InputFile;
+import dev.hardwood.reader.ParquetFileReader;
+import dev.hardwood.reader.RowReader;
+import dev.hardwood.schema.ColumnProjection;
+import dev.hardwood.schema.FileSchema;
+import io.crate.common.exceptions.Exceptions;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowN;
+import io.crate.metadata.Reference;
+
+public class ParquetBatchIterator implements BatchIterator<Row> {
+
+
+    private final Object[] cells;
+    private final Row row;
+    private ParquetFileReader reader;
+    private FileSchema fileSchema;
+    private RowReader rowReader;
+    private final List<Reference> columns;
+    private final List<InputFile> inputFiles;
+    private volatile Throwable killed = null;
+
+    public ParquetBatchIterator(List<InputFile> inputFiles, List<Reference> columns) {
+        this.inputFiles = inputFiles;
+        this.columns = columns;
+        this.cells = new Object[columns.size()];
+        this.row = new RowN(cells);
+    }
+
+    private void raiseIfKilled() {
+        if (killed != null) {
+            Exceptions.rethrowUnchecked(killed);
+        }
+    }
+
+    @Override
+    public void kill(Throwable throwable) {
+        killed = throwable;
+    }
+
+    @Override
+    public Row currentElement() {
+        return row;
+    }
+
+    @Override
+    public boolean moveNext() {
+        raiseIfKilled();
+        if (rowReader == null) {
+            return false;
+        }
+
+        if (rowReader.hasNext()) {
+            rowReader.next();
+            for (int i = 0; i < columns.size(); i++) {
+                Reference ref = columns.get(i);
+                cells[i] = readColumn(fileSchema, rowReader, ref);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private void releaseReader() {
+        if (reader != null) {
+            try {
+                reader.close();
+                rowReader.close();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            } finally {
+                reader = null;
+                rowReader = null;
+            }
+        }
+    }
+
+    @Override
+    public void moveToStart() {
+        raiseIfKilled();
+        releaseReader();
+        // Hardwood does not support moving the cursor backwards
+        // so we reopen the file to start from the beginning
+        initReader();
+    }
+
+    @Override
+    public void close() {
+        killed = BatchIterator.CLOSED;
+        releaseReader();
+    }
+
+    @Override
+    public boolean allLoaded() {
+        return reader != null;
+    }
+
+    @Override
+    public boolean hasLazyResultSet() {
+        return true;
+    }
+
+    @Override
+    public CompletionStage<?> loadNextBatch() throws Exception {
+        raiseIfKilled();
+        if (reader == null) {
+            initReader();
+            return CompletableFuture.completedFuture(null);
+        }
+        throw new IllegalStateException("BatchIterator already loaded");
+    }
+
+    private void initReader() {
+        try {
+            reader = ParquetFileReader.openAll(inputFiles);
+            fileSchema = reader.getFileSchema();
+            rowReader = reader.buildRowReader()
+                    .projection(ColumnProjection.columns(columns.stream()
+                            .map(ref -> ref.column().fqn())
+                            .toArray(String[]::new)))
+                    .build();
+        } catch (IOException e) {
+            Exceptions.rethrowUnchecked(e);
+        }
+    }
+}

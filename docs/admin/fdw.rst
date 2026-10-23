@@ -39,7 +39,7 @@ by using the :ref:`ref-explain` statement.
 For example, in the following explain output there is a dedicated ``Filter``
 node, indicating that the filter is executed within CrateDB::
 
-    cr> explain select * from summits where mountain like 'H%';
+    > explain select * from summits where mountain like 'H%';
     +--------------------------------------------------------------------+
     | QUERY PLAN                                                         |
     +--------------------------------------------------------------------+
@@ -52,7 +52,7 @@ Compare this to the following output, where the query became part of the
 system::
 
 
-    cr> explain select * from summits where mountain = 'Monte Verena';
+    > explain select * from summits where mountain = 'Monte Verena';
     +---------------------------------------------------------------------------------------+
     | QUERY PLAN                                                                            |
     +---------------------------------------------------------------------------------------+
@@ -157,3 +157,108 @@ Example::
    - :ref:`ref-alter-server`
    - :ref:`ref-create-foreign-table`
    - :ref:`ref-create-user-mapping`
+
+.. _administration-fdw-parquet:
+
+``parquet``
+===========
+
+The ``parquet`` foreign data wrapper allows CrateDB to read local parquet
+files. Only the ``crate`` superuser is allowed to do this.
+The ``parquet`` foreign data wrapper does not support writing data to parquet files.
+
+Usage::
+
+  cr> CREATE SERVER my_parquet FOREIGN DATA WRAPPER parquet
+  ... OPTIONS (local_files ['testdata/departments.parquet']);
+  CREATE OK, 1 row affected (... sec)
+
+  cr> CREATE FOREIGN TABLE departments (manager_id bigint, name text, location bigint, id bigint) SERVER my_parquet;
+  CREATE OK, 1 row affected (... sec)
+
+  cr> SELECT * FROM departments;
+  +------------+-----------------+----------+------+
+  | manager_id | name            | location |   id |
+  +------------+-----------------+----------+------+
+  |        501 | Administration  |    17000 | 4001 |
+  |        511 | Marketing       |    18000 | 4002 |
+  |        518 | Purchasing      |    17000 | 4003 |
+  |        517 | Human Resources |    24000 | 4004 |
+  |        121 | Shipping        |    15000 | 4005 |
+  |        502 | IT              |    14000 | 4006 |
+  +------------+-----------------+----------+------+
+  SELECT 6 rows in set (... sec)
+
+
+``DEFINING THE FOREIGN TABLE``
+------------------------------
+
+The schema for the foreign table is defined according to CrateDB's
+:ref:`data-types` while the data stored in the parquet file format is stored
+according to parquet's specification. The table below explains the expected
+mapping between the CrateDB data type defined in the foreign table schema and
+the data type stored in parquet.
+If there is a mismatch that cannot be automatically resolved
+internally by CrateDB, an error will be raised at runtime. For example, if the foreign
+table schema declares a column ``x`` as ``TEXT`` but ``x`` is stored in parquet
+as ``INT32``, an error will be raised when trying to read the data.
+
+The table below provides the expected mappings between CrateDB. If a CrateDB
+type is not listed in the table below, it is not supported in the parquet
+foreign data wrapper.
+
+.. list-table::
+    :header-rows: 1
+    :widths: 20 20
+    :align: left
+
+    * - CrateDB Type
+      - Parquet Type
+    * - ``BOOLEAN``
+      - ``BOOLEAN``
+    * - ``VARCHAR(n)`` and ``TEXT``
+      - ``STRING``
+    * - ``INTEGER`` and ``SMALLINT``
+      - ``INT32``
+    * - ``BIGINT``
+      - ``INT64``
+    * - ``REAL``
+      - ``FLOAT``
+    * - ``DOUBLE PRECISION``
+      - ``DOUBLE``
+    * - ``NUMERIC(precision, scale)``
+      - ``DECIMAL``
+    * - ``TIMESTAMP WITH TIME ZONE``
+      - ``TIMESTAMP WITH TIME ZONE``
+    * - ``TIMESTAMP WITHOUT TIME ZONE``
+      - ``TIMESTAMP``
+    * - ``DATE``
+      - ``DATE``
+    * - ``BIT(n)``
+      - ``STRING``
+    * - ``IP``
+      - ``INT64`` or ``STRING``
+    * - ``OBJECT (DYNAMIC)`` and ``OBJECT (IGNORED)``
+      - ``JSON``
+    * - ``OBJECT (STRICT)``
+      - ``GROUP``
+    * - ``ARRAY``
+      - ``LIST``
+    * - ``UUID``
+      - ``UUID``
+
+
+
+``CREATE SERVER OPTIONS``
+-------------------------
+
+The parquet foreign data wrapper supports the following ``OPTIONS`` for use with
+:ref:`ref-create-server`:
+
+:local_files:
+
+  A list of absolute paths to local parquet files. This is required. The files must be
+  present on all nodes.
+
+  You can provide multiple files, but they all must have the same schema.
+  Otherwise an error will be raised when executing the query.
