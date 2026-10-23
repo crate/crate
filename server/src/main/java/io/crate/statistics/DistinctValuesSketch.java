@@ -26,37 +26,31 @@ import java.nio.charset.StandardCharsets;
 
 import org.apache.datasketches.common.Util;
 import org.apache.datasketches.hash.MurmurHash3;
-import org.apache.datasketches.thetacommon.HashOperations;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import com.carrotsearch.hppc.LongIntHashMap;
+import com.carrotsearch.hppc.cursors.LongIntCursor;
+
 /**
- * A streamable set of the hashes of all sampled values.
- * <p>
- * The lowest bit of each hash is used as a flag that is set once the value has been seen more than once,
- * so the set provides the exact number of distinct values and of values seen exactly once in the sample.
+ * A streamable count of the hashes of all sampled values
  */
 public final class DistinctValuesSketch {
 
-    private static final int LG_MIN_CAPACITY = 5;
-    private static final double RESIZE_THRESHOLD = 15.0 / 16.0;
-    private static final long DUPLICATE_FLAG = 1L;
-    private static final long KEY_MASK = ~DUPLICATE_FLAG;
+    private static final int INITIAL_CAPACITY = 16;
+    private static final double LOAD_FACTOR = 15.0 / 16.0;
 
-    private long[] table;
-    private int lgCapacity;
-    private int count;
+    private final LongIntHashMap countsByHash;
 
-    private DistinctValuesSketch(int lgCapacity) {
-        this.table = new long[1 << lgCapacity];
-        this.lgCapacity = lgCapacity;
+    private DistinctValuesSketch(LongIntHashMap countsByHash) {
+        this.countsByHash = countsByHash;
     }
 
     /**
      * Creates a new empty sketch
      */
     public static DistinctValuesSketch newSketch() {
-        return new DistinctValuesSketch(LG_MIN_CAPACITY);
+        return new DistinctValuesSketch(new LongIntHashMap(INITIAL_CAPACITY, LOAD_FACTOR));
     }
 
     /**
@@ -66,18 +60,15 @@ public final class DistinctValuesSketch {
         if (v.isEmpty()) {
             return;
         }
-        long key = (MurmurHash3.hash(v.getBytes(StandardCharsets.UTF_8), Util.DEFAULT_UPDATE_SEED)[0] >>> 1) & KEY_MASK;
-        add(key, 0L);
+        countsByHash.addTo(MurmurHash3.hash(v.getBytes(StandardCharsets.UTF_8), Util.DEFAULT_UPDATE_SEED)[0], 1);
     }
 
     /**
      * Merge another sketch into this one
      */
     public DistinctValuesSketch merge(DistinctValuesSketch other) {
-        for (long entry : other.table) {
-            if (entry != 0) {
-                add(entry & KEY_MASK, entry & DUPLICATE_FLAG);
-            }
+        for (LongIntCursor cursor : other.countsByHash) {
+            countsByHash.addTo(cursor.key, cursor.value);
         }
         return this;
     }
@@ -86,7 +77,7 @@ public final class DistinctValuesSketch {
      * Number of distinct values
      */
     public double getEstimate() {
-        return count;
+        return countsByHash.size();
     }
 
     /**
@@ -94,8 +85,8 @@ public final class DistinctValuesSketch {
      */
     public double singletons() {
         int singletons = 0;
-        for (long entry : table) {
-            if (entry != 0 && (entry & DUPLICATE_FLAG) == 0) {
+        for (LongIntCursor cursor : countsByHash) {
+            if (cursor.value == 1) {
                 singletons++;
             }
         }
@@ -103,11 +94,10 @@ public final class DistinctValuesSketch {
     }
 
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(count);
-        for (long entry : table) {
-            if (entry != 0) {
-                out.writeLong(entry);
-            }
+        out.writeVInt(countsByHash.size());
+        for (LongIntCursor cursor : countsByHash) {
+            out.writeLong(cursor.key);
+            out.writeVInt(cursor.value);
         }
     }
 
@@ -115,72 +105,11 @@ public final class DistinctValuesSketch {
      * Reads a sketch from a StreamInput
      */
     public static DistinctValuesSketch fromStream(StreamInput in) throws IOException {
-        int count = in.readVInt();
-        int lgCapacity = LG_MIN_CAPACITY;
-        while (count > RESIZE_THRESHOLD * (1 << lgCapacity)) {
-            lgCapacity++;
+        int size = in.readVInt();
+        LongIntHashMap countsByHash = new LongIntHashMap(size, LOAD_FACTOR);
+        for (int i = 0; i < size; i++) {
+            countsByHash.put(in.readLong(), in.readVInt());
         }
-        DistinctValuesSketch sketch = new DistinctValuesSketch(lgCapacity);
-        for (int i = 0; i < count; i++) {
-            sketch.insert(in.readLong());
-        }
-        return sketch;
-    }
-
-    /**
-     * Inserts the key, or flags it as duplicate if it is already present.
-     * A new key keeps the given flag, which is set if the key was already seen more than once in another sketch.
-     */
-    private void add(long key, long flag) {
-        if (key == 0) {
-            return;
-        }
-        int mask = table.length - 1;
-        long hash = key >>> 1;
-        int index = (int) hash & mask;
-        int stride = 2 * (int) ((hash >>> lgCapacity) & HashOperations.STRIDE_MASK) + 1;
-        while (true) {
-            long entry = table[index];
-            if (entry == 0) {
-                table[index] = key | flag;
-                count++;
-                if (count > RESIZE_THRESHOLD * table.length) {
-                    resize(lgCapacity + 1);
-                }
-                return;
-            }
-            if ((entry & KEY_MASK) == key) {
-                table[index] = entry | DUPLICATE_FLAG;
-                return;
-            }
-            index = (index + stride) & mask;
-        }
-    }
-
-    private void resize(int newLgCapacity) {
-        long[] oldTable = table;
-        table = new long[1 << newLgCapacity];
-        lgCapacity = newLgCapacity;
-        count = 0;
-        for (long entry : oldTable) {
-            if (entry != 0) {
-                insert(entry);
-            }
-        }
-    }
-
-    /**
-     * Inserts an entry whose key is known to be absent, without resizing
-     */
-    private void insert(long entry) {
-        int mask = table.length - 1;
-        long hash = (entry & KEY_MASK) >>> 1;
-        int index = (int) hash & mask;
-        int stride = 2 * (int) ((hash >>> lgCapacity) & HashOperations.STRIDE_MASK) + 1;
-        while (table[index] != 0) {
-            index = (index + stride) & mask;
-        }
-        table[index] = entry;
-        count++;
+        return new DistinctValuesSketch(countsByHash);
     }
 }
