@@ -97,10 +97,12 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
         if (reader != null) {
             try {
                 reader.close();
+                rowReader.close();
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             } finally {
                 reader = null;
+                rowReader = null;
             }
         }
     }
