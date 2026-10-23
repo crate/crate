@@ -22,136 +22,191 @@
 package io.crate.statistics;
 
 import java.io.IOException;
-import java.lang.foreign.MemorySegment;
+import java.nio.charset.StandardCharsets;
 
-
-import org.apache.datasketches.tuple.arrayofdoubles.ArrayOfDoublesSetOperationBuilder;
-import org.apache.datasketches.tuple.arrayofdoubles.ArrayOfDoublesSketch;
-import org.apache.datasketches.tuple.arrayofdoubles.ArrayOfDoublesSketchIterator;
-import org.apache.datasketches.tuple.arrayofdoubles.ArrayOfDoublesUnion;
-import org.apache.datasketches.tuple.arrayofdoubles.ArrayOfDoublesUpdatableSketch;
-import org.apache.datasketches.tuple.arrayofdoubles.ArrayOfDoublesUpdatableSketchBuilder;
+import org.apache.datasketches.common.QuickSelect;
+import org.apache.datasketches.common.Util;
+import org.apache.datasketches.hash.MurmurHash3;
+import org.apache.datasketches.thetacommon.HashOperations;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
 /**
- * A streamable representation of a distinct values sketch
+ * A streamable representation of a distinct values sketch.
+ * <p>
+ * Works like a Theta QuickSelect sketch: it retains the hashes below theta and estimates the number of distinct
+ * values as {@code retained / theta}. The lowest bit of each retained hash is used as a flag that is set once the
+ * value has been seen more than once, so the sketch can also estimate the number of values seen exactly once.
+ * Distinct hashes differ in their higher bits, so the flag doesn't change their order.
  */
-public abstract class DistinctValuesSketch {
+public final class DistinctValuesSketch {
 
     private static final int NOMINAL_ENTRIES = 4096;
-    private static final double[] ONE = {1.0};
+    private static final int LG_MIN_CAPACITY = 5;
+    private static final int LG_MAX_CAPACITY = 13;
+    private static final double RESIZE_THRESHOLD = 0.5;
+    private static final double REBUILD_THRESHOLD = 15.0 / 16.0;
+    private static final long DUPLICATE_FLAG = 1L;
+    private static final long KEY_MASK = ~DUPLICATE_FLAG;
 
-    /**
-     * Add a new value to the sketch
-     */
-    public abstract void update(String v);
+    private long[] table;
+    private int lgCapacity;
+    private int count;
+    private long theta;
 
-    /**
-     * Merge this sketch with another
-     */
-    public abstract DistinctValuesSketch merge(DistinctValuesSketch other);
-
-    /**
-     * Get the internal sketch data structure
-     */
-    public abstract ArrayOfDoublesSketch getSketch();
-
-    /**
-     * Estimated number of distinct values that were added exactly once
-     */
-    public double singletons() {
-        ArrayOfDoublesSketch sketch = getSketch();
-        int retainedSingletons = 0;
-        ArrayOfDoublesSketchIterator it = sketch.iterator();
-        while (it.next()) {
-            if (it.getValues()[0] == 1.0) {
-                retainedSingletons++;
-            }
-        }
-        return retainedSingletons / sketch.getTheta();
+    private DistinctValuesSketch(int lgCapacity, long theta) {
+        this.table = new long[1 << lgCapacity];
+        this.lgCapacity = lgCapacity;
+        this.theta = theta;
     }
 
     /**
      * Creates a new empty sketch
      */
     public static DistinctValuesSketch newSketch() {
-        return new DistinctValuesSketch() {
-
-            final ArrayOfDoublesUpdatableSketch distinctSketch = new ArrayOfDoublesUpdatableSketchBuilder()
-                .setNominalEntries(NOMINAL_ENTRIES)
-                .build();
-
-            @Override
-            public void update(String v) {
-                distinctSketch.update(v, ONE);
-            }
-
-            @Override
-            public DistinctValuesSketch merge(DistinctValuesSketch other) {
-                ArrayOfDoublesUnion union = newUnion();
-                union.union(distinctSketch);
-                union.union(other.getSketch());
-                return mergedSketch(union);
-            }
-
-            @Override
-            public ArrayOfDoublesSketch getSketch() {
-                return distinctSketch;
-            }
-        };
+        return new DistinctValuesSketch(LG_MIN_CAPACITY, Long.MAX_VALUE);
     }
 
-    private static ArrayOfDoublesUnion newUnion() {
-        return new ArrayOfDoublesSetOperationBuilder()
-            .setNominalEntries(NOMINAL_ENTRIES)
-            .buildUnion();
+    /**
+     * Add a new value to the sketch
+     */
+    public void update(String v) {
+        if (v.isEmpty()) {
+            return;
+        }
+        long key = (MurmurHash3.hash(v.getBytes(StandardCharsets.UTF_8), Util.DEFAULT_UPDATE_SEED)[0] >>> 1) & KEY_MASK;
+        add(key, 0L);
     }
 
-    private static DistinctValuesSketch mergedSketch(ArrayOfDoublesUnion union) {
-        return new DistinctValuesSketch() {
-            @Override
-            public void update(String v) {
-                throw new UnsupportedOperationException();
+    /**
+     * Merge another sketch into this one
+     */
+    public DistinctValuesSketch merge(DistinctValuesSketch other) {
+        if (other.theta < theta) {
+            theta = other.theta;
+            rebuild(lgCapacity);
+        }
+        for (long entry : other.table) {
+            if (entry != 0) {
+                add(entry & KEY_MASK, entry & DUPLICATE_FLAG);
             }
+        }
+        return this;
+    }
 
-            @Override
-            public DistinctValuesSketch merge(DistinctValuesSketch other) {
-                union.union(other.getSketch());
-                return mergedSketch(union);
-            }
+    /**
+     * Estimated number of distinct values
+     */
+    public double getEstimate() {
+        return count / thetaFraction();
+    }
 
-            @Override
-            public ArrayOfDoublesSketch getSketch() {
-                return union.getResult();
+    /**
+     * Estimated number of distinct values that were added exactly once
+     */
+    public double singletons() {
+        int retainedSingletons = 0;
+        for (long entry : table) {
+            if (entry != 0 && (entry & DUPLICATE_FLAG) == 0) {
+                retainedSingletons++;
             }
-        };
+        }
+        return retainedSingletons / thetaFraction();
+    }
+
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeLong(theta);
+        out.writeVInt(count);
+        for (long entry : table) {
+            if (entry != 0) {
+                out.writeLong(entry);
+            }
+        }
     }
 
     /**
      * Reads a sketch from a StreamInput
      */
     public static DistinctValuesSketch fromStream(StreamInput in) throws IOException {
-        byte[] distinctSketchBytes = in.readByteArray();
-        var sketch = ArrayOfDoublesSketch.heapify(MemorySegment.ofArray(distinctSketchBytes));
-        return new DistinctValuesSketch() {
-            @Override
-            public void update(String v) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public DistinctValuesSketch merge(DistinctValuesSketch other) {
-                ArrayOfDoublesUnion union = newUnion();
-                union.union(sketch);
-                union.union(other.getSketch());
-                return mergedSketch(union);
-            }
-
-            @Override
-            public ArrayOfDoublesSketch getSketch() {
-                return sketch;
-            }
-        };
+        long theta = in.readLong();
+        int count = in.readVInt();
+        int lgCapacity = LG_MIN_CAPACITY;
+        while (lgCapacity < LG_MAX_CAPACITY && count > RESIZE_THRESHOLD * (1 << lgCapacity)) {
+            lgCapacity++;
+        }
+        DistinctValuesSketch sketch = new DistinctValuesSketch(lgCapacity, theta);
+        for (int i = 0; i < count; i++) {
+            sketch.insert(in.readLong());
+        }
+        return sketch;
     }
 
+    private double thetaFraction() {
+        return (double) theta / Long.MAX_VALUE;
+    }
+
+    /**
+     * Inserts the key, or flags it as duplicate if it is already present.
+     * A new key keeps the given flag, which is set if the key was already seen more than once in another sketch.
+     */
+    private void add(long key, long flag) {
+        if (key == 0 || key >= theta) {
+            return;
+        }
+        int mask = table.length - 1;
+        long hash = key >>> 1;
+        int index = (int) hash & mask;
+        int stride = 2 * (int) ((hash >>> lgCapacity) & HashOperations.STRIDE_MASK) + 1;
+        while (true) {
+            long entry = table[index];
+            if (entry == 0) {
+                table[index] = key | flag;
+                count++;
+                if (lgCapacity < LG_MAX_CAPACITY) {
+                    if (count > RESIZE_THRESHOLD * table.length) {
+                        rebuild(lgCapacity + 1);
+                    }
+                } else if (count > REBUILD_THRESHOLD * table.length) {
+                    theta = QuickSelect.selectExcludingZeros(table, count, NOMINAL_ENTRIES + 1) & KEY_MASK;
+                    rebuild(lgCapacity);
+                }
+                return;
+            }
+            if ((entry & KEY_MASK) == key) {
+                table[index] = entry | DUPLICATE_FLAG;
+                return;
+            }
+            index = (index + stride) & mask;
+        }
+    }
+
+    /**
+     * Re-inserts all entries below theta into a new table
+     */
+    private void rebuild(int newLgCapacity) {
+        long[] oldTable = table;
+        table = new long[1 << newLgCapacity];
+        lgCapacity = newLgCapacity;
+        count = 0;
+        for (long entry : oldTable) {
+            if (entry != 0 && (entry & KEY_MASK) < theta) {
+                insert(entry);
+            }
+        }
+    }
+
+    /**
+     * Inserts an entry whose key is known to be absent, without resizing
+     */
+    private void insert(long entry) {
+        int mask = table.length - 1;
+        long hash = (entry & KEY_MASK) >>> 1;
+        int index = (int) hash & mask;
+        int stride = 2 * (int) ((hash >>> lgCapacity) & HashOperations.STRIDE_MASK) + 1;
+        while (table[index] != 0) {
+            index = (index + stride) & mask;
+        }
+        table[index] = entry;
+        count++;
+    }
 }

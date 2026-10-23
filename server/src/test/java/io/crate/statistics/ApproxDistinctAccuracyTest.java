@@ -73,7 +73,7 @@ public class ApproxDistinctAccuracyTest extends ESTestCase {
                 merged = merged.merge(perNode.get(i));
             }
 
-            double today = single.distinctSketch.getSketch().getEstimate();
+            double today = single.distinctSketch.getEstimate();
             double exact = exactDuj1(sample, rows.length);
             double sketch = single.toStats(rows.length).approxDistinct();
             double mergedEstimate = merged.toStats(rows.length).approxDistinct();
