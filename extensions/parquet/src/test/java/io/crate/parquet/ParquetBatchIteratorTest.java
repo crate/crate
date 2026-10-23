@@ -806,4 +806,28 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                         "Column `trip_type` has type `integer` in the foreign table, but in the parquet file it has type `STRING`. These are incompatible.");
 
     }
+
+
+    @Test
+    public void test_raises_if_ip_type_not_stored_as_long_or_string() throws Exception {
+        // car_sensor is stored as a struct in parquet, purposely declare it "incorrectly" as int for the test
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+                .addTable("create table doc.taxi_wrong_data_type (car_sensor ip)");
+        DocTableInfo table = executor.resolveTableInfo("doc.taxi_wrong_data_type");
+
+        List<Reference> columns = List.of(
+                table.getReadReference(ColumnIdent.of("car_sensor")));
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        assertThatThrownBy(() -> {
+            try {
+                it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
+            } catch (ExecutionException e) {
+                throw Exceptions.toRuntimeException(e);
+            }
+        })
+                .isExactlyInstanceOf(IncompatibleSchemaForParquet.class)
+                .hasMessage(
+                        "Column `car_sensor` has type `ip` in the foreign table, but in the parquet file it has type `STRUCT`. These are incompatible.");
+
+    }
 }

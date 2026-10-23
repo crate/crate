@@ -24,10 +24,13 @@ package io.crate.parquet;
 import java.util.HashMap;
 import java.util.Map;
 
+import dev.hardwood.metadata.PhysicalType;
 import dev.hardwood.reader.RowReader;
 import dev.hardwood.row.PqStruct;
 import dev.hardwood.row.StructAccessor;
 import dev.hardwood.schema.FileSchema;
+import dev.hardwood.schema.SchemaNode;
+import dev.hardwood.schema.SchemaNode.PrimitiveNode;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.parquet.exceptions.IncompatibleSchemaForParquet;
@@ -72,17 +75,21 @@ public class ParquetTypes {
                 case ArrayType.ID -> crateType.implicitCast(accessor.getList(fieldName).values());
                 case BitStringType.ID -> crateType.implicitCast(accessor.getString(fieldName));
                 case IpType.ID -> {
-                    try {
-                        yield crateType.implicitCast(accessor.getString(fieldName));
-                    } catch (ClassCastException e) {
-                        yield crateType.implicitCast(accessor.getLong(fieldName));
+                    SchemaNode node = fileSchema.getField(fieldName);
+                    if (node instanceof PrimitiveNode n) {
+                        if (n.type().equals(PhysicalType.INT64)) {
+                            yield crateType.implicitCast(accessor.getLong(fieldName));
+                        } else {
+                            yield crateType.implicitCast(accessor.getString(fieldName));
+                        }
                     }
+                    throw new IncompatibleSchemaForParquet(col, crateType, fileSchema.getField(fieldName));
                 }
                 default -> throw new UnsupportedOperationException("The CrateDB type " + crateType.toString()
                         + " is not supported in the parquet foreign data wrapper");
             };
         } catch (ClassCastException e) {
-            throw new IncompatibleSchemaForParquet(col, crateType, fileSchema.getColumn(fieldName));
+            throw new IncompatibleSchemaForParquet(col, crateType, fileSchema.getField(fieldName));
         }
     }
 
@@ -115,7 +122,7 @@ public class ParquetTypes {
                                 + objectType.columnPolicy());
             };
         } catch (ClassCastException e) {
-            throw IncompatibleSchemaForParquet.forObjectType(col, policy, fileSchema);
+            throw IncompatibleSchemaForParquet.forObjectType(col, policy, fileSchema.getField(fqn));
         }
     }
 

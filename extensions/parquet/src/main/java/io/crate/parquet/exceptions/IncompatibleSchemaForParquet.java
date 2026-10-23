@@ -24,8 +24,6 @@ package io.crate.parquet.exceptions;
 import java.util.Locale;
 
 import dev.hardwood.metadata.LogicalType;
-import dev.hardwood.schema.ColumnSchema;
-import dev.hardwood.schema.FileSchema;
 import dev.hardwood.schema.SchemaNode;
 import dev.hardwood.schema.SchemaNode.GroupNode;
 import dev.hardwood.schema.SchemaNode.PrimitiveNode;
@@ -34,18 +32,17 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 
 public class IncompatibleSchemaForParquet extends RuntimeException {
-    public IncompatibleSchemaForParquet(String message) {
+    private IncompatibleSchemaForParquet(String message) {
         super(message);
     }
 
     public IncompatibleSchemaForParquet(ColumnIdent columnIdent, DataType<?> dataType,
-            ColumnSchema parquetColumnSchema) {
-        super(message(columnIdent, dataType, parquetColumnSchema));
+            SchemaNode schemaNode) {
+        super(message(columnIdent, dataType, schemaNode));
     }
 
-    private static String message(ColumnIdent col, DataType<?> dataType, ColumnSchema parquetColumnSchema) {
-        LogicalType logicalType = parquetColumnSchema.logicalType();
-        Object actualParquetType = logicalType != null ? logicalType : parquetColumnSchema.type();
+    private static String message(ColumnIdent col, DataType<?> dataType, SchemaNode schemaNode) {
+        String actualParquetType = determineActualParquetType(schemaNode);
         return String.format(
                 Locale.ENGLISH,
                 "Column `%s` has type `%s` in the foreign table, but in the parquet file it has type `%s`. These are incompatible.",
@@ -54,8 +51,7 @@ public class IncompatibleSchemaForParquet extends RuntimeException {
                 actualParquetType);
     }
 
-    public static IncompatibleSchemaForParquet forObjectType(ColumnIdent col, ColumnPolicy policy, FileSchema fileSchema) {
-        SchemaNode schemaNode = fileSchema.getField(col.fqn());
+    public static IncompatibleSchemaForParquet forObjectType(ColumnIdent col, ColumnPolicy policy, SchemaNode schemaNode) {
         String actualParquetType = determineActualParquetType(schemaNode);
         String expectedParquetType = policy == ColumnPolicy.STRICT ? "STRUCT" : "JSON";
         String msg = String.format(
