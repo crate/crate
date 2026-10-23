@@ -105,11 +105,7 @@ public class ParquetTypes {
                     for (Map.Entry<String, DataType<?>> innerType : innerTypes.entrySet()) {
                         String fieldName = innerType.getKey();
                         DataType<?> crateType = innerType.getValue();
-                        if (crateType instanceof ObjectType innerObject) {
-                            result.put(fieldName, readObjectType(innerObject, pqStruct, fieldName, fileSchema, col));
-                        } else {
-                            result.put(fieldName, readValue(pqStruct, crateType, fieldName, fileSchema, col));
-                        }
+                        result.put(fieldName, readValue(pqStruct, crateType, fieldName, fileSchema, col));
                     }
                     yield result;
 
