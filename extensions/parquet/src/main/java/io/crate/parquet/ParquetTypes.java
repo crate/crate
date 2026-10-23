@@ -55,7 +55,7 @@ public class ParquetTypes {
             if (accessor.isNull(fieldName)) {
                 return null;
             }
-            Object object = switch (crateType.id()) {
+            return switch (crateType.id()) {
                 case BooleanType.ID -> accessor.getBoolean(fieldName);
                 case IntegerType.ID -> accessor.getInt(fieldName);
                 case ShortType.ID -> crateType.implicitCast(accessor.getInt(fieldName));
@@ -81,7 +81,6 @@ public class ParquetTypes {
                 default -> throw new UnsupportedOperationException("The CrateDB type " + crateType.toString()
                         + " is not supported in the parquet foreign data wrapper");
             };
-            return object;
         } catch (ClassCastException e) {
             throw new IncompatibleSchemaForParquet(col, crateType, fileSchema.getColumn(fieldName));
         }
