@@ -24,8 +24,8 @@ Description
 ===========
 
 Removes an existing subscription from the cluster and stops the replication.
-Existing tables will turn into regular writable tables. It's not possible to
-resume dropped subscription.
+Existing replicated data is preserved and becomes writable. It's not possible
+to resume a dropped subscription.
 
 .. _sql-drop-subscription-params:
 
