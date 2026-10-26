@@ -72,7 +72,7 @@ public abstract class ColumnSketchBuilder<T> {
         this.distinctSketch = DistinctValuesSketch.newSketch();
         // Pre-sized to the reservoir's upper bound so that we have no re-sizing (and re-hashing)
         // when counting distinct values on a single node.
-        this.distinctCounts = DistinctValueSet.newSet(Reservoir.NUM_SAMPLES);
+        this.distinctCounts = new DistinctValueSet();
     }
 
     public ColumnSketchBuilder(DataType<T> dataType, StreamInput in) throws IOException {

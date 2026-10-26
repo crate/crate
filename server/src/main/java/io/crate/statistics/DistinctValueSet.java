@@ -43,12 +43,8 @@ public final class DistinctValueSet {
 
     private final LongHashSet hashes;
 
-    public static DistinctValueSet newSet(int expectedElements) {
-        return new DistinctValueSet(new LongHashSet(expectedElements));
-    }
-
     DistinctValueSet() {
-        this.hashes = new LongHashSet();
+        this(new LongHashSet());
     }
 
     private DistinctValueSet(LongHashSet hashes) {
