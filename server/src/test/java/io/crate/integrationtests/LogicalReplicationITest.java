@@ -463,7 +463,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             .hasMessage("The relation \"doc.t1\" doesn't allow write operations, because it is included in a logical replication subscription.");
         assertThatThrownBy(() -> executeOnSubscriber("DELETE FROM doc.t1 WHERE p = 1"))
             .isInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessage("The relation \"doc.t1\" doesn't allow write operations, because it is included in a logical replication subscription.");
+            .hasMessage("Cannot delete partition (p = 1) of relation \"doc.t1\" because it is included in logical replication subscription \"sub1\".");
 
         executeOnSubscriber("INSERT INTO doc.t1 (id, p) VALUES (3, 2)");
         executeOnSubscriber("REFRESH TABLE doc.t1");
@@ -639,15 +639,14 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnSubscriber("DROP SUBSCRIPTION sub1");
         executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (3, 1), (4, 2)");
 
-        assertThat(executeOnSubscriber(
-            "SELECT values FROM information_schema.table_partitions" +
-                " WHERE table_schema = 'doc' AND table_name = 't1' ORDER BY partition_ident"
-        )).hasRows("{p=1}", "{p=2}");
-
         assertBusy(() -> {
             executeOnSubscriber("REFRESH TABLE doc.t1");
             var response = executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id");
             assertThat(response).hasRows("1| 1", "2| 2", "4| 2");
+            assertThat(executeOnSubscriber(
+                "SELECT values FROM information_schema.table_partitions" +
+                    " WHERE table_schema = 'doc' AND table_name = 't1' ORDER BY partition_ident"
+            )).hasRows("{p=1}", "{p=2}");
         });
     }
 

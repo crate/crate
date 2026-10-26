@@ -601,7 +601,8 @@ public final class MetadataTracker implements Closeable {
                 updatedClusterState,
                 settings,
                 allocationService,
-                indicesToDelete
+                indicesToDelete,
+                true
             );
 
         }

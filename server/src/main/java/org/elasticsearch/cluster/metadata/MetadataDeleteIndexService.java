@@ -19,6 +19,7 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 import static java.util.stream.Collectors.toSet;
 
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -42,6 +44,8 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotInProgressException;
 import org.elasticsearch.snapshots.SnapshotsService;
+
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 
 /**
  * Deletes indices.
@@ -64,18 +68,41 @@ public class MetadataDeleteIndexService {
      * Delete some indices from the cluster state.
      */
     public ClusterState deleteIndices(ClusterState currentState, Collection<Index> indices) {
-        return deleteIndices(currentState, settings, allocationService, indices);
+        return deleteIndices(currentState, settings, allocationService, indices, false);
     }
 
     /**
      * Delete some indices from the cluster state.
+     * @param forTableLevelLR Set to true only for table-level logical replication to replicate partition deletions.
+     *                       Bypasses the subscription check.
      */
     public static ClusterState deleteIndices(ClusterState currentState,
                                              Settings settings,
                                              AllocationService allocationService,
-                                             Collection<Index> indices) {
+                                             Collection<Index> indices,
+                                             boolean forTableLevelLR) {
         final Metadata meta = currentState.metadata();
         final Set<Index> indicesToDelete = indices.stream().map(i -> meta.getIndexSafe(i).getIndex()).collect(toSet());
+
+        if (forTableLevelLR == false) {
+            for (Index index : indicesToDelete) {
+                IndexMetadata indexMetadata = meta.getIndexSafe(index);
+                String subscription = REPLICATION_SUBSCRIPTION_NAME.get(indexMetadata.getSettings());
+                if (subscription.isEmpty() == false
+                        && meta.getRelation(index.uuid()) instanceof RelationMetadata.Table table
+                        && table.partitionedBy().isEmpty() == false) {
+                    StringJoiner partition = new StringJoiner(", ");
+                    for (int i = 0; i < table.partitionedBy().size(); i++) {
+                        partition.add(table.partitionedBy().get(i).sqlFqn() + " = " + indexMetadata.partitionValues().get(i));
+                    }
+                    String target = "partition (" + partition + ") of relation \"" + table.name().fqn() + "\"";
+                    throw new OperationOnInaccessibleRelationException(
+                        table.name(),
+                        "Cannot delete " + target + " because it is included in logical replication subscription \"" + subscription + "\"."
+                    );
+                }
+            }
+        }
 
         // Check if index deletion conflicts with any running snapshots
         Set<Index> snapshottingIndices = SnapshotsService.snapshottingIndices(currentState, indicesToDelete);
