@@ -462,6 +462,15 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         var response = executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id");
         assertThat(response).hasRows("1| 1");
 
+        assertThat(executeOnPublisher(
+            "SELECT values FROM information_schema.table_partitions" +
+                " WHERE table_schema = 'doc' AND table_name = 't1' ORDER BY partition_ident"
+        )).hasRows("{p=1}", "{p=2}");
+        assertThat(executeOnSubscriber(
+            "SELECT values FROM information_schema.table_partitions" +
+                " WHERE table_schema = 'doc' AND table_name = 't1' ORDER BY partition_ident"
+        )).hasRows("{p=1}");
+
         executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (3, 1), (4, 2)");
         assertBusy(() -> {
             executeOnSubscriber("REFRESH TABLE doc.t1");
@@ -780,6 +789,11 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
         executeOnSubscriber("DROP SUBSCRIPTION sub1");
         executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (3, 1), (4, 2)");
+
+        assertThat(executeOnSubscriber(
+            "SELECT values FROM information_schema.table_partitions" +
+                " WHERE table_schema = 'doc' AND table_name = 't1' ORDER BY partition_ident"
+        )).hasRows("{p=1}", "{p=2}");
 
         assertBusy(() -> {
             executeOnSubscriber("REFRESH TABLE doc.t1");
