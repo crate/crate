@@ -546,6 +546,16 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
             assertThat(response).hasRowCount(0L);
         });
 
+        assertThat(executeOnPublisher(
+            "SELECT values FROM information_schema.table_partitions" +
+                " WHERE table_schema = 'doc' AND table_name = 't1' ORDER BY partition_ident"
+        )).hasRowCount(0L);
+
+        assertThat(executeOnSubscriber(
+            "SELECT values FROM information_schema.table_partitions" +
+                " WHERE table_schema = 'doc' AND table_name = 't1' ORDER BY partition_ident"
+        )).hasRows("{p=1}");
+
         executeOnSubscriber("INSERT INTO doc.t1 (id, p) VALUES (2, 1)");
         executeOnSubscriber("REFRESH TABLE doc.t1");
         assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id")).hasRows(
@@ -582,6 +592,16 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
             );
             assertThat(response).hasRowCount(0L);
         });
+
+        assertThat(executeOnPublisher(
+            "SELECT values FROM information_schema.table_partitions" +
+                " WHERE table_schema = 'doc' AND table_name = 't1' ORDER BY partition_ident"
+        )).hasRowCount(0L);
+
+        assertThat(executeOnSubscriber(
+            "SELECT values FROM information_schema.table_partitions" +
+                " WHERE table_schema = 'doc' AND table_name = 't1' ORDER BY partition_ident"
+        )).hasRows("{p=1}");
 
         executeOnSubscriber("INSERT INTO doc.t1 (id, p) VALUES (2, 1)");
         executeOnSubscriber("REFRESH TABLE doc.t1");
@@ -623,6 +643,16 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
             );
             assertThat(response).hasRows("t1");
         });
+
+        assertThat(executeOnPublisher(
+            "SELECT values FROM information_schema.table_partitions" +
+                " WHERE table_schema = 'doc' AND table_name = 't1' ORDER BY partition_ident"
+        )).hasRows("{p=2}");
+
+        assertThat(executeOnSubscriber(
+            "SELECT values FROM information_schema.table_partitions" +
+                " WHERE table_schema = 'doc' AND table_name = 't1' ORDER BY partition_ident"
+        )).hasRows("{p=1}", "{p=2}");
 
         executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (3, 2)");
 
