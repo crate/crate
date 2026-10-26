@@ -23,7 +23,8 @@ Synopsis
 ::
 
     CREATE PUBLICATION name
-    { FOR TABLE table_name [, ...] | FOR ALL TABLES }
+    { FOR TABLE table_name [ PARTITION (partition_column = value [, ...]) ]
+        [, ...] | FOR ALL TABLES }
 
 .. _sql-create-publication-desc:
 
@@ -33,7 +34,8 @@ Description
 Add a new :ref:`publication <logical-replication-publication>` to the current
 cluster. The publication name must be distinct from the name of any existing
 publication in the current cluster. A publication represents a group of tables
-whose data changes can be replicated by other clusters (subscribers) by
+or individual partitions whose data changes can be replicated by other clusters
+(subscribers) by
 creating a :ref:`subscription <logical-replication-subscription>`.
 
 If neither ``FOR TABLE`` nor ``FOR ALL TABLES`` is specified, then the publication
@@ -53,8 +55,22 @@ Parameters
   The name of the new publication.
 
 **FOR TABLE**
-  Specifies a list of tables to add to the publication. The partitions of a
-  partitioned table are always implicitly considered part of the publication.
+  Specifies tables or individual partitions to add to the publication.
+  Without a ``PARTITION`` clause, all partitions of a partitioned table are
+  included, including partitions created in the future.
+
+  Use ``PARTITION (partition_column = value [, ...])`` after a table name to
+  publish only one partition. Specify every partition column exactly once with
+  its value. The partition must already exist. To publish several individual
+  partitions, repeat the table name with a different ``PARTITION`` clause for
+  each partition. For example::
+
+      CREATE PUBLICATION pub_partitions FOR TABLE
+          doc.events PARTITION (year = 2025),
+          doc.events PARTITION (year = 2026);
+
+  See :ref:`logical-replication-partitions` for subscription requirements and
+  limitations.
 
 **FOR ALL TABLES**
   Marks the publication as one that replicates changes for all tables in the

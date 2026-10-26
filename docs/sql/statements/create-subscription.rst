@@ -36,6 +36,11 @@ in the cluster. The subscription represents a replication connection to the
 publisher. A logical replication will be started on a publisher once
 the subscription is enabled, which is by default on creation.
 
+For whole-table subscriptions, the tables must not already exist on the
+subscriber. For individual partition subscriptions, the target
+partition must not exist, but a compatible parent table may already exist.
+See :ref:`logical-replication-partitions` for details.
+
 .. _sql-create-subscription-params:
 
 Parameters
