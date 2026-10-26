@@ -46,6 +46,9 @@ import io.crate.types.DataType;
  */
 public abstract class ColumnSketchBuilder<T> {
 
+    // PoC: switch to measure the cost of the Theta sketch.
+    static final boolean THETA_ENABLED = false;
+
     protected final DataType<T> dataType;
 
     protected long sampleCount;
@@ -76,7 +79,7 @@ public abstract class ColumnSketchBuilder<T> {
      */
     public ColumnSketchBuilder(DataType<T> dataType) {
         this.dataType = dataType;
-        this.distinctSketch = DistinctValuesSketch.newSketch();
+        this.distinctSketch = THETA_ENABLED ? DistinctValuesSketch.newSketch() : null;
         // Pre-sized to the reservoir's upper bound so a single builder's add() loop
         // never triggers a resize (which re-hashes every key).
         this.distinctCounts = new ObjectLongHashMap<>(Reservoir.NUM_SAMPLES);
@@ -87,7 +90,7 @@ public abstract class ColumnSketchBuilder<T> {
         this.sampleCount = in.readLong();
         this.nullCount = in.readLong();
         this.totalBytes = in.readLong();
-        this.distinctSketch = DistinctValuesSketch.fromStream(in);
+        this.distinctSketch = THETA_ENABLED ? DistinctValuesSketch.fromStream(in) : null;
         if (in.getVersion().after(Version.V_6_4_4)) {
             int size = in.readVInt();
             ObjectLongHashMap<String> counts = new ObjectLongHashMap<>(size);
@@ -106,7 +109,9 @@ public abstract class ColumnSketchBuilder<T> {
         out.writeLong(sampleCount);
         out.writeLong(nullCount);
         out.writeLong(totalBytes);
-        out.writeByteArray(distinctSketch.getSketch().toByteArray());
+        if (THETA_ENABLED) {
+            out.writeByteArray(distinctSketch.getSketch().toByteArray());
+        }
         if (out.getVersion().after(Version.V_6_4_4)) {
             out.writeVInt(distinctCounts.size());
             for (ObjectLongCursor<String> c : distinctCounts) {
@@ -130,7 +135,9 @@ public abstract class ColumnSketchBuilder<T> {
         } else {
             totalBytes += dataType.valueBytes(value);
             String key = value.toString();
-            distinctSketch.update(key);
+            if (THETA_ENABLED) {
+                distinctSketch.update(key);
+            }
             distinctCounts.addTo(key, 1L);
             updateSketches(value);
         }
@@ -180,7 +187,7 @@ public abstract class ColumnSketchBuilder<T> {
     /// Falls back to [#distinctSketch]'s own (non-extrapolated) estimate when
     /// [#distinctCountsIncomplete] is set, since [#distinctCounts] can't be trusted in that case.
     final double estimateDistinct(long totalDocs) {
-        if (distinctCountsIncomplete) {
+        if (THETA_ENABLED && distinctCountsIncomplete) {
             return distinctSketch.getSketch().getEstimate();
         }
         long n = sampleCount - nullCount;
@@ -244,7 +251,9 @@ public abstract class ColumnSketchBuilder<T> {
             this.sampleCount += other.sampleCount;
             this.nullCount += other.nullCount;
             this.totalBytes += other.totalBytes;
-            this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
+            if (THETA_ENABLED) {
+                this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
+            }
             this.distinctCountsIncomplete = this.distinctCountsIncomplete || typedOther.distinctCountsIncomplete;
             for (ObjectLongCursor<String> c : typedOther.distinctCounts) {
                 this.distinctCounts.addTo(c.key, c.value);
@@ -321,7 +330,9 @@ public abstract class ColumnSketchBuilder<T> {
             this.sampleCount += other.sampleCount;
             this.nullCount += other.nullCount;
             this.totalBytes += other.totalBytes;
-            this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
+            if (THETA_ENABLED) {
+                this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
+            }
             this.distinctCountsIncomplete = this.distinctCountsIncomplete || typedOther.distinctCountsIncomplete;
             for (ObjectLongCursor<String> c : typedOther.distinctCounts) {
                 this.distinctCounts.addTo(c.key, c.value);
