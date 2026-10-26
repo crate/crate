@@ -482,6 +482,18 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnSubscriber("DELETE FROM doc.t1 WHERE p = 2 AND id = 4");
         executeOnSubscriber("REFRESH TABLE doc.t1");
         assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 WHERE p = 2 ORDER BY id")).hasRows("2| 2");
+
+        executeOnSubscriber("INSERT INTO doc.t1 (id, p) VALUES (5, 3)");
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 WHERE p = 3")).hasRows("5| 3");
+
+        executeOnSubscriber("UPDATE doc.t1 SET id = 6 WHERE p = 3 AND id = 5");
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 WHERE p = 3")).hasRows("6| 3");
+
+        executeOnSubscriber("DELETE FROM doc.t1 WHERE p = 3 AND id = 6");
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 WHERE p = 3")).hasRowCount(0L);
     }
 
     @Test

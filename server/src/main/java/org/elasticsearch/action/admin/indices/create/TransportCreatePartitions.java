@@ -21,6 +21,7 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS;
 
@@ -73,6 +74,7 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 
 
 /**
@@ -239,14 +241,23 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
             for (PartitionName partition : partitions) {
                 String indexName = INDEX_NAME_PREFIX + UUIDs.randomBase64UUID();
                 String indexUUID = UUIDs.randomBase64UUID();
+                Settings.Builder indexSettings = Settings.builder()
+                    .put(commonIndexSettings)
+                    .put(IndexMetadata.SETTING_INDEX_UUID, indexUUID);
+                if (REPLICATION_SUBSCRIPTION_NAME.get(commonIndexSettings).isEmpty() == false) {
+                    boolean isSubscribed = SubscriptionsMetadata.get(metadata).subscription().values().stream()
+                        .flatMap(subscription -> subscription.relations().keySet().stream())
+                        .anyMatch(target -> target.table().equals(table.name())
+                            && (target.partitionIdent() == null || target.partitionIdent().equals(partition.ident())));
+                    if (isSubscribed == false) {
+                        indexSettings.remove(REPLICATION_SUBSCRIPTION_NAME.getKey());
+                    }
+                }
                 final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexUUID)
                     .indexName(indexName)
                     .setRoutingNumShards(routingNumShards)
                     .partitionValues(partition.values())
-                    .settings(Settings.builder()
-                        .put(commonIndexSettings)
-                        .put(IndexMetadata.SETTING_INDEX_UUID, indexUUID)
-                    );
+                    .settings(indexSettings);
 
                 indexMetadataBuilder.state(IndexMetadata.State.OPEN);
 
