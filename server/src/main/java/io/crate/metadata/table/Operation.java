@@ -83,7 +83,7 @@ public enum Operation {
         EnumSet.copyOf(
             Sets.concat(
                 SUBSCRIBED_IN_LOGICAL_REPLICATION,
-                // below ops are blocked for subscribed partitions in TransportShardAction and TransportDropPartitionsAction
+                // These operations are blocked for subscribed partitions in TransportShardAction and MetadataDeleteIndexService.
                 UPDATE, INSERT, DELETE
             )
         );
