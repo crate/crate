@@ -40,6 +40,7 @@ import com.carrotsearch.hppc.cursors.LongCursor;
  */
 public final class DistinctValuesSketch {
 
+    private static final int INITIAL_CAPACITY = 16;
     private static final double LOAD_FACTOR = 15.0 / 16.0;
     private static final long DUPLICATE_FLAG = 1L;
     private static final long KEY_MASK = ~DUPLICATE_FLAG;
@@ -54,7 +55,7 @@ public final class DistinctValuesSketch {
      * Creates a new empty sketch
      */
     public static DistinctValuesSketch newSketch() {
-        return new DistinctValuesSketch(new LongHashSet(Reservoir.NUM_SAMPLES, LOAD_FACTOR));
+        return new DistinctValuesSketch(new LongHashSet(INITIAL_CAPACITY, LOAD_FACTOR));
     }
 
     /**
