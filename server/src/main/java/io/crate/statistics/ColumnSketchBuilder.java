@@ -32,6 +32,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.ObjectLongHashMap;
 import com.carrotsearch.hppc.ObjectLongMap;
@@ -52,7 +53,9 @@ public abstract class ColumnSketchBuilder<T> {
     protected long nullCount;
     protected long totalBytes;
     /// Deprecated, see [#20172](https://github.com/crate/crate/pull/20172) for details.
+    /// Only built if a node older than 6.5.1 takes part in the ANALYZE, `null` otherwise.
     @Deprecated(since = "6.4.5")
+    @Nullable
     protected DistinctValuesSketch distinctSketch;
 
     /// Exact per-value counts of the sample, used to extrapolate the sample's distinct
@@ -63,8 +66,8 @@ public abstract class ColumnSketchBuilder<T> {
 
     /// Set when [#distinctCounts] does not (or may not) cover the whole sample,
     /// because this instance was:
-    /// * deserialized from a node older than 6.4.5
-    /// * an instance coming from a node older than 6.4.5 was merged into this instance.
+    /// * deserialized from a node older than 6.5.1
+    /// * an instance coming from a node older than 6.5.1 was merged into this instance.
     ///
     /// When true, we can't use [#distinctCounts] to provide a better estimate of the
     /// number of distinct values, so [#estimateDistinct] falls back to [#distinctSketch]
@@ -74,9 +77,9 @@ public abstract class ColumnSketchBuilder<T> {
     /**
      * Creates a new ColumnSketchBuilder for the given DataType
      */
-    public ColumnSketchBuilder(DataType<T> dataType) {
+    public ColumnSketchBuilder(DataType<T> dataType, boolean withDistinctSketch) {
         this.dataType = dataType;
-        this.distinctSketch = DistinctValuesSketch.newSketch();
+        this.distinctSketch = withDistinctSketch ? DistinctValuesSketch.newSketch() : null;
         // Pre-sized to the reservoir's upper bound so a single builder's add() loop
         // never triggers a resize (which re-hashes every key).
         this.distinctCounts = new ObjectLongHashMap<>(Reservoir.NUM_SAMPLES);
@@ -87,8 +90,12 @@ public abstract class ColumnSketchBuilder<T> {
         this.sampleCount = in.readLong();
         this.nullCount = in.readLong();
         this.totalBytes = in.readLong();
-        this.distinctSketch = DistinctValuesSketch.fromStream(in);
-        if (in.getVersion().after(Version.V_6_4_4)) {
+        if (in.getVersion().onOrAfter(Version.V_6_5_1)) {
+            this.distinctSketch = in.readBoolean() ? DistinctValuesSketch.fromStream(in) : null;
+        } else {
+            this.distinctSketch = DistinctValuesSketch.fromStream(in);
+        }
+        if (in.getVersion().onOrAfter(Version.V_6_5_1)) {
             int size = in.readVInt();
             ObjectLongHashMap<String> counts = new ObjectLongHashMap<>(size);
             for (int i = 0; i < size; i++) {
@@ -106,8 +113,16 @@ public abstract class ColumnSketchBuilder<T> {
         out.writeLong(sampleCount);
         out.writeLong(nullCount);
         out.writeLong(totalBytes);
-        out.writeByteArray(distinctSketch.getSketch().toByteArray());
-        if (out.getVersion().after(Version.V_6_4_4)) {
+        if (out.getVersion().onOrAfter(Version.V_6_5_1)) {
+            out.writeBoolean(distinctSketch != null);
+            if (distinctSketch != null) {
+                out.writeByteArray(distinctSketch.getSketch().toByteArray());
+            }
+        } else {
+            // A node older than 6.5.1 takes part in the ANALYZE, so the sketch was built.
+            out.writeByteArray(distinctSketch.getSketch().toByteArray());
+        }
+        if (out.getVersion().onOrAfter(Version.V_6_5_1)) {
             out.writeVInt(distinctCounts.size());
             for (ObjectLongCursor<String> c : distinctCounts) {
                 out.writeString(c.key);
@@ -130,7 +145,9 @@ public abstract class ColumnSketchBuilder<T> {
         } else {
             totalBytes += dataType.valueBytes(value);
             String key = value.toString();
-            distinctSketch.update(key);
+            if (distinctSketch != null) {
+                distinctSketch.update(key);
+            }
             distinctCounts.addTo(key, 1L);
             updateSketches(value);
         }
@@ -209,8 +226,8 @@ public abstract class ColumnSketchBuilder<T> {
         private MostCommonValuesSketch<T> mostCommonValuesSketch;
         private HistogramSketch<T> histogramSketch;
 
-        public SingleValued(Class<T> clazz, DataType<T> dataType) {
-            super(dataType);
+        public SingleValued(Class<T> clazz, DataType<T> dataType, boolean withDistinctSketch) {
+            super(dataType, withDistinctSketch);
             this.mostCommonValuesSketch = new MostCommonValuesSketch<>(dataType.streamer());
             this.histogramSketch = new HistogramSketch<>(clazz, dataType);
         }
@@ -244,7 +261,9 @@ public abstract class ColumnSketchBuilder<T> {
             this.sampleCount += other.sampleCount;
             this.nullCount += other.nullCount;
             this.totalBytes += other.totalBytes;
-            this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
+            this.distinctSketch = this.distinctSketch != null && other.distinctSketch != null
+                ? this.distinctSketch.merge(other.distinctSketch)
+                : null;
             this.distinctCountsIncomplete = this.distinctCountsIncomplete || typedOther.distinctCountsIncomplete;
             for (ObjectLongCursor<String> c : typedOther.distinctCounts) {
                 this.distinctCounts.addTo(c.key, c.value);
@@ -282,8 +301,8 @@ public abstract class ColumnSketchBuilder<T> {
         private MostCommonValuesSketch<BytesRef> mostCommonValuesSketch;
         private final BytesStreamOutput scratch = new BytesStreamOutput();
 
-        public Composite(DataType<T> dataType) {
-            super(dataType);
+        public Composite(DataType<T> dataType, boolean withDistinctSketch) {
+            super(dataType, withDistinctSketch);
             this.mostCommonValuesSketch = new MostCommonValuesSketch<>(BYTE_ARRAY_STREAMER);
         }
 
@@ -321,7 +340,9 @@ public abstract class ColumnSketchBuilder<T> {
             this.sampleCount += other.sampleCount;
             this.nullCount += other.nullCount;
             this.totalBytes += other.totalBytes;
-            this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
+            this.distinctSketch = this.distinctSketch != null && other.distinctSketch != null
+                ? this.distinctSketch.merge(other.distinctSketch)
+                : null;
             this.distinctCountsIncomplete = this.distinctCountsIncomplete || typedOther.distinctCountsIncomplete;
             for (ObjectLongCursor<String> c : typedOther.distinctCounts) {
                 this.distinctCounts.addTo(c.key, c.value);

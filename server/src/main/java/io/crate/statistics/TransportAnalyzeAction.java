@@ -34,6 +34,7 @@ import java.util.stream.StreamSupport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -107,7 +108,12 @@ public final class TransportAnalyzeAction {
 
                     if (previous == null) {
                         newSamples.completeAsync(
-                            () -> reservoirSampler.getSamples(req.relation(), req.tableOid(), req.columns()),
+                            () -> reservoirSampler.getSamples(
+                                req.relation(),
+                                req.tableOid(),
+                                req.columns(),
+                                req.withDistinctSketch()
+                            ),
                             executor
                         );
                         return newSamples
@@ -214,6 +220,8 @@ public final class TransportAnalyzeAction {
                                                     List<Reference> columns) {
         FutureActionListener<FetchSampleResponse> listener = new FutureActionListener<>();
         DiscoveryNodes discoveryNodes = clusterService.state().nodes();
+        // Nodes older than 6.5.1 estimate the number of distinct values from the Theta sketch.
+        boolean withDistinctSketch = discoveryNodes.getMinNodeVersion().before(Version.V_6_5_1);
         MultiActionListener<FetchSampleResponse, ?, FetchSampleResponse> multiListener = new MultiActionListener<>(
             discoveryNodes.getSize(),
             Collectors.reducing(
@@ -231,7 +239,7 @@ public final class TransportAnalyzeAction {
             transportService.sendRequest(
                 node,
                 FETCH_SAMPLES,
-                new FetchSampleRequest(relationName, tableOid, columns, node.getVersion()),
+                new FetchSampleRequest(relationName, tableOid, columns, withDistinctSketch, node.getVersion()),
                 responseHandler
             );
         }

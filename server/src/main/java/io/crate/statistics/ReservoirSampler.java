@@ -132,7 +132,10 @@ public final class ReservoirSampler {
         rateLimiter.setMBPerSec(newReadLimit.getMbFrac()); // mbPerSec is volatile in SimpleRateLimiter, one volatile write
     }
 
-    Samples getSamples(RelationName relationName, int tableOid, List<Reference> columns) {
+    Samples getSamples(RelationName relationName,
+                       int tableOid,
+                       List<Reference> columns,
+                       boolean withDistinctSketch) {
         TableInfo table;
         try {
             table = tableOid == Metadata.OID_UNASSIGNED ?
@@ -153,6 +156,7 @@ public final class ReservoirSampler {
         try (SketchRamAccounting rla = new SketchRamAccounting(ramAccounting, rateLimiter)) {
             return getSamples(
                 columns,
+                withDistinctSketch,
                 docTable,
                 rla,
                 random,
@@ -164,6 +168,7 @@ public final class ReservoirSampler {
     }
 
     private Samples getSamples(List<Reference> columns,
+                               boolean withDistinctSketch,
                                DocTableInfo docTable,
                                SketchRamAccounting ramAccounting,
                                Random random,
@@ -181,7 +186,7 @@ public final class ReservoirSampler {
 
         List<ColumnCollector<?>> columnCollectors = new ArrayList<>();
         for (int i = 0; i < columns.size(); i++) {
-            columnCollectors.add(new ColumnCollector<>(ramAccounting, columns.get(i).valueType()));
+            columnCollectors.add(new ColumnCollector<>(ramAccounting, columns.get(i).valueType(), withDistinctSketch));
         }
 
         List<ShardExpressions> searchersToRelease = new ArrayList<>();
@@ -272,8 +277,8 @@ public final class ReservoirSampler {
         final SketchRamAccounting ramAccounting;
         final DataType<T> dataType;
 
-        private ColumnCollector(SketchRamAccounting ramAccounting, DataType<T> dataType) {
-            this.statsBuilder = dataType.columnStatsSupport().sketchBuilder();
+        private ColumnCollector(SketchRamAccounting ramAccounting, DataType<T> dataType, boolean withDistinctSketch) {
+            this.statsBuilder = dataType.columnStatsSupport().sketchBuilder(withDistinctSketch);
             this.dataType = dataType;
             this.ramAccounting = ramAccounting;
         }

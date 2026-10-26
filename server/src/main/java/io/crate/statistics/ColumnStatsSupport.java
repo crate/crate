@@ -35,8 +35,10 @@ public interface ColumnStatsSupport<T> {
 
     /**
      * Creates a column sketch builder for a column
+     *
+     * @param withDistinctSketch whether to also build the Theta sketch needed by nodes older than 6.5.1
      */
-    ColumnSketchBuilder<T> sketchBuilder();
+    ColumnSketchBuilder<T> sketchBuilder(boolean withDistinctSketch);
 
     /**
      * Reads a column sketch from a stream
@@ -49,8 +51,8 @@ public interface ColumnStatsSupport<T> {
     static <T> ColumnStatsSupport<T> singleValued(Class<T> clazz, DataType<T> dataType) {
         return new ColumnStatsSupport<T>() {
             @Override
-            public ColumnSketchBuilder<T> sketchBuilder() {
-                return new ColumnSketchBuilder.SingleValued<>(clazz, dataType);
+            public ColumnSketchBuilder<T> sketchBuilder(boolean withDistinctSketch) {
+                return new ColumnSketchBuilder.SingleValued<>(clazz, dataType, withDistinctSketch);
             }
 
             @Override
@@ -66,8 +68,8 @@ public interface ColumnStatsSupport<T> {
     static <T> ColumnStatsSupport<T> composite(DataType<T> dataType) {
         return new ColumnStatsSupport<T>() {
             @Override
-            public ColumnSketchBuilder<T> sketchBuilder() {
-                return new ColumnSketchBuilder.Composite<>(dataType);
+            public ColumnSketchBuilder<T> sketchBuilder(boolean withDistinctSketch) {
+                return new ColumnSketchBuilder.Composite<>(dataType, withDistinctSketch);
             }
 
             @Override
