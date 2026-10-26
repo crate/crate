@@ -42,6 +42,11 @@ public abstract class DistinctValuesSketch {
     public abstract void update(String v);
 
     /**
+     * Add a new value, given as its UTF-8 bytes, to the sketch
+     */
+    public abstract void update(byte[] v);
+
+    /**
      * Merge this sketch with another
      */
     public abstract DistinctValuesSketch merge(DistinctValuesSketch other);
@@ -61,6 +66,11 @@ public abstract class DistinctValuesSketch {
 
             @Override
             public void update(String v) {
+                distinctSketch.update(v);
+            }
+
+            @Override
+            public void update(byte[] v) {
                 distinctSketch.update(v);
             }
 
@@ -87,6 +97,11 @@ public abstract class DistinctValuesSketch {
             }
 
             @Override
+            public void update(byte[] v) {
+                union.update(v);
+            }
+
+            @Override
             public DistinctValuesSketch merge(DistinctValuesSketch other) {
                 union.union(other.getSketch());
                 return mergedSketch(union);
@@ -108,6 +123,11 @@ public abstract class DistinctValuesSketch {
         return new DistinctValuesSketch() {
             @Override
             public void update(String v) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void update(byte[] v) {
                 throw new UnsupportedOperationException();
             }
 

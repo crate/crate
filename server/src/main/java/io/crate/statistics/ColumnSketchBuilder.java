@@ -23,6 +23,7 @@ package io.crate.statistics;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -113,7 +114,7 @@ public abstract class ColumnSketchBuilder<T> {
             nullCount++;
         } else {
             totalBytes += dataType.valueBytes(value);
-            String key = value.toString();
+            byte[] key = value.toString().getBytes(StandardCharsets.UTF_8);
             distinctSketch.update(key);
             distinctCounts.update(key);
             updateSketches(value);

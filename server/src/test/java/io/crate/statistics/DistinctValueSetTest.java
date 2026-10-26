@@ -37,8 +37,8 @@ public class DistinctValueSetTest extends ESTestCase {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        set1 = DistinctValueSet.newSet(0);
-        set2 = DistinctValueSet.newSet(0);
+        set1 = new DistinctValueSet();
+        set2 = new DistinctValueSet();
     }
 
     @Test

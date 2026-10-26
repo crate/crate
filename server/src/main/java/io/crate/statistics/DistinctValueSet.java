@@ -68,7 +68,10 @@ public final class DistinctValueSet {
     }
 
     public void update(String v) {
-        byte[] bytes = v.getBytes(StandardCharsets.UTF_8);
+        update(v.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public void update(byte[] bytes) {
         long key = org.elasticsearch.common.hash.MurmurHash3.hash64(bytes, 0, bytes.length) & KEY_MASK;
         add(key);
     }
