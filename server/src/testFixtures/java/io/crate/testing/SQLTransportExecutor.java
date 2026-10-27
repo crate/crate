@@ -66,6 +66,7 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
 import io.crate.auth.AccessControl;
 import io.crate.auth.Protocol;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.FutureActionListener;
@@ -343,9 +344,10 @@ public class SQLTransportExecutor {
         try {
             session.parse(UNNAMED, stmt, Collections.emptyList());
             var bulkResponse = new BulkResponse(bulkArgs == null ? 0 : bulkArgs.length);
+            ArrayList<CompletableFuture<?>> futures = new ArrayList<>();
             if (bulkArgs == null) {
                 session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
-                session.execute(UNNAMED, 0, new BaseResultReceiver() {
+                BaseResultReceiver resultReceiver = new BaseResultReceiver() {
                     private long rowCount;
 
                     @Override
@@ -358,11 +360,14 @@ public class SQLTransportExecutor {
                     public long affectedRowCount() {
                         return rowCount;
                     }
-                });
+                };
+                futures.add(resultReceiver.completionFuture());
+                session.execute(UNNAMED, 0, resultReceiver);
             } else {
                 for (int i = 0; i < bulkArgs.length; i++) {
                     session.bind(UNNAMED, UNNAMED, Arrays.asList(bulkArgs[i]), null);
                     ResultReceiver<?> resultReceiver = new BulkRowCountReceiver(bulkResponse, i);
+                    futures.add(resultReceiver.completionFuture());
                     session.execute(UNNAMED, 0, resultReceiver);
                 }
             }
@@ -371,7 +376,8 @@ public class SQLTransportExecutor {
                 throw new UnsupportedOperationException(
                     "Bulk operations for statements that return result sets is not supported");
             }
-            session.sync(false).whenComplete((Object _, Throwable t) -> {
+            CompletableFuture<List<Object>> allResults = CompletableFutures.allAsList(futures);
+            session.sync(false).thenCompose(_ -> allResults).whenComplete((_, t) -> {
                 if (t == null) {
                     listener.onResponse(bulkResponse);
                 } else {
