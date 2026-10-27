@@ -25,10 +25,12 @@ import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATIO
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -46,6 +48,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
@@ -66,32 +69,53 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
     }
 
     /**
-     * Removes the REPLICATION_SUBSCRIPTION_NAME index setting from all indices.
-     * (Without this setting, indices will use the default read-write engine)
+     * Remove the subscription marker from indices that are no longer subscribed.
+     *
+     * @param targetsToRemove table or partition targets of the current subscription being dropped
+     * @param targetsToKeep table or partition targets that remain subscribed by other subscriptions
+     * @param currentState current cluster state
+     * @param mdBuilder metadata builder based on the current cluster state
+     * @return updated cluster state with subscription markers removed where applicable
      */
-    public static ClusterState removeSubscriptionSetting(Collection<RelationName> relations,
+    public static ClusterState removeSubscriptionSetting(Collection<TableOrPartition> targetsToRemove,
+                                                         Collection<TableOrPartition> targetsToKeep,
                                                          ClusterState currentState,
                                                          Metadata.Builder mdBuilder) {
         Metadata metadata = currentState.metadata();
-        for (var relationName : relations) {
-            var concreteIndices = metadata.getIndices(
-                relationName,
-                List.of(),
+        for (TableOrPartition targetToRemove : targetsToRemove) {
+            RelationName targetRelation = targetToRemove.table();
+            List<String> partitionValues = targetToRemove.partitionIdent() == null
+                ? List.of()
+                : PartitionName.decodeIdent(targetToRemove.partitionIdent());
+            var indicesToRemove = metadata.getIndices(
+                targetRelation,
+                partitionValues,
                 false,
                 imd -> imd.getState() == State.OPEN ? imd : null
             );
-            for (var indexMetadata : concreteIndices) {
-                var updatedSettings = removeSubscriptionSetting(indexMetadata.getSettings());
+            for (IndexMetadata indexToRemove : indicesToRemove) {
+                if (indexToRemove.getSettings().hasValue(REPLICATION_SUBSCRIPTION_NAME.getKey()) == false) {
+                    continue;
+                }
+                String partitionIdent = indexToRemove.partitionValues().isEmpty()
+                    ? null
+                    : PartitionName.encodeIdent(indexToRemove.partitionValues());
+                if (targetsToKeep.contains(new TableOrPartition(targetRelation, partitionIdent))) {
+                    continue;
+                }
+                var updatedSettings = removeSubscriptionSetting(indexToRemove.getSettings());
                 mdBuilder.put(
                     IndexMetadata
-                        .builder(indexMetadata)
-                        .settingsVersion(1 + indexMetadata.getSettingsVersion())
+                        .builder(indexToRemove)
+                        .settingsVersion(1 + indexToRemove.getSettingsVersion())
                         .settings(updatedSettings)
                 );
             }
 
-
-            if (metadata.getRelation(relationName) instanceof RelationMetadata.Table table) {
+            boolean relationStillSubscribed = targetsToKeep
+                .stream()
+                .anyMatch(tableOrPartition -> tableOrPartition.table().equals(targetRelation));
+            if (relationStillSubscribed == false && metadata.getRelation(targetRelation) instanceof RelationMetadata.Table table) {
                 mdBuilder.setTable(
                     table.name(),
                     table.columns(),
@@ -151,10 +175,12 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
                         assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
                         mdBuilder.putCustom(SubscriptionsMetadata.TYPE, newMetadata);
 
+                        Set<TableOrPartition> targetsToKeep = newMetadata.subscription().values().stream()
+                            .flatMap(s -> s.relations().keySet().stream())
+                            .collect(Collectors.toSet());
                         return removeSubscriptionSetting(
-                            subscription.relations().keySet().stream()
-                                .map(target -> target.table())
-                                .collect(Collectors.toSet()),
+                            subscription.relations().keySet(),
+                            targetsToKeep,
                             currentState,
                             mdBuilder
                         );

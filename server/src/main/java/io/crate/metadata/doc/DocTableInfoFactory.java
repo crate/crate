@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
@@ -73,6 +74,8 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.metadata.upgrade.MetadataIndexUpgrader;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.replication.logical.metadata.Subscription;
+import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
@@ -198,10 +201,28 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
             Operation.buildFromIndexSettingsAndState(
                 table.settings(),
                 table.state(),
-                publicationsMetadata == null ? false : publicationsMetadata.isPublished(table.name())
+                publicationsMetadata == null ? false : publicationsMetadata.isPublished(table.name()),
+                hasOnlyPartitionSubscriptions(table.name(), metadata)
             ),
             table.tableVersion()
         );
+    }
+
+    private static boolean hasOnlyPartitionSubscriptions(RelationName relationName, Metadata metadata) {
+        boolean hasTableSubscription = false;
+        boolean hasPartitionSubscription = false;
+        for (Subscription subscription : SubscriptionsMetadata.get(metadata).subscription().values()) {
+            for (TableOrPartition target : subscription.relations().keySet()) {
+                if (target.table().equals(relationName)) {
+                    if (target.partitionIdent() == null) {
+                        hasTableSubscription = true;
+                    } else {
+                        hasPartitionSubscription = true;
+                    }
+                }
+            }
+        }
+        return hasPartitionSubscription && hasTableSubscription == false;
     }
 
     /**

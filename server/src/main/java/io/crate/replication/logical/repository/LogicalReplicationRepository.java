@@ -511,6 +511,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         return getRemoteClient().execute(PublicationsStateAction.INSTANCE, request).thenApply(r ->
             new Response(
                 metadataUpgradeService.upgradeMetadata(r.metadata()),
+                r.targets(),
                 r.unknownPublications()
             ));
     }

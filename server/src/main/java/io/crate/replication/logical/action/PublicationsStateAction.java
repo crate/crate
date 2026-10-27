@@ -33,6 +33,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.support.master.MasterNodeReadRequest;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -132,6 +133,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
 
             Metadata.Builder metadataBuilder = Metadata.builder(state.metadata().currentMaxTableOid());
             List<String> unknownPublications = new ArrayList<>();
+            List<TableOrPartition> targets = new ArrayList<>();
             for (var publicationName : request.publications()) {
                 var publication = publicationsMetadata.publications().get(publicationName);
                 if (publication == null) {
@@ -142,16 +144,16 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 // Publication owner cannot be null as we ensure that users who own publication cannot be dropped.
                 // Also, before creating publication or subscription we check that owner was not dropped right before creation.
                 Role publicationOwner = roles.findUser(publication.owner());
-                publication.resolveCurrentRelations(
+                targets.addAll(publication.resolveCurrentRelations(
                     state,
                     roles,
                     publicationOwner,
                     subscriber,
                     publicationName,
                     metadataBuilder
-                );
+                ));
             }
-            listener.onResponse(new Response(metadataBuilder.build(), unknownPublications));
+            listener.onResponse(new Response(metadataBuilder.build(), targets, unknownPublications));
         }
 
         @Override
@@ -196,6 +198,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
     public static class Response extends TransportResponse {
 
         private final Metadata metadata;
+        private final List<TableOrPartition> targets;
         private final List<String> unknownPublications;
         /**
          * The action is registered as a proxy action,
@@ -207,8 +210,9 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
         @Nullable
         private final Map<RelationName, RelationMetadata> relationsInPublications;
 
-        public Response(Metadata metadata, List<String> unknownPublications) {
+        public Response(Metadata metadata, List<TableOrPartition> targets, List<String> unknownPublications) {
             this.metadata = metadata;
+            this.targets = targets;
             this.unknownPublications = unknownPublications;
             this.relationsInPublications = null;
         }
@@ -235,11 +239,29 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 metadata = Metadata.readFrom(in);
             }
             unknownPublications = in.readList(StreamInput::readString);
+            if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
+                targets = in.readList(TableOrPartition::new);
+            } else if (relationsInPublications != null) {
+                targets = relationsInPublications.keySet().stream()
+                    .map(table -> new TableOrPartition(table, null))
+                    .toList();
+            } else {
+                targets = metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class).stream()
+                    .map(table -> new TableOrPartition(table.name(), null))
+                    .toList();
+            }
         }
 
         @Override
         @SuppressWarnings("deprecation")
         public void writeTo(StreamOutput out) throws IOException {
+            if (out.getVersion().before(Version.V_6_5_0)) {
+                for (var target : targets) {
+                    if (target.partitionIdent() != null) {
+                        throw new IllegalStateException("Cannot write partition publication target to a node before " + Version.V_6_5_0);
+                    }
+                }
+            }
             if (out.getVersion().before(Version.V_6_0_0)) {
                 Map<RelationName, RelationMetadata> relationsInPublications = this.relationsInPublications != null ?
                     this.relationsInPublications :
@@ -251,10 +273,17 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 metadata.writeTo(out);
             }
             out.writeStringCollection(unknownPublications);
+            if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
+                out.writeCollection(targets);
+            }
         }
 
         public Metadata metadata() {
             return metadata;
+        }
+
+        public List<TableOrPartition> targets() {
+            return targets;
         }
 
         public List<String> unknownPublications() {
@@ -263,7 +292,11 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
 
         @Override
         public String toString() {
-            return "Response{" + "metadata:" + metadata + ", unknownPublications:" + unknownPublications + '}';
+            return "Response{" +
+                   "metadata:" + metadata +
+                   ", targets:" + targets +
+                   ", unknownPublications:" + unknownPublications +
+                   '}';
         }
     }
 }

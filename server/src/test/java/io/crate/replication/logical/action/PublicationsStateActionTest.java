@@ -26,6 +26,7 @@ import static io.crate.role.metadata.RolesHelper.userOf;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -38,6 +39,7 @@ import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
+import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.logging.Loggers;
@@ -123,7 +125,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         var publication = new Publication("publisher", true, List.of());
 
         Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
-        publication.resolveCurrentRelations(
+        List<TableOrPartition> targets = publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
             publicationOwner,
@@ -137,6 +139,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             .map(org.elasticsearch.cluster.metadata.RelationMetadata.Table::name)
             .toList();
         assertThat(relationNames).contains(new RelationName("doc", "t1"));
+        assertThat(targets).containsExactly(target("doc.t1"));
     }
 
     @Test
@@ -398,7 +401,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void test_resolve_relation_names_for_concrete_partition_includes_only_target_partition() throws Exception {
+    public void test_resolve_current_relations_returns_published_table_and_partition_targets() throws Exception {
         var user = userOf("dummy");
         Roles roles = new Roles() {
             @Override
@@ -428,7 +431,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         );
 
         Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
-        publication.resolveCurrentRelations(
+        List<TableOrPartition> targets = publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
             user,
@@ -440,6 +443,119 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
         List<IndexMetadata> indices = metadata.getIndices(relationName, List.of(), true, im -> im);
         assertThat(indices.stream().map(im -> im.getIndex().name()).toList()).containsExactly(partitionName.asIndexName());
+        assertThat(targets).containsExactly(target("p1", List.of("1")));
+
+        Metadata.Builder tableMetadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
+        var tablePublication = new Publication("some_user", false, List.of(target("p1")));
+        List<TableOrPartition> tableTargets = tablePublication.resolveCurrentRelations(
+            clusterService.state(),
+            roles,
+            user,
+            user,
+            "dummy",
+            tableMetadataBuilder
+        );
+
+        assertThat(tableTargets).containsExactly(new TableOrPartition(relationName, null));
+    }
+
+    @Test
+    public void test_resolve_current_relations_skips_partition_target_when_partition_does_not_exist() throws Exception {
+        var user = userOf("dummy");
+        Roles roles = new Roles() {
+            @Override
+            public Collection<Role> roles() {
+                return List.of(user);
+            }
+
+            @Override
+            public boolean hasPrivilege(Role user, Permission permission, Securable securable, @Nullable String ident) {
+                return true;
+            }
+        };
+
+        SQLExecutor.of(clusterService)
+            .addTable(
+                "CREATE TABLE doc.p1 (id int, p int) PARTITIONED BY (p)",
+                List.of("1")
+            )
+            .startShards("doc.p1");
+        var publication = new Publication(
+            "some_user",
+            false,
+            List.of(target("p1", List.of("2")))
+        );
+
+        Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
+        List<TableOrPartition> targets = publication.resolveCurrentRelations(
+            clusterService.state(),
+            roles,
+            user,
+            user,
+            "dummy",
+            metadataBuilder
+        );
+
+        assertThat(targets).isEmpty();
+    }
+
+    @Test
+    public void test_response_streams_publication_targets() throws IOException {
+        RelationName relationName = new RelationName("doc", "t1");
+        List<TableOrPartition> targets = List.of(
+            new TableOrPartition(relationName, null),
+            new TableOrPartition(relationName, new PartitionName(relationName, List.of("1")).ident()));
+        PublicationsStateAction.Response response = new PublicationsStateAction.Response(
+            Metadata.builder(Metadata.OID_UNASSIGNED).build(),
+            targets,
+            List.of());
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.CURRENT);
+        response.writeTo(out);
+
+        try (var in = new NamedWriteableAwareStreamInput(out.bytes().streamInput(), writableRegistry())) {
+            in.setVersion(Version.CURRENT);
+            PublicationsStateAction.Response streamed = new PublicationsStateAction.Response(in);
+            assertThat(streamed.targets()).containsExactlyElementsOf(targets);
+        }
+    }
+
+    @Test
+    public void test_response_rejects_streaming_partition_targets_to_nodes_before_6_5() {
+        RelationName relationName = new RelationName("doc", "t1");
+        PublicationsStateAction.Response response = new PublicationsStateAction.Response(
+            Metadata.builder(Metadata.OID_UNASSIGNED).build(),
+            List.of(new TableOrPartition(relationName, new PartitionName(relationName, List.of("1")).ident())),
+            List.of());
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_4_0);
+
+        assertThatThrownBy(() -> response.writeTo(out))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Cannot write partition publication target to a node before " + Version.V_6_5_0);
+    }
+
+    @Test
+    public void test_response_derives_table_targets_from_metadata_before_6_5() throws IOException {
+        RelationName relationName = new RelationName("doc", "t1");
+        SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.t1 (id int)");
+        PublicationsStateAction.Response response = new PublicationsStateAction.Response(
+            clusterService.state().metadata(),
+            List.of(new TableOrPartition(relationName, null)),
+            List.of());
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_4_0);
+        response.writeTo(out);
+
+        try (var in = new NamedWriteableAwareStreamInput(out.bytes().streamInput(), writableRegistry())) {
+            in.setVersion(Version.V_6_4_0);
+            PublicationsStateAction.Response response1 = new PublicationsStateAction.Response(in);
+            assertThat(response1.targets()).containsExactly(new TableOrPartition(relationName, null));
+        }
     }
 
     @Test
@@ -471,7 +587,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         var publication = new Publication("publisher", true, List.of());
 
         Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
-        publication.resolveCurrentRelations(
+        List<TableOrPartition> targets = publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
             publicationOwner,
@@ -480,7 +596,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             metadataBuilder
         );
         Metadata metadata = metadataBuilder.build();
-        PublicationsStateAction.Response response = new PublicationsStateAction.Response(metadata, List.of());
+        PublicationsStateAction.Response response = new PublicationsStateAction.Response(metadata, targets, List.of());
 
         NodeContext nodeContext = createNodeContext();
         MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(
@@ -524,6 +640,10 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
                 org.elasticsearch.cluster.metadata.RelationMetadata.Table table2 = metadata1.getRelation(relationName2);
                 assertThat(table2).isNotNull();
                 assertThat(table2.partitionedBy()).containsExactly(ColumnIdent.of("p"));
+                assertThat(response1.targets()).containsExactlyInAnyOrder(
+                    new TableOrPartition(relationName1, null),
+                    new TableOrPartition(relationName2, null)
+                );
             }
         }
     }
