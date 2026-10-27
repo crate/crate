@@ -184,6 +184,12 @@ Parameters
       ``file://``). So, for example, CrateDB will convert ``/tmp/file.json`` to
       ``file:///tmp/file.json``.
 
+  .. NOTE::
+
+      The ``?`` and ``#`` characters start the query and the fragment of the
+      URI, which are ignored. If the path itself contains these characters,
+      they must be `URL encoded`_ as ``%3F`` and ``%23``.
+
 
 .. _sql-copy-to-schemes:
 
