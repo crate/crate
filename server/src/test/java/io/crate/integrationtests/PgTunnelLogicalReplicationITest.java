@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.integrationtests.LogicalReplicationITestCase.stopCluster;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,7 +39,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
 import org.elasticsearch.test.TestCluster;
-import org.jspecify.annotations.Nullable;
 import org.junit.After;
 import org.junit.Test;
 
@@ -150,21 +150,6 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
         return cluster;
     }
 
-    private void stopCluster(@Nullable TestCluster cluster) throws Exception {
-        if (cluster == null) {
-            return;
-        }
-        try {
-            cluster.beforeIndexDeletion();
-            cluster.assertSeqNos();
-            cluster.assertSameDocIdsOnShards();
-            cluster.assertConsistentHistoryBetweenTranslogAndLuceneIndex();
-        } finally {
-            cluster.wipe();
-            cluster.close();
-        }
-    }
-
     @After
     public void clearClusters() throws Exception {
         if (subscriber != null) {
@@ -174,8 +159,7 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
                 // ignore
             }
         }
-        stopCluster(publisherCluster);
-        stopCluster(subscriberCluster);
+        stopCluster(publisherCluster, subscriberCluster);
     }
 
     @Test

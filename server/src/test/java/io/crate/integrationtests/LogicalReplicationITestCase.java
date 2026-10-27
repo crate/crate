@@ -58,6 +58,7 @@ import org.elasticsearch.transport.TransportService;
 import org.jspecify.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.runners.model.MultipleFailureException;
 
 import io.crate.execution.dml.BulkResponse;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -131,24 +132,36 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         } catch (Exception e) {
             // ignore
         }
-        stopCluster(subscriberCluster);
-        subscriberCluster = null;
-        stopCluster(publisherCluster);
-        publisherCluster = null;
+        try {
+            stopCluster(subscriberCluster, publisherCluster);
+        } finally {
+            subscriberCluster = null;
+            publisherCluster = null;
+        }
     }
 
-    protected void stopCluster(TestCluster cluster) throws Exception {
-        if (cluster != null) {
-            try {
-                cluster.beforeIndexDeletion();
-                cluster.assertSeqNos();
-                cluster.assertSameDocIdsOnShards();
-                cluster.assertConsistentHistoryBetweenTranslogAndLuceneIndex();
-            } finally {
+    // Pass all clusters together so cleanup continues even if one cluster fails to stop.
+    static void stopCluster(TestCluster... clusters) throws Exception {
+        List<Throwable> failures = new ArrayList<>();
+        for (TestCluster cluster : clusters) {
+            if (cluster == null) {
+                continue;
+            }
+            try (cluster) {
+                try {
+                    cluster.beforeIndexDeletion();
+                    cluster.assertSeqNos();
+                    cluster.assertSameDocIdsOnShards();
+                    cluster.assertConsistentHistoryBetweenTranslogAndLuceneIndex();
+                } catch (Throwable t) {
+                    failures.add(t);
+                }
                 cluster.wipe();
-                cluster.close();
+            } catch (Throwable t) {
+                failures.add(t);
             }
         }
+        MultipleFailureException.assertEmpty(failures);
     }
 
     private void dropSubscriptions() throws Exception {
