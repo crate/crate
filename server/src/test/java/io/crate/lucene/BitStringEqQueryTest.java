@@ -22,7 +22,6 @@
 package io.crate.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
@@ -34,7 +33,6 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.sql.tree.BitString;
 
 public class BitStringEqQueryTest extends LuceneQueryBuilderTest {
@@ -70,15 +68,13 @@ public class BitStringEqQueryTest extends LuceneQueryBuilderTest {
 
     @Test
     public void test_BitStringEqQuery_rangeQuery() {
-        assertThatThrownBy(
-            () -> convert("a1 < " + BIT_STRING))
-            .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Invalid arguments in: (doc.m.a1 < B'001') with (bit(3), bit(3)). Valid types: (");
+        Query query = convert("a1 < " + BIT_STRING);
+        // Need lexicographical comparison on the bitstring
+        // Lucene range query would have different semantics because we store the bitSet bytes
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
 
-        assertThatThrownBy(
-            () -> convert("a2 >= " + BIT_STRING))
-            .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Invalid arguments in: (doc.m.a2 >= B'001') with (bit(3), bit(3)). Valid types: (");
+        query = convert("a1 >= " + BIT_STRING);
+        assertThat(query.toString()).isEqualTo("(a1 >= B'001')");
     }
 
     @Test

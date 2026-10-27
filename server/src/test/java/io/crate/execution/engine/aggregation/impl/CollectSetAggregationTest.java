@@ -24,7 +24,9 @@ package io.crate.execution.engine.aggregation.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -40,6 +42,7 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.Signature.Feature;
 import io.crate.operation.aggregation.AggregationTestCase;
+import io.crate.testing.DataTypeTesting;
 import io.crate.testing.PlainRamAccounting;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -77,14 +80,6 @@ public class CollectSetAggregationTest extends AggregationTestCase {
             (List<BigDecimal>) executeAggregation(new NumericType(4, 3), new Object[][]{{
                 new BigDecimal("0.713")}, {new BigDecimal("0.312")}, {new BigDecimal("0.713")}}))
             .containsExactlyInAnyOrder(new BigDecimal("0.312"), new BigDecimal("0.713"));
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    public void testDouble() throws Exception {
-        assertThat(
-            (List<Object>) executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}, {0.3d}}))
-            .containsExactlyInAnyOrder(0.3d, 0.7d);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -146,47 +141,28 @@ public class CollectSetAggregationTest extends AggregationTestCase {
     }
 
     @SuppressWarnings("unchecked")
-    @Test
-    public void testFloat() throws Exception {
-        assertThat((List<Object>) executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.3f}}))
-            .containsExactlyInAnyOrder(0.3f, 0.7f);
+    private <T> void assert_collect_set_on_primitive_type(DataType<T> type) throws Exception {
+        Supplier<T> dataGenerator = DataTypeTesting.getDataGenerator(type);
+        ArrayList<T> values = new ArrayList<>();
+        T val1 = dataGenerator.get();
+        values.add(val1);
+        values.add(val1); // ensure there is one duplicate
+        for (int i = 0; i < 4; i++) {
+            values.add(dataGenerator.get());
+        }
+        Object[][] payload = values.stream()
+            .map(x -> new Object[] { x })
+            .toArray(Object[][]::new);
+        Object result = executeAggregation(type, payload);
+        Object[] expected = values.stream().distinct().toArray(Object[]::new);
+        assertThat((List<Object>) result).containsExactlyInAnyOrder(expected);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
-    public void testInteger() throws Exception {
-        assertThat((List<Object>) executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}, {3}}))
-            .containsExactlyInAnyOrder(3, 7);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    public void testLong() throws Exception {
-        assertThat((List<Object>) executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}, {3L}}))
-            .containsExactlyInAnyOrder(3L, 7L);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    public void testShort() throws Exception {
-        assertThat((List<Object>) executeAggregation(
-            DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}, {(short) 3}}))
-            .containsExactlyInAnyOrder((short) 3, (short) 7);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    public void testString() throws Exception {
-        assertThat((List<Object>) executeAggregation(
-            DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {"Ruben"}}))
-            .containsExactlyInAnyOrder("Youri", "Ruben");
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    public void testBoolean() throws Exception {
-        assertThat((List<Object>) executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}, {false}}))
-            .containsExactlyInAnyOrder(true, false);
+    public void test_collect_set_on_primitive_types() throws Exception {
+        for (var type : DataTypes.PRIMITIVE_TYPES) {
+            assert_collect_set_on_primitive_type(type);
+        }
     }
 
     @SuppressWarnings("unchecked")
