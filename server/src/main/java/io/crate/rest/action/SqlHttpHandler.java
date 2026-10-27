@@ -49,6 +49,7 @@ import io.crate.auth.AccessControl;
 import io.crate.auth.Protocol;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
+import io.crate.concurrent.CountdownFuture;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
@@ -276,9 +277,13 @@ public class SqlHttpHandler extends HttpHandler<FullHttpRequest> {
         final long startTimeInNs = System.nanoTime();
         session.parse(UNNAMED, stmt, emptyList());
         final RestBulkRowCountReceiver.Result[] results = new RestBulkRowCountReceiver.Result[bulkArgs.size()];
+        CountdownFuture allDone = new CountdownFuture(bulkArgs.size());
         for (int i = 0; i < bulkArgs.size(); i++) {
             session.bind(UNNAMED, UNNAMED, bulkArgs.get(i), null);
             var resultReceiver = new RestBulkRowCountReceiver(results, i);
+            resultReceiver.completionFuture().whenComplete((_, _) -> {
+                allDone.complete(null);
+            });
             session.execute(UNNAMED, 0, resultReceiver);
         }
         if (results.length > 0) {
@@ -290,7 +295,7 @@ public class SqlHttpHandler extends HttpHandler<FullHttpRequest> {
         }
         var sessionSettings = session.sessionSettings();
         AccessControl accessControl = roles().getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
-        return session.sync(true)
+        return session.sync(true).thenCompose(_ -> allDone)
             .thenApply(_ -> {
                 try {
                     XContentBuilder builder = new XContentBuilder(
