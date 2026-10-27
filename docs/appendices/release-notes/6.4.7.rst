@@ -46,6 +46,15 @@ series.
 Fixes
 =====
 
+- Fixed some issues in the PostgreSQL wire protocol implementation that:
+
+  - Disallowed pipelining select queries after write queries
+  - Caused failures if pipelining statements using new objects immediately after
+    DDL statements created those objects, if there was no intermediate ``sync``
+    message between those statements.
+  - Could cause clients to appear stuck if a statement within a pipeline had an
+    execution error.
+
 - Fixed an issue that caused CrateDB to send the wrong transaction state within
   a ``ReadyForQuery`` message to clients using the PostgreSQL Wire Protocol in
   response to queries sent in the simple query mode after a ``BEGIN``. This
