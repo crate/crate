@@ -213,13 +213,17 @@ public final class PgCatalogTableDefinitions {
             )),
             Map.entry(PgPublicationTable.IDENT, new StaticTableDefinition<>(
                 () -> publicationRows,
-                (user, p) -> p.owner().equals(user.name()),
+                (user, p) -> user.isSuperUser()
+                    || p.owner().equals(user.name())
+                    || roles.hasALPrivileges(user),
                 PgPublicationTable.INSTANCE.expressions()
             )),
 
             Map.entry(PgPublicationTablesTable.IDENT, new StaticTableDefinition<>(
                 () -> PgPublicationTablesTable.rows(logicalReplicationService, schemas),
-                (user, p) -> p.owner().equals(user.name()),
+                (user, p) -> user.isSuperUser()
+                    || p.owner().equals(user.name())
+                    || roles.hasALPrivileges(user),
                 PgPublicationTablesTable.INSTANCE.expressions()
             )),
 

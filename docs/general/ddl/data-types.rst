@@ -779,54 +779,6 @@ Query data::
    There is no difference in storage costs among all character data types.
 
 
-.. _data-type-json:
-
-``json``
-''''''''
-
-A type representing a JSON string.
-
-This type only exists for compatibility and interoperability with PostgreSQL. It cannot to be
-used in data definition statements and it is not possible to use it to store data.
-To store JSON data use the existing :ref:`OBJECT <data-types-objects>` type. It is a more powerful
-alternative that offers more flexibility but delivers the same benefits.
-
-The primary use of the JSON type is in :ref:`type casting <data-types-casting>` for
-interoperability with PostgreSQL clients which may use the ``JSON`` type.
-The following type casts are example of supported usage of the ``JSON`` data type:
-
-Casting from ``STRING`` to ``JSON``::
-
-    cr> SELECT '{"x": 10}'::json;
-    +---------------------------+
-    | CAST('{"x": 10}' AS json) |
-    +---------------------------+
-    | {"x": 10}                 |
-    +---------------------------+
-    SELECT 1 row in set (... sec)
-
-Casting from ``JSON`` to ``OBJECT``::
-
-    cr> SELECT ('{"x": 10}'::json)::object;
-    +-------------------------------------------+
-    | CAST(CAST('{"x": 10}' AS json) AS object) |
-    +-------------------------------------------+
-    | {"x": 10}                                 |
-    +-------------------------------------------+
-    SELECT 1 row in set (... sec)
-
-
-Casting from ``OBJECT`` to ``JSON``::
-
-    cr> SELECT {x=10}::json;
-    +-------------------------+
-    | CAST({"x"= 10} AS json) |
-    +-------------------------+
-    | {"x":10}                |
-    +-------------------------+
-    SELECT 1 row in set (... sec)
-
-
 .. _data-types-numeric:
 
 Numeric data
@@ -2033,9 +1985,6 @@ must be prefixed by the plus or minus symbol. See also `Year.parse Javadoc`_::
     - :ref:`TIME <type-time>` types cannot be added to or subtracted from
       ``DATE`` types.
 
-    - :ref:`INTERVAL <type-interval>` types cannot be added to or subtracted
-      from ``DATE`` types.
-
     This behaviour does not comply with standard SQL and is incompatible with
     PostgreSQL. This behavior may change in a future version of CrateDB (see
     `tracking issue #11528`_).
@@ -2313,6 +2262,11 @@ the `bit` type length, it is trimmed or extended on the right side::
   | B'0110'               | B'1010'                 |
   +-----------------------+-------------------------+
   SELECT 1 row in set (... sec)
+
+
+.. NOTE::
+
+    Range queries (like ``x > '011'::bit(3)``) on bit strings are expensive.
 
 
 .. _data-types-ip-addresses:
@@ -3155,6 +3109,54 @@ if the table function returns more than one column.
     +-----------------+
     SELECT 2 rows in set (... sec)
 
+.. _data-type-json:
+
+``JSON``
+========
+
+A type representing a JSON string.
+
+This type only exists for compatibility and interoperability with PostgreSQL. It cannot to be
+used in data definition statements and it is not possible to use it to store data.
+To store JSON data use the existing :ref:`OBJECT <data-types-objects>` type. It is a more powerful
+alternative that offers more flexibility but delivers the same benefits.
+
+The primary use of the JSON type is in :ref:`type casting <data-types-casting>` for
+interoperability with PostgreSQL clients which may use the ``JSON`` type.
+The following type casts are example of supported usage of the ``JSON`` data type:
+
+Casting from ``STRING`` to ``JSON``::
+
+    cr> SELECT '{"x": 10}'::json;
+    +---------------------------+
+    | CAST('{"x": 10}' AS json) |
+    +---------------------------+
+    | {"x": 10}                 |
+    +---------------------------+
+    SELECT 1 row in set (... sec)
+
+Casting from ``JSON`` to ``OBJECT``::
+
+    cr> SELECT ('{"x": 10}'::json)::object;
+    +-------------------------------------------+
+    | CAST(CAST('{"x": 10}' AS json) AS object) |
+    +-------------------------------------------+
+    | {"x": 10}                                 |
+    +-------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+Casting from ``OBJECT`` to ``JSON``::
+
+    cr> SELECT {x=10}::json;
+    +-------------------------+
+    | CAST({"x"= 10} AS json) |
+    +-------------------------+
+    | {"x":10}                |
+    +-------------------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _type-float_vector:
 
 ``FLOAT_VECTOR``
@@ -3864,6 +3866,8 @@ See the table below for a full list of aliases:
 +-----------------------+---------------------------------+
 | Alias                 | CrateDB Type                    |
 +=======================+=================================+
+| ``BOOL``              | ``BOOLEAN``                     |
++-----------------------+---------------------------------+
 | ``SHORT``             | ``SMALLINT``                    |
 +-----------------------+---------------------------------+
 | ``INT``               | ``INTEGER``                     |

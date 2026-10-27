@@ -37,6 +37,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkAddress;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.Streamer;
 import io.crate.common.collections.Lists;
@@ -131,6 +132,11 @@ public class IpType extends DataType<String> implements Streamer<String> {
         public LuceneCollectorExpression<String> getLuceneExpression(Reference ref,
                                                                      Predicate<Reference> isParentIgnored) {
             return new IpColumnReference(ref.storageIdent());
+        }
+
+        @Override
+        public String decode(DataType<String> type, XContentParser parser) throws IOException {
+            return parser.text();
         }
     };
 

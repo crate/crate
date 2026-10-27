@@ -1,0 +1,155 @@
+.. _version_6.4.7:
+
+==========================
+Version 6.4.7 - Unreleased
+==========================
+
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+.. NOTE::
+
+    In development. 6.4.7 isn't released yet. These are the release notes for
+    the upcoming release.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 5.0.0 or higher
+    before you upgrade to 6.4.7.
+
+    We recommend that you upgrade to the latest 6.3 release before moving to
+    6.4.7.
+
+    A rolling upgrade from >= 6.3.0 to 6.4.7 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 5.x will not function with 6.x
+    and must be recreated before moving to 6.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://cratedb.com/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_6.4.0` release notes for a full list of changes in the 6.4
+series.
+
+Fixes
+=====
+
+- Fixed an issue that caused queries on partitioned tables to exclude matching
+  partitions if it had a partitioned column derived via a generated expression,
+  and if that generated expression was included within the query via range
+  filter.
+
+- Added missing support for the :ref:`UUID <type-uuid>` type to the
+  :ref:`hyperloglog_distinct <aggregation-hyperloglog-distinct>` aggregation.
+
+- Fixed an issue where a logical replication subscription's active connection
+  could be unexpectedly closed when an earlier connection attempt for a
+  subscription with the same name failed afterwards. As a consequence, both
+  data replication and metadata tracking could stop for the affected
+  subscription.
+
+- Fixed an issue where logical replication metadata tracking could stop after a
+  subscriber restart if the connection to the publisher was not ready. As a
+  consequence, schema changes and new partitions could fail to replicate,
+  while data replication on existing partitions could continue.
+
+- Fixed an issue where data replication on existing partitions could stall
+  after a publisher restart when using
+  :ref:`pg_tunnel mode <sql-create-subscription-conn-info>` for logical
+  replication.
+
+- Fixed an issue which caused the ``optimizer_eliminate_cross_join`` rule to
+  drop non-equality filters (e.g., a greater-than condition) that are combined
+  with an equality filter over the same two tables. The issue also caused
+  ``NOT`` conditions to be negated. This led to wrong results. In this example::
+
+      SELECT t1.x, t2.y, t3.z
+      FROM t1, t2, t3
+      WHERE t1.x = t2.y
+        AND t1.i > t2.i
+        AND t2.y = t3.z;
+
+  The query would behave like::
+
+      SELECT t1.x, t2.y, t3.z
+      FROM t1, t2, t3
+      WHERE t1.x = t2.y
+        AND t2.y = t3.z;
+
+  A ``NOT`` condition like ``t1.x = t2.y AND NOT (t1.a = t2.b)`` was turned into
+  ``t1.x = t2.y AND (t1.a = t2.b)``.
+
+- Disabled the optimizer rule ``optimizer_reorder_nested_loop_join`` by default
+  to fix a performance regression of cross and outer joins that could happen if
+  a query was run on multiple nodes and table statistics were available.
+
+- Fixed an issue preventing creation of a
+  :ref:`publication <logical-replication-publication>` if it included a table
+  that is included into another publication.
+
+- Fixed an issue where the ``optimizer_eliminate_cross_join`` rule wouldn't
+  eliminate a cross join even though there's a matching equality condition in
+  the ``WHERE`` clause that can transform it into an inner join. Here's an
+  example::
+
+      SELECT t1.x, t2.y, t3.z, t4.id
+      FROM t1
+      CROSS JOIN t2
+      CROSS JOIN t3
+      JOIN t4 ON t2.y = t4.id AND t3.z = t4.id
+      WHERE t1.x = t3.z
+        AND t1.i > 0;
+
+  Previously, the resulting plan would contain a cross join. With the fix, the
+  plan contains inner joins only and hence the query performs better.
+
+- Fixed an issue that caused queries with filtered nested ``CROSS JOIN``s to
+  return incorrect results when ``optimizer_eliminate_cross_join`` was set to
+  ``false`` and a filter above the join tree referenced only one side of the
+  current cross join, e.g.::
+
+    SET optimizer_eliminate_cross_join = false;
+
+    SELECT t1.x, t2.y, t3.z
+    FROM t1
+    CROSS JOIN t2
+    CROSS JOIN t3
+    WHERE t1.x = t2.y
+      AND t1.x = t3.z
+      AND t2.y = t3.z;
+
+- Fixed an issue where double quotes and backslashes in array elements (e.g.
+  ``TEXT[]``) weren't escaped when sent over the PostgreSQL wire protocol in
+  text format. This caused clients to parse the elements incorrectly.
+
+- Fixed an issue that caused inner join queries to fail when a join condition
+  referenced multiple tables that are all on one side of the join, e.g.::
+
+    SELECT t1.x, t2.y, t3.z
+    FROM t1
+    JOIN t2 ON t1.a = t2.b
+    JOIN t3 ON t1.x = t2.y AND t1.x = t3.z;
+
+  A query like this used to fail with ``Index 1 out of bounds for length 1``.
+
+- Fixed an issue causing :ref:`CREATE SUBSCRIPTION<sql-create-subscription>` to
+  get stuck if :ref:`pg_tunnel mode <sql-create-subscription-conn-info>` was
+  used together with  ``sslmode`` set to ``prefer`` or ``required`` and
+  subscriber cluster didn't trust publisher cluster's certificate.
+
+- Fixed an issue where dropping a table on the publisher cluster left it in
+  publications that explicitly listed it. Dropping a table now also removes it
+  from those publications. References to non-existent tables in publications
+  are also removed when a node restarts.

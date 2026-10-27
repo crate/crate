@@ -22,6 +22,7 @@
 package io.crate.protocols.postgres.types;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -86,6 +87,22 @@ public class PGArrayTest extends BasePGTypeTest<List<Object>> {
         assertThat(
             new String(bytes, StandardCharsets.UTF_8)).isEqualTo("{\"{\\\"values\\\":[\\\"foo \\\\\\\"\\\"]}\"}");
         assertThat(PGArray.JSON_ARRAY.decodeUTF8Text(bytes, null)).isEqualTo(actual);
+    }
+
+    @Test
+    public void test_string_encode_decode_round_trip_with_escaped_quotes_slashes() {
+        List<Object> actual = List.of("crate\"db", "crate\\db");
+        String expected = "{\"crate\\\"db\",\"crate\\\\db\"}";
+
+        for (var arrayType : List.of(PGArray.VARCHAR_ARRAY, PGArray.TEXT_ARRAY)) {
+            byte[] bytes = arrayType.encodeAsUTF8Text(actual);
+            assertThat(new String(bytes, StandardCharsets.UTF_8))
+                .as(arrayType.typName())
+                .isEqualTo(expected);
+            assertThat(arrayType.decodeUTF8Text(bytes, null))
+                .as(arrayType.typName())
+                .isEqualTo(actual);
+        }
     }
 
     @Test
@@ -208,6 +225,19 @@ public class PGArrayTest extends BasePGTypeTest<List<Object>> {
         Object targetArray = pgArray.readBinaryValue(buffer, length);
         buffer.release();
         assertThat(targetArray).isEqualTo(source);
+    }
+
+    @Test
+    public void test_dimensions_larger_than_readable_bytes_fail() throws Exception {
+        ByteBuf buf = Unpooled.buffer();
+        try {
+            buf.writeInt(200_000);
+            assertThatThrownBy(() -> pgArray.readBinaryValue(buf, 20))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid number of dimensions: 200000");
+        } finally {
+            buf.release();
+        }
     }
 
     @Test

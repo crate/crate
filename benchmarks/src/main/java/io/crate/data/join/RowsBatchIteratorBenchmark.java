@@ -58,8 +58,8 @@ import io.crate.execution.engine.window.WindowFunction;
 import io.crate.execution.engine.window.WindowFunctionBatchIterator;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
@@ -91,7 +91,7 @@ public class RowsBatchIteratorBenchmark {
             Signature.builder(LAST_VALUE_NAME, FunctionType.WINDOW)
                 .argumentTypes(TypeSignature.parse("E"))
                 .returnType(TypeSignature.parse("E"))
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             List.of(DataTypes.INTEGER),

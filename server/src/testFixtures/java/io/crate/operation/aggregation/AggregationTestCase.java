@@ -24,6 +24,7 @@ package io.crate.operation.aggregation;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.within;
 import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
 import static org.mockito.Mockito.mock;
@@ -33,6 +34,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,13 +54,10 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.TestShardRouting;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexService;
@@ -93,8 +92,6 @@ import io.crate.data.ArrayBucket;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
-import io.crate.execution.ddl.tables.MappingUtil;
-import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
 import io.crate.execution.dsl.phases.CollectPhase;
@@ -103,6 +100,10 @@ import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.execution.engine.aggregation.impl.ArbitraryAggregation;
+import io.crate.execution.engine.aggregation.impl.CmpByAggregation;
+import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
+import io.crate.execution.engine.aggregation.impl.PercentileAggregation;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.DocValuesAggregates;
 import io.crate.execution.engine.collect.MapSideDataCollectOperation;
@@ -241,6 +242,15 @@ public abstract class AggregationTestCase extends ESTestCase {
             var resultWithoutDocValues = assertAndGetMergedIterAndPartial(
                 aggregationFunction, terminatePartialAggFunction, partialResultWithoutDocValues);
 
+            if (aggregationFunction.signature().hasFeature(Signature.Feature.ORDER_SENSITIVE) == false &&
+                aggregationFunction.signature().getName().name().equals(PercentileAggregation.NAME) == false &&
+                aggregationFunction.signature().getName().name().equals(ArbitraryAggregation.NAME) == false &&
+                aggregationFunction.signature().getName().name().equals(CollectSetAggregation.NAME) == false &&
+                aggregationFunction.signature().getName().name().equals(CmpByAggregation.MAX_BY) == false &&
+                aggregationFunction.signature().getName().name().equals(CmpByAggregation.MIN_BY) == false) {
+                assertResultIsOrderInsensitive(aggregationFunction, terminatePartialAggFunction, data, randomExtraStates, resultWithoutDocValues);
+            }
+
             // assert that aggregations with/-out doc values yield the
             // same result, if a doc value aggregator exists.
             if (partialResultWithDocValues != null) {
@@ -281,6 +291,39 @@ public abstract class AggregationTestCase extends ESTestCase {
         assertThat(result2).as("iter->final should have the same result as partial->final")
             .isEqualTo(result1);
         return result1;
+    }
+
+    /**
+     * Aggregations not marked with {@link Signature.Feature#ORDER_SENSITIVE} must produce the same
+     * result regardless of the consumption order of the input rows.
+     *
+     * @param data must not be mutated as it can be used in order sensitive aggregations.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void assertResultIsOrderInsensitive(AggregationFunction aggregationFunction,
+                                                AggregationFunction terminatePartialAggFunction,
+                                                Object[][] data,
+                                                boolean randomExtraStates,
+                                                Object expectedResult) {
+        List<Object[]> shuffledRows = new ArrayList<>(Arrays.asList(data));
+        Collections.shuffle(shuffledRows, random());
+        Object[][] shuffledData = shuffledRows.toArray(new Object[0][]);
+
+        Object shuffledResult = assertAndGetMergedIterAndPartial(
+            aggregationFunction,
+            terminatePartialAggFunction,
+            execPartialAggregationWithoutDocValues(aggregationFunction, shuffledData, randomExtraStates, Version.CURRENT)
+        );
+        String reason = String.format(
+            "%s is not ORDER_SENSITIVE but is sensitive to input order",
+            aggregationFunction.signature().getName().toString());
+        if (expectedResult instanceof Double expectedDouble) {
+            assertThat((Double) shuffledResult).as(reason).isEqualTo(expectedDouble, within(Double.valueOf(0.01)));
+        } else if (expectedResult instanceof Float expectedFloat) {
+            assertThat((Float) shuffledResult).as(reason).isEqualTo(expectedFloat, within(Float.valueOf(0.01f)));
+        } else {
+            assertThat(shuffledResult).as(reason).isEqualTo(expectedResult);
+        }
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -443,26 +486,13 @@ public abstract class AggregationTestCase extends ESTestCase {
         }
     }
 
-    private static XContentBuilder buildMapping(List<Reference> targetColumns) throws IOException {
-        Map<String, Map<String, Object>> properties = MappingUtil.toProperties(
-            AllocPosition.forNewTable(),
-            null,
-            Reference.buildTree(targetColumns)
-        );
-        return JsonXContent.builder()
-            .startObject()
-            .field("properties", properties == null ? Map.of() : properties)
-            .endObject();
-    }
-
     /**
      * Creates a new empty primary shard and starts it.
      */
     public static IndexShard newStartedPrimaryShard(NodeContext nodeCtx,
                                                     List<Reference> targetColumns,
                                                     ThreadPool threadPool) throws Exception {
-        var mapping = buildMapping(targetColumns);
-        IndexShard shard = newPrimaryShard(nodeCtx, mapping, threadPool);
+        IndexShard shard = newPrimaryShard(nodeCtx, threadPool);
         shard.markAsRecovering(
             "store",
             new RecoveryState(
@@ -501,7 +531,7 @@ public abstract class AggregationTestCase extends ESTestCase {
      * Creates a new initializing primary shard.
      * The shard will have its own unique data path.
      */
-    private static IndexShard newPrimaryShard(NodeContext nodeCtx, XContentBuilder mapping, ThreadPool threadPool) throws IOException {
+    private static IndexShard newPrimaryShard(NodeContext nodeCtx, ThreadPool threadPool) throws IOException {
         ShardRouting routing = TestShardRouting.newShardRouting(
             new ShardId(PARTITION_NAME.relationName().indexNameOrAlias(), UUIDs.base64UUID(), 0),
             randomAlphaOfLength(10),
@@ -519,7 +549,6 @@ public abstract class AggregationTestCase extends ESTestCase {
             .indexName(routing.index().name())
             .settings(indexSettings)
             .primaryTerm(0, 1)
-            .putMapping(Strings.toString(mapping))
             .build();
         var shardId = routing.shardId();
         var nodePath = new NodeEnvironment.NodePath(createTempDir());

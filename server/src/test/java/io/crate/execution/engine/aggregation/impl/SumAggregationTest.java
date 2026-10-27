@@ -39,9 +39,9 @@ import io.crate.execution.engine.aggregation.sum.SumAggregation;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -56,7 +56,7 @@ public class SumAggregationTest extends AggregationTestCase {
                 Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
                         .argumentTypes(argumentType.getTypeSignature())
                         .returnType(returnType.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 data,
                 List.of()
@@ -121,7 +121,7 @@ public class SumAggregationTest extends AggregationTestCase {
         Signature signature = Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
                 .argumentTypes(DataTypes.FLOAT.getTypeSignature())
                 .returnType(DataTypes.FLOAT.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build();
         Object result = executeAggregation(
             signature,
@@ -185,7 +185,7 @@ public class SumAggregationTest extends AggregationTestCase {
                         Signature.builder(IntervalSumAggregation.NAME, FunctionType.AGGREGATE)
                                 .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
                                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                                .features(Scalar.Feature.DETERMINISTIC)
+                                .features(Feature.DETERMINISTIC)
                                 .build(),
                         List.of(DataTypes.INTERVAL),
                         DataTypes.INTERVAL

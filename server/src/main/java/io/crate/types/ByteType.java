@@ -26,9 +26,9 @@ import java.math.BigDecimal;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import io.crate.Streamer;
 import io.crate.execution.dml.IntIndexer;
@@ -40,7 +40,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStatsSupport;
 
-public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWidthType {
+public class ByteType extends IntegralType<Byte> implements Streamer<Byte>, FixedWidthType {
 
     public static final ByteType INSTANCE = new ByteType();
     public static final int ID = 2;
@@ -63,16 +63,15 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
             return (byte) input;
         }
 
-        // byte is indexed by IntIndexer, so its points are 4 bytes wide.
-        @Override
-        public Byte decode(byte[] packedPoint) {
-            return (byte) NumericUtils.sortableBytesToInt(packedPoint, 0);
-        }
-
         @SuppressWarnings({ "rawtypes", "unchecked" })
         public LuceneCollectorExpression<Number> getLuceneExpression(Reference ref,
                                                                      Predicate<Reference> isParentIgnored) {
             return (LuceneCollectorExpression) new ByteColumnReference(ref.storageIdent());
+        }
+
+        @Override
+        public Byte decode(DataType<Number> type, XContentParser parser) throws IOException {
+            return (byte) parser.intValue();
         }
     };
 

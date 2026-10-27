@@ -40,7 +40,6 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -59,6 +58,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.session.BaseResultReceiver;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
@@ -1074,14 +1074,9 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   author object(dynamic) as (name string)" +
             ") partitioned by(date) with (number_of_replicas=0)");
         execute("insert into quotes (id, quote, date, author) values(?, ?, ?, ?), (?, ?, ?, ?)",
-            new Object[]{1, "Don't panic", 1395874800000L,
-                new HashMap<String, Object>() {{
-                        put("name", "Douglas");
-                    }},
-                2, "Time is an illusion. Lunchtime doubly so", 1395961200000L,
-                new HashMap<String, Object>() {{
-                        put("name", "Ford");
-                    }}
+            new Object[]{
+                1, "Don't panic", 1395874800000L, Map.of("name", "Douglas"),
+                2, "Time is an illusion. Lunchtime doubly so", 1395961200000L, Map.of("name", "Ford")
             });
         ensureYellow();
         execute("refresh table quotes");
@@ -1090,11 +1085,12 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(5L);
 
         execute("insert into quotes (id, quote, date, author) values(?, ?, ?, ?)",
-            new Object[]{3, "I'd far rather be happy than right any day", 1395874800000L,
-                new HashMap<String, Object>() {{
-                        put("name", "Douglas");
-                        put("surname", "Adams");
-                    }}
+            new Object[]{
+                3, "I'd far rather be happy than right any day", 1395874800000L,
+                Map.of(
+                    "name", "Douglas",
+                    "surname", "Adams"
+                )
             });
         ensureYellow();
         execute("refresh table quotes");
@@ -1961,7 +1957,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("refresh table t1");
 
         Asserts.assertSQLError(() -> execute("select id/0 from t1"))
-            .hasPGError(INTERNAL_ERROR)
+            .hasPGError(PGErrorStatus.DATA_EXCEPTION)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("/ by zero");
     }
@@ -2185,7 +2181,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(printedTable(response.rows())).isEqualTo(
             "Eval[p, name]\n" +
             "  └ Fetch[p, name, ordinal]\n" +
-            "    └ Limit[100::bigint;0]\n" +
+            "    └ Limit[100;0]\n" +
             "      └ OrderBy[ordinal ASC]\n" +
             "        └ Collect[doc.tbl | [_fetchid, ordinal] | true]\n"
         );
@@ -2321,5 +2317,34 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows(
             "1| true| 11",
             "1| true| 111");
+    }
+
+    @Test
+    public void test_partition_narrowing_with_closed_partitions() throws Exception {
+        execute(
+            """
+            CREATE TABLE IF NOT EXISTS tbl (
+                ts TIMESTAMP WITHOUT TIME ZONE,
+                pdate TIMESTAMP WITHOUT TIME ZONE GENERATED ALWAYS AS date_trunc('day', ts)
+            )
+            PARTITIONED BY (pdate)
+            CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)
+            """
+        );
+        execute(
+            """
+            INSERT INTO tbl (ts) VALUES
+                ('2026-10-13 10:00:00'),
+                ('2026-10-13 11:00:00'),
+                ('2026-10-14 10:00:00'),
+                ('2026-10-14 11:00:00'),
+                ('2026-10-15 10:00:00'),
+                ('2026-10-15 11:00:00')
+            """
+        );
+        execute("refresh table tbl");
+        execute("alter table tbl partition (pdate = '2026-10-14') close");
+        execute("select count(*) from tbl where pdate >= '2026-10-14'");
+        assertThat(response).hasRows("2");
     }
 }

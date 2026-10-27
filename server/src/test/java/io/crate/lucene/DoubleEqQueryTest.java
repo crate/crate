@@ -72,7 +72,7 @@ public class DoubleEqQueryTest extends LuceneQueryBuilderTest {
     public void test_DoubleEqQuery_rangeQuery() {
         Query query = convert("a1 > 1.1");
         assertThat(query.getClass().getName()).endsWith("DoublePoint$1"); // the query class is anonymous
-        assertThat(query).hasToString("a1:[1.1000000000000003 TO Infinity]");
+        assertThat(query).hasToString("a1:[1.1000000000000003 TO NaN]");
 
         query = convert("a2 < 1.1");
         // SortedNumericDocValuesRangeQuery.class is not public
@@ -83,7 +83,7 @@ public class DoubleEqQueryTest extends LuceneQueryBuilderTest {
 
         query = convert("a3 >= 1.1");
         assertThat(query.getClass().getName()).endsWith("DoublePoint$1"); // the query class is anonymous
-        assertThat(query).hasToString("a3:[1.1 TO Infinity]");
+        assertThat(query).hasToString("a3:[1.1 TO NaN]");
 
         query = convert("a4 <= 1.1");
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);

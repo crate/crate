@@ -36,6 +36,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,8 +49,11 @@ import io.crate.analyze.AnalyzedClose;
 import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDeclare;
+import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedDiscard;
+import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterTypes;
@@ -90,6 +94,7 @@ import io.crate.protocols.postgres.JobsLogsUpdateListener;
 import io.crate.protocols.postgres.Portal;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.protocols.postgres.parser.PgArrayParser;
+import io.crate.role.Role;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Declare;
@@ -145,9 +150,6 @@ public class Session implements AutoCloseable {
     @VisibleForTesting
     final Map<Statement, List<DeferredExecution>> deferredExecutionsByStmt = new LinkedHashMap<>();
 
-    @VisibleForTesting
-    @Nullable
-    CompletableFuture<?> activeExecution;
     @Nullable
     private UUID mostRecentJobID;
 
@@ -165,6 +167,10 @@ public class Session implements AutoCloseable {
 
     private TransactionState currentTransactionState = TransactionState.IDLE;
     private volatile String lastStmt;
+
+    /// Name of the authenticated or session user if it was dropped while the session was open.
+    @Nullable
+    private volatile String droppedUser;
 
 
     /**
@@ -239,6 +245,7 @@ public class Session implements AutoCloseable {
      */
     public void quickExec(String statement, ResultReceiver<?> resultReceiver, Row params) {
         lastStmt = statement;
+        ensureUserNotDropped();
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(sessionSettings);
         validateStatementLength(statement);
         Statement parsedStmt = SqlParser.createStatement(statement);
@@ -318,6 +325,30 @@ public class Session implements AutoCloseable {
         Plan.execute(plan, executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
     }
 
+    /// Invalidates the session if its authenticated or session user doesn't exist anymore.
+    void invalidateIfUserDropped(Predicate<String> userExists) {
+        for (Role user : List.of(sessionSettings.authenticatedUser(), sessionSettings.sessionUser())) {
+            if (!userExists.test(user.name())) {
+                droppedUser = user.name();
+                return;
+            }
+        }
+    }
+
+    private void ensureUserNotDropped() {
+        String user = droppedUser;
+        if (user != null) {
+            throw new IllegalStateException("User \"" + user + "\" was dropped");
+        }
+    }
+
+    /// Statements are authorized when they're analyzed, but prepared statements and portals can be
+    /// executed later on, so the authorization checks must be repeated.
+    private void ensureMayExecute(AnalyzedStatement analyzedStatement) {
+        ensureUserNotDropped();
+        analyzer.ensureMayExecute(analyzedStatement, sessionSettings);
+    }
+
     private Portal getSafePortal(String portalName) {
         Portal portal = portals.get(portalName);
         if (portal == null) {
@@ -376,6 +407,7 @@ public class Session implements AutoCloseable {
         AnalyzedStatement analyzedStatement;
         DataType<?>[] parameterTypes;
         try {
+            ensureUserNotDropped();
             analyzedStatement = analyzer.analyze(
                 statement,
                 sessionSettings,
@@ -523,6 +555,8 @@ public class Session implements AutoCloseable {
         Portal portal = getSafePortal(portalName);
         var activeConsumer = portal.activeConsumer();
         if (activeConsumer != null && activeConsumer.suspended()) {
+            // The user may have been dropped or lost privileges since the portal was executed initially
+            ensureMayExecute(portal.analyzedStatement());
             activeConsumer.replaceResultReceiver(resultReceiver, maxRows);
             activeConsumer.resume();
             return resultReceiver.completionFuture();
@@ -558,9 +592,11 @@ public class Session implements AutoCloseable {
                 close();
             }
             resultReceiver.allFinished();
-        } else if (analyzedStmt.isWriteOperation()) {
-            /* We defer the execution for any other statements to `sync` messages so that we can efficiently process
-             * bulk operations. E.g. If we receive `INSERT INTO (x) VALUES (?)` bindings/execute multiple times
+        } else if (analyzedStmt instanceof AnalyzedInsertStatement
+                || analyzedStmt instanceof AnalyzedUpdateStatement
+                || analyzedStmt instanceof AnalyzedDeleteStatement) {
+            /* We defer the execution for insert, update and delete to `sync` for efficient bulk operations
+             * E.g. If we receive `INSERT INTO (x) VALUES (?)` bindings/execute multiple times
              * We want to create bulk requests internally:                                                          /
              * - To reduce network overhead
              * - To have 1 disk flush per shard instead of 1 disk flush per item
@@ -576,7 +612,7 @@ public class Session implements AutoCloseable {
                 portal.preparedStmt().parsedStatement(),
                 _ -> new ArrayList<>()
             ).add(new DeferredExecution(portal, maxRows, resultReceiver));
-            return resultReceiver.completionFuture();
+            return null;
         } else {
             if (analyzedStmt instanceof AnalyzedClose close) {
                 String cursorName = close.cursorName();
@@ -588,43 +624,23 @@ public class Session implements AutoCloseable {
                 }
             }
             if (!deferredExecutionsByStmt.isEmpty()) {
-                throw new UnsupportedOperationException(
-                    "Only write operations are allowed in Batch statements");
-            }
-            if (activeExecution == null) {
-                activeExecution = singleExec(portal, resultReceiver, maxRows);
-            } else {
-                activeExecution = activeExecution
+                return triggerDeferredExecutions(false)
                     .thenCompose(_ -> singleExec(portal, resultReceiver, maxRows));
+            } else {
+                return singleExec(portal, resultReceiver, maxRows);
             }
-            return activeExecution;
         }
         return null;
     }
 
-    public void flush() {
+    public CompletableFuture<?> flush() {
         assert !deferredExecutionsByStmt.isEmpty()
             : "Session.flush() must only be called if there are deferred executions";
-
-        // This will make `sync` use the triggered execution instead of
-        // returning a new completed future.
-        //
-        // We need to wait for the operation that is now being triggered to complete
-        // before any further messages are sent to clients.
-        // E.g. PostgresWireProtocol would otherwise send a `ReadyForQuery` message too
-        // early.
-        activeExecution = triggerDeferredExecutions(false);
+        return triggerDeferredExecutions(false);
     }
 
     public CompletableFuture<?> sync(boolean forceBulk) {
-        if (activeExecution == null) {
-            return triggerDeferredExecutions(forceBulk);
-        } else {
-            LOGGER.debug("method=sync activeExecution={}", activeExecution);
-            var result = activeExecution;
-            activeExecution = null;
-            return result;
-        }
+        return triggerDeferredExecutions(forceBulk);
     }
 
     public List<LocStmt> simpleQuery(String queryString) {
@@ -742,6 +758,7 @@ public class Session implements AutoCloseable {
 
         Plan plan;
         try {
+            ensureMayExecute(analyzedStatement);
             plan = planner.plan(analyzedStatement, plannerContext);
             timeoutToken.check("bulkExec:plan");
         } catch (Throwable t) {
@@ -891,6 +908,7 @@ public class Session implements AutoCloseable {
         }
         Plan plan;
         try {
+            ensureMayExecute(analyzedStmt);
             plan = planner.plan(analyzedStmt, plannerContext);
             timeoutToken.check("singleExec:plan");
         } catch (Throwable t) {
@@ -1014,7 +1032,6 @@ public class Session implements AutoCloseable {
     public void close() {
         currentTransactionState = TransactionState.IDLE;
         resetDeferredExecutions();
-        activeExecution = null;
         for (Portal portal : portals.values()) {
             portal.closeActiveConsumer();
         }

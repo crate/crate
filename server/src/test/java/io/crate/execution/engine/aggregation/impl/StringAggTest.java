@@ -25,17 +25,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.junit.Test;
 
+import io.crate.collections.accountable.AccountableList;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.testing.PlainRamAccounting;
 import io.crate.types.DataTypes;
@@ -106,22 +108,25 @@ public class StringAggTest extends AggregationTestCase {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build(),
             List.of(DataTypes.STRING),
             DataTypes.STRING
         );
         RamAccounting ramAccounting = new PlainRamAccounting();
         Object state = impl.newState(ramAccounting, Version.CURRENT, memoryManager);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(24L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(
+            RamUsageEstimator.shallowSizeOfInstance(StringAgg.StringAggState.class)
+                + RamUsageEstimator.shallowSizeOfInstance(AccountableList.class) // Added by AccountableList for itself
+        );
         impl.iterate(ramAccounting, memoryManager, state, Literal.of("trillian"), Literal.of("delim"));
         impl.iterate(ramAccounting, memoryManager, state, Literal.of("arthur"), Literal.of("delimiter"));
         impl.iterate(ramAccounting, memoryManager, state, Literal.of("john"), Literal.NULL);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(408L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(392);
         impl.removeFromAggregatedState(ramAccounting, state,
             new Input[] {Literal.of("trillian"), Literal.of("delim")});
-        assertThat(ramAccounting.totalBytes()).isEqualTo(224L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(272);
         impl.terminatePartial(ramAccounting, state);
-        assertThat(ramAccounting.totalBytes()).isEqualTo(224L);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(272);
     }
 }

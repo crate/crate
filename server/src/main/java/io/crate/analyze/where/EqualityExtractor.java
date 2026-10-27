@@ -57,9 +57,9 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.session.Session;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -71,7 +71,7 @@ public class EqualityExtractor {
         Signature.builder("null_marker", FunctionType.SCALAR)
             .argumentTypes()
             .returnType(DataTypes.UNDEFINED.getTypeSignature())
-            .features(Scalar.Feature.DETERMINISTIC)
+            .features(Feature.DETERMINISTIC)
             .build(),
         List.of(),
         DataTypes.UNDEFINED

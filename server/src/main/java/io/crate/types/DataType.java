@@ -50,6 +50,17 @@ import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 import io.crate.statistics.ColumnStatsSupport;
 
+/// Represents a type supported in CrateDB, either in-memory only or also for persistence (via [#storageSupport()]
+///
+/// A full data type implementation needs an implementation of this class and some extensions in:
+/// - [io.crate.types.DataTypes]
+/// - [io.crate.expression.symbol.LiteralValueFormatter] if the DataType uses a new value type
+/// - [io.crate.protocols.postgres.types.PGTypes] and a [io.crate.protocols.types.PGType] implementation if necessary
+/// - [io.crate.server.xcontent.ServerXContentExtension] for outgoing HTTP streaming
+/// - [io.crate.execution.engine.sort.LuceneSort] if [#sortSupport()] returns [Sort#SORT_FIELD] and [io.crate.expression.reference.doc.lucene.NullSentinelValues]
+/// - `DataTypeTesting.getDataGenerator`
+/// - A test case extending `DataTypeTestCase`
+/// - `SQLTransportExecutor` - `toJdbcCompatObject` and `executeAndConvertResult`
 public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable, Comparator<T>, Accountable {
 
     /**

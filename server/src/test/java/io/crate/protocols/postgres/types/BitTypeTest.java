@@ -22,12 +22,15 @@
 package io.crate.protocols.postgres.types;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.StandardCharsets;
 
 import org.junit.jupiter.api.Test;
 
 import io.crate.sql.tree.BitString;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public class BitTypeTest {
 
@@ -39,5 +42,19 @@ public class BitTypeTest {
     @Test
     public void test_can_decode_text_with_B_prefix() {
         assertThat(BitType.INSTANCE.decodeUTF8Text("B'0010'".getBytes(StandardCharsets.UTF_8), null)).isEqualTo(BitString.ofRawBits("0010"));
+    }
+
+    @Test
+    public void test_readbinary_fails_if_bytelen_exceeds_readable_bytes() throws Exception {
+        ByteBuf buf = Unpooled.buffer();
+        try {
+            buf.writeInt(200_000); // bit length
+            assertThatThrownBy(() -> BitType.INSTANCE.readBinaryValue(buf, 20))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid bit length: 200000");
+        } finally {
+            buf.release();
+        }
+
     }
 }

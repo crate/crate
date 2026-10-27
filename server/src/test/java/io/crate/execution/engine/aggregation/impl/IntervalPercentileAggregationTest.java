@@ -36,8 +36,8 @@ import org.junit.Test;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -50,7 +50,7 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
                 .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature())
                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build(),
             rows,
             List.of()
@@ -63,7 +63,7 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
                 .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
                     DataTypes.DOUBLE_ARRAY.getTypeSignature())
                 .returnType(new ArrayType<>(DataTypes.INTERVAL).getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build(),
             rows,
             List.of()
@@ -81,7 +81,7 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
                 .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature())
                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build(),
             List.of(DataTypes.INTERVAL, DataTypes.DOUBLE),
             DataTypes.INTERVAL
@@ -91,7 +91,7 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
                 .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
                     DataTypes.DOUBLE_ARRAY.getTypeSignature())
                 .returnType(new ArrayType<>(DataTypes.INTERVAL).getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build(),
             List.of(DataTypes.INTERVAL, DataTypes.DOUBLE_ARRAY),
             new ArrayType<>(DataTypes.INTERVAL)
@@ -244,7 +244,7 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature())
             .returnType(DataTypes.INTERVAL.getTypeSignature())
-            .features(Scalar.Feature.DETERMINISTIC)
+            .features(Feature.DETERMINISTIC)
             .build();
 
         double fraction = 0.5;
@@ -373,7 +373,7 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
                 DataTypes.DOUBLE_ARRAY.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature())
             .returnType(new ArrayType<>(DataTypes.INTERVAL).getTypeSignature())
-            .features(Scalar.Feature.DETERMINISTIC)
+            .features(Feature.DETERMINISTIC)
             .build();
 
         List<Double> fractions = Arrays.asList(0.25, 0.5, 0.75);
@@ -411,7 +411,7 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
                 .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
                     DataTypes.DOUBLE_ARRAY.getTypeSignature())
                 .returnType(new ArrayType<>(DataTypes.INTERVAL).getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build(),
             List.of(DataTypes.INTERVAL, DataTypes.DOUBLE_ARRAY),
             new ArrayType<>(DataTypes.INTERVAL)

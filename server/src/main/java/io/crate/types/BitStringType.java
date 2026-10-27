@@ -38,6 +38,7 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.jspecify.annotations.Nullable;
 
 import com.fasterxml.jackson.core.Base64Variants;
@@ -116,6 +117,11 @@ public final class BitStringType extends DataType<BitString> implements Streamer
         public LuceneCollectorExpression<BitString> getLuceneExpression(Reference ref,
                                                                         Predicate<Reference> isParentIgnored) {
             return new BitStringColumnReference(ref.storageIdent(), ref.valueType().characterMaximumLength());
+        }
+
+        @Override
+        public BitString decode(DataType<BitString> type, XContentParser parser) throws IOException {
+            return new BitString(BitSet.valueOf(parser.binaryValue()), type.characterMaximumLength());
         }
     };
 

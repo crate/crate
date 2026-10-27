@@ -23,9 +23,11 @@ package io.crate.opendal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -66,14 +68,87 @@ public class OpenDALBlobContainerTest extends ESTestCase {
     }
 
     @Test
-    public void test_blobExists_propagates_non_not_found_stat_failures() {
+    public void test_blobExists_wraps_non_not_found_stat_failures_in_IOException() {
         var failure = new OpenDALException(Code.Unexpected, "network failure");
         Operator operator = mock(Operator.class);
         when(operator.stat("file1.txt")).thenThrow(failure);
         OpenDALBlobContainer container = new OpenDALBlobContainer(BlobPath.cleanPath(), operator, 1024);
 
         assertThatThrownBy(() -> container.blobExists("file1.txt"))
-            .isSameAs(failure);
+            .isInstanceOf(IOException.class)
+            .cause().isSameAs(failure);
+    }
+
+    @Test
+    public void test_readBlob_wraps_operator_failure_in_IOException() {
+        var failure = new OpenDALException(Code.Unexpected, "network failure");
+        Operator operator = mock(Operator.class);
+        when(operator.createInputStream("dummy")).thenThrow(failure);
+        OpenDALBlobContainer container = new OpenDALBlobContainer(BlobPath.cleanPath(), operator, 1024);
+
+        assertThatThrownBy(() -> container.readBlob("dummy"))
+            .isInstanceOf(IOException.class)
+            .cause().isSameAs(failure);
+    }
+
+    @Test
+    public void test_writeBlob_wraps_operator_failure_in_IOException() {
+        var failure = new OpenDALException(Code.Unexpected, "network failure");
+        Operator operator = mock(Operator.class);
+        when(operator.createOutputStream("dummy", 1024)).thenThrow(failure);
+        OpenDALBlobContainer container = new OpenDALBlobContainer(BlobPath.cleanPath(), operator, 1024);
+
+        assertThatThrownBy(() -> container.writeBlob("dummy", null, 1024, false))
+            .isInstanceOf(IOException.class)
+            .cause().isSameAs(failure);
+    }
+
+    @Test
+    public void test_delete_wraps_operator_failure_in_IOException() {
+        var failure = new OpenDALException(Code.Unexpected, "network failure");
+        Operator operator = mock(Operator.class);
+        doThrow(failure).when(operator).removeAll("");
+        OpenDALBlobContainer container = new OpenDALBlobContainer(BlobPath.cleanPath(), operator, 1024);
+
+        assertThatThrownBy(container::delete)
+            .isInstanceOf(IOException.class)
+            .cause().isSameAs(failure);
+    }
+
+    @Test
+    public void test_deleteBlobsIgnoringIfNotExists_wraps_operator_failure_in_IOException() {
+        var failure = new OpenDALException(Code.Unexpected, "network failure");
+        Operator operator = mock(Operator.class);
+        doThrow(failure).when(operator).removeAll("dummy");
+        OpenDALBlobContainer container = new OpenDALBlobContainer(BlobPath.cleanPath(), operator, 1024);
+
+        assertThatThrownBy(() -> container.deleteBlobsIgnoringIfNotExists(List.of("dummy")))
+            .isInstanceOf(IOException.class)
+            .cause().isSameAs(failure);
+    }
+
+    @Test
+    public void test_children_wraps_operator_failure_in_IOException() {
+        var failure = new OpenDALException(Code.Unexpected, "network failure");
+        Operator operator = mock(Operator.class);
+        when(operator.list("")).thenThrow(failure);
+        OpenDALBlobContainer container = new OpenDALBlobContainer(BlobPath.cleanPath(), operator, 1024);
+
+        assertThatThrownBy(container::children)
+            .isInstanceOf(IOException.class)
+            .cause().isSameAs(failure);
+    }
+
+    @Test
+    public void test_listBlobsByPrefix_wraps_operator_failure_in_IOException() {
+        var failure = new OpenDALException(Code.Unexpected, "network failure");
+        Operator operator = mock(Operator.class);
+        when(operator.list("prefix")).thenThrow(failure);
+        OpenDALBlobContainer container = new OpenDALBlobContainer(BlobPath.cleanPath(), operator, 1024);
+
+        assertThatThrownBy(() -> container.listBlobsByPrefix("prefix"))
+            .isInstanceOf(IOException.class)
+            .cause().isSameAs(failure);
     }
 
     @Test

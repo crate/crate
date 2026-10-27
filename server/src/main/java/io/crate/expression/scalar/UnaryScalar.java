@@ -29,7 +29,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
+import io.crate.metadata.functions.Signature.Feature;
 
 
 /**
@@ -40,17 +40,12 @@ import io.crate.types.DataType;
 public class UnaryScalar<R, T> extends Scalar<R, T> {
 
     private final Function<T, R> func;
-    private final DataType<T> type;
 
     public UnaryScalar(Signature signature,
                        BoundSignature boundSignature,
-                       DataType<T> type,
                        Function<T, R> func) {
         super(signature, boundSignature);
         assert signature.hasFeature(Feature.STRICTNULL) : "A UnaryScalar is NULLABLE by definition";
-        assert boundSignature.argTypes().get(0).id() == type.id() :
-            "The bound argument type of the signature must match the type argument";
-        this.type = type;
         this.func = func;
     }
 
@@ -58,7 +53,7 @@ public class UnaryScalar<R, T> extends Scalar<R, T> {
     @Override
     public final R evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<T>... args) {
         assert args.length == 1 : "UnaryScalar expects exactly 1 argument, got: " + args.length;
-        T value = type.sanitizeValue(args[0].value());
+        T value = args[0].value();
         if (value == null) {
             return null;
         }

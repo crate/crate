@@ -26,15 +26,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.function.Supplier;
 
-import org.joda.time.Period;
 import org.junit.Test;
 
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.operation.aggregation.AggregationTestCase;
+import io.crate.testing.DataTypeTesting;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.NumericType;
@@ -118,7 +119,7 @@ public class MinimumAggregationTest extends AggregationTestCase {
                 Signature.builder(MinimumAggregation.NAME, FunctionType.AGGREGATE)
                         .argumentTypes(argumentType.getTypeSignature())
                         .returnType(argumentType.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 data,
                 List.of()
@@ -152,16 +153,31 @@ public class MinimumAggregationTest extends AggregationTestCase {
         }
     }
 
-    @Test
-    public void testDouble() throws Exception {
-        Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.8d}, {0.3d}});
-        assertThat(result).isEqualTo(0.3d);
+    private <T> void assert_min_on_primitive_type(DataType<T> type) throws Exception {
+        Supplier<T> dataGenerator = DataTypeTesting.getDataGenerator(type);
+        T val1 = dataGenerator.get();
+        T val2;
+        do {
+            val2 = dataGenerator.get();
+        } while (type.compare(val1, val2) == 0);
+
+        Object[][] data = new Object[][] {
+            { val1 },
+            { val2 }
+        };
+        Object result = executeAggregation(type, data);
+        if (type.compare(val1, val2) < 0) {
+            assertThat(result).isEqualTo(val1);
+        } else {
+            assertThat(result).isEqualTo(val2);
+        }
     }
 
     @Test
-    public void testFloat() throws Exception {
-        Object result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.8f}, {0.3f}});
-        assertThat(result).isEqualTo(0.3f);
+    public void test_min_on_primitive_types() throws Exception {
+        for (var type : DataTypes.PRIMITIVE_TYPES) {
+            assert_min_on_primitive_type(type);
+        }
     }
 
     @Test
@@ -177,41 +193,8 @@ public class MinimumAggregationTest extends AggregationTestCase {
     }
 
     @Test
-    public void testInteger() throws Exception {
-        Object result = executeAggregation(DataTypes.INTEGER, new Object[][]{{8}, {3}});
-        assertThat(result).isEqualTo(3);
-    }
-
-    @Test
-    public void testLong() throws Exception {
-        Object result = executeAggregation(DataTypes.LONG, new Object[][]{{8L}, {3L}});
-        assertThat(result).isEqualTo(3L);
-    }
-
-    @Test
-    public void testShort() throws Exception {
-        Object result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 8}, {(short) 3}});
-        assertThat(result).isEqualTo((short) 3);
-    }
-
-    @Test
     public void test_min_with_byte_argument_type() throws Exception {
         assertThat(executeAggregation(DataTypes.BYTE, new Object[][]{{(byte) 1}, {(byte) 0}})).isEqualTo(((byte) 0));
-    }
-
-    @Test
-    public void testString() throws Exception {
-        Object result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
-        assertThat(result).isEqualTo("Ruben");
-    }
-
-    @Test
-    public void test_min_on_interval() throws Exception {
-        Object result = executeAggregation(DataTypes.INTERVAL, new Object[][] {
-            { new Period(3, 2, 5, 7, 4, 30, 0, 0) },
-            { new Period(3, 2, 5, 7, 5, 50, 0, 0) }
-        });
-        assertThat(result).isEqualTo(new Period(3, 2, 5, 7, 4, 30, 0, 0));
     }
 
     @Test

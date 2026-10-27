@@ -38,7 +38,6 @@ import java.util.function.Function;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -50,6 +49,7 @@ import io.crate.auth.AccessControl;
 import io.crate.auth.Protocol;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
+import io.crate.concurrent.CountdownFuture;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
@@ -57,8 +57,10 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.netty.AccountedByteBuf;
 import io.crate.protocols.http.Headers;
+import io.crate.protocols.http.HttpAuthenticator;
 import io.crate.protocols.http.HttpHandler;
 import io.crate.protocols.postgres.ConnectionProperties;
+import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.session.DescribeResult;
 import io.crate.session.ResultReceiver;
@@ -89,11 +91,11 @@ public class SqlHttpHandler extends HttpHandler<FullHttpRequest> {
     @VisibleForTesting
     Session session;
 
-    public SqlHttpHandler(Settings settings,
-                          Sessions sessions,
+    public SqlHttpHandler(Sessions sessions,
                           Function<String, CircuitBreaker> circuitBreakerProvider,
-                          Roles roles) {
-        super(settings, sessions, roles);
+                          Roles roles,
+                          HttpAuthenticator authenticator) {
+        super(sessions, roles, authenticator);
         this.circuitBreakerProvider = circuitBreakerProvider;
     }
 
@@ -104,10 +106,17 @@ public class SqlHttpHandler extends HttpHandler<FullHttpRequest> {
             return;
         }
 
+        Role authenticatedUser = authenticate(ctx, request);
+        if (authenticatedUser == null) {
+            request.release();
+            return;
+        }
+
         Session session;
         Map<String, List<String>> parameters;
         try {
             session = ensureSession(
+                authenticatedUser,
                 new ConnectionProperties(
                     null, // not used
                     Netty4HttpServerTransport.getRemoteAddress(ctx.channel()),
@@ -268,9 +277,13 @@ public class SqlHttpHandler extends HttpHandler<FullHttpRequest> {
         final long startTimeInNs = System.nanoTime();
         session.parse(UNNAMED, stmt, emptyList());
         final RestBulkRowCountReceiver.Result[] results = new RestBulkRowCountReceiver.Result[bulkArgs.size()];
+        CountdownFuture allDone = new CountdownFuture(bulkArgs.size());
         for (int i = 0; i < bulkArgs.size(); i++) {
             session.bind(UNNAMED, UNNAMED, bulkArgs.get(i), null);
             var resultReceiver = new RestBulkRowCountReceiver(results, i);
+            resultReceiver.completionFuture().whenComplete((_, _) -> {
+                allDone.complete(null);
+            });
             session.execute(UNNAMED, 0, resultReceiver);
         }
         if (results.length > 0) {
@@ -282,7 +295,7 @@ public class SqlHttpHandler extends HttpHandler<FullHttpRequest> {
         }
         var sessionSettings = session.sessionSettings();
         AccessControl accessControl = roles().getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
-        return session.sync(true)
+        return session.sync(true).thenCompose(_ -> allDone)
             .thenApply(_ -> {
                 try {
                     XContentBuilder builder = new XContentBuilder(

@@ -21,6 +21,7 @@
 
 package io.crate.expression.tablefunctions;
 
+import io.crate.metadata.functions.Signature.Feature;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
 
 import java.util.Collections;
@@ -37,7 +38,6 @@ import io.crate.legacy.LegacySettings;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -57,7 +57,7 @@ public class UnnestFunction {
             Signature.builder(NAME, FunctionType.TABLE)
                 .argumentTypes(TypeSignature.parse("array(N)"))
                 .returnType(RowType.EMPTY.getTypeSignature())
-                .features(Scalar.Feature.NOTNULL, Scalar.Feature.DETERMINISTIC)
+                .features(Feature.NOTNULL, Feature.DETERMINISTIC)
                 .typeVariableConstraints(typeVariableOfAnyType("N"))
                 .setVariableArity(true)
                 .build(),
@@ -89,7 +89,7 @@ public class UnnestFunction {
             Signature.builder(NAME, FunctionType.TABLE)
                 .argumentTypes()
                 .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NOTNULL)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
             (signature, boundSignature) -> new UnnestTableFunctionImplementation(
                 signature,

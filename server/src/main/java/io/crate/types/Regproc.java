@@ -24,8 +24,8 @@ package io.crate.types;
 import java.util.Objects;
 
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.pgcatalog.OidHash;
 
 public class Regproc {
@@ -40,7 +40,7 @@ public class Regproc {
             OidHash.functionOid(Signature.builder(name, FunctionType.SCALAR)
                     .argumentTypes()
                     .returnType(DataTypes.UNDEFINED.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
+                    .features(Feature.DETERMINISTIC)
                     .build()),
             name
         );
@@ -64,7 +64,7 @@ public class Regproc {
         return Signature.builder(name, FunctionType.SCALAR)
                 .argumentTypes()
                 .returnType(DataTypes.UNDEFINED.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build();
     }
 

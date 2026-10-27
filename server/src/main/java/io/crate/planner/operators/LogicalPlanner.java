@@ -21,8 +21,10 @@
 
 package io.crate.planner.operators;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -38,6 +40,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedStatement;
@@ -53,6 +56,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.QuerySplitter;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
@@ -392,14 +396,14 @@ public class LogicalPlanner {
 
             var correlatedSubQueries = CorrelatedSubQueries.of(joinCondition);
             if (correlatedSubQueries.correlatedSubQueries().isEmpty()) {
-                return new JoinPlan(
+                return createJoinPlan(
                     joinRelation.left().accept(this, lhsOutputs),
                     joinRelation.right().accept(this, rhsOutputs),
                     joinRelation.joinType(),
                     joinCondition
                 );
             } else {
-                LogicalPlan source = new JoinPlan(
+                LogicalPlan source = createJoinPlan(
                     joinRelation.left().accept(this, lhsOutputs),
                     joinRelation.right().accept(this, rhsOutputs),
                     joinRelation.joinType(),
@@ -410,6 +414,74 @@ public class LogicalPlanner {
                 }
                 return Filter.create(source, AndOperator.join(correlatedSubQueries.correlatedSubQueries()));
             }
+        }
+
+        /// For inner joins, conditions which reference relations of only one side of the join
+        /// are moved to that side as a [Filter].
+        /// If there is no remaining condition referencing both sides, the join condition is kept as is,
+        /// so that the inner join is preserved.
+        private static LogicalPlan createJoinPlan(LogicalPlan lhs,
+                                                  LogicalPlan rhs,
+                                                  JoinType joinType,
+                                                  @Nullable Symbol joinCondition) {
+            if (joinType != JoinType.INNER) {
+                return new JoinPlan(lhs, rhs, joinType, joinCondition);
+            }
+            var split = splitJoinCondition(joinCondition, lhs.relationNames(), rhs.relationNames());
+            if (split.remaining() == null) {
+                return new JoinPlan(lhs, rhs, joinType, joinCondition);
+            }
+            return new JoinPlan(
+                Filter.create(lhs, split.left()),
+                Filter.create(rhs, split.right()),
+                joinType,
+                split.remaining()
+            );
+        }
+
+        /// @param remaining conditions referencing both sides, and non-deterministic conditions without any relation.
+        ///                  `null` if there are none.
+        /// @param left      conditions referencing only relations of the left side. `null` if there are none.
+        /// @param right     conditions referencing only relations of the right side. `null` if there are none.
+        private record SplitJoinCondition(@Nullable Symbol remaining, @Nullable Symbol left, @Nullable Symbol right) {
+        }
+
+        /// Splits a join condition into the conditions that reference relations of only one side of the join,
+        /// and the remaining conditions.
+        /// Deterministic conditions without any relation are assigned to the left side.
+        /// Non-deterministic conditions without any relation remain in the join condition.
+        private static SplitJoinCondition splitJoinCondition(@Nullable Symbol condition,
+                                                             Collection<RelationName> leftRelations,
+                                                             Collection<RelationName> rightRelations) {
+            if (condition == null) {
+                return new SplitJoinCondition(null, null, null);
+            }
+
+            Set<RelationName> lhsRelations = new HashSet<>(leftRelations);
+            Set<RelationName> rhsRelations = new HashSet<>(rightRelations);
+            List<Symbol> lhsConditions = new ArrayList<>();
+            List<Symbol> rhsConditions = new ArrayList<>();
+            List<Symbol> remainingConditions = new ArrayList<>();
+
+            for (var entry : QuerySplitter.split(condition).entrySet()) {
+                Set<RelationName> relations = entry.getKey();
+                Symbol part = entry.getValue();
+                if (relations.isEmpty() && !part.isDeterministic()) {
+                    remainingConditions.add(part);
+                } else if (lhsRelations.containsAll(relations)) {
+                    lhsConditions.add(part);
+                } else if (rhsRelations.containsAll(relations)) {
+                    rhsConditions.add(part);
+                } else {
+                    remainingConditions.add(part);
+                }
+            }
+
+            return new SplitJoinCondition(
+                AndOperator.join(remainingConditions, null),
+                AndOperator.join(lhsConditions, null),
+                AndOperator.join(rhsConditions, null)
+            );
         }
 
         @Override
@@ -499,10 +571,10 @@ public class LogicalPlanner {
             LinkedHashSet<Symbol> result = new LinkedHashSet<>();
             SequencedSet<RelationName> relationNamesFromRelation = RelationNames.getShallow(relation);
             Predicate<Symbol> collectFiltered = node -> {
-                SequencedSet<RelationName> relationNamesFromSymbol = RelationNames.getShallow(node);
-                for (RelationName relationName : relationNamesFromSymbol) {
-                    if (relationNamesFromRelation.contains(relationName)) {
-                        if (node instanceof ScopedSymbol || node instanceof Reference) {
+                if (node instanceof ScopedSymbol || node instanceof Reference) {
+                    SequencedSet<RelationName> relationNamesFromSymbol = RelationNames.getShallow(node);
+                    for (RelationName relationName : relationNamesFromSymbol) {
+                        if (relationNamesFromRelation.contains(relationName)) {
                             result.add(node);
                             break;
                         }

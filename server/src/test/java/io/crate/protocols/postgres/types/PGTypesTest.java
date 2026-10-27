@@ -25,6 +25,7 @@ import static io.crate.types.DataTypes.GEO_POINT;
 import static io.crate.types.DataTypes.GEO_SHAPE;
 import static io.crate.types.DataTypes.PRIMITIVE_TYPES;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -119,6 +120,12 @@ public class PGTypesTest extends ESTestCase {
     public void testTextOidIsMappedToString() {
         assertThat(PGTypes.fromOID(25)).isEqualTo(DataTypes.STRING);
         assertThat(PGTypes.fromOID(1009)).isEqualTo(new ArrayType<>(DataTypes.STRING));
+    }
+
+    @Test
+    public void testNameOidIsMappedToString() {
+        assertThat(PGTypes.fromOID(19)).isEqualTo(DataTypes.STRING);
+        assertThat(PGTypes.fromOID(1003)).isEqualTo(new ArrayType<>(DataTypes.STRING));
     }
 
     @Test
@@ -222,6 +229,23 @@ public class PGTypesTest extends ESTestCase {
     }
 
     @Test
+    public void test_read_binary_float_vector_fails_on_dimension_exceeding_readable_bytes() throws Exception {
+        PGFloatVectorType type = new PGFloatVectorType();
+        ByteBuf buf = Unpooled.buffer();
+        try {
+            buf.writeInt(1);
+            buf.writeInt(0);
+            buf.writeInt(0);
+            buf.writeInt(200_000);
+            assertThatThrownBy(() -> type.readBinaryValue(buf, 20))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid vector dimension: 200000");
+        } finally {
+            buf.release();
+        }
+    }
+
+    @Test
     public void test_text_float_vector_streaming_roundtrip() {
         var entry = new Entry<>(new FloatVectorType(4), new float[]{1.1f, 2.2f, 3.3f, 4.4f});
         assertThat(writeAndReadAsText(entry, PGTypes.get(entry.type))).isEqualTo(entry.value);
@@ -243,6 +267,18 @@ public class PGTypesTest extends ESTestCase {
 
         byte[] bytes = ((PGType) pgType).encodeAsUTF8Text(List.of(new Row1("foobar")));
         assertThat(new String(bytes, StandardCharsets.UTF_8)).isEqualTo("{\"(foobar)\"}");
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void test_array_of_varchar_with_length_escapes_elements() throws Exception {
+        var pgType = PGTypes.get(new ArrayType<>(StringType.of(10)));
+        assertThat(pgType.oid()).isEqualTo(PGArray.VARCHAR_ARRAY.oid());
+
+        List<Object> values = List.of("crate\"db", "crate\\db");
+        byte[] bytes = ((PGType) pgType).encodeAsUTF8Text(values);
+        assertThat(new String(bytes, StandardCharsets.UTF_8)).isEqualTo("{\"crate\\\"db\",\"crate\\\\db\"}");
+        assertThat(((PGType) pgType).decodeUTF8Text(bytes, null)).isEqualTo(values);
     }
 
     private <V> void assertEntryOfPgType(Entry<?> entry, PGType<V> pgType) {

@@ -73,8 +73,8 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(plan).isEqualTo(
             """
-            Limit[20::bigint;7::bigint]
-              └ Limit[10::bigint;5::bigint]
+            Limit[20;7]
+              └ Limit[10;5]
                 └ Collect[doc.users | [name] | true]
             """
         );

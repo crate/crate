@@ -1,16 +1,10 @@
 .. _version_6.4.6:
 
-==========================
-Version 6.4.6 - Unreleased
-==========================
+=============
+Version 6.4.6
+=============
 
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-.. NOTE::
-
-    In development. 6.4.6 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2026-10-08.
 
 .. NOTE::
 
@@ -46,6 +40,17 @@ series.
 Fixes
 =====
 
+- Fixed an issue that could cause PostgreSQL wire protocol clients to receive an
+  error like ``server sent data ("D" message) without prior row description ("T"
+  message)`` if executing write operations followed by a read operation using
+  pipelining.
+
+- Fixed an issue that could cause ``= ANY (...)`` or ``IN (...)`` expressions to
+  fail on columns of type ``UUID`` or ``NUMERIC``.
+
+- Fixed a rounding error if casting timestamp or long values before 1970-01-01
+  to ``date``.
+
 - Fixed an issue that caused order-sensitive aggregations
   (``string_agg``, ``array_agg``) applied on top of ``UNION ALL ... ORDER BY``
   to return incorrect results.
@@ -53,3 +58,71 @@ Fixes
 - Fixed an issue that could cause window functions using ``RANGE`` with
   integral ``PRECEDING``/``FOLLOWING`` bounds to compute frames incorrectly due
   to boundary overflow.
+
+- Fixed incorrect ``RANGE`` and ``ROWS`` window frames caused by overflow when
+  large frame bounds were narrowed before evaluation. Explicit ``NULL`` frame
+  bounds and negative ``ROWS`` offsets now raise an error.
+
+- Fixed an issue that caused ``CREATE SNAPSHOT`` to fail if repository had at
+  least one snapshot created before and backend storage's DELETE API was
+  temporarily unavailable.
+
+- Fixed an issue that caused ``NULL`` to always be returned for
+  ``numeric_scale`` of :ref:`information_schema.columns
+  <information_schema_columns>` table. Now it returns the defined ``scale`` for
+  ``NUMERIC``, ``0`` for integral numeric types (``BYTE``, ``SHORT``,
+  ``INTEGER``, ``LONG``) and ``NULL`` for all other types.
+
+- Fixed an issue, introduced with :ref:`version_6.3.0`, which caused
+  :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>` to always restore all
+  :ref:`foreign tables <ref-create-foreign-table>` contained in the snapshot,
+  even if they weren't requested. Foreign tables are now only restored together
+  with their :ref:`servers <ref-create-server>`, e.g. by using
+  ``RESTORE SNAPSHOT ... ALL`` or ``RESTORE SNAPSHOT ... METADATA``. A foreign
+  table restored explicitly with ``RESTORE SNAPSHOT ... TABLE`` doesn't restore
+  its server and user mappings, so it's unusable unless they already exist or
+  created manually.
+
+- Fixed a rare race condition causing the ``query`` CircuitBreaker’s state not
+  to be reset after ``KILL`` or ``CircuitBreakingException``, and leading to
+  consequent queries to fail with false positive ``CircuitBreakingException``.
+
+- Fixed a race condition in ``EXPLAIN ANALYZE`` that could cause an intermittent
+  ``NullPointerException``.
+
+- Fixed an issue that could cause logical replication of new partitions to fail
+  after restarting publisher nodes.
+
+- Fixed an issue that caused :ref:`pg_catalog.pg_publication <pg_publication>`
+  and :ref:`pg_catalog.pg_publication_tables <pg_publication_tables>` to only
+  show the publications owned by the current user, even for superusers and
+  users with the :ref:`AL <privilege_types_al>` privilege. Superusers and users
+  with ``AL`` can now see all publications.
+
+- Fixed an issue that caused a ``>`` or ``>=`` comparison on the
+  :ref:`distance <scalar-distance>` function in a ``WHERE`` clause, e.g.
+  ``WHERE distance(p, 'POINT (0 0)') > 100``, to also match rows where the
+  :ref:`GEO_POINT <data-types-geo-point>` column ``p`` is ``NULL``.
+
+- Fixed an issue that caused ``WHERE distance(p, ...) IS NULL`` to fail with an
+  ``IndexOutOfBoundsException``, and comparisons like
+  ``WHERE distance(p, NULL) > 100`` to fail with a ``NullPointerException``.
+
+- Fixed an issue where :ref:`ORDER BY <sql-select-order-by>` using a
+  :ref:`REAL <type-real>` or :ref:`DOUBLE PRECISION <type-double-precision>`
+  column returned values of ``Infinity`` as ``NULL``.
+
+- Fixed a performance regression introduced in :ref:`version_6.4.3` that
+  affected all queries running over ``HTTP`` protocol with password
+  authentication.
+
+- Fixed an issue where rows with ``NaN`` were not returned when a range filter
+  was used and the predicate evaluated to true
+
+- Fixed an `issue
+  <https://github.com/crate/crate/security/advisories/GHSA-49gw-4r68-7f6c>`__
+  that caused HTTP requests authenticated without an
+  ``Authorization`` header, e.g. using :ref:`client certificate authentication
+  <auth_cert>`, to run as the user set by
+  :ref:`auth.trust.http_default_user <auth_trust_http_default_user>`
+  (``crate`` by default) instead of the authenticated user.

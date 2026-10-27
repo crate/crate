@@ -47,6 +47,7 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jspecify.annotations.Nullable;
 
@@ -170,6 +171,10 @@ public class StringType extends DataType<String> implements Streamer<String> {
             public LuceneCollectorExpression<Object> getLuceneExpression(Reference ref,
                                                                          Predicate<Reference> isParentIgnored) {
                 return (LuceneCollectorExpression) new StringColumnReference(ref.storageIdent());
+            }
+
+            public Object decode(DataType<Object> type, XContentParser parser) throws IOException {
+                return parser.text();
             }
     };
 

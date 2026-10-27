@@ -27,8 +27,8 @@ import io.crate.expression.scalar.DoubleScalar;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -41,14 +41,13 @@ public class SignFunction {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) -> {
                 DataType<?> argType = boundSignature.argTypes().getFirst();
                 return new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    argType,
                     x -> BigDecimal.valueOf(Math.signum(((Number) argType.sanitizeValue(x)).longValue()))
                 );
             }
@@ -59,7 +58,7 @@ public class SignFunction {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new DoubleScalar(signature, boundSignature, Math::signum)

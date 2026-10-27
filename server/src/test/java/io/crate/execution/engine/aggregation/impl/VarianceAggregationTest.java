@@ -31,9 +31,9 @@ import org.junit.Test;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -45,7 +45,7 @@ public class VarianceAggregationTest extends AggregationTestCase {
                 Signature.builder(VarianceAggregation.NAME, FunctionType.AGGREGATE)
                         .argumentTypes(argumentType.getTypeSignature())
                         .returnType(DataTypes.DOUBLE.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 data,
                 List.of()
@@ -135,6 +135,6 @@ public class VarianceAggregationTest extends AggregationTestCase {
     public void testUnsupportedType() throws Exception {
         assertThatThrownBy(() -> executeAggregation(DataTypes.GEO_POINT, new Object[][] {}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessage("Invalid arguments in: variance(INPUT(0)) with (geo_point). Valid types: (double precision), (real), (byte), (smallint), (integer), (bigint), (timestamp with time zone)");
+            .hasMessage("Invalid arguments in: variance(INPUT(0)) with (geo_point). Valid types: (byte), (double precision), (real), (smallint), (integer), (bigint), (timestamp with time zone)");
     }
 }

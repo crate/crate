@@ -36,7 +36,9 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.NumberType;
 
 
 public final class InformationColumnsTableInfo {
@@ -46,7 +48,6 @@ public final class InformationColumnsTableInfo {
 
     private static final String IS_GENERATED_NEVER = "NEVER";
     private static final String IS_GENERATED_ALWAYS = "ALWAYS";
-    private static final Integer NUMERIC_PRECISION_RADIX = 2; // Binary
     private static final Integer DATETIME_PRECISION = 3; // Milliseconds
 
     private InformationColumnsTableInfo() {}
@@ -84,12 +85,17 @@ public final class InformationColumnsTableInfo {
         .add("character_octet_length", INTEGER, ignored -> null)
         .add("numeric_precision", INTEGER, r -> r.ref().valueType().numericPrecision())
         .add("numeric_precision_radix", INTEGER, r -> {
-            if (DataTypes.isNumericPrimitive(r.ref().valueType())) {
-                return NUMERIC_PRECISION_RADIX;
-            }
-            return null;
+            DataType<?> type = r.ref().valueType();
+            return type instanceof NumberType numberType
+                ? numberType.precisionRadix()
+                : null;
         })
-        .add("numeric_scale", INTEGER, ignored -> null)
+        .add("numeric_scale", INTEGER, c -> {
+            DataType<?> type = c.ref().valueType();
+            return type instanceof NumberType numberType
+                ? numberType.scale()
+                : null;
+        })
         .add("datetime_precision", INTEGER, r -> {
             if (r.ref().valueType() == TIMESTAMPZ || r.ref().valueType() == TIMESTAMP) {
                 return DATETIME_PRECISION;

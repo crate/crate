@@ -23,24 +23,19 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.Flushable;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
-import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.UUID;
-import java.util.function.UnaryOperator;
 
 import org.jspecify.annotations.Nullable;
 
@@ -64,15 +59,12 @@ public final class XContentBuilder implements Closeable, Flushable {
     }
 
     private static final Map<Class<?>, Writer> WRITERS;
-    private static final Map<Class<?>, HumanReadableTransformer> HUMAN_READABLE_TRANSFORMERS;
-    private static final Map<Class<?>, UnaryOperator<Object>> DATE_TRANSFORMERS;
 
     static {
         Map<Class<?>, Writer> writers = new HashMap<>();
         writers.put(Boolean.class, (b, v) -> b.value((Boolean) v));
         writers.put(Byte.class, (b, v) -> b.value((Byte) v));
         writers.put(byte[].class, (b, v) -> b.value((byte[]) v));
-        writers.put(Date.class, XContentBuilder::timeValue);
         writers.put(Double.class, (b, v) -> b.value((Double) v));
         writers.put(double[].class, (b, v) -> b.values((double[]) v));
         writers.put(Float.class, (b, v) -> b.value((Float) v));
@@ -88,52 +80,24 @@ public final class XContentBuilder implements Closeable, Flushable {
         writers.put(Locale.class, (b, v) -> b.value(v.toString()));
         writers.put(Class.class, (b, v) -> b.value(v.toString()));
         writers.put(ZonedDateTime.class, (b, v) -> b.value(v.toString()));
-        writers.put(Calendar.class, XContentBuilder::timeValue);
-        writers.put(GregorianCalendar.class, XContentBuilder::timeValue);
         writers.put(BigInteger.class, (b, v) -> b.value((BigInteger) v));
         writers.put(BigDecimal.class, (b, v) -> b.value((BigDecimal) v));
         writers.put(UUID.class, (b, v) -> b.value(v.toString()));
 
-        Map<Class<?>, HumanReadableTransformer> humanReadableTransformer = new HashMap<>();
-        Map<Class<?>, UnaryOperator<Object>> dateTransformers = new HashMap<>();
-
-        // treat strings as already converted
-        dateTransformers.put(String.class, UnaryOperator.identity());
-
         // Load pluggable extensions
         for (XContentBuilderExtension service : ServiceLoader.load(XContentBuilderExtension.class)) {
             Map<Class<?>, Writer> addlWriters = service.getXContentWriters();
-            Map<Class<?>, HumanReadableTransformer> addlTransformers = service.getXContentHumanReadableTransformers();
-            Map<Class<?>, UnaryOperator<Object>> addlDateTransformers = service.getDateTransformers();
-
             addlWriters.forEach((key, value) -> Objects.requireNonNull(value,
                 "invalid null xcontent writer for class " + key));
-            addlTransformers.forEach((key, value) -> Objects.requireNonNull(value,
-                "invalid null xcontent transformer for human readable class " + key));
-            addlDateTransformers.forEach((key, value) -> Objects.requireNonNull(value,
-                "invalid null xcontent date transformer for class " + key));
-
             writers.putAll(addlWriters);
-            humanReadableTransformer.putAll(addlTransformers);
-            dateTransformers.putAll(addlDateTransformers);
         }
 
         WRITERS = Collections.unmodifiableMap(writers);
-        HUMAN_READABLE_TRANSFORMERS = Collections.unmodifiableMap(humanReadableTransformer);
-        DATE_TRANSFORMERS = Collections.unmodifiableMap(dateTransformers);
     }
 
     @FunctionalInterface
     public interface Writer {
         void write(XContentBuilder builder, Object value) throws IOException;
-    }
-
-    /**
-     * Interface for transforming complex objects into their "raw" equivalents for human-readable fields
-     */
-    @FunctionalInterface
-    public interface HumanReadableTransformer {
-        Object rawValue(Object value) throws IOException;
     }
 
     /**
@@ -145,11 +109,6 @@ public final class XContentBuilder implements Closeable, Flushable {
      * Output stream to which the built object is written
      */
     private final OutputStream bos;
-
-    /**
-     * When this flag is set to true, some types of values are written in a format easier to read for a human.
-     */
-    private boolean humanReadable = false;
 
     /**
      * Constructs a new builder using the provided XContent and an OutputStream. Make sure
@@ -197,23 +156,6 @@ public final class XContentBuilder implements Closeable, Flushable {
     public XContentBuilder lfAtEnd() {
         generator.usePrintLineFeedAtEnd();
         return this;
-    }
-
-    /**
-     * Set the "human readable" flag. Once set, some types of values are written in a
-     * format easier to read for a human.
-     */
-    public XContentBuilder humanReadable(boolean humanReadable) {
-        this.humanReadable = humanReadable;
-        return this;
-    }
-
-    /**
-     * @return the value of the "human readable" flag. When the value is equal to true,
-     * some types of values are written in a format easier to read for a human.
-     */
-    public boolean humanReadable() {
-        return this.humanReadable;
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -269,29 +211,9 @@ public final class XContentBuilder implements Closeable, Flushable {
     // Boolean
     //////////////////////////////////
 
-    public XContentBuilder field(String name, Boolean value) throws IOException {
-        return (value == null) ? nullField(name) : field(name, value.booleanValue());
-    }
-
     public XContentBuilder field(String name, boolean value) throws IOException {
         ensureNameNotNull(name);
         generator.writeBooleanField(name, value);
-        return this;
-    }
-
-    public XContentBuilder array(String name, boolean[] values) throws IOException {
-        return field(name).values(values);
-    }
-
-    private XContentBuilder values(boolean[] values) throws IOException {
-        if (values == null) {
-            return nullValue();
-        }
-        startArray();
-        for (boolean b : values) {
-            value(b);
-        }
-        endArray();
         return this;
     }
 
@@ -307,10 +229,6 @@ public final class XContentBuilder implements Closeable, Flushable {
     ////////////////////////////////////////////////////////////////////////////
     // Byte
     //////////////////////////////////
-
-    public XContentBuilder field(String name, Byte value) throws IOException {
-        return (value == null) ? nullField(name) : field(name, value.byteValue());
-    }
 
     public XContentBuilder field(String name, byte value) throws IOException {
         return field(name).value(value);
@@ -328,20 +246,6 @@ public final class XContentBuilder implements Closeable, Flushable {
     ////////////////////////////////////////////////////////////////////////////
     // Double
     //////////////////////////////////
-
-    public XContentBuilder field(String name, Double value) throws IOException {
-        return (value == null) ? nullField(name) : field(name, value.doubleValue());
-    }
-
-    public XContentBuilder field(String name, double value) throws IOException {
-        ensureNameNotNull(name);
-        generator.writeNumberField(name, value);
-        return this;
-    }
-
-    public XContentBuilder array(String name, double[] values) throws IOException {
-        return field(name).values(values);
-    }
 
     private XContentBuilder values(double[] values) throws IOException {
         if (values == null) {
@@ -368,18 +272,10 @@ public final class XContentBuilder implements Closeable, Flushable {
     // Float
     //////////////////////////////////
 
-    public XContentBuilder field(String name, Float value) throws IOException {
-        return (value == null) ? nullField(name) : field(name, value.floatValue());
-    }
-
     public XContentBuilder field(String name, float value) throws IOException {
         ensureNameNotNull(name);
         generator.writeNumberField(name, value);
         return this;
-    }
-
-    public XContentBuilder array(String name, float[] values) throws IOException {
-        return field(name).values(values);
     }
 
     private XContentBuilder values(float[] values) throws IOException {
@@ -407,18 +303,10 @@ public final class XContentBuilder implements Closeable, Flushable {
     // Integer
     //////////////////////////////////
 
-    public XContentBuilder field(String name, Integer value) throws IOException {
-        return (value == null) ? nullField(name) : field(name, value.intValue());
-    }
-
     public XContentBuilder field(String name, int value) throws IOException {
         ensureNameNotNull(name);
         generator.writeNumberField(name, value);
         return this;
-    }
-
-    public XContentBuilder array(String name, int[] values) throws IOException {
-        return field(name).values(values);
     }
 
     private XContentBuilder values(int[] values) throws IOException {
@@ -446,18 +334,10 @@ public final class XContentBuilder implements Closeable, Flushable {
     // Long
     //////////////////////////////////
 
-    public XContentBuilder field(String name, Long value) throws IOException {
-        return (value == null) ? nullField(name) : field(name, value.longValue());
-    }
-
     public XContentBuilder field(String name, long value) throws IOException {
         ensureNameNotNull(name);
         generator.writeNumberField(name, value);
         return this;
-    }
-
-    public XContentBuilder array(String name, long[] values) throws IOException {
-        return field(name).values(values);
     }
 
     private XContentBuilder values(long[] values) throws IOException {
@@ -485,18 +365,6 @@ public final class XContentBuilder implements Closeable, Flushable {
     // Short
     //////////////////////////////////
 
-    public XContentBuilder field(String name, Short value) throws IOException {
-        return (value == null) ? nullField(name) : field(name, value.shortValue());
-    }
-
-    public XContentBuilder field(String name, short value) throws IOException {
-        return field(name).value(value);
-    }
-
-    public XContentBuilder array(String name, short[] values) throws IOException {
-        return field(name).values(values);
-    }
-
     private XContentBuilder values(short[] values) throws IOException {
         if (values == null) {
             return nullValue();
@@ -521,32 +389,6 @@ public final class XContentBuilder implements Closeable, Flushable {
     ////////////////////////////////////////////////////////////////////////////
     // BigInteger
     //////////////////////////////////
-
-    public XContentBuilder field(String name, BigInteger value) throws IOException {
-        if (value == null) {
-            return nullField(name);
-        }
-        ensureNameNotNull(name);
-        generator.writeNumberField(name, value);
-        return this;
-    }
-
-    public XContentBuilder array(String name, BigInteger[] values) throws IOException {
-        return field(name).values(values);
-    }
-
-    private XContentBuilder values(BigInteger[] values) throws IOException {
-        if (values == null) {
-            return nullValue();
-        }
-        startArray();
-        for (BigInteger b : values) {
-            value(b);
-        }
-        endArray();
-        return this;
-    }
-
     public XContentBuilder value(BigInteger value) throws IOException {
         if (value == null) {
             return nullValue();
@@ -559,31 +401,6 @@ public final class XContentBuilder implements Closeable, Flushable {
     ////////////////////////////////////////////////////////////////////////////
     // BigDecimal
     //////////////////////////////////
-
-    public XContentBuilder field(String name, BigDecimal value) throws IOException {
-        if (value == null) {
-            return nullField(name);
-        }
-        ensureNameNotNull(name);
-        generator.writeNumberField(name, value);
-        return this;
-    }
-
-    public XContentBuilder array(String name, BigDecimal[] values) throws IOException {
-        return field(name).values(values);
-    }
-
-    private XContentBuilder values(BigDecimal[] values) throws IOException {
-        if (values == null) {
-            return nullValue();
-        }
-        startArray();
-        for (BigDecimal b : values) {
-            value(b);
-        }
-        endArray();
-        return this;
-    }
 
     public XContentBuilder value(BigDecimal value) throws IOException {
         if (value == null) {
@@ -604,10 +421,6 @@ public final class XContentBuilder implements Closeable, Flushable {
         ensureNameNotNull(name);
         generator.writeStringField(name, value);
         return this;
-    }
-
-    public XContentBuilder array(String name, String... values) throws IOException {
-        return field(name).values(values);
     }
 
     private XContentBuilder values(String[] values) throws IOException {
@@ -673,68 +486,6 @@ public final class XContentBuilder implements Closeable, Flushable {
         return this;
     }
 
-
-    ////////////////////////////////////////////////////////////////////////////
-    // Date
-    //////////////////////////////////
-
-    /**
-     * Write a time-based field and value, if the passed timeValue is null a
-     * null value is written, otherwise a date transformers lookup is performed.
-
-     * @throws IllegalArgumentException if there is no transformers for the type of object
-     */
-    public XContentBuilder timeField(String name, Object timeValue) throws IOException {
-        return field(name).timeValue(timeValue);
-    }
-
-    /**
-     * If the {@code humanReadable} flag is set, writes both a formatted and
-     * unformatted version of the time value using the date transformer for the
-     * {@link Long} class.
-     */
-    public XContentBuilder timeField(String name, String readableName, long value) throws IOException {
-        if (humanReadable) {
-            UnaryOperator<Object> longTransformer = DATE_TRANSFORMERS.get(Long.class);
-            if (longTransformer == null) {
-                throw new IllegalArgumentException("cannot write time value xcontent for unknown value of type Long");
-            }
-            field(readableName).value(longTransformer.apply(value));
-        }
-        field(name, value);
-        return this;
-    }
-
-    /**
-     * Write a time-based value, if the value is null a null value is written,
-     * otherwise a date transformers lookup is performed.
-
-     * @throws IllegalArgumentException if there is no transformers for the type of object
-     */
-    public XContentBuilder timeValue(Object timeValue) throws IOException {
-        if (timeValue == null) {
-            return nullValue();
-        } else {
-            UnaryOperator<Object> transformer = DATE_TRANSFORMERS.get(timeValue.getClass());
-            if (transformer == null) {
-                throw new IllegalArgumentException("cannot write time value xcontent for unknown value of type " + timeValue.getClass());
-            }
-            return value(transformer.apply(timeValue));
-        }
-    }
-
-    ////////////////////////////////////////////////////////////////////////////
-    // LatLon
-    //////////////////////////////////
-
-    public XContentBuilder latlon(String name, double lat, double lon) throws IOException {
-        return field(name).latlon(lat, lon);
-    }
-
-    public XContentBuilder latlon(double lat, double lon) throws IOException {
-        return startObject().field("lat", lat).field("lon", lon).endObject();
-    }
-
     ////////////////////////////////////////////////////////////////////////////
     // Path
     //////////////////////////////////
@@ -756,10 +507,6 @@ public final class XContentBuilder implements Closeable, Flushable {
 
     public XContentBuilder field(String name, Object value) throws IOException {
         return field(name).value(value);
-    }
-
-    public XContentBuilder array(String name, Object... values) throws IOException {
-        return field(name).values(values, Map.of());
     }
 
     private XContentBuilder values(Object[] values, Map<Class<?>, Writer> writerOverrides) throws IOException {
@@ -810,10 +557,6 @@ public final class XContentBuilder implements Closeable, Flushable {
     // Maps & Iterable
     //////////////////////////////////
 
-    public XContentBuilder field(String name, Map<String, Object> values) throws IOException {
-        return field(name).map(values);
-    }
-
     public XContentBuilder map(Map<String, ?> values) throws IOException {
         return mapContents(values, true, Map.of());
     }
@@ -863,46 +606,6 @@ public final class XContentBuilder implements Closeable, Flushable {
             }
             endArray();
         }
-        return this;
-    }
-
-    ////////////////////////////////////////////////////////////////////////////
-    // Human readable fields
-    //
-    // These are fields that have a "raw" value and a "human readable" value,
-    // such as time values or byte sizes. The human readable variant is only
-    // used if the humanReadable flag has been set
-    //////////////////////////////////
-
-    public XContentBuilder humanReadableField(String rawFieldName, String readableFieldName, Object value) throws IOException {
-        if (humanReadable) {
-            field(readableFieldName, Objects.toString(value));
-        }
-        HumanReadableTransformer transformer = HUMAN_READABLE_TRANSFORMERS.get(value.getClass());
-        if (transformer != null) {
-            Object rawValue = transformer.rawValue(value);
-            field(rawFieldName, rawValue);
-        } else {
-            throw new IllegalArgumentException("no raw transformer found for class " + value.getClass());
-        }
-        return this;
-    }
-
-
-    ////////////////////////////////////////////////////////////////////////////
-    // Raw fields
-    //////////////////////////////////
-
-    /**
-     * Writes a value with the source coming directly from the bytes in the stream
-     */
-    public XContentBuilder rawValue(InputStream stream, XContentType contentType) throws IOException {
-        generator.writeRawValue(stream, contentType);
-        return this;
-    }
-
-    public XContentBuilder copyCurrentStructure(XContentParser parser) throws IOException {
-        generator.copyCurrentStructure(parser);
         return this;
     }
 

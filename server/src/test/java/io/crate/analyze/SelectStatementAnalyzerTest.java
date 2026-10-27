@@ -34,6 +34,7 @@ import static io.crate.testing.Asserts.isScopedSymbol;
 import static io.crate.testing.Asserts.toCondition;
 import static io.crate.types.ArrayType.makeArray;
 import static org.assertj.core.api.Assertions.anyOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -559,7 +560,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         QueriedSelectRelation relation = executor.analyze("select distinct id + 1 from users");
         assertThat(relation.isDistinct()).isTrue();
-        assertList(relation.outputs()).isSQL("(doc.users.id + 1::bigint)");
+        assertList(relation.outputs()).isSQL("(doc.users.id + 1)");
     }
 
     @Test
@@ -1595,7 +1596,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         assertThatThrownBy(() -> executor.analyze("select tags[-2147483649] from users"))
             .isExactlyInstanceOf(ConversionException.class)
-            .hasMessage("Cannot cast `-2147483649::bigint` of type `bigint` to type `integer`");
+            .hasMessage("Cannot cast `-2147483649` of type `bigint` to type `integer`");
     }
 
     @Test
@@ -1604,7 +1605,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         assertThatThrownBy(() -> executor.analyze("select tags[2147483648] from users"))
             .isExactlyInstanceOf(ConversionException.class)
-            .hasMessage("Cannot cast `2147483648::bigint` of type `bigint` to type `integer`");
+            .hasMessage("Cannot cast `2147483648` of type `bigint` to type `integer`");
     }
 
     @Test

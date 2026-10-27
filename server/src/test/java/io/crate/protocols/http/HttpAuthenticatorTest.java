@@ -19,11 +19,14 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.auth;
+package io.crate.protocols.http;
 
-import static io.crate.auth.HttpAuthUpstreamHandler.WWW_AUTHENTICATE_REALM_MESSAGE;
+import static io.crate.protocols.http.HttpAuthenticator.WWW_AUTHENTICATE_REALM_MESSAGE;
+import static io.crate.role.metadata.RolesHelper.DUMMY_USERS;
 import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
 import static io.crate.role.metadata.RolesHelper.JWT_USER;
+import static io.crate.role.metadata.RolesHelper.getSecureHash;
+import static io.crate.role.metadata.RolesHelper.userOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -37,6 +40,8 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import javax.net.ssl.SSLSession;
@@ -47,6 +52,15 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import io.crate.auth.AlwaysOKAuthentication;
+import io.crate.auth.AuthSettings;
+import io.crate.auth.Authentication;
+import io.crate.auth.AuthenticationMethod;
+import io.crate.auth.AuthenticationMethod.AuthToken;
+import io.crate.auth.Credentials;
+import io.crate.auth.HostBasedAuthentication;
+import io.crate.auth.JWTAuthenticationMethod;
+import io.crate.auth.PasswordAuthenticationMethod;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.Roles;
@@ -55,7 +69,6 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.DefaultHttpRequest;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
@@ -64,7 +77,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.pkitesting.CertificateBuilder;
 
-public class HttpAuthUpstreamHandlerTest extends ESTestCase {
+public class HttpAuthenticatorTest extends ESTestCase {
 
     private final Settings hbaEnabled = Settings.builder()
         .put("auth.host_based.enabled", true)
@@ -78,7 +91,12 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         DnsResolver.SYSTEM,
         () -> "dummy"
     );
-    private final HttpAuthUpstreamHandler handlerWithHBA = new HttpAuthUpstreamHandler(Settings.EMPTY, authService, new StubRoleManager());
+    private final HttpAuthenticator authenticatorWithHBA =
+        new HttpAuthenticator(Settings.EMPTY, authService, new StubRoleManager());
+
+    private static HttpRequest sqlRequest() {
+        return new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+    }
 
     private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {
         assertThat(resp.status()).isEqualTo(HttpResponseStatus.UNAUTHORIZED);
@@ -89,7 +107,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     @Test
     public void testChannelClosedWhenUnauthorized() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel();
-        HttpAuthUpstreamHandler.sendUnauthorized(ch, null);
+        HttpAuthenticator.sendUnauthorized(ch, null);
         ch.releaseInbound();
 
         HttpResponse resp = ch.readOutbound();
@@ -100,7 +118,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     @Test
     public void testSendUnauthorizedWithoutBody() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel();
-        HttpAuthUpstreamHandler.sendUnauthorized(ch, null);
+        HttpAuthenticator.sendUnauthorized(ch, null);
         ch.releaseInbound();
 
         DefaultFullHttpResponse resp = ch.readOutbound();
@@ -110,7 +128,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     @Test
     public void testSendUnauthorizedWithBody() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel();
-        HttpAuthUpstreamHandler.sendUnauthorized(ch, "not allowed\n");
+        HttpAuthenticator.sendUnauthorized(ch, "not allowed\n");
         ch.releaseInbound();
 
         DefaultFullHttpResponse resp = ch.readOutbound();
@@ -120,7 +138,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     @Test
     public void testSendUnauthorizedWithBodyNoNewline() throws Exception {
         EmbeddedChannel ch = new EmbeddedChannel();
-        HttpAuthUpstreamHandler.sendUnauthorized(ch, "not allowed");
+        HttpAuthenticator.sendUnauthorized(ch, "not allowed");
         ch.releaseInbound();
 
         DefaultFullHttpResponse resp = ch.readOutbound();
@@ -129,28 +147,19 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
     @Test
     public void testAuthorized() throws Exception {
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(
+        HttpAuthenticator authenticator = new HttpAuthenticator(
             Settings.EMPTY, new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)), new StubRoleManager());
-        EmbeddedChannel ch = new EmbeddedChannel(handler);
 
-        DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        ch.writeInbound(request);
-        ch.releaseInbound();
-
-        assertThat(handler.authorized()).isTrue();
+        assertThat(authenticator.authenticate(sqlRequest(), new EmbeddedChannel())).isEqualTo(Role.CRATE_USER);
     }
 
     @Test
-    public void testNotNoHbaConfig() throws Exception {
-        EmbeddedChannel ch = new EmbeddedChannel(handlerWithHBA);
-
-        DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+    public void testNoHbaConfig() throws Exception {
+        EmbeddedChannel ch = new EmbeddedChannel();
+        HttpRequest request = sqlRequest();
         request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
 
-        ch.writeInbound(request);
-        ch.releaseInbound();
-        assertThat(handlerWithHBA.authorized()).isFalse();
-
+        assertThat(authenticatorWithHBA.authenticate(request, ch)).isNull();
         assertUnauthorized(
             ch.readOutbound(),
             "No valid auth.host_based.config entry found for host \"127.0.0.1\", user \"Aladdin\", protocol \"http\". Did you enable TLS in your client?\n");
@@ -162,17 +171,12 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
      */
     @Test
     public void test_real_ip_header_is_ignored_by_default() {
-        EmbeddedChannel ch = new EmbeddedChannel(handlerWithHBA);
-
-        DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        EmbeddedChannel ch = new EmbeddedChannel();
+        HttpRequest request = sqlRequest();
         request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
-
         request.headers().add("X-Real-IP", "10.1.0.100");
 
-        ch.writeInbound(request);
-        ch.releaseInbound();
-        assertThat(handlerWithHBA.authorized()).isFalse();
-
+        assertThat(authenticatorWithHBA.authenticate(request, ch)).isNull();
         assertUnauthorized(
             ch.readOutbound(),
             "No valid auth.host_based.config entry found for host \"127.0.0.1\", user \"Aladdin\", protocol \"http\". Did you enable TLS in your client?\n");
@@ -183,18 +187,13 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         var settings = Settings.builder()
             .put(AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.getKey(), true)
             .build();
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, authService, new StubRoleManager());
-        EmbeddedChannel ch = new EmbeddedChannel(handler);
-
-        DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        HttpAuthenticator authenticator = new HttpAuthenticator(settings, authService, new StubRoleManager());
+        EmbeddedChannel ch = new EmbeddedChannel();
+        HttpRequest request = sqlRequest();
         request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
-
         request.headers().add("X-Real-IP", "10.1.0.100");
 
-        ch.writeInbound(request);
-        ch.releaseInbound();
-        assertThat(handler.authorized()).isFalse();
-
+        assertThat(authenticator.authenticate(request, ch)).isNull();
         assertUnauthorized(
             ch.readOutbound(),
             "No valid auth.host_based.config entry found for host \"10.1.0.100\", user \"Aladdin\", protocol \"http\". Did you enable TLS in your client?\n");
@@ -205,18 +204,13 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         var settings = Settings.builder()
             .put(AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.getKey(), true)
             .build();
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, authService, new StubRoleManager());
-        EmbeddedChannel ch = new EmbeddedChannel(handler);
-
-        DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        HttpAuthenticator authenticator = new HttpAuthenticator(settings, authService, new StubRoleManager());
+        EmbeddedChannel ch = new EmbeddedChannel();
+        HttpRequest request = sqlRequest();
         request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
-
         request.headers().add("X-Real-IP", "::1");
 
-        ch.writeInbound(request);
-        ch.releaseInbound();
-        assertThat(handler.authorized()).isFalse();
-
+        assertThat(authenticator.authenticate(request, ch)).isNull();
         assertUnauthorized(
             ch.readOutbound(),
             "No valid auth.host_based.config entry found for host \"127.0.0.1\", user \"Aladdin\", protocol \"http\". Did you enable TLS in your client?\n");
@@ -240,22 +234,18 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
             DnsResolver.SYSTEM,
             () -> "dummy"
         );
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(settings, hbaAuth, roles);
-        EmbeddedChannel ch = new EmbeddedChannel(handler) {
+        HttpAuthenticator authenticator = new HttpAuthenticator(settings, hbaAuth, roles);
+        EmbeddedChannel ch = new EmbeddedChannel() {
             @Override
             public SocketAddress remoteAddress() {
                 return new InetSocketAddress(InetAddress.ofLiteral("192.168.0.100"), 0);
             }
         };
 
-        DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-
+        HttpRequest request = sqlRequest();
         request.headers().add("X-Real-IP", "::ffff:127.0.0.1");
 
-        ch.writeInbound(request);
-        ch.releaseInbound();
-
-        assertThat(handler.authorized()).isFalse();
+        assertThat(authenticator.authenticate(request, ch)).isNull();
         assertUnauthorized(
             ch.readOutbound(),
             "No valid auth.host_based.config entry found for host \"192.168.0.100\", user \"crate\", protocol \"http\". Did you enable TLS in your client?\n");
@@ -263,14 +253,9 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
     @Test
     public void testUnauthorizedUser() throws Exception {
-        EmbeddedChannel ch = new EmbeddedChannel(handlerWithHBA);
+        EmbeddedChannel ch = new EmbeddedChannel();
 
-        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-
-        ch.writeInbound(request);
-        ch.releaseInbound();
-
-        assertThat(handlerWithHBA.authorized()).isFalse();
+        assertThat(authenticatorWithHBA.authenticate(sqlRequest(), ch)).isNull();
         assertUnauthorized(ch.readOutbound(), "trust authentication failed for user \"crate\"\n");
     }
 
@@ -283,8 +268,8 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         SSLSession session = mock(SSLSession.class);
         when(session.getPeerCertificates()).thenReturn(new Certificate[] { ssc.getCertificate() });
 
-        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        String userName = HttpAuthUpstreamHandler.credentialsFromRequest(request, session, "default-user").username();
+        HttpRequest request = sqlRequest();
+        String userName = HttpAuthenticator.credentialsFromRequest(request, session, "default-user").username();
 
         assertThat(userName).isEqualTo("localhost");
     }
@@ -292,31 +277,24 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     @Test
     public void testUserAuthenticationWithDisabledHBA() throws Exception {
         Authentication authServiceNoHBA = new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER));
+        HttpAuthenticator authenticator = new HttpAuthenticator(Settings.EMPTY, authServiceNoHBA, new StubRoleManager());
 
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA, new StubRoleManager());
-        EmbeddedChannel ch = new EmbeddedChannel(handler);
-
-        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        HttpRequest request = sqlRequest();
         request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic Y3JhdGU6");
-        ch.writeInbound(request);
-        ch.releaseInbound();
 
-        assertThat(handler.authorized()).isTrue();
+        assertThat(authenticator.authenticate(request, new EmbeddedChannel())).isEqualTo(Role.CRATE_USER);
     }
 
     @Test
     public void testUnauthorizedUserWithDisabledHBA() throws Exception {
         Authentication authServiceNoHBA = new AlwaysOKAuthentication(List::of);
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA, new StubRoleManager());
-        EmbeddedChannel ch = new EmbeddedChannel(handler);
+        HttpAuthenticator authenticator = new HttpAuthenticator(Settings.EMPTY, authServiceNoHBA, new StubRoleManager());
+        EmbeddedChannel ch = new EmbeddedChannel();
 
-        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        HttpRequest request = sqlRequest();
         request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
 
-        ch.writeInbound(request);
-        ch.releaseInbound();
-
-        assertThat(handler.authorized()).isFalse();
+        assertThat(authenticator.authenticate(request, ch)).isNull();
         assertUnauthorized(ch.readOutbound(), "trust authentication failed for user \"Aladdin\"\n");
     }
 
@@ -327,18 +305,14 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         AuthenticationMethod jwtAuth = mock(JWTAuthenticationMethod.class);
         when(authentication.resolveAuthenticationType(eq(JWT_USER.name()), any(ConnectionProperties.class)))
             .thenReturn(jwtAuth);
-        when(jwtAuth.authenticate(any(Credentials.class),any(ConnectionProperties.class))).thenReturn(JWT_USER);
+        when(jwtAuth.authenticate(any(Credentials.class), any(ConnectionProperties.class)))
+            .thenReturn(AuthToken.of(JWT_USER));
 
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authentication, roles);
-        EmbeddedChannel ch = new EmbeddedChannel(handler);
-
-        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        HttpAuthenticator authenticator = new HttpAuthenticator(Settings.EMPTY, authentication, roles);
+        HttpRequest request = sqlRequest();
         request.headers().add(HttpHeaderNames.AUTHORIZATION, "Bearer " + JWT_TOKEN);
 
-        ch.writeInbound(request);
-        ch.releaseInbound();
-
-        assertThat(handler.authorized()).isTrue();
+        assertThat(authenticator.authenticate(request, new EmbeddedChannel())).isEqualTo(JWT_USER);
     }
 
     @Test
@@ -347,31 +321,25 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
         Roles roles = () -> List.of(JWT_USER);
         Authentication authentication = mock(Authentication.class);
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authentication, roles);
-        EmbeddedChannel ch = new EmbeddedChannel(handler);
+        HttpAuthenticator authenticator = new HttpAuthenticator(Settings.EMPTY, authentication, roles);
+        EmbeddedChannel ch = new EmbeddedChannel();
 
-        var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        HttpRequest request = sqlRequest();
         request.headers().add(HttpHeaderNames.AUTHORIZATION, brokenToken);
 
-        ch.writeInbound(request);
-        ch.releaseInbound();
-
-        assertThat(request.refCnt()).isEqualTo(0);
-        assertThat(handler.authorized()).isFalse();
+        assertThat(authenticator.authenticate(request, ch)).isNull();
         assertUnauthorized(ch.readOutbound(), "The token was expected to have 3 parts, but got 2.\n");
     }
 
     @Test
     public void test_user_authentication_with_jwt_token_user_not_found() throws Exception {
-        EmbeddedChannel ch = new EmbeddedChannel(handlerWithHBA);
-
-        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        EmbeddedChannel ch = new EmbeddedChannel();
+        HttpRequest request = sqlRequest();
         request.headers().add(HttpHeaderNames.AUTHORIZATION, "Bearer " + JWT_TOKEN);
 
-        ch.writeInbound(request);
-        ch.releaseInbound();
-
-        assertThat(handlerWithHBA.authorized()).isFalse();
+        assertThat(authenticatorWithHBA.authenticate(request, ch)).isNull();
+        HttpResponse resp = ch.readOutbound();
+        assertThat(resp.status()).isEqualTo(HttpResponseStatus.UNAUTHORIZED);
     }
 
     @Test
@@ -381,97 +349,150 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         AuthenticationMethod jwtAuth = mock(JWTAuthenticationMethod.class);
         when(authentication.resolveAuthenticationType(eq(JWT_USER.name()), any(ConnectionProperties.class)))
             .thenReturn(jwtAuth);
-        when(jwtAuth.authenticate(any(Credentials.class),any(ConnectionProperties.class))).thenReturn(JWT_USER);
+        when(jwtAuth.authenticate(any(Credentials.class), any(ConnectionProperties.class)))
+            .thenReturn(AuthToken.of(JWT_USER));
 
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authentication, roles);
-        EmbeddedChannel ch = new EmbeddedChannel(handler);
+        HttpAuthenticator authenticator = new HttpAuthenticator(Settings.EMPTY, authentication, roles);
+        EmbeddedChannel ch = new EmbeddedChannel();
 
-        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        HttpRequest request = sqlRequest();
         request.headers().add(HttpHeaderNames.AUTHORIZATION, "Bearer " + JWT_TOKEN);
+        authenticator.authenticate(request, ch);
 
-        ch.writeInbound(request);
-        ch.releaseInbound();
-
-        assertThat(handler.authorized()).isTrue();
-
-        HttpRequest request2 = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        HttpRequest request2 = sqlRequest();
         request2.headers().add(HttpHeaderNames.AUTHORIZATION, "Bearer " + JWT_TOKEN);
-        ch.writeInbound(request2);
-        ch.releaseInbound();
+        authenticator.authenticate(request2, ch);
+
+        // The authenticator does not cache; every request is authenticated afresh.
         verify(jwtAuth, times(2)).authenticate(any(Credentials.class), any(ConnectionProperties.class));
     }
 
     @Test
-    public void test_auth_header_verified_per_request() throws Exception {
+    public void test_auth_header_verified_once_per_connection() throws Exception {
         Authentication authentication = mock(Authentication.class);
-        StubRoleManager roles = new StubRoleManager();
+        Role user = DUMMY_USERS.get("Ford");
+        StubRoleManager roles = new StubRoleManager(List.of(user), false);
         AuthenticationMethod authMethod = mock(AuthenticationMethod.class);
         when(authMethod.authenticate(any(Credentials.class), any(ConnectionProperties.class)))
-            .thenReturn(Role.CRATE_USER);
+            .thenReturn(AuthToken.of(user));
+        when(authMethod.renew(any(AuthToken.class), any(Credentials.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
         when(authentication.resolveAuthenticationType(Mockito.anyString(), any(ConnectionProperties.class)))
             .thenReturn(authMethod);
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authentication, roles);
-        EmbeddedChannel ch = new EmbeddedChannel(handler);
+        when(authMethod.name()).thenReturn(PasswordAuthenticationMethod.NAME);
+        HttpAuthenticator authenticator = new HttpAuthenticator(Settings.EMPTY, authentication, roles);
+        EmbeddedChannel ch = new EmbeddedChannel();
 
-        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic Y3JhdGU6d3Jvbmc=");
+        HttpRequest request = sqlRequest();
+        String header = "Basic " + Base64.getEncoder().encodeToString("Ford:fords-password".getBytes(StandardCharsets.UTF_8));
 
-        ch.writeInbound(request);
-        ch.releaseInbound();
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, header);
+        authenticator.authenticate(request, ch);
 
-        assertThat(handler.authorized()).isTrue();
+        HttpRequest request2 = sqlRequest();
+        request2.headers().add(HttpHeaderNames.AUTHORIZATION, header);
+        authenticator.authenticate(request2, ch);
 
-        HttpRequest request2 = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request2.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic Y3JhdGU6d3Jvbmc=");
-        ch.writeInbound(request2);
-        ch.releaseInbound();
-
-        verify(authMethod, times(2)).authenticate(any(Credentials.class), any(ConnectionProperties.class));
+        verify(authMethod, times(1)).authenticate(any(Credentials.class), any(ConnectionProperties.class));
     }
 
     @Test
-    public void test_no_hba_entry_request_released() throws Exception {
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(
+    public void test_same_user_different_provided_credentials_not_authenticated() throws Exception {
+        Role user = DUMMY_USERS.get("Ford");
+        List<Role> users = new ArrayList<>(List.of(user));
+        Roles roles = () -> users;
+        Settings hba = Settings.builder()
+            .put("auth.host_based.enabled", true)
+            .put("auth.host_based.config.0.user", "Ford")
+            .put("auth.host_based.config.0.method", "password").build();
+        var authenticator = new HttpAuthenticator(
             Settings.EMPTY,
-            // Imitation of no valid HBA entry.
-            (_, _) -> null,
-            new StubRoleManager()
+            new HostBasedAuthentication(hba, roles, DnsResolver.SYSTEM, () -> "dummy"),
+            roles
         );
+        EmbeddedChannel ch = new EmbeddedChannel();
 
-        EmbeddedChannel ch = new EmbeddedChannel(handler);
-        DefaultFullHttpRequest request = new DefaultFullHttpRequest(
-            HttpVersion.HTTP_1_1,
-            HttpMethod.GET,
-            "/_sql",
-            ch.alloc().buffer().writeBytes("test".getBytes(StandardCharsets.UTF_8))
-        );
+        HttpRequest request = sqlRequest();
+        String header = "Basic " + Base64.getEncoder().encodeToString("Ford:fords-password".getBytes(StandardCharsets.UTF_8));
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, header);
+        assertThat(authenticator.authenticate(request, ch)).isEqualTo(user);
 
-        int initialRefCount = request.content().refCnt();
-        assertThat(initialRefCount).isGreaterThan(0);
-
-        ch.writeInbound(request);
-        // No need for ch.releaseInbound()
-        // as fireChannelRead was not called in this path,
-        // message didn't reach end of pipeline and was not added to the queue.
-        assertThat(request.content().refCnt()).isEqualTo(0);
+        // Someone claims to be Ford with incorrect credentials.
+        // Cache must not be used and user must not be authenticated.
+        request = sqlRequest();
+        header = "Basic " + Base64.getEncoder().encodeToString("Ford:wrong-password".getBytes(StandardCharsets.UTF_8));
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, header);
+        assertThat(authenticator.authenticate(request, ch)).isNull();
     }
 
     @Test
-    public void test_auth_failure_request_released() throws Exception {
-        Authentication authServiceNoHBA = new AlwaysOKAuthentication(List::of);
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA, new StubRoleManager());
-        EmbeddedChannel ch = new EmbeddedChannel(handler);
+    public void test_renew_auth_token_with_stale_password_fails() throws Exception {
+        Role user = DUMMY_USERS.get("Ford");
+        List<Role> users = new ArrayList<>(List.of(user));
+        Roles roles = () -> users;
+        Settings hba = Settings.builder()
+            .put("auth.host_based.enabled", true)
+            .put("auth.host_based.config.0.user", "Ford")
+            .put("auth.host_based.config.0.method", "password").build();
+        var authenticator = new HttpAuthenticator(
+            Settings.EMPTY,
+            new HostBasedAuthentication(hba, roles, DnsResolver.SYSTEM, () -> "dummy"),
+            roles
+        );
+        EmbeddedChannel ch = new EmbeddedChannel();
 
-        DefaultFullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
-        int initialRefCount = request.content().refCnt();
-        assertThat(initialRefCount).isGreaterThan(0);
+        String oldHeader = "Basic " +
+            Base64.getEncoder().encodeToString("Ford:fords-password".getBytes(StandardCharsets.UTF_8));
+        String newHeader = "Basic " +
+            Base64.getEncoder().encodeToString("Ford:new-password".getBytes(StandardCharsets.UTF_8));
 
-        ch.writeInbound(request);
-        // No need for ch.releaseInbound()
-        // as fireChannelRead was not called in this path,
-        // message didn't reach end of pipeline and was not added to the queue.
-        assertThat(handler.authorized()).isFalse();
-        assertThat(request.content().refCnt()).isEqualTo(0);
+        // First auth, add a cache entry.
+        HttpRequest request = sqlRequest();
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, oldHeader);
+        assertThat(authenticator.authenticate(request, ch)).isEqualTo(user);
+
+        Role updatedUser = userOf("Ford", getSecureHash("new-password"));
+        users.set(0, updatedUser);
+        request = sqlRequest();
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, oldHeader);
+        assertThat(authenticator.authenticate(request, ch)).isNull();
+
+        request = sqlRequest();
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, newHeader);
+        assertThat(authenticator.authenticate(request, ch)).isEqualTo(updatedUser);
     }
+
+    @Test
+    public void test_auth_token_not_renewed_if_user_was_dropped() throws Exception {
+        Role user = DUMMY_USERS.get("Ford");
+        List<Role> users = new ArrayList<>(List.of(user));
+        Roles roles = () -> users;
+        Settings hba = Settings.builder()
+            .put("auth.host_based.enabled", true)
+            .put("auth.host_based.config.0.user", "Ford")
+            .put("auth.host_based.config.0.method", "password").build();
+        var authenticator = new HttpAuthenticator(
+            Settings.EMPTY,
+            new HostBasedAuthentication(hba, roles, DnsResolver.SYSTEM, () -> "dummy"),
+            roles
+        );
+        EmbeddedChannel ch = new EmbeddedChannel();
+
+        String oldHeader = "Basic " +
+            Base64.getEncoder().encodeToString("Ford:fords-password".getBytes(StandardCharsets.UTF_8));
+        String newHeader = "Basic " +
+            Base64.getEncoder().encodeToString("Ford:new-password".getBytes(StandardCharsets.UTF_8));
+
+        // First auth, add a cache entry.
+        HttpRequest request = sqlRequest();
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, oldHeader);
+        assertThat(authenticator.authenticate(request, ch)).isEqualTo(user);
+
+        // Previous auth added an auth token, after dropping users the renew/auth must fail.
+        users.clear();
+        request = sqlRequest();
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, oldHeader);
+        assertThat(authenticator.authenticate(request, ch)).isNull();
+    }
+
 }

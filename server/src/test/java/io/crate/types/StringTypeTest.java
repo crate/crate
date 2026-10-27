@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.Test;
 
@@ -54,6 +55,14 @@ public class StringTypeTest extends DataTypeTestCase<String> {
     @Test
     public void test_implicit_cast_long_to_text() {
         assertThat(DataTypes.STRING.implicitCast(123L)).isEqualTo("123");
+    }
+
+    @Test
+    public void test_cast_uuid_to_text() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        assertThat(DataTypes.STRING.implicitCast(uuid)).isEqualTo(uuid.toString());
+        assertThat(UUIDType.INSTANCE.isConvertableTo(DataTypes.STRING, true)).isTrue();
+        assertThat(UUIDType.INSTANCE.isConvertableTo(DataTypes.STRING, false)).isTrue();
     }
 
     @Test

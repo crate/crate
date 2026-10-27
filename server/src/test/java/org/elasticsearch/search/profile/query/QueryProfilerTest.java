@@ -21,13 +21,12 @@
 
 package org.elasticsearch.search.profile.query;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.concurrent.CountDownLatch;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.elasticsearch.test.ESTestCase;
@@ -57,40 +56,26 @@ public class QueryProfilerTest extends ESTestCase {
     @Test
     public void test_ensure_thread_safety() throws Exception {
         QueryProfiler profiler = new QueryProfiler();
-        final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
 
         int concurrency = 20;
-
-        final CountDownLatch writeLatch = new CountDownLatch(concurrency);
+        // getProfileBreakdown + pollLast
+        List<Callable<Object>> tasks = new ArrayList<>(concurrency * 2);
         for (int i = 0; i < concurrency; i++) {
-            executor.submit(() -> {
-                try {
-                    profiler.getProfileBreakdown(MatchAllDocsQuery.INSTANCE);
-                } catch (Exception e) {
-                    lastThrowable.set(e);
-                } finally {
-                    writeLatch.countDown();
-                }
-            });
+            tasks.add(() -> profiler.getProfileBreakdown(MatchAllDocsQuery.INSTANCE));
+            tasks.add(Executors.callable(profiler::pollLast));
         }
-        writeLatch.await(10, TimeUnit.SECONDS);
+        for (var future : executor.invokeAll(tasks, 10, TimeUnit.SECONDS)) {
+            future.get();
+        }
 
-        assertThat(lastThrowable.get()).isNull();
-
-        final CountDownLatch readLatch = new CountDownLatch(concurrency);
+        // getProfileBreakdown + getTree
+        tasks = new ArrayList<>(concurrency * 2);
         for (int i = 0; i < concurrency; i++) {
-            executor.submit(() -> {
-                try {
-                    profiler.getTree();
-                } catch (Exception e) {
-                    lastThrowable.set(e);
-                } finally {
-                    readLatch.countDown();
-                }
-            });
+            tasks.add(() -> profiler.getProfileBreakdown(MatchAllDocsQuery.INSTANCE));
+            tasks.add(profiler::getTree);
         }
-        readLatch.await(10, TimeUnit.SECONDS);
-
-        assertThat(lastThrowable.get()).isNull();
+        for (var future : executor.invokeAll(tasks, 10, TimeUnit.SECONDS)) {
+            future.get();
+        }
     }
 }

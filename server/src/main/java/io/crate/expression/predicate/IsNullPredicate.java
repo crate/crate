@@ -55,6 +55,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -108,13 +109,18 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         List<Symbol> arguments = function.arguments();
         assert arguments.size() == 1 : "`<expression> IS NULL` function must have one argument";
         if (arguments.get(0) instanceof Reference ref) {
-            if (!ref.isNullable()) {
-                return new MatchNoDocsQuery("`x IS NULL` on column that is NOT NULL can't match");
-            }
-            Query refExistsQuery = refExistsQuery(ref, context);
-            return refExistsQuery == null ? null : Queries.not(refExistsQuery);
+            return refIsNullQuery(ref, context);
         }
         return null;
+    }
+
+    @Nullable
+    public static Query refIsNullQuery(Reference ref, Context context) {
+        if (!ref.isNullable()) {
+            return new MatchNoDocsQuery("`x IS NULL` on column that is NOT NULL can't match");
+        }
+        Query refExistsQuery = refExistsQuery(ref, context);
+        return refExistsQuery == null ? null : Queries.not(refExistsQuery);
     }
 
 

@@ -50,8 +50,8 @@ import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.table.Operation;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -76,7 +76,7 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
                         .argumentTypes(DataTypes.INTEGER.getTypeSignature(),
                             DataTypes.INTEGER.getTypeSignature())
                         .returnType(DataTypes.INTEGER.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                     List.of(x, x),
                     DataTypes.INTEGER

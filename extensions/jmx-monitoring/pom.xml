@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.crate</groupId>
         <artifactId>crate</artifactId>
-        <version>6.5.0</version>
+        <version>6.6.0</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -48,7 +48,7 @@
         <dependency>
             <groupId>org.junit.vintage</groupId>
             <artifactId>junit-vintage-engine</artifactId>
-            <version>${versions.junit5}</version>
+            <version>${versions.junit6}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

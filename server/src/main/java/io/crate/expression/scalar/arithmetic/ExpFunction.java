@@ -21,15 +21,16 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.math.BigDecimal;
 import java.math.MathContext;
 
 import ch.obermuhlner.math.big.BigDecimalMath;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
 
 public class ExpFunction {
@@ -45,27 +46,25 @@ public class ExpFunction {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(signature)
                 .returnType(signature)
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (declaredSignature, boundSignature) ->
                 new UnaryScalar<>(
                     declaredSignature,
                     boundSignature,
-                    type,
-                    x -> type.sanitizeValue(Math.exp(((Number) x).doubleValue()))
+                    (Number x) -> type.sanitizeValue(Math.exp(x.doubleValue()))
                 )
         );
         builder.add(
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (declaredSignature, ignoredBoundSignature) -> new UnaryScalar<>(
                 declaredSignature,
                 BoundSignature.sameAsUnbound(declaredSignature),
-                DataTypes.NUMERIC,
-                x -> BigDecimalMath.exp(x, MathContext.DECIMAL128))
+                (BigDecimal x) -> BigDecimalMath.exp(x, MathContext.DECIMAL128))
         );
     }
 }

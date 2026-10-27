@@ -55,6 +55,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.role.Role;
 import io.crate.role.Roles;
@@ -78,40 +79,43 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepareFunctions() {
         String createTableStmt =
-            "create table doc.users (" +
-            "  id int," +
-            "  name text," +
-            "  tags array(text)," +
-            "  age int," +
-            "  a int," +
-            "  ip ip," +
-            "  c byte," +
-            "  x bigint," +
-            "  shape geo_shape," +
-            "  timestamp_tz timestamp with time zone," +
-            "  timestamp timestamp without time zone," +
-            "  timezone text," +
-            "  interval text," +
-            "  time_format text," +
-            "  long_array array(bigint)," +
-            "  int_array array(int)," +
-            "  short_array array(short)," +
-            "  double_array array(double precision)," +
-            "  numeric_array array(numeric(38, 8))," +
-            "  regex_pattern text," +
-            "  geoshape geo_shape," +
-            "  geopoint geo_point," +
-            "  geostring text," +
-            "  is_awesome boolean," +
-            "  numeric_val numeric(38, 37)," +
-            "  numeric_4_2 numeric(4, 2)," +
-            "  double_val double precision," +
-            "  float_val real," +
-            "  short_val smallint," +
-            "  obj object," +
-            "  obj_typed object as (a object as (b int))," +
-            "  obj_ignored object(ignored)" +
-            ")";
+            """
+            create table doc.users (
+              id int,
+              name text,
+              tags array(text),
+              age int,
+              a int,
+              ip ip,
+              c byte,
+              x bigint,
+              shape geo_shape,
+              timestamp_tz timestamp with time zone,
+              timestamp timestamp without time zone,
+              timezone text,
+              interval text,
+              time_format text,
+              long_array array(bigint),
+              int_array array(int),
+              short_array array(short),
+              double_array array(double precision),
+              numeric_array array(numeric(38, 8)),
+              regex_pattern text,
+              geoshape geo_shape,
+              geopoint geo_point,
+              geostring text,
+              is_awesome boolean,
+              numeric_val numeric(38, 37),
+              numeric_4_2 numeric(4, 2),
+              double_val double precision,
+              float_val real,
+              short_val smallint,
+              obj object,
+              obj_typed object as (a object as (b int)),
+              obj_ignored object(ignored),
+              uuid uuid
+            )
+            """;
 
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
             new RelationName(DocSchemaInfo.NAME, "users"),
@@ -262,7 +266,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
 
         actualValue = scalar.evaluate(txnCtx, sqlExpressions.nodeCtx, arguments);
         assertThat((T) actualValue).satisfies(expectedValue);
-        if (scalar.signature().hasFeature(Scalar.Feature.NOTNULL)) {
+        if (scalar.signature().hasFeature(Feature.NOTNULL)) {
             assertThat(actualValue).isNotNull();
         }
     }

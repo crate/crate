@@ -21,9 +21,12 @@
 
 package io.crate.session;
 
+import static io.crate.role.metadata.RolesHelper.roleOf;
+import static io.crate.role.metadata.RolesHelper.userOf;
 import static io.crate.session.Session.UNNAMED;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -38,6 +41,8 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
@@ -47,6 +52,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -56,6 +65,7 @@ import org.mockito.stubbing.Answer;
 
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.where.EqualityExtractorTest;
+import io.crate.auth.Protocol;
 import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.InMemoryBatchIterator;
@@ -63,18 +73,31 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.execution.dml.BulkResponse;
 import io.crate.execution.engine.collect.stats.QueueSink;
 import io.crate.execution.jobs.kill.KillJobsNodeAction;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.protocols.postgres.FormatCodes.FormatCode;
 import io.crate.protocols.postgres.Portal;
+import io.crate.role.GrantedRole;
+import io.crate.role.Permission;
+import io.crate.role.Policy;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
+import io.crate.role.Securable;
+import io.crate.role.StubRoleManager;
+import io.crate.role.metadata.RolesMetadata;
 import io.crate.sql.parser.ParsingException;
+import io.crate.sql.tree.Declare.Hold;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataType;
@@ -138,14 +161,12 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         assertThat(session.portals).hasSize(1);
         assertThat(session.preparedStatements).hasSize(1);
         assertThat(session.deferredExecutionsByStmt).hasSize(0);
-        assertThat(session.activeExecution).isEqualTo(activeExecutionFuture);
 
         session.close();
 
         assertThat(session.portals).hasSize(0);
         assertThat(session.preparedStatements).hasSize(0);
         assertThat(session.deferredExecutionsByStmt).hasSize(0);
-        assertThat(session.activeExecution).isNull();
     }
 
     @Test
@@ -160,11 +181,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.execute("", -1, new BaseResultReceiver());
         assertThat(session.deferredExecutionsByStmt).hasSize(1);
         session.flush();
-        var activeExecution = session.activeExecution;
-        assertThat(activeExecution).isNotNull();
-
-        CompletableFuture<?> sync = session.sync(false);
-        assertThat(sync).isSameAs(activeExecution);
+        assertThat(session.deferredExecutionsByStmt).hasSize(0);
     }
 
     @Test
@@ -190,7 +207,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         assertThat(session.portals).hasSize(0);
         assertThat(session.preparedStatements).hasSize(0);
         assertThat(session.deferredExecutionsByStmt).hasSize(0);
-        assertThat(session.activeExecution).isNull();
     }
 
     @Test
@@ -730,5 +746,283 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         session.sync(false);
         assertThat(sqlExecutor.jobsLogs.activeJobs().iterator().hasNext()).isFalse();
+    }
+
+    private static final Role USER_WITH_PRIVILEGES = userOf(
+        "u1",
+        Set.of(
+            new Privilege(Policy.GRANT, Permission.DQL, Securable.TABLE, "doc.t1", "crate"),
+            new Privilege(Policy.GRANT, Permission.DML, Securable.TABLE, "doc.t1", "crate")
+        ),
+        null
+    );
+
+    /// Plan which keeps the consumer, so that the test controls the rows of the execution
+    private static class CapturingPlan implements Plan {
+
+        private final AtomicReference<RowConsumer> consumer = new AtomicReference<>();
+
+        @Override
+        public StatementType type() {
+            return StatementType.SELECT;
+        }
+
+        @Override
+        public void executeOrFail(DependencyCarrier dependencies,
+                                  PlannerContext plannerContext,
+                                  RowConsumer consumer,
+                                  Row params,
+                                  SubQueryResults subQueryResults) {
+            this.consumer.set(consumer);
+        }
+
+        @Override
+        public CompletableFuture<BulkResponse> executeBulk(DependencyCarrier executor,
+                                                           PlannerContext plannerContext,
+                                                           List<Row> bulkParams,
+                                                           SubQueryResults subQueryResults) {
+            return CompletableFuture.completedFuture(new BulkResponse(bulkParams.size()));
+        }
+    }
+
+    private Session createUserSession(List<Role> roles, Planner planner) throws Exception {
+        return createUserSession(roles, planner, USER_WITH_PRIVILEGES);
+    }
+
+    private Session createUserSession(List<Role> roles, Planner planner, Role user) throws Exception {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .setRoleManager(new StubRoleManager(roles, true))
+            .setPlanner(planner)
+            .build()
+            .addTable("CREATE TABLE doc.t1 (x INT)");
+        return sqlExecutor.sqlOperations.newSession(
+            new ConnectionProperties(null, null, Protocol.POSTGRES, null),
+            "doc",
+            user
+        );
+    }
+
+    private static Planner planner(Plan plan) {
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
+        when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class))).thenReturn(plan);
+        return planner;
+    }
+
+    @Test
+    public void test_prepared_statement_is_executed_if_user_and_privileges_are_unchanged() throws Exception {
+        List<Role> roles = new ArrayList<>(List.of(Role.CRATE_USER, USER_WITH_PRIVILEGES));
+        Planner planner = planner(new CapturingPlan());
+        try (Session session = createUserSession(roles, planner)) {
+            session.parse("S1", "SELECT x FROM t1", List.of());
+            session.bind("P1", "S1", List.of(), null);
+            session.execute("P1", 0, new BaseResultReceiver());
+            verify(planner, times(1)).plan(any(AnalyzedStatement.class), any(PlannerContext.class));
+        }
+    }
+
+    @Test
+    public void test_prepared_statement_is_not_executed_after_user_is_dropped() throws Exception {
+        List<Role> roles = new ArrayList<>(List.of(Role.CRATE_USER, USER_WITH_PRIVILEGES));
+        Planner planner = planner(new CapturingPlan());
+        try (Session session = createUserSession(roles, planner)) {
+            session.parse("S1", "SELECT x FROM t1", List.of());
+            session.bind("P1", "S1", List.of(), null);
+
+            roles.remove(USER_WITH_PRIVILEGES);
+
+            assertThatThrownBy(() -> session.execute("P1", 0, new BaseResultReceiver()))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("User \"u1\" was dropped");
+            verify(planner, times(0)).plan(any(AnalyzedStatement.class), any(PlannerContext.class));
+        }
+    }
+
+    @Test
+    public void test_prepared_statement_is_not_executed_after_privilege_is_revoked() throws Exception {
+        List<Role> roles = new ArrayList<>(List.of(Role.CRATE_USER, USER_WITH_PRIVILEGES));
+        Planner planner = planner(new CapturingPlan());
+        try (Session session = createUserSession(roles, planner)) {
+            session.parse("S1", "SELECT x FROM t1", List.of());
+            session.bind("P1", "S1", List.of(), null);
+
+            // REVOKE DQL ON TABLE doc.t1 FROM u1
+            roles.set(1, userOf(
+                "u1",
+                Set.of(new Privilege(Policy.GRANT, Permission.DML, Securable.TABLE, "doc.t1", "crate")),
+                null
+            ));
+
+            assertThatThrownBy(() -> session.execute("P1", 0, new BaseResultReceiver()))
+                .isExactlyInstanceOf(MissingPrivilegeException.class)
+                .hasMessage("Missing 'DQL' privilege for user 'u1'");
+            verify(planner, times(0)).plan(any(AnalyzedStatement.class), any(PlannerContext.class));
+        }
+    }
+
+    @Test
+    public void test_prepared_statement_is_not_executed_after_role_membership_is_revoked() throws Exception {
+        Role role = roleOf(
+            "r1",
+            Set.of(new Privilege(Policy.GRANT, Permission.DQL, Securable.TABLE, "doc.t1", "crate"))
+        );
+        Set<Privilege> userPrivileges = Set.of(
+            new Privilege(Policy.GRANT, Permission.DML, Securable.TABLE, "doc.t1", "crate")
+        );
+        Role user = userOf("u1", userPrivileges, Set.of(new GrantedRole("r1", "crate")), null);
+        List<Role> roles = new ArrayList<>(List.of(Role.CRATE_USER, role, user));
+        Planner planner = planner(new CapturingPlan());
+        try (Session session = createUserSession(roles, planner, user)) {
+            session.parse("S1", "SELECT x FROM t1", List.of());
+            session.bind("P1", "S1", List.of(), null);
+
+            // REVOKE r1 FROM u1
+            roles.set(2, userOf("u1", userPrivileges, null));
+
+            assertThatThrownBy(() -> session.execute("P1", 0, new BaseResultReceiver()))
+                .isExactlyInstanceOf(MissingPrivilegeException.class)
+                .hasMessage("Missing 'DQL' privilege for user 'u1'");
+            assertThatThrownBy(() -> session.parse("S2", "SELECT x FROM t1", List.of()))
+                .isExactlyInstanceOf(MissingPrivilegeException.class)
+                .hasMessage("Missing 'DQL' privilege for user 'u1'");
+            verify(planner, times(0)).plan(any(AnalyzedStatement.class), any(PlannerContext.class));
+        }
+    }
+
+    @Test
+    public void test_deferred_bulk_execution_fails_after_user_is_dropped() throws Exception {
+        List<Role> roles = new ArrayList<>(List.of(Role.CRATE_USER, USER_WITH_PRIVILEGES));
+        Planner planner = planner(new CapturingPlan());
+        try (Session session = createUserSession(roles, planner)) {
+            session.parse(UNNAMED, "INSERT INTO t1 (x) VALUES (?)", List.of());
+            // At least 2 execute() calls, so that we have >1 deferred executions and sync() hits bulkExec.
+            for (int i = 0; i < 2; i++) {
+                session.bind(UNNAMED, UNNAMED, List.of(i), null);
+                session.execute(UNNAMED, 0, new BaseResultReceiver());
+            }
+
+            roles.remove(USER_WITH_PRIVILEGES);
+
+            assertThatThrownBy(() -> session.sync(false).get(5, TimeUnit.SECONDS))
+                .hasStackTraceContaining("User \"u1\" was dropped");
+            verify(planner, times(0)).plan(any(AnalyzedStatement.class), any(PlannerContext.class));
+        }
+    }
+
+    @Test
+    public void test_suspended_portal_is_not_resumed_after_user_is_dropped() throws Exception {
+        List<Role> roles = new ArrayList<>(List.of(Role.CRATE_USER, USER_WITH_PRIVILEGES));
+        CapturingPlan plan = new CapturingPlan();
+        try (Session session = createUserSession(roles, planner(plan))) {
+            session.parse("S1", "SELECT x FROM t1", List.of());
+            session.bind("P1", "S1", List.of(), null);
+            BaseResultReceiver resultReceiver = new BaseResultReceiver();
+            session.execute("P1", 1, resultReceiver);
+            plan.consumer.get().accept(TestingBatchIterators.range(0, 10), null);
+            Portal portal = session.portals.get("P1");
+            assertThat(portal.activeConsumer().suspended()).isTrue();
+
+            roles.remove(USER_WITH_PRIVILEGES);
+
+            assertThatThrownBy(() -> session.execute("P1", 1, new BaseResultReceiver()))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("User \"u1\" was dropped");
+            assertThat(portal.activeConsumer().suspended()).isTrue();
+        }
+    }
+
+    @Test
+    public void test_session_cannot_be_used_after_user_is_dropped_and_created_again() throws Exception {
+        // The roles used for authorization still contain the user, as if it was created again
+        List<Role> roles = new ArrayList<>(List.of(Role.CRATE_USER, USER_WITH_PRIVILEGES));
+        Planner planner = planner(new CapturingPlan());
+        try (Session session = createUserSession(roles, planner)) {
+            session.parse("S1", "SELECT x FROM t1", List.of());
+            session.bind("P1", "S1", List.of(), null);
+
+            // The roles metadata doesn't contain the user anymore, e.g. after DROP USER
+            ClusterState state = clusterService.state();
+            ClusterServiceUtils.setState(clusterService, ClusterState.builder(state)
+                .metadata(Metadata.builder(state.metadata()).putCustom(RolesMetadata.TYPE, new RolesMetadata(Map.of())))
+                .build());
+
+            assertThatThrownBy(() -> session.execute("P1", 0, new BaseResultReceiver()))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("User \"u1\" was dropped");
+            assertThatThrownBy(() -> session.parse("S2", "SELECT 1", List.of()))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("User \"u1\" was dropped");
+            verify(planner, times(0)).plan(any(AnalyzedStatement.class), any(PlannerContext.class));
+        }
+    }
+
+    @Test
+    public void test_sys_shards_routing_uses_current_privileges_of_session_user() throws Exception {
+        SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.t1 (x INT)")
+            .startShards("doc.t1");
+        Role userWithPrivilege = userOf(
+            "u1",
+            Set.of(new Privilege(Policy.GRANT, Permission.DQL, Securable.TABLE, "doc.t1", "crate")),
+            null
+        );
+        List<Role> roles = new ArrayList<>(List.of(Role.CRATE_USER, userWithPrivilege));
+        var roleManager = new StubRoleManager(roles, true);
+        var sessionSettings = new CoordinatorSessionSettings(userWithPrivilege);
+
+        assertThat(SysShardsTableInfo.getRouting(clusterService.state(), sessionSettings, roleManager).containsShards())
+            .isTrue();
+
+        roles.set(1, userOf("u1"));
+        assertThat(SysShardsTableInfo.getRouting(clusterService.state(), sessionSettings, roleManager).containsShards())
+            .isFalse();
+
+        roles.remove(1);
+        assertThat(SysShardsTableInfo.getRouting(clusterService.state(), sessionSettings, roleManager).containsShards())
+            .isFalse();
+    }
+
+    @Test
+    public void test_fetch_from_cursor_fails_after_privilege_is_revoked() throws Exception {
+        List<Role> roles = new ArrayList<>(List.of(Role.CRATE_USER, USER_WITH_PRIVILEGES));
+        Planner planner = planner(new CapturingPlan());
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .setRoleManager(new StubRoleManager(roles, true))
+            .setPlanner(planner)
+            .build()
+            .addTable("CREATE TABLE doc.t1 (x INT)");
+        try (Session session = sqlExecutor.sqlOperations.newSession(
+                new ConnectionProperties(null, null, Protocol.POSTGRES, null), "doc", USER_WITH_PRIVILEGES)) {
+            AnalyzedStatement query = sqlExecutor.analyze("SELECT x FROM t1");
+            session.cursors.add("c1", new Cursor(
+                new NoopCircuitBreaker("dummy"),
+                "c1",
+                "DECLARE c1 CURSOR WITH HOLD FOR SELECT x FROM t1",
+                false,
+                Hold.WITH,
+                completedFuture(InMemoryBatchIterator.empty(null)),
+                new CompletableFuture<>(),
+                query
+            ));
+            session.parse("S1", "FETCH NEXT FROM c1", List.of());
+            session.bind("P1", "S1", List.of(), null);
+
+            // REVOKE DQL ON TABLE doc.t1 FROM u1
+            roles.set(1, userOf(
+                "u1",
+                Set.of(new Privilege(Policy.GRANT, Permission.DML, Securable.TABLE, "doc.t1", "crate")),
+                null
+            ));
+
+            assertThatThrownBy(() -> session.execute("P1", 0, new BaseResultReceiver()))
+                .isExactlyInstanceOf(MissingPrivilegeException.class)
+                .hasMessage("Missing 'DQL' privilege for user 'u1'");
+            assertThatThrownBy(() -> session.parse("S2", "FETCH NEXT FROM c1", List.of()))
+                .isExactlyInstanceOf(MissingPrivilegeException.class)
+                .hasMessage("Missing 'DQL' privilege for user 'u1'");
+            verify(planner, times(0)).plan(any(AnalyzedStatement.class), any(PlannerContext.class));
+
+            // The cursor can still be closed
+            session.parse("S3", "CLOSE c1", List.of());
+        }
     }
 }

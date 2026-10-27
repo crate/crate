@@ -86,6 +86,15 @@ To cancel a restore operation simply drop the tables that are being restored.
     Therefore, subsequent inserts may execute UDFs with the same name and
     signature but different definitions.
 
+.. CAUTION::
+
+    :ref:`Foreign tables <ref-create-foreign-table>` are only restored together
+    with their :ref:`servers <ref-create-server>` and
+    :ref:`user mappings <ref-create-user-mapping>` when using ``ALL`` or
+    ``METADATA``. Restoring a foreign table with ``TABLE`` doesn't restore its
+    server and user mappings, so the foreign table is unusable unless they
+    already exist in the cluster, or created manually.
+
 .. TIP::
 
     After restoring a snapshot which affects tables/partitions and their data,
@@ -105,8 +114,9 @@ Parameters
   The name of the snapshot as ident.
 
 :table_ident:
-  The name (optionally schema-qualified) of an existing table that is to be
-  restored from the snapshot.
+  The name (optionally schema-qualified) of an existing table,
+  :ref:`foreign table <ref-create-foreign-table>` or :ref:`view <ddl-views>`
+  that is to be restored from the snapshot.
 
 :data_section:
   The section name of the data to be restored. Multiple sections can be
@@ -220,8 +230,18 @@ is restored to the cluster:
   Example: ``prefix_$1`` combined with default ``table_rename_pattern`` adds
   'prefix' to all restored table names.
 
+.. NOTE::
+
+   The ``schema_rename_pattern``, ``schema_rename_replacement``,
+   ``table_rename_pattern`` and ``table_rename_replacement`` options also apply
+   to :ref:`foreign tables <ref-create-foreign-table>` and
+   :ref:`views <ddl-views>`. A renamed foreign table still refers to its
+   original :ref:`server <ref-create-server>`. The query of a renamed view
+   isn't changed, so it still refers to the same relations as the original
+   view.
+
 .. CAUTION::
 
    Restore will abort with a failure if there is a name collision after
-   evaluating the rename operations, or if a table with the same name as the
-   rename target already exists.
+   evaluating the rename operations, or if a table, foreign table or view with
+   the same name as the rename target already exists.

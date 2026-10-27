@@ -653,7 +653,7 @@ public class PostgresITest extends IntegTestCase {
             conn.setAutoCommit(true);
 
             Statement stmt = conn.createStatement();
-            stmt.executeUpdate("create table t (x string, b boolean) with (number_of_replicas = 0)");
+            stmt.executeUpdate("create table t (x string, b bool) with (number_of_replicas = 0)");
             ensureYellow();
 
             PreparedStatement preparedStatement = conn.prepareStatement("insert into t (x, b) values (?, ?)");
@@ -790,7 +790,7 @@ public class PostgresITest extends IntegTestCase {
     }
 
     @Test
-    public void test_execute_batch_fails_with_read_operations() throws Exception {
+    public void test_execute_batch_with_insert_followed_by_read_operations() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.setAutoCommit(true);
             Statement stmt = conn.createStatement();
@@ -800,9 +800,10 @@ public class PostgresITest extends IntegTestCase {
             statement.addBatch("refresh table t");
             statement.addBatch("select count(*) from t");
 
-            assertThatThrownBy(() -> statement.executeBatch())
-                .isExactlyInstanceOf(BatchUpdateException.class)
-                .hasMessageContaining("Only write operations are allowed in Batch statements");
+            int[] batchResult = statement.executeBatch();
+            assertThat(batchResult).containsExactly(2, 1, 0);
+            assertThat(statement.getUpdateCount()).isEqualTo(-1);
+            assertThat(statement.getResultSet()).isNull();
         }
     }
 

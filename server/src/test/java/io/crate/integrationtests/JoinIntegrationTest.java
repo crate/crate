@@ -428,7 +428,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("explain (costs false) select * from doc.t as t1, doc.t as t2 order by t1.x, t2.x limit 3");
         assertThat(response).hasLines(
             "Fetch[x, y, x, y]",
-            "  └ Limit[3::bigint;0]",
+            "  └ Limit[3;0]",
             "    └ OrderBy[x ASC x ASC]",
             "      └ NestedLoopJoin[CROSS]",
             "        ├ Rename[t1._fetchid, x] AS t1",
@@ -1503,15 +1503,14 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         String stmt = "SELECT * FROM (select a from tt1 order by b desc limit 1) i, tt2 WHERE c >= 50";
         assertThat(execute("explain (costs false) " + stmt)).hasLines(
-            "Eval[a, a, b, c]",
-            "  └ NestedLoopJoin[CROSS]",
-            "    ├ Collect[doc.tt2 | [a, b, c] | (c >= 50)]",
-            "    └ Rename[a] AS i",
-            "      └ Eval[a]",
-            "        └ Fetch[a, b]",
-            "          └ Limit[1::bigint;0]",
-            "            └ OrderBy[b DESC]",
-            "              └ Collect[doc.tt1 | [_fetchid, b] | true]"
+            "NestedLoopJoin[CROSS]",
+            "  ├ Rename[a] AS i",
+            "  │  └ Eval[a]",
+            "  │    └ Fetch[a, b]",
+            "  │      └ Limit[1;0]",
+            "  │        └ OrderBy[b DESC]",
+            "  │          └ Collect[doc.tt1 | [_fetchid, b] | true]",
+            "  └ Collect[doc.tt2 | [a, b, c] | (c >= 50)]"
         );
         assertThat(execute(stmt)).hasRowCount(51);
     }
@@ -1554,6 +1553,105 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         execute(stmt);
         assertThat(response).hasRows("3");
+    }
+
+    @UseHashJoins(1)
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @Test
+    public void test_eliminate_cross_joins_and_reorder_tables() throws Exception {
+        execute("CREATE TABLE t1 (x INT, i INT)");
+        execute("CREATE TABLE t2 (y INT)");
+        execute("CREATE TABLE t3 (z INT)");
+        execute("CREATE TABLE t4 (id INT)");
+
+        // Rows 1 and 2 match all conditions, every other value fails exactly one:
+        // 3 -> t1.i > 0
+        // 4 -> t3.z = t4.id
+        // 5 -> t1.x = t3.z
+        // 6 -> t2.y = t4.id
+        execute("INSERT INTO t1 (x, i) VALUES (1, 1), (2, 2), (3, 0), (4, 4), (5, 5), (6, 6)");
+        execute("INSERT INTO t2 (y) VALUES (1), (2), (3), (4), (5)");
+        execute("INSERT INTO t3 (z) VALUES (1), (2), (3), (4), (6)");
+        execute("INSERT INTO t4 (id) VALUES (1), (2), (3), (5), (6)");
+
+        execute("REFRESH TABLE t1, t2, t3, t4");
+
+        var stmt = """
+            SELECT t1.x, t2.y, t3.z, t4.id
+            FROM t1
+            CROSS JOIN t2
+            CROSS JOIN t3
+            JOIN t4 ON t2.y = t4.id AND t3.z = t4.id
+            WHERE t1.x = t3.z
+              AND t1.i > 0;
+            """;
+
+        assertThat(execute("explain " + stmt)).hasLines(
+            "Eval[x, y, z, id] (rows=unknown)",
+            "  └ HashJoin[INNER | (y = id)] (rows=unknown)",
+            "    ├ HashJoin[INNER | (z = id)] (rows=unknown)",
+            "    │  ├ HashJoin[INNER | (x = z)] (rows=unknown)",
+            "    │  │  ├ Collect[doc.t1 | [x] | (i > 0)] (rows=unknown)",
+            "    │  │  └ Collect[doc.t3 | [z] | true] (rows=unknown)",
+            "    │  └ Collect[doc.t4 | [id] | true] (rows=unknown)",
+            "    └ Collect[doc.t2 | [y] | true] (rows=unknown)"
+        );
+
+        execute(stmt);
+        assertThat(response).hasRowsInAnyOrder(
+            "2| 2| 2| 2",
+            "1| 1| 1| 1"
+        );
+    }
+
+    @Test
+    @UseHashJoins(1)
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    public void test_join_condition_referencing_multiple_tables_on_one_side_of_join() throws Exception {
+        // See: https://github.com/crate/crate/issues/20414
+        execute("CREATE TABLE t1 (a INT, x INT)");
+        execute("CREATE TABLE t2 (b INT, y INT)");
+        execute("CREATE TABLE t3 (z INT)");
+        execute("CREATE TABLE t4 (id INT)");
+        execute("INSERT INTO t1 (a, x) VALUES (1, 1)");
+        execute("INSERT INTO t2 (b, y) VALUES (1, 1), (1, 2)");
+        execute("INSERT INTO t3 (z) VALUES (1)");
+        execute("INSERT INTO t4 (id) VALUES (1)");
+        execute("REFRESH TABLE t1, t2, t3, t4");
+
+        var stmt = """
+            SELECT t1.x, t2.y, t3.z, t4.id
+            FROM t1
+            LEFT JOIN t2 ON t1.a = t2.b
+            CROSS JOIN t3
+            JOIN t4 ON t1.x = t2.y AND t1.x = t3.z AND t3.z = t4.id
+            """;
+
+        for (String eliminateCrossJoin : new String[] {"TRUE", "FALSE"}) {
+            try (var session = sqlExecutor.newSession()) {
+                execute("SET optimizer_eliminate_cross_join = " + eliminateCrossJoin, session);
+
+                execute("EXPLAIN (COSTS FALSE) " + stmt, session);
+                assertThat(response).hasLines(
+                    "Eval[x, y, z, id]",
+                    "  └ HashJoin[INNER | (z = id)]",
+                    "    ├ HashJoin[INNER | (x = z)]",
+                    "    │  ├ Filter[(x = y)]",
+                    "    │  │  └ HashJoin[LEFT | (a = b)]",
+                    "    │  │    ├ Collect[doc.t1 | [x, a] | true]",
+                    "    │  │    └ Collect[doc.t2 | [y, b] | true]",
+                    "    │  └ Collect[doc.t3 | [z] | true]",
+                    "    └ Collect[doc.t4 | [id] | true]"
+                );
+
+                execute(stmt, session);
+                assertThat(response).hasRowsInAnyOrder(
+                    "1| 1| 1| 1"
+                );
+            }
+        }
     }
 
     /**

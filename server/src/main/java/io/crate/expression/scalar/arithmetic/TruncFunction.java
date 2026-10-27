@@ -34,6 +34,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -52,14 +53,13 @@ public final class TruncFunction {
                 Signature.builder(NAME, FunctionType.SCALAR)
                     .argumentTypes(type.getTypeSignature())
                     .returnType(returnType.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .forbidCoercion()
                     .build(),
                 (signature, boundSignature) ->
                     new UnaryScalar<>(
                         signature,
                         boundSignature,
-                        type,
                         n -> {
                             double val = ((Number) n).doubleValue();
                             UnaryOperator<Double> f = val >= 0 ? Math::floor : Math::ceil;
@@ -75,7 +75,7 @@ public final class TruncFunction {
                 .argumentTypes(DataTypes.DOUBLE.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             TruncFunction::createTruncWithMode
         );

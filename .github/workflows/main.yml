@@ -53,7 +53,7 @@ jobs:
         if: needs.changes.outputs.java == 'true'
         uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
-          java-version: "26.0.2+101"
+          java-version: "27+35"
           distribution: "temurin"
           cache: maven
 
@@ -62,7 +62,8 @@ jobs:
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
         run: |
-          mvn test \
+          ./mvnw test \
+            -Dtoolchain.skip=true \
             -Dtests.crate.run-windows-incompatible=true \
             -DforkCount=2 \
             -DthreadCount=2 \
@@ -74,6 +75,9 @@ jobs:
       - name: Publish Test Report
         if: needs.changes.outputs.java == 'true' && (success() || failure())
         uses: ScalableCapital/action-surefire-report@1e92f48016e566e4eed2d81560edbfe0f524cfb7 #v2.0.3
+        with:
+          # GITHUB_TOKEN is read-only for PRs from forks, so the step fails with 403
+          skip_publishing: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
 
   forbiddenApis:
     name: forbiddenApis
@@ -88,13 +92,13 @@ jobs:
         if: needs.changes.outputs.java == 'true'
         uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
-          java-version: "26.0.2+101"
+          java-version: "27+35"
           distribution: "temurin"
           cache: maven
       - name: Run forbiddenapis:check
         if: needs.changes.outputs.java == 'true'
         run: |
-          mvn compile forbiddenapis:check
+          ./mvnw -Dtoolchain.skip=true compile forbiddenapis:check
 
   checkstyle:
     name: checkstyle
@@ -109,8 +113,8 @@ jobs:
         if: needs.changes.outputs.java == 'true'
         uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
-          java-version: "26.0.2+101"
+          java-version: "27+35"
           distribution: "temurin"
       - name: Run checkstyle
         if: needs.changes.outputs.java == 'true'
-        run: mvn compile checkstyle:checkstyle
+        run: ./mvnw -Dtoolchain.skip=true compile checkstyle:checkstyle

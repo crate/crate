@@ -56,7 +56,7 @@ public class LongEqQueryTest extends LuceneQueryBuilderTest {
 
         query = convert("a4 = 1");
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
-        assertThat(query).hasToString("(a4 = 1::bigint)");
+        assertThat(query).hasToString("(a4 = 1)");
     }
 
     @Test
@@ -76,6 +76,6 @@ public class LongEqQueryTest extends LuceneQueryBuilderTest {
 
         query = convert("a4 <= 1");
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
-        assertThat(query).hasToString("(a4 <= 1::bigint)");
+        assertThat(query).hasToString("(a4 <= 1)");
     }
 }

@@ -26,6 +26,7 @@ import static java.lang.Double.doubleToLongBits;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
@@ -47,6 +48,7 @@ import io.crate.Streamer;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.dml.BitStringIndexer;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
@@ -58,9 +60,11 @@ import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
+import io.crate.sql.tree.BitString;
+import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.CharacterType;
@@ -75,6 +79,7 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
+import io.crate.types.UUIDType;
 
 public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLogLogDistinctAggregation.HllState, Long> {
 
@@ -84,27 +89,32 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         DataTypes.register(HllStateType.ID, _ -> HllStateType.INSTANCE);
     }
 
+
+    /// register hyperloglog_distinct(type[, precision::int])
+    private static <T> void register(Functions.Builder builder, DataType<T> type) {
+        builder.add(
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                .argumentTypes(type.getTypeSignature())
+                .returnType(DataTypes.LONG.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build(),
+            (signature, boundSignature) -> new HyperLogLogDistinctAggregation(signature, boundSignature, type)
+        );
+        builder.add(
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                .argumentTypes(
+                    type.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.LONG.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build(),
+            (signature, boundSignature) -> new HyperLogLogDistinctAggregation(signature, boundSignature, type)
+        );
+    }
+
     public static void register(Functions.Builder builder) {
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
-            builder.add(
-                Signature.builder(NAME, FunctionType.AGGREGATE)
-                    .argumentTypes(supportedType.getTypeSignature())
-                    .returnType(DataTypes.LONG.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
-                    .build(),
-                (signature, boundSignature) ->
-                    new HyperLogLogDistinctAggregation(signature, boundSignature, supportedType)
-            );
-            builder.add(
-                Signature.builder(NAME, FunctionType.AGGREGATE)
-                    .argumentTypes(supportedType.getTypeSignature(),
-                        DataTypes.INTEGER.getTypeSignature())
-                    .returnType(DataTypes.LONG.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
-                    .build(),
-                (signature, boundSignature) ->
-                    new HyperLogLogDistinctAggregation(signature, boundSignature, supportedType)
-            );
+            register(builder, supportedType);
         }
     }
 
@@ -113,9 +123,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     private final Murmur3Hash murmur;
     private final DataType<?> dataType;
 
-    private HyperLogLogDistinctAggregation(Signature signature,
-                                           BoundSignature boundSignature,
-                                           DataType<?> dataType) {
+    private HyperLogLogDistinctAggregation(Signature signature, BoundSignature boundSignature, DataType<?> dataType) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.dataType = dataType;
@@ -254,6 +262,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 );
             case StringType.ID:
             case CharacterType.ID:
+            case UUIDType.ID:
+            case BitStringType.ID:
                 return new HllAggregator(reference.storageIdent(), valueType, precision) {
                     @Override
                     public HllState apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
@@ -279,6 +289,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                         return state;
                     }
                 };
+
             default:
                 return null;
         }
@@ -512,6 +523,10 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 case IpType.ID:
                 case CharacterType.ID:
                     return Bytes64.INSTANCE;
+                case UUIDType.ID:
+                    return UUIDMurmur.INSTANCE;
+                case BitStringType.ID:
+                    return new BitMurmur((BitStringType) dataType);
                 default:
                     throw new IllegalArgumentException("data type \"" + dataType + "\" is not supported");
             }
@@ -547,20 +562,37 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             @Override
             long hash(Object val) {
                 byte[] bytes = DataTypes.STRING.implicitCast(val).getBytes(StandardCharsets.UTF_8);
-                return MurmurHash3.hash64(bytes,0, bytes.length);
+                return MurmurHash3.hash64(bytes, 0, bytes.length);
             }
         }
 
-        static class Bytes extends Murmur3Hash {
+        static class UUIDMurmur extends Murmur3Hash {
 
-            private final MurmurHash3.Hash128 hash = new MurmurHash3.Hash128();
+            static final UUIDMurmur INSTANCE = new UUIDMurmur();
 
             @Override
             long hash(Object val) {
-                byte[] bytes = DataTypes.STRING.implicitCast(val).getBytes(StandardCharsets.UTF_8);
-                MurmurHash3.hash128(bytes, 0, bytes.length, 0, hash);
-                return hash.h1;
+                UUID uuid = UUIDType.INSTANCE.implicitCast(val);
+                byte[] bytes = UUIDType.encode(uuid);
+                return MurmurHash3.hash64(bytes, 0, bytes.length);
             }
+        }
+
+        static class BitMurmur extends Murmur3Hash {
+
+            private final BitStringType type;
+
+            private BitMurmur(BitStringType type) {
+                this.type = type;
+            }
+
+            @Override
+            long hash(Object val) {
+                BitString bs = type.sanitizeValue(val);
+                byte[] bytes = BitStringIndexer.encode(bs);
+                return MurmurHash3.hash64(bytes, 0, bytes.length);
+            }
+
         }
     }
 }

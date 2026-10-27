@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
@@ -40,6 +41,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.Streamer;
@@ -97,6 +99,11 @@ public class UUIDType extends DataType<UUID> implements FixedWidthType, Streamer
                 }
             };
         }
+
+        @Override
+        public UUID decode(DataType<UUID> type, XContentParser parser) throws IOException {
+            return type.sanitizeValue(parser.text());
+        }
     };
 
     private static UUID decode(byte[] bytes) {
@@ -105,7 +112,7 @@ public class UUIDType extends DataType<UUID> implements FixedWidthType, Streamer
         return new UUID(mostSigBits, leastSigBits);
     }
 
-    private static byte[] encode(UUID value) {
+    public static byte[] encode(UUID value) {
         byte[] bytes = new byte[STORAGE_BYTE_SIZE];
         final long mostSigBits = value.getMostSignificantBits();
         final long leastSigBits = value.getLeastSignificantBits();
@@ -241,6 +248,7 @@ public class UUIDType extends DataType<UUID> implements FixedWidthType, Streamer
             if (!isIndexed) {
                 return null;
             }
+            Collections.sort(nonNullValues);
             PointInSetQuery.Stream stream = new PointInSetQuery.Stream() {
 
                 int idx = 0;

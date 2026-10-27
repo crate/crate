@@ -150,6 +150,11 @@ public class DataTypesTest extends ESTestCase {
     }
 
     @Test
+    public void test_bool_is_aliased_to_boolean() throws Exception {
+        assertThat(DataTypes.ofName("bool")).isEqualTo(DataTypes.BOOLEAN);
+    }
+
+    @Test
     public void testInt4IsAliasedToInteger() {
         assertThat(DataTypes.ofName("int4")).isEqualTo(DataTypes.INTEGER);
     }

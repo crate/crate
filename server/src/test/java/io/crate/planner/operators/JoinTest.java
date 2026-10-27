@@ -28,7 +28,6 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isInputColumn;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -60,6 +59,8 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
+import io.crate.planner.optimizer.rule.EliminateCrossJoin;
+import io.crate.planner.optimizer.rule.ReorderNestedLoopJoin;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
@@ -82,7 +83,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
             .addTable(T3.T3_DEFINITION)
-            .addTable(T3.T4_DEFINITION);
+            .addTable(T3.T4_DEFINITION)
+            .addTable(T3.T5_DEFINITION);
         projectionBuilder = new ProjectionBuilder(e.nodeCtx);
     }
 
@@ -602,7 +604,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "Rename[user_type, domain] AS doc.user_session_visitortype",
             "  └ Eval[CASE WHEN (event_time = first_event_time) THEN 'new_user' ELSE 'returning_user' END AS user_type, domain]",
             "    └ Fetch[event_time, domain, first_event_time]",
-            "      └ Limit[1::bigint;0]",
+            "      └ Limit[1;0]",
             "        └ Eval[_fetchid, first_event_time]",
             "          └ HashJoin[INNER | (user_id = user_id)]",
             "            ├ Rename[user_id, first_event_time] AS first_visit",
@@ -667,7 +669,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Eval[name AS usr]
-              └ Limit[10::bigint;0]
+              └ Limit[10;0]
                 └ NestedLoopJoin[CROSS]
                   ├ OrderBy[name ASC]
                   │  └ Collect[doc.users | [name] | true]
@@ -755,7 +757,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                   │    └ HashAggregate[max(ts)]
                   │      └ Collect[doc.metric_mini | [ts] | true]
                   └ Rename[ts_production] AS b
-                    └ Collect[doc.metric_mini | [ts_production] | ((ts_production AS start >= 1638316800000::bigint) AND (ts_production AS start <= 1638320399000::bigint))]
+                    └ Collect[doc.metric_mini | [ts_production] | ((ts_production AS start >= 1638316800000) AND (ts_production AS start <= 1638320399000))]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
 
@@ -909,7 +911,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                   └ Collect[doc.d | [] | true]
                 └ SubPlan
                   └ Eval[1]
-                    └ Limit[2::bigint;0::bigint]
+                    └ Limit[2;0]
                       └ Filter[(((x = 1) AND (x = 1)) AND (x = 1))]
                         └ TableFunction[empty_row | [] | true]
             """
@@ -1232,6 +1234,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         var plannerCtx = e.getPlannerContext();
         plannerCtx.transactionContext().sessionSettings().setHashJoinEnabled(false);
+        plannerCtx.transactionContext().sessionSettings().excludedOptimizerRules().remove(ReorderNestedLoopJoin.class);
         NestedLoopJoin result = (NestedLoopJoin) buildLogicalPlan(mss, plannerCtx);
 
         assertThat(result).isEqualTo(
@@ -1421,6 +1424,695 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "    │  ├ Collect[doc.t1 | [x] | true]",
             "    │  └ Collect[doc.t3 | [z] | true]",
             "    └ Collect[doc.t2 | [y] | true]"
+        );
+    }
+
+    @Test
+    public void test_cross_joins_with_equi_and_non_equi_condition_between_same_tables() {
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1, t2, t3
+            WHERE t1.x = t2.y
+              AND t1.i > t2.i
+              AND t2.y = t3.z
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "Eval[x, y, z]",
+            "  └ HashJoin[INNER | (y = z)]",
+            "    ├ Filter[(i > i)]",
+            "    │  └ HashJoin[INNER | (x = y)]",
+            "    │    ├ Collect[doc.t1 | [x, i] | true]",
+            "    │    └ Collect[doc.t2 | [y, i] | true]",
+            "    └ Collect[doc.t3 | [z] | true]"
+        );
+    }
+
+    @Test
+    public void test_cross_joins_with_not_condition() {
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT * FROM t1, t2, t3
+            WHERE t1.x = t2.y
+              AND NOT (t1.a = t2.b)
+              AND t2.y = t3.z;
+            """);
+
+        assertThat(plan).hasOperators(
+            "HashJoin[INNER | (y = z)]",
+            "  ├ Filter[(NOT (a = b))]",
+            "  │  └ HashJoin[INNER | (x = y)]",
+            "  │    ├ Collect[doc.t1 | [a, x, i] | true]",
+            "  │    └ Collect[doc.t2 | [b, y, i] | true]",
+            "  └ Collect[doc.t3 | [c, z] | true]"
+        );
+    }
+
+    @Test
+    public void test_cross_joins_with_or_condition() {
+        // OR condition mustn't become a join condition
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT * FROM t1, t2, t3
+            WHERE (t1.x = t2.y OR t1.a = t2.b)
+              AND t2.y = t3.z;
+            """);
+
+        assertThat(plan).hasOperators(
+            "HashJoin[INNER | (y = z)]",
+            "  ├ Filter[((x = y) OR (a = b))]",
+            "  │  └ NestedLoopJoin[CROSS]",
+            "  │    ├ Collect[doc.t1 | [a, x, i] | true]",
+            "  │    └ Collect[doc.t2 | [b, y, i] | true]",
+            "  └ Collect[doc.t3 | [c, z] | true]"
+        );
+    }
+
+    @Test
+    public void test_cross_joins_with_equality_on_same_table() {
+        // t1.x = t1.i should be a filter on t1
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT * FROM t1, t2, t3
+            WHERE t1.x = t2.y
+              AND t1.x = t1.i
+              AND t2.y = t3.z;
+            """);
+
+        assertThat(plan).hasOperators(
+            "HashJoin[INNER | (y = z)]",
+            "  ├ HashJoin[INNER | (x = y)]",
+            "  │  ├ Collect[doc.t1 | [a, x, i] | (i = x)]",
+            "  │  └ Collect[doc.t2 | [b, y, i] | true]",
+            "  └ Collect[doc.t3 | [c, z] | true]"
+        );
+    }
+
+    @Test
+    public void test_cross_joins_with_extra_operator() {
+        // t1.x = t1.i should be a filter on t1
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT * FROM t1, t2, t3
+            WHERE t1.x = t2.y + 10
+              AND t2.y = t3.z;
+            """);
+
+        assertThat(plan).hasOperators(
+            "HashJoin[INNER | (y = z)]",
+            "  ├ HashJoin[INNER | (x = (y + 10))]",
+            "  │  ├ Collect[doc.t1 | [a, x, i] | true]",
+            "  │  └ Collect[doc.t2 | [b, y, i] | true]",
+            "  └ Collect[doc.t3 | [c, z] | true]"
+        );
+    }
+
+    @Test
+    public void test_eliminate_cross_join_with_disconnected_join_graph() {
+        // In the join graph we have: (t1) (t2 <-> t4 <-> t3)
+        // In the first part of the graph, there are no conditions.
+        var plan = e.logicalPlan("""
+            SELECT t1.a, t2.b, t3.c, t4.id
+            FROM t1, t2, t3, t4
+            WHERE t2.y = t4.id
+              AND t3.z = t4.id
+            """);
+
+        assertThat(plan).hasOperators(
+            "Eval[a, b, c, id]",
+            "  └ HashJoin[INNER | (z = id)]",
+            "    ├ HashJoin[INNER | (y = id)]",
+            "    │  ├ NestedLoopJoin[CROSS]",
+            "    │  │  ├ Collect[doc.t1 | [a] | true]",
+            "    │  │  └ Collect[doc.t2 | [b, y] | true]",
+            "    │  └ Collect[doc.t4 | [id] | true]",
+            "    └ Collect[doc.t3 | [c, z] | true]"
+        );
+
+        // In the join graph we have: (t1 <-> t2) (t3 <-> t5 <-> t4).
+        // There are conditions in both parts.
+        plan = e.logicalPlan("""
+            SELECT t1.a, t2.b, t3.c, t4.id, t5.i
+            FROM t1, t2, t3, t4, t5
+            WHERE t1.x = t2.y
+              AND t3.z = t5.i
+              AND t4.id = t5.i
+            """);
+
+        assertThat(plan).hasOperators(
+            "Eval[a, b, c, id, i]",
+            "  └ HashJoin[INNER | (id = i)]",
+            "    ├ HashJoin[INNER | (z = i)]",
+            "    │  ├ NestedLoopJoin[CROSS]",
+            "    │  │  ├ HashJoin[INNER | (x = y)]",
+            "    │  │  │  ├ Collect[doc.t1 | [a, x] | true]",
+            "    │  │  │  └ Collect[doc.t2 | [b, y] | true]",
+            "    │  │  └ Collect[doc.t3 | [c, z] | true]",
+            "    │  └ Collect[doc.t5 | [i] | true]",
+            "    └ Collect[doc.t4 | [id] | true]"
+        );
+    }
+
+    @Test
+    public void test_eliminate_cross_joins_with_4_tables() {
+        var plan = e.logicalPlan("""
+            SELECT *
+            FROM t1, t2, t3, t4
+            WHERE t1.i = t3.z
+              AND t2.i = t4.id
+              AND t3.z = t4.id;
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "Eval[a, x, i, b, y, i, c, z, id, obj, obj_array]",
+            "  └ HashJoin[INNER | (i = id)]",
+            "    ├ HashJoin[INNER | (z = id)]",
+            "    │  ├ HashJoin[INNER | (i = z)]",
+            "    │  │  ├ Collect[doc.t1 | [a, x, i] | true]",
+            "    │  │  └ Collect[doc.t3 | [c, z] | true]",
+            "    │  └ Collect[doc.t4 | [id, obj, obj_array] | true]",
+            "    └ Collect[doc.t2 | [b, y, i] | true]"
+        );
+    }
+
+    @Test
+    public void test_filter_on_nested_cross_join_to_nested_inner_joins() {
+        e.getSessionSettings().excludedOptimizerRules().remove(EliminateCrossJoin.class);
+
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1
+            CROSS JOIN t2
+            CROSS JOIN t3
+            WHERE t1.x = t2.y
+              AND t1.x = t3.z
+              AND t2.y = t3.z
+              AND t1.x > 1
+              AND t2.y > 2
+              AND t3.z > 3
+            """
+        );
+
+        assertThat(plan).isEqualTo(
+            """
+            HashJoin[INNER | ((x = z) AND (y = z))]
+              ├ HashJoin[INNER | (x = y)]
+              │  ├ Collect[doc.t1 | [x] | (x > 1)]
+              │  └ Collect[doc.t2 | [y] | (y > 2)]
+              └ Collect[doc.t3 | [z] | (z > 3)]
+            """
+        );
+
+        e.getSessionSettings().excludedOptimizerRules().add(EliminateCrossJoin.class);
+
+        plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1
+            CROSS JOIN t2
+            CROSS JOIN t3
+            WHERE t1.x = t2.y
+              AND t1.x = t3.z
+              AND t2.y = t3.z
+              AND t1.x > 1
+              AND t2.y > 2
+              AND t3.z > 3
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "HashJoin[INNER | ((x = z) AND (y = z))]",
+            "  ├ HashJoin[INNER | (x = y)]",
+            "  │  ├ Collect[doc.t1 | [x] | (x > 1)]",
+            "  │  └ Collect[doc.t2 | [y] | (y > 2)]",
+            "  └ Collect[doc.t3 | [z] | (z > 3)]"
+        );
+    }
+
+    @Test
+    public void test_cross_join_with_inner_join_and_left_join() {
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z, t4.id
+            FROM t1
+            CROSS JOIN t2
+            JOIN t3 ON t1.x = t3.z AND t2.y = t3.z
+            LEFT JOIN t4 ON t3.z = t4.id;
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "HashJoin[LEFT | (z = id)]",
+            "  ├ Eval[x, y, z]",
+            "  │  └ HashJoin[INNER | (y = z)]",
+            "  │    ├ HashJoin[INNER | (x = z)]",
+            "  │    │  ├ Collect[doc.t1 | [x] | true]",
+            "  │    │  └ Collect[doc.t3 | [z] | true]",
+            "  │    └ Collect[doc.t2 | [y] | true]",
+            "  └ Collect[doc.t4 | [id] | true]"
+        );
+    }
+
+    @Test
+    public void test_eliminate_cross_join_keeps_non_deterministic_join_condition_on_top() {
+        // one non-deterministic function
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1
+            CROSS JOIN t2
+            JOIN t3 ON t1.x = t3.z AND t2.y = t3.z AND random() < 0.5
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "Eval[x, y, z]",
+            "  └ HashJoin[INNER | ((y = z) AND (random() < 0.5))]",
+            "    ├ HashJoin[INNER | (x = z)]",
+            "    │  ├ Collect[doc.t1 | [x] | true]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t2 | [y] | true]"
+        );
+
+        // two non-deterministic functions
+        plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1
+            CROSS JOIN t2
+            JOIN t3 ON t1.x = t3.z AND t2.y = t3.z AND random() < 0.5 AND NOT gen_random_text_uuid() = 'abc'
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "Eval[x, y, z]",
+            "  └ HashJoin[INNER | (((y = z) AND (random() < 0.5)) AND (NOT (gen_random_text_uuid() = 'abc')))]",
+            "    ├ HashJoin[INNER | (x = z)]",
+            "    │  ├ Collect[doc.t1 | [x] | true]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t2 | [y] | true]"
+        );
+    }
+
+    @Test
+    public void test_eliminate_cross_join_keeps_non_deterministic_in_where_clause() {
+        // one non-deterministic function
+        var plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1, t2, t3
+            WHERE t3.z = t2.y AND t1.x = t2.y AND random() < 0.5
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "Filter[(random() < 0.5)]",
+            "  └ HashJoin[INNER | (y = z)]",
+            "    ├ HashJoin[INNER | (x = y)]",
+            "    │  ├ Collect[doc.t1 | [x] | true]",
+            "    │  └ Collect[doc.t2 | [y] | true]",
+            "    └ Collect[doc.t3 | [z] | true]"
+        );
+
+        // two non-deterministic functions
+        plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1, t2, t3
+            WHERE t3.z = t2.y AND t1.x = t2.y AND random() < 0.5 AND NOT gen_random_text_uuid() = 'abc'
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "Filter[((random() < 0.5) AND (NOT (gen_random_text_uuid() = 'abc')))]",
+            "  └ HashJoin[INNER | (y = z)]",
+            "    ├ HashJoin[INNER | (x = y)]",
+            "    │  ├ Collect[doc.t1 | [x] | true]",
+            "    │  └ Collect[doc.t2 | [y] | true]",
+            "    └ Collect[doc.t3 | [z] | true]"
+        );
+    }
+
+    @Test
+    public void test_eliminate_cross_join_keeps_non_deterministic_join_condition_nested() {
+        // one non-deterministic function
+        var plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z, t4.id
+            FROM t1
+            JOIN t2 ON t1.x = t2.y AND random() < 0.5
+            CROSS JOIN t3
+            JOIN t4 ON t1.x = t4.id AND t3.z = t4.id
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "Eval[x, y, z, id]",
+            "  └ HashJoin[INNER | (z = id)]",
+            "    ├ HashJoin[INNER | (x = id)]",
+            "    │  ├ HashJoin[INNER | ((x = y) AND (random() < 0.5))]",
+            "    │  │  ├ Collect[doc.t1 | [x] | true]",
+            "    │  │  └ Collect[doc.t2 | [y] | true]",
+            "    │  └ Collect[doc.t4 | [id] | true]",
+            "    └ Collect[doc.t3 | [z] | true]"
+        );
+
+        // two non-deterministic functions
+        plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z, t4.id
+            FROM t1
+            JOIN t2 ON t1.x = t2.y AND random() < 0.5 AND NOT gen_random_text_uuid() = 'abc'
+            CROSS JOIN t3
+            JOIN t4 ON t1.x = t4.id AND t3.z = t4.id
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "Eval[x, y, z, id]",
+            "  └ HashJoin[INNER | (z = id)]",
+            "    ├ HashJoin[INNER | (x = id)]",
+            "    │  ├ HashJoin[INNER | (((x = y) AND (random() < 0.5)) AND (NOT (gen_random_text_uuid() = 'abc')))]",
+            "    │  │  ├ Collect[doc.t1 | [x] | true]",
+            "    │  │  └ Collect[doc.t2 | [y] | true]",
+            "    │  └ Collect[doc.t4 | [id] | true]",
+            "    └ Collect[doc.t3 | [z] | true]"
+        );
+    }
+
+    @Test
+    public void test_eliminate_cross_join_keeps_non_deterministic_only_join_condition_on_top() {
+        // one non-deterministic function is the only join condition
+        var plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1
+            CROSS JOIN t2
+            JOIN t3 ON random() < 0.5
+            WHERE t1.x = t3.z AND t2.y = t3.z
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "Eval[x, y, z]",
+            "  └ HashJoin[INNER | ((y = z) AND (random() < 0.5))]",
+            "    ├ HashJoin[INNER | (x = z)]",
+            "    │  ├ Collect[doc.t1 | [x] | true]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t2 | [y] | true]"
+        );
+
+        // two non-deterministic functions are the only join conditions
+        plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1
+            CROSS JOIN t2
+            JOIN t3 ON random() < 0.5 AND NOT gen_random_text_uuid() = 'abc'
+            WHERE t1.x = t3.z AND t2.y = t3.z
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "Eval[x, y, z]",
+            "  └ HashJoin[INNER | (((y = z) AND (random() < 0.5)) AND (NOT (gen_random_text_uuid() = 'abc')))]",
+            "    ├ HashJoin[INNER | (x = z)]",
+            "    │  ├ Collect[doc.t1 | [x] | true]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t2 | [y] | true]"
+        );
+    }
+
+    @Test
+    public void test_eliminate_cross_join_keeps_non_deterministic_join_with_two_relations() {
+        // one non-deterministic function, referencing two relations
+        var plan = e.logicalPlan("""
+            SELECT t1.x, t3.z, t2.y
+            FROM t1
+            CROSS JOIN t3
+            JOIN t2 ON t1.x = t2.y AND t2.y = t3.z AND (random() < 0.5 OR t1.i = t2.i)
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "Eval[x, z, y]",
+            "  └ NestedLoopJoin[INNER | ((y = z) AND ((random() < 0.5) OR (i = i)))]",
+            "    ├ HashJoin[INNER | (x = y)]",
+            "    │  ├ Collect[doc.t1 | [x, i] | true]",
+            "    │  └ Collect[doc.t2 | [y, i] | true]",
+            "    └ Collect[doc.t3 | [z] | true]"
+        );
+
+        // two non-deterministic functions, one referencing two relations, one referencing none
+        plan = e.logicalPlan("""
+            SELECT t1.x, t3.z, t2.y
+            FROM t1
+            CROSS JOIN t3
+            JOIN t2 ON t1.x = t2.y AND t2.y = t3.z AND (random() < 0.5 OR t1.i = t2.i) AND NOT gen_random_text_uuid() = 'abc'
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "Eval[x, z, y]",
+            "  └ NestedLoopJoin[INNER | (((y = z) AND ((random() < 0.5) OR (i = i))) AND (NOT (gen_random_text_uuid() = 'abc')))]",
+            "    ├ HashJoin[INNER | (x = y)]",
+            "    │  ├ Collect[doc.t1 | [x, i] | true]",
+            "    │  └ Collect[doc.t2 | [y, i] | true]",
+            "    └ Collect[doc.t3 | [z] | true]"
+        );
+    }
+
+    @Test
+    public void test_eliminate_cross_join_keeps_non_deterministic_join_condition_of_left_join() {
+        var plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z, t4.id
+            FROM t1
+            CROSS JOIN t2
+            JOIN t3 ON t1.x = t3.z AND t2.y = t3.z
+            LEFT JOIN t4 ON t3.z = t4.id AND random() < 0.5
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "HashJoin[LEFT | ((z = id) AND (random() < 0.5))]",
+            "  ├ Eval[x, y, z]",
+            "  │  └ HashJoin[INNER | (y = z)]",
+            "  │    ├ HashJoin[INNER | (x = z)]",
+            "  │    │  ├ Collect[doc.t1 | [x] | true]",
+            "  │    │  └ Collect[doc.t3 | [z] | true]",
+            "  │    └ Collect[doc.t2 | [y] | true]",
+            "  └ Collect[doc.t4 | [id] | true]"
+        );
+    }
+
+    @Test
+    public void test_eliminate_cross_join_keeps_non_deterministic_filter_in_subquery() {
+        var plan = e.logicalPlan("""
+            SELECT s.x, s.y, t3.z
+            FROM (SELECT t1.x, t2.y FROM t1 CROSS JOIN t2 WHERE random() < 0.5) s
+            JOIN t3 ON s.x = t3.z AND s.y = t3.z
+            """
+        );
+
+        assertThat(plan).hasOperators(
+            "HashJoin[INNER | ((z = x) AND (z = y))]",
+            "  ├ Rename[x, y] AS s",
+            "  │  └ Filter[(random() < 0.5)]",
+            "  │    └ NestedLoopJoin[CROSS]",
+            "  │      ├ Collect[doc.t1 | [x] | true]",
+            "  │      └ Collect[doc.t2 | [y] | true]",
+            "  └ Collect[doc.t3 | [z] | true]"
+        );
+    }
+
+    @Test
+    public void test_join_condition_referencing_one_side_is_pushed_below_join() {
+        String stmt = """
+            SELECT t1.x, t2.y, t3.z, t4.id
+            FROM t1
+            LEFT JOIN t2 ON t1.a = t2.b
+            CROSS JOIN t3
+            JOIN t4 ON t1.x = t2.y AND t1.x = t3.z AND t3.z = t4.id
+            """;
+        String[] expectedPlan = {
+            "Eval[x, y, z, id]",
+            "  └ HashJoin[INNER | (z = id)]",
+            "    ├ HashJoin[INNER | (x = z)]",
+            "    │  ├ Filter[(x = y)]",
+            "    │  │  └ HashJoin[LEFT | (a = b)]",
+            "    │  │    ├ Collect[doc.t1 | [x, a] | true]",
+            "    │  │    └ Collect[doc.t2 | [y, b] | true]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t4 | [id] | true]"
+        };
+
+        LogicalPlan plan = e.logicalPlan(stmt);
+        assertThat(plan).hasOperators(expectedPlan);
+
+        e.getSessionSettings().excludedOptimizerRules().add(EliminateCrossJoin.class);
+
+        plan = e.logicalPlan(stmt);
+        assertThat(plan).hasOperators(expectedPlan);
+    }
+
+    @Test
+    public void test_join_condition_referencing_one_side_is_pushed_below_join_without_cross_join() {
+        // Without a cross join, EliminateCrossJoin doesn't apply
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1
+            JOIN t2 ON t1.a = t2.b
+            JOIN t3 ON t1.x = t2.y AND t1.x = t3.z
+            """);
+
+        assertThat(plan).hasOperators(
+            "Eval[x, y, z]",
+            "  └ HashJoin[INNER | (x = z)]",
+            "    ├ HashJoin[INNER | ((a = b) AND (x = y))]",
+            "    │  ├ Collect[doc.t1 | [x, a] | true]",
+            "    │  └ Collect[doc.t2 | [y, b] | true]",
+            "    └ Collect[doc.t3 | [z] | true]"
+        );
+    }
+
+    @Test
+    public void test_join_condition_referencing_one_side_is_pushed_above_right_join() {
+        String stmt = """
+            SELECT t1.x, t2.y, t3.z, t4.id
+            FROM t1
+            RIGHT JOIN t2 ON t1.a = t2.b
+            CROSS JOIN t3
+            JOIN t4 ON t1.x = t2.y AND t1.x = t3.z AND t3.z = t4.id
+            """;
+        String[] expectedPlan = {
+            "HashJoin[INNER | (z = id)]",
+            "  ├ HashJoin[INNER | (x = z)]",
+            "  │  ├ Eval[x, y]",
+            "  │  │  └ Filter[(x = y)]",
+            "  │  │    └ HashJoin[LEFT | (a = b)]",
+            "  │  │      ├ Collect[doc.t2 | [y, b] | true]",
+            "  │  │      └ Collect[doc.t1 | [x, a] | true]",
+            "  │  └ Collect[doc.t3 | [z] | true]",
+            "  └ Collect[doc.t4 | [id] | true]"
+        };
+
+        LogicalPlan plan = e.logicalPlan(stmt);
+        assertThat(plan).hasOperators(expectedPlan);
+
+        e.getSessionSettings().excludedOptimizerRules().add(EliminateCrossJoin.class);
+
+        plan = e.logicalPlan(stmt);
+        assertThat(plan).hasOperators(expectedPlan);
+    }
+
+    @Test
+    public void test_join_condition_referencing_one_side_is_pushed_above_full_join() {
+        String stmt = """
+            SELECT t1.x, t2.y, t3.z, t4.id
+            FROM t1
+            FULL JOIN t2 ON t1.a = t2.b
+            CROSS JOIN t3
+            JOIN t4 ON t1.x = t2.y AND t1.x = t3.z AND t3.z = t4.id
+            """;
+        String[] expectedPlan = {
+            "Eval[x, y, z, id]",
+            "  └ HashJoin[INNER | (z = id)]",
+            "    ├ HashJoin[INNER | (x = z)]",
+            "    │  ├ Filter[(x = y)]",
+            "    │  │  └ NestedLoopJoin[FULL | (a = b)]",
+            "    │  │    ├ Collect[doc.t1 | [x, a] | true]",
+            "    │  │    └ Collect[doc.t2 | [y, b] | true]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t4 | [id] | true]"
+        };
+
+        LogicalPlan plan = e.logicalPlan(stmt);
+        assertThat(plan).hasOperators(expectedPlan);
+
+        e.getSessionSettings().excludedOptimizerRules().add(EliminateCrossJoin.class);
+
+        plan = e.logicalPlan(stmt);
+        assertThat(plan).hasOperators(expectedPlan);
+    }
+
+    @Test
+    public void test_join_condition_without_relations_is_pushed_down() {
+        // A parameter is used, because constant expressions are normalized away by the analyzer
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT t1.x, t2.y
+            FROM t1
+            JOIN t2 ON t1.x = t2.y AND $1::int = 1
+            """);
+
+        assertThat(plan).hasOperators(
+            "HashJoin[INNER | (x = y)]",
+            "  ├ Collect[doc.t1 | [x] | ($1 = 1)]",
+            "  └ Collect[doc.t2 | [y] | true]"
+        );
+    }
+
+    @Test
+    public void test_inner_join_becomes_cross_join_if_all_conditions_are_pushed_down() {
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1
+            CROSS JOIN t2
+            JOIN t3 ON t1.x = t2.y
+            """);
+
+        assertThat(plan).hasOperators(
+            "NestedLoopJoin[CROSS]",
+            "  ├ HashJoin[INNER | (x = y)]",
+            "  │  ├ Collect[doc.t1 | [x] | true]",
+            "  │  └ Collect[doc.t2 | [y] | true]",
+            "  └ Collect[doc.t3 | [z] | true]"
+        );
+    }
+
+    @Test
+    public void test_join_conditions_are_pushed_to_both_sides() {
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1
+            CROSS JOIN t2
+            JOIN t3 ON t1.x = t2.y AND t3.z > 1
+            """);
+
+        assertThat(plan).hasOperators(
+            "NestedLoopJoin[CROSS]",
+            "  ├ HashJoin[INNER | (x = y)]",
+            "  │  ├ Collect[doc.t1 | [x] | true]",
+            "  │  └ Collect[doc.t2 | [y] | true]",
+            "  └ Collect[doc.t3 | [z] | (z > 1)]"
+        );
+    }
+
+    @Test
+    public void test_non_deterministic_join_condition_is_not_pushed_down() {
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1
+            CROSS JOIN t2
+            JOIN t3 ON t1.x = t3.z AND random() < 0.5
+            """);
+
+        assertThat(plan).hasOperators(
+            "Eval[x, y, z]",
+            "  └ NestedLoopJoin[INNER | (random() < 0.5)]",
+            "    ├ HashJoin[INNER | (x = z)]",
+            "    │  ├ Collect[doc.t1 | [x] | true]",
+            "    │  └ Collect[doc.t3 | [z] | true]",
+            "    └ Collect[doc.t2 | [y] | true]"
+        );
+    }
+
+    @Test
+    public void test_join_condition_with_non_deterministic_func_pushed_down() {
+        // t1.i = t2.i and (random() < 0.5 OR t1.x = t2.y) reference the same relations (t1, t2)
+        // so they are pushed down as a filter. random() goes with them.
+        LogicalPlan plan = e.logicalPlan("""
+            SELECT t1.x, t2.y, t3.z
+            FROM t1
+            JOIN t2 ON t1.a = t2.b
+            JOIN t3 ON t1.x = t3.z AND t1.i = t2.i AND (random() < 0.5 OR t1.x = t2.y)
+            """);
+
+        assertThat(plan).hasOperators(
+            "Eval[x, y, z]",
+            "  └ HashJoin[INNER | (x = z)]",
+            "    ├ Filter[((i = i) AND ((random() < 0.5) OR (x = y)))]",
+            "    │  └ HashJoin[INNER | (a = b)]",
+            "    │    ├ Collect[doc.t1 | [x, i, a] | true]",
+            "    │    └ Collect[doc.t2 | [y, i, b] | true]",
+            "    └ Collect[doc.t3 | [z] | true]"
         );
     }
 }

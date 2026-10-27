@@ -69,12 +69,17 @@ Compression
 The data of a shard is stored in Lucene_ segments, which compresses the data
 in those segments upon write. Two parts of a segment dominate the size on disk:
 
-- The *stored fields*, which hold the fields of the original document and they
-  are compressed in blocks, so that the compression works across several
-  documents at once.
+- The *doc values*, which hold the data in a columnar structure. They are used
+  for aggregations, grouping and sorting, but also to read the values of a row.
 
-- The *doc values*, which hold the columnar structures the data, which is uses
-  used for aggregations, grouping and sorting.
+- The *stored fields*, which hold the values of columns that cannot be
+  reconstructed from the doc values. They are compressed in blocks, so that the
+  compression works across several documents at once.
+
+.. NOTE::
+    Until a row has been replicated, a complete representation of it is also
+    kept as part of the :ref:`translog <concept-durability>`. Background merges,
+    or an explicit :ref:`OPTIMIZE TABLE <sql-optimize>`, remove it afterwards.
 
 For doc values, Lucene relies on internal lightweight integer encodings —
 bit-packed deltas, GCD factoring, table lookups and monotonic offsets, plus
@@ -98,6 +103,29 @@ an existing table requires closing the table first:
 A new codec only applies to segments that are written after the change.
 Existing segments keep their compression until they are merged, which can be
 triggered explicitly with :ref:`OPTIMIZE TABLE <sql-optimize>`.
+
+
+.. _concept-query-cache:
+
+Query cache
+===========
+
+CrateDB caches the result of the parts of a query that can be evaluated
+directly on the Lucene_ index. If the same query part is needed again, the
+cached result is reused instead of being computed a second time. The cache is
+per node and shared by all shards on that node, and only query parts that are
+used repeatedly, on segments above a certain size, are added to it.
+
+.. NOTE::
+
+   Apart from the query cache, read performance depends on the file system cache
+   of the operating system, which keeps frequently accessed parts of the Lucene_
+   segments in memory. Leaving a good portion of the available memory to the
+   operating system is therefore important.
+
+.. SEEALSO::
+
+   :ref:`CRATE_HEAP_SIZE <conf-env-heap-size>`
 
 .. _concept-atomicity:
 

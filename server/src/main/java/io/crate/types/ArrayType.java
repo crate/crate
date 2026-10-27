@@ -132,8 +132,7 @@ public class ArrayType<T> extends DataType<List<T>> {
                 @Override
                 public List<T> decode(ColumnIdent column, SourceParser sourceParser, Version tableVersion, byte[] bytes) {
                     try {
-                        var col = column.leafName();
-                        var map = sourceParser.parse(new BytesArray(bytes), Map.of(col, objectType.innerTypes()), false);
+                        var map = sourceParser.parse(new BytesArray(bytes), column, objectType);
                         if (map.isEmpty()) {
                             return List.of();
                         }
@@ -161,6 +160,11 @@ public class ArrayType<T> extends DataType<List<T>> {
                         DocReferences.toDocLookup(ref),
                         isParentIgnored
                     );
+                }
+
+                @Override
+                public List<T> decode(DataType<List<T>> type, XContentParser parser) throws IOException {
+                    throw new UnsupportedOperationException("Must not decode source value directly from ArrayType");
                 }
             };
         } else {
@@ -204,6 +208,11 @@ public class ArrayType<T> extends DataType<List<T>> {
                         DocReferences.toDocLookup(ref),
                         isParentIgnored
                     );
+                }
+
+                @Override
+                public List<T> decode(DataType<List<T>> type, XContentParser parser) throws IOException {
+                    throw new UnsupportedOperationException("Must not decode source value directly from ArrayType");
                 }
             };
         }

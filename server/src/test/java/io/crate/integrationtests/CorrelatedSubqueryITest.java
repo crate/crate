@@ -68,7 +68,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "      └ Collect[sys.summits | [1, mountain] | true]\n" +
             "    └ SubPlan\n" +
             "      └ Eval[mountain]\n" +
-            "        └ Limit[2::bigint;0::bigint]\n" +
+            "        └ Limit[2;0]\n" +
             "          └ TableFunction[empty_row | [] | true]\n"
         );
         execute("SELECT 1, (SELECT t.mountain) FROM sys.summits t");
@@ -114,14 +114,14 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
 
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "Eval[1, (SELECT mountain FROM (empty_row))]\n" +
-            "  └ Limit[5::bigint;0]\n" +
+            "  └ Limit[5;0]\n" +
             "    └ OrderBy[(SELECT mountain FROM (empty_row)) ASC]\n" +
             "      └ CorrelatedJoin[1, mountain, (SELECT mountain FROM (empty_row))]\n" +
             "        └ Rename[1, mountain] AS t\n" +
             "          └ Collect[sys.summits | [1, mountain] | true]\n" +
             "        └ SubPlan\n" +
             "          └ Eval[mountain]\n" +
-            "            └ Limit[2::bigint;0::bigint]\n" +
+            "            └ Limit[2;0]\n" +
             "              └ TableFunction[empty_row | [] | true]\n"
         );
         execute(statement);
@@ -246,7 +246,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "Eval[mountain, region]\n" +
-            "  └ Limit[3::bigint;0]\n" +
+            "  └ Limit[3;0]\n" +
             "    └ OrderBy[height DESC]\n" +
             "      └ Filter[(mountain = (SELECT mountain FROM (empty_row)))]\n" +
             "        └ CorrelatedJoin[mountain, region, height, (SELECT mountain FROM (empty_row))]\n" +
@@ -254,7 +254,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "            └ Collect[sys.summits | [mountain, region, height] | true]\n" +
             "          └ SubPlan\n" +
             "            └ Eval[mountain]\n" +
-            "              └ Limit[2::bigint;0::bigint]\n" +
+            "              └ Limit[2;0]\n" +
             "                └ TableFunction[empty_row | [] | true]\n"
         );
         execute(stmt);
@@ -311,7 +311,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "Eval[table_name, column_name]\n" +
-            "  └ Limit[3::bigint;0]\n" +
+            "  └ Limit[3;0]\n" +
             "    └ OrderBy[table_name ASC column_name DESC]\n" +
             "      └ Filter[(attrelid = (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace)))]\n" +
             "        └ CorrelatedJoin[table_name, column_name, table_schema, attname, attrelid, (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))]\n" +
@@ -321,7 +321,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "              └ Collect[pg_catalog.pg_attribute | [attname, attrelid] | true]\n" +
             "          └ SubPlan\n" +
             "            └ Eval[oid]\n" +
-            "              └ Limit[2::bigint;0::bigint]\n" +
+            "              └ Limit[2;0]\n" +
             "                └ NestedLoopJoin[INNER | (relnamespace = oid)]\n" +
             "                  ├ Collect[pg_catalog.pg_class | [oid, relnamespace] | (relname = table_name)]\n" +
             "                  └ Collect[pg_catalog.pg_namespace | [oid] | (nspname = table_schema)]\n"
@@ -364,7 +364,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "Eval[table_name, column_name]\n" +
-            "  └ Limit[3::bigint;0]\n" +
+            "  └ Limit[3;0]\n" +
             "    └ OrderBy[table_name ASC column_name DESC]\n" +
             "      └ Filter[((attrelid = (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))) AND (attrelid = (SELECT attrelid FROM (empty_row))))]\n" +
             "        └ CorrelatedJoin[table_name, column_name, table_schema, attname, attrelid, (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace)), (SELECT attrelid FROM (empty_row))]\n" +
@@ -375,13 +375,13 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "                └ Collect[pg_catalog.pg_attribute | [attname, attrelid] | true]\n" +
             "            └ SubPlan\n" +
             "              └ Eval[oid]\n" +
-            "                └ Limit[2::bigint;0::bigint]\n" +
+            "                └ Limit[2;0]\n" +
             "                  └ NestedLoopJoin[INNER | (relnamespace = oid)]\n" +
             "                    ├ Collect[pg_catalog.pg_class | [oid, relnamespace] | (relname = table_name)]\n" +
             "                    └ Collect[pg_catalog.pg_namespace | [oid] | (nspname = table_schema)]\n" +
             "          └ SubPlan\n" +
             "            └ Eval[attrelid]\n" +
-            "              └ Limit[2::bigint;0::bigint]\n" +
+            "              └ Limit[2;0]\n" +
             "                └ TableFunction[empty_row | [] | true]\n"
         );
         execute(stmt);
@@ -445,7 +445,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
                 EXISTS (
                     SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem);
             """);
-        assertThat(response).hasRowCount(26L);
+        assertThat(response).hasRowCount(27L);
     }
 
     /// Tests the following bug: [Couldn't resolve value for OuterColumn](https://github.com/crate/crate/issues/15398).

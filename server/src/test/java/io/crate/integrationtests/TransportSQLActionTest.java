@@ -64,6 +64,8 @@ import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.expression.symbol.LiteralValueFormatter;
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.sql.SqlFormatter;
 import io.crate.testing.Asserts;
 import io.crate.testing.DataTypeTesting;
@@ -1583,7 +1585,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("refresh table t1");
 
         Asserts.assertSQLError(() -> execute("select 1/0 from t1"))
-            .hasPGError(INTERNAL_ERROR)
+            .hasPGError(PGErrorStatus.DATA_EXCEPTION)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("/ by zero");
     }
@@ -1807,13 +1809,7 @@ public class TransportSQLActionTest extends IntegTestCase {
             selectParams.append(i);
 
             selectInlineValues.append(" = ");
-            if (arg instanceof String) {
-                selectInlineValues.append("'");
-                selectInlineValues.append(arg);
-                selectInlineValues.append("'");
-            } else {
-                selectInlineValues.append(arg);
-            }
+            LiteralValueFormatter.format(arg, selectInlineValues);
             selectParams.append(" = ?");
 
             if (i + 1 < args.length) {
@@ -1900,7 +1896,7 @@ public class TransportSQLActionTest extends IntegTestCase {
 
     @Test
     @UseJdbc(0)
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked"})
     public void test_types_with_storage_can_be_inserted_and_queried() {
         for (var type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
             if (type.equals(DataTypes.GEO_POINT)) {
@@ -1910,9 +1906,12 @@ public class TransportSQLActionTest extends IntegTestCase {
             Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
             Object val1 = dataGenerator.get();
             var extendedType = DataTypeTesting.extendedType(type, val1);
+            Object val2 = DataTypeTesting.getDataGenerator(extendedType).get();
             String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(null));
             execute("create table tbl (id int primary key, x " + typeDefinition + ")");
             execute("insert into tbl (id, x) values (?, ?)", new Object[] { 1, val1 });
+            execute("insert into tbl (id, x) values (?, ?)", new Object[] { 2, val2 });
+            execute("insert into tbl (id, x) values (?, ?)", new Object[] { 3, null });
             execute("refresh table tbl");
 
             var resp1 = execute("select _doc['x'], x, _raw FROM tbl where x = ?", new Object[] { val1 });
@@ -1928,6 +1927,7 @@ public class TransportSQLActionTest extends IntegTestCase {
             if (DataTypes.BYTE.equals(type)) {
                 type = DataTypes.SHORT;
                 val1 = ((Byte) val1).shortValue();
+                val2 = ((Byte) val2).shortValue();
             }
 
             if (!hasPrecisionChange) {
@@ -1942,10 +1942,23 @@ public class TransportSQLActionTest extends IntegTestCase {
 
             if (type.sortSupport() != DataType.Sort.NONE) {
                 // should use doc-values/query-without-fetch execution path due to order + limit
-                var resp3 = execute("select _doc['x'], x, _raw FROM tbl order by x limit 1");
-                assertThat(resp3.rows()[0])
+                var resp3 = execute("select _doc['x'], x, _raw FROM tbl order by x limit 3");
+                List<Object> values = Arrays.stream(resp3.rows())
+                    .map(row -> row[0])
+                    .toList();
+
+                Object fstValue;
+                Object sndValue;
+                if (((DataType<Object>) type).compare(val1, val2) <= 0) {
+                    fstValue = val1;
+                    sndValue = val2;
+                } else {
+                    fstValue = val2;
+                    sndValue = val1;
+                }
+                assertThat(values)
                     .as("output of query with order and limit must match output of query without" + type)
-                    .contains(resp1.rows()[0]);
+                    .containsExactly(fstValue, sndValue, null);
             }
 
             execute("drop table tbl");

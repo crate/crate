@@ -35,9 +35,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.junit.Rule;
 import org.junit.Test;
 
+import io.crate.exceptions.DependentObjectsExists;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
@@ -48,15 +48,11 @@ import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.role.Role;
 import io.crate.role.Roles;
-import io.crate.testing.RetryRule;
 import io.crate.testing.UseRandomizedSchema;
 
 
 @UseRandomizedSchema(random = false)
 public class LogicalReplicationITest extends LogicalReplicationITestCase {
-
-    @Rule
-    public RetryRule retryRule = new RetryRule(3);
 
     @Test
     public void test_create_publication_checks_owner_was_not_deleted_before_creation() {
@@ -155,13 +151,25 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
     @Test
     public void test_create_publication_for_concrete_table() {
         executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
-        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
-        var response = executeOnPublisher(
-            "SELECT oid, p.pubname, pubowner, puballtables, schemaname, tablename, pubinsert, pubupdate, pubdelete" +
+        executeOnPublisher("CREATE USER pub_owner");
+        executeOnPublisher("GRANT AL TO pub_owner");
+        executeOnPublisher("GRANT DQL, DML, DDL ON TABLE doc.t1 TO pub_owner");
+        executeOnPublisher("CREATE USER al_user");
+        executeOnPublisher("GRANT AL TO al_user");
+        executeOnPublisher("CREATE USER other_user");
+        Roles roles = publisherCluster.getInstance(Roles.class);
+        executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE doc.t1", roles.getUser("pub_owner"));
+
+        String stmt = "SELECT oid, p.pubname, pubowner, puballtables, schemaname, tablename, pubinsert, pubupdate, pubdelete" +
             " FROM pg_publication p" +
             " JOIN pg_publication_tables t ON p.pubname = t.pubname" +
-            " ORDER BY p.pubname, schemaname, tablename");
-        assertThat(response).hasRows("-119974068| pub1| -450373579| false| doc| t1| true| true| true");
+            " ORDER BY p.pubname, schemaname, tablename";
+        String expected = "-756208810| pub1| 554991752| false| doc| t1| true| true| true";
+        // Visible to the owner, superusers and users with AL
+        assertThat(executeOnPublisherAsUser(stmt, roles.getUser("pub_owner"))).hasRows(expected);
+        assertThat(executeOnPublisher(stmt)).hasRows(expected);
+        assertThat(executeOnPublisherAsUser(stmt, roles.getUser("al_user"))).hasRows(expected);
+        assertThat(executeOnPublisherAsUser(stmt, roles.getUser("other_user"))).hasRowCount(0);
     }
 
     @Test
@@ -177,6 +185,116 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertThat(response).hasRows(
             "284890074| pub1| -450373579| true| doc| t1| true| true| true",
             "284890074| pub1| -450373579| true| my_schema| t2| true| true| true");
+    }
+
+    @Test
+    public void test_drop_table_removes_it_from_explicit_publications() {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
+        executeOnPublisher("CREATE TABLE doc.t2 (id INT, p INT) PARTITIONED BY (p)");
+        executeOnPublisher("INSERT INTO doc.t2 (id, p) VALUES (1, 1)");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1, doc.t2");
+        executeOnPublisher("CREATE PUBLICATION pub2 FOR TABLE doc.t2");
+        executeOnPublisher("CREATE PUBLICATION pub_all FOR ALL TABLES");
+
+        executeOnPublisher("DROP TABLE doc.t2");
+        assertThat(executeOnPublisher(
+            "SELECT pubname, array_agg(tablename) FROM " +
+            "(SELECT pubname, tablename FROM pg_publication_tables ORDER BY pubname, tablename) t " +
+            "GROUP BY pubname ORDER BY pubname"
+        )).hasRows("pub1| [t1]", "pub_all| [t1]");
+        assertThat(executeOnPublisher("SELECT pubname FROM pg_publication ORDER BY pubname"))
+            .hasRows("pub1", "pub2", "pub_all");
+
+        executeOnPublisher("CREATE TABLE doc.t2 (name TEXT)");
+        assertThat(executeOnPublisher(
+            "SELECT pubname, array_agg(tablename) FROM " +
+            "(SELECT pubname, tablename FROM pg_publication_tables ORDER BY pubname, tablename) t " +
+            "GROUP BY pubname ORDER BY pubname"
+        )).hasRows("pub1| [t1]", "pub_all| [t1, t2]");
+
+        executeOnPublisher("DROP TABLE doc.t1");
+        assertThat(executeOnPublisher(
+            "SELECT pubname, array_agg(tablename) FROM " +
+            "(SELECT pubname, tablename FROM pg_publication_tables ORDER BY pubname, tablename) t " +
+            "GROUP BY pubname ORDER BY pubname"
+        )).hasRows("pub_all| [t2]");
+    }
+
+    @Test
+    public void test_drop_schema_restrict_rejects_schema_with_published_table() {
+        executeOnPublisher("CREATE TABLE s1.t1 (id INT)");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE s1.t1");
+        assertThatThrownBy(() -> executeOnPublisher("DROP SCHEMA s1 RESTRICT"))
+            .isExactlyInstanceOf(DependentObjectsExists.class)
+            .hasMessage("Cannot drop schema \"s1\" because other objects depend on it");
+    }
+
+    @Test
+    public void test_drop_schema_cascade_removes_tables_from_explicit_publications() {
+        executeOnPublisher("CREATE TABLE s1.t1 (id INT)");
+        executeOnPublisher("CREATE TABLE s1.t2 (id INT, p INT) PARTITIONED BY (p)");
+        executeOnPublisher("INSERT INTO s1.t2 (id, p) VALUES (1, 1)");
+        executeOnPublisher("CREATE TABLE s2.t1 (id INT)");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE s1.t1, s1.t2, s2.t1");
+        executeOnPublisher("CREATE PUBLICATION pub2 FOR TABLE s1.t1, s1.t2");
+
+        executeOnPublisher("DROP SCHEMA s1 CASCADE");
+
+        assertThat(executeOnPublisher(
+            "SELECT pubname, array_agg(schemaname || '.' || tablename) " +
+            "FROM pg_publication_tables GROUP BY pubname ORDER BY pubname"
+        )).hasRows("pub1| [s2.t1]");
+        assertThat(executeOnPublisher("SELECT pubname FROM pg_publication ORDER BY pubname"))
+            .hasRows("pub1", "pub2");
+    }
+
+    @Test
+    public void test_table_can_be_added_to_multiple_publications() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
+                           defaultTableSettings() +
+                           ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+
+        createPublication("pub1", false, List.of("doc.t1"));
+        createPublicationWithoutUser("pub2", false, List.of("doc.t1"));
+        createPublicationWithoutUser("pub3", true, List.of("doc.t1"));
+
+        var response = executeOnPublisher(
+            "SELECT pubname, schemaname, tablename FROM pg_publication_tables ORDER BY pubname");
+        assertThat(response).hasRows(
+            "pub1| doc| t1",
+            "pub2| doc| t1",
+            "pub3| doc| t1");
+
+        createSubscription("sub1", List.of("pub1", "pub2", "pub3"));
+
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
+        assertThat(response).hasRows(
+            "1",
+            "2"
+        );
+
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (3)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1", "2", "3");
+        });
+
+        executeOnPublisher("ALTER PUBLICATION pub1 DROP TABLE doc.t1");
+        executeOnPublisher("ALTER PUBLICATION pub2 DROP TABLE doc.t1");
+        response = executeOnPublisher(
+            "SELECT pubname, schemaname, tablename FROM pg_publication_tables ORDER BY pubname");
+        assertThat(response).hasRows("pub3| doc| t1");
+
+        // Table is still replicated via the remaining publication
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (4)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1", "2", "3", "4");
+        });
     }
 
     @Test

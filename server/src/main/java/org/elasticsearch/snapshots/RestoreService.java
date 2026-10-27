@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -325,10 +326,20 @@ public class RestoreService implements ClusterStateApplier {
                 resolver.accept(relation.name(), List.of());
             }
         }
-        for (RelationMetadata.ForeignTable relation : snapshotMetadata.relations(RelationMetadata.ForeignTable.class)) {
-            resolver.accept(relation.name(), List.of());
+        if (includeForeignTables(request)) {
+            for (RelationMetadata.ForeignTable relation : snapshotMetadata.relations(RelationMetadata.ForeignTable.class)) {
+                resolver.accept(relation.name(), List.of());
+            }
         }
         return restoreRelations;
+    }
+
+    private static boolean includeForeignTables(RestoreSnapshotRequest request) {
+        if (!request.includeCustomMetadata()) {
+            return false;
+        }
+        String[] customMetadataTypes = request.customMetadataTypes();
+        return customMetadataTypes.length == 0;
     }
 
     public static RestoreInProgress updateRestoreStateWithDeletedIndices(RestoreInProgress oldRestore, Set<Index> deletedIndices) {
@@ -542,28 +553,8 @@ public class RestoreService implements ClusterStateApplier {
                 mdBuilder.persistentSettings(settings);
             }
 
-            // old UDF/ViewsMetadata were already migrated to new structures in
+            // old UDF metadata was already migrated to new structures in
             // MetadataUpgradeService#upgradeMetadata()
-            // Restore views
-            if (request.includeViews()) {
-                for (RelationMetadata.View view : snapshotMetadata.relations(RelationMetadata.View.class)) {
-                    mdBuilder.setView(
-                        view.name(),
-                        view.stmt(),
-                        view.owner(),
-                        view.searchPath(),
-                        view.errorOnUnknownObjectKey()
-                    );
-                }
-            }
-
-            // Restore ForeignTables
-            // old ForeignTablesMetadata have already been migrated to RelationMetadata.ForeignTable in
-            // MetadataUpgradeService#upgradeMetadata()
-            for (RelationMetadata.ForeignTable foreignTable : snapshotMetadata.relations(RelationMetadata.ForeignTable.class)) {
-                mdBuilder.setForeignTable(foreignTable);
-            }
-
             if (request.includeCustomMetadata() && snapshotMetadata.customs() != null) {
                 // CrateDB patch to only restore defined custom metadata types
                 List<String> customMetadataTypes = Arrays.asList(request.customMetadataTypes());
@@ -674,15 +665,32 @@ public class RestoreService implements ClusterStateApplier {
                         mdBuilder.tableOidSupplier().nextOid()
                     );
                 } else if (snapshotRelation instanceof RelationMetadata.View view) {
+                    // old ViewsMetadata have already been migrated to RelationMetadata.View in
+                    // MetadataUpgradeService#upgradeMetadata()
                     mdBuilder.setView(
-                        view.name(),
+                        targetName,
                         view.stmt(),
                         view.owner(),
                         view.searchPath(),
                         view.errorOnUnknownObjectKey()
                     );
                 } else if (snapshotRelation instanceof RelationMetadata.ForeignTable foreignTable) {
-                    mdBuilder.setForeignTable(foreignTable);
+                    // old ForeignTablesMetadata have already been migrated to RelationMetadata.ForeignTable in
+                    // MetadataUpgradeService#upgradeMetadata()
+                    RelationMetadata.ForeignTable restoredForeignTable = foreignTable;
+                    if (!targetName.equals(foreignTable.name())) {
+                        LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
+                        for (var entry : foreignTable.references().entrySet()) {
+                            references.put(entry.getKey(), entry.getValue().withRelation(targetName));
+                        }
+                        restoredForeignTable = new RelationMetadata.ForeignTable(
+                            targetName,
+                            references,
+                            foreignTable.server(),
+                            foreignTable.settings()
+                        );
+                    }
+                    mdBuilder.setForeignTable(restoredForeignTable);
                 }
             } else {
                 throw new IllegalArgumentException(String.format(

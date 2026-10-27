@@ -32,12 +32,10 @@ import io.crate.expression.scalar.DoubleScalar;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
-import io.crate.metadata.Scalar.Feature;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataTypes;
-import io.crate.types.DoubleType;
 
 public final class TrigonometricFunctions {
 
@@ -70,14 +68,13 @@ public final class TrigonometricFunctions {
                 .argumentTypes(DataTypes.DOUBLE.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new BinaryScalar<>(
                     Math::atan2,
                     signature,
-                    boundSignature,
-                    DoubleType.INSTANCE
+                    boundSignature
                 )
         );
 
@@ -86,14 +83,13 @@ public final class TrigonometricFunctions {
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature(),
                     DataTypes.NUMERIC.getTypeSignature())
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, ignoredBoundSignature) ->
                 new BinaryScalar<>(
-                    (y, x) -> BigDecimalMath.atan2(y, x, MathContext.DECIMAL128),
+                    (BigDecimal y, BigDecimal x) -> BigDecimalMath.atan2(y, x, MathContext.DECIMAL128),
                     signature,
-                    BoundSignature.sameAsUnbound(signature),
-                    DataTypes.NUMERIC
+                    BoundSignature.sameAsUnbound(signature)
             )
         );
     }
@@ -103,7 +99,7 @@ public final class TrigonometricFunctions {
             Signature.builder(name, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new DoubleScalar(signature, boundSignature, func)
@@ -115,13 +111,12 @@ public final class TrigonometricFunctions {
             Signature.builder(name, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, ignoredBoundSignature) ->
                 new UnaryScalar<>(
                     signature,
                     BoundSignature.sameAsUnbound(signature),
-                    DataTypes.NUMERIC,
                     func
                 )
         );

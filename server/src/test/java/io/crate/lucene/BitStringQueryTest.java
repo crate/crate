@@ -21,8 +21,7 @@
 
 package io.crate.lucene;
 
-import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -34,11 +33,11 @@ import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.Version;
 import org.junit.Test;
 
-import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.sql.tree.BitString;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
+import io.crate.testing.QueryTester.Builder;
 import io.crate.types.BitStringType;
 
 public class BitStringQueryTest extends CrateDummyClusterServiceUnitTest {
@@ -105,11 +104,14 @@ public class BitStringQueryTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_range_query_on_bit_type_is_not_supported() throws Exception {
-        try (var tester = builder("create table tbl (bits bit(8))").build()) {
-            assertThatThrownBy(() -> tester.toQuery("bits > B'01'"))
-                .isExactlyInstanceOf(UnsupportedFunctionException.class);
+    public void test_range_query_on_bit_type() throws Exception {
+        Builder builder = builder("create table tbl (bits bit(3))");
+        BitString val1 = BitString.ofRawBits("011");
+        BitString val2 = BitString.ofRawBits("001");
+        builder.indexValues("bits", val1, val2);
+        try (var tester = builder.build()) {
+            List<Object> result = tester.runQuery("bits", "bits > B'001'");
+            assertThat(result).containsExactly(val1);
         }
     }
-
 }

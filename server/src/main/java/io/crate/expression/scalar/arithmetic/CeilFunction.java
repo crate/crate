@@ -21,14 +21,15 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -49,14 +50,13 @@ public final class CeilFunction {
                     Signature.builder(name, FunctionType.SCALAR)
                         .argumentTypes(typeSignature)
                         .returnType(returnType.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                        .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                         .build(),
                     (signature, boundSignature) ->
                         new UnaryScalar<>(
                             signature,
                             boundSignature,
-                            type,
-                            x -> returnType.sanitizeValue(Math.ceil(x.doubleValue()))
+                            (Number x) -> returnType.sanitizeValue(Math.ceil(x.doubleValue()))
                         )
                 );
             }
@@ -67,13 +67,12 @@ public final class CeilFunction {
                 Signature.builder(name, FunctionType.SCALAR)
                     .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
                     .returnType(DataTypes.NUMERIC.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .build(),
                 (signature, boundSignature) -> new UnaryScalar<>(
                     signature,
                     boundSignature,
-                    DataTypes.NUMERIC,
-                    x -> x.setScale(0, RoundingMode.CEILING)
+                    (BigDecimal x) -> x.setScale(0, RoundingMode.CEILING)
                 )
             );
         }

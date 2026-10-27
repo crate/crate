@@ -58,8 +58,8 @@ import io.crate.memory.OffHeapMemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 
@@ -77,19 +77,17 @@ public class HyperLogLogDistinctAggregationBenchmark {
     private OnHeapMemoryManager onHeapMemoryManager;
     private OffHeapMemoryManager offHeapMemoryManager;
     private AggregateCollector offHeapCollector;
-    private MurmurHash3.Hash128 hash;
 
     @SuppressWarnings("unchecked")
     @Setup
     public void setUp() throws Exception {
-        hash = new MurmurHash3.Hash128();
         final RowCollectExpression inExpr0 = new RowCollectExpression(0);
         Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
         final HyperLogLogDistinctAggregation hllAggregation = (HyperLogLogDistinctAggregation) functions.getQualified(
                 Signature.builder(HyperLogLogDistinctAggregation.NAME, FunctionType.AGGREGATE)
                         .argumentTypes(DataTypes.STRING.getTypeSignature())
                         .returnType(DataTypes.LONG.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 List.of(DataTypes.STRING),
                 DataTypes.STRING
@@ -123,17 +121,6 @@ public class HyperLogLogDistinctAggregationBenchmark {
     public void tearDown() {
         onHeapMemoryManager.close();
         offHeapMemoryManager.close();
-    }
-
-    @Benchmark
-    public long benchmarkHLLPlusPlusMurmur128() throws Exception {
-        for (int i = 0; i < rows.size(); i++) {
-            String value = DataTypes.STRING.sanitizeValue(rows.get(i).get(0));
-            byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
-            MurmurHash3.Hash128 hash128 = MurmurHash3.hash128(bytes, 0, bytes.length, 0, hash);
-            hyperLogLogPlusPlus.collect(hash128.h1);
-        }
-        return hyperLogLogPlusPlus.cardinality();
     }
 
     @Benchmark

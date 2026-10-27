@@ -30,8 +30,8 @@ import java.util.Map;
 import org.junit.Test;
 
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataTypes;
 
@@ -43,7 +43,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                         DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build();
         Object result = executeAggregation(
             signature,
@@ -64,7 +64,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
                     .argumentTypes(DataTypes.STRING.getTypeSignature(),
                             DataTypes.INTEGER.getTypeSignature())
                     .returnType(DataTypes.STRING.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
+                    .features(Feature.DETERMINISTIC)
                     .build();
             Object result = executeAggregation(
                 signature,
@@ -86,7 +86,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
                     .argumentTypes(DataTypes.STRING.getTypeSignature(),
                             DataTypes.INTEGER.getTypeSignature())
                     .returnType(DataTypes.STRING.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
+                    .features(Feature.DETERMINISTIC)
                     .build();
             Object result = executeAggregation(
                 signature,
@@ -107,7 +107,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                         DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build();
         Object result = executeAggregation(
             signature,
@@ -128,7 +128,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
                     .argumentTypes(DataTypes.STRING.getTypeSignature(),
                             DataTypes.INTEGER.getTypeSignature())
                     .returnType(DataTypes.STRING.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
+                    .features(Feature.DETERMINISTIC)
                     .build();
             Object result = executeAggregation(
                 signature,
@@ -149,7 +149,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                         DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build();
         Object result = executeAggregation(
             signature,
@@ -170,7 +170,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                         DataTypes.UNTYPED_OBJECT.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build();
         assertThatThrownBy(() -> executeAggregation(
             signature,
@@ -189,7 +189,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                         DataTypes.LONG.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build();
         Object result = executeAggregation(
             signature,

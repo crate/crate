@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
@@ -240,7 +241,7 @@ public class UnionIntegrationTest extends IntegTestCase {
     public void testUnionAllArrayAndObjectColumns() {
         execute("select * from (select t1.id, t1.text, t3.arr, t3.obj from t1 join t3 on arr is not null) a " +
                 "union all " +
-                "select id, text, [1::bigint, 2::bigint], {custom = true} from t3 where arr is not null " +
+                "select id, text, [1, 2], {custom = true} from t3 where arr is not null " +
                 "order by id");
         assertThat(response).hasRows(
             "1| text| [1, 2, 3]| {temperature=42}",
@@ -368,9 +369,9 @@ public class UnionIntegrationTest extends IntegTestCase {
                   └ HashAggregate[count(*)]
                     └ Rename[] AS u
                       └ Union[]
-                        ├ Filter[(1 AS x > 2147483647::bigint)]
+                        ├ Filter[(1 AS x > 2147483647)]
                         │  └ TableFunction[empty_row | [] | true]
-                        └ Filter[(2147483648::bigint AS x > 2147483647::bigint)]
+                        └ Filter[(2147483648 AS x > 2147483647)]
                           └ TableFunction[empty_row | [] | true]""");
         execute(query);
         assertThat(response).hasRows("1");

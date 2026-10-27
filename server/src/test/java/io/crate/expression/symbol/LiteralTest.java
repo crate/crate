@@ -26,15 +26,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 
 import org.elasticsearch.test.ESTestCase;
-import org.joda.time.Period;
 import org.junit.Test;
 import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.testing.Asserts;
+import io.crate.testing.DataTypeTesting;
 import io.crate.types.ArrayType;
-import io.crate.types.BooleanType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -44,17 +43,7 @@ public class LiteralTest extends ESTestCase {
     public void testNestedArrayLiteral() throws Exception {
         for (DataType<?> type : DataTypes.PRIMITIVE_TYPES) {
             DataType<?> nestedType = new ArrayType<>(new ArrayType<>(type));
-            Object value;
-
-            if (type.id() == BooleanType.ID) {
-                value = true;
-            } else if (type.id() == DataTypes.IP.id()) {
-                value = type.sanitizeValue("123.34.243.23");
-            } else if (type.id() == DataTypes.INTERVAL.id()) {
-                value = type.sanitizeValue(new Period().withSeconds(100));
-            } else {
-                value = type.implicitCast("0");
-            }
+            Object value = DataTypeTesting.getDataGenerator(type).get();
             var nestedValue = List.of(List.of(value));
             Literal<?> nestedLiteral = Literal.ofUnchecked(nestedType, nestedValue);
             assertThat(nestedLiteral.valueType()).isEqualTo(nestedType);

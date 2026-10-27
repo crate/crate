@@ -43,7 +43,7 @@ import org.apache.lucene.util.RamUsageEstimator;
  * Supports boundary checks since some features (lag/lead) rely on IndexOutOfBoundsException.
  */
 public class AccountableList<T> extends AbstractList<T> {
-
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(AccountableList.class);
     private static final int SOFT_MAX_ARRAY_LENGTH = Integer.MAX_VALUE - 8;
     private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
     private static final int DEFAULT_CAPACITY = 10;
@@ -55,7 +55,7 @@ public class AccountableList<T> extends AbstractList<T> {
     public AccountableList(LongConsumer allocateBytes) {
         this.allocateBytes = allocateBytes;
         this.elementData = DEFAULTCAPACITY_EMPTY_ELEMENTDATA; // Empty now, will be accounted on the first growth.
-        allocateBytes.accept(4); // internal 'size' integer;
+        allocateBytes.accept(SHALLOW_SIZE); // internal 'size' integer;
     }
 
     private static class SubList<T> extends AbstractList<T> implements RandomAccess {
@@ -145,6 +145,26 @@ public class AccountableList<T> extends AbstractList<T> {
         System.arraycopy(a, 0, elementData, s, numNew);
         size = s + numNew;
         return true;
+    }
+
+    @Override
+    public T remove(int index) {
+        // Allocated bytes don't change, since elementData is not resized,
+        // and trimToSize() is not implemented (as in ArrayList).
+        Objects.checkIndex(index, size);
+        final Object[] es = elementData;
+
+        @SuppressWarnings("unchecked") T oldValue = (T) es[index];
+        fastRemove(es, index);
+
+        return oldValue;
+    }
+
+    private void fastRemove(Object[] es, int i) {
+        final int newSize;
+        if ((newSize = size - 1) > i)
+            System.arraycopy(es, i + 1, es, i, newSize - i);
+        es[size = newSize] = null;
     }
 
     /**

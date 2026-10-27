@@ -24,6 +24,8 @@ package io.crate.execution.engine.window;
 import static io.crate.analyze.SymbolEvaluator.evaluateWithoutParams;
 import static io.crate.execution.engine.sort.Comparators.createComparator;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -56,8 +58,10 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.IntervalType;
 
 public class WindowProjector {
@@ -176,8 +180,17 @@ public class WindowProjector {
         var frameDefinition = windowDefinition.windowFrameDefinition();
         var frameBoundEnd = frameDefinition.end();
         var framingMode = frameDefinition.mode();
-        DataType offsetType = frameBoundEnd.value().valueType();
-        Object offsetValue = evaluateWithoutParams(txnCtx, nodeCtx, frameBoundEnd.value());
+        Object evaluatedOffsetValue = evaluateWithoutParams(txnCtx, nodeCtx, frameBoundEnd.value());
+        if (frameBoundEnd.type() == FrameBound.Type.FOLLOWING && evaluatedOffsetValue == null) {
+            throw new IllegalArgumentException("The offset of a `<offset> PRECEDING/FOLLOWING` frame bound must not be null");
+        }
+        final Object offsetValue;
+        if (framingMode == WindowFrame.Mode.ROWS && evaluatedOffsetValue instanceof BigDecimal bigDecimalValue) {
+            offsetValue = normalizeIntegralFrameBound(bigDecimalValue);
+        } else {
+            offsetValue = evaluatedOffsetValue;
+        }
+        DataType<?> offsetType = frameBoundEnd.value().valueType();
         Object[] endProbeValues = new Object[numCellsInSourceRow];
         BiFunction<Object[], Object[], Object[]> updateProbeValues;
         if (offsetValue != null && framingMode == WindowFrame.Mode.RANGE) {
@@ -208,8 +221,17 @@ public class WindowProjector {
         var frameDefinition = windowDefinition.windowFrameDefinition();
         var frameBoundStart = frameDefinition.start();
         var framingMode = frameDefinition.mode();
-        DataType offsetType = frameBoundStart.value().valueType();
-        Object offsetValue = evaluateWithoutParams(txnCtx, nodeCtx, frameBoundStart.value());
+        Object evaluatedOffsetValue = evaluateWithoutParams(txnCtx, nodeCtx, frameBoundStart.value());
+        if (frameBoundStart.type() == FrameBound.Type.PRECEDING && evaluatedOffsetValue == null) {
+            throw new IllegalArgumentException("The offset of a `<offset> PRECEDING/FOLLOWING` frame bound must not be null");
+        }
+        final Object offsetValue;
+        if (framingMode == WindowFrame.Mode.ROWS && evaluatedOffsetValue instanceof BigDecimal bigDecimalValue) {
+            offsetValue = normalizeIntegralFrameBound(bigDecimalValue);
+        } else {
+            offsetValue = evaluatedOffsetValue;
+        }
+        DataType<?> offsetType = frameBoundStart.value().valueType();
         Object[] startProbeValues = new Object[numCellsInSourceRow];
         BiFunction<Object[], Object[], Object[]> updateStartProbeValue;
         if (offsetValue != null && framingMode == WindowFrame.Mode.RANGE) {
@@ -244,7 +266,8 @@ public class WindowProjector {
         }
         int offsetColumnPosition;
         Symbol orderSymbol = orderBySymbols.get(0);
-        BiFunction applyOffsetOnOrderingValue = getOffsetApplicationFunction.apply(orderSymbol.valueType(), offsetType);
+        DataType<?> orderSymbolType = orderSymbol.valueType();
+        BiFunction applyOffsetOnOrderingValue = getOffsetApplicationFunction.apply(orderSymbolType, offsetType);
         if (orderSymbol.symbolType() == SymbolType.LITERAL) {
             offsetColumnPosition = -1;
         } else {
@@ -252,8 +275,23 @@ public class WindowProjector {
                 : "ORDER BY expression must resolve to an InputColumn, but got: " + orderSymbol;
             offsetColumnPosition = ((InputColumn) orderSymbol).index();
         }
-        var finalOffsetValue =
-            offsetType.id() == IntervalType.ID ? offsetType.sanitizeValue(offsetValue) : orderSymbol.valueType().sanitizeValue(offsetValue);
+        var orderSymbolTypeId = orderSymbolType.id();
+        final Object finalOffsetValue;
+        if (offsetType.id() == IntervalType.ID) {
+            finalOffsetValue = offsetType.sanitizeValue(offsetValue);
+        } else if ((orderSymbolTypeId == DataTypes.BYTE.id() ||
+            orderSymbolTypeId == DataTypes.SHORT.id() ||
+            orderSymbolTypeId == DataTypes.INTEGER.id() ||
+            orderSymbolTypeId == DataTypes.LONG.id() ||
+            orderSymbolTypeId == DataTypes.DATE.id() ||
+            orderSymbolTypeId == DataTypes.TIMESTAMPZ.id() ||
+            orderSymbolTypeId == DataTypes.TIMESTAMP.id()) &&
+            offsetValue instanceof BigDecimal bigDecimal) {
+            // For the types that use long-based boundary arithmetic, NUMERIC bounds must be normalized without overflowing a long.
+            finalOffsetValue = normalizeIntegralFrameBound(bigDecimal);
+        } else {
+            finalOffsetValue = offsetValue;
+        }
         return (currentRow, x) -> {
             // if the offsetCell position is -1 the window is ordered by a Literal so we leave the
             // probe value to null so it doesn't impact ordering (ie. all values will be consistently GT or LT
@@ -264,5 +302,20 @@ public class WindowProjector {
             }
             return x;
         };
+    }
+
+    /**
+     * Converts a numeric frame bound to long, discarding any fractions and
+     * rejecting values outside the long range.
+     */
+    private static long normalizeIntegralFrameBound(BigDecimal value) {
+        BigInteger bigIntegerValue = value.toBigInteger();
+        if (BigInteger.valueOf(Long.MAX_VALUE).compareTo(bigIntegerValue) < 0 ||
+            BigInteger.valueOf(Long.MIN_VALUE).compareTo(bigIntegerValue) > 0) {
+            throw new IllegalArgumentException(
+                "The window frame bound " + value.toPlainString()
+                    + " is not representable as a value of type bigint");
+        }
+        return bigIntegerValue.longValue();
     }
 }

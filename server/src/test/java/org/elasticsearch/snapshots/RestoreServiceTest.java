@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -38,6 +39,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.junit.Test;
 
+import io.crate.analyze.RestoreSnapshotAnalyzer;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -273,5 +275,71 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
         RestoreService.RestoreRelation relation2 = restoreRelations.get(relationName2);
         assertThat(relation2).isNotNull();
         assertThat(relation2.restoreIndices()).containsExactly(new RestoreService.RestoreIndex(index2, List.of("626572800000")));
+    }
+
+    @Test
+    public void test_resolve_foreign_tables_only_if_servers_are_restored() throws Exception {
+        SQLExecutor.builder(clusterService).build()
+            .addTable("CREATE TABLE doc.my_table (id INT, name STRING)");
+        RelationName tableName = new RelationName(DocSchemaInfo.NAME, "my_table");
+        RelationName foreignTableName = new RelationName(DocSchemaInfo.NAME, "my_foreign_table");
+        Metadata metadata = Metadata.builder(clusterService.state().metadata())
+            .setForeignTable(foreignTableName, List.of(), "my_server", Settings.EMPTY)
+            .build();
+        SnapshotInfo snapshotInfo = new SnapshotInfo(
+            new SnapshotId("snapshot1", UUIDs.randomBase64UUID()),
+            List.of(),
+            SnapshotState.SUCCESS,
+            Version.CURRENT
+        );
+
+        // RESTORE SNAPSHOT ... TABLE doc.my_table
+        List<TableOrPartition> tablesToRestore = List.of(new TableOrPartition(tableName, null));
+        var restoreRequest = new RestoreSnapshotRequest(
+            "repo1",
+            snapshotInfo.snapshotId().getName(),
+            tablesToRestore,
+            Settings.EMPTY,
+            true,
+            false,
+            false,
+            Set.of(),
+            false,
+            List.of()
+        );
+        assertThat(resolveRelations(tablesToRestore, restoreRequest, metadata, snapshotInfo))
+            .containsOnlyKeys(tableName);
+
+        // RESTORE SNAPSHOT ... USERMANAGEMENT
+        restoreRequest = new RestoreSnapshotRequest(
+            "repo1",
+            snapshotInfo.snapshotId().getName(),
+            List.of(),
+            Settings.EMPTY,
+            false,
+            false,
+            true,
+            Set.copyOf(RestoreSnapshotAnalyzer.USER_MANAGEMENT_METADATA),
+            false,
+            List.of()
+        );
+        assertThat(resolveRelations(List.of(), restoreRequest, metadata, snapshotInfo))
+            .isEmpty();
+
+        // RESTORE SNAPSHOT ... ALL
+        restoreRequest = new RestoreSnapshotRequest(
+            "repo1",
+            snapshotInfo.snapshotId().getName(),
+            List.of(),
+            Settings.EMPTY,
+            true,
+            true,
+            true,
+            Set.of(),
+            true,
+            List.of()
+        );
+        assertThat(resolveRelations(List.of(), restoreRequest, metadata, snapshotInfo))
+            .containsOnlyKeys(tableName, foreignTableName);
     }
 }

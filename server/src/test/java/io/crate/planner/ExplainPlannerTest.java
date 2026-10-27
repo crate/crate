@@ -250,7 +250,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(consumer.getResult().get(0)[0].toString().split("\n")).containsExactly(
             "Insert[INPUT(0)] (rows=1)",
             "  └ Fetch[id, name] (rows=unknown)",
-            "    └ Limit[3::bigint;0] (rows=unknown)",
+            "    └ Limit[3;0] (rows=unknown)",
             "      └ Collect[doc.users | [_fetchid] | true] (rows=unknown)"
         );
     }

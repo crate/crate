@@ -55,11 +55,14 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
         this.name = ref.storageIdent();
     }
 
+    public static byte[] encode(BitString value) {
+        BitSet bitSet = value.bitSet();
+        return bitSet.toByteArray();
+    }
+
     @Override
     public void indexValue(BitString value, IndexDocumentBuilder docBuilder) throws IOException {
-        BitSet bitSet = value.bitSet();
-        byte[] bytes = bitSet.toByteArray();
-
+        byte[] bytes = encode(value);
         BytesRef binaryValue = new BytesRef(bytes);
         if (ref.indexType() != IndexType.NONE) {
             docBuilder.addField(new Field(name, binaryValue, FIELD_TYPE));

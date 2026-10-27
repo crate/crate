@@ -47,10 +47,10 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.Signature.Feature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
@@ -141,7 +141,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
                     Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
                             .argumentTypes(DataTypes.LONG.getTypeSignature())
                             .returnType(DataTypes.LONG.getTypeSignature())
-                            .features(Scalar.Feature.DETERMINISTIC)
+                            .features(Feature.DETERMINISTIC)
                             .build(),
                     DataTypes.LONG,
                     List.of(Literal.of(1L)))
@@ -257,7 +257,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
                 Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
                         .argumentTypes(DataTypes.LONG.getTypeSignature())
                         .returnType(DataTypes.LONG.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
+                        .features(Feature.DETERMINISTIC)
                         .build(),
                 DataTypes.LONG,
                 List.of(new InputColumn(inputCol, DataTypes.LONG))
