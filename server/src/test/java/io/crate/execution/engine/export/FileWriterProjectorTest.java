@@ -25,6 +25,7 @@ import static io.crate.data.SentinelRow.SENTINEL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
@@ -64,10 +65,41 @@ public class FileWriterProjectorTest extends ESTestCase {
             .collect(Collectors.toList())), SENTINEL, true);
 
     @Test
+    public void test_resolve_output_uri() {
+        assertThat(FileWriterProjector.resolveOutputUri("/tmp/dir", "t_0_.json")).hasToString("/tmp/dir/t_0_.json");
+        assertThat(FileWriterProjector.resolveOutputUri("/tmp/dir/", "t_0_.json")).hasToString("/tmp/dir/t_0_.json");
+        assertThat(FileWriterProjector.resolveOutputUri("tmp/dir", "t_0_.json")).hasToString("tmp/dir/t_0_.json");
+        assertThat(FileWriterProjector.resolveOutputUri("file:///tmp/dir", "t_0_.json")).hasToString("file:/tmp/dir/t_0_.json");
+        assertThat(FileWriterProjector.resolveOutputUri("s3://key:sec%2Fret@bucket/dir", "t_0_.json.gz"))
+            .hasToString("s3://key:sec%2Fret@bucket/dir/t_0_.json.gz");
+        assertThat(FileWriterProjector.resolveOutputUri("s3://127.0.0.1:9000/bucket", "t_0_.json"))
+            .hasToString("s3://127.0.0.1:9000/bucket/t_0_.json");
+        assertThat(FileWriterProjector.resolveOutputUri("/tmp/my%20dir", "t_0_.json")).hasToString("/tmp/my%20dir/t_0_.json");
+    }
+
+    @Test
+    public void test_resolve_output_uri_encodes_file_name() {
+        assertThat(FileWriterProjector.resolveOutputUri("/tmp/dir", "t#_0_.json")).hasToString("/tmp/dir/t%23_0_.json");
+        assertThat(FileWriterProjector.resolveOutputUri("/tmp/dir", "t?_0_.json")).hasToString("/tmp/dir/t%3F_0_.json");
+        assertThat(FileWriterProjector.resolveOutputUri("/tmp/dir", "t%23_0_.json")).hasToString("/tmp/dir/t%2523_0_.json");
+        assertThat(FileWriterProjector.resolveOutputUri("/tmp/dir", "t:x_0_.json")).hasToString("/tmp/dir/t:x_0_.json");
+        assertThat(FileWriterProjector.resolveOutputUri("/tmp/dir", "t#?_0_.json").getPath())
+            .isEqualTo("/tmp/dir/t#?_0_.json");
+    }
+
+    @Test
+    public void test_resolve_output_uri_keeps_query_and_fragment_of_directory_uri() {
+        assertThat(FileWriterProjector.resolveOutputUri("/tmp/file.yml?", "t_0_.json")).hasToString("/tmp/file.yml/t_0_.json?");
+        assertThat(FileWriterProjector.resolveOutputUri("/tmp/file.yml#", "t_0_.json")).hasToString("/tmp/file.yml/t_0_.json#");
+        assertThat(FileWriterProjector.resolveOutputUri("s3://bucket/obj?a=b#c", "t_0_.json"))
+            .hasToString("s3://bucket/obj/t_0_.json?a=b#c");
+    }
+
+    @Test
     public void testWriteRawToFile() throws Exception {
         Path file = createTempFile("out", "json");
 
-        FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, file.toUri().toString(),
+        FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, file.toUri(),
             null, null, Set.of(),
             null, WriterProjection.OutputFormat.JSON_OBJECT,
             Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
@@ -87,7 +119,7 @@ public class FileWriterProjectorTest extends ESTestCase {
         Path directory = createTempDir();
 
         FileWriterProjector fileWriterProjector = new FileWriterProjector(
-                executorService, directory.toUri().toString(),
+                executorService, directory.toUri(),
                 null, null, Set.of(),
                 null, WriterProjection.OutputFormat.JSON_OBJECT,
                 Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
@@ -98,7 +130,7 @@ public class FileWriterProjectorTest extends ESTestCase {
 
     @Test
     public void testFileAsDirectory() throws Exception {
-        String uri = Paths.get(folder.newFile().toURI()).resolve("out.json").toUri().toString();
+        URI uri = Paths.get(folder.newFile().toURI()).resolve("out.json").toUri();
 
         FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, uri,
                 null, null, Set.of(),
