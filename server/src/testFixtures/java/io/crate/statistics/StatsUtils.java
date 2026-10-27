@@ -30,14 +30,14 @@ public final class StatsUtils {
     private StatsUtils() {}
 
     public static <T> ColumnStats<T> statsFromValues(DataType<T> dataType, Collection<T> values) {
-        ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder();
+        ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder(false);
         builder.addAll(values);
         // Assume the sample is the whole table: totalDocs == the rows just added.
         return builder.toStats(builder.sampleCount);
     }
 
     public static <T> ColumnStats<T> statsFromValues(DataType<T> dataType, Collection<T> values, int nullCount) {
-        ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder();
+        ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder(false);
         builder.addAll(values);
         for (int i = 0; i < nullCount; i++) {
             builder.add(null);
@@ -50,7 +50,7 @@ public final class StatsUtils {
                                                      Collection<T> values,
                                                      int nullCount,
                                                      long totalDocs) {
-        ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder();
+        ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder(false);
         builder.addAll(values);
         for (int i = 0; i < nullCount; i++) {
             builder.add(null);

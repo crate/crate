@@ -41,14 +41,21 @@ public final class FetchSampleRequest extends TransportRequest {
     private final RelationName relationName;
     private final int tableOid;
     private final List<Reference> columns;
+    private final boolean withDistinctSketch;
 
+    /**
+     * @param withDistinctSketch whether to build the Theta sketch, which is needed if any node
+     *                           taking part in the ANALYZE is older than 6.5.1
+     */
     public FetchSampleRequest(RelationName relationName,
                               int tableOid,
                               List<Reference> columns,
+                              boolean withDistinctSketch,
                               Version nodeVersion) {
         this.relationName = relationName;
         this.tableOid = tableOid;
         this.columns = columns;
+        this.withDistinctSketch = withDistinctSketch;
         if (nodeVersion.before(Version.V_5_7_0)) {
             throw new UnsupportedOperationException("Cannot run ANALYZE request in a mixed cluster with nodes older than 5.7.0");
         }
@@ -73,6 +80,12 @@ public final class FetchSampleRequest extends TransportRequest {
         for (int i = 0; i < numColumns; i++) {
             columns.add(Reference.fromStream(in));
         }
+        if (in.getVersion().onOrAfter(Version.V_6_5_1)) {
+            this.withDistinctSketch = in.readBoolean();
+        } else {
+            // Sent by a coordinator older than 6.5.1, which always needs the Theta sketch.
+            this.withDistinctSketch = true;
+        }
     }
 
     @Override
@@ -89,6 +102,9 @@ public final class FetchSampleRequest extends TransportRequest {
         for (Reference column : columns) {
             Reference.toStream(out, column);
         }
+        if (out.getVersion().onOrAfter(Version.V_6_5_1)) {
+            out.writeBoolean(withDistinctSketch);
+        }
     }
 
     public RelationName relation() {
@@ -103,9 +119,13 @@ public final class FetchSampleRequest extends TransportRequest {
         return columns;
     }
 
+    public boolean withDistinctSketch() {
+        return withDistinctSketch;
+    }
+
     @Override
     public int hashCode() {
-        return Objects.hash(relationName, tableOid, columns);
+        return Objects.hash(relationName, tableOid, columns, withDistinctSketch);
     }
 
     @Override
@@ -121,6 +141,7 @@ public final class FetchSampleRequest extends TransportRequest {
         }
         return relationName.equals(other.relation()) &&
                tableOid == other.tableOid() &&
-               columns.equals(other.columns());
+               columns.equals(other.columns()) &&
+               withDistinctSketch == other.withDistinctSketch();
     }
 }

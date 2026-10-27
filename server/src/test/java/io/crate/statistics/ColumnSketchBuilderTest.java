@@ -50,7 +50,8 @@ public class ColumnSketchBuilderTest extends ESTestCase {
     public void test_array_stats() {
 
         var builder = new ColumnSketchBuilder.Composite<>(
-            new ArrayType<>(ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("id", IntegerType.INSTANCE).build())
+            new ArrayType<>(ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("id", IntegerType.INSTANCE).build()),
+            true
         );
 
         builder.add(List.of(Map.of("id", 1)));
@@ -74,7 +75,7 @@ public class ColumnSketchBuilderTest extends ESTestCase {
 
     public void test_streaming() throws IOException {
         var support = StringType.INSTANCE.columnStatsSupport();
-        var sketch = support.sketchBuilder();
+        var sketch = support.sketchBuilder(true);
 
         for (int i = 0; i < 200; i++) {
             sketch.add(RandomStrings.randomUnicodeOfLength(random(), 10));
