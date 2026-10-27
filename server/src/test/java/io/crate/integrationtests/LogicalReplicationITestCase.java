@@ -213,6 +213,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
     NodeConfigurationSource createNodeConfigurationSource() {
         Settings.Builder builder = Settings.builder();
         builder.put(logicalReplicationSettings());
+        builder.put(PostgresNetty.PSQL_PORT_SETTING.getKey(), getPortRange());
         // disables a port scan for other nodes by setting seeds to an empty list
         builder.putList(DISCOVERY_SEED_HOSTS_SETTING.getKey());
         builder.putList(DISCOVERY_SEED_PROVIDERS_SETTING.getKey(), "file");
