@@ -24,7 +24,6 @@ package io.crate.execution.engine.export;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
@@ -49,7 +48,6 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.WriterProjection;
@@ -66,7 +64,6 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
     private final Executor executor;
     private final Iterable<CollectExpression<Row, ?>> collectExpressions;
     private final List<Input<?>> inputs;
-    private final URI uri;
     private final FileOutput fileOutput;
     private final WriterProjection.CompressionType compressionType;
     @Nullable
@@ -76,7 +73,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
     private final RowWriter rowWriter;
 
     FileWriterCountCollector(Executor executor,
-                             String uriStr,
+                             URI uri,
                              WriterProjection.@Nullable CompressionType compressionType,
                              @Nullable List<Input<?>> inputs,
                              Iterable<CollectExpression<Row, ?>> collectExpressions,
@@ -90,11 +87,6 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         this.compressionType = compressionType;
         this.outputNames = outputNames;
         this.outputFormat = outputFormat;
-        try {
-            uri = new URI(uriStr);
-        } catch (URISyntaxException e) {
-            throw new SQLParseException(String.format(Locale.ENGLISH, "Invalid uri '%s'", uriStr), e);
-        }
         String scheme = uri.getScheme();
         scheme = (scheme == null) ? LocalFsFileOutputFactory.NAME : scheme;
         FileOutputFactory fileOutputFactory = fileOutputFactories.get(scheme);
