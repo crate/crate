@@ -62,17 +62,8 @@ public abstract class ColumnSketchBuilder<T> {
     /// count in the full table via the Haas-Stokes estimator (same approach as PostgreSQL).
     /// The sample is bounded by [Reservoir#NUM_SAMPLES],
     /// so tracking exact counts (rather than approximating) is cheap.
+    /// Only filled if [#distinctSketch] is `null`.
     protected final ObjectLongMap<String> distinctCounts;
-
-    /// Set when [#distinctCounts] does not (or may not) cover the whole sample,
-    /// because this instance was:
-    /// * deserialized from a node older than 6.5.1
-    /// * an instance coming from a node older than 6.5.1 was merged into this instance.
-    ///
-    /// When true, we can't use [#distinctCounts] to provide a better estimate of the
-    /// number of distinct values, so [#estimateDistinct] falls back to [#distinctSketch]
-    /// (instead of extrapolating from incomplete [#distinctCounts]).
-    protected boolean distinctCountsIncomplete;
 
     /**
      * Creates a new ColumnSketchBuilder for the given DataType
@@ -82,7 +73,9 @@ public abstract class ColumnSketchBuilder<T> {
         this.distinctSketch = withDistinctSketch ? DistinctValuesSketch.newSketch() : null;
         // Pre-sized to the reservoir's upper bound so a single builder's add() loop
         // never triggers a resize (which re-hashes every key).
-        this.distinctCounts = new ObjectLongHashMap<>(Reservoir.NUM_SAMPLES);
+        this.distinctCounts = withDistinctSketch
+            ? new ObjectLongHashMap<>()
+            : new ObjectLongHashMap<>(Reservoir.NUM_SAMPLES);
     }
 
     public ColumnSketchBuilder(DataType<T> dataType, StreamInput in) throws IOException {
@@ -92,20 +85,15 @@ public abstract class ColumnSketchBuilder<T> {
         this.totalBytes = in.readLong();
         if (in.getVersion().onOrAfter(Version.V_6_5_1)) {
             this.distinctSketch = in.readBoolean() ? DistinctValuesSketch.fromStream(in) : null;
-        } else {
-            this.distinctSketch = DistinctValuesSketch.fromStream(in);
-        }
-        if (in.getVersion().onOrAfter(Version.V_6_5_1)) {
             int size = in.readVInt();
             ObjectLongHashMap<String> counts = new ObjectLongHashMap<>(size);
             for (int i = 0; i < size; i++) {
                 counts.put(in.readString(), in.readVLong());
             }
             this.distinctCounts = counts;
-            this.distinctCountsIncomplete = in.readBoolean();
         } else {
+            this.distinctSketch = DistinctValuesSketch.fromStream(in);
             this.distinctCounts = new ObjectLongHashMap<>();
-            this.distinctCountsIncomplete = true;
         }
     }
 
@@ -118,17 +106,14 @@ public abstract class ColumnSketchBuilder<T> {
             if (distinctSketch != null) {
                 out.writeByteArray(distinctSketch.getSketch().toByteArray());
             }
-        } else {
-            // A node older than 6.5.1 takes part in the ANALYZE, so the sketch was built.
-            out.writeByteArray(distinctSketch.getSketch().toByteArray());
-        }
-        if (out.getVersion().onOrAfter(Version.V_6_5_1)) {
             out.writeVInt(distinctCounts.size());
             for (ObjectLongCursor<String> c : distinctCounts) {
                 out.writeString(c.key);
                 out.writeVLong(c.value);
             }
-            out.writeBoolean(distinctCountsIncomplete);
+        } else {
+            // A node older than 6.5.1 takes part in the ANALYZE, so the sketch was built.
+            out.writeByteArray(distinctSketch.getSketch().toByteArray());
         }
         writeSketches(out);
     }
@@ -147,8 +132,9 @@ public abstract class ColumnSketchBuilder<T> {
             String key = value.toString();
             if (distinctSketch != null) {
                 distinctSketch.update(key);
+            } else {
+                distinctCounts.addTo(key, 1L);
             }
-            distinctCounts.addTo(key, 1L);
             updateSketches(value);
         }
     }
@@ -194,10 +180,10 @@ public abstract class ColumnSketchBuilder<T> {
     ///
     /// Also see PostgreSQL's [compute_distinct_stats](https://github.com/postgres/postgres/blob/9f4bd91a1960f0263c497a9a1ddf121cbcefbb98/src/backend/commands/analyze.c#L2121).
     ///
-    /// Falls back to [#distinctSketch]'s own (non-extrapolated) estimate when
-    /// [#distinctCountsIncomplete] is set, since [#distinctCounts] can't be trusted in that case.
+    /// Uses [#distinctSketch]'s own (non-extrapolated) estimate instead, if it was built,
+    /// since [#distinctCounts] is empty in that case.
     final double estimateDistinct(long totalDocs) {
-        if (distinctCountsIncomplete) {
+        if (distinctSketch != null) {
             return distinctSketch.getSketch().getEstimate();
         }
         long n = sampleCount - nullCount;
@@ -264,7 +250,6 @@ public abstract class ColumnSketchBuilder<T> {
             this.distinctSketch = this.distinctSketch != null && other.distinctSketch != null
                 ? this.distinctSketch.merge(other.distinctSketch)
                 : null;
-            this.distinctCountsIncomplete = this.distinctCountsIncomplete || typedOther.distinctCountsIncomplete;
             for (ObjectLongCursor<String> c : typedOther.distinctCounts) {
                 this.distinctCounts.addTo(c.key, c.value);
             }
@@ -343,7 +328,6 @@ public abstract class ColumnSketchBuilder<T> {
             this.distinctSketch = this.distinctSketch != null && other.distinctSketch != null
                 ? this.distinctSketch.merge(other.distinctSketch)
                 : null;
-            this.distinctCountsIncomplete = this.distinctCountsIncomplete || typedOther.distinctCountsIncomplete;
             for (ObjectLongCursor<String> c : typedOther.distinctCounts) {
                 this.distinctCounts.addTo(c.key, c.value);
             }
