@@ -190,6 +190,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                         chPipeline.addLast("dispatcher", new Netty4MessageChannelHandler(pageCacheRecycler, transport));
                     },
                     authentication,
+                    roles,
                     sslContextProvider
                 );
                 pipeline.addLast("frame-decoder", postgresWireProtocol.decoder);
