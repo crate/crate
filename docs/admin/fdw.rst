@@ -189,6 +189,11 @@ Usage::
   +------------+-----------------+----------+------+
   SELECT 6 rows in set (... sec)
 
+.. hide:
+
+  cr> DROP SERVER my_parquet CASCADE;
+  DROP OK, 1 row affected (... sec)
+
 .. note::
 
    In order to query :ref:`Object column with dynamic column policy <type-object-columns-dynamic>`,
