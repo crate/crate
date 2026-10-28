@@ -125,7 +125,8 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent imple
                                ClusterState currentState) {
         if (!replace) {
             SchemaMetadata schemaMetadata = currentState.metadata().schemas().get(udf.schema());
-            if (schemaMetadata != null && schemaMetadata.udfs().contains(udf)) {
+            if (schemaMetadata != null && schemaMetadata.udfs().stream()
+                    .anyMatch(x -> x.sameSignature(udf.schema(), udf.name(), udf.argumentTypes()))) {
                 throw new UserDefinedFunctionAlreadyExistsException(udf);
             }
         }
