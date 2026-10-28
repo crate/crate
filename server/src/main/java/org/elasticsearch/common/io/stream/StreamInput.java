@@ -707,6 +707,8 @@ public abstract class StreamInput extends InputStream {
                 return new PointImpl(readDouble(), readDouble(), JtsSpatialContext.GEO);
             case 28:
                 return new BitString(BitSet.valueOf(readByteArray()), readVInt());
+            case 29:
+                return readUUID();
             default:
                 throw new IOException("Can't read unknown type [" + type + "]");
         }

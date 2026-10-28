@@ -715,6 +715,10 @@ public abstract class StreamOutput extends OutputStream {
             BitString bs = (BitString) v;
             o.writeByteArray(bs.bitSet().toByteArray());
             o.writeVInt(bs.length());
+        }),
+        Map.entry(UUID.class, (o, v) -> {
+            o.writeByte((byte) 29);
+            o.writeUUID((UUID) v);
         })
     );
 

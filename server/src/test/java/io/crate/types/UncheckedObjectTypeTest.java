@@ -25,11 +25,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+
+import io.crate.testing.DataTypeTesting;
 
 public class UncheckedObjectTypeTest extends ESTestCase {
 
@@ -41,7 +46,13 @@ public class UncheckedObjectTypeTest extends ESTestCase {
         int[] arrayValue = {2, 3};
         String stringKey = "string_key";
         int intValue = 42;
-        Map<Object, Object> genericValues = Map.of(longKey, arrayValue, stringKey, intValue);
+        DataType<?> type = RandomPicks.randomFrom(random(), DataTypes.PRIMITIVE_TYPES);
+        Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
+        Map<Object, Object> genericValues = Map.of(
+            longKey, arrayValue,
+            stringKey, intValue,
+            "type_" + type.getName(), dataGenerator.get()
+        );
 
         BytesStreamOutput out = new BytesStreamOutput();
         uncheckedObjectType.writeValueTo(out, genericValues);
