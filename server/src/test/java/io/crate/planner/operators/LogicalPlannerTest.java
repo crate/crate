@@ -1090,4 +1090,154 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             """
         );
     }
+
+    @Test
+    public void test_distinct_is_removed_when_projection_contains_primary_key()
+        throws Exception {
+
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("""
+            CREATE TABLE doc.distinct_pk (
+                id INTEGER PRIMARY KEY,
+                name TEXT
+            )
+            """);
+
+        LogicalPlan plan = e.logicalPlan(
+            "SELECT DISTINCT id, name FROM distinct_pk"
+        );
+
+        assertThat(plan).isEqualTo(
+            "Collect[doc.distinct_pk | [id, name] | true]"
+        );
+    }
+
+    @Test
+    public void test_distinct_is_removed_when_only_primary_key_is_selected()
+        throws Exception {
+
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("""
+            CREATE TABLE doc.distinct_pk (
+                id INTEGER PRIMARY KEY,
+                name TEXT
+            )
+            """);
+
+        LogicalPlan plan = e.logicalPlan(
+            "SELECT DISTINCT id FROM distinct_pk"
+        );
+
+        assertThat(plan).isEqualTo(
+            "Collect[doc.distinct_pk | [id] | true]"
+        );
+    }
+
+    @Test
+    public void test_distinct_is_kept_when_projection_does_not_contain_primary_key()
+        throws Exception {
+
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("""
+            CREATE TABLE doc.distinct_pk (
+                id INTEGER PRIMARY KEY,
+                name TEXT
+            )
+            """);
+
+        LogicalPlan plan = e.logicalPlan(
+            "SELECT DISTINCT name FROM distinct_pk"
+        );
+
+        assertThat(plan).isEqualTo("""
+        GroupHashAggregate[name]
+          └ Collect[doc.distinct_pk | [name] | true]
+            """);
+    }
+
+    @Test
+    public void test_distinct_with_composite_pk()
+        throws Exception {
+
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("""
+            CREATE TABLE doc.composite_pk (
+                id1 INTEGER,
+                id2 INTEGER,
+                name TEXT,
+                PRIMARY KEY (id1, id2)
+            )
+            """);
+
+        LogicalPlan planAll = e.logicalPlan(
+            "SELECT DISTINCT id1, id2, name FROM composite_pk"
+        );
+        assertThat(planAll).isEqualTo(
+            "Collect[doc.composite_pk | [id1, id2, name] | true]"
+        );
+
+        LogicalPlan planKeysOnly = e.logicalPlan(
+            "SELECT DISTINCT id1, id2 FROM composite_pk"
+        );
+        assertThat(planKeysOnly).isEqualTo(
+            "Collect[doc.composite_pk | [id1, id2] | true]"
+        );
+
+        LogicalPlan planPartial = e.logicalPlan(
+            "SELECT DISTINCT id1, name FROM composite_pk"
+        );
+        assertThat(planPartial).isEqualTo("""
+        GroupHashAggregate[id1, name]
+          └ Collect[doc.composite_pk | [id1, name] | true]
+            """);
+    }
+
+    @Test
+    public void test_distinct_with_alias_and_reordered_projection()
+        throws Exception {
+
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("""
+            CREATE TABLE doc.distinct_pk (
+                id INTEGER PRIMARY KEY,
+                name TEXT
+            )
+            """);
+
+        LogicalPlan planAlias = e.logicalPlan(
+            "SELECT DISTINCT id AS alias_id, name FROM distinct_pk"
+        );
+        assertThat(planAlias).isEqualTo(
+            "Collect[doc.distinct_pk | [id AS alias_id, name] | true]"
+        );
+
+        LogicalPlan planReordered = e.logicalPlan(
+            "SELECT DISTINCT name, id FROM distinct_pk"
+        );
+        assertThat(planReordered).isEqualTo(
+            "Collect[doc.distinct_pk | [name, id] | true]"
+        );
+    }
+
+    @Test
+    public void test_distinct_is_kept_when_table_has_no_explicit_primary_key()
+        throws Exception {
+
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("""
+        CREATE TABLE doc.no_explicit_pk (
+            id INTEGER,
+            name TEXT
+        )
+           \s""");
+
+        LogicalPlan plan = e.logicalPlan(
+            "SELECT DISTINCT id, name FROM no_explicit_pk"
+        );
+
+        assertThat(plan).isEqualTo("""
+    GroupHashAggregate[id, name]
+      └ Collect[doc.no_explicit_pk | [id, name] | true]
+       \s""");
+    }
 }
