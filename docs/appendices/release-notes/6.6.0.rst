@@ -110,6 +110,11 @@ Performance and Resilience Improvements
   Previously, the resulting logical plan would contain 1 inner join and 2 cross
   joins. Now, the logical plan has 2 inner joins and 1 cross join.
 
+- Optimized queries with ``DISTINCT`` when the grouping columns include all
+  columns of an explicit primary key. In these cases, we can skip
+  unnecessary duplicate elimination because the primary key guarantees that
+  each row is unique.
+
 Administration and Operations
 -----------------------------
 
