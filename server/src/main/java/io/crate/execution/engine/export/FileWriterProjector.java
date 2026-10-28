@@ -21,7 +21,10 @@
 
 package io.crate.execution.engine.export;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executor;
 
@@ -33,12 +36,13 @@ import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.exceptions.SQLParseException;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.collect.CollectExpression;
 
 public class FileWriterProjector implements Projector {
 
-    private final String uri;
+    private final URI uri;
     private final Iterable<CollectExpression<Row, ?>> collectExpressions;
     private final List<Input<?>> inputs;
     @Nullable
@@ -58,7 +62,7 @@ public class FileWriterProjector implements Projector {
      *               If inputs is not null the inputs are consumed to write a JSON array to the output.
      */
     public FileWriterProjector(Executor executor,
-                               String uri,
+                               URI uri,
                                WriterProjection.@Nullable CompressionType compressionType,
                                @Nullable List<Input<?>> inputs,
                                Iterable<CollectExpression<Row, ?>> collectExpressions,
@@ -75,6 +79,45 @@ public class FileWriterProjector implements Projector {
         this.uri = uri;
         this.fileOutputFactoryMap = fileOutputFactoryMap;
         this.withClauseOptions = withClauseOptions;
+    }
+
+    /// Resolves the URI of an output file inside the provided directory.
+    /// The file name is URL encoded and appended to the path of the directory URI, so that characters
+    /// like `?` or `#` (e.g. coming from a table name) remain part of the file name.
+    /// A query or fragment of the directory URI is preserved, it's not part of the path, therefore ignored.
+    public static URI resolveOutputUri(String directoryUri, String fileName) {
+        URI dirUri;
+        String encodedFileName;
+        try {
+            dirUri = new URI(directoryUri);
+            // Prefix with '/' so that a ':' in the file name isn't parsed as a scheme separator
+            encodedFileName = new URI(null, null, "/" + fileName, null).getRawPath().substring(1);
+        } catch (URISyntaxException e) {
+            throw new SQLParseException(String.format(Locale.ENGLISH, "Invalid uri '%s'", directoryUri), e);
+        }
+        String rawPath = dirUri.getRawPath();
+        if (rawPath == null) {
+            throw new SQLParseException(String.format(Locale.ENGLISH, "Invalid uri '%s'", directoryUri));
+        }
+        StringBuilder sb = new StringBuilder();
+        if (dirUri.getScheme() != null) {
+            sb.append(dirUri.getScheme()).append(':');
+        }
+        if (dirUri.getRawAuthority() != null) {
+            sb.append("//").append(dirUri.getRawAuthority());
+        }
+        sb.append(rawPath);
+        if (!rawPath.endsWith("/")) {
+            sb.append('/');
+        }
+        sb.append(encodedFileName);
+        if (dirUri.getRawQuery() != null) {
+            sb.append('?').append(dirUri.getRawQuery());
+        }
+        if (dirUri.getRawFragment() != null) {
+            sb.append('#').append(dirUri.getRawFragment());
+        }
+        return URI.create(sb.toString());
     }
 
     @Override

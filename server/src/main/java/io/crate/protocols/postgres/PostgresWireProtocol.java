@@ -896,7 +896,7 @@ public class PostgresWireProtocol {
         }
         wait(
             channel,
-            composedFuture.whenComplete(new ReadyForQueryCallback(channel, TransactionState.IDLE)));
+            composedFuture.whenComplete(new ReadyForQueryCallback(channel, session.transactionState())));
     }
 
     private CompletableFuture<?> handleSingleQuery(Statement statement,

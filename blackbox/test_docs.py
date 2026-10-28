@@ -546,6 +546,9 @@ def load_tests(loader, suite, ignore):
     for fn in doctest_files('general/dql/union.rst',):
         tests.append(docsuite(fn, setUp=setUpPhotosAndCountries))
 
+    for fn in doctest_files('admin/fdw.rst',):
+        tests.append(docsuite(fn, setUp=setUp))
+
     if not tests:
         crate.stop()
         raise ValueError("ITEST_FILE_NAME_FILTER, no matches for: {}".format(ITEST_FILE_NAME_FILTER))

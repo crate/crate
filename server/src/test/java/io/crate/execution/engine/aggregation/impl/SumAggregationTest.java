@@ -179,7 +179,7 @@ public class SumAggregationTest extends AggregationTestCase {
     }
 
     @Test
-    public void testInterval() {
+    public void testInterval() throws Exception {
         assertThat(execPartialAggregationWithoutDocValues(
                 (IntervalSumAggregation) nodeCtx.functions().getQualified(
                         Signature.builder(IntervalSumAggregation.NAME, FunctionType.AGGREGATE)
@@ -210,7 +210,7 @@ public class SumAggregationTest extends AggregationTestCase {
     }
 
     @Test
-    public void test_sum_numeric_on_long_non_doc_values_field() {
+    public void test_sum_numeric_on_long_non_doc_values_field() throws Exception {
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;
@@ -228,7 +228,7 @@ public class SumAggregationTest extends AggregationTestCase {
     }
 
     @Test
-    public void test_sum_numeric_on_long_non_doc_values_field_with_overflow() {
+    public void test_sum_numeric_on_long_non_doc_values_field_with_overflow() throws Exception {
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;
@@ -245,7 +245,7 @@ public class SumAggregationTest extends AggregationTestCase {
     }
 
     @Test
-    public void test_sum_numeric_on_floating_point_non_doc_values_field() {
+    public void test_sum_numeric_on_floating_point_non_doc_values_field() throws Exception {
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;
@@ -262,7 +262,7 @@ public class SumAggregationTest extends AggregationTestCase {
     }
 
     @Test
-    public void test_sum_numeric_with_precision_and_scale_on_double_non_doc_values_field() {
+    public void test_sum_numeric_with_precision_and_scale_on_double_non_doc_values_field() throws Exception {
         var type = new NumericType(16, 2);
         var expected = type.implicitCast(12.4357);
         assertThat(expected.toString()).isEqualTo("12.44");

@@ -136,7 +136,7 @@ public final class Messages {
         buffer.writeByte(transactionState.code());
         ChannelFuture channelFuture = channel.writeAndFlush(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(_ -> LOGGER.trace("sentReadyForQuery"));
+            channelFuture.addListener(_ -> LOGGER.trace("sentReadyForQuery {}", transactionState));
         }
         return channelFuture;
     }
