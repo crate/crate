@@ -71,7 +71,7 @@ public final class NotSerializableExceptionWrapper extends ElasticsearchExceptio
     }
 
     @Override
-    protected String getExceptionName() {
+    public String getExceptionName() {
         return name;
     }
 }
