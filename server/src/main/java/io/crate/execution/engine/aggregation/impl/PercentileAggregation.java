@@ -236,7 +236,6 @@ public class PercentileAggregation<T> extends AggregationFunction<TDigestState, 
         T value = valueType.sanitizeValue(args[0].value());
         if (value != null) {
             state.add(valueToDouble.applyAsDouble(value));
-            state.compress();
         }
         return state;
     }
@@ -282,6 +281,7 @@ public class PercentileAggregation<T> extends AggregationFunction<TDigestState, 
         if (state.isEmpty()) {
             return null;
         }
+        state.compress();
         if (boundSignature.returnType() instanceof ArrayType) {
             List<T> percentiles = new ArrayList<>(state.fractions().length);
             for (int i = 0; i < state.fractions().length; i++) {
