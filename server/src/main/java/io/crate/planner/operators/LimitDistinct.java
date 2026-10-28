@@ -73,6 +73,10 @@ public final class LimitDistinct extends ForwardingLogicalPlan {
         return this.limit;
     }
 
+    public Symbol offset() {
+        return this.offset;
+    }
+
     @Override
     public ExecutionPlan build(DependencyCarrier executor,
                                PlannerContext plannerContext,

@@ -131,7 +131,8 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
     }
 
     private static boolean matches(HashAggregate agg) {
-        return agg.aggregates().stream()
+        return agg.rewriteDistinct() &&
+        agg.aggregates().stream()
             .allMatch(fn ->
                 fn.distinct() &&
                     hasNoFilter(fn) &&
