@@ -726,14 +726,16 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             TimeUnit.SECONDS
         );
 
-        // check final exposed `r`(MONITORING) state
-        var res = executeOnSubscriber(
-            "SELECT" +
-            " s.subname, r.relname, sr.srsubstate, sr.srsubstate_reason" +
-            " FROM pg_subscription s" +
-            " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
-            " JOIN pg_class r ON sr.srrelid = r.oid");
-        assertThat(res).hasRows("sub1| t1| r| NULL");
+        assertBusy(() -> {
+            // check final exposed `r`(MONITORING) state
+            var res = executeOnSubscriber(
+                "SELECT" +
+                " s.subname, r.relname, sr.srsubstate, sr.srsubstate_reason" +
+                " FROM pg_subscription s" +
+                " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                " JOIN pg_class r ON sr.srrelid = r.oid");
+            assertThat(res).hasRows("sub1| t1| r| NULL");
+        });
     }
 
     @Test
