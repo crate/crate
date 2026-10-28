@@ -668,6 +668,7 @@ public class Session implements AutoCloseable {
     }
 
     public List<LocStmt> simpleQuery(String queryString) {
+        LOGGER.debug("method=simpleQuery query={}", queryString);
         try {
             return SqlParser.createStatementsForSimpleQuery(
                 queryString,
