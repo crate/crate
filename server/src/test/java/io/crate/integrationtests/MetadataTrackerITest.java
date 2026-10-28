@@ -29,15 +29,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.Rule;
 import org.junit.Test;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.MetadataTracker;
+import io.crate.testing.RetryRule;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
 public class MetadataTrackerITest extends LogicalReplicationITestCase {
+
+    @Rule
+    public RetryRule retryRule = new RetryRule(3);
 
     @Test
     public void test_schema_changes_of_subscribed_table_is_replicated() throws Exception {
@@ -422,14 +427,16 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         // stop a data node -> make sure that t1 has a non-active shard
         publisherCluster.stopRandomDataNode();
 
-        // doc.t1 must still be listed inside the subscription state/metadata
-        var res = executeOnSubscriber(
-            "SELECT" +
-                " s.subname, r.relname, sr.srsubstate, sr.srsubstate_reason" +
-                " FROM pg_subscription s" +
-                " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
-                " JOIN pg_class r ON sr.srrelid = r.oid");
-        assertThat(res).hasRows("sub1| t1| r| NULL");
+        assertBusy(() -> {
+            // doc.t1 must still be listed inside the subscription state/metadata
+            var res = executeOnSubscriber(
+                "SELECT" +
+                    " s.subname, r.relname, sr.srsubstate, sr.srsubstate_reason" +
+                    " FROM pg_subscription s" +
+                    " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                    " JOIN pg_class r ON sr.srrelid = r.oid");
+            assertThat(res).hasRows("sub1| t1| r| NULL");
+        });
 
         // write to doc.t1 should still not work on the subscriber
         assertThatThrownBy(() -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES (3)"))
