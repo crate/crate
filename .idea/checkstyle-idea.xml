@@ -1,14 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CheckStyle-IDEA" serialisationVersion="2">
-    <checkstyleVersion>10.12.3</checkstyleVersion>
-    <scanScope>JavaOnly</scanScope>
+    <checkstyleVersion>14.3.0</checkstyleVersion>
+    <scanScope>JavaOnlyWithTests</scanScope>
     <option name="thirdPartyClasspath" />
-    <option name="activeLocationIds" />
+    <option name="activeLocationIds">
+      <option value="cratedb-checks" />
+    </option>
     <option name="locations">
       <list>
-        <ConfigurationLocation id="bundled-sun-checks" type="BUNDLED" scope="All" description="Sun Checks">(bundled)</ConfigurationLocation>
-        <ConfigurationLocation id="bundled-google-checks" type="BUNDLED" scope="All" description="Google Checks">(bundled)</ConfigurationLocation>
+        <ConfigurationLocation id="bundled-sun-checks" type="BUNDLED" scope="All" description="Sun Checks">bundled-sun-checks</ConfigurationLocation>
+        <ConfigurationLocation id="bundled-google-checks" type="BUNDLED" scope="All" description="Google Checks">bundled-google-checks</ConfigurationLocation>
+        <ConfigurationLocation id="cratedb-checks" type="PROJECT_RELATIVE" scope="All" description="CrateDB checks">
+            $PROJECT_DIR$/checkstyle.xml
+            <option name="properties">
+                <map>
+                    <entry key="checkstyle.suppressions.file" value="$PROJECT_DIR$/checkstyle-suppressions.xml" />
+                </map>
+            </option>
+        </ConfigurationLocation>
       </list>
     </option>
   </component>
