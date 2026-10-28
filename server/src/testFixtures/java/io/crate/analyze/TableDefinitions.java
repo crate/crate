@@ -73,6 +73,7 @@ public final class TableDefinitions {
     public static final String USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION =
         "create table doc.users_clustered_by_only (" +
         "  id bigint," +
+        "  other_id bigint," +
         "  name text," +
         "  details object," +
         "  awesome boolean," +
