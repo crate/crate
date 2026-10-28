@@ -46,6 +46,12 @@ series.
 Fixes
 =====
 
+- Fixed an issue that caused CrateDB to send the wrong transaction state within
+  a ``ReadyForQuery`` message to clients using the PostgreSQL Wire Protocol in
+  response to queries sent in the simple query mode after a ``BEGIN``. This
+  could cause issues with clients like ``asyncpg``. Causing them to send an
+  additional ``ROLLBACK`` which then failed,
+
 - Fixed an issue that caused queries on partitioned tables to exclude matching
   partitions if it had a partitioned column derived via a generated expression,
   and if that generated expression was included within the query via range
