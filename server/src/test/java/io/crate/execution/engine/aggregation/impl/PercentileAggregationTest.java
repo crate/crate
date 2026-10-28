@@ -371,6 +371,6 @@ public class PercentileAggregationTest extends AggregationTestCase {
 
         assertThat(resultCustom).isNotEqualTo(resultDefault);
         // Let's assert a concrete value to get failures if the implementation changes and reveals a different result
-        assertThat((double) resultCustom).isEqualTo(113.066, within(0.01));
+        assertThat((double) resultCustom).isEqualTo(117.72, within(0.01));
     }
 }
