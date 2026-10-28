@@ -55,6 +55,7 @@ import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.TestShardRouting;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -84,6 +85,7 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.Streamer;
 import io.crate.analyze.WhereClause;
 import io.crate.common.collections.Lists;
 import io.crate.common.io.IOUtils;
@@ -304,7 +306,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                                                 AggregationFunction terminatePartialAggFunction,
                                                 Object[][] data,
                                                 boolean randomExtraStates,
-                                                Object expectedResult) {
+                                                Object expectedResult) throws Exception {
         List<Object[]> shuffledRows = new ArrayList<>(Arrays.asList(data));
         Collections.shuffle(shuffledRows, random());
         Object[][] shuffledData = shuffledRows.toArray(new Object[0][]);
@@ -330,7 +332,7 @@ public abstract class AggregationTestCase extends ESTestCase {
     protected Object execPartialAggregationWithoutDocValues(AggregationFunction function,
                                                             Object[][] data,
                                                             boolean randomExtraStates,
-                                                            Version minNodeVersion) {
+                                                            Version minNodeVersion) throws Exception {
         var argumentsSize = function.signature().getArgumentTypes().size();
         RowCollectExpression[] inputs = new RowCollectExpression[argumentsSize];
         for (int i = 0; i < argumentsSize; i++) {
@@ -338,6 +340,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         }
 
         ArrayList<Object> states = new ArrayList<>();
+        boolean streamState = randomBoolean();
         states.add(function.newState(RAM_ACCOUNTING, minNodeVersion, memoryManager));
         for (Row row : new ArrayBucket(data)) {
             for (RowCollectExpression input : inputs) {
@@ -347,7 +350,18 @@ public abstract class AggregationTestCase extends ESTestCase {
                 states.add(function.newState(RAM_ACCOUNTING, minNodeVersion, memoryManager));
             }
             int idx = states.size() - 1;
-            states.set(idx, function.iterate(RAM_ACCOUNTING, memoryManager, states.get(idx), inputs));
+            Object newState = function.iterate(RAM_ACCOUNTING, memoryManager, states.get(idx), inputs);
+            if (streamState && randomExtraStates) {
+                streamState = false;
+                Streamer streamer = function.partialType().streamer();
+                try (var out = new BytesStreamOutput()) {
+                    streamer.writeValueTo(out, newState);
+                    try (var in = out.bytes().streamInput()) {
+                        newState = streamer.readValueFrom(in);
+                    }
+                }
+            }
+            states.set(idx, newState);
         }
         Object state = states.get(0);
         for (int i = 1; i < states.size(); i++) {
