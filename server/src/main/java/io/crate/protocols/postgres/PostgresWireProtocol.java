@@ -878,7 +878,7 @@ public class PostgresWireProtocol {
             String query = locStmt.querySubset(queryString);
             composedFuture = composedFuture.thenCompose(_ -> handleSingleQuery(stmt, query, channel, timeoutToken));
         }
-        composedFuture.whenComplete(new ReadyForQueryCallback(channel, TransactionState.IDLE));
+        composedFuture.whenComplete(new ReadyForQueryCallback(channel, session.transactionState()));
     }
 
     private CompletableFuture<?> handleSingleQuery(Statement statement,
