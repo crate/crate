@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
 import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
 
@@ -294,6 +293,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
             executeOnPublisher("CREATE PUBLICATION " + pub + " FOR TABLE " + tablesAsString);
         }
         executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT AL TO " + SUBSCRIBING_USER);
         if (!tablesAsString.isEmpty()) {
             executeOnPublisher("GRANT DQL ON TABLE " + tablesAsString + " TO " + SUBSCRIBING_USER);
         }
