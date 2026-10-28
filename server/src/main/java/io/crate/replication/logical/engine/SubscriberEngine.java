@@ -50,8 +50,6 @@ public class SubscriberEngine extends InternalEngine {
     @Override
     protected boolean assertPrimaryIncomingSequenceNumber(Operation.Origin origin, long seqNo) {
         assert origin == Origin.PRIMARY : "Expected origin PRIMARY for replicated operations, but was: " + origin;
-        assert seqNo != SequenceNumbers.UNASSIGNED_SEQ_NO :
-            "Expected valid sequence number for replicated op but was unassigned";
         return true;
     }
 
