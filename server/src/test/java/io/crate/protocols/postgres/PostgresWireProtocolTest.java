@@ -167,39 +167,43 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
+        startupHandshake();
         try {
-            // Auth is needed to have a not null Session.
-            // In production code we always have a session (even for a trusted user).
-            sendStartupMessage(channel);
-            readAuthenticationOK(channel);
-            skipParameterMessages(channel);
-            readKeyData(channel);
-            readReadyForQueryMessage(channel);
             Messages.writeCString(buffer, ";".getBytes(StandardCharsets.UTF_8));
             ctx.handleSimpleQuery(buffer, new DelayableWriteChannel(channel));
         } finally {
             buffer.release();
         }
 
-        ByteBuf firstResponse = channel.readOutbound();
-        byte[] responseBytes = new byte[5];
+        readEmptyQueryResponse(channel);
+        readReadyForQueryMessage(channel);
+    }
+
+    @Test
+    public void test_simple_query_sends_ready_for_query_with_current_transaction_state() throws Exception {
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sessions,
+                new SessionSettingRegistry(Set.of()),
+                _ -> AccessControl.DISABLED,
+                _ -> {},
+                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                roles,
+                () -> null
+            );
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+        startupHandshake();
+
+        ByteBuf buffer = Unpooled.buffer();
         try {
-            firstResponse.readBytes(responseBytes);
-            // EmptyQueryResponse: 'I' | int32 len
-            assertThat(responseBytes).isEqualTo(new byte[]{'I', 0, 0, 0, 4});
+            Messages.writeCString(buffer, "BEGIN ;".getBytes(StandardCharsets.UTF_8));
+            ctx.handleSimpleQuery(buffer, new DelayableWriteChannel(channel));
         } finally {
-            firstResponse.release();
+            buffer.release();
         }
 
-        ByteBuf secondResponse = channel.readOutbound();
-        try {
-            responseBytes = new byte[6];
-            secondResponse.readBytes(responseBytes);
-            // ReadyForQuery: 'Z' | int32 len | 'I'
-            assertThat(responseBytes).isEqualTo(new byte[]{'Z', 0, 0, 0, 5, 'I'});
-        } finally {
-            secondResponse.release();
-        }
+        readCommandComplete();
+        readReadyForQueryMessage(channel, TransactionState.IN_TRANSACTION);
     }
 
     @Test
@@ -1307,6 +1311,15 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         }
     }
 
+    private void startupHandshake() {
+        sendStartupMessage(channel);
+        readAuthenticationOK(channel);
+        skipParameterMessages(channel);
+        readKeyData(channel);
+        readReadyForQueryMessage(channel);
+        assertThat(channel.outboundMessages()).isEmpty();
+    }
+
     static void sendSync(ByteBuf buffer) {
         buffer.writeByte('S');
         buffer.writeInt(4);
@@ -1507,6 +1520,19 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         return session;
     }
 
+    private static void readEmptyQueryResponse(EmbeddedChannel channel) {
+        ByteBuf msg = channel.readOutbound();
+        try {
+            assertThat(msg).as("Must have outbound msg").isNotNull();
+            byte msgType = msg.readByte();
+            assertThat((char) msgType).as("Must have EmptyQueryResponse").isEqualTo('I');
+            int length = msg.readInt();
+            assertThat(length).isEqualTo(4);
+        } finally {
+            msg.release();
+        }
+    }
+
     private static void sendStartupMessage(EmbeddedChannel channel) {
         ByteBuf startupMsg = Unpooled.buffer();
         ClientMessages.sendStartupMessage(startupMsg, "doc", Map.of("user", "crate"));
@@ -1560,6 +1586,10 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private static void readReadyForQueryMessage(EmbeddedChannel channel) {
+        readReadyForQueryMessage(channel, TransactionState.IDLE);
+    }
+
+    private static void readReadyForQueryMessage(EmbeddedChannel channel, TransactionState transactionState) {
         ByteBuf response = channel.readOutbound();
         try {
             assertThat((char) response.readByte())
@@ -1569,8 +1599,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 .as("length of readyForQuery message")
                 .isEqualTo(5);
             assertThat((char) response.readByte())
-                .as("Transaction status must be idle")
-                .isEqualTo('I');
+                .as("Transaction status")
+                .isEqualTo((char) transactionState.code());
         } finally {
             response.release();
         }
