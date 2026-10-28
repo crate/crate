@@ -380,19 +380,12 @@ public class ProjectionToProjectorVisitor
             partitionName.ident() == null ? "" : partitionName.ident()
         );
 
-        StringBuilder sb = new StringBuilder(uri);
-        if (!uri.endsWith("/")) {
-            sb.append("/");
-        }
-        sb.append(fileName);
         if (projection.compressionType() == WriterProjection.CompressionType.GZIP) {
-            sb.append(".gz");
+            fileName += ".gz";
         }
-        uri = sb.toString();
-
         return new FileWriterProjector(
             threadPool.generic(),
-            uri,
+            FileWriterProjector.resolveOutputUri(uri, fileName),
             projection.compressionType(),
             inputs,
             ctx.expressions(),
