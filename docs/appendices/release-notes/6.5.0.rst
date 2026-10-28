@@ -88,7 +88,8 @@ Breaking Changes
 - Added :ref:`copy_from.http.redirects` and :ref:`copy_from.http.blocked_hosts`
   settings to allow CrateDB administrators to prevent users from accessing HTTP
   resources from hosts reachable on an internal network or other arbitrary hosts
-  using :ref:`COPY FROM <sql-copy-from>`.
+  using :ref:`COPY FROM <sql-copy-from>`. For more information see the relevant
+  `security advisory <https://github.com/crate/crate/security/advisories/GHSA-pfv7-m2fh-6g4v>`__.
 
   The ``crate.yml`` shipped with the CrateDB tarball sets the blocked hosts to
   ``_local_,_site_,_link_`` and disables redirects by default. On new
