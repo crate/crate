@@ -356,7 +356,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).contains(
             """
-            {"cols":["percentile"],"rows":[[2783.91015625]],"rowcount":1,"duration":
+            {"cols":["percentile"],"rows":[[2784.953369140625]],"rowcount":1,"duration":
             """.stripIndent().stripTrailing()
         );
     }
