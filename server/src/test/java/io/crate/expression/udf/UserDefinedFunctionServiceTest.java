@@ -43,6 +43,11 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
         DUMMY_LANG.name(), "function same(){ return 3; }"
     );
 
+    private final UserDefinedFunctionMetadata same2 = new UserDefinedFunctionMetadata(
+        DocSchemaInfo.NAME, "same", List.of(), DataTypes.INTEGER,
+        DUMMY_LANG.name(), "function same(){ return 2; }"
+    );
+
     private final UserDefinedFunctionMetadata different = new UserDefinedFunctionMetadata(
         DocSchemaInfo.NAME, "different", List.of(), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function different() { return 3; }"
@@ -72,6 +77,9 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
         assertThat(schema2.udfs()).containsExactly(same1);
 
         assertThatThrownBy(() -> UserDefinedFunctionService.addUDF(same1, false, state2))
+            .isExactlyInstanceOf(UserDefinedFunctionAlreadyExistsException.class);
+
+        assertThatThrownBy(() -> UserDefinedFunctionService.addUDF(same2, false, state2))
             .isExactlyInstanceOf(UserDefinedFunctionAlreadyExistsException.class);
 
         ClusterState state3 = UserDefinedFunctionService.addUDF(different, true, state2);

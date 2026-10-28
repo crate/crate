@@ -163,3 +163,7 @@ Fixes
   file name and write to the path preceding the ``?`` or ``#`` character, if
   the :ref:`output URI <sql-copy-to-to-params>` or the table name contained
   them, thus overwriting existing files.
+
+- Fixed a regression, introduced in :ref:`version_6.3.0`, allowing creation of
+  functions with the same signature with
+  :ref:`CREATE FUNCTION <ref-create-function>`.
