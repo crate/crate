@@ -1324,11 +1324,19 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 List<UserDefinedFunctionMetadata> udfs = List.of(udf);
                 schemaMetadata = new SchemaMetadata(Map.of(), udfs, false);
             } else {
-                if (schemaMetadata.udfs().contains(udf)) {
-                    return this;
+                List<UserDefinedFunctionMetadata> newUdfs = new ArrayList<>();
+                boolean replaced = false;
+                for (UserDefinedFunctionMetadata existingUdf: schemaMetadata.udfs()) {
+                    if (existingUdf.sameSignature(udf.schema(), udf.name(), udf.argumentTypes())) {
+                        replaced = true;
+                        newUdfs.add(udf);
+                    } else {
+                        newUdfs.add(existingUdf);
+                    }
                 }
-                List<UserDefinedFunctionMetadata> newUdfs = new ArrayList<>(schemaMetadata.udfs());
-                newUdfs.add(udf);
+                if (!replaced) {
+                    newUdfs.add(udf);
+                }
                 schemaMetadata = new SchemaMetadata(
                     schemaMetadata.relations(),
                     Collections.unmodifiableList(newUdfs),
