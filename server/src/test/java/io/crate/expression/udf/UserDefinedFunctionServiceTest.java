@@ -99,6 +99,15 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
         assertThat(state5).isEqualTo(state4);
     }
 
+    @Test
+    public void test_create_or_replace_replaces_function_with_same_signature() throws Exception {
+        ClusterState state1 = UserDefinedFunctionService.addUDF(same1, false, ClusterState.EMPTY_STATE);
+        ClusterState state2 = UserDefinedFunctionService.addUDF(same2, true, state1);
+        SchemaMetadata schema = state2.metadata().schemas().get(DocSchemaInfo.NAME);
+        assertThat(schema).isNotNull();
+        assertThat(schema.udfs()).containsExactly(same2);
+    }
+
 
     @Test
     public void test_validate_table_while_dropping_udf() throws Exception {
