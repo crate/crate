@@ -561,6 +561,13 @@ public class RestoreService implements ClusterStateApplier {
                 boolean includeAll = customMetadataTypes.isEmpty();
 
                 if (includeAll || customMetadataTypes.contains(UserDefinedFunctionsMetadata.TYPE)) {
+                    // Cleanup existing UDF-s, RESTORE overwrites existing metadata and takes it from the snapshot,
+                    // similar to Custom implementations.
+                    for (var schema : currentMetadata.schemas().values()) {
+                        for (var udf : schema.udfs()) {
+                            mdBuilder.dropUDF(udf.schema(), udf.name(), udf.argumentTypes(), true);
+                        }
+                    }
                     for (var schema : snapshotMetadata.schemas().values()) {
                         for (var udf : schema.udfs()) {
                             mdBuilder.setUDF(udf);
