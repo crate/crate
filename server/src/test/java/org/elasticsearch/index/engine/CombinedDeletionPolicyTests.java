@@ -38,9 +38,12 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.store.Directory;
+import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.Translog;
@@ -247,9 +250,74 @@ public class CombinedDeletionPolicyTests extends ESTestCase {
         }
     }
 
+    @Test
+    public void testRetentionLeasesGateCommitDeletion() throws Exception {
+        final AtomicLong globalCheckpoint = new AtomicLong(30);
+        final SoftDeletesPolicy softDeletesPolicy = new SoftDeletesPolicy(globalCheckpoint::get, -1, 0, () -> RetentionLeases.EMPTY);
+        final TranslogDeletionPolicy translogPolicy = createTranslogDeletionPolicy();
+        final UUID translogUUID = UUID.randomUUID();
+
+        final List<IndexCommit> commitList = new ArrayList<>();
+        commitList.add(mockIndexCommit(0, 10, translogUUID));
+        commitList.add(mockIndexCommit(10, 20, translogUUID));
+        commitList.add(mockIndexCommit(20, 30, translogUUID));
+
+        final AtomicReference<RetentionLeases> retentionLeases = new AtomicReference<>(
+            new RetentionLeases(1, 1, List.of(new RetentionLease("replica-reader", 5, 0, "test-source"))));
+        final CombinedDeletionPolicy indexPolicy =
+            newCombinedDeletionPolicy(translogPolicy, softDeletesPolicy, globalCheckpoint, retentionLeases::get);
+
+        // The global checkpoint alone (30) would make the last commit (maxSeqNo 30) the only one kept -
+        // but a lease retaining from seqNo 5 means every commit here (maxSeqNo >= 5) must still be kept.
+        indexPolicy.onCommit(commitList);
+        for (IndexCommit commit : commitList) {
+            assertThat(commit.isDeleted()).isFalse();
+        }
+
+        // Once the lease is no longer more restrictive than the global checkpoint, deletion proceeds
+        // exactly as it would have without any lease at all.
+        retentionLeases.set(new RetentionLeases(1, 2, List.of(new RetentionLease("replica-reader", 30, 0, "test-source"))));
+        indexPolicy.onCommit(commitList);
+        assertThat(commitList.get(0).isDeleted()).isTrue();
+        assertThat(commitList.get(1).isDeleted()).isTrue();
+        assertThat(commitList.get(2).isDeleted()).isFalse();
+    }
+
+    @Test
+    public void testRetentionLeasesGateUnreferencedCommitsCheck() throws Exception {
+        final AtomicLong globalCheckpoint = new AtomicLong(10);
+        final SoftDeletesPolicy softDeletesPolicy = new SoftDeletesPolicy(globalCheckpoint::get, -1, 0, () -> RetentionLeases.EMPTY);
+        final TranslogDeletionPolicy translogPolicy = createTranslogDeletionPolicy();
+        final UUID translogUUID = UUID.randomUUID();
+        final List<IndexCommit> commitList = new ArrayList<>();
+        commitList.add(mockIndexCommit(0, 10, translogUUID));
+        commitList.add(mockIndexCommit(10, 20, translogUUID));
+
+        final AtomicReference<RetentionLeases> retentionLeases = new AtomicReference<>(RetentionLeases.EMPTY);
+        final CombinedDeletionPolicy indexPolicy =
+            newCombinedDeletionPolicy(translogPolicy, softDeletesPolicy, globalCheckpoint, retentionLeases::get);
+        // Safe commit = index 0 (maxSeqNo 10 <= 10); maxSeqNoOfNextSafeCommit becomes 20.
+        indexPolicy.onCommit(commitList);
+
+        globalCheckpoint.set(20);
+        assertThat(indexPolicy.hasUnreferencedCommits())
+            .as("no lease in effect - the global checkpoint alone already covers the next commit")
+            .isTrue();
+
+        retentionLeases.set(new RetentionLeases(1, 1, List.of(new RetentionLease("replica-reader", 15, 0, "test-source"))));
+        assertThat(indexPolicy.hasUnreferencedCommits())
+            .as("a lease retaining from seqNo 15 is more restrictive than the global checkpoint (20) here")
+            .isFalse();
+    }
+
     private CombinedDeletionPolicy newCombinedDeletionPolicy(TranslogDeletionPolicy translogPolicy, SoftDeletesPolicy softDeletesPolicy,
                                                              AtomicLong globalCheckpoint) {
-        return new CombinedDeletionPolicy(logger, translogPolicy, softDeletesPolicy, globalCheckpoint::get)
+        return newCombinedDeletionPolicy(translogPolicy, softDeletesPolicy, globalCheckpoint, () -> RetentionLeases.EMPTY);
+    }
+
+    private CombinedDeletionPolicy newCombinedDeletionPolicy(TranslogDeletionPolicy translogPolicy, SoftDeletesPolicy softDeletesPolicy,
+                                                             AtomicLong globalCheckpoint, Supplier<RetentionLeases> retentionLeasesSupplier) {
+        return new CombinedDeletionPolicy(logger, translogPolicy, softDeletesPolicy, globalCheckpoint::get, retentionLeasesSupplier)
         {
             @Override
             protected int getDocCountOfCommit(IndexCommit indexCommit) {

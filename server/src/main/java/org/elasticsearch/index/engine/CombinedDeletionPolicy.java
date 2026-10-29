@@ -25,13 +25,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.IndexDeletionPolicy;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.store.Directory;
+import org.elasticsearch.index.seqno.RetentionLease;
+import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogDeletionPolicy;
@@ -51,6 +55,7 @@ public class CombinedDeletionPolicy extends IndexDeletionPolicy {
     private final TranslogDeletionPolicy translogDeletionPolicy;
     private final SoftDeletesPolicy softDeletesPolicy;
     private final LongSupplier globalCheckpointSupplier;
+    private final Supplier<RetentionLeases> retentionLeasesSupplier;
     private final ObjectIntHashMap<IndexCommit> snapshottedCommits; // Number of snapshots held against each commit point.
     private volatile IndexCommit safeCommit; // the most recent safe commit point - its max_seqno at most the persisted global checkpoint.
     private volatile long maxSeqNoOfNextSafeCommit;
@@ -59,11 +64,35 @@ public class CombinedDeletionPolicy extends IndexDeletionPolicy {
 
     CombinedDeletionPolicy(Logger logger, TranslogDeletionPolicy translogDeletionPolicy,
                            SoftDeletesPolicy softDeletesPolicy, LongSupplier globalCheckpointSupplier) {
+        this(logger, translogDeletionPolicy, softDeletesPolicy, globalCheckpointSupplier, () -> RetentionLeases.EMPTY);
+    }
+
+    /**
+     * @param retentionLeasesSupplier a supplier of the current retention leases, used to gate commit deletion
+     */
+    public CombinedDeletionPolicy(Logger logger,
+                                  TranslogDeletionPolicy translogDeletionPolicy,
+                                  SoftDeletesPolicy softDeletesPolicy,
+                                  LongSupplier globalCheckpointSupplier,
+                                  Supplier<RetentionLeases> retentionLeasesSupplier) {
         this.logger = logger;
         this.translogDeletionPolicy = translogDeletionPolicy;
         this.softDeletesPolicy = softDeletesPolicy;
         this.globalCheckpointSupplier = globalCheckpointSupplier;
+        this.retentionLeasesSupplier = Objects.requireNonNull(retentionLeasesSupplier);
         this.snapshottedCommits = new ObjectIntHashMap<>();
+    }
+
+    /**
+     * The global checkpoint, tightened to also respect outstanding retention leases if any.
+     */
+    private long effectiveGlobalCheckpoint() {
+        final long globalCheckpoint = globalCheckpointSupplier.getAsLong();
+        long minimumRetainingSequenceNumber = Long.MAX_VALUE;
+        for (RetentionLease lease : retentionLeasesSupplier.get().leases()) {
+            minimumRetainingSequenceNumber = Math.min(minimumRetainingSequenceNumber, lease.retainingSequenceNumber());
+        }
+        return Math.min(globalCheckpoint, minimumRetainingSequenceNumber);
     }
 
     @Override
@@ -82,7 +111,7 @@ public class CombinedDeletionPolicy extends IndexDeletionPolicy {
     public void onCommit(List<? extends IndexCommit> commits) throws IOException {
         final IndexCommit safeCommit;
         synchronized (this) {
-            final int keptPosition = indexOfKeptCommits(commits, globalCheckpointSupplier.getAsLong());
+            final int keptPosition = indexOfKeptCommits(commits, effectiveGlobalCheckpoint());
             this.safeCommitInfo = SafeCommitInfo.EMPTY;
             this.lastCommit = commits.get(commits.size() - 1);
             this.safeCommit = commits.get(keptPosition);
@@ -222,7 +251,7 @@ public class CombinedDeletionPolicy extends IndexDeletionPolicy {
      * Checks if the deletion policy can delete some index commits with the latest global checkpoint.
      */
     boolean hasUnreferencedCommits() {
-        return maxSeqNoOfNextSafeCommit <= globalCheckpointSupplier.getAsLong();
+        return maxSeqNoOfNextSafeCommit <= effectiveGlobalCheckpoint();
     }
 
     /**
