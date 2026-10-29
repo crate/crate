@@ -741,6 +741,25 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
     }
 
+    @Test
+    public void test_restore_all_overwrites_udf_with_the_same_signature() throws Exception {
+        execute("CREATE FUNCTION test(int) RETURNS INT LANGUAGE dummy_lang AS 'snapshot_udf'");
+        execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
+
+        // Imitate target cluster having UDF with the same name and signature and also non-matching,
+        // at the end only snapshot udf must stay to match documented behavior.
+        execute("DROP FUNCTION test(int)");
+        execute("CREATE FUNCTION test(int) RETURNS INT LANGUAGE dummy_lang AS 'cluster_udf_1'");
+        execute("CREATE FUNCTION another(int) RETURNS INT LANGUAGE dummy_lang AS 'cluster_udf_2'");
+        execute("RESTORE SNAPSHOT " + snapshotName() + " UDFS WITH (wait_for_completion=true)");
+
+        execute("SELECT specific_name, routine_definition FROM information_schema.routines " +
+            "WHERE routine_type = 'FUNCTION' ORDER BY 1, 2");
+        assertThat(response).hasRows(
+            "test(integer)| snapshot_udf"
+        );
+    }
+
     /**
      * Restoring ANALYZERS will result in restoring analyzer settings out of the global settings
      */
