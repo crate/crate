@@ -742,13 +742,13 @@ result is returned.
 When supplied an ``interval`` type column (e.g., from timestamp subtraction),
 the function will return an ``interval``::
 
-    cr> select percentile(now() - date, 0.5) as median_age from locations
+    cr> select percentile('2026-10-29 12:14:50Z' - date, 0.5) as median_age from locations
     ... where date is not null;
-    +------------------------+
-    | median_age             |
-    +------------------------+
-    | ... days ...           |
-    +------------------------+
+    +--------------------+
+    | median_age         |
+    +--------------------+
+    | 4853 days 12:14:50 |
+    +--------------------+
     SELECT 1 row in set (... sec)
 
 To be able to calculate percentiles over a huge amount of data and to scale out
