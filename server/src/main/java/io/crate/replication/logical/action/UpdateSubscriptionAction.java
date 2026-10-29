@@ -24,6 +24,8 @@ package io.crate.replication.logical.action;
 import java.io.IOException;
 import java.util.HashMap;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
@@ -50,6 +52,8 @@ import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 
 public class UpdateSubscriptionAction extends ActionType<AcknowledgedResponse> {
+
+    private static final Logger LOGGER = LogManager.getLogger(UpdateSubscriptionAction.class);
 
     public static final String NAME = "internal:crate:replication/logical/subscription/update";
     public static final UpdateSubscriptionAction INSTANCE = new UpdateSubscriptionAction();
@@ -103,6 +107,8 @@ public class UpdateSubscriptionAction extends ActionType<AcknowledgedResponse> {
             return clusterState;
         }
 
+        LOGGER.debug("Updating subscription {} relations: {} -> {}",
+                     subscriptionName, oldSubscription.relations(), newSubscription.relations());
         var newMetadata = SubscriptionsMetadata.newInstance(oldMetadata);
         newMetadata.subscription().put(subscriptionName, newSubscription);
         assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";

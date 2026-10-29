@@ -147,9 +147,8 @@ public class ShardReplicationChangesTracker implements Closeable {
         );
         var getPendingChangesRequest = new ShardChangesAction.Request(remoteShardId, fromSeqNo, toSeqNo);
         var futurePendingChanges = futureClient.thenCompose(remoteClient -> {
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("[{}] Getting changes {}-{}", remoteShardId, fromSeqNo, toSeqNo);
-            }
+            LOGGER.trace("Requesting changes: subscription={}, publisher={}, subscriber={}, seqNo={}-{}",
+                         subscriptionName, remoteShardId, localShardId, fromSeqNo, toSeqNo);
             return remoteClient.execute(ShardChangesAction.INSTANCE, getPendingChangesRequest);
         });
         var futureReplicationResponse = futurePendingChanges.thenCompose(this::replayChanges);
@@ -196,6 +195,8 @@ public class ShardReplicationChangesTracker implements Closeable {
 
     private CompletableFuture<ReplicationResponse> replayChanges(ShardChangesAction.Response response) {
         List<Translog.Operation> translogOps = response.changes();
+        LOGGER.trace("Received changes: subscription={}, publisher={}, subscriber={}, operations={}, globalCheckpoint={}",
+                     subscriptionName, remoteShardId, localShardId, translogOps.size(), response.lastSyncedGlobalCheckpoint());
         if (translogOps.isEmpty()) {
             return CompletableFuture.completedFuture(new ReplicationResponse());
         }
@@ -230,6 +231,9 @@ public class ShardReplicationChangesTracker implements Closeable {
                 }
                 throw new RuntimeException("Some changes failed while replaying");
             }
+            LOGGER.trace("Applied changes: subscription={}, publisher={}, subscriber={}, operations={}, seqNo={}-{}",
+                         subscriptionName, remoteShardId, localShardId, translogOps.size(),
+                         translogOps.getFirst().seqNo(), translogOps.getLast().seqNo());
             return resp;
         });
     }

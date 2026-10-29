@@ -269,6 +269,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     public CompletableFuture<Boolean> restore(String subscriptionName,
                                               Settings restoreSettings,
                                               List<TableOrPartition> tablesToRestore) {
+        LOGGER.debug("Starting subscription restore: subscription={}, tables/partitions={}", subscriptionName, tablesToRestore);
         var publisherClusterRepoName = LogicalReplicationRepository.REMOTE_REPOSITORY_PREFIX + subscriptionName;
         final var restoreRequest = new RestoreSnapshotRequest(
             publisherClusterRepoName,
@@ -289,7 +290,11 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             .map(TableOrPartition::table)
             .collect(Collectors.toUnmodifiableSet());
         var restoreFuture = restoreListener
-            .whenComplete((_, _) -> activeOperations.decrementAndGet())
+            .whenComplete((response, error) -> {
+                activeOperations.decrementAndGet();
+                LOGGER.trace("Restore request finished: subscription={}, tables/partitions={}, failed={}",
+                             subscriptionName, tablesToRestore, error != null);
+            })
             // Update subscription state, we want to wait until this update is done before proceeding
             .thenCompose(_ -> updateSubscriptionState(
                 subscriptionName,
@@ -313,7 +318,15 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             restoreListener.onFailure(ex);
         }
 
-        return restoreFuture;
+        return restoreFuture.whenComplete((acknowledged, error) -> {
+            if (error == null) {
+                LOGGER.debug("Subscription restore finished: subscription={}, tables/partitions={}, acknowledged={}",
+                             subscriptionName, tablesToRestore, acknowledged);
+            } else {
+                LOGGER.debug("Subscription restore failed: subscription=" + subscriptionName
+                             + ", tables/partitions=" + tablesToRestore, error);
+            }
+        });
     }
 
     private CompletableFuture<Boolean> afterReplicationStarted(String subscriptionName,
@@ -321,7 +334,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                                                                Collection<RelationName> relationNames) {
         Function<RestoreInfo, CompletableFuture<Boolean>> onRestoreInfo = restoreInfo -> {
             if (restoreInfo == null || restoreInfo.failedShards() == 0) {
-                LOGGER.debug("Restore success, following will start once shards are active");
+                LOGGER.debug("Restore completed; updating relations to MONITORING: subscription={}, relations={}",
+                             subscriptionName, relationNames);
                 return updateSubscriptionState(
                     subscriptionName,
                     relationNames,
@@ -342,11 +356,13 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             }
         };
         if (response.getRestoreInfo() != null) {
-            LOGGER.debug("Restore completed immediately, no shards to wait for using a cluster state listener");
+            LOGGER.debug("Restore completed immediately: subscription={}, relations={}", subscriptionName, relationNames);
             return onRestoreInfo.apply(response.getRestoreInfo());
         } else {
             FutureActionListener<RestoreSnapshotResponse> restoreFuture = new FutureActionListener<>();
             // Restore still in progress, add listener to wait for it
+            LOGGER.debug("Waiting for restore completion via cluster state listener: subscription={}, relations={}",
+                         subscriptionName, relationNames);
             clusterService.addListener(new RestoreClusterStateListener(clusterService, response, restoreFuture));
             return restoreFuture.thenCompose(resp -> onRestoreInfo.apply(resp.getRestoreInfo()));
         }
