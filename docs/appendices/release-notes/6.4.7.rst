@@ -171,4 +171,13 @@ Fixes
 
 - Fixed a regression, introduced in :ref:`version_6.3.0`, allowing creation of
   functions with the same signature with
-  :ref:`CREATE FUNCTION <ref-create-function>`.
+  :ref:`CREATE FUNCTION <ref-create-function>` instead of throwing an error.
+
+- Fixed a regression, introduced in :ref:`version_6.3.0`, which caused
+  :ref:`CREATE OR REPLACE FUNCTION <ref-create-function>` to add a duplicate
+  function with the same signature instead of replacing the existing one.
+
+- Fixed a regression, introduced in :ref:`version_6.3.0`, which caused
+  :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>` to not overwrite existing
+  only on cluster UDF functions (as documented) and instead merge snapshot and
+  cluster metadata.

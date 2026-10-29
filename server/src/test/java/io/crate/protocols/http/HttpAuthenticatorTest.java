@@ -29,6 +29,7 @@ import static io.crate.role.metadata.RolesHelper.getSecureHash;
 import static io.crate.role.metadata.RolesHelper.userOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -69,13 +70,21 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.DefaultHttpContent;
+import io.netty.handler.codec.http.DefaultHttpRequest;
+import io.netty.handler.codec.http.DefaultLastHttpContent;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.pkitesting.CertificateBuilder;
+import io.netty.util.AttributeKey;
+import io.netty.util.ReferenceCountUtil;
 
 public class HttpAuthenticatorTest extends ESTestCase {
 
@@ -96,6 +105,20 @@ public class HttpAuthenticatorTest extends ESTestCase {
 
     private static HttpRequest sqlRequest() {
         return new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+    }
+
+    private static final Roles CRATE_ONLY = () -> List.of(Role.CRATE_USER);
+
+    private static HttpRequest chunkedSqlRequest() {
+        return new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+    }
+
+    private static HttpContent sqlContent() {
+        return new DefaultHttpContent(Unpooled.copiedBuffer("{\"stmt\": ", StandardCharsets.UTF_8));
+    }
+
+    private static LastHttpContent lastSqlContent() {
+        return new DefaultLastHttpContent(Unpooled.copiedBuffer("\"select 1\"}", StandardCharsets.UTF_8));
     }
 
     private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {
@@ -495,4 +518,93 @@ public class HttpAuthenticatorTest extends ESTestCase {
         assertThat(authenticator.authenticate(request, ch)).isNull();
     }
 
+    @Test
+    public void test_unauthenticated_request_is_rejected_before_its_content_is_received() {
+        Authentication authentication = mock(Authentication.class);
+        var authenticator = new HttpAuthenticator(Settings.EMPTY, authentication, CRATE_ONLY);
+        EmbeddedChannel channel = new EmbeddedChannel(authenticator);
+
+        HttpContent content = sqlContent();
+        LastHttpContent lastContent = lastSqlContent();
+        channel.writeInbound(chunkedSqlRequest(), content, lastContent);
+
+        assertThat((Object) channel.readInbound()).isNull();
+        assertThat(content.refCnt()).isEqualTo(0);
+        assertThat(lastContent.refCnt()).isEqualTo(0);
+        FullHttpResponse response = channel.readOutbound();
+        try {
+            assertThat(response.status()).isEqualTo(HttpResponseStatus.UNAUTHORIZED);
+        } finally {
+            response.release();
+        }
+        assertThat(channel.isOpen()).isFalse();
+        channel.finishAndReleaseAll();
+    }
+
+    @Test
+    public void test_authenticated_request_is_forwarded_and_the_role_is_available_for_the_following_handlers() {
+        AuthenticationMethod authMethod = mock(AuthenticationMethod.class);
+        when(authMethod.authenticate(any(Credentials.class), any(ConnectionProperties.class)))
+            .thenReturn(AuthToken.of(Role.CRATE_USER));
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.resolveAuthenticationType(anyString(), any(ConnectionProperties.class)))
+            .thenReturn(authMethod);
+        var authenticator = new HttpAuthenticator(Settings.EMPTY, authentication, CRATE_ONLY);
+        EmbeddedChannel channel = new EmbeddedChannel(authenticator);
+
+        HttpRequest request = chunkedSqlRequest();
+        channel.writeInbound(request, sqlContent(), lastSqlContent());
+
+        assertThat((Object) channel.readInbound()).isSameAs(request);
+        Object msg;
+        while ((msg = channel.readInbound()) != null) {
+            ReferenceCountUtil.release(msg);
+        }
+        assertThat((Object) channel.readOutbound()).isNull();
+        assertThat(HttpAuthenticator.authenticatedRole(channel)).isEqualTo(Role.CRATE_USER);
+        verify(authMethod, times(1)).authenticate(any(Credentials.class), any(ConnectionProperties.class));
+        channel.finishAndReleaseAll();
+    }
+
+    @Test
+    public void test_missing_authenticated_role_is_rejected() {
+        EmbeddedChannel channel = new EmbeddedChannel();
+
+        assertThat(HttpAuthenticator.authenticatedRole(channel)).isNull();
+        FullHttpResponse response = channel.readOutbound();
+        try {
+            assertThat(response.status()).isEqualTo(HttpResponseStatus.UNAUTHORIZED);
+        } finally {
+            response.release();
+        }
+        assertThat(channel.isOpen()).isFalse();
+        channel.finishAndReleaseAll();
+    }
+
+    @Test
+    public void test_role_of_previous_request_is_cleared_if_authentication_fails() {
+        AuthenticationMethod authMethod = mock(AuthenticationMethod.class);
+        when(authMethod.authenticate(any(Credentials.class), any(ConnectionProperties.class)))
+            .thenReturn(AuthToken.of(Role.CRATE_USER))
+            .thenThrow(new RuntimeException("denied"));
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.resolveAuthenticationType(anyString(), any(ConnectionProperties.class)))
+            .thenReturn(authMethod);
+        var authenticator = new HttpAuthenticator(Settings.EMPTY, authentication, CRATE_ONLY);
+        EmbeddedChannel channel = new EmbeddedChannel(authenticator);
+
+        channel.writeInbound(chunkedSqlRequest());
+        ReferenceCountUtil.release(channel.readInbound());
+
+        channel.writeInbound(chunkedSqlRequest());
+        assertThat((Object) channel.readInbound()).isNull();
+        FullHttpResponse response = channel.readOutbound();
+        try {
+            assertThat(response.status()).isEqualTo(HttpResponseStatus.UNAUTHORIZED);
+        } finally {
+            response.release();
+        }
+        assertThat(channel.attr(AttributeKey.<Role>valueOf("crate.http.authenticated_role")).get()).isNull();
+        channel.finishAndReleaseAll();
+    }
 }

@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.MetadataTracker;
 import io.crate.testing.UseRandomizedSchema;
@@ -288,6 +289,11 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                     rowCount = response.rowCount();
                 } catch (OperationOnInaccessibleRelationException e) {
                     throw new AssertionError(e.getMessage());
+                } catch (UnsupportedFeatureException e) {
+                    if ("A subscriber engine does not accept operations without an assigned sequence number".equals(e.getMessage())) {
+                        throw new AssertionError(e.getMessage());
+                    }
+                    throw e;
                 }
                 assertThat(rowCount).isEqualTo(1L);
             }
@@ -300,6 +306,11 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                     rowCount = response.rowCount();
                 } catch (OperationOnInaccessibleRelationException e) {
                     throw new AssertionError(e.getMessage());
+                } catch (UnsupportedFeatureException e) {
+                    if ("A subscriber engine does not accept operations without an assigned sequence number".equals(e.getMessage())) {
+                        throw new AssertionError(e.getMessage());
+                    }
+                    throw e;
                 }
                 assertThat(rowCount).isEqualTo(1L);
             }

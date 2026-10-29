@@ -494,9 +494,11 @@ public class PostgresWireProtocol {
         try {
             Role authenticatedUser = authContext.authenticate();
             if (properties.containsKey("CrateDBTransport") && !roles.hasALPrivileges(authenticatedUser)) {
-                throw new UnauthorizedException(
-                    "User '%s' requested the pg_tunnel mode, but has no AL privileges.".formatted(authenticatedUser.name())
-                );
+                throw new UnauthorizedException(String.format(
+                    Locale.ENGLISH,
+                    "User '%s' requested the pg_tunnel mode, but has no AL privileges.",
+                    authenticatedUser.name()
+                ));
             }
             String database = properties.getProperty("database");
             session = sessions.newSession(authContext.connectionProperties(), database, authenticatedUser);
