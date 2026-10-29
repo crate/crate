@@ -386,12 +386,13 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         var e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
+            .addTable("create table users_no_pk (id long) clustered by (id)");
+
         Merge merge = e.plan(
-            "select id from users group by id having id > 0");
+            "select id from users_no_pk group by id having id > 0");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        Asserts.assertThat(collectPhase.where()).isSQL("(doc.users.id > 0)");
+        Asserts.assertThat(collectPhase.where()).isSQL("(doc.users_no_pk.id > 0)");
         assertThat(collectPhase.projections()).satisfiesExactly(
             x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class)
         );
