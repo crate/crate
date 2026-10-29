@@ -76,13 +76,11 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
     private final Path sitePath;
     private final NodeClient client;
     private final String nodeName;
-    private final HttpAuthenticator authenticator;
 
-    public MainAndStaticFileHandler(String nodeName, Path home, NodeClient client, HttpAuthenticator authenticator) {
+    public MainAndStaticFileHandler(String nodeName, Path home, NodeClient client) {
         this.nodeName = nodeName;
         this.sitePath = home.resolve("lib").resolve("site");
         this.client = client;
-        this.authenticator = authenticator;
     }
 
     @Override
@@ -145,7 +143,7 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest msg) throws Exception {
-        if (authenticator.authenticate(msg, ctx.channel()) == null) {
+        if (HttpAuthenticator.authenticatedRole(ctx.channel()) == null) {
             return;
         }
         switch (msg.uri().trim().toLowerCase(Locale.ENGLISH)) {

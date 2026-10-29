@@ -24,6 +24,8 @@ package io.crate.types;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 import org.junit.Test;
@@ -162,5 +164,15 @@ public class TimestampTypesTest {
         assertThatThrownBy(() -> TimestampType.INSTANCE_WITH_TZ.implicitCast(Map.of()))
             .isExactlyInstanceOf(ClassCastException.class)
             .hasMessage("Can't cast '{}' to timestamp with time zone");
+    }
+
+    @Test
+    public void test_cast_local_date_time() {
+        assertThat(TimestampType.INSTANCE_WITH_TZ.implicitCast(LocalDateTime.of(2026, 1, 1, 0, 0, 0))).isEqualTo(1767225600000L);
+    }
+
+    @Test
+    public void test_cast_instant() {
+        assertThat(TimestampType.INSTANCE_WITH_TZ.implicitCast(Instant.ofEpochMilli(1767225600000L))).isEqualTo(1767225600000L);
     }
 }

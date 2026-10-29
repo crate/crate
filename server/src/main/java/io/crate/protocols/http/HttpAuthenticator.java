@@ -52,6 +52,8 @@ import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpRequest;
@@ -59,21 +61,27 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.http.LastHttpContent;
+import io.netty.util.AttributeKey;
+import io.netty.util.ReferenceCountUtil;
 
 /**
- * Authenticates a single HTTP request
+ * Authenticates requests based on their headers.
  * <p>
- * Each request-handling handler ({@link io.crate.rest.action.SqlHttpHandler},
- * {@link HttpBlobHandler}, {@link MainAndStaticFileHandler}) must authenticate
- * the request using this class before creating a session.
- *
- * Must not be shared across threads, since the last {@link AuthToken} is not thread safe.
+ * On success the authenticated role is stored as a channel attribute, which the request handlers
+ * further down the pipeline ({@link io.crate.rest.action.SqlHttpHandler}, {@link HttpBlobHandler},
+ * {@link MainAndStaticFileHandler}) look up via {@link #authenticatedRole(Channel)}.
+ * On failure a {@code 401} is sent, the connection is closed and the request is discarded.
+ * <p>
+ * Must not be shared across channels, since the last {@link AuthToken} is not thread safe.
  */
-public final class HttpAuthenticator {
+public final class HttpAuthenticator extends ChannelInboundHandlerAdapter {
 
     @VisibleForTesting
     // realm-value should not contain any special characters
     static final String WWW_AUTHENTICATE_REALM_MESSAGE = "Basic realm=\"CrateDB Authenticator\"";
+
+    private static final AttributeKey<Role> AUTHENTICATED_ROLE = AttributeKey.valueOf("crate.http.authenticated_role");
 
     private final Authentication authService;
     private final boolean checkJwtProperties;
@@ -83,6 +91,7 @@ public final class HttpAuthenticator {
 
     @Nullable
     private AuthToken lastAuthToken;
+    private boolean discarding = false;
 
     public HttpAuthenticator(Settings settings, Authentication authService, Roles roles) {
         this.checkJwtProperties = settings.get(AUTH_HOST_BASED_JWT_ISS_SETTING.getKey()) == null;
@@ -92,13 +101,49 @@ public final class HttpAuthenticator {
         this.roles = roles;
     }
 
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        if (msg instanceof HttpRequest request) {
+            discarding = false;
+            Role role = authenticate(request, ctx.channel());
+            ctx.channel().attr(AUTHENTICATED_ROLE).set(role);
+            if (role == null) {
+                discarding = !(msg instanceof LastHttpContent);
+                ReferenceCountUtil.release(msg);
+                return;
+            }
+        } else if (discarding) {
+            if (msg instanceof LastHttpContent) {
+                discarding = false;
+            }
+            ReferenceCountUtil.release(msg);
+            return;
+        }
+        ctx.fireChannelRead(msg);
+    }
+
+    /**
+     * Returns the role authenticated for the current request of the channel.
+     * If there is none, a {@code 401} is sent, the connection is closed and {@code null}
+     * is returned, so the caller has to stop processing the request.
+     */
+    @Nullable
+    public static Role authenticatedRole(Channel channel) {
+        Role role = channel.attr(AUTHENTICATED_ROLE).get();
+        if (role == null) {
+            sendUnauthorized(channel, null);
+        }
+        return role;
+    }
+
     /**
      * On success the authenticated user is returned. On failure a {@code 401} response
      * is written to {@code channel}, the connection is closed and {@code null} is returned,
      * so the caller has to stop processing the request.
      */
+    @VisibleForTesting
     @Nullable
-    public Role authenticate(HttpRequest request, Channel channel) {
+    Role authenticate(HttpRequest request, Channel channel) {
         SSLSession session = getSession(channel);
         // The password object is released when the credentials are closed.
         try (Credentials credentials = credentialsFromRequest(request, session, defaultUser)) {
@@ -136,7 +181,6 @@ public final class HttpAuthenticator {
         }
     }
 
-    @VisibleForTesting
     static void sendUnauthorized(Channel channel, @Nullable String body) {
         HttpResponse response;
         if (body != null) {

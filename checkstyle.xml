@@ -57,6 +57,9 @@
     </module>
 
     <module name="SuppressWarningsFilter"/>
+    <module name="SuppressionFilter">
+        <property name="file" value="${checkstyle.suppressions.file}"/>
+    </module>
 
     <module name="TreeWalker">
         <module name="SuppressWarningsHolder"/>

@@ -58,6 +58,7 @@ import io.crate.auth.Credentials;
 import io.crate.auth.Protocol;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
+import io.crate.exceptions.UnauthorizedException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -68,6 +69,7 @@ import io.crate.protocols.postgres.PgDecoder.PgMsg;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.crate.session.DescribeResult;
 import io.crate.session.ResultReceiver;
 import io.crate.session.Session;
@@ -219,6 +221,7 @@ public class PostgresWireProtocol {
     private final SessionSettingRegistry sessionSettingRegistry;
     private final Function<CoordinatorSessionSettings, AccessControl> getAccessControl;
     private final Authentication authService;
+    private final Roles roles;
     private final Consumer<ChannelPipeline> addTransportHandler;
 
     private DelayableWriteChannel channel;
@@ -236,12 +239,14 @@ public class PostgresWireProtocol {
                          Function<CoordinatorSessionSettings, AccessControl> getAcessControl,
                          Consumer<ChannelPipeline> addTransportHandler,
                          Authentication authService,
+                         Roles roles,
                          Supplier<SslContext> getSslContext) {
         this.sessions = sessions;
         this.sessionSettingRegistry = sessionSettingRegistry;
         this.getAccessControl = getAcessControl;
         this.addTransportHandler = addTransportHandler;
         this.authService = authService;
+        this.roles = roles;
         this.decoder = new PgDecoder(getSslContext);
         this.handler = new MessageHandler();
     }
@@ -488,6 +493,13 @@ public class PostgresWireProtocol {
         assert authContext != null : "finishAuthentication() requires an authContext instance";
         try {
             Role authenticatedUser = authContext.authenticate();
+            if (properties.containsKey("CrateDBTransport") && !roles.hasALPrivileges(authenticatedUser)) {
+                throw new UnauthorizedException(String.format(
+                    Locale.ENGLISH,
+                    "User '%s' requested the pg_tunnel mode, but has no AL privileges.",
+                    authenticatedUser.name()
+                ));
+            }
             String database = properties.getProperty("database");
             session = sessions.newSession(authContext.connectionProperties(), database, authenticatedUser);
             String options = properties.getProperty("options");

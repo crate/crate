@@ -93,9 +93,8 @@ public class SqlHttpHandler extends HttpHandler<FullHttpRequest> {
 
     public SqlHttpHandler(Sessions sessions,
                           Function<String, CircuitBreaker> circuitBreakerProvider,
-                          Roles roles,
-                          HttpAuthenticator authenticator) {
-        super(sessions, roles, authenticator);
+                          Roles roles) {
+        super(sessions, roles);
         this.circuitBreakerProvider = circuitBreakerProvider;
     }
 
@@ -106,7 +105,7 @@ public class SqlHttpHandler extends HttpHandler<FullHttpRequest> {
             return;
         }
 
-        Role authenticatedUser = authenticate(ctx, request);
+        Role authenticatedUser = HttpAuthenticator.authenticatedRole(ctx.channel());
         if (authenticatedUser == null) {
             request.release();
             return;
