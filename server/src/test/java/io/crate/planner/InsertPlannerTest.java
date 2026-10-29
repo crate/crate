@@ -34,6 +34,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -100,12 +101,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
                     "   name string," +
                     "   date timestamp with time zone" +
                     ") clustered into 4 shards")
-            .addTable(
-                "create table users_clustered_by_id (" +
-                    "   id long," +
-                    "   name string," +
-                    "   date timestamp with time zone" +
-                    ") clustered by (id) into 4 shards");
+            .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION);
     }
 
     @Test
@@ -458,7 +454,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_insert_select_distinct() throws Exception {
-        Merge merge = e.plan("insert into users (id) (select distinct id from users_clustered_by_id)");
+        Merge merge = e.plan("insert into users (id) (select distinct id from users_clustered_by_only)");
         Collect collect = (Collect) merge.subPlan();
         List<Projection> projections = collect.collectPhase().projections();
         assertThat(projections).satisfiesExactly(
@@ -469,7 +465,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_insert_from_group_by_uses_doc_values() throws Exception {
-        Merge merge = e.plan("insert into users (id) (select id from users_clustered_by_id group by 1)");
+        Merge merge = e.plan("insert into users (id) (select id from users_clustered_by_only group by 1)");
         Collect collect = (Collect) merge.subPlan();
         assertThat(collect.collectPhase().toCollect()).satisfiesExactly(isReference("id"));
     }

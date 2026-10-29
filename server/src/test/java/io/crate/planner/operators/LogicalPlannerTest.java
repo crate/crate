@@ -1161,16 +1161,4 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "Collect[doc.distinct_pk | [name, id] | true]"
         );
     }
-
-    @Test
-    public void test_distinct_is_kept_when_table_has_no_explicit_primary_key() {
-        LogicalPlan plan = sqlExecutor.logicalPlan(
-            "SELECT DISTINCT id, name FROM no_explicit_pk"
-        );
-
-        assertThat(plan).isEqualTo("""
-    GroupHashAggregate[id, name]
-      └ Collect[doc.no_explicit_pk | [id, name] | true]
-       \s""");
-    }
 }

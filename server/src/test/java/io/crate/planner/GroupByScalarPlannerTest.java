@@ -52,12 +52,12 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
             .setNumNodes(2)
             .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addTable("CREATE TABLE dummy (x bigint, y bigint) CLUSTERED BY (x)");
+            .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION);
     }
 
     @Test
     public void testGroupByWithScalarPlan() throws Exception {
-        Merge merge = e.plan("SELECT x + 1 FROM dummy GROUP BY x");
+        Merge merge = e.plan("SELECT id + 1 FROM users_clustered_by_only GROUP BY id");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
 
@@ -68,7 +68,7 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.projections().get(0).requiredGranularity()).isEqualTo(RowGranularity.SHARD);
         assertThat(collectPhase.projections().get(1)).isExactlyInstanceOf(EvalProjection.class);
         assertThat(collectPhase.projections().get(1).outputs().get(0)).isExactlyInstanceOf(Function.class);
-        assertThat(collectPhase.toCollect()).satisfiesExactly(isReference("x", DataTypes.LONG));
+        assertThat(collectPhase.toCollect()).satisfiesExactly(isReference("id", DataTypes.LONG));
 
         GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
         assertThat(groupProjection.keys().get(0).valueType()).isEqualTo(DataTypes.LONG);
@@ -84,7 +84,7 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByWithMultipleScalarPlan() throws Exception {
-        Merge merge = e.plan("SELECT abs(x + 1) FROM dummy GROUP BY x");
+        Merge merge = e.plan("SELECT abs(id + 1) FROM users_clustered_by_only GROUP BY id");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
 
@@ -95,7 +95,7 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.projections().get(0).requiredGranularity()).isEqualTo(RowGranularity.SHARD);
         assertThat(collectPhase.projections().get(1)).isExactlyInstanceOf(EvalProjection.class);
         assertThat(collectPhase.projections().get(1).outputs().get(0)).isFunction("abs");
-        assertThat(collectPhase.toCollect()).satisfiesExactly(isReference("x", DataTypes.LONG));
+        assertThat(collectPhase.toCollect()).satisfiesExactly(isReference("id", DataTypes.LONG));
 
         GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
         assertThat(groupProjection.keys().get(0).valueType()).isEqualTo(DataTypes.LONG);
@@ -108,15 +108,14 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByScalarWithMultipleColumnArgumentsPlan() throws Exception {
-        Merge merge = e.plan("SELECT abs(x + y) FROM dummy GROUP BY x, y");
+        Merge merge = e.plan("SELECT abs(id + id2) FROM users_clustered_by_only GROUP BY id, id2");
         Merge subplan = (Merge) merge.subPlan();
         Collect collect = (Collect) subplan.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         assertThat(collectPhase.projections()).hasSize(1);
         assertThat(collectPhase.projections().get(0)).isExactlyInstanceOf(GroupProjection.class);
         assertThat(collectPhase.projections().get(0).requiredGranularity()).isEqualTo(RowGranularity.SHARD);
-        assertThat(collectPhase.toCollect()).satisfiesExactly(
-            isReference("x", DataTypes.LONG), isReference("y", DataTypes.LONG));
+        assertThat(collectPhase.toCollect()).satisfiesExactly(isReference("id", DataTypes.LONG), isReference("id2", DataTypes.LONG));
 
         GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
         assertThat(groupProjection.keys()).hasSize(2);
