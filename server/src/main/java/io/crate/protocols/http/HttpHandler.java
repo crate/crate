@@ -21,8 +21,6 @@
 
 package io.crate.protocols.http;
 
-import org.jspecify.annotations.Nullable;
-
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
@@ -32,7 +30,6 @@ import io.crate.session.Sessions;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.HttpMessage;
-import io.netty.handler.codec.http.HttpRequest;
 
 public abstract class HttpHandler<T> extends SimpleChannelInboundHandler<T> {
 
@@ -40,16 +37,14 @@ public abstract class HttpHandler<T> extends SimpleChannelInboundHandler<T> {
 
     private final Sessions sessions;
     private final Roles roles;
-    private final HttpAuthenticator authenticator;
 
     @VisibleForTesting
     Session session;
 
-    public HttpHandler(Sessions sessions, Roles roles, HttpAuthenticator authenticator) {
+    public HttpHandler(Sessions sessions, Roles roles) {
         super(false);
         this.sessions = sessions;
         this.roles = roles;
-        this.authenticator = authenticator;
     }
 
     protected Roles roles() {
@@ -63,15 +58,6 @@ public abstract class HttpHandler<T> extends SimpleChannelInboundHandler<T> {
             session = null;
         }
         super.channelUnregistered(ctx);
-    }
-
-    /**
-     * On failure a {@code 401} has already been sent and {@code null} is returned;
-     * the caller must stop processing and release the request.
-     */
-    @Nullable
-    protected Role authenticate(ChannelHandlerContext ctx, HttpRequest request) {
-        return authenticator.authenticate(request, ctx.channel());
     }
 
     @VisibleForTesting
