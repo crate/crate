@@ -474,6 +474,27 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_select_with_scalar_subselect_in_values() {
+        analyze("SELECT * FROM (VALUES ((SELECT name FROM users))) AS v(x)");
+        assertAskedForTable(Permission.DQL, "doc.users");
+    }
+
+    @Test
+    public void test_insert_with_scalar_subselect_in_values() {
+        analyze("INSERT INTO t1 (a) VALUES ((SELECT name FROM users))");
+        assertAskedForTable(Permission.DML, "doc.t1");
+        assertAskedForTable(Permission.DQL, "doc.users");
+    }
+
+    @Test
+    public void test_select_with_correlated_subselect_in_join_condition() {
+        analyze("SELECT * FROM t1 JOIN t2 ON t1.a = (SELECT name FROM users WHERE users.name = t2.b)");
+        assertAskedForTable(Permission.DQL, "doc.t1");
+        assertAskedForTable(Permission.DQL, "doc.t2");
+        assertAskedForTable(Permission.DQL, "doc.users");
+    }
+
+    @Test
     public void testCreateFunction() throws Exception {
         analyze("create function bar()" +
                 " returns long language dummy_lang AS 'function() { return 1; }'");
