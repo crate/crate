@@ -439,6 +439,7 @@ public class ShowIntegrationTest extends IntegTestCase {
             "optimizer_move_order_beneath_union| true| Indicates if the optimizer rule MoveOrderBeneathUnion is activated.",
             "optimizer_optimize_collect_where_clause_access| true| Indicates if the optimizer rule OptimizeCollectWhereClauseAccess is activated.",
             "optimizer_remove_order_beneath_insert| true| Indicates if the optimizer rule RemoveOrderBeneathInsert is activated.",
+            "optimizer_remove_redundant_distinct| true| Indicates if the optimizer rule RemoveRedundantDistinct is activated.",
             "optimizer_remove_redundant_eval| true| Indicates if the optimizer rule RemoveRedundantEval is activated.",
             "optimizer_reorder_hash_join| true| Indicates if the optimizer rule ReorderHashJoin is activated.",
             "optimizer_reorder_nested_loop_join| false| Indicates if the optimizer rule ReorderNestedLoopJoin is activated.",
