@@ -28,16 +28,16 @@ import java.util.List;
 import java.util.Objects;
 
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.types.DataType;
 
-/**
- * Constructs a {@link ColumnStats} from a set of samples
- */
+/// Constructs [ColumnStats] from a set of samples.
 public abstract class ColumnSketchBuilder<T> {
 
     protected final DataType<T> dataType;
@@ -45,44 +45,78 @@ public abstract class ColumnSketchBuilder<T> {
     protected long sampleCount;
     protected long nullCount;
     protected long totalBytes;
+
+    // The NDV is estimated either using DistinctValuesSketch or using DistinctValueSet.
+    // DistinctValueSet is meant to be a replacement for DistinctValuesSketch, due to its
+    // inaccuracy (see: https://github.com/crate/crate/issues/20210 for details).
+    // Both exist here to support rolling upgrades, given that they cannot be "mixed".
+    // If all nodes in the cluster are on 6.5.1 or higher, then DistinctValueSet is used.
+
+    @Deprecated(since = "6.5.1")
+    @Nullable
     protected DistinctValuesSketch distinctSketch;
+
+    /// Only filled if [#distinctSketch] is `null`.
+    @Nullable
+    protected final DistinctValueSet distinctCounts;
 
     /**
      * Creates a new ColumnSketchBuilder for the given DataType
+     *
+     * @param minNodeVersion the lowest version of the nodes taking part in the ANALYZE
      */
-    public ColumnSketchBuilder(DataType<T> dataType) {
+    public ColumnSketchBuilder(DataType<T> dataType, Version minNodeVersion) {
         this.dataType = dataType;
-        this.distinctSketch = DistinctValuesSketch.newSketch();
+        boolean useSketch = minNodeVersion.before(Version.V_6_5_1);
+        this.distinctSketch = useSketch ? DistinctValuesSketch.newSketch() : null;
+        this.distinctCounts = useSketch ? null : new DistinctValueSet();
     }
 
-    public ColumnSketchBuilder(DataType<T> dataType, StreamInput in) throws IOException {
+    /**
+     * @param minNodeVersion the lowest version of the nodes taking part in the ANALYZE,
+     *                       as used to create the streamed builder
+     */
+    public ColumnSketchBuilder(DataType<T> dataType, Version minNodeVersion, StreamInput in) throws IOException {
         this.dataType = dataType;
+        boolean useSketch = minNodeVersion.before(Version.V_6_5_1);
         this.sampleCount = in.readLong();
         this.nullCount = in.readLong();
         this.totalBytes = in.readLong();
-        this.distinctSketch = DistinctValuesSketch.fromStream(in);
+        if (useSketch) {
+            this.distinctSketch = DistinctValuesSketch.fromStream(in);
+            this.distinctCounts = null;
+        } else {
+            this.distinctSketch = null;
+            this.distinctCounts = DistinctValueSet.fromStream(in);
+        }
     }
 
     public final void writeTo(StreamOutput out) throws IOException {
         out.writeLong(sampleCount);
         out.writeLong(nullCount);
         out.writeLong(totalBytes);
-        out.writeByteArray(distinctSketch.getSketch().toByteArray());
+        if (distinctSketch != null) {
+            // A node older than 6.5.1 takes part in the ANALYZE, so the sketch was built.
+            out.writeByteArray(distinctSketch.getSketch().toByteArray());
+        } else {
+            distinctCounts.writeTo(out);
+        }
         writeSketches(out);
     }
 
     protected abstract void writeSketches(StreamOutput out) throws IOException;
 
-    /**
-     * Add a sample to the sketch
-     */
     public void add(T value) {
         sampleCount++;
         if (value == null) {
             nullCount++;
         } else {
             totalBytes += dataType.valueBytes(value);
-            distinctSketch.update(value.toString());
+            if (distinctSketch != null) {
+                distinctSketch.update(value.toString());
+            } else {
+                distinctCounts.add(value);
+            }
             updateSketches(value);
         }
     }
@@ -101,15 +135,77 @@ public abstract class ColumnSketchBuilder<T> {
     public abstract ColumnSketchBuilder<T> merge(ColumnSketchBuilder<?> other);
 
     /**
-     * Produce a streamable and merge-able representation of the sketch
+     * Produce a streamable and merge-able representation of the sketch.
+     *
+     * @param totalDocs the total (non-sampled) row count of the table, used to extrapolate
+     *                   the sample's distinct count to the full population
      */
-    public abstract ColumnStats<T> toStats();
+    public abstract ColumnStats<T> toStats(long totalDocs);
 
     double nullFraction() {
         if (nullCount == 0 || sampleCount == 0) {
             return 0;
         }
         return (double) nullCount / (double) sampleCount;
+    }
+
+    /// Estimates the NDV using either the [DistinctValuesSketch] or [DistinctValueSet] (Haas-Stokes estimator).
+    final double estimateDistinct(long totalDocs) {
+        if (distinctSketch != null) {
+            return distinctSketch.getSketch().getEstimate();
+        }
+
+        return estimateWithHaasStokes(totalDocs);
+    }
+
+    private double estimateWithHaasStokes(long totalRows) {
+        double distinctSamples = distinctCounts.distinctValues();
+        double numValuesWithDuplicates = distinctCounts.distinctValues() - distinctCounts.singletons();
+
+        if (numValuesWithDuplicates == 0) {
+            // All sample values are unique. We assume it is a unique column, but we need to discount for null values.
+            return (1.0 - nullFraction()) * totalRows;
+        }
+        if (numValuesWithDuplicates == distinctSamples) {
+            // Every value appeared more than once. Assume the column has just these values.
+            // This should address cases like boolean or enum columns, where there is a small fixed set of possible values.
+            return distinctSamples;
+        }
+
+        // Estimate the number of distinct values using the estimator
+        // proposed by Haas and Stokes in IBM Research Report RJ 10025:
+        // ```
+        // n*d / (n - f1 + f1*n/N)
+        // ```
+        // where:
+        // * `n` is the (non-null) sample size
+        // * `d` the distinct count in the sample
+        // * `f1` the count of values seen exactly once in the sample
+        // * `N` the total count of non-null values
+        //
+        // This is their Duj1 estimator; the other estimators they
+        // recommend are considerably more complex, and are numerically
+        // very unstable when n is much smaller than N.
+        //
+        // Also see PostgreSQL's [compute_distinct_stats](https://github.com/postgres/postgres/blob/9f4bd91a1960f0263c497a9a1ddf121cbcefbb98/src/backend/commands/analyze.c#L2121).
+        double f1 = distinctSamples - numValuesWithDuplicates;
+        double d = f1 + numValuesWithDuplicates;
+        double n = sampleCount - nullCount;
+        double N = totalRows * (1.0 - nullFraction());
+        double approxDistinct;
+        if (N > 0) {
+            approxDistinct = (n * d) / ((n - f1) + f1 * n / N);
+        } else {
+            approxDistinct = 0;
+        }
+        // Clamp to sane range in case of round-off error
+        if (approxDistinct < d) {
+            approxDistinct = d;
+        }
+        if (approxDistinct > N) {
+            approxDistinct = N;
+        }
+        return Math.floor(approxDistinct + 0.5);
     }
 
     /**
@@ -121,14 +217,14 @@ public abstract class ColumnSketchBuilder<T> {
         private MostCommonValuesSketch<T> mostCommonValuesSketch;
         private HistogramSketch<T> histogramSketch;
 
-        public SingleValued(Class<T> clazz, DataType<T> dataType) {
-            super(dataType);
+        public SingleValued(Class<T> clazz, DataType<T> dataType, Version minNodeVersion) {
+            super(dataType, minNodeVersion);
             this.mostCommonValuesSketch = new MostCommonValuesSketch<>(dataType.streamer());
             this.histogramSketch = new HistogramSketch<>(clazz, dataType);
         }
 
-        public SingleValued(Class<T> clazz, DataType<T> dataType, StreamInput in) throws IOException {
-            super(dataType, in);
+        public SingleValued(Class<T> clazz, DataType<T> dataType, Version minNodeVersion, StreamInput in) throws IOException {
+            super(dataType, minNodeVersion, in);
             this.mostCommonValuesSketch = new MostCommonValuesSketch<>(dataType.streamer(), in);
             this.histogramSketch = new HistogramSketch<>(clazz, dataType, in);
         }
@@ -156,7 +252,11 @@ public abstract class ColumnSketchBuilder<T> {
             this.sampleCount += other.sampleCount;
             this.nullCount += other.nullCount;
             this.totalBytes += other.totalBytes;
-            this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
+            if (this.distinctSketch != null) {
+                this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
+            } else {
+                this.distinctCounts.merge(typedOther.distinctCounts);
+            }
             this.mostCommonValuesSketch = this.mostCommonValuesSketch.merge(typedOther.mostCommonValuesSketch);
             this.histogramSketch = this.histogramSketch.merge(typedOther.histogramSketch);
 
@@ -164,10 +264,10 @@ public abstract class ColumnSketchBuilder<T> {
         }
 
         @Override
-        public ColumnStats<T> toStats() {
+        public ColumnStats<T> toStats(long totalDocs) {
             double nullFraction = nullFraction();
             double avgSizeInBytes = (double) totalBytes / ((double) sampleCount - nullCount);
-            double approxDistinct = this.distinctSketch.getSketch().getEstimate();
+            double approxDistinct = estimateDistinct(totalDocs);
             MostCommonValues<T> mcv = this.mostCommonValuesSketch.toMostCommonValues(sampleCount, approxDistinct);
             return new ColumnStats<>(
                 nullFraction,
@@ -190,13 +290,13 @@ public abstract class ColumnSketchBuilder<T> {
         private MostCommonValuesSketch<BytesRef> mostCommonValuesSketch;
         private final BytesStreamOutput scratch = new BytesStreamOutput();
 
-        public Composite(DataType<T> dataType) {
-            super(dataType);
+        public Composite(DataType<T> dataType, Version minNodeVersion) {
+            super(dataType, minNodeVersion);
             this.mostCommonValuesSketch = new MostCommonValuesSketch<>(BYTE_ARRAY_STREAMER);
         }
 
-        public Composite(DataType<T> dataType, StreamInput in) throws IOException {
-            super(dataType, in);
+        public Composite(DataType<T> dataType, Version minNodeVersion, StreamInput in) throws IOException {
+            super(dataType, minNodeVersion, in);
             this.mostCommonValuesSketch = new MostCommonValuesSketch<>(BYTE_ARRAY_STREAMER, in);
         }
 
@@ -229,17 +329,21 @@ public abstract class ColumnSketchBuilder<T> {
             this.sampleCount += other.sampleCount;
             this.nullCount += other.nullCount;
             this.totalBytes += other.totalBytes;
-            this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
+            if (this.distinctSketch != null) {
+                this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
+            } else {
+                this.distinctCounts.merge(typedOther.distinctCounts);
+            }
             this.mostCommonValuesSketch = this.mostCommonValuesSketch.merge(typedOther.mostCommonValuesSketch);
 
             return this;
         }
 
         @Override
-        public ColumnStats<T> toStats() {
+        public ColumnStats<T> toStats(long totalDocs) {
             double nullFraction = nullFraction();
             double avgSizeInBytes = (double) totalBytes / ((double) sampleCount - nullCount);
-            double approxDistinct = this.distinctSketch.getSketch().getEstimate();
+            double approxDistinct = estimateDistinct(totalDocs);
             MostCommonValues<T> mcv =
                 this.mostCommonValuesSketch.toMostCommonValues(sampleCount, approxDistinct, this::fromByteStream);
             return new ColumnStats<>(

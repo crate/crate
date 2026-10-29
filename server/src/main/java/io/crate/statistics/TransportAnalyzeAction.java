@@ -34,6 +34,7 @@ import java.util.stream.StreamSupport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -107,7 +108,16 @@ public final class TransportAnalyzeAction {
 
                     if (previous == null) {
                         newSamples.completeAsync(
-                            () -> reservoirSampler.getSamples(req.relation(), req.tableOid(), req.columns()),
+                            () -> reservoirSampler.getSamples(
+                                req.relation(),
+                                req.tableOid(),
+                                req.columns(),
+                                // Min. node version is needed to determine how the stats will be calculated.
+                                // We take the version from the original request, because the min. node version
+                                // might have changed between when the handler node sent `FetchSampleRequest`s,
+                                // and when they are handled here.
+                                req.minNodeVersion()
+                            ),
                             executor
                         );
                         return newSamples
@@ -214,6 +224,7 @@ public final class TransportAnalyzeAction {
                                                     List<Reference> columns) {
         FutureActionListener<FetchSampleResponse> listener = new FutureActionListener<>();
         DiscoveryNodes discoveryNodes = clusterService.state().nodes();
+        Version minNodeVersion = discoveryNodes.getMinNodeVersion();
         MultiActionListener<FetchSampleResponse, ?, FetchSampleResponse> multiListener = new MultiActionListener<>(
             discoveryNodes.getSize(),
             Collectors.reducing(
@@ -224,14 +235,14 @@ public final class TransportAnalyzeAction {
         ActionListenerResponseHandler<FetchSampleResponse> responseHandler = new ActionListenerResponseHandler<>(
             FETCH_SAMPLES,
             multiListener,
-            in -> new FetchSampleResponse(columns, in),
+            in -> new FetchSampleResponse(columns, minNodeVersion, in),
             ThreadPool.Names.SAME
         );
         for (DiscoveryNode node : discoveryNodes) {
             transportService.sendRequest(
                 node,
                 FETCH_SAMPLES,
-                new FetchSampleRequest(relationName, tableOid, columns, node.getVersion()),
+                new FetchSampleRequest(relationName, tableOid, columns, minNodeVersion, node.getVersion()),
                 responseHandler
             );
         }
