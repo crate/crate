@@ -82,8 +82,7 @@ public final class RemoveRedundantDistinct implements Rule<GroupHashAggregate> {
 
         for (Symbol groupKey : groupBy.groupKeys()) {
             Symbol current = groupKey;
-
-            while (current instanceof AliasSymbol alias) {
+            if (current instanceof AliasSymbol alias) {
                 current = alias.symbol();
             }
 
