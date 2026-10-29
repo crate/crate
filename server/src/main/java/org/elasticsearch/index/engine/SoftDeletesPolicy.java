@@ -37,7 +37,7 @@ import io.crate.metadata.doc.SysColumns;
 /**
  * A policy that controls how many soft-deleted documents should be retained for peer-recovery and querying history changes purpose.
  */
-final class SoftDeletesPolicy {
+public final class SoftDeletesPolicy {
     private final LongSupplier globalCheckpointSupplier;
     private long localCheckpointOfSafeCommit;
     // This lock count is used to prevent `minRetainedSeqNo` from advancing.

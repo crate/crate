@@ -228,8 +228,8 @@ public class InternalEngine extends Engine {
                 assert translog.getGeneration() != null;
                 this.translog = translog;
                 this.softDeletesPolicy = newSoftDeletesPolicy();
-                this.combinedDeletionPolicy =
-                    new CombinedDeletionPolicy(logger, translogDeletionPolicy, softDeletesPolicy, translog::getLastSyncedGlobalCheckpoint);
+                this.combinedDeletionPolicy = newCombinedDeletionPolicy(
+                    engineConfig, translogDeletionPolicy, softDeletesPolicy, translog::getLastSyncedGlobalCheckpoint);
                 this.localCheckpointTracker = createLocalCheckpointTracker(localCheckpointTrackerSupplier);
                 writer = createWriter();
                 bootstrapAppendOnlyInfoFromWriter(writer);
@@ -315,6 +315,20 @@ public class InternalEngine extends Engine {
             engineConfig.getIndexSettings().getSoftDeleteRetentionOperations(),
             engineConfig.retentionLeasesSupplier()
         );
+    }
+
+    /**
+     * Builds the policy that decides which Lucene commits this engine's {@link IndexWriter} may
+     * physically delete. By default, a commit is eligible once its max seqno is at most the global checkpoint.
+     * <p/>
+     * A pluggable engine may override this to add additional constraints, e.g. to prevent deletion of commits that
+     * are still needed by a replica's own reader, even if the global checkpoint has moved past it.
+     */
+    protected CombinedDeletionPolicy newCombinedDeletionPolicy(EngineConfig engineConfig,
+                                                               TranslogDeletionPolicy translogDeletionPolicy,
+                                                               SoftDeletesPolicy softDeletesPolicy,
+                                                               LongSupplier globalCheckpointSupplier) {
+        return new CombinedDeletionPolicy(logger, translogDeletionPolicy, softDeletesPolicy, globalCheckpointSupplier);
     }
 
     /**

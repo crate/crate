@@ -169,6 +169,7 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.TestTranslog;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogConfig;
+import org.elasticsearch.index.translog.TranslogDeletionPolicy;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.elasticsearch.test.VersionUtils;
@@ -4726,6 +4727,42 @@ public class InternalEngineTests extends EngineTestCase {
             engine.syncTranslog();
             assertThat(DirectoryReader.listCommits(store.directory())).containsExactly(commits.get(commits.size() - 1));
             assertThat(engine.getTranslog().totalOperations()).isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void testCombinedDeletionPolicyCanBeOverridden() throws Exception {
+        IOUtils.close(engine, store);
+        final AtomicBoolean overrideInvoked = new AtomicBoolean();
+        final AtomicReference<CombinedDeletionPolicy> returnedPolicy = new AtomicReference<>();
+        try (Store store = createStore()) {
+            EngineConfig config = config(defaultSettings, store, createTempDir(), newMergePolicy(), null);
+            store.createEmpty(config.getIndexSettings().getIndexVersionCreated().luceneVersion);
+            String translogUuid = Translog.createEmptyTranslog(
+                config.getTranslogConfig().getTranslogPath(), SequenceNumbers.NO_OPS_PERFORMED, shardId, primaryTerm.get());
+            store.associateIndexWithNewTranslog(translogUuid);
+
+            try (InternalEngine engine = new InternalEngine(config) {
+                @Override
+                protected CombinedDeletionPolicy newCombinedDeletionPolicy(EngineConfig engineConfig,
+                                                                            TranslogDeletionPolicy translogDeletionPolicy,
+                                                                            SoftDeletesPolicy softDeletesPolicy,
+                                                                            LongSupplier globalCheckpointSupplier) {
+                    overrideInvoked.set(true);
+                    CombinedDeletionPolicy policy = super.newCombinedDeletionPolicy(
+                        engineConfig, translogDeletionPolicy, softDeletesPolicy, globalCheckpointSupplier);
+                    returnedPolicy.set(policy);
+                    return policy;
+                }
+            }) {
+                engine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);
+                assertThat(overrideInvoked.get()).isTrue();
+
+                // Not just called - the returned instance must be the one the engine actually uses,
+                // e.g. to decide which commits a real flush may delete.
+                engine.flush(true, true);
+                assertThat(returnedPolicy.get().getSafeCommitInfo()).isNotNull();
+            }
         }
     }
 
