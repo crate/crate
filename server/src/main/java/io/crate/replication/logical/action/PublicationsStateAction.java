@@ -21,6 +21,8 @@
 
 package io.crate.replication.logical.action;
 
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_INDEX_ROUTING_ACTIVE;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -151,7 +153,12 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                     metadataBuilder
                 );
             }
-            listener.onResponse(new Response(metadataBuilder.build(), unknownPublications));
+            var response = new Response(metadataBuilder.build(), unknownPublications);
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Preparing publication metadata response: publications={}, unknown={}, tables={}",
+                             request.publications(), unknownPublications, response.summary());
+            }
+            listener.onResponse(response);
         }
 
         @Override
@@ -251,6 +258,23 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 metadata.writeTo(out);
             }
             out.writeStringCollection(unknownPublications);
+        }
+
+        public static List<String> columnsSummary(io.crate.metadata.RelationMetadata.Table table) {
+            return table.columns().stream()
+                .map(column -> column.column().fqn() + " type=" + column.valueType()
+                    + " dropped=" + column.isDropped())
+                .toList();
+        }
+
+        public List<String> summary() {
+            return metadata.relations(io.crate.metadata.RelationMetadata.Table.class).stream()
+                .map(table -> table.name() + " version=" + table.tableVersion()
+                    + " columns=" + columnsSummary(table)
+                    + " indices=" + metadata.getIndices(table.name(), List.of(), false,
+                        index -> index.getIndex() + " partition=" + index.partitionValues()
+                            + " active=" + REPLICATION_INDEX_ROUTING_ACTIVE.get(index.getSettings())))
+                .toList();
         }
 
         public Metadata metadata() {
