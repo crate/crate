@@ -98,6 +98,7 @@ import io.crate.analyze.AnalyzedSwapTable;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
+import io.crate.analyze.JoinRelation;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.RestoreSnapshotAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -118,6 +119,7 @@ import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnscopedException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.RelationName;
@@ -225,6 +227,10 @@ public final class AccessControlImpl implements AccessControl {
             }
             // On the other hand, all users should be able to access built-in functions without any privileges.
             // ex) select * from abs(1);
+
+            // Arguments may contain subqueries, e.g. select * from (values ((select x from t))) v
+            tableFunctionRelation.visitSymbols(tree ->
+                tree.visit(SelectSymbol.class, selectSymbol -> selectSymbol.relation().accept(this, context)));
             return null;
         }
 
@@ -245,6 +251,15 @@ public final class AccessControlImpl implements AccessControl {
             relation.visitSymbols(tree ->
                 tree.visit(SelectSymbol.class, selectSymbol -> selectSymbol.relation().accept(this, context)));
             return super.visitQueriedSelectRelation(relation, context);
+        }
+
+        @Override
+        public Void visitJoinRelation(JoinRelation joinRelation, RelationContext context) {
+            Symbol joinCondition = joinRelation.joinCondition();
+            if (joinCondition != null) {
+                joinCondition.visit(SelectSymbol.class, selectSymbol -> selectSymbol.relation().accept(this, context));
+            }
+            return super.visitJoinRelation(joinRelation, context);
         }
 
         @Override
