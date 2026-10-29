@@ -90,7 +90,6 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(T3.T3_DEFINITION)
             .addTable(T3.DISTINCT_PK_DEFINITION)
             .addTable(T3.COMPOSITE_PK_DEFINITION)
-            .addTable(T3.NO_EXPLICIT_PK_DEFINITION)
             .addView(new RelationName("doc", "v2"), "SELECT a, x FROM doc.t1")
             .addView(new RelationName("doc", "v3"), "SELECT a, x FROM doc.t1");
         if (WARM.compareAndSet(false, true)) {
@@ -1106,14 +1105,14 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_distinct_is_kept_when_projection_does_not_contain_primary_key() {
+    public void test_distinct_is_kept_when_table_has_no_primary_key() {
         LogicalPlan plan = sqlExecutor.logicalPlan(
-            "SELECT DISTINCT name FROM distinct_pk"
+            "SELECT DISTINCT x, a FROM t1"
         );
 
         assertThat(plan).isEqualTo("""
-        GroupHashAggregate[name]
-          └ Collect[doc.distinct_pk | [name] | true]
+        GroupHashAggregate[x, a]
+          └ Collect[doc.t1 | [x, a] | true]
            \s""");
     }
 

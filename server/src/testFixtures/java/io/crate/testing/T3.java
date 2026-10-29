@@ -90,13 +90,6 @@ public class T3 {
     )
     """;
 
-    public static final String NO_EXPLICIT_PK_DEFINITION = """
-    CREATE TABLE doc.no_explicit_pk (
-        id INTEGER,
-        name TEXT
-    )
-    """;
-
     public static final RelationName T1 = new RelationName(DocSchemaInfo.NAME, "t1");
     public static final RelationName T2 = new RelationName(DocSchemaInfo.NAME, "t2");
     public static final RelationName T3 = new RelationName(DocSchemaInfo.NAME, "t3");
