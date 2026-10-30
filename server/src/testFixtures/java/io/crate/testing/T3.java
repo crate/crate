@@ -74,6 +74,30 @@ public class T3 {
         "  ts timestamp without time zone" +
         ")";
 
+    public static final String DISTINCT_PK_DEFINITION = """
+    CREATE TABLE doc.distinct_pk (
+        id INTEGER PRIMARY KEY,
+        name TEXT
+    )
+    """;
+
+    public static final String COMPOSITE_PK_DEFINITION = """
+    CREATE TABLE doc.composite_pk (
+        id1 INTEGER,
+        id2 INTEGER,
+        name TEXT,
+        PRIMARY KEY (id1, id2)
+    )
+    """;
+
+    public static final String DISTINCT_TEXT_PK_DEFINITION = """
+    CREATE TABLE doc.distinct_text_pk (
+        x TEXT PRIMARY KEY,
+        y TEXT,
+        z TEXT
+    )
+    """;
+
     public static final RelationName T1 = new RelationName(DocSchemaInfo.NAME, "t1");
     public static final RelationName T2 = new RelationName(DocSchemaInfo.NAME, "t2");
     public static final RelationName T3 = new RelationName(DocSchemaInfo.NAME, "t3");

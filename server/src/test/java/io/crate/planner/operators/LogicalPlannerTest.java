@@ -88,6 +88,9 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
             .addTable(T3.T3_DEFINITION)
+            .addTable(T3.DISTINCT_PK_DEFINITION)
+            .addTable(T3.COMPOSITE_PK_DEFINITION)
+            .addTable(T3.DISTINCT_TEXT_PK_DEFINITION)
             .addView(new RelationName("doc", "v2"), "SELECT a, x FROM doc.t1")
             .addView(new RelationName("doc", "v3"), "SELECT a, x FROM doc.t1");
         if (WARM.compareAndSet(false, true)) {
@@ -1087,6 +1090,88 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                       └ Limit[1;0]
                         └ OrderBy[x ASC]
                           └ Collect[doc.t1 | [x] | (x > x)]
+            """
+        );
+    }
+
+    @Test
+    public void test_distinct_is_removed_when_projection_contains_primary_key() {
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT DISTINCT id, name FROM distinct_pk"
+        );
+
+        assertThat(plan).isEqualTo(
+            "Collect[doc.distinct_pk | [id, name] | true]"
+        );
+    }
+
+    @Test
+    public void test_distinct_is_kept_when_table_has_no_primary_key() {
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT DISTINCT x, a FROM t1"
+        );
+
+        assertThat(plan).isEqualTo("""
+        GroupHashAggregate[x, a]
+          └ Collect[doc.t1 | [x, a] | true]
+           \s""");
+    }
+
+    @Test
+    public void test_removes_redundant_distinct_on_composite_pk() {
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT DISTINCT id1, id2, name FROM composite_pk"
+        );
+
+        assertThat(plan).isEqualTo(
+            "Collect[doc.composite_pk | [id1, id2, name] | true]"
+        );
+    }
+
+    @Test
+    public void test_distinct_is_kept_when_projection_contains_only_part_of_composite_pk() {
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT DISTINCT id1, name FROM composite_pk"
+        );
+
+        assertThat(plan).isEqualTo("""
+        GroupHashAggregate[id1, name]
+          └ Collect[doc.composite_pk | [id1, name] | true]
+           \s""");
+    }
+
+    @Test
+    public void test_distinct_is_removed_when_primary_key_column_is_aliased() {
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT DISTINCT id AS alias_id, name FROM distinct_pk"
+        );
+
+        assertThat(plan).isEqualTo(
+            "Collect[doc.distinct_pk | [id AS alias_id, name] | true]"
+        );
+    }
+
+    @Test
+    public void test_distinct_is_removed_when_primary_key_column_is_reordered() {
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT DISTINCT name, id FROM distinct_pk"
+        );
+
+        assertThat(plan).isEqualTo(
+            "Collect[doc.distinct_pk | [name, id] | true]"
+        );
+    }
+
+    @Test
+    public void test_count_distinct_on_primary_key_does_not_add_group_by() {
+        LogicalPlan plan = plan(
+            "SELECT COUNT(DISTINCT x) FROM distinct_text_pk"
+        );
+
+        assertThat(plan).isEqualTo(
+            """
+            HashAggregate[count(DISTINCT x)]
+              └ Collect[doc.distinct_text_pk | [x] | true]
             """
         );
     }
