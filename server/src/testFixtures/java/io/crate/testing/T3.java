@@ -90,6 +90,14 @@ public class T3 {
     )
     """;
 
+    public static final String DISTINCT_TEXT_PK_DEFINITION = """
+    CREATE TABLE doc.distinct_text_pk (
+        x TEXT PRIMARY KEY,
+        y TEXT,
+        z TEXT
+    )
+    """;
+
     public static final RelationName T1 = new RelationName(DocSchemaInfo.NAME, "t1");
     public static final RelationName T2 = new RelationName(DocSchemaInfo.NAME, "t2");
     public static final RelationName T3 = new RelationName(DocSchemaInfo.NAME, "t3");

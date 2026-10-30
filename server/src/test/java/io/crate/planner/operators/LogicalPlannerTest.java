@@ -90,6 +90,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(T3.T3_DEFINITION)
             .addTable(T3.DISTINCT_PK_DEFINITION)
             .addTable(T3.COMPOSITE_PK_DEFINITION)
+            .addTable(T3.DISTINCT_TEXT_PK_DEFINITION)
             .addView(new RelationName("doc", "v2"), "SELECT a, x FROM doc.t1")
             .addView(new RelationName("doc", "v3"), "SELECT a, x FROM doc.t1");
         if (WARM.compareAndSet(false, true)) {
@@ -1158,6 +1159,17 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(plan).isEqualTo(
             "Collect[doc.distinct_pk | [name, id] | true]"
+        );
+    }
+
+    @Test
+    public void test_count_distinct_on_primary_key_is_optimized_to_count() {
+        LogicalPlan plan = plan(
+            "SELECT COUNT(DISTINCT x) FROM distinct_text_pk"
+        );
+
+        assertThat(plan).isEqualTo(
+            "Count[doc.distinct_text_pk | true]"
         );
     }
 }
