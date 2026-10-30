@@ -23,9 +23,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -34,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.elasticsearch.Version;
@@ -42,6 +46,7 @@ import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RecoverySource;
+import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
@@ -55,6 +60,9 @@ import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardTestCase;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardPath;
+import org.elasticsearch.index.store.RecoveryAwareDirectory;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.index.translog.Translog;
@@ -361,5 +369,129 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
         assertThat(request.metadataSnapshot()).isSameAs(Store.MetadataSnapshot.EMPTY);
         recoveryTarget.decRef();
         closeShards(shard);
+    }
+
+    @Test
+    public void test_recovery_aware_directory_seeds_missing_local_translog() throws Exception {
+        DiscoveryNode pNode = new DiscoveryNode("foo", buildNewFakeTransportAddress(),
+            Collections.emptyMap(), Collections.emptySet(), Version.CURRENT);
+        DiscoveryNode rNode = new DiscoveryNode("foo", buildNewFakeTransportAddress(),
+            Collections.emptyMap(), Collections.emptySet(), Version.CURRENT);
+
+        IndexShard shard = newStartedShard(false);
+        populateRandomData(shard);
+        ShardPath shardPath = shard.shardPath();
+        ShardRouting routing = ShardRoutingHelper.initWithSameId(shard.routingEntry(), RecoverySource.PeerRecoverySource.INSTANCE);
+        IndexMetadata indexMetadata = shard.indexSettings().getIndexMetadata();
+        closeShards(shard);
+
+        // Remove the translog so that the replica will need to seed it from the primary's commit user data.
+        IOUtils.rm(shardPath.resolveTranslog());
+
+        IndexShard replica = newShard(
+            routing,
+            shardPath,
+            indexMetadata,
+            is -> createStore(shardPath.getShardId(), is, new SeedingDirectory(newFSDirectory(shardPath.resolveIndex()))),
+            List.of(),
+            () -> { },
+            EMPTY_EVENT_LISTENER
+        );
+        replica.markAsRecovering("peer recovery", new RecoveryState(replica.routingEntry(), pNode, rNode));
+        replica.prepareForIndexRecovery();
+        RecoveryTarget recoveryTarget = new RecoveryTarget(replica, null, null);
+
+        StartRecoveryRequest request = PeerRecoveryTargetService.getStartRecoveryRequest(
+            logger, rNode, recoveryTarget, UNASSIGNED_SEQ_NO);
+
+        // A real commit was found and kept, instead of being discarded because of the missing translog.
+        assertThat(request.metadataSnapshot()).isNotSameAs(Store.MetadataSnapshot.EMPTY);
+        assertThat(request.metadataSnapshot().size()).isGreaterThan(0);
+        assertThat(Files.exists(shardPath.resolveTranslog().resolve(Translog.CHECKPOINT_FILE_NAME))).isTrue();
+
+        recoveryTarget.decRef();
+        closeShards(replica);
+    }
+
+    private static final class SeedingDirectory extends Directory implements RecoveryAwareDirectory {
+
+        private final Directory in;
+
+        SeedingDirectory(Directory in) {
+            this.in = in;
+        }
+
+        @Override
+        public void maybeSeedLocalTranslog(Map<String, String> commitUserData, Path translogLocation, ShardId shardId,
+                                           long primaryTerm) throws IOException {
+            if (Files.exists(translogLocation.resolve(Translog.CHECKPOINT_FILE_NAME))) {
+                return;
+            }
+            String translogUUID = commitUserData.get(Translog.TRANSLOG_UUID_KEY);
+            if (translogUUID != null) {
+                Translog.createEmptyTranslog(translogLocation, shardId, SequenceNumbers.NO_OPS_PERFORMED, primaryTerm, translogUUID, null);
+            }
+        }
+
+        @Override
+        public String[] listAll() throws IOException {
+            return in.listAll();
+        }
+
+        @Override
+        public void deleteFile(String name) throws IOException {
+            in.deleteFile(name);
+        }
+
+        @Override
+        public long fileLength(String name) throws IOException {
+            return in.fileLength(name);
+        }
+
+        @Override
+        public org.apache.lucene.store.IndexOutput createOutput(String name, IOContext context) throws IOException {
+            return in.createOutput(name, context);
+        }
+
+        @Override
+        public org.apache.lucene.store.IndexOutput createTempOutput(String prefix, String suffix, IOContext context)
+                throws IOException {
+            return in.createTempOutput(prefix, suffix, context);
+        }
+
+        @Override
+        public void sync(java.util.Collection<String> names) throws IOException {
+            in.sync(names);
+        }
+
+        @Override
+        public void syncMetaData() throws IOException {
+            in.syncMetaData();
+        }
+
+        @Override
+        public void rename(String source, String dest) throws IOException {
+            in.rename(source, dest);
+        }
+
+        @Override
+        public IndexInput openInput(String name, IOContext context) throws IOException {
+            return in.openInput(name, context);
+        }
+
+        @Override
+        public org.apache.lucene.store.Lock obtainLock(String name) throws IOException {
+            return in.obtainLock(name);
+        }
+
+        @Override
+        public void close() throws IOException {
+            in.close();
+        }
+
+        @Override
+        public java.util.Set<String> getPendingDeletions() throws IOException {
+            return in.getPendingDeletions();
+        }
     }
 }
