@@ -1163,13 +1163,16 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_count_distinct_on_primary_key_is_optimized_to_count() {
+    public void test_count_distinct_on_primary_key_does_not_add_group_by() {
         LogicalPlan plan = plan(
             "SELECT COUNT(DISTINCT x) FROM distinct_text_pk"
         );
 
         assertThat(plan).isEqualTo(
-            "Count[doc.distinct_text_pk | true]"
+            """
+            HashAggregate[count(DISTINCT x)]
+              └ Collect[doc.distinct_text_pk | [x] | true]
+            """
         );
     }
 }

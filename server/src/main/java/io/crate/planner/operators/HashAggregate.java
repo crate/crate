@@ -194,6 +194,10 @@ public class HashAggregate extends ForwardingLogicalPlan {
         return aggregates;
     }
 
+    public boolean rewriteDistinct() {
+        return rewriteDistinct;
+    }
+
     @Override
     public List<Symbol> outputs() {
         return new ArrayList<>(aggregates);

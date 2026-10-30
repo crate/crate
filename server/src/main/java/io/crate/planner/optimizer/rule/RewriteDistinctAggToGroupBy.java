@@ -133,7 +133,8 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
     }
 
     private static boolean matches(HashAggregate agg) {
-        return agg.aggregates().stream()
+        return agg.rewriteDistinct() &&
+        agg.aggregates().stream()
             .allMatch(fn ->
                 fn.distinct() &&
                     hasNoFilter(fn) &&
@@ -190,17 +191,7 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
         }
 
         if (isPrimaryKeyColumn(resolvedSource, groupKey)) {
-            List<Function> aggregatesWithoutDistinct = aggregate.aggregates().stream()
-                .map(fn -> new Function(
-                    fn.signature(),
-                    fn.arguments(),
-                    fn.valueType(),
-                    fn.filter(),
-                    false
-                ))
-                .toList();
-
-            return new HashAggregate(resolvedSource, aggregatesWithoutDistinct);
+            return null;
         }
 
         GroupHashAggregate dedup = new GroupHashAggregate(source, List.of(groupKey), List.of());
