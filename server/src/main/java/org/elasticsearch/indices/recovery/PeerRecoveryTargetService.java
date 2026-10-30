@@ -30,6 +30,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.AlreadyClosedException;
+import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.RateLimiter;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
@@ -56,6 +57,7 @@ import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
+import org.elasticsearch.index.store.RecoveryAwareDirectory;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogCorruptedException;
@@ -286,6 +288,15 @@ public class PeerRecoveryTargetService implements IndexEventListener {
             // Make sure that the current translog is consistent with the Lucene index; otherwise, we have to throw away the Lucene index.
             try {
                 final String expectedTranslogUUID = metadataSnapshot.getCommitUserData().get(Translog.TRANSLOG_UUID_KEY);
+                final Store store = recoveryTarget.indexShard().store();
+                if (FilterDirectory.unwrap(store.directory()) instanceof RecoveryAwareDirectory recoveryAwareDirectory) {
+                    recoveryAwareDirectory.maybeSeedLocalTranslog(
+                        metadataSnapshot.getCommitUserData(),
+                        recoveryTarget.translogLocation(),
+                        recoveryTarget.shardId(),
+                        recoveryTarget.indexShard().getPendingPrimaryTerm()
+                    );
+                }
                 final long globalCheckpoint = Translog.readGlobalCheckpoint(recoveryTarget.translogLocation(), expectedTranslogUUID);
                 assert globalCheckpoint + 1 >= startingSeqNo : "invalid startingSeqNo " + startingSeqNo + " >= " + globalCheckpoint;
             } catch (IOException | TranslogCorruptedException e) {
