@@ -98,7 +98,12 @@ jobs:
       - name: Run forbiddenapis:check
         if: needs.changes.outputs.java == 'true'
         run: |
-          ./mvnw -Dtoolchain.skip=true compile forbiddenapis:check
+          ./mvnw \
+            -Dtoolchain.skip=true \
+            -Dmaven.javadoc.skip=true \
+            -Djacoco.skip=true \
+            -Dcheckstyle.skip \
+            compile forbiddenapis:check
 
   checkstyle:
     name: checkstyle
@@ -117,4 +122,10 @@ jobs:
           distribution: "temurin"
       - name: Run checkstyle
         if: needs.changes.outputs.java == 'true'
-        run: ./mvnw -Dtoolchain.skip=true compile checkstyle:checkstyle
+        run: |
+          ./mvnw \
+            -Dtoolchain.skip=true \
+            -Dmaven.javadoc.skip=true \
+            -Djacoco.skip=true \
+            -Dforbiddenapis.skip=true \
+          compile checkstyle:checkstyle
