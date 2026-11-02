@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.copy.s3.common;
+package io.crate.opendal;
 
 
 import java.net.URI;
@@ -27,7 +27,6 @@ import java.net.URI;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.opendal.S3;
 
 public record S3URI(String bucket,
                     String path,

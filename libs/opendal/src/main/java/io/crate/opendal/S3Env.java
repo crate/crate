@@ -19,13 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.copy.s3.common;
+package io.crate.opendal;
 
 import org.apache.opendal.ServiceConfig;
 import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
-
-import io.crate.opendal.S3;
 
 public final class S3Env {
 
