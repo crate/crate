@@ -265,14 +265,40 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             case UUIDType.ID:
             case BitStringType.ID:
                 return new HllAggregator(reference.storageIdent(), valueType, precision) {
+
+                    private static final int MAX_CACHE_SIZE = 256;
+                    long[] cache;
+
                     @Override
                     public HllState apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
-                            BytesRef ref = super.values.lookupOrd(super.values.nextOrd());
-                            var hash = MurmurHash3.hash64(ref.bytes, ref.offset, ref.length);
-                            state.addHash(hash);
+                            long ordinal = super.values.nextOrd();
+                            if (ordinal < cache.length) {
+                                int ord = (int) ordinal;
+                                long hash = cache[ord];
+                                if (hash == 0) {
+                                    BytesRef ref = super.values.lookupOrd(ordinal);
+                                    hash = MurmurHash3.hash64(ref.bytes, ref.offset, ref.length);
+                                    cache[ord] = hash;
+                                }
+                                state.addHash(hash);
+                            } else {
+                                BytesRef ref = super.values.lookupOrd(ordinal);
+                                var hash = MurmurHash3.hash64(ref.bytes, ref.offset, ref.length);
+                                state.addHash(hash);
+                            }
                         }
                         return state;
+                    }
+
+                    @Override
+                    public void loadDocValues(LeafReaderContext reader) throws IOException {
+                        super.loadDocValues(reader);
+                        long valueCount = super.values.getValueCount();
+                        int cacheSize = valueCount < Integer.MAX_VALUE
+                            ? Math.min((int) valueCount, MAX_CACHE_SIZE)
+                            : MAX_CACHE_SIZE;
+                        cache = new long[cacheSize];
                     }
                 };
             case IpType.ID:
