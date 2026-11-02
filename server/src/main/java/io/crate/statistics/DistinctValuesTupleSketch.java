@@ -38,7 +38,7 @@ import org.jspecify.annotations.Nullable;
 /// Unions sum the occurrences per hash, so the counts stay correct across nodes.
 public final class DistinctValuesTupleSketch {
 
-    private static final int NOMINAL_ENTRIES = 16384;
+    private static final int NOMINAL_ENTRIES = 8196;
     private static final double[] ONE = {1.0};
 
     /// `null` once the sketch was merged or streamed.
@@ -72,11 +72,11 @@ public final class DistinctValuesTupleSketch {
             throw new UnsupportedOperationException("Cannot add values to a merged or streamed sketch");
         }
         switch (val) {
-            case Long l -> updatable.update(l.longValue(), ONE);
+            case Long l -> updatable.update(l, ONE);
             case Integer i -> updatable.update(i.longValue(), ONE);
             case Short s -> updatable.update(s.longValue(), ONE);
             case Byte b -> updatable.update(b.longValue(), ONE);
-            case Double d -> updatable.update(d.doubleValue(), ONE);
+            case Double d -> updatable.update(d, ONE);
             case Float f -> updatable.update(f.doubleValue(), ONE);
             default -> updatable.update(val.toString(), ONE);
         }
