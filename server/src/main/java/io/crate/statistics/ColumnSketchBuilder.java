@@ -46,11 +46,11 @@ public abstract class ColumnSketchBuilder<T> {
     protected long nullCount;
     protected long totalBytes;
 
-    // The NDV is estimated either using DistinctValuesSketch or using DistinctValueSet.
-    // DistinctValueSet is meant to be a replacement for DistinctValuesSketch, due to its
+    // The NDV is estimated either using DistinctValuesSketch or using DistinctValuesTupleSketch.
+    // DistinctValuesTupleSketch is meant to be a replacement for DistinctValuesSketch, due to its
     // inaccuracy (see: https://github.com/crate/crate/issues/20210 for details).
     // Both exist here to support rolling upgrades, given that they cannot be "mixed".
-    // If all nodes in the cluster are on 6.5.1 or higher, then DistinctValueSet is used.
+    // If all nodes in the cluster are on 6.5.1 or higher, then DistinctValuesTupleSketch is used.
 
     @Deprecated(since = "6.5.1")
     @Nullable
@@ -58,7 +58,7 @@ public abstract class ColumnSketchBuilder<T> {
 
     /// Only filled if [#distinctSketch] is `null`.
     @Nullable
-    protected final DistinctValueSet distinctCounts;
+    protected final DistinctValuesTupleSketch distinctCounts;
 
     /**
      * Creates a new ColumnSketchBuilder for the given DataType
@@ -69,7 +69,7 @@ public abstract class ColumnSketchBuilder<T> {
         this.dataType = dataType;
         boolean useSketch = minNodeVersion.before(Version.V_6_5_1);
         this.distinctSketch = useSketch ? DistinctValuesSketch.newSketch() : null;
-        this.distinctCounts = useSketch ? null : new DistinctValueSet();
+        this.distinctCounts = useSketch ? null : new DistinctValuesTupleSketch();
     }
 
     /**
@@ -87,7 +87,7 @@ public abstract class ColumnSketchBuilder<T> {
             this.distinctCounts = null;
         } else {
             this.distinctSketch = null;
-            this.distinctCounts = DistinctValueSet.fromStream(in);
+            this.distinctCounts = DistinctValuesTupleSketch.fromStream(in);
         }
     }
 
@@ -149,27 +149,28 @@ public abstract class ColumnSketchBuilder<T> {
         return (double) nullCount / (double) sampleCount;
     }
 
-    /// Estimates the NDV using either the [DistinctValuesSketch] or [DistinctValueSet] (Haas-Stokes estimator).
+    /// Estimates the NDV using either the [DistinctValuesSketch] or [DistinctValuesTupleSketch] (Haas-Stokes estimator).
     final double estimateDistinct(long totalDocs) {
         if (distinctSketch != null) {
             return distinctSketch.getSketch().getEstimate();
         }
 
-        return estimateWithHaasStokes(totalDocs);
+        return estimateWithTupleSketch(totalDocs);
     }
 
-    private double estimateWithHaasStokes(long totalRows) {
-        double distinctSamples = distinctCounts.distinctValues();
-        double numValuesWithDuplicates = distinctCounts.distinctValues() - distinctCounts.singletons();
+    private double estimateWithTupleSketch(long totalRows) {
+        // `d` and `f1` are estimated from the retained entries of the tuple sketch.
+        double d = distinctCounts.distinctValues();
+        double f1 = distinctCounts.singletons();
 
-        if (numValuesWithDuplicates == 0) {
+        if (f1 >= d) {
             // All sample values are unique. We assume it is a unique column, but we need to discount for null values.
             return (1.0 - nullFraction()) * totalRows;
         }
-        if (numValuesWithDuplicates == distinctSamples) {
+        if (f1 == 0) {
             // Every value appeared more than once. Assume the column has just these values.
             // This should address cases like boolean or enum columns, where there is a small fixed set of possible values.
-            return distinctSamples;
+            return d;
         }
 
         // Estimate the number of distinct values using the estimator
@@ -188,8 +189,6 @@ public abstract class ColumnSketchBuilder<T> {
         // very unstable when n is much smaller than N.
         //
         // Also see PostgreSQL's [compute_distinct_stats](https://github.com/postgres/postgres/blob/9f4bd91a1960f0263c497a9a1ddf121cbcefbb98/src/backend/commands/analyze.c#L2121).
-        double f1 = distinctSamples - numValuesWithDuplicates;
-        double d = f1 + numValuesWithDuplicates;
         double n = sampleCount - nullCount;
         double N = totalRows * (1.0 - nullFraction());
         double approxDistinct;
