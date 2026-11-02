@@ -30,9 +30,11 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 import org.assertj.core.data.Offset;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.jupiter.api.Test;
+import org.openjdk.jol.info.GraphLayout;
 
 import io.crate.types.DataTypes;
 import net.jqwik.api.Property;
@@ -71,6 +73,18 @@ public class ColumnStatsTest {
             values.add(i);
             values.add(i);
         }
+
+        ColumnSketchBuilder<Integer> builder = DataTypes.INTEGER.columnStatsSupport().sketchBuilder(Version.CURRENT);
+        builder.addAll(values);
+        GraphLayout layout = GraphLayout.parseInstance(builder.distinctCounts);
+        System.out.println("totalSize=" + layout.totalSize());
+        System.out.println(layout.toFootprint());
+
+        builder = DataTypes.INTEGER.columnStatsSupport().sketchBuilder(Version.V_5_5_1);
+        builder.addAll(values);
+        layout = GraphLayout.parseInstance(builder.distinctSketch);
+        System.out.println("totalSize=" + layout.totalSize());
+        System.out.println(layout.toFootprint());
 
         // Haas-Stokes: n*d / (n - f1 + f1*n/N) = 40000*35000 / (10000 + 30000*40000/400000)
         //            = 1,400,000,000 / 13,000 = 107,692.307692...
