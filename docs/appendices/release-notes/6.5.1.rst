@@ -186,3 +186,6 @@ Fixes
   :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>` to not overwrite existing
   only on cluster UDF functions (as documented) and instead merge snapshot and
   cluster metadata.
+
+- Fixed an issue that caused Logical Replication to stop when primary shards on
+  the subscriber cluster were relocated to another node.
