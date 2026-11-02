@@ -46,11 +46,11 @@ public abstract class ColumnSketchBuilder<T> {
     protected long nullCount;
     protected long totalBytes;
 
-    // The NDV is estimated either using DistinctValuesSketch or using DistinctValuesTupleSketch.
-    // DistinctValuesTupleSketch is meant to be a replacement for DistinctValuesSketch, due to its
+    // The NDV is estimated either using DistinctValuesSketch or using DistinctValueSet.
+    // DistinctValueSet is meant to be a replacement for DistinctValuesSketch, due to its
     // inaccuracy (see: https://github.com/crate/crate/issues/20210 for details).
     // Both exist here to support rolling upgrades, given that they cannot be "mixed".
-    // If all nodes in the cluster are on 6.5.1 or higher, then DistinctValuesTupleSketch is used.
+    // If all nodes in the cluster are on 6.5.1 or higher, then DistinctValueSet is used.
 
     @Deprecated(since = "6.5.1")
     @Nullable
@@ -58,7 +58,7 @@ public abstract class ColumnSketchBuilder<T> {
 
     /// Only filled if [#distinctSketch] is `null`.
     @Nullable
-    protected final DistinctValuesTupleSketch distinctCounts;
+    protected final DistinctValueSet distinctCounts;
 
     /**
      * Creates a new ColumnSketchBuilder for the given DataType
@@ -69,7 +69,7 @@ public abstract class ColumnSketchBuilder<T> {
         this.dataType = dataType;
         boolean useSketch = minNodeVersion.before(Version.V_6_5_1);
         this.distinctSketch = useSketch ? DistinctValuesSketch.newSketch() : null;
-        this.distinctCounts = useSketch ? null : new DistinctValuesTupleSketch();
+        this.distinctCounts = useSketch ? null : new DistinctValueSet();
     }
 
     /**
@@ -87,7 +87,7 @@ public abstract class ColumnSketchBuilder<T> {
             this.distinctCounts = null;
         } else {
             this.distinctSketch = null;
-            this.distinctCounts = DistinctValuesTupleSketch.fromStream(in);
+            this.distinctCounts = DistinctValueSet.fromStream(in);
         }
     }
 
@@ -149,17 +149,17 @@ public abstract class ColumnSketchBuilder<T> {
         return (double) nullCount / (double) sampleCount;
     }
 
-    /// Estimates the NDV using either the [DistinctValuesSketch] or [DistinctValuesTupleSketch] (Haas-Stokes estimator).
+    /// Estimates the NDV using either the [DistinctValuesSketch] or [DistinctValueSet] (Haas-Stokes estimator).
     final double estimateDistinct(long totalDocs) {
         if (distinctSketch != null) {
             return distinctSketch.getSketch().getEstimate();
         }
 
-        return estimateWithTupleSketch(totalDocs);
+        return estimateWithHaasStokes(totalDocs);
     }
 
-    private double estimateWithTupleSketch(long totalRows) {
-        // `d` and `f1` are estimated from the retained entries of the tuple sketch.
+    private double estimateWithHaasStokes(long totalRows) {
+        // `d` and `f1` are estimated from the hashes kept by the DistinctValueSet.
         double d = distinctCounts.distinctValues();
         double f1 = distinctCounts.singletons();
 
@@ -193,7 +193,9 @@ public abstract class ColumnSketchBuilder<T> {
         double N = totalRows * (1.0 - nullFraction());
         double approxDistinct;
         if (N > 0) {
-            approxDistinct = (n * d) / ((n - f1) + f1 * n / N);
+            // For near-unique columns, the exact `n` minus the estimated `f1` would be dominated
+            // by the error of `f1`, so `n - f1` is estimated as a whole.
+            approxDistinct = (n * d) / (distinctCounts.nonSingletonRows() + f1 * n / N);
         } else {
             approxDistinct = 0;
         }

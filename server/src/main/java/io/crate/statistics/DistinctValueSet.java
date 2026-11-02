@@ -32,7 +32,11 @@ import com.carrotsearch.hppc.LongHashSet;
 import com.carrotsearch.hppc.cursors.LongCursor;
 
 /**
- * A streamable set of the hashes of all sampled values.
+ * A streamable, bounded sample of the hashes of all sampled values.
+ * <p>
+ * Only hashes with at least {@code level} leading zeros are kept, so each distinct value is kept
+ * with probability {@code 2^-level}, together with all its occurrences.
+ * Once {@link #MAX_RETAINED} hashes are kept, the level is raised, which drops about half of them.
  * <p>
  * The lowest bit of each hash is used as a duplication flag.
  */
@@ -41,17 +45,34 @@ public final class DistinctValueSet {
     private static final long DUPLICATE_FLAG = 1L;
     private static final long KEY_MASK = ~DUPLICATE_FLAG;
 
+    // HPPC resizes at a load factor of 0.75, so the hash table stays at 8192 slots.
+    private static final int MAX_RETAINED = 6144;
+
+    // A hash has 0 to 64 leading zeros.
+    private static final int NUM_LEVELS = Long.SIZE + 1;
+
     private final LongHashSet hashes;
 
+    // The number of added rows by the level of their hash, including the rows of dropped hashes.
+    private final long[] rowsByLevel;
+
+    private int level;
+
     DistinctValueSet() {
-        this(new LongHashSet());
+        this(new LongHashSet(), new long[NUM_LEVELS], 0);
     }
 
-    private DistinctValueSet(LongHashSet hashes) {
+    private DistinctValueSet(LongHashSet hashes, long[] rowsByLevel, int level) {
         this.hashes = hashes;
+        this.rowsByLevel = rowsByLevel;
+        this.level = level;
     }
 
     public void writeTo(StreamOutput out) throws IOException {
+        out.writeVInt(level);
+        for (long rows : rowsByLevel) {
+            out.writeVLong(rows);
+        }
         out.writeVInt(hashes.size());
         for (LongCursor cursor : hashes) {
             out.writeLong(cursor.value);
@@ -59,12 +80,17 @@ public final class DistinctValueSet {
     }
 
     public static DistinctValueSet fromStream(StreamInput in) throws IOException {
+        int level = in.readVInt();
+        long[] rowsByLevel = new long[NUM_LEVELS];
+        for (int i = 0; i < NUM_LEVELS; i++) {
+            rowsByLevel[i] = in.readVLong();
+        }
         int size = in.readVInt();
         LongHashSet hashes = new LongHashSet(size);
         for (int i = 0; i < size; i++) {
             hashes.add(in.readLong());
         }
-        return new DistinctValueSet(hashes);
+        return new DistinctValueSet(hashes, rowsByLevel, level);
     }
 
     public void add(Object val) {
@@ -89,24 +115,55 @@ public final class DistinctValueSet {
         add(key);
     }
 
-    private void add(long entry) {
-        long nonDupe = entry & KEY_MASK;
-        long duplicate = nonDupe | DUPLICATE_FLAG;
-        if (hashes.contains(duplicate)) {
-            return;
-        }
-        if (hashes.remove(nonDupe)) {
-            hashes.add(duplicate);
-        } else {
-            hashes.add(nonDupe);
+    private void add(long hash) {
+        long key = hash & KEY_MASK;
+        int keyLevel = levelOf(key);
+        rowsByLevel[keyLevel]++;
+        if (keyLevel >= level) {
+            addKey(key);
         }
     }
 
+    private static int levelOf(long entry) {
+        return Long.numberOfLeadingZeros(entry & KEY_MASK);
+    }
+
+    private void addKey(long key) {
+        long duplicate = key | DUPLICATE_FLAG;
+        if (hashes.contains(duplicate)) {
+            return;
+        }
+        if (hashes.remove(key)) {
+            hashes.add(duplicate);
+        } else {
+            hashes.add(key);
+            shrinkIfFull();
+        }
+    }
+
+    private void shrinkIfFull() {
+        while (hashes.size() >= MAX_RETAINED) {
+            raiseLevel(level + 1);
+        }
+    }
+
+    private void raiseLevel(int newLevel) {
+        level = newLevel;
+        hashes.removeAll(entry -> levelOf(entry) < newLevel);
+    }
+
     public DistinctValueSet merge(DistinctValueSet other) {
-        // todo this may over-allocate, see if we can estimate the size.
-        hashes.ensureCapacity(hashes.size() + other.hashes.size());
+        for (int i = 0; i < NUM_LEVELS; i++) {
+            rowsByLevel[i] += other.rowsByLevel[i];
+        }
+        if (other.level > level) {
+            raiseLevel(other.level);
+        }
         for (LongCursor cursor : other.hashes) {
-            addMergeEntry(cursor.value);
+            // `level` may have been raised by an earlier entry.
+            if (levelOf(cursor.value) >= level) {
+                addMergeEntry(cursor.value);
+            }
         }
         return this;
     }
@@ -120,17 +177,32 @@ public final class DistinctValueSet {
             long nonDupe = entry & KEY_MASK;
             hashes.remove(nonDupe);
             hashes.add(entry);
+            shrinkIfFull();
         } else {
-            add(entry);
+            addKey(entry);
         }
     }
 
-    public int distinctValues() {
-        return hashes.size();
+    // Estimated number of distinct values.
+    public double distinctValues() {
+        return Math.scalb((double) hashes.size(), level);
     }
 
-    // Number of distinct values that appear exactly once.
-    public int singletons() {
+    // Estimated number of distinct values that appear exactly once.
+    public double singletons() {
+        return Math.scalb((double) keptSingletons(), level);
+    }
+
+    // Estimated number of rows whose value appears more than once (`n - f1` in Haas-Stokes).
+    public double nonSingletonRows() {
+        long keptRows = 0;
+        for (int i = level; i < NUM_LEVELS; i++) {
+            keptRows += rowsByLevel[i];
+        }
+        return Math.scalb((double) (keptRows - keptSingletons()), level);
+    }
+
+    private int keptSingletons() {
         int singletons = 0;
         for (LongCursor cursor : hashes) {
             if ((cursor.value & DUPLICATE_FLAG) == 0) {
