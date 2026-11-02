@@ -160,9 +160,23 @@ public class DistinctValueSetTest extends ESTestCase {
 
         BytesStreamOutput out = new BytesStreamOutput();
         set1.writeTo(out);
-        DistinctValueSet deserialized = DistinctValueSet.fromStream(out.bytes().streamInput());
+        DistinctValueSet deserialized = new DistinctValueSet(out.bytes().streamInput());
 
         assertThat(deserialized.distinctValues()).isEqualTo(2);
         assertThat(deserialized.singletons()).isEqualTo(1);
+    }
+
+    @Test
+    public void test_non_singleton_values() {
+        set1.add("a");
+        set1.add("b");
+        set1.add("b");
+        set1.add("c");
+        set1.add("c");
+        set1.add("c");
+
+        assertThat(set1.nonSingletonRows()).isEqualTo(5);
+        assertThat(set1.distinctValues()).isEqualTo(3);
+        assertThat(set1.singletons()).isEqualTo(1);
     }
 }

@@ -49,7 +49,7 @@ public abstract class ColumnSketchBuilder<T> {
     // The NDV is estimated either using DistinctValuesSketch or using DistinctValueSet.
     // DistinctValueSet is meant to be a replacement for DistinctValuesSketch, due to its
     // inaccuracy (see: https://github.com/crate/crate/issues/20210 for details).
-    // Both exist here to support rolling upgrades, given that they cannot be "mixed".
+    // Both exist at the same time to support rolling upgrades, given that they cannot be "mixed".
     // If all nodes in the cluster are on 6.5.1 or higher, then DistinctValueSet is used.
 
     @Deprecated(since = "6.5.1")
@@ -87,7 +87,7 @@ public abstract class ColumnSketchBuilder<T> {
             this.distinctCounts = null;
         } else {
             this.distinctSketch = null;
-            this.distinctCounts = DistinctValueSet.fromStream(in);
+            this.distinctCounts = new DistinctValueSet(in);
         }
     }
 
@@ -149,7 +149,7 @@ public abstract class ColumnSketchBuilder<T> {
         return (double) nullCount / (double) sampleCount;
     }
 
-    /// Estimates the NDV using either the [DistinctValuesSketch] or [DistinctValueSet] (Haas-Stokes estimator).
+    /// Estimates the NDV using either the [DistinctValuesSketch] or the Haas-Stokes estimator.
     final double estimateDistinct(long totalDocs) {
         if (distinctSketch != null) {
             return distinctSketch.getSketch().getEstimate();
@@ -158,18 +158,29 @@ public abstract class ColumnSketchBuilder<T> {
         return estimateWithHaasStokes(totalDocs);
     }
 
-    private double estimateWithHaasStokes(long totalRows) {
-        double distinctSamples = distinctCounts.distinctValues();
-        double numValuesWithDuplicates = distinctCounts.distinctValues() - distinctCounts.singletons();
+    /// Estimates the NDV of the sample, not of the table.
+    final double sampleDistinct() {
+        if (distinctSketch != null) {
+            return distinctSketch.getSketch().getEstimate();
+        }
+        return Math.min(distinctCounts.distinctValues(), sampleCount - nullCount);
+    }
 
-        if (numValuesWithDuplicates == 0) {
+    private double estimateWithHaasStokes(long totalRows) {
+        // `d` and `f1` are estimated from the hashes kept by the DistinctValueSet.
+        double d = distinctCounts.distinctValues();
+        double f1 = distinctCounts.singletons();
+        double n = sampleCount - nullCount;
+        double nonSingletonRows = distinctCounts.nonSingletonRows();
+
+        if (nonSingletonRows <= 0) {
             // All sample values are unique. We assume it is a unique column, but we need to discount for null values.
             return (1.0 - nullFraction()) * totalRows;
         }
-        if (numValuesWithDuplicates == distinctSamples) {
+        if (f1 == 0) {
             // Every value appeared more than once. Assume the column has just these values.
             // This should address cases like boolean or enum columns, where there is a small fixed set of possible values.
-            return distinctSamples;
+            return d;
         }
 
         // Estimate the number of distinct values using the estimator
@@ -188,13 +199,12 @@ public abstract class ColumnSketchBuilder<T> {
         // very unstable when n is much smaller than N.
         //
         // Also see PostgreSQL's [compute_distinct_stats](https://github.com/postgres/postgres/blob/9f4bd91a1960f0263c497a9a1ddf121cbcefbb98/src/backend/commands/analyze.c#L2121).
-        double f1 = distinctSamples - numValuesWithDuplicates;
-        double d = f1 + numValuesWithDuplicates;
-        double n = sampleCount - nullCount;
         double N = totalRows * (1.0 - nullFraction());
         double approxDistinct;
         if (N > 0) {
-            approxDistinct = (n * d) / ((n - f1) + f1 * n / N);
+            // For near-unique columns, the exact `n` minus the estimated `f1` would be dominated
+            // by the error of `f1`, so `n - f1` is estimated as a whole.
+            approxDistinct = (n * d) / (nonSingletonRows + f1 * n / N);
         } else {
             approxDistinct = 0;
         }
@@ -268,7 +278,7 @@ public abstract class ColumnSketchBuilder<T> {
             double nullFraction = nullFraction();
             double avgSizeInBytes = (double) totalBytes / ((double) sampleCount - nullCount);
             double approxDistinct = estimateDistinct(totalDocs);
-            MostCommonValues<T> mcv = this.mostCommonValuesSketch.toMostCommonValues(sampleCount, approxDistinct);
+            MostCommonValues<T> mcv = this.mostCommonValuesSketch.toMostCommonValues(sampleCount, sampleDistinct());
             return new ColumnStats<>(
                 nullFraction,
                 avgSizeInBytes,
@@ -345,7 +355,7 @@ public abstract class ColumnSketchBuilder<T> {
             double avgSizeInBytes = (double) totalBytes / ((double) sampleCount - nullCount);
             double approxDistinct = estimateDistinct(totalDocs);
             MostCommonValues<T> mcv =
-                this.mostCommonValuesSketch.toMostCommonValues(sampleCount, approxDistinct, this::fromByteStream);
+                this.mostCommonValuesSketch.toMostCommonValues(sampleCount, sampleDistinct(), this::fromByteStream);
             return new ColumnStats<>(
                 nullFraction,
                 avgSizeInBytes,
