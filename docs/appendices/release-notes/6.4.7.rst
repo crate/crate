@@ -89,6 +89,11 @@ Fixes
   state and stop replicating after a publisher restart if the subscriber sent
   requests before the publisher's transport service was ready to handle them.
 
+- Fixed an issue that could leave logical replication subscriptions stuck
+  in the restoring state after the initial restore had completed,
+  preventing schema updates and the creation of new partitions on the
+  subscriber.
+
 - Fixed an issue which caused the ``optimizer_eliminate_cross_join`` rule to
   drop non-equality filters (e.g., a greater-than condition) that are combined
   with an equality filter over the same two tables. The issue also caused
