@@ -86,6 +86,10 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Improved the performance for the :ref:`hyperloglog_distinct
+  <aggregation-hyperloglog-distinct>` aggregation on text, IP, UUID and
+  BitString types for very low cardinalities.
+
 - `Somil Jain <https://github.com/somiljain2006>`_ improved query planning for
   ``LEFT``, ``RIGHT``, and ``FULL OUTER JOIN`` queries with nested join inputs.
   Null-rejecting ``WHERE`` predicates referencing relations within a nested
