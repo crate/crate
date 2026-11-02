@@ -36,28 +36,50 @@ some circumstances be pushed to the foreign system, but that depends on the
 concrete foreign data wrapper implementation. You can check if this is the case
 by using the :ref:`ref-explain` statement.
 
+.. hide:
+
+  cr> CREATE FOREIGN TABLE doc.summits (mountain string) SERVER pg
+  ... OPTIONS (schema_name 'doc', table_name 'summits_src');
+  CREATE OK, 1 row affected (... sec)
+
 For example, in the following explain output there is a dedicated ``Filter``
 node, indicating that the filter is executed within CrateDB::
 
-    > explain select * from summits where mountain like 'H%';
+    cr> explain select * from summits where mountain like 'H%';
     +--------------------------------------------------------------------+
     | QUERY PLAN                                                         |
     +--------------------------------------------------------------------+
     | Filter[(mountain LIKE 'H%')] (rows=0)                              |
     |   └ ForeignCollect[doc.summits | [mountain] | true] (rows=unknown) |
     +--------------------------------------------------------------------+
+    EXPLAIN 1 row in set (... sec)
 
 Compare this to the following output, where the query became part of the
 ``ForeignCollect`` node, indicating that it evaluates within the foreign
 system::
 
 
-    > explain select * from summits where mountain = 'Monte Verena';
+    cr> explain select * from summits where mountain = 'Monte Verena';
     +---------------------------------------------------------------------------------------+
     | QUERY PLAN                                                                            |
     +---------------------------------------------------------------------------------------+
     | ForeignCollect[doc.summits | [mountain] | (mountain = 'Monte Verena')] (rows=unknown) |
     +---------------------------------------------------------------------------------------+
+    EXPLAIN 1 row in set (... sec)
+
+
+.. hide:
+
+  cr> SELECT * FROM summits;
+  +--------------+
+  | mountain     |
+  +--------------+
+  | Monte Verena |
+  +--------------+
+  SELECT 1 row in set (... sec)
+
+  cr> DROP SERVER pg CASCADE;
+  DROP OK, 1 row affected (... sec)
 
 .. note::
 
