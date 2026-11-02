@@ -93,7 +93,7 @@ public class TransportRestoreSnapshot extends TransportMasterNodeAction<RestoreS
             @Override
             public void onResponse(RestoreCompletionResponse restoreCompletionResponse) {
                 if (restoreCompletionResponse.getRestoreInfo() == null && request.waitForCompletion()) {
-                    clusterService.addListener(new RestoreClusterStateListener(clusterService, restoreCompletionResponse, listener));
+                    new RestoreClusterStateListener(clusterService, restoreCompletionResponse, listener).start();
                 } else {
                     listener.onResponse(new RestoreSnapshotResponse(restoreCompletionResponse.getRestoreInfo()));
                 }
