@@ -264,55 +264,13 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             case CharacterType.ID:
             case UUIDType.ID:
             case BitStringType.ID:
-                return new HllAggregator(reference.storageIdent(), valueType, precision) {
-
-                    private static final int MAX_CACHE_SIZE = 256;
-                    long[] cache;
-
-                    @Override
-                    public HllState apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
-                        if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
-                            long ordinal = super.values.nextOrd();
-                            if (ordinal < cache.length) {
-                                int ord = (int) ordinal;
-                                long hash = cache[ord];
-                                if (hash == 0) {
-                                    BytesRef ref = super.values.lookupOrd(ordinal);
-                                    hash = MurmurHash3.hash64(ref.bytes, ref.offset, ref.length);
-                                    cache[ord] = hash;
-                                }
-                                state.addHash(hash);
-                            } else {
-                                BytesRef ref = super.values.lookupOrd(ordinal);
-                                var hash = MurmurHash3.hash64(ref.bytes, ref.offset, ref.length);
-                                state.addHash(hash);
-                            }
-                        }
-                        return state;
-                    }
-
-                    @Override
-                    public void loadDocValues(LeafReaderContext reader) throws IOException {
-                        super.loadDocValues(reader);
-                        long valueCount = super.values.getValueCount();
-                        int cacheSize = valueCount < Integer.MAX_VALUE
-                            ? Math.min((int) valueCount, MAX_CACHE_SIZE)
-                            : MAX_CACHE_SIZE;
-                        cache = new long[cacheSize];
-                    }
-                };
+                return new SortedSetDocValueAggregator(reference.storageIdent(), valueType, precision);
             case IpType.ID:
-                return new HllAggregator(reference.storageIdent(), valueType, precision) {
-                    @Override
-                    public HllState apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
-                        if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
-                            BytesRef ref = super.values.lookupOrd(super.values.nextOrd());
-                            byte[] bytes = NetworkUtils.formatIPBytes(ref).getBytes(StandardCharsets.UTF_8);
+                return new SortedSetDocValueAggregator(reference.storageIdent(), valueType, precision) {
 
-                            var hash = MurmurHash3.hash64(bytes, 0, bytes.length);
-                            state.addHash(hash);
-                        }
-                        return state;
+                    protected long hashValue(BytesRef ref) {
+                        byte[] bytes = NetworkUtils.formatIPBytes(ref).getBytes(StandardCharsets.UTF_8);
+                        return MurmurHash3.hash64(bytes, 0, bytes.length);
                     }
                 };
 
@@ -321,17 +279,24 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
     }
 
-    private abstract static class HllAggregator implements DocValueAggregator<HllState> {
+    private static class SortedSetDocValueAggregator implements DocValueAggregator<HllState> {
 
+        private static final int MAX_CACHE_SIZE = 256;
         private final String columnName;
         private final DataType<?> dataType;
         private final Integer precision;
+
+        private long[] cache;
         private SortedSetDocValues values;
 
-        public HllAggregator(String columnName, DataType<?> dataType, Integer precision) {
+        public SortedSetDocValueAggregator(String columnName, DataType<?> dataType, Integer precision) {
             this.columnName = columnName;
             this.dataType = dataType;
             this.precision = precision;
+        }
+
+        protected long hashValue(BytesRef ref) {
+            return MurmurHash3.hash64(ref.bytes, ref.offset, ref.length);
         }
 
         @Override
@@ -341,8 +306,35 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
 
         @Override
+        public HllState apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
+            if (!values.advanceExact(doc) || values.docValueCount() != 1) {
+                return state;
+            }
+            long ordinal = values.nextOrd();
+            if (ordinal < cache.length) {
+                int ord = (int) ordinal;
+                long hash = cache[ord];
+                if (hash == 0) {
+                    BytesRef ref = values.lookupOrd(ordinal);
+                    hash = hashValue(ref);
+                    cache[ord] = hash;
+                }
+                state.addHash(hash);
+            } else {
+                BytesRef ref = values.lookupOrd(ordinal);
+                state.addHash(hashValue(ref));
+            }
+            return state;
+        }
+
+        @Override
         public void loadDocValues(LeafReaderContext reader) throws IOException {
             values = DocValues.getSortedSet(reader.reader(), columnName);
+            long valueCount = values.getValueCount();
+            int cacheSize = valueCount < Integer.MAX_VALUE
+                ? Math.min((int) valueCount, MAX_CACHE_SIZE)
+                : MAX_CACHE_SIZE;
+            cache = new long[cacheSize];
         }
 
         @Override
@@ -546,8 +538,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     return Long.INSTANCE;
                 case StringType.ID:
                 case BooleanType.ID:
-                case IpType.ID:
                 case CharacterType.ID:
+                case IpType.ID:
                     return Bytes64.INSTANCE;
                 case UUIDType.ID:
                     return UUIDMurmur.INSTANCE;
@@ -559,6 +551,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
 
         abstract long hash(Object val);
+
 
         private static class Long extends Murmur3Hash {
 
