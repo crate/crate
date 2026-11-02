@@ -44,6 +44,7 @@ public class RestoreClusterStateListener implements ClusterStateListener {
     private final ClusterService clusterService;
     private final String uuid;
     private final ActionListener<RestoreSnapshotResponse> listener;
+    private boolean completed;
 
 
     public RestoreClusterStateListener(ClusterService clusterService,
@@ -54,17 +55,34 @@ public class RestoreClusterStateListener implements ClusterStateListener {
         this.listener = listener;
     }
 
+    public synchronized void start() {
+        assert completed == false : "Cannot start a restore listener that has already completed";
+        clusterService.addListener(this);
+        boolean restoreAlreadyCompleted = restoreInProgress(clusterService.state(), uuid) == null;
+        // If the restore is already completed, remove the listener and complete the response directly.
+        if (restoreAlreadyCompleted) {
+            completed = true;
+            clusterService.removeListener(this);
+            listener.onResponse(new RestoreSnapshotResponse((RestoreInfo) null));
+        }
+    }
+
     @Override
-    public void clusterChanged(ClusterChangedEvent changedEvent) {
+    public synchronized void clusterChanged(ClusterChangedEvent changedEvent) {
+        if (completed) {
+            return;
+        }
         final RestoreInProgress.Entry prevEntry = restoreInProgress(changedEvent.previousState(), uuid);
         final RestoreInProgress.Entry newEntry = restoreInProgress(changedEvent.state(), uuid);
         if (prevEntry == null) {
             // When there is a master failure after a restore has been started, this listener might not be registered
             // on the current master and as such it might miss some intermediary cluster states due to batching.
             // Clean up listener in that case and acknowledge completion of restore operation to client.
+            completed = true;
             clusterService.removeListener(this);
             listener.onResponse(new RestoreSnapshotResponse((RestoreInfo) null));
         } else if (newEntry == null) {
+            completed = true;
             clusterService.removeListener(this);
             Map<ShardId, RestoreInProgress.ShardRestoreStatus> shards = prevEntry.shards();
             assert prevEntry.state().completed() : "expected completed snapshot state but was " + prevEntry.state();
