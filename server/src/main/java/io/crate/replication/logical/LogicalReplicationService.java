@@ -346,8 +346,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             return onRestoreInfo.apply(response.getRestoreInfo());
         } else {
             FutureActionListener<RestoreSnapshotResponse> restoreFuture = new FutureActionListener<>();
-            // Restore still in progress, add listener to wait for it
-            clusterService.addListener(new RestoreClusterStateListener(clusterService, response, restoreFuture));
+            new RestoreClusterStateListener(clusterService, response, restoreFuture).start();
             return restoreFuture.thenCompose(resp -> onRestoreInfo.apply(resp.getRestoreInfo()));
         }
     }
