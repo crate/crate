@@ -22,6 +22,7 @@
 package io.crate.statistics;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.withinPercentage;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -92,7 +93,7 @@ public class ColumnSketchBuilderTest extends ESTestCase {
     }
 
     @Test
-    public void test_streaming_pre_6_5_0() throws IOException {
+    public void test_streaming_pre_6_5_1() throws IOException {
         var support = StringType.INSTANCE.columnStatsSupport();
         var sketch = support.sketchBuilder(Version.V_6_5_0);
 
@@ -146,6 +147,28 @@ public class ColumnSketchBuilderTest extends ESTestCase {
                 .as("version: " + version)
                 .isEqualTo(150.0);
         }
+    }
+
+    @Test
+    public void test_approx_distinct_sample_larger_than_reservoir_cap() {
+        // Sample (n = 40,000) exceeds Reservoir.NUM_SAMPLES (30,000).
+        // 30,000 values occur once (f1 = 30,000)
+        // 5,000 values occur twice each
+        // Number of distinct values: 35,000.
+        var builder = IntegerType.INSTANCE.columnStatsSupport().sketchBuilder(Version.CURRENT);
+        for (int i = 0; i < 30_000; i++) {
+            builder.add(i);
+        }
+        for (int i = 30_000; i < 35_000; i++) {
+            builder.add(i);
+            builder.add(i);
+        }
+
+        // Haas-Stokes: n*d / (n - f1 + f1*n/N)
+        //              = 40000*35000 / (10000 + 30000*40000/400000)
+        //              = 1,400,000,000 / 13,000 = 107,692.307692...
+        assertThat(builder.toStats(400_000).approxDistinct())
+            .isCloseTo(107_692, withinPercentage(5));
     }
 
     private static ColumnSketchBuilder<String> streamOutIn(ColumnSketchBuilder<String> sketch,
