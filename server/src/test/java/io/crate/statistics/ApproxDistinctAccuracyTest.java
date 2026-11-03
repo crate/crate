@@ -40,7 +40,7 @@ public class ApproxDistinctAccuracyTest {
     private static final String URL = "jdbc:postgresql://localhost:5432/doc";
     private static final String USER = "crate";
     private static final String PASSWORD = "mysecretpassword";
-    private static final int TABLE_ROWS = 5_000_000;
+    private static final int TABLE_ROWS = 10_000_000;
     private static final int CHUNK_ROWS = 500_000;
 
     @Test
@@ -76,8 +76,8 @@ public class ApproxDistinctAccuracyTest {
     public void test_high_skew() throws Exception {
         String table = "approx_distinct_skew";
         double[] exponents = {1.1, 1.5, 2.0};
-        int[] domains = {1_000, 100_000, 5_000_000};
-        String[] domainLabels = {"1k", "100k", "5m"};
+        int[] domains = {1_000, 100_000, 10_000_000};
+        String[] domainLabels = {"1k", "100k", "10m"};
         List<String> columns = new ArrayList<>();
         List<String> definitions = new ArrayList<>();
         List<String> expressions = new ArrayList<>();
