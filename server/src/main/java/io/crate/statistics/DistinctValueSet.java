@@ -45,8 +45,10 @@ public final class DistinctValueSet {
     private static final long DUPLICATE_FLAG = 1L;
     private static final long KEY_MASK = ~DUPLICATE_FLAG;
 
-    // HPPC resizes at a load factor of 0.75, so the hash table stays at 8192 slots.
-    private static final int MAX_RETAINED = 6144;
+    // The hash table is allocated with 8192 slots up front and is never resized,
+    // because it is shrunk before it reaches the resize threshold of 8192 * LOAD_FACTOR.
+    private static final double LOAD_FACTOR = 15.0 / 16.0;
+    private static final int MAX_RETAINED = 7680;
 
     // A hash has 0 to 64 leading zeros.
     private static final int NUM_LEVELS = Long.SIZE + 1;
@@ -59,7 +61,7 @@ public final class DistinctValueSet {
     private int level;
 
     DistinctValueSet() {
-        this(new LongHashSet(), new long[NUM_LEVELS], 0);
+        this(new LongHashSet(MAX_RETAINED, LOAD_FACTOR), new long[NUM_LEVELS], 0);
     }
 
     private DistinctValueSet(LongHashSet hashes, long[] rowsByLevel, int level) {
@@ -86,7 +88,7 @@ public final class DistinctValueSet {
             rowsByLevel[i] = in.readVLong();
         }
         int size = in.readVInt();
-        LongHashSet hashes = new LongHashSet(size);
+        LongHashSet hashes = new LongHashSet(MAX_RETAINED, LOAD_FACTOR);
         for (int i = 0; i < size; i++) {
             hashes.add(in.readLong());
         }
