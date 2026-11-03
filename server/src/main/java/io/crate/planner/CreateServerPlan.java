@@ -22,11 +22,14 @@
 package io.crate.planner;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.AnalyzedCreateServer;
@@ -74,7 +77,9 @@ public class CreateServerPlan implements Plan {
         Settings.Builder optionsBuilder = Settings.builder();
         Map<String, Symbol> options = new HashMap<>(createServer.options());
         var foreignDataWrapper = foreignDataWrappers.get(createServer.fdw());
-        for (var option : foreignDataWrapper.mandatoryServerOptions()) {
+        List<Setting<?>> mandatoryServerOptions = foreignDataWrapper.mandatoryServerOptions();
+        List<Setting<?>> optionalServerOptions = foreignDataWrapper.optionalServerOptions();
+        for (var option : mandatoryServerOptions) {
             String optionName = option.getKey();
             Symbol symbol = options.remove(optionName);
             if (symbol == null) {
@@ -87,13 +92,21 @@ public class CreateServerPlan implements Plan {
             }
             optionsBuilder.put(optionName, convert.apply(symbol));
         }
+        for (var option : optionalServerOptions) {
+            String optionName = option.getKey();
+            Symbol symbol = options.remove(optionName);
+            if (symbol != null) {
+                optionsBuilder.put(optionName, convert.apply(symbol));
+            }
+        }
         if (!options.isEmpty()) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
                 "Unsupported server options for foreign data wrapper `%s`: %s. Valid options are: %s",
                 createServer.fdw(),
                 String.join(", ", options.keySet()),
-                foreignDataWrapper.mandatoryServerOptions().stream()
+                Stream.concat(mandatoryServerOptions.stream(),
+                optionalServerOptions.stream())
                     .map(x -> x.getKey())
                     .collect(Collectors.joining(", "))
             ));

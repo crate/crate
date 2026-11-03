@@ -42,6 +42,10 @@ public interface ForeignDataWrapper {
         return List.of();
     }
 
+    default List<Setting<?>> optionalServerOptions() {
+        return List.of();
+    }
+
     default List<Setting<?>> optionalTableOptions() {
         return List.of();
     }
