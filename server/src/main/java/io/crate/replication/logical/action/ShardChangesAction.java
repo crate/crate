@@ -116,7 +116,7 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
             // TODO: read changes from translog, see org.opensearch.replication.seqno.RemoteClusterTranslogService
 
             if (LOGGER.isTraceEnabled()) {
-                LOGGER.info("[{}] Fetching changes from lucene for {} - from:{}, to:{}",
+                LOGGER.trace("[{}] Fetching changes from lucene for {} - from:{}, to:{}",
                             shardId,
                             request.shardId(),
                             request.fromSeqNo(),
@@ -142,6 +142,8 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
                 throw new MissingShardOperationsException(relationName, message);
             }
 
+            LOGGER.trace("Preparing changes response: shard={}, seqNo={}-{}, operations={}, globalCheckpoint={}",
+                         shardId, fromSeqNo, toSeqNo, ops.size(), seqNoStats.getGlobalCheckpoint());
             return new Response(
                 ops,
                 fromSeqNo,

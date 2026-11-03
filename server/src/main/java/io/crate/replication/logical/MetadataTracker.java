@@ -129,10 +129,14 @@ public final class MetadataTracker implements Closeable {
         );
         cancellable = runnable;
         isActive = true;
+        LOGGER.debug("Starting metadata tracker: subscriptions={}", subscriptionsToTrack);
         runnable.run();
     }
 
-    private void stop() {
+    private void stop(String reason) {
+        if (isActive) {
+            LOGGER.debug("Stopping metadata tracker: subscriptions={}, reason={}", subscriptionsToTrack, reason);
+        }
         isActive = false;
         Cancellable currentCancellable = cancellable;
         if (currentCancellable != null) {
@@ -145,9 +149,6 @@ public final class MetadataTracker implements Closeable {
             return;
         }
 
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("Reschedule tracking metadata");
-        }
         cancellable = threadPool.scheduleUnlessShuttingDown(
             replicationSettings.pollDelay(),
             ThreadPool.Names.LOGICAL_REPLICATION,
@@ -158,7 +159,7 @@ public final class MetadataTracker implements Closeable {
     public void update(Collection<String> subscriptionNames) {
         synchronized (this) {
             if (subscriptionNames.isEmpty()) {
-                stop();
+                stop("No subscriptions to track");
             } else {
                 subscriptionsToTrack = new HashSet<>(subscriptionNames);
                 if (!isActive) {
@@ -173,7 +174,7 @@ public final class MetadataTracker implements Closeable {
             var copy = new HashSet<>(subscriptionsToTrack);
             var updated = copy.remove(subscriptionName);
             if (isActive && copy.isEmpty()) {
-                stop();
+                stop("No subscriptions to track");
             }
             subscriptionsToTrack = copy;
             return updated;
@@ -185,6 +186,12 @@ public final class MetadataTracker implements Closeable {
         var currentSubscriptionsToTrack = subscriptionsToTrack;
 
         var countDown = new CountdownFuture(currentSubscriptionsToTrack.size());
+        countDown.whenComplete((_, error) -> {
+            if (error != null) {
+                LOGGER.debug("Metadata polling round failed; next poll will not be scheduled: subscriptions="
+                             + currentSubscriptionsToTrack, error);
+            }
+        });
         countDown.thenRun(this::schedule);
 
         for (String subscriptionName : currentSubscriptionsToTrack) {
@@ -223,7 +230,13 @@ public final class MetadataTracker implements Closeable {
                     r.unknownPublications()
                 ));
         CompletableFuture<Boolean> updatedClusterState = publicationsState.thenCompose(response -> {
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Received publication metadata: subscription={}, publications={}, unknown={}, tables={}",
+                             subscriptionName, subscription.publications(), response.unknownPublications(), response.summary());
+            }
             if (response.unknownPublications().containsAll(subscription.publications())) {
+                LOGGER.debug("Stopping metadata tracking for subscription {}: all publications are missing: {}",
+                             subscriptionName, subscription.publications());
                 stopTracking(subscriptionName);
                 return CompletableFuture.completedFuture(false);
             }
@@ -287,6 +300,7 @@ public final class MetadataTracker implements Closeable {
                 return CompletableFuture.completedFuture(null);
             }
             if (e instanceof SubscriptionUnknownException) {
+                LOGGER.debug("Stopping metadata tracking for subscription {}: subscription no longer exists", subscriptionName);
                 stopTracking(subscriptionName);
                 return CompletableFuture.completedFuture(null);
             }
@@ -337,7 +351,12 @@ public final class MetadataTracker implements Closeable {
             }
         };
         clusterService.submitStateUpdateTask("track-metadata", updateTask);
-        return updateTask.completionFuture().thenApply(AcknowledgedResponse::isAcknowledged);
+        return updateTask.completionFuture().thenApply(responseAck -> {
+            if (!responseAck.isAcknowledged()) {
+                LOGGER.debug("Metadata update was not acknowledged: subscription={}", subscriptionName);
+            }
+            return responseAck.isAcknowledged();
+        });
     }
 
     private static class AckMetadataUpdateRequest extends AcknowledgedRequest<AckMetadataUpdateRequest> {
@@ -369,6 +388,11 @@ public final class MetadataTracker implements Closeable {
 
             // Update main table relation
             if (publisherTable.tableVersion() > subscriberTable.tableVersion()) {
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Updating schema: subscription={}, table={}, version={} -> {}, columns={} -> {}",
+                                 subscriptionName, followedTable, subscriberTable.tableVersion(), publisherTable.tableVersion(),
+                                 Response.columnsSummary(subscriberTable), Response.columnsSummary(publisherTable));
+                }
                 Settings updatedSettings = updateSettings(
                     publisherTable.settings(),
                     subscriberTable.settings(),
@@ -420,9 +444,6 @@ public final class MetadataTracker implements Closeable {
         }
 
         if (updateClusterState) {
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("Updated some relations of subscription {}", subscriptionName);
-            }
             return ClusterState.builder(subscriberClusterState).metadata(updatedMetadataBuilder).build();
         } else {
             return subscriberClusterState;
@@ -477,7 +498,7 @@ public final class MetadataTracker implements Closeable {
                 if (REPLICATION_INDEX_ROUTING_ACTIVE.get(indexMetadata.getSettings()) == false) {
                     // If the index is not active, we cannot restore it
                     if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("Skipping index {} for subscription {} as it is not active", indexName, subscription);
+                        LOGGER.debug("Skipping inactive publisher index {} for table {}", indexName, relationName);
                     }
                     continue;
                 }
@@ -536,6 +557,7 @@ public final class MetadataTracker implements Closeable {
             .build();
 
         if (partitionsToRemove.isEmpty() == false) {
+            LOGGER.debug("Removing partitions for subscription {}: {}", subscriptionName, partitionsToRemove);
             updatedClusterState = MetadataDeleteIndexService.deleteIndices(
                 updatedClusterState,
                 settings,
@@ -602,7 +624,7 @@ public final class MetadataTracker implements Closeable {
 
     @Override
     public void close() {
-        stop();
+        stop("Tracker closed");
     }
 
     @VisibleForTesting

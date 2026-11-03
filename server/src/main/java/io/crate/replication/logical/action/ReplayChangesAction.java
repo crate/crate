@@ -192,21 +192,31 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                                                  Consumer<Exception> failure,
                                                  Long currentTableVersion) {
             var indexUUID = request.shardId().getIndexUUID();
+            long seqNo = request.changes().get(offset).seqNo();
+            LOGGER.debug("Waiting for mapping update before replay: shard={}, seqNo={}, tableVersion={}, remainingOperations={}",
+                         request.shardId(), seqNo, currentTableVersion, request.changes().size() - offset);
             var clusterStateObserver = new ClusterStateObserver(clusterService, new TimeValue(60_000), LOGGER);
             clusterStateObserver.waitForNextChange(
                 new ClusterStateObserver.Listener() {
                     @Override
                     public void onNewClusterState(ClusterState state) {
+                        LOGGER.debug("Retrying replay after mapping update: shard={}, seqNo={}, tableVersion={} -> {}",
+                                     request.shardId(), seqNo, currentTableVersion, getTableVersion(state, indexUUID));
                         performOnPrimary(primary, request, accumulator, offset, result, failure);
                     }
 
                     @Override
                     public void onClusterServiceClose() {
+                        LOGGER.debug("Mapping wait interrupted by cluster service close: shard={}, seqNo={}, tableVersion={}",
+                                     request.shardId(), seqNo, currentTableVersion);
                         failure.accept(new IllegalStateException("ClusterService was closed while waiting for mapping update"));
                     }
 
                     @Override
                     public void onTimeout(TimeValue timeout) {
+                        LOGGER.warn("Mapping wait timed out: shard={}, seqNo={}, tableVersion={}, currentTableVersion={}, timeout={}",
+                                    request.shardId(), seqNo, currentTableVersion,
+                                    getTableVersion(clusterService.state(), indexUUID), timeout);
                         failure.accept(new ElasticsearchTimeoutException("Mappings did not update in time"));
                     }
 
