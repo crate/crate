@@ -159,6 +159,8 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
             rowReader = builder.build();
         } catch (IOException e) {
             Exceptions.rethrowUnchecked(e);
+        } catch (UncheckedIOException e) {
+            Exceptions.rethrowUnchecked(e.getCause());
         }
     }
 }

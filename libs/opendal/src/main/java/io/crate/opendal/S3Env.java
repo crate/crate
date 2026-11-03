@@ -33,7 +33,8 @@ public final class S3Env {
     public static ServiceConfig.S3 getServiceConfig(S3URI s3uri, Settings withClause) {
         String protocol = S3Protocol.get(withClause);
         String endpoint = protocol + "://" + s3uri.endpoint();
-        String region = S3.getRegion(endpoint, s3uri.bucket());
+        String regionOption = withClause.get("region");
+        String region = regionOption == null || regionOption.isEmpty() ? S3.getRegion(endpoint, s3uri.bucket()) : regionOption;
         @Nullable
         String accessKey = s3uri.accessKey();
         var builder = ServiceConfig.S3.builder()
