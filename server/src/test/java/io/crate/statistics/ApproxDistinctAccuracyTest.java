@@ -37,7 +37,7 @@ import java.util.Map;
 
 public class ApproxDistinctAccuracyTest {
 
-    private static final String URL = "jdbc:postgresql://localhost:5433/doc";
+    private static final String URL = "jdbc:postgresql://localhost:5432/doc";
     private static final String USER = "crate";
     private static final String PASSWORD = "mysecretpassword";
     private static final int TABLE_ROWS = 5_000_000;
