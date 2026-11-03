@@ -58,7 +58,7 @@ public abstract class ColumnSketchBuilder<T> {
 
     /// Only filled if [#distinctSketch] is `null`.
     @Nullable
-    protected DistinctValueSet distinctCounts;
+    protected final DistinctValueSet distinctCounts;
 
     /**
      * Creates a new ColumnSketchBuilder for the given DataType
@@ -67,10 +67,9 @@ public abstract class ColumnSketchBuilder<T> {
      */
     public ColumnSketchBuilder(DataType<T> dataType, Version minNodeVersion) {
         this.dataType = dataType;
-        // boolean useSketch = minNodeVersion.before(Version.V_6_5_1);
-        // this.distinctSketch = useSketch ? DistinctValuesSketch.newSketch() : null;
-        // this.distinctCounts = useSketch ? null : new DistinctValueSet();
-        this.distinctSketch = DistinctValuesSketch.newSketch();
+        boolean useSketch = minNodeVersion.before(Version.V_6_5_1);
+        this.distinctSketch = useSketch ? DistinctValuesSketch.newSketch() : null;
+        this.distinctCounts = useSketch ? null : new DistinctValueSet();
     }
 
     /**
@@ -79,18 +78,17 @@ public abstract class ColumnSketchBuilder<T> {
      */
     public ColumnSketchBuilder(DataType<T> dataType, Version minNodeVersion, StreamInput in) throws IOException {
         this.dataType = dataType;
-        // boolean useSketch = minNodeVersion.before(Version.V_6_5_1);
+        boolean useSketch = minNodeVersion.before(Version.V_6_5_1);
         this.sampleCount = in.readLong();
         this.nullCount = in.readLong();
         this.totalBytes = in.readLong();
-        // if (useSketch) {
-        //     this.distinctSketch = DistinctValuesSketch.fromStream(in);
-        //     this.distinctCounts = null;
-        // } else {
-        //     this.distinctSketch = null;
-        //     this.distinctCounts = DistinctValueSet.fromStream(in);
-        // }
-        this.distinctSketch = DistinctValuesSketch.fromStream(in);
+        if (useSketch) {
+            this.distinctSketch = DistinctValuesSketch.fromStream(in);
+            this.distinctCounts = null;
+        } else {
+            this.distinctSketch = null;
+            this.distinctCounts = DistinctValueSet.fromStream(in);
+        }
     }
 
     public final void writeTo(StreamOutput out) throws IOException {
@@ -101,7 +99,7 @@ public abstract class ColumnSketchBuilder<T> {
             // A node older than 6.5.1 takes part in the ANALYZE, so the sketch was built.
             out.writeByteArray(distinctSketch.getSketch().toByteArray());
         } else {
-            // distinctCounts.writeTo(out);
+            distinctCounts.writeTo(out);
         }
         writeSketches(out);
     }
@@ -117,7 +115,7 @@ public abstract class ColumnSketchBuilder<T> {
             if (distinctSketch != null) {
                 distinctSketch.update(value.toString());
             } else {
-                // distinctCounts.add(value);
+                distinctCounts.add(value);
             }
             updateSketches(value);
         }
@@ -153,11 +151,11 @@ public abstract class ColumnSketchBuilder<T> {
 
     /// Estimates the NDV using either the [DistinctValuesSketch] or [DistinctValueSet] (Haas-Stokes estimator).
     final double estimateDistinct(long totalDocs) {
-        // if (distinctSketch != null) {
-        //     return distinctSketch.getSketch().getEstimate();
-        // }
+        if (distinctSketch != null) {
+            return distinctSketch.getSketch().getEstimate();
+        }
 
-        return estimateWithSmoothedJackknife(totalDocs, distinctSketch.getSketch().getEstimate());
+        return estimateWithHaasStokes(totalDocs);
     }
 
     private double estimateWithHaasStokes(long totalRows) {
@@ -211,52 +209,6 @@ public abstract class ColumnSketchBuilder<T> {
         return Math.floor(approxDistinct + 0.5);
     }
 
-    private double estimateWithSmoothedJackknife(long totalRows, double d) {
-        // Estimate the number of distinct values using the smoothed first-order jackknife
-        // estimator proposed by Haas and Stokes in IBM Research Report RJ 10025.
-        // It is the `D` that solves:
-        // ```
-        // D * (1 - (1 - q)^(N/D)) = d
-        // ```
-        // where:
-        // * `n` is the (non-null) sample size
-        // * `d` the distinct count in the sample
-        // * `N` the total count of non-null values
-        // * `q = n/N` the sampling fraction
-        //
-        // The left side is the expected distinct count in the sample if the table has `D` values
-        // that each appear `N/D` times. It grows with `D`, is at most `d` for `D = d` and is `n` for `D = N`,
-        // so the root is in `[d, N]` and is found by bisection.
-        double n = sampleCount - nullCount;
-        double N = totalRows * (1.0 - nullFraction());
-        if (N <= 0 || d <= 0) {
-            return 0;
-        }
-        if (n >= N) {
-            // The sample contains all rows.
-            return d;
-        }
-        if (d >= n) {
-            // All sample values are unique, or the estimated `d` exceeds `n`.
-            return N;
-        }
-        // `1 - (1 - q)^(N/D)` is computed as `-expm1((N/D) * log1p(-q))` to stay precise for a small `q`.
-        double lnOneMinusQ = Math.log1p(-n / N);
-        double low = d;
-        double high = N;
-        // The iterations are bounded because above 2^53 adjacent doubles are more than 0.5 apart.
-        for (int i = 0; i < 100 && high - low > 0.5; i++) {
-            double mid = (low + high) / 2;
-            double expectedDistinct = -mid * Math.expm1(N / mid * lnOneMinusQ);
-            if (expectedDistinct < d) {
-                low = mid;
-            } else {
-                high = mid;
-            }
-        }
-        return Math.floor((low + high) / 2 + 0.5);
-    }
-
     /**
      * An implementation for single-valued data types
      */
@@ -304,7 +256,7 @@ public abstract class ColumnSketchBuilder<T> {
             if (this.distinctSketch != null) {
                 this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
             } else {
-                // this.distinctCounts.merge(typedOther.distinctCounts);
+                this.distinctCounts.merge(typedOther.distinctCounts);
             }
             this.mostCommonValuesSketch = this.mostCommonValuesSketch.merge(typedOther.mostCommonValuesSketch);
             this.histogramSketch = this.histogramSketch.merge(typedOther.histogramSketch);
@@ -381,7 +333,7 @@ public abstract class ColumnSketchBuilder<T> {
             if (this.distinctSketch != null) {
                 this.distinctSketch = this.distinctSketch.merge(other.distinctSketch);
             } else {
-                // this.distinctCounts.merge(typedOther.distinctCounts);
+                this.distinctCounts.merge(typedOther.distinctCounts);
             }
             this.mostCommonValuesSketch = this.mostCommonValuesSketch.merge(typedOther.mostCommonValuesSketch);
 
