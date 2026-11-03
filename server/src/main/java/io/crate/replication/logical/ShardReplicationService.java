@@ -33,6 +33,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -89,26 +90,19 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
     }
 
     @Override
+    public void shardRoutingChanged(IndexShard indexShard, @Nullable ShardRouting oldRouting, ShardRouting newRouting) {
+        // Start Logical replication on promoted replicas.
+        // The old primary's tracker is closed during old primary shard closure.
+        boolean oldPrimary = oldRouting != null && oldRouting.primary();
+        if (oldPrimary == false && newRouting.primary()) {
+            startTracker(indexShard);
+        }
+    }
+
+    @Override
     public void afterIndexShardStarted(IndexShard indexShard) {
         if (indexShard.routingEntry().primary()) {
-            var subscriptionName = REPLICATION_SUBSCRIPTION_NAME.get(indexShard.indexSettings().getSettings());
-            if (subscriptionName == null) {
-                return;
-            }
-            var subscription = logicalReplicationService.subscriptions().get(subscriptionName);
-            if (subscription != null) {
-                var tracker = new ShardReplicationChangesTracker(
-                    subscriptionName,
-                    indexShard,
-                    threadPool,
-                    replicationSettings,
-                    ShardReplicationService.this,
-                    clusterName.value(),
-                    client
-                );
-                shards.put(indexShard.shardId(), tracker);
-                tracker.start();
-            }
+            startTracker(indexShard);
         }
     }
 
@@ -130,6 +124,29 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
             && REPLICATION_SUBSCRIPTION_NAME.get(newSettings).isEmpty() == true) {
             var shardId = indexShard.shardId();
             closeTracker(shardId);
+        }
+    }
+
+    private void startTracker(IndexShard indexShard) {
+        var subscriptionName = REPLICATION_SUBSCRIPTION_NAME.get(indexShard.indexSettings().getSettings());
+        if (subscriptionName == null) {
+            return;
+        }
+        var subscription = logicalReplicationService.subscriptions().get(subscriptionName);
+        if (subscription != null) {
+            var tracker = new ShardReplicationChangesTracker(
+                subscriptionName,
+                indexShard,
+                threadPool,
+                replicationSettings,
+                ShardReplicationService.this,
+                clusterName.value(),
+                client
+            );
+            // putIfAbsent to ensure that only one tracker is added per shard
+            if (shards.putIfAbsent(indexShard.shardId(), tracker) == null) {
+                tracker.start();
+            }
         }
     }
 
