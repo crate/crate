@@ -195,21 +195,11 @@ public final class DistinctValueSet {
 
     // Estimated number of rows whose value appears more than once (`n - f1` in Haas-Stokes).
     public double nonSingletonRows() {
-        return Math.scalb((double) (keptRows() - keptSingletons()), level);
-    }
-
-    // Estimated number of rows whose value already appeared in an earlier row (`n - d`).
-    public double repeatedRows() {
-        return Math.scalb((double) (keptRows() - hashes.size()), level);
-    }
-
-    // The rows of all kept hashes. Hashes are dropped by level, so a row at a level of at least `level` belongs to a kept hash.
-    private long keptRows() {
         long keptRows = 0;
         for (int i = level; i < NUM_LEVELS; i++) {
             keptRows += rowsByLevel[i];
         }
-        return keptRows;
+        return Math.scalb((double) (keptRows - keptSingletons()), level);
     }
 
     private int keptSingletons() {
