@@ -947,4 +947,50 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             }
         );
     }
+
+    @Test
+    public void test_replication_continues_after_subscriber_primary_relocation() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2), (3)");
+        executeOnPublisher("REFRESH TABLE t1");
+
+        createPublication("pub1", false, List.of("t1"));
+        createSubscription("sub1", "pub1");
+
+        // SubscriberClusterScope has 2 data nodes by default.
+        // With a table having 1 shard, target node for relocation is another data node.
+        var response = executeOnSubscriber("""
+            SELECT id, node['name'] FROM sys.shards
+            WHERE table_name = 't1' AND primary = true
+            LIMIT 1
+            """);
+        int shardId = (Integer) response.rows()[0][0];
+        String fromNode = (String) response.rows()[0][1];
+
+        response = subscriberSqlExecutor.exec(
+            "SELECT name FROM sys.nodes WHERE 'data' = ANY(roles) AND name != ? LIMIT 1",
+            new Object[] {fromNode}
+        );
+        String toNode = (String) response.rows()[0][0];
+        subscriberSqlExecutor.exec("ALTER TABLE t1 REROUTE MOVE SHARD ? FROM ? TO ?", new Object[] {shardId, fromNode, toNode});
+        subscriberSqlExecutor.ensureGreen(subscriberCluster.size());  // ensureGreenOnSubscriber() can't be used as it doesn't wait for relocations
+
+        // Retention lease is removed on reroute -> close shard.
+        // Next retention lease renewal will fail with RetentionLeaseNotFoundException
+        // We used to do the last poll but didn't scehdule next poll and stopped tracking,
+        // so "4" was visible, but "5" used to be not replicated.
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (4)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE t1");
+            var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1", "2", "3", "4");
+        });
+
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (5)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE t1");
+            var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1", "2", "3", "4", "5");
+        });
+    }
 }
