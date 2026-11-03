@@ -993,4 +993,47 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             assertThat(res).hasRows("1", "2", "3", "4", "5");
         });
     }
+
+    @Test
+    public void test_replication_continues_after_subscriber_replica_promotion() throws Exception {
+        executeOnPublisher("""
+            CREATE TABLE t1 (id INT) CLUSTERED INTO 1 SHARDS
+            WITH (number_of_replicas = 1, "translog.flush_threshold_size" = '64b')
+            """);
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2), (3)");
+        executeOnPublisher("REFRESH TABLE t1");
+
+        createPublication("pub1", false, List.of("t1"));
+        createSubscription("sub1", "pub1");
+
+        // Promote replica by canceling a primary
+        var response = executeOnSubscriber("SELECT id, node['name'] FROM sys.shards WHERE table_name = 't1' AND primary = true");
+        int primaryId = (Integer) response.rows()[0][0];
+        String node = (String) response.rows()[0][1];
+        subscriberSqlExecutor.exec(
+            "ALTER TABLE t1 REROUTE CANCEL SHARD ? ON ? WITH (allow_primary = true)",
+            new Object[] {primaryId, node}
+        );
+        ensureGreenOnSubscriber();
+
+        // We used to start tracking only on a shard start,
+        // but replica promotion != shard start.
+        // "4" was still visible as former-primary-now-replica
+        // could get results of ShardChangesAction async after it got canceled
+        // and then replay them on the new primary.
+        // Once former replica took over completely, new writes used to be not replicated.
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (4)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE t1");
+            var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1", "2", "3", "4");
+        });
+
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (5)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE t1");
+            var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1", "2", "3", "4", "5");
+        });
+    }
 }

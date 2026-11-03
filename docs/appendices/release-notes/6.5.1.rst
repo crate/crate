@@ -197,4 +197,5 @@ Fixes
   cluster metadata.
 
 - Fixed an issue that caused Logical Replication to stop when primary shards on
-  the subscriber cluster were relocated to another node.
+  the subscriber cluster were relocated to another node or when a replica shard
+  was promoted to primary.
