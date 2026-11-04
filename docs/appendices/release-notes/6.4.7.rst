@@ -199,3 +199,8 @@ Fixes
 - Fixed an issue that caused Logical Replication to stop when primary shards on
   the subscriber cluster were relocated to another node or when a replica shard
   was promoted to primary.
+
+- Subscribing user used in :ref:`CREATE SUBSCRIPTION<sql-create-subscription>`
+  with :ref:`pg_tunnel mode <sql-create-subscription-conn-info>` now required
+  to have ``AL`` privilege to avoid a security issue when authenticated user can
+  can switch to CrateDB's unauthenticated internal transport protocol.
