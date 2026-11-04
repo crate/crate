@@ -160,7 +160,7 @@ public class DistinctValueSetTest extends ESTestCase {
 
         BytesStreamOutput out = new BytesStreamOutput();
         set1.writeTo(out);
-        DistinctValueSet deserialized = DistinctValueSet.fromStream(out.bytes().streamInput());
+        DistinctValueSet deserialized = new DistinctValueSet(out.bytes().streamInput());
 
         assertThat(deserialized.distinctValues()).isEqualTo(2);
         assertThat(deserialized.singletons()).isEqualTo(1);

@@ -87,7 +87,7 @@ public abstract class ColumnSketchBuilder<T> {
             this.distinctCounts = null;
         } else {
             this.distinctSketch = null;
-            this.distinctCounts = DistinctValueSet.fromStream(in);
+            this.distinctCounts = new DistinctValueSet(in);
         }
     }
 

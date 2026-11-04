@@ -62,38 +62,28 @@ public final class DistinctValueSet {
     private final long[] rowsByLevel;
 
     DistinctValueSet() {
-        this(new LongHashSet(MAX_RETAINED, LOAD_FACTOR), new long[NUM_LEVELS], 0);
+        this.hashes = new LongHashSet(MAX_RETAINED, LOAD_FACTOR);
+        this.rowsByLevel = new long[NUM_LEVELS];
+        this.level = 0;
     }
 
-    private DistinctValueSet(LongHashSet hashes, long[] rowsByLevel, int level) {
-        this.hashes = hashes;
-        this.rowsByLevel = rowsByLevel;
-        this.level = level;
+    DistinctValueSet(StreamInput in) throws IOException {
+        this.level = in.readVInt();
+        this.rowsByLevel = in.readVLongArray();
+        int size = in.readVInt();
+        this.hashes = new LongHashSet(MAX_RETAINED, LOAD_FACTOR);
+        for (int i = 0; i < size; i++) {
+            hashes.add(in.readLong());
+        }
     }
 
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(level);
-        for (long rows : rowsByLevel) {
-            out.writeVLong(rows);
-        }
+        out.writeVLongArray(rowsByLevel);
         out.writeVInt(hashes.size());
         for (LongCursor cursor : hashes) {
             out.writeLong(cursor.value);
         }
-    }
-
-    public static DistinctValueSet fromStream(StreamInput in) throws IOException {
-        int level = in.readVInt();
-        long[] rowsByLevel = new long[NUM_LEVELS];
-        for (int i = 0; i < NUM_LEVELS; i++) {
-            rowsByLevel[i] = in.readVLong();
-        }
-        int size = in.readVInt();
-        LongHashSet hashes = new LongHashSet(MAX_RETAINED, LOAD_FACTOR);
-        for (int i = 0; i < size; i++) {
-            hashes.add(in.readLong());
-        }
-        return new DistinctValueSet(hashes, rowsByLevel, level);
     }
 
     public void add(Object val) {
