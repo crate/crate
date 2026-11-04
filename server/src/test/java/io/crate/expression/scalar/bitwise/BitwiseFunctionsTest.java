@@ -35,9 +35,9 @@ import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
 
 import org.assertj.core.api.Assertions;
-import org.elasticsearch.common.TriFunction;
 import org.junit.Test;
 
+import io.crate.common.TriFunction;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.sql.tree.BitString;
 import io.crate.testing.DataTypeTesting;
