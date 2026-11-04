@@ -49,7 +49,7 @@ public abstract class ColumnSketchBuilder<T> {
     // The NDV is estimated either using DistinctValuesSketch or using DistinctValueSet.
     // DistinctValueSet is meant to be a replacement for DistinctValuesSketch, due to its
     // inaccuracy (see: https://github.com/crate/crate/issues/20210 for details).
-    // Both exist here to support rolling upgrades, given that they cannot be "mixed".
+    // Both exist at the same time to support rolling upgrades, given that they cannot be "mixed".
     // If all nodes in the cluster are on 6.5.1 or higher, then DistinctValueSet is used.
 
     @Deprecated(since = "6.5.1")
@@ -149,7 +149,7 @@ public abstract class ColumnSketchBuilder<T> {
         return (double) nullCount / (double) sampleCount;
     }
 
-    /// Estimates the NDV using either the [DistinctValuesSketch] or [DistinctValueSet] (Haas-Stokes estimator).
+    /// Estimates the NDV using either the [DistinctValuesSketch] or the Haas-Stokes estimator.
     final double estimateDistinct(long totalDocs) {
         if (distinctSketch != null) {
             return distinctSketch.getSketch().getEstimate();
