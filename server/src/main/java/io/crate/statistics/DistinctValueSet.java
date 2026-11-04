@@ -57,7 +57,7 @@ public final class DistinctValueSet {
     // A hash has 0 to 64 leading zeros.
     private static final int NUM_LEVELS = Long.SIZE + 1;
 
-    private final LongHashSet hashes;
+    private final LongPrehashedSet hashes;
 
     // The number of added rows by the level of their hash, including the rows of dropped hashes.
     private final long[] rowsByLevel;
@@ -65,10 +65,10 @@ public final class DistinctValueSet {
     private int level;
 
     DistinctValueSet() {
-        this(new LongHashSet(MAX_RETAINED, LOAD_FACTOR), new long[NUM_LEVELS], 0);
+        this(new LongPrehashedSet(MAX_RETAINED, LOAD_FACTOR), new long[NUM_LEVELS], 0);
     }
 
-    private DistinctValueSet(LongHashSet hashes, long[] rowsByLevel, int level) {
+    private DistinctValueSet(LongPrehashedSet hashes, long[] rowsByLevel, int level) {
         this.hashes = hashes;
         this.rowsByLevel = rowsByLevel;
         this.level = level;
@@ -92,7 +92,7 @@ public final class DistinctValueSet {
             rowsByLevel[i] = in.readVLong();
         }
         int size = in.readVInt();
-        LongHashSet hashes = new LongHashSet(MAX_RETAINED, LOAD_FACTOR);
+        LongPrehashedSet hashes = new LongPrehashedSet(MAX_RETAINED, LOAD_FACTOR);
         for (int i = 0; i < size; i++) {
             hashes.add(in.readLong());
         }
@@ -159,6 +159,8 @@ public final class DistinctValueSet {
     }
 
     public DistinctValueSet merge(DistinctValueSet other) {
+        assert this.hashes.keys.length == other.hashes.keys.length;
+
         for (int i = 0; i < NUM_LEVELS; i++) {
             rowsByLevel[i] += other.rowsByLevel[i];
         }
@@ -216,5 +218,16 @@ public final class DistinctValueSet {
             }
         }
         return singletons;
+    }
+
+    private static final class LongPrehashedSet extends LongHashSet {
+        public LongPrehashedSet(int expectedElements, double loadFactor) {
+            super(expectedElements, loadFactor);
+        }
+
+        @Override
+        protected int hashKey(long key) {
+            return (int) key;
+        }
     }
 }
