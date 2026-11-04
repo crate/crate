@@ -56,8 +56,9 @@ public final class DistinctValueSet {
 
     // A hash has 0 to 64 leading zeros.
     private static final int NUM_LEVELS = Long.SIZE + 1;
+    private static final long HASH_SEED = 0x9E3779B97F4A7C15L;
 
-    private final LongPrehashedSet hashes;
+    private final LongPreHashedSet hashes;
 
     // The number of added rows by the level of their hash, including the rows of dropped hashes.
     private final long[] rowsByLevel;
@@ -65,10 +66,10 @@ public final class DistinctValueSet {
     private int level;
 
     DistinctValueSet() {
-        this(new LongPrehashedSet(MAX_RETAINED, LOAD_FACTOR), new long[NUM_LEVELS], 0);
+        this(new LongPreHashedSet(), new long[NUM_LEVELS], 0);
     }
 
-    private DistinctValueSet(LongPrehashedSet hashes, long[] rowsByLevel, int level) {
+    private DistinctValueSet(LongPreHashedSet hashes, long[] rowsByLevel, int level) {
         this.hashes = hashes;
         this.rowsByLevel = rowsByLevel;
         this.level = level;
@@ -92,7 +93,7 @@ public final class DistinctValueSet {
             rowsByLevel[i] = in.readVLong();
         }
         int size = in.readVInt();
-        LongPrehashedSet hashes = new LongPrehashedSet(MAX_RETAINED, LOAD_FACTOR);
+        LongPreHashedSet hashes = new LongPreHashedSet();
         for (int i = 0; i < size; i++) {
             hashes.add(in.readLong());
         }
@@ -113,7 +114,7 @@ public final class DistinctValueSet {
                 return;
             }
         }
-        add(BitMixer.mix64(v));
+        add(BitMixer.mix64(v ^ HASH_SEED));
     }
 
     private void add(byte[] bytes) {
@@ -220,9 +221,9 @@ public final class DistinctValueSet {
         return singletons;
     }
 
-    private static final class LongPrehashedSet extends LongHashSet {
-        public LongPrehashedSet(int expectedElements, double loadFactor) {
-            super(expectedElements, loadFactor);
+    private static final class LongPreHashedSet extends LongHashSet {
+        public LongPreHashedSet() {
+            super(MAX_RETAINED, LOAD_FACTOR);
         }
 
         @Override
