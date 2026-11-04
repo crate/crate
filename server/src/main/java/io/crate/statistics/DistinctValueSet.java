@@ -35,6 +35,12 @@ import com.carrotsearch.hppc.cursors.LongCursor;
 public final class DistinctValueSet {
 
     // For hashes that represent duplicate values, the last bit is set to 1.
+    // NB: This increases the chances of hash collisions by a bit, but it's
+    // not significant. The possibility is: number_of_pairs / number_of_possible_hash_values.
+    // Given that we sample 30k values per node, number_of_pairs = (30k * num_nodes)^2 / 2.
+    // number_of_possible_hash_values = 2^63 ≈ 10^19.
+    // Even if we assume 100 nodes are used, and all nodes return completely distinct samples,
+    // the chances of collision are less than 1/10^6.
     private static final long DUPLICATE_FLAG = 1L;
     // For hashes that represent singletons, the last bit is set to 0.
     private static final long KEY_MASK = ~DUPLICATE_FLAG;
@@ -100,8 +106,9 @@ public final class DistinctValueSet {
                 return;
             }
         }
-        // LongHashSet uses BitMixer as well, however, benchmarks didn't show a noticeable
-        // impact on performance.
+        // LongHashSet uses BitMixer as well. It's possible to override the hash function
+        // in LongHashSet, but benchmarks didn't show a significant difference, so we're
+        // keeping it simple.
         addHashedValue(BitMixer.mix64(v ^ HASH_SEED));
     }
 
