@@ -41,6 +41,7 @@ import org.elasticsearch.action.support.replication.ReplicationResponse.ShardInf
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.seqno.RetentionLeaseInvalidRetainingSeqNoException;
 import org.elasticsearch.index.seqno.RetentionLeaseNotFoundException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -374,6 +375,14 @@ public class ShardReplicationChangesTracker implements Closeable {
                                 );
                             } else if (isClosed) {
                                 LOGGER.debug("Exception renewing retention lease. Stopping tracking (closed=true)", e);
+                            } else if (t instanceof RetentionLeaseInvalidRetainingSeqNoException) {
+                                // The lease was already renewed with a higher seqNo.
+                                // No need to renew, continue replication.
+                                cancellable = threadPool.scheduleUnlessShuttingDown(
+                                    replicationSettings.pollDelay(),
+                                    ThreadPool.Names.LOGICAL_REPLICATION,
+                                    newRunnable()
+                                );
                             } else if (t instanceof RetentionLeaseNotFoundException) {
 
                                 LOGGER.info("Retention lease renewal failed as lease was not found. Creating a new one");
