@@ -54,23 +54,33 @@ public final class DistinctValueSet {
     private static final double LOAD_FACTOR = 15.0 / 16.0;
     private static final int MAX_RETAINED = 7680;
 
+    // A hash has 0 to 64 leading zeros.
+    private static final int NUM_LEVELS = Long.SIZE + 1;
+
     private static final long HASH_SEED = 0x9E3779B97F4A7C15L;
 
     private final LongPreHashedSet hashes;
 
+    // The number of added rows by the level of their hash, including the rows of dropped hashes.
+    private final long[] rowsByLevel;
+
     private int level;
 
     DistinctValueSet() {
-        this(new LongPreHashedSet(), 0);
+        this(new LongPreHashedSet(), new long[NUM_LEVELS], 0);
     }
 
-    private DistinctValueSet(LongPreHashedSet hashes, int level) {
+    private DistinctValueSet(LongPreHashedSet hashes, long[] rowsByLevel, int level) {
         this.hashes = hashes;
+        this.rowsByLevel = rowsByLevel;
         this.level = level;
     }
 
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(level);
+        for (long rows : rowsByLevel) {
+            out.writeVLong(rows);
+        }
         out.writeVInt(hashes.size());
         for (LongCursor cursor : hashes) {
             out.writeLong(cursor.value);
@@ -79,12 +89,16 @@ public final class DistinctValueSet {
 
     public static DistinctValueSet fromStream(StreamInput in) throws IOException {
         int level = in.readVInt();
+        long[] rowsByLevel = new long[NUM_LEVELS];
+        for (int i = 0; i < NUM_LEVELS; i++) {
+            rowsByLevel[i] = in.readVLong();
+        }
         int size = in.readVInt();
         LongPreHashedSet hashes = new LongPreHashedSet();
         for (int i = 0; i < size; i++) {
             hashes.add(in.readLong());
         }
-        return new DistinctValueSet(hashes, level);
+        return new DistinctValueSet(hashes, rowsByLevel, level);
     }
 
     public void add(Object val) {
@@ -111,7 +125,9 @@ public final class DistinctValueSet {
 
     private void add(long hash) {
         long key = hash & KEY_MASK;
-        if (levelOf(key) >= level) {
+        int keyLevel = levelOf(key);
+        rowsByLevel[keyLevel]++;
+        if (keyLevel >= level) {
             addKey(key);
         }
     }
@@ -147,6 +163,9 @@ public final class DistinctValueSet {
     public DistinctValueSet merge(DistinctValueSet other) {
         assert this.hashes.keys.length == other.hashes.keys.length;
 
+        for (int i = 0; i < NUM_LEVELS; i++) {
+            rowsByLevel[i] += other.rowsByLevel[i];
+        }
         if (other.level > level) {
             raiseLevel(other.level);
         }
@@ -182,6 +201,15 @@ public final class DistinctValueSet {
     // Estimated number of distinct values that appear exactly once.
     public double singletons() {
         return Math.scalb((double) keptSingletons(), level);
+    }
+
+    // Estimated number of rows whose value appears more than once (`n - f1` in Haas-Stokes).
+    public double nonSingletonRows() {
+        long keptRows = 0;
+        for (int i = level; i < NUM_LEVELS; i++) {
+            keptRows += rowsByLevel[i];
+        }
+        return Math.scalb((double) (keptRows - keptSingletons()), level);
     }
 
     private int keptSingletons() {

@@ -171,8 +171,9 @@ public abstract class ColumnSketchBuilder<T> {
         double d = distinctCounts.distinctValues();
         double f1 = distinctCounts.singletons();
         double n = sampleCount - nullCount;
+        double nonSingletonRows = distinctCounts.nonSingletonRows();
 
-        if (n - f1 <= 0) {
+        if (nonSingletonRows <= 0) {
             // All sample values are unique. We assume it is a unique column, but we need to discount for null values.
             return (1.0 - nullFraction()) * totalRows;
         }
@@ -201,8 +202,9 @@ public abstract class ColumnSketchBuilder<T> {
         double N = totalRows * (1.0 - nullFraction());
         double approxDistinct;
         if (N > 0) {
-            // For near-unique columns `n - f1` is small, so the error of the estimated `f1` dominates it.
-            approxDistinct = (n * d) / (n - f1 + f1 * n / N);
+            // For near-unique columns, the exact `n` minus the estimated `f1` would be dominated
+            // by the error of `f1`, so `n - f1` is estimated as a whole.
+            approxDistinct = (n * d) / (nonSingletonRows + f1 * n / N);
         } else {
             approxDistinct = 0;
         }
