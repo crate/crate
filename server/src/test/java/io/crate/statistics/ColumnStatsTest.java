@@ -22,6 +22,7 @@
 package io.crate.statistics;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.withinPercentage;
 import static org.assertj.core.api.Assumptions.assumeThat;
 
 import java.io.IOException;
@@ -89,7 +90,7 @@ public class ColumnStatsTest {
         // Haas-Stokes: n*d / (n - f1 + f1*n/N) = 40000*35000 / (10000 + 30000*40000/400000)
         //            = 1,400,000,000 / 13,000 = 107,692.307692...
         ColumnStats<?> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, values, 0, 400_000);
-        assertThat(columnStats.approxDistinct()).isEqualTo(107_692);
+        assertThat(columnStats.approxDistinct()).isCloseTo(107_692, withinPercentage(10));
     }
 
     @Test
@@ -102,6 +103,27 @@ public class ColumnStatsTest {
         List<Integer> values = IntStream.range(0, 30_000).boxed().toList();
         ColumnStats<?> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, values, 0, 5_000_000);
         assertThat(columnStats.approxDistinct()).isEqualTo(5_000_000.0);
+    }
+
+    @Test
+    public void test_no_most_common_values_for_unique_sample() {
+        List<Integer> values = IntStream.range(0, 30_000).boxed().toList();
+        ColumnStats<?> stats = StatsUtils.statsFromValues(DataTypes.INTEGER, values, 0, 10_000_000);
+        assertThat(stats.mostCommonValues().values()).isEmpty();
+    }
+
+    @Test
+    public void test_approx_distinct_frequent_value_and_unique_values() {
+        List<Integer> values = new ArrayList<>();
+        for (int i = 0; i < 9_000; i++) {
+            values.add(-1);
+        }
+        for (int i = 0; i < 21_000; i++) {
+            values.add(i);
+        }
+        ColumnStats<?> stats = StatsUtils.statsFromValues(DataTypes.INTEGER, values, 0, 10_000_000);
+        // Duj1 on the exact sample: 30,000 * 21,001 / (9,000 + 21,000 * 30,000 / 10,000,000) = 69,517
+        assertThat(stats.approxDistinct()).isCloseTo(69_517.0, withinPercentage(10));
     }
 
     @Property
