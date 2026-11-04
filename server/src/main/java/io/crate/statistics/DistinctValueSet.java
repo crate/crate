@@ -194,6 +194,7 @@ public final class DistinctValueSet {
         return singletons;
     }
 
+    // todo somehow, it might have caused a small regression with memory allocation for text columns.
     private static final class LongPreHashedSet extends LongHashSet {
         public LongPreHashedSet() {
             super(MAX_RETAINED, LOAD_FACTOR);
