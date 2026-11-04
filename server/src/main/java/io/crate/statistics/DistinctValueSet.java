@@ -34,6 +34,10 @@ import com.carrotsearch.hppc.cursors.LongCursor;
 /**
  * A streamable, bounded sample of the hashes of all sampled values.
  * <p>
+ * To estimate the number of distinct values, Wegman's Adaptive Sampling algorithm
+ * is used. For more information about, check Flajolet's analysis of it:
+ * <a href="https://algo.inria.fr/flajolet/Publications/Flajolet90.pdf">On Adaptive Sampling</a>.
+ * <p>
  * Only hashes with at least {@code level} leading zeros are kept, so each distinct value is kept
  * with probability {@code 2^-level}, together with all its occurrences.
  * Once {@link #MAX_RETAINED} hashes are kept, the level is raised, which drops about half of them.
