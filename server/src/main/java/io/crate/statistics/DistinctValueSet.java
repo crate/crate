@@ -34,26 +34,32 @@ import com.carrotsearch.hppc.cursors.LongCursor;
 // TODO
 public final class DistinctValueSet {
 
+    // For hashes that represent duplicate values, the last bit is set to 1.
     private static final long DUPLICATE_FLAG = 1L;
+    // For hashes that represent singletons, the last bit is set to 0.
     private static final long KEY_MASK = ~DUPLICATE_FLAG;
 
-    // The hash table is allocated with 8192 slots up front and is never resized,
-    // because it is shrunk before it reaches the resize threshold of 8192 * LOAD_FACTOR.
+    // We balance between:
+    // * size of the LongHashSet (increases memory footprint),
+    // * number of retained hashes (increases accuracy), and
+    // * load factor (increases lookup time).
+    // The values below keep the performance and memory footprint
+    // at similar level as the DistinctValuesSketch that was used previously.
     private static final double LOAD_FACTOR = 15.0 / 16.0;
-    private static final int MAX_RETAINED = 7680;
-
-    // A hash has 0 to 64 leading zeros.
+    private static final int MAX_RETAINED = (int) (8192 * LOAD_FACTOR);
+    // A hash can have between 0 and 64 leading zeros.
     private static final int NUM_LEVELS = Long.SIZE + 1;
-
-    // todo explain that hash shouldn't be changed without checking the version
+    // value ^ HASH_SEED: this is done to make sure 0 is properly removed from a "level".
+    // 0 would be level 64, i.e. it would never be dropped from the hash.
+    // Whatever level we finish at, 0 would be in it. At that level,
+    // the number of distinct values would be estimated as 2^level * num_values_at_level,
+    // which would likely be far from the actual NDV.
     private static final long HASH_SEED = 0x9E3779B97F4A7C15L;
 
     private final LongHashSet hashes;
-
+    private int level;
     // The number of added rows by the level of their hash, including the rows of dropped hashes.
     private final long[] rowsByLevel;
-
-    private int level;
 
     DistinctValueSet() {
         this(new LongHashSet(MAX_RETAINED, LOAD_FACTOR), new long[NUM_LEVELS], 0);
@@ -104,15 +110,17 @@ public final class DistinctValueSet {
                 return;
             }
         }
-        add(BitMixer.mix64(v ^ HASH_SEED));
+        // LongHashSet uses BitMixer as well, however, benchmarks didn't show a noticeable
+        // impact on performance.
+        addHashedValue(BitMixer.mix64(v ^ HASH_SEED));
     }
 
     private void add(byte[] bytes) {
         long key = org.elasticsearch.common.hash.MurmurHash3.hash64(bytes, 0, bytes.length);
-        add(key);
+        addHashedValue(key);
     }
 
-    private void add(long hash) {
+    private void addHashedValue(long hash) {
         long key = hash & KEY_MASK;
         int keyLevel = levelOf(key);
         rowsByLevel[keyLevel]++;
