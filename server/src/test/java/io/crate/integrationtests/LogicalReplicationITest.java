@@ -32,9 +32,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.index.seqno.RetentionLeaseActions;
+import org.elasticsearch.index.shard.ShardId;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -1022,6 +1025,59 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         // could get results of ShardChangesAction async after it got canceled
         // and then replay them on the new primary.
         // Once former replica took over completely, new writes used to be not replicated.
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (4)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE t1");
+            var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1", "2", "3", "4");
+        });
+
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (5)");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE t1");
+            var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
+            assertThat(res).hasRows("1", "2", "3", "4", "5");
+        });
+    }
+
+    @Test
+    public void test_replication_continues_if_retention_lease_retains_higher_seq_no() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2), (3)");
+        executeOnPublisher("REFRESH TABLE t1");
+
+        createPublication("pub1", false, List.of("t1"));
+        createSubscription("sub1", "pub1");
+
+        var response = executeOnPublisher("""
+            SELECT shard_id, lease['id'], lease['source'], lease['retaining_seq_no']
+            FROM (
+                SELECT id AS shard_id, unnest(retention_leases['leases']) AS lease
+                FROM sys.shards
+                WHERE table_name = 't1' AND primary = true
+            ) AS leases
+            WHERE lease['id'] LIKE 'logical_replication:%'
+            """);
+        assertThat(response).hasRowCount(1);
+        int shardId = (Integer) response.rows()[0][0];
+        String leaseId = (String) response.rows()[0][1];
+        String leaseSource = (String) response.rows()[0][2];
+        long seqNo = (Long) response.rows()[0][3];
+        IndexMetadata indexMetadata = publisherCluster.clusterService().state().metadata()
+            .getIndex(new RelationName("doc", "t1"), List.of(), true, im -> im);
+        var renewRequest = new RetentionLeaseActions.AddOrRenewRequest(
+            new ShardId(indexMetadata.getIndex(), shardId),
+            leaseId,
+            // Imitate a renewal of the same lease with a higher seqNo
+            seqNo + 123,
+            leaseSource
+        );
+        publisherCluster.client().execute(RetentionLeaseActions.Renew.INSTANCE, renewRequest).get(5, TimeUnit.SECONDS);
+
+        // Retaining seqNo on publisher's lease can be higher than subscriber wants (which is fine, can happen due to async renewal)
+        // Next retention lease renewal will fail with RetentionLeaseInvalidRetainingSeqNoException
+        // We used to do the last poll but didn't schedule next poll and stopped tracking,
+        // so "4" was visible, but "5" used to be not replicated.
         executeOnPublisher("INSERT INTO t1 (id) VALUES (4)");
         assertBusy(() -> {
             executeOnSubscriber("REFRESH TABLE t1");
