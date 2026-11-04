@@ -158,12 +158,21 @@ public abstract class ColumnSketchBuilder<T> {
         return estimateWithHaasStokes(totalDocs);
     }
 
+    /// Estimates the NDV of the sample, not of the table.
+    final double sampleDistinct() {
+        if (distinctSketch != null) {
+            return distinctSketch.getSketch().getEstimate();
+        }
+        return distinctCounts.distinctValues();
+    }
+
     private double estimateWithHaasStokes(long totalRows) {
         // `d` and `f1` are estimated from the hashes kept by the DistinctValueSet.
         double d = distinctCounts.distinctValues();
         double f1 = distinctCounts.singletons();
+        double n = sampleCount - nullCount;
 
-        if (f1 >= d) {
+        if (n - f1 <= 0) {
             // All sample values are unique. We assume it is a unique column, but we need to discount for null values.
             return (1.0 - nullFraction()) * totalRows;
         }
@@ -189,13 +198,11 @@ public abstract class ColumnSketchBuilder<T> {
         // very unstable when n is much smaller than N.
         //
         // Also see PostgreSQL's [compute_distinct_stats](https://github.com/postgres/postgres/blob/9f4bd91a1960f0263c497a9a1ddf121cbcefbb98/src/backend/commands/analyze.c#L2121).
-        double n = sampleCount - nullCount;
         double N = totalRows * (1.0 - nullFraction());
         double approxDistinct;
         if (N > 0) {
-            // For near-unique columns, the exact `n` minus the estimated `f1` would be dominated
-            // by the error of `f1`, so `n - f1` is estimated as a whole.
-            approxDistinct = (n * d) / (distinctCounts.nonSingletonRows() + f1 * n / N);
+            // For near-unique columns `n - f1` is small, so the error of the estimated `f1` dominates it.
+            approxDistinct = (n * d) / (n - f1 + f1 * n / N);
         } else {
             approxDistinct = 0;
         }
@@ -269,7 +276,7 @@ public abstract class ColumnSketchBuilder<T> {
             double nullFraction = nullFraction();
             double avgSizeInBytes = (double) totalBytes / ((double) sampleCount - nullCount);
             double approxDistinct = estimateDistinct(totalDocs);
-            MostCommonValues<T> mcv = this.mostCommonValuesSketch.toMostCommonValues(sampleCount, approxDistinct);
+            MostCommonValues<T> mcv = this.mostCommonValuesSketch.toMostCommonValues(sampleCount, sampleDistinct());
             return new ColumnStats<>(
                 nullFraction,
                 avgSizeInBytes,
@@ -346,7 +353,7 @@ public abstract class ColumnSketchBuilder<T> {
             double avgSizeInBytes = (double) totalBytes / ((double) sampleCount - nullCount);
             double approxDistinct = estimateDistinct(totalDocs);
             MostCommonValues<T> mcv =
-                this.mostCommonValuesSketch.toMostCommonValues(sampleCount, approxDistinct, this::fromByteStream);
+                this.mostCommonValuesSketch.toMostCommonValues(sampleCount, sampleDistinct(), this::fromByteStream);
             return new ColumnStats<>(
                 nullFraction,
                 avgSizeInBytes,
