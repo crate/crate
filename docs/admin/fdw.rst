@@ -291,8 +291,17 @@ The parquet foreign data wrapper supports the following ``OPTIONS`` for use with
 :files: (required)
 
   A list of paths to parquet files. The paths could be either absolute paths
-  or object storage URIs. Currently, only object stores with `s3`
+  or object storage URIs. Currently, only object stores with S3
   compatibility are supported.
+
+  You can use the ``s3://`` scheme to access buckets on the `Amazon Simple
+  Storage Service`_ (Amazon S3) and S3 compatible object stores.
+
+  For example:
+
+  .. code-block:: text
+
+      s3://[<accesskey>:<secretkey>@][<host>:<port>/]<bucketname>/<path>
 
   In order to read local parquet files, the files must be present on all nodes.
   Only the ``crate`` superuser is allowed to read local files.
@@ -307,4 +316,6 @@ The parquet foreign data wrapper supports the following ``OPTIONS`` for use with
 
 :region: (optional)
 
-  If your `s3` compatible object storage requires you to specify a region, provide it here.
+  If your S3 compatible object storage requires you to specify a region, provide it here.
+
+.. _Amazon Simple Storage Service: https://aws.amazon.com/s3/
