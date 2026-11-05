@@ -55,6 +55,7 @@ import io.crate.planner.Merge;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.optimizer.rule.RemoveRedundantDistinct;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
@@ -386,13 +387,14 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         var e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
-            .addTable("create table users_no_pk (id long) clustered by (id)");
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
+        e.getSessionSettings().excludedOptimizerRules().add(RemoveRedundantDistinct.class);
 
         Merge merge = e.plan(
-            "select id from users_no_pk group by id having id > 0");
+            "select id from users group by id having id > 0");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        Asserts.assertThat(collectPhase.where()).isSQL("(doc.users_no_pk.id > 0)");
+        Asserts.assertThat(collectPhase.where()).isSQL("(doc.users.id > 0)");
         assertThat(collectPhase.projections()).satisfiesExactly(
             x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class)
         );

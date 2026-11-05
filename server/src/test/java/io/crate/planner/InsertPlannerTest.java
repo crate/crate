@@ -34,7 +34,6 @@ import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -62,6 +61,7 @@ import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.operators.InsertFromValues;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.optimizer.rule.RemoveRedundantDistinct;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -94,14 +94,8 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp with time zone" +
                 ") clustered into 4 shards")
             .addTable("create table source (id int primary key, name string)")
-            .addTable("CREATE TABLE double_parted(x int, y int) PARTITIONED BY (x, y)")
-            .addTable(
-                "create table users_no_pk (" +
-                    "   id long," +
-                    "   name string," +
-                    "   date timestamp with time zone" +
-                    ") clustered into 4 shards")
-            .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION);
+            .addTable("CREATE TABLE double_parted(x int, y int) PARTITIONED BY (x, y)");
+        e.getSessionSettings().excludedOptimizerRules().add(RemoveRedundantDistinct.class);
     }
 
     @Test
@@ -182,7 +176,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testInsertFromSubQueryDistributedGroupByPartitioned() {
         Merge planNode = e.plan(
-            "insert into parted_pks (id, date) (select id, date from users_no_pk group by id, date)");
+            "insert into parted_pks (id, date) (select id, date from users group by id, date)");
         Merge groupBy = (Merge) planNode.subPlan();
         MergePhase mergePhase = groupBy.mergePhase();
         assertThat(mergePhase.projections()).satisfiesExactly(
@@ -454,7 +448,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_insert_select_distinct() throws Exception {
-        Merge merge = e.plan("insert into users (id) (select distinct id from users_clustered_by_only)");
+        Merge merge = e.plan("insert into users (id) (select distinct id from users)");
         Collect collect = (Collect) merge.subPlan();
         List<Projection> projections = collect.collectPhase().projections();
         assertThat(projections).satisfiesExactly(
@@ -465,7 +459,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_insert_from_group_by_uses_doc_values() throws Exception {
-        Merge merge = e.plan("insert into users (id) (select id from users_clustered_by_only group by 1)");
+        Merge merge = e.plan("insert into users (id) (select id from users group by 1)");
         Collect collect = (Collect) merge.subPlan();
         assertThat(collect.collectPhase().toCollect()).satisfiesExactly(isReference("id"));
     }

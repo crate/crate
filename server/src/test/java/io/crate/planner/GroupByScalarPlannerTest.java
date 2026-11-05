@@ -38,6 +38,7 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.expression.symbol.Function;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.optimizer.rule.RemoveRedundantDistinct;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -51,13 +52,13 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
         e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION);
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
+        e.getSessionSettings().excludedOptimizerRules().add(RemoveRedundantDistinct.class);
     }
 
     @Test
     public void testGroupByWithScalarPlan() throws Exception {
-        Merge merge = e.plan("SELECT id + 1 FROM users_clustered_by_only GROUP BY id");
+        Merge merge = e.plan("SELECT id + 1 FROM users GROUP BY id");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
 
@@ -84,7 +85,7 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByWithMultipleScalarPlan() throws Exception {
-        Merge merge = e.plan("SELECT abs(id + 1) FROM users_clustered_by_only GROUP BY id");
+        Merge merge = e.plan("SELECT abs(id + 1) FROM users GROUP BY id");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
 
@@ -108,14 +109,15 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByScalarWithMultipleColumnArgumentsPlan() throws Exception {
-        Merge merge = e.plan("SELECT abs(id + id2) FROM users_clustered_by_only GROUP BY id, id2");
+        Merge merge = e.plan("SELECT abs(id + other_id) FROM users GROUP BY id, other_id");
         Merge subplan = (Merge) merge.subPlan();
         Collect collect = (Collect) subplan.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         assertThat(collectPhase.projections()).hasSize(1);
         assertThat(collectPhase.projections().get(0)).isExactlyInstanceOf(GroupProjection.class);
         assertThat(collectPhase.projections().get(0).requiredGranularity()).isEqualTo(RowGranularity.SHARD);
-        assertThat(collectPhase.toCollect()).satisfiesExactly(isReference("id", DataTypes.LONG), isReference("id2", DataTypes.LONG));
+        assertThat(collectPhase.toCollect()).satisfiesExactly(
+            isReference("id", DataTypes.LONG), isReference("other_id", DataTypes.LONG));
 
         GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
         assertThat(groupProjection.keys()).hasSize(2);

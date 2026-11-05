@@ -1175,4 +1175,110 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             """
         );
     }
+
+    @Test
+    public void test_distinct_is_removed_when_projection_contains_primary_key_with_limit() {
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT DISTINCT id, name FROM distinct_pk LIMIT 10"
+        );
+
+        assertThat(plan).hasOperators(
+            "Fetch[id, name]",
+            "  └ Limit[10;0]",
+            "    └ Collect[doc.distinct_pk | [_fetchid] | true]"
+        );
+    }
+
+    @Test
+    public void test_distinct_is_removed_when_projection_contains_primary_key_with_filter() {
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT DISTINCT id, name FROM distinct_pk WHERE name IS NOT NULL"
+        );
+
+        assertThat(plan).hasOperators(
+            "Collect[doc.distinct_pk | [id, name] | (NOT (name IS NULL))]"
+        );
+    }
+
+    @Test
+    public void test_distinct_is_removed_when_projection_contains_primary_key_with_order_by() {
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT DISTINCT id, name FROM distinct_pk ORDER BY name"
+        );
+
+        assertThat(plan).hasOperators(
+            "Fetch[id, name]",
+            "  └ OrderBy[name ASC]",
+            "    └ Collect[doc.distinct_pk | [_fetchid, name] | true]"
+        );
+    }
+
+    @Test
+    public void test_distinct_is_kept_when_projection_contains_auto_generated_id() {
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT DISTINCT _id FROM t1"
+        );
+
+        assertThat(plan).isEqualTo("""
+            GroupHashAggregate[_id]
+              └ Collect[doc.t1 | [_id] | true]
+            \s""");
+    }
+
+    @Test
+    public void test_distinct_is_removed_when_projection_contains_primary_key_in_subquery() {
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT DISTINCT id, name FROM (SELECT id, name FROM distinct_pk) t"
+        );
+
+        assertThat(plan).hasOperators(
+            "Rename[id, name] AS t",
+            "  └ Collect[doc.distinct_pk | [id, name] | true]"
+        );
+    }
+
+    @Test
+    public void test_distinct_is_kept_for_union() {
+        LogicalPlan plan = sqlExecutor.logicalPlan("""
+            SELECT DISTINCT id
+            FROM (
+                SELECT id FROM distinct_pk
+                UNION ALL
+                SELECT id FROM distinct_pk
+            ) t
+            """);
+
+        assertThat(plan).hasOperators(
+            "GroupHashAggregate[id]",
+            "  └ Rename[id] AS t",
+            "    └ Union[id]",
+            "      ├ Collect[doc.distinct_pk | [id] | true]",
+            "      └ Collect[doc.distinct_pk | [id] | true]"
+        );
+    }
+
+    @Test
+    public void test_distinct_is_removed_when_projection_contains_primary_key_with_limit_and_offset() {
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT DISTINCT id, name FROM distinct_pk LIMIT 10 OFFSET 5"
+        );
+
+        assertThat(plan).hasOperators(
+            "Fetch[id, name]",
+            "  └ Limit[10;5]",
+            "    └ Collect[doc.distinct_pk | [_fetchid] | true]"
+        );
+    }
+
+    @Test
+    public void test_limit_distinct_is_used_when_group_keys_do_not_contain_primary_key() {
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT DISTINCT id1, name FROM composite_pk LIMIT 10 OFFSET 5"
+        );
+
+        assertThat(plan).hasOperators(
+            "LimitDistinct[10;5 | [id1, name]]",
+            "  └ Collect[doc.composite_pk | [id1, name] | true]"
+        );
+    }
 }
