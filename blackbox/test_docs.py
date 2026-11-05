@@ -104,7 +104,6 @@ crate = ConnectingCrateLayer(
         'CRATE_JAVA_OPTS': '-Dio.netty.leakDetection.level=paranoid',
     },
     settings=CRATE_SETTINGS,
-    version=(4, 0, 0)
 )
 
 
@@ -341,6 +340,25 @@ def setUpCountries(test):
     _execute_sql("""copy countries from '{0}'""".format(dept_file))
     _execute_sql("""refresh table countries""")
 
+def setUpSummits(test):
+    setUp(test)
+    _execute_sql("""
+        create table summits_src (
+            mountain string
+        ) with(number_of_replicas=0)""".strip())
+    _execute_sql("""
+        insert into summits_src (mountain)
+        values ('Monte Verena')
+    """)
+    _execute_sql("refresh table summits_src")
+    with connect(crate.http_url) as conn:
+        c = conn.cursor()
+        c.execute(f"""
+            CREATE SERVER pg FOREIGN DATA WRAPPER jdbc
+            OPTIONS (url 'jdbc:postgresql://127.0.0.1:{crate.addresses.psql.port}/')
+        """)
+
+
 
 def setUpLocationsAndQuotes(test):
     setUpLocations(test)
@@ -547,7 +565,7 @@ def load_tests(loader, suite, ignore):
         tests.append(docsuite(fn, setUp=setUpPhotosAndCountries))
 
     for fn in doctest_files('admin/fdw.rst',):
-        tests.append(docsuite(fn, setUp=setUp))
+        tests.append(docsuite(fn, setUp=setUpSummits))
 
     if not tests:
         crate.stop()

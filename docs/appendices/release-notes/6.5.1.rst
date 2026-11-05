@@ -1,16 +1,10 @@
 .. _version_6.5.1:
 
-==========================
-Version 6.5.1 - Unreleased
-==========================
+=============
+Version 6.5.1
+=============
 
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-.. NOTE::
-
-    In development. 6.5.1 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2026-11-04.
 
 .. NOTE::
 
@@ -51,6 +45,15 @@ series.
 Fixes
 =====
 
+- Fixed some issues in the PostgreSQL wire protocol implementation that:
+
+  - Disallowed pipelining select queries after write queries
+  - Caused failures if pipelining statements using new objects immediately after
+    DDL statements created those objects, if there was no intermediate ``sync``
+    message between those statements.
+  - Could cause clients to appear stuck if a statement within a pipeline had an
+    execution error.
+
 - Fixed an issue that caused CrateDB to send the wrong transaction state within
   a ``ReadyForQuery`` message to clients using the PostgreSQL Wire Protocol in
   response to queries sent in the simple query mode after a ``BEGIN``. This
@@ -84,6 +87,11 @@ Fixes
 - Fixed an issue where a logical replication subscription could enter a failed
   state and stop replicating after a publisher restart if the subscriber sent
   requests before the publisher's transport service was ready to handle them.
+
+- Fixed an issue that could leave logical replication subscriptions stuck
+  in the restoring state after the initial restore had completed,
+  preventing schema updates and the creation of new partitions on the
+  subscriber.
 
 - Fixed an issue which caused the ``optimizer_eliminate_cross_join`` rule to
   drop non-equality filters (e.g., a greater-than condition) that are combined
@@ -186,3 +194,12 @@ Fixes
   :ref:`RESTORE SNAPSHOT <sql-restore-snapshot>` to not overwrite existing
   only on cluster UDF functions (as documented) and instead merge snapshot and
   cluster metadata.
+
+- Fixed an issue that caused Logical Replication to stop when primary shards on
+  the subscriber cluster were relocated to another node or when a replica shard
+  was promoted to primary.
+
+- Subscribing user used in :ref:`CREATE SUBSCRIPTION<sql-create-subscription>`
+  with :ref:`pg_tunnel mode <sql-create-subscription-conn-info>` now requires
+  to have ``AL`` privilege to avoid a security issue when authenticated user can
+  can switch to CrateDB's unauthenticated internal transport protocol.

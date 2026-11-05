@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.copy.s3.common;
+package io.crate.opendal;
 
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Setting;

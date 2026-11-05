@@ -48,7 +48,7 @@ public class ParquetForeignDataWrapperITest extends IntegTestCase {
     @Test
     public void test_can_use_joins_on_foreign_tables() throws Exception {
         String path = Paths.get(getClass().getResource("/data").toURI()).resolve("yellow_taxi_01.parquet").toString();
-        String createServerStmt = "create server pq foreign data wrapper parquet options (local_files ?)";
+        String createServerStmt = "create server pq foreign data wrapper parquet options (files ?)";
         execute(createServerStmt, new Object[] { path });
 
         String stmt = """

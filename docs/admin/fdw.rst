@@ -36,28 +36,50 @@ some circumstances be pushed to the foreign system, but that depends on the
 concrete foreign data wrapper implementation. You can check if this is the case
 by using the :ref:`ref-explain` statement.
 
+.. hide:
+
+  cr> CREATE FOREIGN TABLE doc.summits (mountain string) SERVER pg
+  ... OPTIONS (schema_name 'doc', table_name 'summits_src');
+  CREATE OK, 1 row affected (... sec)
+
 For example, in the following explain output there is a dedicated ``Filter``
 node, indicating that the filter is executed within CrateDB::
 
-    > explain select * from summits where mountain like 'H%';
+    cr> explain select * from summits where mountain like 'H%';
     +--------------------------------------------------------------------+
     | QUERY PLAN                                                         |
     +--------------------------------------------------------------------+
     | Filter[(mountain LIKE 'H%')] (rows=0)                              |
     |   └ ForeignCollect[doc.summits | [mountain] | true] (rows=unknown) |
     +--------------------------------------------------------------------+
+    EXPLAIN 1 row in set (... sec)
 
 Compare this to the following output, where the query became part of the
 ``ForeignCollect`` node, indicating that it evaluates within the foreign
 system::
 
 
-    > explain select * from summits where mountain = 'Monte Verena';
+    cr> explain select * from summits where mountain = 'Monte Verena';
     +---------------------------------------------------------------------------------------+
     | QUERY PLAN                                                                            |
     +---------------------------------------------------------------------------------------+
     | ForeignCollect[doc.summits | [mountain] | (mountain = 'Monte Verena')] (rows=unknown) |
     +---------------------------------------------------------------------------------------+
+    EXPLAIN 1 row in set (... sec)
+
+
+.. hide:
+
+  cr> SELECT * FROM summits;
+  +--------------+
+  | mountain     |
+  +--------------+
+  | Monte Verena |
+  +--------------+
+  SELECT 1 row in set (... sec)
+
+  cr> DROP SERVER pg CASCADE;
+  DROP OK, 1 row affected (... sec)
 
 .. note::
 
@@ -163,14 +185,14 @@ Example::
 ``parquet``
 ===========
 
-The ``parquet`` foreign data wrapper allows CrateDB to read local parquet
-files. Only the ``crate`` superuser is allowed to do this.
+The ``parquet`` foreign data wrapper allows CrateDB to read parquet
+files stored locally and/or in a remote object storage.
 The ``parquet`` foreign data wrapper does not support writing data to parquet files.
 
 Usage::
 
   cr> CREATE SERVER my_parquet FOREIGN DATA WRAPPER parquet
-  ... OPTIONS (local_files ['testdata/departments.parquet']);
+  ... OPTIONS (files ['testdata/departments.parquet']);
   CREATE OK, 1 row affected (... sec)
 
   cr> CREATE FOREIGN TABLE departments (manager_id bigint, name text, location bigint, id bigint) SERVER my_parquet;
@@ -266,10 +288,23 @@ the parquet foreign data wrapper.
 The parquet foreign data wrapper supports the following ``OPTIONS`` for use with
 :ref:`ref-create-server`:
 
-:local_files:
+:files: (required)
 
-  A list of absolute paths to local parquet files. This is required. The files must be
-  present on all nodes.
+  A list of paths to parquet files. The paths could be either absolute paths
+  or object storage URIs. Currently, only object stores with `s3`
+  compatibility are supported.
+
+  In order to read local parquet files, the files must be present on all nodes.
+  Only the ``crate`` superuser is allowed to read local files.
 
   You can provide multiple files, but they all must have the same schema.
   Otherwise an error will be raised when executing the query.
+
+:protocol: (optional)
+
+  A protocol can be provided. Valid options are ``http`` or ``https``.
+  Default is ``https``. This is only relevant when reading remote files.
+
+:region: (optional)
+
+  If your `s3` compatible object storage requires you to specify a region, provide it here.

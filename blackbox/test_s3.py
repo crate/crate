@@ -21,6 +21,7 @@
 
 
 import os
+import pathlib
 import platform
 import shutil
 import tempfile
@@ -71,6 +72,7 @@ class MinioServer:
 
     MINIO_ACCESS_KEY = 'minio'
     MINIO_SECRET_KEY = 'miniostorage/'
+    MINIO_REGION = 'myRegion'
 
     CACHE_ROOT = Path(os.environ.get('XDG_CACHE_HOME', os.path.join(os.path.expanduser('~'), '.cache')))
     CACHE_DIR = CACHE_ROOT / 'crate-tests'
@@ -100,6 +102,7 @@ class MinioServer:
         env = os.environ.copy()
         env['MINIO_ACCESS_KEY'] = MinioServer.MINIO_ACCESS_KEY
         env['MINIO_SECRET_KEY'] = MinioServer.MINIO_SECRET_KEY
+        env['MINIO_REGION'] = MinioServer.MINIO_REGION
         self.process = Popen(
             cmd,
             stdin=DEVNULL,
@@ -302,3 +305,54 @@ class S3CopyIntegrationTest(unittest.TestCase):
                 self.assertEqual(result, [[1],[1],[2],[2],[3],[3]]) # two sets because copied to/from the same table
 
                 c.execute('DROP TABLE t1')
+
+class S3ParquetIntegrationTest(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        crate_node.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        crate_node.stop()
+
+    def test_basic_read_parquet_from_s3(self):
+        client = Minio(endpoint='127.0.0.1:9000',
+                       access_key = MinioServer.MINIO_ACCESS_KEY,
+                       secret_key = MinioServer.MINIO_SECRET_KEY,
+                       region = "myRegion",
+                       secure = False)
+
+        with MinioServer() as minio:
+            t = threading.Thread(target=minio.run)
+            t.daemon = True
+            t.start()
+            wait_until(lambda: _is_up('127.0.0.1', 9000))
+
+            bucket_name = "my-bucket"
+            client.make_bucket(bucket_name=bucket_name)
+            client.fput_object(
+                bucket_name=bucket_name,
+                object_name="key/departments.parquet",
+                file_path=os.path.join("testdata", "departments.parquet")
+            )
+            local_file = pathlib.Path(os.path.abspath(os.path.join("testdata", "departments2.parquet"))).as_uri()
+
+            with connect(crate_node.http_url) as conn:
+                c = conn.cursor()
+                c.execute(f"""
+                    CREATE SERVER pq FOREIGN DATA WRAPPER parquet
+                    OPTIONS (files ['s3://minio:miniostorage%2F@127.0.0.1:9000/{bucket_name}/key/departments.parquet',
+                    '{local_file}'], protocol 'http', region 'myRegion')
+                """)
+                c.execute("""
+                    CREATE FOREIGN TABLE departments (manager_id bigint, name text, location bigint, id bigint)
+                    SERVER pq;
+                """)
+                c.execute("""
+                    SELECT manager_id, name FROM departments;
+                """)
+                result = c.fetchall()
+                self.assertEqual(result, [[501, 'Administration'], [511, 'Marketing'], [518, 'Purchasing'], [517, 'Human Resources'], [121, 'Shipping'], [502, 'IT'], [520, 'Sales']])
+                c.execute('DROP SERVER pq CASCADE')
+

@@ -63,18 +63,13 @@ SQL Standard and PostgreSQL Compatibility
 - Added a ``bool`` alias for the :ref:`boolean <type-boolean>` type for improved
   PostgreSQL compatibility.
 
-- Extended the PostgreSQL wire protocol support for pipelining DDL or DML
-  statements followed by DQL statements without an intermediate ``sync`` message
-  between the statements. This is for example used by the ``psycopg`` client if
-  using their experimental pipeline support.
-
 - Added the ``_name`` array type (OID ``1003``) to the
   :ref:`pg_type <postgres-pg_type>` table, allowing PostgreSQL clients to bind
   ``name[]`` parameters. The ``typarray`` of ``name`` changed from ``-1`` to
   ``1003``.
 
-- Added initial Parquet foreign data wrapper that can read local parquet files
-  :ref:`administration-fdw-parquet`.
+- Added initial Parquet foreign data wrapper that can read parquet files
+  from local storage or from s3 compatible object stores. See :ref:`administration-fdw-parquet`.
 
 Data Types
 ----------
@@ -90,6 +85,10 @@ Scalar and Aggregation Functions
 
 Performance and Resilience Improvements
 ---------------------------------------
+
+- Improved the performance for the :ref:`hyperloglog_distinct
+  <aggregation-hyperloglog-distinct>` aggregation on text, IP, UUID and
+  BitString types for very low cardinalities.
 
 - `Somil Jain <https://github.com/somiljain2006>`_ improved query planning for
   ``LEFT``, ``RIGHT``, and ``FULL OUTER JOIN`` queries with nested join inputs.

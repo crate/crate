@@ -29,8 +29,8 @@ import org.apache.opendal.Operator;
 import org.apache.opendal.ServiceConfig.S3;
 import org.elasticsearch.common.settings.Settings;
 
-import io.crate.copy.s3.common.S3Env;
-import io.crate.copy.s3.common.S3URI;
+import io.crate.opendal.S3URI;
+import io.crate.opendal.S3Env;
 import io.crate.execution.engine.export.FileOutput;
 import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.opendal.OpenDALFileOutput;

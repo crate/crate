@@ -23,18 +23,23 @@ package io.crate.parquet;
 
 import static io.crate.types.DataTypes.STRING_ARRAY;
 
+import java.net.URI;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.opendal.AsyncExecutor;
+import org.apache.opendal.AsyncOperator;
+import org.apache.opendal.Operator;
+import org.apache.opendal.ServiceConfig.S3;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import dev.hardwood.InputFile;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.exceptions.InvalidArgumentException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.InputColumns.SourceSymbols;
@@ -44,6 +49,9 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.InputFactory.Context;
 import io.crate.fdw.ForeignDataWrapper;
 import io.crate.metadata.TransactionContext;
+import io.crate.opendal.S3Env;
+import io.crate.opendal.S3URI;
+import io.crate.opendal.SharedAsyncExecutor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationMetadata;
@@ -54,8 +62,12 @@ import io.crate.role.Role;
 public class ParquetForeignDataWrapper implements ForeignDataWrapper {
 
     private final InputFactory inputFactory;
-    private final Setting<List<String>> localFilesSetting = Setting.listSetting("local_files", new ArrayList<>(), s -> s, STRING_ARRAY);
-    private final List<Setting<?>> mandatoryServerOptions = List.of(localFilesSetting);
+    private final Setting<List<String>> filesSetting = Setting.listSetting("files", new ArrayList<>(), s -> s, STRING_ARRAY);
+    private final Setting<String> protocolSetting = Setting.simpleString("protocol");
+    private final Setting<String> regionSetting = Setting.simpleString("region");
+    private final List<Setting<?>> mandatoryServerOptions = List.of(filesSetting);
+    private final List<Setting<?>> optionalServerOptions = List.of(protocolSetting, regionSetting);
+    private AsyncExecutor executor;
 
     public ParquetForeignDataWrapper(InputFactory inputFactory) {
         this.inputFactory = inputFactory;
@@ -72,6 +84,11 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
     }
 
     @Override
+    public List<Setting<?>> optionalServerOptions() {
+        return optionalServerOptions;
+    }
+
+    @Override
     public CompletableFuture<BatchIterator<Row>> getIterator(Role currentUser,
             Server server,
             RelationMetadata.ForeignTable foreignTable,
@@ -79,11 +96,34 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
             List<Symbol> collect,
             Symbol query) {
         Settings options = server.options();
-        List<String> pathsToLocalFiles = localFilesSetting.get(options);
-        if (!pathsToLocalFiles.isEmpty() && !currentUser.isSuperUser()) {
-            throw new UnauthorizedException("Only a superuser can read from the local file system");
+        List<String> pathsToFiles = filesSetting.get(options);
+        if (pathsToFiles.isEmpty()) {
+            throw new InvalidArgumentException("No files provided. Please provide paths to parquet files");
         }
-        List<Path> localParquetFiles = pathsToLocalFiles.stream().map(Paths::get).toList();
+
+        List<InputFile> inputFiles = new ArrayList<>();
+        for (String p : pathsToFiles) {
+            URI uri = URI.create(p);
+            String scheme = uri.getScheme();
+            if (scheme == null || scheme.equals("file")) {
+                if (!currentUser.isSuperUser()) {
+                    throw new UnauthorizedException("Only a superuser can read from the local file system");
+                }
+                inputFiles.add(InputFile.of(Path.of(uri.getPath())));
+            } else if (scheme.equals("s3")) {
+                if (executor == null) {
+                    SharedAsyncExecutor sharedAsyncExecutor = SharedAsyncExecutor.getInstance(options);
+                    executor = sharedAsyncExecutor.asyncExecutor();
+                }
+                S3URI s3uri = S3URI.of(URI.create(p));
+                S3 s3 = S3Env.getServiceConfig(s3uri, options);
+                Operator operator = AsyncOperator.of(s3, executor).blocking();
+                inputFiles.add(new OpenDALInputFile(operator, s3uri.path()));
+            } else {
+                throw new InvalidArgumentException("Unsupported URI scheme: " + scheme);
+            }
+        }
+
 
         List<Reference> columns = new ArrayList<>();
         for (Symbol symbol : collect) {
@@ -99,7 +139,7 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
             });
         }
 
-        BatchIterator<Row> it = new ParquetBatchIterator(InputFile.ofPaths(localParquetFiles), columns);
+        BatchIterator<Row> it = new ParquetBatchIterator(inputFiles, columns);
 
         SourceSymbols sourceRefs = new InputColumns.SourceSymbols(columns);
         List<Symbol> inputColumns = InputColumns.create(collect, sourceRefs);

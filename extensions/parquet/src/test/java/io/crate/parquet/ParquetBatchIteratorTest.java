@@ -24,13 +24,19 @@ package io.crate.parquet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.opendal.AsyncExecutor;
+import org.apache.opendal.AsyncOperator;
+import org.apache.opendal.Operator;
+import org.apache.opendal.ServiceConfig;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -861,5 +867,45 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                 .hasMessage(
                         "Column `car_sensor` has type `ip` in the foreign table, but in the parquet file it has type `STRUCT`. These are incompatible.");
 
+    }
+
+    @Test
+    public void test_read_from_opendal() throws Exception {
+        DocTableInfo table = e.resolveTableInfo("doc.taxi");
+        List<Reference> columns = List.of(table.getReadReference(ColumnIdent.of("trip_distance")));
+
+        try (AsyncExecutor tokioExecutor = AsyncExecutor.createTokioExecutor(1)) {
+            ServiceConfig.Memory memory = ServiceConfig.Memory.builder().build();
+            Operator operator = AsyncOperator.of(memory, tokioExecutor).blocking();
+            List<InputFile> inputFiles = new ArrayList<>();
+            for (Path p : parquetFile) {
+                operator.write(p.toString(), Files.readAllBytes(p));
+                inputFiles.add(new OpenDALInputFile(operator, p.toString()));
+            }
+            ParquetBatchIterator it = new ParquetBatchIterator(inputFiles, columns);
+            List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
+            assertThat(rows).containsExactly(
+                    new Object[] { 0.97 },
+                    new Object[] { 0.9 },
+                    new Object[] { 1.4 },
+                    new Object[] { 5.58 },
+                    new Object[] { 2.16 },
+                    new Object[] { 2.33 },
+                    new Object[] { 1.3 },
+                    new Object[] { 2.9 },
+                    new Object[] { 5.34 },
+                    new Object[] { 1.83 },
+                    new Object[] { 1.54 },
+                    new Object[] { 1.79 },
+                    new Object[] { 1.24 },
+                    new Object[] { 2.0 },
+                    new Object[] { 0.83 },
+                    new Object[] { 3.83 },
+                    new Object[] { 5.38 },
+                    new Object[] { 1.22 },
+                    new Object[] { 1.69 },
+                    new Object[] { 1.13 },
+                    new Object[] { null });
+        }
     }
 }

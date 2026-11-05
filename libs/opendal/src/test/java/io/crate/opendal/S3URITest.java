@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.copy.s3.common;
+package io.crate.opendal;
 
 import static io.crate.opendal.S3.DEFAULT_ENDPOINT;
 import static org.assertj.core.api.Assertions.assertThat;
