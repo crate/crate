@@ -46,4 +46,5 @@ series.
 Fixes
 =====
 
-None
+- Fixed an issue where querying ``sys.nodes`` might return ``SQLParseException[Values less than -1 bytes
+  are not supported: -86016b]``.
