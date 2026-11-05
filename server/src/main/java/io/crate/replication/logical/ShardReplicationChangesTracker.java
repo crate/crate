@@ -101,12 +101,9 @@ public class ShardReplicationChangesTracker implements Closeable {
         this.shardReplicationService = shardReplicationService;
         this.clusterName = clusterName;
         var seqNoStats = indexShard.seqNoStats();
-        this.observedSeqNoAtLeader = new AtomicLong(seqNoStats.getGlobalCheckpoint());
-        this.seqNoAlreadyRequested = new AtomicLong(seqNoStats.getMaxSeqNo());
         long localCheckpoint = seqNoStats.getLocalCheckpoint();
-        LOGGER.debug("LR tracker initialized: tracker={}, local={}, maxSeqNo={}, localCheckpoint={}, globalCheckpoint={}, initialFetchBlocked={}",
-            this, localShardId, seqNoStats.getMaxSeqNo(), localCheckpoint,
-            seqNoStats.getGlobalCheckpoint(), seqNoStats.getMaxSeqNo() > seqNoStats.getGlobalCheckpoint());
+        this.observedSeqNoAtLeader = new AtomicLong(localCheckpoint);
+        this.seqNoAlreadyRequested = new AtomicLong(localCheckpoint);
     }
 
     record SeqNoRange(long fromSeqNo, long toSeqNo) {

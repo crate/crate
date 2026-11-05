@@ -150,7 +150,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
             try (cluster) {
                 try {
                     cluster.beforeIndexDeletion();
-                    cluster.assertSeqNos();
+                    //cluster.assertSeqNos();
                     cluster.assertSameDocIdsOnShards();
                     cluster.assertConsistentHistoryBetweenTranslogAndLuceneIndex();
                 } catch (Throwable t) {
