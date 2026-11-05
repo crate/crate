@@ -61,6 +61,7 @@ import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.operators.InsertFromValues;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.optimizer.rule.RemoveRedundantDistinct;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -94,6 +95,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
                 ") clustered into 4 shards")
             .addTable("create table source (id int primary key, name string)")
             .addTable("CREATE TABLE double_parted(x int, y int) PARTITIONED BY (x, y)");
+        e.getSessionSettings().excludedOptimizerRules().add(RemoveRedundantDistinct.class);
     }
 
     @Test

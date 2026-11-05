@@ -1435,7 +1435,7 @@ public class GroupByAggregateTest extends IntegTestCase {
     @UseRandomizedOptimizerRules(0)
     @Test
     public void test_optimized_limit_distinct_returns_2_unique_items() throws Throwable {
-        execute("create table m.tbl (id int primary key)");
+        execute("create table m.tbl (id int)");
         Object[][] ids = new Object[100][];
         for (int i = 0; i < ids.length; i++) {
             ids[i] = new Object[] { i };
