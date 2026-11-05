@@ -94,9 +94,15 @@ public class OsProbe {
             return -1;
         }
         try {
-            return (long) GET_FREE_PHYSICAL_MEMORY_SIZE.invoke(OS_MXBEAN);
+            final long freeMem = (long) GET_FREE_PHYSICAL_MEMORY_SIZE.invoke(OS_MXBEAN);
+            if (freeMem < 0) {
+                logger.warn("OS reported a negative free memory value [{}]", freeMem);
+                return 0;
+            }
+            return freeMem;
         } catch (Exception e) {
-            return -1;
+            logger.warn("exception retrieving free physical memory", e);
+            return 0;
         }
     }
 
@@ -105,12 +111,19 @@ public class OsProbe {
      */
     public long getTotalPhysicalMemorySize() {
         if (GET_TOTAL_PHYSICAL_MEMORY_SIZE == null) {
-            return -1;
+            logger.warn("getTotalPhysicalMemorySize is not available");
+            return 0;
         }
         try {
-            return (long) GET_TOTAL_PHYSICAL_MEMORY_SIZE.invoke(OS_MXBEAN);
+            final long totalMem = (long) GET_TOTAL_PHYSICAL_MEMORY_SIZE.invoke(OS_MXBEAN);
+            if (totalMem < 0) {
+                logger.warn("OS reported a negative total memory value [{}]", totalMem);
+                return 0;
+            }
+            return totalMem;
         } catch (Exception e) {
-            return -1;
+            logger.warn("exception retrieving total physical memory", e);
+            return 0;
         }
     }
 
