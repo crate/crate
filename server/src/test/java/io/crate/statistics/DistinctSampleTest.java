@@ -30,15 +30,15 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-public class DistinctValueSetTest extends ESTestCase {
-    private DistinctValueSet set1;
-    private DistinctValueSet set2;
+public class DistinctSampleTest extends ESTestCase {
+    private DistinctSample set1;
+    private DistinctSample set2;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        set1 = new DistinctValueSet();
-        set2 = new DistinctValueSet();
+        set1 = new DistinctSample();
+        set2 = new DistinctSample();
     }
 
     @Test
@@ -160,7 +160,7 @@ public class DistinctValueSetTest extends ESTestCase {
 
         BytesStreamOutput out = new BytesStreamOutput();
         set1.writeTo(out);
-        DistinctValueSet deserialized = new DistinctValueSet(out.bytes().streamInput());
+        DistinctSample deserialized = new DistinctSample(out.bytes().streamInput());
 
         assertThat(deserialized.distinctValues()).isEqualTo(2);
         assertThat(deserialized.singletons()).isEqualTo(1);

@@ -31,8 +31,22 @@ import com.carrotsearch.hppc.BitMixer;
 import com.carrotsearch.hppc.LongHashSet;
 import com.carrotsearch.hppc.cursors.LongCursor;
 
-// TODO
-public final class DistinctValueSet {
+/// A simplified version of Gibbons' "Distinct Sample" described in his paper
+/// "Distinct Sampling for Highly-Accurate Answers to Distinct Values Queries and Event Reports".
+/// At a high level:
+/// - `DistinctSample` is a set of hashes of column values. It has an upper bound on its size.
+/// - The last bit of a hash is the duplicate flag (0 for singleton value, 1 for a duplicate).
+/// - Every hash is assigned a "level": the number od leading 0s.
+/// - `DistinctSample` has an associated level. All the hashes in a `DistinctSample` have a level
+///     that is greater or equal to `DistinctSample`'s level.
+/// - Once `DistinctSample` reaches its max. size, the level is increased. Hashes that have a
+///     smaller level are removed.
+/// - The number of values is estimated as: `distinct_sample_size * 2^level`.
+///
+/// The simplification in this implementation is in following:
+/// - We don't store rows per value. We only store a duplicate flag.
+/// - We store the number of rows per level. This gives a better estimate of non-singleton values.
+public final class DistinctSample {
 
     // For hashes that represent duplicate values, the last bit is set to 1.
     // NB: This increases the chances of hash collisions by a bit, but it's
@@ -67,13 +81,13 @@ public final class DistinctValueSet {
     // The number of added rows by the level of their hash, including the rows of dropped hashes.
     private final long[] rowsByLevel;
 
-    DistinctValueSet() {
+    DistinctSample() {
         this.hashes = new LongHashSet(MAX_RETAINED, LOAD_FACTOR);
         this.rowsByLevel = new long[NUM_LEVELS];
         this.level = 0;
     }
 
-    DistinctValueSet(StreamInput in) throws IOException {
+    DistinctSample(StreamInput in) throws IOException {
         this.level = in.readVInt();
         this.rowsByLevel = in.readVLongArray();
         int size = in.readVInt();
@@ -154,7 +168,7 @@ public final class DistinctValueSet {
         hashes.removeAll(entry -> levelOf(entry) < newLevel);
     }
 
-    public DistinctValueSet merge(DistinctValueSet other) {
+    public DistinctSample merge(DistinctSample other) {
         for (int i = 0; i < NUM_LEVELS; i++) {
             rowsByLevel[i] += other.rowsByLevel[i];
         }

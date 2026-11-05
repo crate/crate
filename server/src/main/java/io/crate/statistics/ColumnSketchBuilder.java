@@ -58,7 +58,7 @@ public abstract class ColumnSketchBuilder<T> {
 
     /// Only filled if [#distinctSketch] is `null`.
     @Nullable
-    protected final DistinctValueSet distinctCounts;
+    protected final DistinctSample distinctCounts;
 
     /**
      * Creates a new ColumnSketchBuilder for the given DataType
@@ -69,7 +69,7 @@ public abstract class ColumnSketchBuilder<T> {
         this.dataType = dataType;
         boolean useSketch = minNodeVersion.before(Version.V_6_5_1);
         this.distinctSketch = useSketch ? DistinctValuesSketch.newSketch() : null;
-        this.distinctCounts = useSketch ? null : new DistinctValueSet();
+        this.distinctCounts = useSketch ? null : new DistinctSample();
     }
 
     /**
@@ -87,7 +87,7 @@ public abstract class ColumnSketchBuilder<T> {
             this.distinctCounts = null;
         } else {
             this.distinctSketch = null;
-            this.distinctCounts = new DistinctValueSet(in);
+            this.distinctCounts = new DistinctSample(in);
         }
     }
 
