@@ -36,6 +36,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
+import io.crate.planner.operators.DistinctRewriter.NoOp;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.HashAggregate;
@@ -110,7 +111,7 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
     /// However, the default implementation of distinct functions is limited to the ones below
     /// (because it needs a matching `collection_*` scalar function), hence the rule is limited
     /// to those as well. Otherwise, we'd have a situation where an optimization enables more functions.
-    private static final Set<String> SUPPORTED_AGGREGATES = Set.of(
+    static final Set<String> SUPPORTED_AGGREGATES = Set.of(
         CountAggregation.NAME,
         AverageAggregation.NAMES[0],
         AverageAggregation.NAMES[1]
@@ -134,7 +135,7 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
         return agg.aggregates().stream()
             .allMatch(fn ->
                 fn.distinct() &&
-                    hasNoFilter(fn) &&
+                    !hasFilter(fn) &&
                     SUPPORTED_AGGREGATES.contains(fn.name()) &&
                     // NB: distinct functions can have one and only one argument
                     !fn.arguments().isEmpty() &&
@@ -150,9 +151,9 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
             col.valueType().id() != TimestampType.ID_WITHOUT_TZ;
     }
 
-    private static boolean hasNoFilter(Function aggregate) {
+    static boolean hasFilter(Function aggregate) {
         Symbol filter = aggregate.filter();
-        return filter == null || filter.equals(Literal.BOOLEAN_TRUE);
+        return filter != null && !filter.equals(Literal.BOOLEAN_TRUE);
     }
 
     @Override
@@ -172,7 +173,7 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
     private static Map<Symbol, List<Function>> groupByColumn(List<Function> aggregates) {
         Map<Symbol, List<Function>> byColumn = new LinkedHashMap<>();
         for (Function fn : aggregates) {
-            byColumn.computeIfAbsent(fn.arguments().getFirst(), k -> new ArrayList<>()).add(fn);
+            byColumn.computeIfAbsent(fn.arguments().getFirst(), _ -> new ArrayList<>()).add(fn);
         }
         return byColumn;
     }
@@ -188,7 +189,7 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
         }
 
         GroupHashAggregate dedup = new GroupHashAggregate(source, List.of(groupKey), List.of());
-        return new HashAggregate(dedup, aggregate.aggregates(), false);
+        return new HashAggregate(dedup, aggregate.aggregates(), new NoOp());
     }
 
     /// True if `plan` already groups by `groupKey`, i.e., a `GROUP BY` isn't needed.
@@ -223,12 +224,12 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
         return Eval.create(joined, List.copyOf(aggregate.aggregates()));
     }
 
-    /// True, if this rule can be applied.
-    /// Currently, we only check the table size (in number of rows).
-    /// todo Once https://github.com/crate/crate/pull/20172 is merged,
-    /// this method should use column stats.
-    /// The condition (that we found through benchmarks) is that at most 1 column
-    /// with cardinality higher than 85% makes the rule effective.
+    // True, if this rule can be applied.
+    // Currently, we only check the table size (in number of rows).
+    // todo Once https://github.com/crate/crate/pull/20172 is merged,
+    // this method should use column stats.
+    // The condition (that we found through benchmarks) is that at most 1 column
+    // with cardinality higher than 85% makes the rule effective.
     private static boolean meetsNumRowsRequirement(Stats stats) {
         if (stats.numDocs() <= 0) {
             return true;
