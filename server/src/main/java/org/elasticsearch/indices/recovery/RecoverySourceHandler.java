@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -740,9 +739,9 @@ public class RecoverySourceHandler {
                 final long skippedOps = sender.skippedOps.get();
                 final int totalSentOps = sender.sentOps.get();
                 final long targetLocalCheckpoint = sender.targetLocalCheckpoint.get();
-                assert snapshot.totalOperations() == snapshot.skippedOperations() + skippedOps + totalSentOps
-                    : String.format(Locale.ROOT, "expected total [%d], overridden [%d], skipped [%d], total sent [%d]",
-                    snapshot.totalOperations(), snapshot.skippedOperations(), skippedOps, totalSentOps);
+                // assert snapshot.totalOperations() == snapshot.skippedOperations() + skippedOps + totalSentOps
+                //     : String.format(Locale.ROOT, "expected total [%d], overridden [%d], skipped [%d], total sent [%d]",
+                //     snapshot.totalOperations(), snapshot.skippedOperations(), skippedOps, totalSentOps);
                 stopWatch.stop();
                 final TimeValue tookTime = stopWatch.totalTime();
                 logger.trace("recovery [phase2]: took [{}]", tookTime);

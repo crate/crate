@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import static io.crate.integrationtests.LogicalReplicationITestCase.stopCluster;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
@@ -39,8 +38,11 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
 import org.elasticsearch.test.TestCluster;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.After;
 import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -115,11 +117,18 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
     private SQLTransportExecutor subscriber;
 
     private TestCluster newCluster(String clusterName, Settings settings) throws Exception {
-        Settings allSettings = Settings.builder()
+        return newCluster(clusterName, settings, 1);
+    }
+
+    private TestCluster newCluster(String clusterName, Settings settings, int numberOfNodes) throws Exception {
+        var settingsBuilder = Settings.builder()
             .putList(SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING.getKey())
             .put(LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION.getKey(), "10ms")
-            .put(settings)
-            .build();
+            .put(settings);
+        if (numberOfNodes > 1) {
+            settingsBuilder.putList("discovery.seed_providers", "file");
+        }
+        Settings allSettings = settingsBuilder.build();
         var nodeConfigurationSource = new NodeConfigurationSource() {
 
             @Override
@@ -137,8 +146,8 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
             createTempDir(),
             false,
             true,
-            1,
-            1,
+            numberOfNodes,
+            numberOfNodes,
             clusterName,
             nodeConfigurationSource,
             0,
@@ -146,7 +155,7 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
             List.of(MockHttpTransport.TestPlugin.class)
         );
         cluster.beforeTest(random());
-        cluster.ensureAtLeastNumDataNodes(1);
+        cluster.ensureAtLeastNumDataNodes(numberOfNodes);
         return cluster;
     }
 
@@ -359,5 +368,49 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
                 throw new AssertionError(e);
             }
         });
+    }
+
+    @Repeat(iterations = 50)
+    @Test
+    @TestLogging("io.crate.replication.logical:DEBUG")
+    public void test_replication_continues_during_subscriber_rolling_restarts() throws Exception {
+        publisherCluster = newCluster("publisher", Settings.EMPTY, 2);
+        subscriberCluster = newCluster("subscriber", Settings.EMPTY, 2);
+        publisher = publisherCluster.createSQLTransportExecutor();
+        subscriber = subscriberCluster.createSQLTransportExecutor();
+        publisher.exec("CREATE TABLE doc.tbl (id INT) CLUSTERED INTO 2 SHARDS WITH (number_of_replicas = 1)");
+        publisher.ensureGreen();
+        publisher.exec("CREATE PUBLICATION pub1 FOR TABLE doc.tbl");
+
+        var address = publisherCluster.getInstance(PostgresNetty.class).boundAddress().publishAddress().address();
+        subscriber.exec(String.format(Locale.ENGLISH, """
+            CREATE SUBSCRIPTION sub1
+            CONNECTION 'crate://%s:%d?user=crate&mode=pg_tunnel'
+            PUBLICATION pub1
+            """, address.getHostString(), address.getPort()));
+        assertBusy(() -> {
+            try {
+                subscriber.exec("REFRESH TABLE doc.tbl");
+                assertThat(subscriber.exec("SELECT id FROM doc.tbl")).hasRowCount(0);
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        });
+        subscriber.ensureGreen(subscriberCluster.size());
+
+        assertThat(publisher.exec("INSERT INTO doc.tbl (id) SELECT generate_series(1, 3000)")).hasRowCount(3000);
+        for (int round = 0; round < 3; round++) {
+            subscriberCluster.rollingRestart(new TestCluster.RestartCallback());
+            subscriber = subscriberCluster.createSQLTransportExecutor();
+        }
+        assertBusy(() -> {
+            try {
+                subscriber.exec("REFRESH TABLE doc.tbl");
+                assertThat(subscriber.exec("SELECT count(DISTINCT id) FROM doc.tbl WHERE id >= 1 AND id <= 3000"))
+                    .hasRows("3000");
+            } catch (Exception e) {
+                throw new AssertionError(e);
+            }
+        }, 30, TimeUnit.SECONDS);
     }
 }
