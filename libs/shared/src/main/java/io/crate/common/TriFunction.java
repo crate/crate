@@ -18,7 +18,7 @@
  *
  */
 
-package org.elasticsearch.common;
+package io.crate.common;
 
 /**
  * Represents a function that accepts three arguments and produces a result.
