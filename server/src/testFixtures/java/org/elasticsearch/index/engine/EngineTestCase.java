@@ -1147,7 +1147,7 @@ public abstract class EngineTestCase extends ESTestCase {
     public static List<Translog.Operation> readAllOperationsInLucene(Engine engine) throws IOException {
         final List<Translog.Operation> operations = new ArrayList<>();
         long maxSeqNo = Math.max(0, ((InternalEngine) engine).getLocalCheckpointTracker().getMaxSeqNo());
-        try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", 0, maxSeqNo, false)) {
+        try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", 0, maxSeqNo, false, randomBoolean())) {
             Translog.Operation op;
             while ((op = snapshot.next()) != null) {
                 operations.add(op);

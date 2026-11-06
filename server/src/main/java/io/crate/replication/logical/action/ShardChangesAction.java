@@ -124,7 +124,7 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
                 );
             }
             var source = "logical-replication";
-            try (Translog.Snapshot snapshot = indexShard.newChangesSnapshot(source, fromSeqNo, toSeqNo, true)) {
+            try (Translog.Snapshot snapshot = indexShard.newChangesSnapshot(source, fromSeqNo, toSeqNo, true, false)) {
                 var op = snapshot.next();
                 while (op != null) {
                     ops.add(op);
