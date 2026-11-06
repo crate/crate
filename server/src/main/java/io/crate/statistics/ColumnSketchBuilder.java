@@ -50,9 +50,9 @@ public abstract class ColumnSketchBuilder<T> {
     // DistinctSample is meant to be a replacement for DistinctValuesSketch, due to its
     // inaccuracy (see: https://github.com/crate/crate/issues/20210 for details).
     // Both exist at the same time to support rolling upgrades, given that they cannot be "mixed".
-    // If all nodes in the cluster are on 6.5.1 or higher, then DistinctSample is used.
+    // If all nodes in the cluster are on a version higher than 6.5.1, then DistinctSample is used.
 
-    @Deprecated(since = "6.5.1")
+    @Deprecated(since = "6.6.0")
     @Nullable
     protected DistinctValuesSketch distinctSketch;
 
@@ -67,7 +67,7 @@ public abstract class ColumnSketchBuilder<T> {
      */
     public ColumnSketchBuilder(DataType<T> dataType, Version minNodeVersion) {
         this.dataType = dataType;
-        boolean useSketch = minNodeVersion.before(Version.V_6_5_1);
+        boolean useSketch = minNodeVersion.onOrBefore(Version.V_6_5_1);
         this.distinctSketch = useSketch ? DistinctValuesSketch.newSketch() : null;
         this.distinctCounts = useSketch ? null : new DistinctSample();
     }
@@ -78,7 +78,7 @@ public abstract class ColumnSketchBuilder<T> {
      */
     public ColumnSketchBuilder(DataType<T> dataType, Version minNodeVersion, StreamInput in) throws IOException {
         this.dataType = dataType;
-        boolean useSketch = minNodeVersion.before(Version.V_6_5_1);
+        boolean useSketch = minNodeVersion.onOrBefore(Version.V_6_5_1);
         this.sampleCount = in.readLong();
         this.nullCount = in.readLong();
         this.totalBytes = in.readLong();
@@ -96,7 +96,6 @@ public abstract class ColumnSketchBuilder<T> {
         out.writeLong(nullCount);
         out.writeLong(totalBytes);
         if (distinctSketch != null) {
-            // A node older than 6.5.1 takes part in the ANALYZE, so the sketch was built.
             out.writeByteArray(distinctSketch.getSketch().toByteArray());
         } else {
             distinctCounts.writeTo(out);

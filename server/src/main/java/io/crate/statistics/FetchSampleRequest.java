@@ -77,7 +77,7 @@ public final class FetchSampleRequest extends TransportRequest {
         for (int i = 0; i < numColumns; i++) {
             columns.add(Reference.fromStream(in));
         }
-        if (in.getVersion().onOrAfter(Version.V_6_5_1)) {
+        if (in.getVersion().after(Version.V_6_5_1)) {
             this.minNodeVersion = Version.readVersion(in);
         } else {
             // Sent by a handler node older than 6.5.1, so that is the lowest version taking part.
@@ -99,7 +99,7 @@ public final class FetchSampleRequest extends TransportRequest {
         for (Reference column : columns) {
             Reference.toStream(out, column);
         }
-        if (out.getVersion().onOrAfter(Version.V_6_5_1)) {
+        if (out.getVersion().after(Version.V_6_5_1)) {
             Version.writeVersion(minNodeVersion, out);
         }
     }
