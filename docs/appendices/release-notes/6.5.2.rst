@@ -48,6 +48,13 @@ Fixes
 
 - Fixed an issue where querying ``sys.nodes`` might return ``SQLParseException[Values less than -1 bytes
   are not supported: -86016b]``.
+
 - `Yannic Hamann <https://github.com/yannic-hamann-abb>`_ fixed an issue that
   caused :ref:`ANALYZE <analyze>` to exceed the configured I/O rate limit
   during statistics collection.
+
+- Fixed an issue that could cause Logical Replication to fail with an error
+  ``java.lang.IllegalStateException: source not found for seqno=...`` after
+  primary shards on the subscriber cluster were relocated and segments of the
+  published table were merged on the publisher cluster, for example by running
+  ``OPTIMIZE``.

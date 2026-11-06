@@ -42,7 +42,6 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.seqno.RetentionLeaseInvalidRetainingSeqNoException;
-import org.elasticsearch.index.seqno.RetentionLeaseNotFoundException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
@@ -383,23 +382,6 @@ public class ShardReplicationChangesTracker implements Closeable {
                                     ThreadPool.Names.LOGICAL_REPLICATION,
                                     newRunnable()
                                 );
-                            } else if (t instanceof RetentionLeaseNotFoundException) {
-
-                                LOGGER.info("Retention lease renewal failed as lease was not found. Creating a new one");
-                                RetentionLeaseHelper.addRetentionLease(
-                                    remoteShardId,
-                                    toSeqNoReceived,
-                                    clusterName,
-                                    remoteClient,
-                                    ActionListener.wrap(r ->
-                                        cancellable = threadPool.scheduleUnlessShuttingDown(
-                                            replicationSettings.pollDelay(),
-                                            ThreadPool.Names.LOGICAL_REPLICATION,
-                                            () -> renewLeasesThenReschedule(toSeqNoReceived)
-                                        ),
-                                        err -> LOGGER.warn("Exception renewing retention lease. Stopping tracking (closed=false)", err)
-                                    )
-                                );
                             } else {
                                 LOGGER.warn("Exception renewing retention lease. Stopping tracking (closed=false)", e);
                             }
@@ -417,6 +399,10 @@ public class ShardReplicationChangesTracker implements Closeable {
             currentCancellable.cancel();
             cancellable = null;
         }
+    }
+
+    void removeRetentionLease() {
+        assert closed : "Tracker must be closed before removing the retention lease";
         shardReplicationService.getRemoteClusterClient(remoteShardId.getIndex(), subscriptionName)
             .thenAccept(client -> RetentionLeaseHelper.attemptRetentionLeaseRemoval(
                 remoteShardId,

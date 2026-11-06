@@ -303,6 +303,18 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
             assertThat(res).hasRows("1", "2", "3", "4");
         });
+
+        // Dropping the last publication containing the table removes retention lease.
+        executeOnPublisher("DROP PUBLICATION pub3");
+        assertBusy(() -> assertThat(executeOnPublisher("""
+            SELECT count(*) FROM (
+                SELECT unnest(retention_leases['leases']) AS lease
+                FROM sys.shards
+                WHERE primary = true
+            ) AS leases
+            WHERE lease['id'] LIKE 'logical_replication:%'
+            """)
+        ).hasRows("0"));
     }
 
     @Test
@@ -759,6 +771,16 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         createSubscription("sub1", "pub1");
 
         executeOnSubscriber("DROP SUBSCRIPTION sub1 ");
+        // Dropping subscription removes retention lease.
+        assertBusy(() -> assertThat(executeOnPublisher("""
+            SELECT count(*) FROM (
+                SELECT unnest(retention_leases['leases']) AS lease
+                FROM sys.shards
+                WHERE primary = true
+            ) AS leases
+            WHERE lease['id'] LIKE 'logical_replication:%'
+            """)
+        ).hasRows("0"));
 
         var response = executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)");
         assertThat(response).hasRowCount(1L);
@@ -978,10 +1000,20 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         subscriberSqlExecutor.exec("ALTER TABLE t1 REROUTE MOVE SHARD ? FROM ? TO ?", new Object[] {shardId, fromNode, toNode});
         subscriberSqlExecutor.ensureGreen(subscriberCluster.size());  // ensureGreenOnSubscriber() can't be used as it doesn't wait for relocations
 
-        // Retention lease is removed on reroute -> close shard.
-        // Next retention lease renewal will fail with RetentionLeaseNotFoundException
-        // We used to do the last poll but didn't scehdule next poll and stopped tracking,
-        // so "4" was visible, but "5" used to be not replicated.
+        // Closing the relocated shard on subscriber
+        // must not remove the retention lease on the publisher.
+        assertThat(executeOnPublisher("""
+            SELECT count(*) FROM (
+                SELECT unnest(retention_leases['leases']) AS lease
+                FROM sys.shards
+                WHERE primary = true
+            ) AS leases
+            WHERE lease['id'] LIKE 'logical_replication:%'
+            """)
+        ).hasRows("1");
+
+        // Verify that replication works after relocation.
+        // Doing 2 inserts as first insert could have been picked up by the in-flight replication poll.
         executeOnPublisher("INSERT INTO t1 (id) VALUES (4)");
         assertBusy(() -> {
             executeOnSubscriber("REFRESH TABLE t1");
