@@ -45,9 +45,6 @@ import org.apache.lucene.tests.index.RandomIndexWriter;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import com.carrotsearch.hppc.LongArrayList;
-import com.carrotsearch.hppc.cursors.LongCursor;
-
 import io.crate.common.collections.Lists;
 import io.crate.common.io.IOUtils;
 import io.crate.execution.engine.fetch.FetchId;
@@ -133,19 +130,19 @@ public class ReservoirTest extends ESTestCase {
             }
             // 9 segments with 50 live docs each; 300 of 450 forces duplicate draws
             int numSamples = 300;
-            LongArrayList fetchIds = ReservoirSampler.sampleLiveDocIds(
+            long[] fetchIds = ReservoirSampler.sampleLiveDocIds(
                 Lists.map(readers, IndexSearcher::new),
                 numSamples,
                 random()
             );
 
-            assertThat(fetchIds.size()).isEqualTo(numSamples);
+            assertThat(fetchIds).hasSize(numSamples);
             long lastId = -1;
-            for (LongCursor cursor : fetchIds) {
-                assertThat(cursor.value).isGreaterThan(lastId);
-                lastId = cursor.value;
-                IndexReader reader = readers.get(FetchId.decodeReaderId(cursor.value));
-                Document doc = reader.storedFields().document(FetchId.decodeDocId(cursor.value));
+            for (long fetchId : fetchIds) {
+                assertThat(fetchId).isGreaterThan(lastId);
+                lastId = fetchId;
+                IndexReader reader = readers.get(FetchId.decodeReaderId(fetchId));
+                Document doc = reader.storedFields().document(FetchId.decodeDocId(fetchId));
                 assertThat(doc.getField("value").numericValue().longValue())
                     .as("deleted docs have a value below %d", docsPerSegment / 2)
                     .isGreaterThanOrEqualTo(docsPerSegment / 2);
