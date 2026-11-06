@@ -5286,7 +5286,7 @@ public class InternalEngineTests extends EngineTestCase {
                     @Override
                     public void doRun() throws Exception {
                         latch.await();
-                        Translog.Snapshot changes = engine.newChangesSnapshot("test", min, max, true);
+                        Translog.Snapshot changes = engine.newChangesSnapshot("test", min, max, true, randomBoolean());
                         changes.close();
                     }
                 });
