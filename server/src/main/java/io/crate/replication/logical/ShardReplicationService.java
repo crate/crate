@@ -123,7 +123,10 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
         if (REPLICATION_SUBSCRIPTION_NAME.get(oldSettings).isEmpty() == false
             && REPLICATION_SUBSCRIPTION_NAME.get(newSettings).isEmpty() == true) {
             var shardId = indexShard.shardId();
-            closeTracker(shardId);
+            var tracker = closeTracker(shardId);
+            if (tracker != null) {
+                tracker.removeRetentionLease();
+            }
         }
     }
 
@@ -150,7 +153,8 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
         }
     }
 
-    private void closeTracker(ShardId shardId) {
+    @Nullable
+    private ShardReplicationChangesTracker closeTracker(ShardId shardId) {
         var tracker = shards.remove(shardId);
         if (tracker != null) {
             try {
@@ -159,5 +163,6 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
                 LOGGER.error("Error while closing shard changes tracker of shardId=" + shardId, e);
             }
         }
+        return tracker;
     }
 }
