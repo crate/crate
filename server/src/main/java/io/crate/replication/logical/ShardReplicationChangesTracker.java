@@ -84,6 +84,8 @@ public class ShardReplicationChangesTracker implements Closeable {
     private volatile Scheduler.Cancellable cancellable;
     private volatile boolean closed = false;
 
+    public static volatile boolean DUMMY_BLOCKER = false;
+
 
     public ShardReplicationChangesTracker(String subscriptionName,
                                           IndexShard indexShard,
@@ -384,7 +386,15 @@ public class ShardReplicationChangesTracker implements Closeable {
                                     newRunnable()
                                 );
                             } else if (t instanceof RetentionLeaseNotFoundException) {
-
+                                if (DUMMY_BLOCKER == true) {
+                                    // Don't add retention lease until test is adding more data and enforcing merges.
+                                    cancellable = threadPool.scheduleUnlessShuttingDown(
+                                        replicationSettings.pollDelay(),
+                                        ThreadPool.Names.LOGICAL_REPLICATION,
+                                        () -> renewLeasesThenReschedule(toSeqNoReceived)
+                                    );
+                                    return;
+                                }
                                 LOGGER.info("Retention lease renewal failed as lease was not found. Creating a new one");
                                 RetentionLeaseHelper.addRetentionLease(
                                     remoteShardId,
