@@ -622,7 +622,10 @@ public abstract class Engine implements Closeable {
      * Creates a new history snapshot from Lucene for reading operations whose seqno in the requesting seqno range (both inclusive)
      */
     public abstract Translog.Snapshot newChangesSnapshot(String source,
-                                                         long fromSeqNo, long toSeqNo, boolean requiredFullRange) throws IOException;
+                                                         long fromSeqNo,
+                                                         long toSeqNo,
+                                                         boolean requiredFullRange,
+                                                         boolean accurateCount) throws IOException;
 
     /**
      * Creates a new history snapshot for reading operations since {@code startingSeqNo} (inclusive).

@@ -524,7 +524,7 @@ public class InternalEngine extends Engine {
     public Translog.Snapshot readHistoryOperations(String reason, HistorySource historySource,
                                                    long startingSeqNo) throws IOException {
         if (historySource == HistorySource.INDEX) {
-            return newChangesSnapshot(reason, Math.max(0, startingSeqNo), Long.MAX_VALUE, false);
+            return newChangesSnapshot(reason, Math.max(0, startingSeqNo), Long.MAX_VALUE, false, true);
         } else {
             return getTranslog().newSnapshot(startingSeqNo, Long.MAX_VALUE);
         }
@@ -538,7 +538,7 @@ public class InternalEngine extends Engine {
                                                  long startingSeqNo) throws IOException {
         if (historySource == HistorySource.INDEX) {
             try (Translog.Snapshot snapshot = newChangesSnapshot(reason, Math.max(0, startingSeqNo),
-                Long.MAX_VALUE, false)) {
+                Long.MAX_VALUE, false, false)) {
                 return snapshot.totalOperations();
             }
         } else {
@@ -2480,13 +2480,16 @@ public class InternalEngine extends Engine {
 
     @Override
     public Translog.Snapshot newChangesSnapshot(String source,
-                                                long fromSeqNo, long toSeqNo, boolean requiredFullRange) throws IOException {
+                                                long fromSeqNo,
+                                                long toSeqNo,
+                                                boolean requiredFullRange,
+                                                boolean accurateCount) throws IOException {
         ensureOpen();
         refreshIfNeeded(source, toSeqNo);
         Searcher searcher = acquireSearcher(source, SearcherScope.INTERNAL);
         try {
             LuceneChangesSnapshot snapshot = new LuceneChangesSnapshot(
-                searcher, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE, fromSeqNo, toSeqNo, requiredFullRange);
+                searcher, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE, fromSeqNo, toSeqNo, requiredFullRange, accurateCount);
             searcher = null;
             return snapshot;
         } catch (Exception e) {
