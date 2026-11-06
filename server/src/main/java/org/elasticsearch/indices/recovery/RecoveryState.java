@@ -391,7 +391,7 @@ public class RecoveryState implements Writeable {
 
         public synchronized void incrementRecoveredOperations(int ops) {
             recovered += ops;
-            // assert total == UNKNOWN || total >= recovered : "total, if known, should be > recovered. total [" + total + "], recovered [" + recovered + "]";
+             assert total == UNKNOWN || total >= recovered : "total, if known, should be > recovered. total [" + total + "], recovered [" + recovered + "]";
         }
 
         /**
