@@ -47,6 +47,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.RateLimiter;
+import org.apache.lucene.util.Bits;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -175,7 +176,6 @@ public final class ReservoirSampler {
                 columns.stream().map(r -> r.column().fqn()).collect(Collectors.joining(", ")));
         }
 
-        Reservoir fetchIdSamples = new Reservoir(random);
         long totalNumDocs = 0;
         long totalSizeInBytes = 0;
 
@@ -210,18 +210,17 @@ public final class ReservoirSampler {
                         searchersToRelease.add(new ShardExpressions(indexShard, indexMetadata.partitionValues(), searcher, docTable, expressions));
                         totalNumDocs += searcher.getIndexReader().numDocs();
                         totalSizeInBytes += indexShard.storeStats().sizeInBytes();
-                        // We do the sampling in 2 phases. First we get the docIds;
-                        // then we retrieve the column values for the sampled docIds.
-                        // we do this in 2 phases because the reservoir sampling might override previously seen
-                        // items and we want to avoid unnecessary disk-lookup
-                        sampleDocIds(fetchIdSamples, searchersToRelease.size() - 1, searcher);
                     } catch (IllegalIndexShardStateException | AlreadyClosedException ignored) {
                     }
                 }
             }
 
+            // We do the sampling in 2 phases. First we get the docIds;
+            // then we retrieve the column values for the sampled docIds.
+            // we do this in 2 phases because the reservoir sampling might override previously seen
+            // items and we want to avoid unnecessary disk-lookup
             var sampler = new ColumnSampler(columnCollectors, searchersToRelease::get);
-            sampler.iterate(fetchIdSamples.samples());
+            sampler.iterate(sampleFetchIds(searchersToRelease, totalNumDocs, random));
 
             List<ColumnSketchBuilder<?>> statsBuilders = new ArrayList<>();
             for (var collector : columnCollectors) {
@@ -234,6 +233,46 @@ public final class ReservoirSampler {
                 shard.searcher.close();
             }
         }
+    }
+
+    /**
+     * Knuth's Algorithm S (TAOCP 3.4.2) over the live docs of all shards, with the optimization from
+     * PostgreSQL's BlockSampler_Next: one random number per selected doc instead of one per doc.
+     * Returns fetchIds sorted by (readerIdx, docId).
+     */
+    private static LongArrayList sampleFetchIds(List<ShardExpressions> shards, long numDocs, Random random) {
+        long remaining = numDocs;
+        long needed = Math.min(Reservoir.NUM_SAMPLES, numDocs);
+        LongArrayList fetchIds = new LongArrayList((int) needed);
+        if (needed == 0) {
+            return fetchIds;
+        }
+        double v = random.nextDouble();
+        double p = 1.0 - (double) needed / remaining;
+        for (int readerIdx = 0; readerIdx < shards.size(); readerIdx++) {
+            for (LeafReaderContext leaf : shards.get(readerIdx).searcher.getIndexReader().leaves()) {
+                Bits liveDocs = leaf.reader().getLiveDocs();
+                int maxDoc = leaf.reader().maxDoc();
+                for (int doc = 0; doc < maxDoc; doc++) {
+                    if (liveDocs != null && liveDocs.get(doc) == false) {
+                        continue;
+                    }
+                    remaining--;
+                    if (v < p) {
+                        p *= 1.0 - (double) needed / remaining;
+                    } else {
+                        fetchIds.add(FetchId.encode(readerIdx, leaf.docBase + doc));
+                        needed--;
+                        if (needed == 0) {
+                            return fetchIds;
+                        }
+                        v = random.nextDouble();
+                        p = 1.0 - (double) needed / remaining;
+                    }
+                }
+            }
+        }
+        return fetchIds;
     }
 
     @VisibleForTesting
