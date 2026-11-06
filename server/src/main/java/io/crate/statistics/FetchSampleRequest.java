@@ -80,7 +80,7 @@ public final class FetchSampleRequest extends TransportRequest {
         if (in.getVersion().after(Version.V_6_5_1)) {
             this.minNodeVersion = Version.readVersion(in);
         } else {
-            // Sent by a handler node older than 6.5.1, so that is the lowest version taking part.
+            // Sent by a handler node on 6.5.1 or older, so that is the lowest version taking part.
             this.minNodeVersion = in.getVersion();
         }
     }
