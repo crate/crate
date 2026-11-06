@@ -23,6 +23,8 @@ package io.crate.statistics;
 
 import java.util.Collection;
 
+import org.elasticsearch.Version;
+
 import io.crate.types.DataType;
 
 public final class StatsUtils {
@@ -30,17 +32,31 @@ public final class StatsUtils {
     private StatsUtils() {}
 
     public static <T> ColumnStats<T> statsFromValues(DataType<T> dataType, Collection<T> values) {
-        ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder();
+        ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder(Version.CURRENT);
         builder.addAll(values);
-        return builder.toStats();
+        // Assume the sample is the whole table: totalDocs == number of rows just added.
+        return builder.toStats(builder.sampleCount);
     }
 
     public static <T> ColumnStats<T> statsFromValues(DataType<T> dataType, Collection<T> values, int nullCount) {
-        ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder();
+        ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder(Version.CURRENT);
         builder.addAll(values);
         for (int i = 0; i < nullCount; i++) {
             builder.add(null);
         }
-        return builder.toStats();
+        // Assume the sample is the whole table: totalDocs == number of rows just added.
+        return builder.toStats(builder.sampleCount);
+    }
+
+    public static <T> ColumnStats<T> statsFromValues(DataType<T> dataType,
+                                                     Collection<T> values,
+                                                     int nullCount,
+                                                     long totalDocs) {
+        ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder(Version.CURRENT);
+        builder.addAll(values);
+        for (int i = 0; i < nullCount; i++) {
+            builder.add(null);
+        }
+        return builder.toStats(totalDocs);
     }
 }

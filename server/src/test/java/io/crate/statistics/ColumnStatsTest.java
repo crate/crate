@@ -50,6 +50,35 @@ public class ColumnStatsTest {
         assertThat(mostCommonValues.values()).hasSize(3);
     }
 
+    @Test
+    public void test_approx_distinct_sample_covers_whole_table() {
+        List<Integer> values = IntStream.range(0, 500).boxed().toList();
+        ColumnStats<?> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, values, 0, 500);
+        assertThat(columnStats.approxDistinct()).isEqualTo(500.0);
+    }
+
+    @Test
+    public void test_approx_distinct_sample_is_all_unique() {
+        // Regression test
+        // Earlier, ColumnStats.approxDistinct() used to report the distinct values from the sample,
+        // without extrapolating to the full table.
+        // This meant that, for high-cardinality columns, the reports num. of distinct values was
+        // always 30k.
+        List<Integer> values = IntStream.range(0, 30_000).boxed().toList();
+        ColumnStats<?> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, values, 0, 5_000_000);
+        assertThat(columnStats.approxDistinct()).isEqualTo(5_000_000.0);
+    }
+
+    @Test
+    public void test_no_most_common_values_for_unique_sample() {
+        // todo clarify logic in MCV
+        for (int offset : new int[] {0, 30_000}) {
+            List<Integer> values = IntStream.range(offset, offset + 30_000).boxed().toList();
+            ColumnStats<?> stats = StatsUtils.statsFromValues(DataTypes.INTEGER, values, 0, 10_000_000);
+            assertThat(stats.mostCommonValues().values()).as("offset " + offset).isEmpty();
+        }
+    }
+
     @Property
     public void test_null_fraction_is_between_incl_0_and_incl_1(ArrayList<Integer> numbers,
                                                                 @IntRange(min = 0) int nullCount,
