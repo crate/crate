@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
@@ -68,7 +67,6 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
 import com.carrotsearch.hppc.LongArrayList;
-import com.carrotsearch.hppc.cursors.LongCursor;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
@@ -221,24 +219,28 @@ public final class ReservoirSampler {
             // then we retrieve the column values for the sampled docIds.
             // we do this in 2 phases because the reservoir sampling might override previously seen
             // items and we want to avoid unnecessary disk-lookup
-            LongArrayList fetchIds;
+            long[] fetchIds;
+            int numFetchIds;
             if (totalNumDocs <= 2L * Reservoir.NUM_SAMPLES) {
                 // Drawing at least half of all live docs at random costs about as much as a full scan
                 Reservoir reservoir = new Reservoir(random);
                 for (int i = 0; i < searchersToRelease.size(); i++) {
                     sampleDocIds(reservoir, i, searchersToRelease.get(i).searcher);
                 }
-                fetchIds = reservoir.samples();
+                LongArrayList samples = reservoir.samples();
+                fetchIds = samples.buffer;
+                numFetchIds = samples.size();
             } else {
                 fetchIds = sampleLiveDocIds(
                     Lists.map(searchersToRelease, ShardExpressions::searcher),
                     Reservoir.NUM_SAMPLES,
                     random
                 );
+                numFetchIds = fetchIds.length;
             }
 
             var sampler = new ColumnSampler(columnCollectors, searchersToRelease::get);
-            sampler.iterate(fetchIds);
+            sampler.iterate(fetchIds, numFetchIds);
 
             List<ColumnSketchBuilder<?>> statsBuilders = new ArrayList<>();
             for (var collector : columnCollectors) {
@@ -263,57 +265,67 @@ public final class ReservoirSampler {
     }
 
     @VisibleForTesting
-    static LongArrayList sampleLiveDocIds(List<? extends IndexSearcher> searchers, int numSamples, Random random) {
-        long[] docBases = new long[searchers.size()];
-        long totalMaxDoc = 0;
+    static long[] sampleLiveDocIds(List<? extends IndexSearcher> searchers, int numSamples, Random random) {
+        // docBases[i + 1] is the end of searcher i's range
+        long[] docBases = new long[searchers.size() + 1];
         for (int i = 0; i < searchers.size(); i++) {
-            docBases[i] = totalMaxDoc;
-            totalMaxDoc += searchers.get(i).getIndexReader().maxDoc();
+            docBases[i + 1] = docBases[i] + searchers.get(i).getIndexReader().maxDoc();
         }
-        long[] fetchIds = new long[numSamples];
-        int numDistinct = 0;
-        while (numDistinct < numSamples) {
-            int i = numDistinct;
-            while (i < numSamples) {
-                long position = random.nextLong(totalMaxDoc);
-                int readerIdx = readerIndex(docBases, position);
-                int docId = (int) (position - docBases[readerIdx]);
-                if (isLive(searchers.get(readerIdx).getIndexReader(), docId)) {
-                    fetchIds[i++] = FetchId.encode(readerIdx, docId);
-                }
+        long totalMaxDoc = docBases[searchers.size()];
+        long[] positions = new long[numSamples];
+        int numValid = 0;
+        while (numValid < numSamples) {
+            for (int i = numValid; i < numSamples; i++) {
+                positions[i] = random.nextLong(totalMaxDoc);
             }
-            Arrays.sort(fetchIds);
-            numDistinct = removeDuplicates(fetchIds);
+            Arrays.sort(positions);
+            numValid = removeDuplicatesAndDeleted(positions, searchers, docBases);
         }
-        return LongArrayList.from(fetchIds);
+        int readerIdx = 0;
+        for (int i = 0; i < numSamples; i++) {
+            while (positions[i] >= docBases[readerIdx + 1]) {
+                readerIdx++;
+            }
+            positions[i] = FetchId.encode(readerIdx, (int) (positions[i] - docBases[readerIdx]));
+        }
+        return positions;
     }
 
-    private static int readerIndex(long[] docBases, long position) {
-        int idx = Arrays.binarySearch(docBases, position);
-        if (idx < 0) {
-            return -idx - 2;
-        }
-        while (idx + 1 < docBases.length && docBases[idx + 1] == position) {
-            idx++;
-        }
-        return idx;
-    }
-
-    private static boolean isLive(IndexReader reader, int docId) {
-        List<LeafReaderContext> leaves = reader.leaves();
-        LeafReaderContext leaf = leaves.get(ReaderUtil.subIndex(docId, leaves));
-        Bits liveDocs = leaf.reader().getLiveDocs();
-        return liveDocs == null || liveDocs.get(docId - leaf.docBase);
-    }
-
-    private static int removeDuplicates(long[] values) {
-        int numDistinct = 1;
-        for (int i = 1; i < values.length; i++) {
-            if (values[i] != values[numDistinct - 1]) {
-                values[numDistinct++] = values[i];
+    /// Moves the first occurrence of each live doc in the sorted `positions` to the front.
+    ///
+    /// @return the number of kept positions
+    private static int removeDuplicatesAndDeleted(long[] positions,
+                                                  List<? extends IndexSearcher> searchers,
+                                                  long[] docBases) {
+        int numKept = 0;
+        long previous = -1;
+        int readerIdx = -1;
+        List<LeafReaderContext> leaves = List.of();
+        LeafReaderContext leaf = null;
+        Bits liveDocs = null;
+        for (int i = 0; i < positions.length; i++) {
+            long position = positions[i];
+            if (position == previous) {
+                continue;
+            }
+            previous = position;
+            if (position >= docBases[readerIdx + 1]) {
+                do {
+                    readerIdx++;
+                } while (position >= docBases[readerIdx + 1]);
+                leaves = searchers.get(readerIdx).getIndexReader().leaves();
+                leaf = null;
+            }
+            int docId = (int) (position - docBases[readerIdx]);
+            if (leaf == null || docId >= leaf.docBase + leaf.reader().maxDoc()) {
+                leaf = leaves.get(ReaderUtil.subIndex(docId, leaves));
+                liveDocs = leaf.reader().getLiveDocs();
+            }
+            if (liveDocs == null || liveDocs.get(docId - leaf.docBase)) {
+                positions[numKept++] = position;
             }
         }
-        return numDistinct;
+        return numKept;
     }
 
     private static List<? extends LuceneCollectorExpression<?>> getCollectorExpressions(
@@ -399,23 +411,24 @@ public final class ReservoirSampler {
             this.shardSupplier = shardSupplier;
         }
 
-        public final void iterate(LongArrayList ids) throws IOException {
+        public final void iterate(long[] ids, int numIds) throws IOException {
 
-            this.idCount = ids.size();
+            this.idCount = numIds;
 
             int currentShardId = -1;
             IndexReaderContext currentShardContext = null;
             int currentReaderCeiling = -1;
             int currentReaderDocBase = -1;
 
-            for (LongCursor cursor : ids) {
-                int shardId = FetchId.decodeReaderId(cursor.value);
+            for (int i = 0; i < numIds; i++) {
+                long id = ids[i];
+                int shardId = FetchId.decodeReaderId(id);
                 if (shardId != currentShardId) {
                     currentShardId = shardId;
                     currentShardContext = nextShard(shardId);
                     currentReaderCeiling = -1;
                 }
-                int docId = FetchId.decodeDocId(cursor.value);
+                int docId = FetchId.decodeDocId(id);
                 if (docId >= currentReaderCeiling) {
                     assert currentShardContext != null;
                     int contextOrd = ReaderUtil.subIndex(docId, currentShardContext.leaves());
