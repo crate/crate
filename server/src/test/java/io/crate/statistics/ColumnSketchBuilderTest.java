@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.withinPercentage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +38,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
+import org.openjdk.jol.info.GraphLayout;
 
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
@@ -155,20 +157,47 @@ public class ColumnSketchBuilderTest extends ESTestCase {
         // 30,000 values occur once (f1 = 30,000)
         // 5,000 values occur twice each
         // Number of distinct values: 35,000.
-        var builder = IntegerType.INSTANCE.columnStatsSupport().sketchBuilder(Version.CURRENT);
+        List<Integer> values = new ArrayList<>();
         for (int i = 0; i < 30_000; i++) {
-            builder.add(i);
+            values.add(i);
         }
         for (int i = 30_000; i < 35_000; i++) {
-            builder.add(i);
-            builder.add(i);
+            values.add(i);
+            values.add(i);
         }
+        printFootprints(values);
+
+        var builder = IntegerType.INSTANCE.columnStatsSupport().sketchBuilder(Version.CURRENT);
+        values.forEach(builder::add);
 
         // Haas-Stokes: n*d / (n - f1 + f1*n/N)
         //              = 40000*35000 / (10000 + 30000*40000/400000)
         //              = 1,400,000,000 / 13,000 = 107,692.307692...
         assertThat(builder.toStats(400_000).approxDistinct())
             .isCloseTo(107_692, withinPercentage(5));
+    }
+
+    @Test
+    public void test_footprint_with_10_distinct_values() {
+        List<Integer> values = new ArrayList<>();
+        for (int i = 0; i < 30_000; i++) {
+            values.add(i % 10);
+        }
+        printFootprints(values);
+    }
+
+    private static void printFootprints(List<Integer> values) {
+        var builder = IntegerType.INSTANCE.columnStatsSupport().sketchBuilder(Version.CURRENT);
+        values.forEach(builder::add);
+        GraphLayout layout = GraphLayout.parseInstance(builder.distinctCounts);
+        System.out.println("DistinctSample totalSize=" + layout.totalSize());
+        System.out.println(layout.toFootprint());
+
+        var legacyBuilder = IntegerType.INSTANCE.columnStatsSupport().sketchBuilder(Version.V_5_5_1);
+        values.forEach(legacyBuilder::add);
+        layout = GraphLayout.parseInstance(legacyBuilder.distinctSketch);
+        System.out.println("DistinctValuesSketch totalSize=" + layout.totalSize());
+        System.out.println(layout.toFootprint());
     }
 
     private static ColumnSketchBuilder<String> streamOutIn(ColumnSketchBuilder<String> sketch,

@@ -66,7 +66,13 @@ public final class DistinctSample {
     // The values below keep the performance and memory footprint
     // at similar level as the DistinctValuesSketch that was used previously.
     private static final double LOAD_FACTOR = 15.0 / 16.0;
+    // The LongHashSet starts small and doubles as it fills, but never grows past 8192 slots:
+    // at 8192 slots, LongHashSet resizes only when a key is added to a set that already holds
+    // ceil(8192 * LOAD_FACTOR) >= MAX_RETAINED keys, and shrinkIfFull() keeps fewer than
+    // MAX_RETAINED keys between adds.
+    // This holds only if every LongHashSet in this class is created with LOAD_FACTOR.
     private static final int MAX_RETAINED = (int) (8192 * LOAD_FACTOR);
+    private static final int INITIAL_EXPECTED_ELEMENTS = 50;
     // A hash can have between 0 and 64 leading zeros.
     private static final int NUM_LEVELS = Long.SIZE + 1;
     // value ^ HASH_SEED: this is done to make sure 0 is properly removed from a "level".
@@ -82,7 +88,7 @@ public final class DistinctSample {
     private final long[] rowsByLevel;
 
     DistinctSample() {
-        this.hashes = new LongHashSet(MAX_RETAINED, LOAD_FACTOR);
+        this.hashes = new LongHashSet(INITIAL_EXPECTED_ELEMENTS, LOAD_FACTOR);
         this.rowsByLevel = new long[NUM_LEVELS];
         this.level = 0;
     }
@@ -91,7 +97,7 @@ public final class DistinctSample {
         this.level = in.readVInt();
         this.rowsByLevel = in.readVLongArray();
         int size = in.readVInt();
-        this.hashes = new LongHashSet(MAX_RETAINED, LOAD_FACTOR);
+        this.hashes = new LongHashSet(size, LOAD_FACTOR);
         for (int i = 0; i < size; i++) {
             hashes.add(in.readLong());
         }
