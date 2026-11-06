@@ -27,6 +27,7 @@ import static io.crate.statistics.TableStatsService.STATS_SERVICE_THROTTLING_SET
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
@@ -35,6 +36,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
@@ -47,6 +49,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.RateLimiter;
+import org.apache.lucene.util.Bits;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -180,7 +183,6 @@ public final class ReservoirSampler {
                 columns.stream().map(r -> r.column().fqn()).collect(Collectors.joining(", ")));
         }
 
-        Reservoir fetchIdSamples = new Reservoir(random);
         long totalNumDocs = 0;
         long totalSizeInBytes = 0;
 
@@ -215,18 +217,33 @@ public final class ReservoirSampler {
                         searchersToRelease.add(new ShardExpressions(indexShard, indexMetadata.partitionValues(), searcher, docTable, expressions));
                         totalNumDocs += searcher.getIndexReader().numDocs();
                         totalSizeInBytes += indexShard.storeStats().sizeInBytes();
-                        // We do the sampling in 2 phases. First we get the docIds;
-                        // then we retrieve the column values for the sampled docIds.
-                        // we do this in 2 phases because the reservoir sampling might override previously seen
-                        // items and we want to avoid unnecessary disk-lookup
-                        sampleDocIds(fetchIdSamples, searchersToRelease.size() - 1, searcher);
                     } catch (IllegalIndexShardStateException | AlreadyClosedException ignored) {
                     }
                 }
             }
 
+            // We do the sampling in 2 phases. First we get the docIds;
+            // then we retrieve the column values for the sampled docIds.
+            // we do this in 2 phases because the reservoir sampling might override previously seen
+            // items and we want to avoid unnecessary disk-lookup
+            LongArrayList fetchIds;
+            if (totalNumDocs <= 2L * Reservoir.NUM_SAMPLES) {
+                // Drawing at least half of all live docs at random costs about as much as a full scan
+                Reservoir reservoir = new Reservoir(random);
+                for (int i = 0; i < searchersToRelease.size(); i++) {
+                    sampleDocIds(reservoir, i, searchersToRelease.get(i).searcher);
+                }
+                fetchIds = reservoir.samples();
+            } else {
+                fetchIds = sampleLiveDocIds(
+                    Lists.map(searchersToRelease, ShardExpressions::searcher),
+                    Reservoir.NUM_SAMPLES,
+                    random
+                );
+            }
+
             var sampler = new ColumnSampler(columnCollectors, searchersToRelease::get);
-            sampler.iterate(fetchIdSamples.samples());
+            sampler.iterate(fetchIds);
 
             List<ColumnSketchBuilder<?>> statsBuilders = new ArrayList<>();
             for (var collector : columnCollectors) {
@@ -248,6 +265,60 @@ public final class ReservoirSampler {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    @VisibleForTesting
+    static LongArrayList sampleLiveDocIds(List<? extends IndexSearcher> searchers, int numSamples, Random random) {
+        long[] docBases = new long[searchers.size()];
+        long totalMaxDoc = 0;
+        for (int i = 0; i < searchers.size(); i++) {
+            docBases[i] = totalMaxDoc;
+            totalMaxDoc += searchers.get(i).getIndexReader().maxDoc();
+        }
+        long[] fetchIds = new long[numSamples];
+        int numDistinct = 0;
+        while (numDistinct < numSamples) {
+            int i = numDistinct;
+            while (i < numSamples) {
+                long position = random.nextLong(totalMaxDoc);
+                int readerIdx = readerIndex(docBases, position);
+                int docId = (int) (position - docBases[readerIdx]);
+                if (isLive(searchers.get(readerIdx).getIndexReader(), docId)) {
+                    fetchIds[i++] = FetchId.encode(readerIdx, docId);
+                }
+            }
+            Arrays.sort(fetchIds);
+            numDistinct = removeDuplicates(fetchIds);
+        }
+        return LongArrayList.from(fetchIds);
+    }
+
+    private static int readerIndex(long[] docBases, long position) {
+        int idx = Arrays.binarySearch(docBases, position);
+        if (idx < 0) {
+            return -idx - 2;
+        }
+        while (idx + 1 < docBases.length && docBases[idx + 1] == position) {
+            idx++;
+        }
+        return idx;
+    }
+
+    private static boolean isLive(IndexReader reader, int docId) {
+        List<LeafReaderContext> leaves = reader.leaves();
+        LeafReaderContext leaf = leaves.get(ReaderUtil.subIndex(docId, leaves));
+        Bits liveDocs = leaf.reader().getLiveDocs();
+        return liveDocs == null || liveDocs.get(docId - leaf.docBase);
+    }
+
+    private static int removeDuplicates(long[] values) {
+        int numDistinct = 1;
+        for (int i = 1; i < values.length; i++) {
+            if (values[i] != values[numDistinct - 1]) {
+                values[numDistinct++] = values[i];
+            }
+        }
+        return numDistinct;
     }
 
     private static List<? extends LuceneCollectorExpression<?>> getCollectorExpressions(
