@@ -24,6 +24,7 @@ package io.crate.statistics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,16 +32,22 @@ import java.util.Random;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.NoMergePolicy;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.index.RandomIndexWriter;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.common.collections.Lists;
 import io.crate.common.io.IOUtils;
+import io.crate.execution.engine.fetch.FetchId;
 
 public class ReservoirTest extends ESTestCase {
 
@@ -104,5 +111,63 @@ public class ReservoirTest extends ESTestCase {
         }
 
         IOUtils.close(dirs);
+    }
+
+    @Test
+    public void test_sample_live_doc_ids_returns_sorted_distinct_live_docs() throws Exception {
+        int docsPerSegment = 100;
+        List<Directory> dirs = List.of(
+            newIndex(3, docsPerSegment),
+            newIndex(0, docsPerSegment),
+            newIndex(2, docsPerSegment),
+            newIndex(4, docsPerSegment),
+            newIndex(0, docsPerSegment)
+        );
+        List<IndexReader> readers = new ArrayList<>();
+        try {
+            for (Directory dir : dirs) {
+                readers.add(DirectoryReader.open(dir));
+            }
+            // 9 segments with 50 live docs each; 300 of 450 forces duplicate draws
+            int numSamples = 300;
+            long[] fetchIds = ReservoirSampler.sampleLiveDocIds(
+                Lists.map(readers, IndexSearcher::new),
+                numSamples,
+                random()
+            );
+
+            assertThat(fetchIds).hasSize(numSamples);
+            long lastId = -1;
+            for (long fetchId : fetchIds) {
+                assertThat(fetchId).isGreaterThan(lastId);
+                lastId = fetchId;
+                IndexReader reader = readers.get(FetchId.decodeReaderId(fetchId));
+                Document doc = reader.storedFields().document(FetchId.decodeDocId(fetchId));
+                assertThat(doc.getField("value").numericValue().longValue())
+                    .as("deleted docs have a value below %d", docsPerSegment / 2)
+                    .isGreaterThanOrEqualTo(docsPerSegment / 2);
+            }
+        } finally {
+            IOUtils.close(readers);
+            IOUtils.close(dirs);
+        }
+    }
+
+    /// Creates an index with `numSegments` segments, in which the first half of the docs of each segment is deleted.
+    private Directory newIndex(int numSegments, int docsPerSegment) throws IOException {
+        Directory dir = newDirectory();
+        IndexWriterConfig config = new IndexWriterConfig().setMergePolicy(NoMergePolicy.INSTANCE);
+        try (IndexWriter writer = new IndexWriter(dir, config)) {
+            for (int segment = 0; segment < numSegments; segment++) {
+                for (int i = 0; i < docsPerSegment; i++) {
+                    Document doc = new Document();
+                    doc.add(new LongField("value", i, Store.YES));
+                    writer.addDocument(doc);
+                }
+                writer.commit();
+            }
+            writer.deleteDocuments(LongPoint.newRangeQuery("value", 0, docsPerSegment / 2 - 1));
+        }
+        return dir;
     }
 }
