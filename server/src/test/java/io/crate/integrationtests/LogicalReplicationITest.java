@@ -46,6 +46,7 @@ import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.ShardReplicationChangesTracker;
 import io.crate.replication.logical.exceptions.CreateSubscriptionException;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.metadata.Subscription;
@@ -975,25 +976,22 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             new Object[] {fromNode}
         );
         String toNode = (String) response.rows()[0][0];
+
+        // Validate that replication works after relocating shards
+        // and inserting more data on a publisher with sume merges happening in between
+        ShardReplicationChangesTracker.DUMMY_BLOCKER = true;
         subscriberSqlExecutor.exec("ALTER TABLE t1 REROUTE MOVE SHARD ? FROM ? TO ?", new Object[] {shardId, fromNode, toNode});
         subscriberSqlExecutor.ensureGreen(subscriberCluster.size());  // ensureGreenOnSubscriber() can't be used as it doesn't wait for relocations
+        for (int i = 0; i < 5; i++) {
+            executeOnPublisher("INSERT INTO t1 (id) VALUES (123)");
+            executeOnPublisher("OPTIMIZE TABLE t1 WITH (max_num_segments = 1)");
+        }
+        ShardReplicationChangesTracker.DUMMY_BLOCKER = false;
 
-        // Retention lease is removed on reroute -> close shard.
-        // Next retention lease renewal will fail with RetentionLeaseNotFoundException
-        // We used to do the last poll but didn't scehdule next poll and stopped tracking,
-        // so "4" was visible, but "5" used to be not replicated.
-        executeOnPublisher("INSERT INTO t1 (id) VALUES (4)");
         assertBusy(() -> {
             executeOnSubscriber("REFRESH TABLE t1");
             var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
-            assertThat(res).hasRows("1", "2", "3", "4");
-        });
-
-        executeOnPublisher("INSERT INTO t1 (id) VALUES (5)");
-        assertBusy(() -> {
-            executeOnSubscriber("REFRESH TABLE t1");
-            var res = executeOnSubscriber("SELECT id FROM doc.t1 ORDER BY id");
-            assertThat(res).hasRows("1", "2", "3", "4", "5");
+            assertThat(res).hasRows("1", "2", "3", "123", "123", "123", "123", "123");
         });
     }
 
