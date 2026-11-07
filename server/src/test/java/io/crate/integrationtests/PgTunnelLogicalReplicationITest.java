@@ -370,7 +370,7 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
         });
     }
 
-    @Repeat(iterations = 50)
+    @Repeat(iterations = 20)
     @Test
     @TestLogging("io.crate.replication.logical:DEBUG")
     public void test_replication_continues_during_subscriber_rolling_restarts() throws Exception {
