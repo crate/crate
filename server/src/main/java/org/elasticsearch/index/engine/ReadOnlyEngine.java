@@ -275,7 +275,7 @@ public class ReadOnlyEngine extends Engine {
 
     @Override
     public Translog.Snapshot newChangesSnapshot(String source, long fromSeqNo, long toSeqNo,
-                                                boolean requiredFullRange) throws IOException {
+                                                boolean requiredFullRange, boolean accurateCount) throws IOException {
         return newEmptySnapshot();
     }
 

@@ -1896,9 +1896,14 @@ public class IndexShard extends AbstractIndexShardComponent {
      * @param requiredFullRange if {@code true} then {@link Translog.Snapshot#next()} will throw {@link IllegalStateException}
      *                          if any operation between {@code fromSeqNo} and {@code toSeqNo} is missing.
      *                          This parameter should be only enabled when the entire requesting range is below the global checkpoint.
+     * @param accurateCount if {@code true}, {@link Translog.Snapshot#totalOperations()} returns an accurate count
      */
-    public Translog.Snapshot newChangesSnapshot(String source, long fromSeqNo, long toSeqNo, boolean requiredFullRange) throws IOException {
-        return getEngine().newChangesSnapshot(source, fromSeqNo, toSeqNo, requiredFullRange);
+    public Translog.Snapshot newChangesSnapshot(String source,
+                                                long fromSeqNo,
+                                                long toSeqNo,
+                                                boolean requiredFullRange,
+                                                boolean accurateCount) throws IOException {
+        return getEngine().newChangesSnapshot(source, fromSeqNo, toSeqNo, requiredFullRange, accurateCount);
     }
 
     public List<Segment> segments() {

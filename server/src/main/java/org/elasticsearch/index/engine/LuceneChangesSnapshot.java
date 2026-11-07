@@ -33,12 +33,15 @@ import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.FieldExistsQuery;
+import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.TopFieldCollector;
+import org.apache.lucene.search.TopFieldCollectorManager;
 import org.apache.lucene.util.ArrayUtil;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.Lucene;
@@ -76,9 +79,10 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
      * @param fromSeqNo         the min requesting seq# - inclusive
      * @param toSeqNo           the maximum requesting seq# - inclusive
      * @param requiredFullRange if true, the snapshot will strictly check for the existence of operations between fromSeqNo and toSeqNo
+     * @param accurateCount     if true, {@link Translog.Snapshot#totalOperations()} returns an accurate count
      */
     LuceneChangesSnapshot(Engine.Searcher engineSearcher, int searchBatchSize,
-                          long fromSeqNo, long toSeqNo, boolean requiredFullRange) throws IOException {
+                          long fromSeqNo, long toSeqNo, boolean requiredFullRange, boolean accurateCount) throws IOException {
         if (fromSeqNo < 0 || toSeqNo < 0 || fromSeqNo > toSeqNo) {
             throw new IllegalArgumentException("Invalid range; from_seqno [" + fromSeqNo + "], to_seqno [" + toSeqNo + "]");
         }
@@ -100,7 +104,7 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
         this.indexSearcher = new IndexSearcher(Lucene.wrapAllDocsLive(engineSearcher.getDirectoryReader()));
         this.indexSearcher.setQueryCache(null);
         this.parallelArray = new ParallelArray(this.searchBatchSize);
-        final TopDocs topDocs = searchOperations(null);
+        final TopDocs topDocs = searchOperations(null, accurateCount);
         this.totalHits = Math.toIntExact(topDocs.totalHits.value());
         this.scoreDocs = topDocs.scoreDocs;
         fillParallelArray(scoreDocs, parallelArray);
@@ -157,8 +161,8 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
     private int nextDocIndex() throws IOException {
         // we have processed all docs in the current search - fetch the next batch
         if (docIndex == scoreDocs.length && docIndex > 0) {
-            final ScoreDoc prev = scoreDocs[scoreDocs.length - 1];
-            scoreDocs = searchOperations(prev).scoreDocs;
+            final FieldDoc prev = (FieldDoc) scoreDocs[scoreDocs.length - 1];
+            scoreDocs = searchOperations(prev, false).scoreDocs;
             fillParallelArray(scoreDocs, parallelArray);
             docIndex = 0;
         }
@@ -208,14 +212,21 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
         }
     }
 
-    private TopDocs searchOperations(ScoreDoc after) throws IOException {
+    private TopDocs searchOperations(FieldDoc after, boolean accurate) throws IOException {
         final Query rangeQuery = new BooleanQuery.Builder()
             .add(LongPoint.newRangeQuery(SysColumns.Names.SEQ_NO, Math.max(fromSeqNo, lastSeenSeqNo), toSeqNo), BooleanClause.Occur.MUST)
             // exclude non-root nested documents
             .add(new FieldExistsQuery(SysColumns.Names.PRIMARY_TERM), BooleanClause.Occur.MUST)
             .build();
         final Sort sortedBySeqNo = new Sort(new SortField(SysColumns.Names.SEQ_NO, SortField.Type.LONG));
-        return indexSearcher.searchAfter(after, rangeQuery, searchBatchSize, sortedBySeqNo);
+        final TopFieldCollector topFieldCollector = new TopFieldCollectorManager(
+            sortedBySeqNo,
+            searchBatchSize,
+            after,
+            accurate ? Integer.MAX_VALUE : 0
+        ).newCollector();
+        indexSearcher.search(rangeQuery, topFieldCollector);
+        return topFieldCollector.topDocs();
     }
 
     private Translog.Operation readDocAsOp(int docIndex) throws IOException {
