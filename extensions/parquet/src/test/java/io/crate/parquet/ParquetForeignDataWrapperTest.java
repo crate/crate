@@ -36,6 +36,7 @@ import org.junit.Test;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.exceptions.InvalidArgumentException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Literal;
@@ -57,10 +58,15 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
     @Before
     public void prepare() throws Exception {
         Settings options = Settings.builder()
-                .put("local_files", List.of(Paths.get(
-                        getClass().getResource("/data").toURI())
+                .put("files", List.of(
+                    Paths.get(getClass().getResource("/data").toURI())
                         .resolve("yellow_taxi_01.parquet")
-                        .toString()))
+                        .toString(),
+                    Paths.get(getClass().getResource("/data").toURI())
+                        .resolve("yellow_taxi_03.parquet")
+                        .toUri()
+                        .toString()
+                ))
                 .build();
         e = SQLExecutor.of(clusterService)
                 .addServer("pq", "parquet", "crate", options)
@@ -105,7 +111,8 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
             new Object[]{2L, 1L},
             new Object[]{0L, 0L},
             new Object[]{2L, 1L},
-            new Object[]{6L, 3L}
+            new Object[]{6L, 3L},
+            new Object[]{null, null}
         );
     }
 
@@ -128,7 +135,8 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
             new Object[]{50},
             new Object[]{50},
             new Object[]{50},
-            new Object[]{50}
+            new Object[]{50},
+            new Object[]{null}
         );
     }
 
@@ -151,7 +159,8 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
             new Object[]{50},
             new Object[]{50},
             new Object[]{50},
-            new Object[]{50}
+            new Object[]{50},
+            new Object[]{null}
         );
     }
 
@@ -175,7 +184,8 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
             new Object[]{50},
             new Object[]{50},
             new Object[]{50},
-            new Object[]{50}
+            new Object[]{50},
+            new Object[]{null}
         );
     }
 
@@ -189,4 +199,57 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
             fdw.getIterator(role, server, foreignTable, txnCtx, List.of(e.asSymbol("passenger_count")), Literal.BOOLEAN_TRUE);
         }).isInstanceOf(UnauthorizedException.class);
     }
+
+    @Test
+    public void test_raises_if_no_files_provided() throws Exception {
+        Settings options = Settings.builder()
+                .build();
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+                .addServer("pq_no_files", "parquet", "crate", options)
+                .addForeignTable(
+                    """
+                    create foreign table doc.taxi_no_files
+                    (passenger_count bigint) server pq
+                    """
+                );
+
+
+        RelationMetadata.ForeignTable noFilesForeignTable = executor.resolveTableInfo("taxi_no_files");
+        Server noFilesServer = new Server("pq_no_files", "parquet", "crate", Map.of(), options);
+        CoordinatorTxnCtx coordinator = CoordinatorTxnCtx.systemTransactionContext();
+        Role role = Role.CRATE_USER;
+        NodeContext nodeCtx = createNodeContext(List.of(role));
+        ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(new InputFactory(nodeCtx));
+        assertThatThrownBy(() -> {
+            fdw.getIterator(role, noFilesServer, noFilesForeignTable, coordinator, List.of(executor.asSymbol("taxi_no_files.passenger_count")), Literal.BOOLEAN_TRUE).get();
+        }).isInstanceOf(InvalidArgumentException.class);
+    }
+
+    @Test
+    public void test_raises_if_unsupported_uri_scheme() throws Exception {
+        Settings options = Settings.builder()
+                .put("files", List.of("unsupportedURI://some/file"))
+                .build();
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+                .addServer("pq_uri", "parquet", "crate", options)
+                .addForeignTable(
+                    """
+                    create foreign table doc.taxi_uri_test
+                    (passenger_count bigint) server pq
+                    """
+                );
+
+
+        RelationMetadata.ForeignTable noFilesForeignTable = executor.resolveTableInfo("taxi_uri_test");
+        Server noFilesServer = new Server("pq_uri", "parquet", "crate", Map.of(), options);
+        CoordinatorTxnCtx coordinator = CoordinatorTxnCtx.systemTransactionContext();
+        Role role = Role.CRATE_USER;
+        NodeContext nodeCtx = createNodeContext(List.of(role));
+        ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(new InputFactory(nodeCtx));
+        assertThatThrownBy(() -> {
+            fdw.getIterator(role, noFilesServer, noFilesForeignTable, coordinator, List.of(executor.asSymbol("taxi_uri_test.passenger_count")), Literal.BOOLEAN_TRUE).get();
+        }).isInstanceOf(InvalidArgumentException.class)
+        .hasMessageMatching("Unsupported URI scheme: unsupportedURI");
+    }
+
 }

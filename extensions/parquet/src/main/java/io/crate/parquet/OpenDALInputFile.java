@@ -19,36 +19,49 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.copy.s3.common;
+package io.crate.parquet;
 
-import org.apache.opendal.ServiceConfig;
-import org.elasticsearch.common.settings.Settings;
-import org.jspecify.annotations.Nullable;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 
-import io.crate.opendal.S3;
+import org.apache.opendal.Metadata;
+import org.apache.opendal.Operator;
 
-public final class S3Env {
+import dev.hardwood.InputFile;
 
-    private S3Env() {
+public class OpenDALInputFile implements InputFile {
+
+    private final Operator operator;
+    private final String path;
+
+    public OpenDALInputFile(Operator operator, String path) {
+        this.operator = operator;
+        this.path = path;
     }
 
-    public static ServiceConfig.S3 getServiceConfig(S3URI s3uri, Settings withClause) {
-        String protocol = S3Protocol.get(withClause);
-        String endpoint = protocol + "://" + s3uri.endpoint();
-        String region = S3.getRegion(endpoint, s3uri.bucket());
-        @Nullable
-        String accessKey = s3uri.accessKey();
-        var builder = ServiceConfig.S3.builder()
-            .bucket(s3uri.bucket())
-            .endpoint(endpoint)
-            .accessKeyId(accessKey)
-            .secretAccessKey(s3uri.secretKey())
-            .disableConfigLoad(true)
-            .disableEc2Metadata(true)
-            .region(region);
-        if (accessKey == null) {
-            builder.skipSignature(true);
-        }
-        return builder.build();
+    @Override
+    public void close() throws IOException {
+        operator.close();
+    }
+
+    @Override
+    public void open() throws IOException {
+    }
+
+    @Override
+    public ByteBuffer readRange(long offset, int length) throws IOException {
+        byte[] bs = operator.read(path, offset, length);
+        return ByteBuffer.wrap(bs);
+    }
+
+    @Override
+    public long length() throws IOException {
+        Metadata stat = operator.stat(path);
+        return stat.getContentLength();
+    }
+
+    @Override
+    public String name() {
+        return path;
     }
 }

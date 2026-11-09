@@ -32,16 +32,31 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>io.crate</groupId>
+            <artifactId>crate-libs-opendal</artifactId>
+            <version>${project.version}</version>
+            </dependency>
+        <dependency>
             <groupId>org.jspecify</groupId>
             <artifactId>jspecify</artifactId>
             <version>${versions.jspecify}</version>
         </dependency>
 
         <dependency>
+            <groupId>org.apache.opendal</groupId>
+            <artifactId>opendal</artifactId>
+            <version>${versions.opendal}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.opendal</groupId>
+            <artifactId>opendal</artifactId>
+            <version>${versions.opendal}</version>
+            <classifier>${os.classifier}</classifier>
+        </dependency>        <dependency>
             <groupId>dev.hardwood</groupId>
             <artifactId>hardwood-core</artifactId>
         </dependency>
-        <!-- Hardwood uses these two deps for compression: https://hardwood.dev/latest/getting-started/#compression-libraries -->
+        <!-- Hardwood uses the following deps for compression: https://hardwood.dev/latest/getting-started/#compression-libraries -->
         <dependency>
             <groupId>com.github.luben</groupId>
             <artifactId>zstd-jni</artifactId>
@@ -49,6 +64,10 @@
         <dependency>
             <groupId>org.xerial.snappy</groupId>
             <artifactId>snappy-java</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>at.yawk.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
         </dependency>
 
         <dependency>
