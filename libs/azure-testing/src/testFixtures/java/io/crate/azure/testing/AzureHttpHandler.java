@@ -22,6 +22,7 @@ package io.crate.azure.testing;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -99,6 +100,20 @@ public class AzureHttpHandler implements HttpHandler {
                 }
                 blobs.put(exchange.getRequestURI().getPath(), new BytesArray(blob.toByteArray()));
                 exchange.sendResponseHeaders(HttpResponseStatus.CREATED.code(), -1);
+
+            } else if (Regex.simpleMatch("PUT /" + container + "/*", request)
+                       && exchange.getRequestHeaders().containsKey("X-Ms-Copy-Source")) {
+                // Copy Blob (https://learn.microsoft.com/en-us/rest/api/storageservices/copy-blob) -
+                // the closest Azure has to a rename, same as S3's CopyObject.
+                final String sourcePath = URI.create(exchange.getRequestHeaders().getFirst("X-Ms-Copy-Source")).getPath();
+                final BytesReference source = blobs.get(sourcePath);
+                if (source == null) {
+                    sendError(exchange, HttpResponseStatus.NOT_FOUND);
+                    return;
+                }
+                blobs.put(exchange.getRequestURI().getPath(), source);
+                exchange.getResponseHeaders().add("x-ms-copy-status", "success");
+                exchange.sendResponseHeaders(HttpResponseStatus.ACCEPTED.code(), -1);
 
             } else if (Regex.simpleMatch("PUT /" + container + "/*", request)) {
                 // PUT Blob (see https://docs.microsoft.com/en-us/rest/api/storageservices/put-blob)
