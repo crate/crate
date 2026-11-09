@@ -46,4 +46,6 @@ series.
 Fixes
 =====
 
-None
+- `Yannic Hamann <https://github.com/yannic-hamann-abb>`_ fixed an issue that
+  caused :ref:`ANALYZE <analyze>` to exceed the configured I/O rate limit
+  during statistics collection.

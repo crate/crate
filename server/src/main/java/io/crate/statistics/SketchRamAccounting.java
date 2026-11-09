@@ -53,14 +53,14 @@ public class SketchRamAccounting implements AutoCloseable {
 
     public void addBytes(long bytes) {
         this.blockCache += bytes;
-        boolean checklimit = false;
+        long flushedBytes = 0;
         while (this.blockCache > BLOCK_SIZE) {
             this.blockCache -= BLOCK_SIZE;
             ramAccounting.addBytes(SHIFTED_BLOCK_SIZE);
-            checklimit = true;
+            flushedBytes += BLOCK_SIZE;
         }
-        if (checklimit) {
-            checkRateLimit(bytes);
+        if (flushedBytes > 0) {
+            checkRateLimit(flushedBytes);
         }
     }
 
