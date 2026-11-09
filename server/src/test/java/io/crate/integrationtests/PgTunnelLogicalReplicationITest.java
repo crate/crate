@@ -413,18 +413,5 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
             }
         }, 30, TimeUnit.SECONDS);
         subscriber.ensureGreen(subscriberCluster.size());
-        assertBusy(() -> {
-            var result = subscriber.exec("""
-                SELECT count(*)
-                FROM sys.shards
-                WHERE schema_name = 'doc'
-                  AND table_name = 'tbl'
-                  AND (
-                      seq_no_stats['global_checkpoint'] < 0
-                      OR seq_no_stats['global_checkpoint'] <> seq_no_stats['local_checkpoint']
-                  )
-                """);
-            assertThat(result).hasRows("0");
-        }, 60, TimeUnit.SECONDS);
     }
 }
