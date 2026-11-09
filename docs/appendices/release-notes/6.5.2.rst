@@ -48,3 +48,6 @@ Fixes
 
 - Fixed an issue where querying ``sys.nodes`` might return ``SQLParseException[Values less than -1 bytes
   are not supported: -86016b]``.
+- `Yannic Hamann <https://github.com/yannic-hamann-abb>`_ fixed an issue that
+  caused :ref:`ANALYZE <analyze>` to exceed the configured I/O rate limit
+  during statistics collection.
