@@ -28,9 +28,9 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.CheckedTriFunction;
-import org.elasticsearch.common.TriFunction;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.common.TriFunction;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.memory.MemoryManager;

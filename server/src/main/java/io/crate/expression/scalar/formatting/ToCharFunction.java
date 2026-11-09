@@ -26,10 +26,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.TimeZone;
 
-import org.elasticsearch.common.TriFunction;
 import org.joda.time.Period;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.common.TriFunction;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionType;
