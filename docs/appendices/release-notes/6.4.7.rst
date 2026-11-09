@@ -194,7 +194,36 @@ Fixes
   the subscriber cluster were relocated to another node or when a replica shard
   was promoted to primary.
 
-- Subscribing user used in :ref:`CREATE SUBSCRIPTION<sql-create-subscription>`
-  with :ref:`pg_tunnel mode <sql-create-subscription-conn-info>` now requires
-  to have ``AL`` privilege to avoid a security issue when authenticated user can
-  can switch to CrateDB's unauthenticated internal transport protocol.
+- Fixed a `security issue
+  <https://github.com/crate/crate/security/advisories/GHSA-ppqq-957g-9jpc>`__
+  that allowed authenticated users to switch to CrateDB's unauthenticated
+  internal transport protocol, by using
+  :ref:`CREATE SUBSCRIPTION <sql-create-subscription>` with
+  :ref:`pg_tunnel mode <sql-create-subscription-conn-info>`. The subscribing
+  user now requires the ``AL`` privilege.
+
+- Fixed security issues (`GHSA-7p46-fxpg-cwm7
+  <https://github.com/crate/crate/security/advisories/GHSA-7p46-fxpg-cwm7>`__
+  and `GHSA-jp7h-6782-g32q
+  <https://github.com/crate/crate/security/advisories/GHSA-jp7h-6782-g32q>`__)
+  that allowed existing sessions to use the privileges and role memberships
+  their user had when the session was created. Changes in privileges and role
+  memberships now take effect immediately and if the session user is dropped,
+  all SQL statements are rejected. This includes prepared statements and portals
+  created before the changes, and ``FETCH`` on cursors declared before such
+  changes.
+
+- Fixed a `security issue
+  <https://github.com/crate/crate/security/advisories/GHSA-2xvq-gg9f-54p9>`__
+  that allowed users to read tables without having the required privileges,
+  by using scalar subqueries in a ``VALUES`` list, in the arguments of a table
+  function, or in a ``JOIN ... ON`` condition, e.g.::
+
+    SELECT * FROM (VALUES ((SELECT secret FROM restricted))) AS v(x)
+
+- Fixed a `security issue
+  <https://github.com/crate/crate/security/advisories/GHSA-qcp3-r37v-7p8j>`__
+  that allowed unauthenticated clients to exhaust the memory of a node by
+  sending compressed HTTP requests, as their content was decompressed and
+  buffered before the request was authenticated. HTTP requests are now
+  authenticated before their content is decompressed.
