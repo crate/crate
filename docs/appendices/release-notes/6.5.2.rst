@@ -58,3 +58,6 @@ Fixes
   primary shards on the subscriber cluster were relocated and segments of the
   published table were merged on the publisher cluster, for example by running
   ``OPTIMIZE``.
+
+- Fixed an issue that could discard recently replicated data from the
+  subscriber cluster when dropping a subscription shortly after shard recovery.
