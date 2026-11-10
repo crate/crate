@@ -375,6 +375,9 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
         // all distinct
         execute("SELECT count(distinct x), avg(distinct x) FROM tbl");
         assertThat(response).hasRows("3| 20.0");
+
+        execute("SELECT count(*), count(DISTINCT x) FROM tbl WHERE false");
+        assertThat(response).hasRows("0| 0");
     }
 
     @Test

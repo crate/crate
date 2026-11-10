@@ -41,8 +41,10 @@ import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.execution.engine.aggregation.sum.SumAggregation;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.cast.CastMode;
+import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.NodeContext;
@@ -289,10 +291,15 @@ public sealed interface DistinctRewriter {
                     Function partial = allocateFunction(fn.name(), fn.arguments(), null, null, txnCtx, nodeCtx);
                     partials.add(partial);
 
-                    String combiner = SumAggregation.NAME ;
-                    Function outer = allocateFunction(combiner, List.of(partial), null, null, txnCtx, nodeCtx);
-                    combiners.add(outer);
-                    outputs.add(outer);
+                    Function combinerFn = allocateFunction(
+                        SumAggregation.NAME, List.of(partial), null, null, txnCtx, nodeCtx
+                    );
+                    combiners.add(combinerFn);
+                    // Handles the case when there are no resulting rows.
+                    // sum()'s aggregation state is NULL.
+                    outputs.add(allocateFunction(
+                        CoalesceFunction.NAME, List.of(combinerFn, Literal.of(0)), null, null, txnCtx, nodeCtx
+                    ));
                 } else {
                     // sum/min/max are combined via themselves, e.g. a global sum() = sum(sum(inner))
                     Function partial = allocateFunction(fn.name(), fn.arguments(), null, null, txnCtx, nodeCtx);
