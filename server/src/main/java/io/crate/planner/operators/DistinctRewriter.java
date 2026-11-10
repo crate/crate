@@ -258,8 +258,8 @@ public sealed interface DistinctRewriter {
         }
 
         private static Split split(List<Function> aggregates, TransactionContext txnCtx, NodeContext nodeCtx) {
-            List<Function> partials = new ArrayList<>();
-            List<Function> combiners = new ArrayList<>();
+            LinkedHashSet<Function> partials = new LinkedHashSet<>();
+            LinkedHashSet<Function> combiners = new LinkedHashSet<>();
             List<Symbol> outputs = new ArrayList<>();
 
             for (Function fn : aggregates) {
@@ -312,8 +312,7 @@ public sealed interface DistinctRewriter {
                 }
             }
 
-            // todo check if combiners need a set
-            return new Split(partials, List.copyOf(new LinkedHashSet<>(combiners)), outputs);
+            return new Split(List.copyOf(partials), List.copyOf(combiners), outputs);
         }
 
         private static boolean isAvg(String name) {
