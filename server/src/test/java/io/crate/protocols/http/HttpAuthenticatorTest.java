@@ -36,6 +36,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayOutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -44,11 +45,15 @@ import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.zip.GZIPOutputStream;
 
 import javax.net.ssl.SSLSession;
 
+import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
 import org.elasticsearch.common.network.DnsResolver;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.breaker.BreakerSettings;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -76,7 +81,9 @@ import io.netty.handler.codec.http.DefaultLastHttpContent;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -605,6 +612,41 @@ public class HttpAuthenticatorTest extends ESTestCase {
             response.release();
         }
         assertThat(channel.attr(AttributeKey.<Role>valueOf("crate.http.authenticated_role")).get()).isNull();
+        channel.finishAndReleaseAll();
+    }
+
+    @Test
+    public void test_content_of_unauthenticated_requests_is_not_decompressed() throws Exception {
+        ChildMemoryCircuitBreaker breaker = new ChildMemoryCircuitBreaker(
+            new BreakerSettings("in_flight_requests", 1),
+            new NoneCircuitBreakerService()
+        );
+        EmbeddedChannel channel = new EmbeddedChannel(
+            authenticatorWithHBA,
+            new AccountingHttpContentDecompressor(() -> breaker),
+            new HttpObjectAggregator(Integer.MAX_VALUE)
+        );
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (GZIPOutputStream gzip = new GZIPOutputStream(out)) {
+            gzip.write("{\"stmt\": \"select 1\"}".getBytes(StandardCharsets.UTF_8));
+        }
+        HttpRequest request = chunkedSqlRequest();
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
+        request.headers().add(HttpHeaderNames.CONTENT_ENCODING, HttpHeaderValues.GZIP);
+        LastHttpContent content = new DefaultLastHttpContent(Unpooled.wrappedBuffer(out.toByteArray()));
+
+        channel.writeInbound(request, content);
+
+        FullHttpResponse response = channel.readOutbound();
+        try {
+            assertThat(response.status()).isEqualTo(HttpResponseStatus.UNAUTHORIZED);
+        } finally {
+            response.release();
+        }
+        assertThat(content.refCnt()).isEqualTo(0);
+        assertThat((Object) channel.readInbound()).isNull();
+        assertThat(breaker.getTrippedCount()).isEqualTo(0L);
+        assertThat(breaker.getUsed()).isEqualTo(0L);
         channel.finishAndReleaseAll();
     }
 }

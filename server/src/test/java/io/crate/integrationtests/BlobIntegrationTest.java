@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
@@ -34,7 +35,9 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -42,17 +45,24 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.GZIPOutputStream;
 
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.test.IntegTestCase;
 import org.jspecify.annotations.Nullable;
 import org.junit.Test;
 
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
+import io.crate.common.Hex;
 import io.crate.metadata.RelationName;
 import io.crate.role.Role;
 import io.netty.handler.codec.http.HttpHeaderNames;
@@ -441,4 +451,55 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         return blobShard;
     }
 
+    @Test
+    public void test_gzip_upload_expanding_beyond_the_in_flight_requests_breaker_is_streamed() throws Exception {
+        // The decompressed blob is larger than the breaker limit, but each decompressed
+        // buffer is released once it's written, so the breaker must not trip.
+        byte[] blob = new byte[8 * 1024 * 1024];
+        Arrays.fill(blob, (byte) ' ');
+        String digest = Hex.encodeHexString(MessageDigest.getInstance("SHA-1").digest(blob));
+        ByteArrayOutputStream compressed = new ByteArrayOutputStream();
+        try (GZIPOutputStream gzip = new GZIPOutputStream(compressed)) {
+            gzip.write(blob);
+        }
+
+        List<CircuitBreaker> breakers = new ArrayList<>();
+        for (CircuitBreakerService breakerService : cluster().getInstances(CircuitBreakerService.class)) {
+            breakers.add(breakerService.getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS));
+        }
+        long trippedBefore = breakers.stream().mapToLong(CircuitBreaker::getTrippedCount).sum();
+
+        setInFlightRequestsLimit("2mb");
+        try {
+            HttpRequest request = HttpRequest.newBuilder(blobUri(digest))
+                .header(HttpHeaderNames.CONTENT_ENCODING.toString(), "gzip")
+                .PUT(BodyPublishers.ofByteArray(compressed.toByteArray()))
+                .build();
+            HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
+            assertThat(response.statusCode()).isEqualTo(201);
+        } finally {
+            setInFlightRequestsLimit(null);
+        }
+
+        assertThat(breakers.stream().mapToLong(CircuitBreaker::getTrippedCount).sum()).isEqualTo(trippedBefore);
+        assertBusy(() -> {
+            for (CircuitBreaker breaker : breakers) {
+                assertThat(breaker.getUsed()).isEqualTo(0L);
+            }
+        });
+
+        HttpResponse<String> response = get(blobUri(digest));
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).isEqualTo(new String(blob, StandardCharsets.US_ASCII));
+    }
+
+    /// The setting isn't exposed to `SET GLOBAL`
+    private void setInFlightRequestsLimit(@Nullable String limit) throws Exception {
+        String key = HierarchyCircuitBreakerService.IN_FLIGHT_REQUESTS_CIRCUIT_BREAKER_LIMIT_SETTING.getKey();
+        Settings.Builder settings = limit == null ? Settings.builder().putNull(key) : Settings.builder().put(key, limit);
+        client().execute(
+            ClusterUpdateSettingsAction.INSTANCE,
+            new ClusterUpdateSettingsRequest().transientSettings(settings)
+        ).get();
+    }
 }

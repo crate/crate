@@ -86,6 +86,12 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Added accounting of the decompressed content of HTTP requests compressed with
+  ``gzip`` or ``deflate`` to the :ref:`in-flight requests circuit breaker
+  <in_flight_requests_breaker>`. Requests exceeding its limit while being
+  decompressed are rejected with ``429 Too Many Requests``, instead of
+  potentially exhausting a node's memory.
+
 - Improved the performance for the :ref:`hyperloglog_distinct
   <aggregation-hyperloglog-distinct>` aggregation on text, IP, UUID and
   BitString types for very low cardinalities.
