@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.expression.symbol.Function;
@@ -144,7 +145,13 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
             );
     }
 
-    private static boolean isColumnTypeSupported(Reference col) {
+    static boolean isColumnTypeSupported(Reference col) {
+        // Check comment on SUPPORTED_AGGREGATES for the reasoning.
+        boolean supportedByCollectSet = CollectSetAggregation.SUPPORTED_TYPES.stream()
+            .anyMatch(t -> col.valueType().equalsSignature(t));
+        if (!supportedByCollectSet) {
+            return false;
+        }
         return !DataTypes.isNumeric(col.valueType()) &&
             col.valueType().id() != DateType.ID &&
             col.valueType().id() != TimestampType.ID_WITH_TZ &&

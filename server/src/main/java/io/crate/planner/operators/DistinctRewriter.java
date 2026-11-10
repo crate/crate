@@ -298,7 +298,7 @@ public sealed interface DistinctRewriter {
                     // Handles the case when there are no resulting rows.
                     // sum()'s aggregation state is NULL.
                     outputs.add(allocateFunction(
-                        CoalesceFunction.NAME, List.of(combinerFn, Literal.of(0)), null, null, txnCtx, nodeCtx
+                        CoalesceFunction.NAME, List.of(combinerFn, Literal.of(0L)), null, null, txnCtx, nodeCtx
                     ));
                 } else {
                     // sum/min/max are combined via themselves, e.g. a global sum() = sum(sum(inner))

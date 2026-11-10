@@ -23,6 +23,7 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.rule.RewriteDistinctAggToGroupBy.hasFilter;
+import static io.crate.planner.optimizer.rule.RewriteDistinctAggToGroupBy.isColumnTypeSupported;
 
 import java.util.List;
 import java.util.Set;
@@ -127,6 +128,9 @@ public final class RewriteMixedDistinctAggToGroupBy implements Rule<HashAggregat
                     return false;
                 }
                 if (distinctColumn != null && !distinctColumn.equals(ref)) {
+                    return false;
+                }
+                if (!isColumnTypeSupported(ref)) {
                     return false;
                 }
                 distinctColumn = ref;
