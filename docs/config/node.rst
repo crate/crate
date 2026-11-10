@@ -130,6 +130,11 @@ General
    exceeding the limit and can cause a node to crash with an ouf of memory
    error.
 
+.. SEEALSO::
+
+   Statements sent via the :ref:`HTTP endpoint <interface-http>` are also
+   limited by :ref:`http.max_content_length <http.max_content_length>`.
+
 Networking
 ==========
 
@@ -789,6 +794,20 @@ Layer Security (TLS).
 
   The frequency at which SSL files such as keystore and truststore are polled
   for changes.
+
+HTTP requests
+=============
+
+.. _http.max_content_length:
+
+**http.max_content_length**
+  | *Default:* ``100mb``
+  | *Runtime:* ``no``
+
+  The maximum length of the content of an HTTP request. For compressed
+  requests, the decompressed content is limited. Requests with longer content
+  are rejected with ``413 Request Entity Too Large``. Blob uploads are not
+  limited by this setting.
 
 Cross-origin resource sharing (CORS)
 ====================================

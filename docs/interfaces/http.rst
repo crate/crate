@@ -543,6 +543,13 @@ statements are:
 - Update
 - Delete
 
+.. NOTE::
+
+    The length of the request content, including the ``bulk_args``, is limited
+    by :ref:`http.max_content_length <http.max_content_length>`. Requests
+    exceeding it are rejected with ``413 Request Entity Too Large``. Split
+    large bulk operations into multiple requests to stay below the limit.
+
 
 .. _http-bulk-errors:
 
