@@ -148,6 +148,7 @@ import io.crate.exceptions.InvalidArgumentException;
 import io.crate.execution.dml.TranslogIndexer;
 import io.crate.execution.dml.TranslogMappingUpdateException;
 import io.crate.metadata.NodeContext;
+import io.crate.replication.logical.engine.SubscriberEngine;
 
 public class IndexShard extends AbstractIndexShardComponent {
 
@@ -1818,8 +1819,14 @@ public class IndexShard extends AbstractIndexShardComponent {
         var newEngineFactory = getEngineFactory();
         if (newEngineFactory.getClass() != engineFactory.getClass()) {
             try {
-                // resetEngineToGlobalCheckpoint will use the new engine factory
-                indexShardOperationPermits.blockOperations(30, TimeUnit.MINUTES, this::resetEngineToGlobalCheckpoint);
+                if (getEngineOrNull() instanceof SubscriberEngine && newEngineFactory instanceof InternalEngineFactory) {
+                    // Dropping a subscription requires reopening the SubscriberEngine as an InternalEngine.
+                    // Preserve local history because the global checkpoint may fall behind after shard recovery or primary promotion.
+                    indexShardOperationPermits.blockOperations(30, TimeUnit.MINUTES, this::reopenEngineAndRecoverFromLocalTranslog);
+                } else {
+                    // resetEngineToGlobalCheckpoint will use the new engine factory
+                    indexShardOperationPermits.blockOperations(30, TimeUnit.MINUTES, this::resetEngineToGlobalCheckpoint);
+                }
             } catch (InterruptedException | TimeoutException e) {
                 var msg = "Timeout exception while trying to switch to a new engine";
                 failShard(msg, null);
@@ -3247,6 +3254,14 @@ public class IndexShard extends AbstractIndexShardComponent {
      * Rollback the current engine to the safe commit, then replay local translog up to the global checkpoint.
      */
     void resetEngineToGlobalCheckpoint() throws IOException {
+        reopenEngine(false);
+    }
+
+    void reopenEngineAndRecoverFromLocalTranslog() throws IOException {
+        reopenEngine(true);
+    }
+
+    private void reopenEngine(boolean recoverLocalHistory) throws IOException {
         assert Thread.holdsLock(mutex) == false : "resetting engine under mutex";
         assert getActiveOperationsCount() == OPERATIONS_BLOCKED
             : "resetting engine without blocking operations; active operations are [" + getActiveOperations() + ']';
@@ -3257,8 +3272,13 @@ public class IndexShard extends AbstractIndexShardComponent {
         flush(false, true);
 
         SetOnce<Engine> newEngineReference = new SetOnce<>();
-        final long globalCheckpoint = getLastKnownGlobalCheckpoint();
-        assert globalCheckpoint == getLastSyncedGlobalCheckpoint();
+        final long recoverUpToSeqNo;
+        if (recoverLocalHistory) {
+            recoverUpToSeqNo = Long.MAX_VALUE;
+        } else {
+            recoverUpToSeqNo = getLastKnownGlobalCheckpoint();
+            assert recoverUpToSeqNo == getLastSyncedGlobalCheckpoint();
+        }
         synchronized (engineMutex) {
             verifyNotClosed();
             // we must create both new read-only engine and new read-write engine under engineMutex to ensure snapshotStoreMetadata,
@@ -3307,7 +3327,7 @@ public class IndexShard extends AbstractIndexShardComponent {
             engine, snapshot, Engine.Operation.Origin.LOCAL_RESET, () -> {
                 // TODO: add a dedicate recovery stats for the reset translog
             });
-        newEngineReference.get().recoverFromTranslog(translogRunner, globalCheckpoint);
+        newEngineReference.get().recoverFromTranslog(translogRunner, recoverUpToSeqNo);
         newEngineReference.get().refresh("reset_engine");
         synchronized (engineMutex) {
             verifyNotClosed();
