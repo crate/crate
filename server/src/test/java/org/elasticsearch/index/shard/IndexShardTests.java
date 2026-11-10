@@ -3492,6 +3492,44 @@ public class IndexShardTests extends IndexShardTestCase {
         closeShard(shard, false);
     }
 
+    @Test
+    public void test_reopenEngineAndRecoverFromLocalTranslog() throws Exception {
+        IndexShard shard = newStartedShard(false);
+        indexOnReplicaWithGaps(shard, between(1, 1000), Math.toIntExact(shard.getLocalCheckpoint()), false);
+        Set<String> docIds = getShardDocUIDs(shard);
+        SeqNoStats seqNoStats = shard.seqNoStats();
+        assertThat(seqNoStats.getLocalCheckpoint()).isGreaterThan(seqNoStats.getGlobalCheckpoint());
+
+        CountDownLatch engineReopenLatch = new CountDownLatch(1);
+        AtomicReference<Exception> failure = new AtomicReference<>();
+        shard.acquireAllReplicaOperationsPermits(
+            shard.getOperationPrimaryTerm(),
+            shard.getLastKnownGlobalCheckpoint(),
+            0L,
+            ActionListener.wrap(releasable -> {
+                try {
+                    shard.reopenEngineAndRecoverFromLocalTranslog();
+                } catch (Exception e) {
+                    failure.set(e);
+                } finally {
+                    releasable.close();
+                    engineReopenLatch.countDown();
+                }
+            }, e -> {
+                failure.set(e);
+                engineReopenLatch.countDown();
+            }),
+            TimeValue.timeValueMinutes(1L)
+        );
+        engineReopenLatch.await();
+
+        assertThat(failure.get()).isNull();
+        assertThat(shard.getEngineOrNull()).isExactlyInstanceOf(InternalEngine.class);
+        assertThat(shard.seqNoStats()).isEqualTo(seqNoStats);
+        assertThat(getShardDocUIDs(shard)).isEqualTo(docIds);
+        closeShard(shard, false);
+    }
+
     /**
      * This test simulates a scenario seen rarely in ConcurrentSeqNoVersioningIT. Closing a shard while engine is inside
      * resetEngineToGlobalCheckpoint can lead to check index failure in integration tests.
