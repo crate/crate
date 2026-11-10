@@ -449,9 +449,22 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
             store.incRef();
             try {
                 store.cleanupAndVerify("recovery CleanFilesRequestHandler", sourceMetadata);
-                final String translogUUID = Translog.createEmptyTranslog(
-                    indexShard.shardPath().resolveTranslog(), globalCheckpoint, shardId, indexShard.getPendingPrimaryTerm());
-                store.associateIndexWithNewTranslog(translogUUID);
+                // Reuse the source's own translog id when the commit already has one (an
+                // ordinary peer recovery of an already-existing shard) instead of always minting
+                // a fresh one and then rebaselining the commit to match it - the freshly-created
+                // local translog already matches the commit by construction, so there is nothing
+                // to rebaseline. Only a genuinely new shard (no prior commit at all) still needs
+                // a fresh id.
+                final String existingTranslogUUID = sourceMetadata.getCommitUserData().get(Translog.TRANSLOG_UUID_KEY);
+                if (existingTranslogUUID != null) {
+                    Translog.createEmptyTranslog(
+                        indexShard.shardPath().resolveTranslog(), shardId, globalCheckpoint,
+                        indexShard.getPendingPrimaryTerm(), existingTranslogUUID, null);
+                } else {
+                    final String translogUUID = Translog.createEmptyTranslog(
+                        indexShard.shardPath().resolveTranslog(), globalCheckpoint, shardId, indexShard.getPendingPrimaryTerm());
+                    store.associateIndexWithNewTranslog(translogUUID);
+                }
 
                 if (indexShard.getRetentionLeases().leases().isEmpty()) {
                     // if empty, may be a fresh IndexShard, so write an empty leases file to disk
