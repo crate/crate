@@ -130,9 +130,6 @@ public final class RewriteMixedDistinctAggToGroupBy implements Rule<HashAggregat
                 if (distinctColumn != null && !distinctColumn.equals(ref)) {
                     return false;
                 }
-                if (!isColumnTypeSupported(ref)) {
-                    return false;
-                }
                 distinctColumn = ref;
             } else {
                 if (!SUPPORTED_NON_DISTINCT.contains(fn.name())) {
