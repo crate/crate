@@ -55,10 +55,9 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     private static final Object PRESENT = null;
 
     public static final String NAME = "collect_set";
-    public static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(DataTypes.PRIMITIVE_TYPES, DataTypes.NUMERIC);
 
     public static void register(Functions.Builder builder) {
-        for (DataType<?> supportedType : SUPPORTED_TYPES) {
+        for (DataType<?> supportedType : Lists.concat(DataTypes.PRIMITIVE_TYPES, DataTypes.NUMERIC)) {
             var returnType = new ArrayType<>(supportedType);
             builder.add(
                     Signature.builder(NAME, FunctionType.AGGREGATE)
