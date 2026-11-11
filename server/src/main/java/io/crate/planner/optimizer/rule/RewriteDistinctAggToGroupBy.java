@@ -199,12 +199,12 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
         return new HashAggregate(dedup, aggregate.aggregates(), new NoOp());
     }
 
-    /// True, if this rule can be applied.
-    /// Currently, we only check the table size (in number of rows).
-    /// todo Once https://github.com/crate/crate/pull/20172 is merged,
-    /// this method should use column stats.
-    /// The condition (that we found through benchmarks) is that at most 1 column
-    /// with cardinality higher than 85% makes the rule effective.
+    /// True if `plan` already groups by `groupKey`, i.e., a `GROUP BY` isn't needed.
+    ///
+    /// Happens for a query written as `select count(distinct col) from (select col from t group by col) tmp`.
+    ///
+    /// This is also what terminates the rule. This rule keeps the `distinct` flag in functions, so its result
+    /// matches the pattern again. This method recognizes the `GROUP BY` that was inserted.
     private static boolean isGroupHashAgg(LogicalPlan plan, Symbol groupKey) {
         return plan instanceof GroupHashAggregate groupBy
             && groupBy.aggregates().isEmpty()
@@ -231,12 +231,12 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
         return Eval.create(joined, List.copyOf(aggregate.aggregates()));
     }
 
-    // True, if this rule can be applied.
-    // Currently, we only check the table size (in number of rows).
-    // todo Once https://github.com/crate/crate/pull/20172 is merged,
-    // this method should use column stats.
-    // The condition (that we found through benchmarks) is that at most 1 column
-    // with cardinality higher than 85% makes the rule effective.
+    /// True, if this rule can be applied.
+    /// Currently, we only check the table size (in number of rows).
+    /// todo Once https://github.com/crate/crate/pull/20172 is merged,
+    /// this method should use column stats.
+    /// The condition (that we found through benchmarks) is that at most 1 column
+    /// with cardinality higher than 85% makes the rule effective.
     private static boolean meetsNumRowsRequirement(Stats stats) {
         if (stats.numDocs() <= 0) {
             return true;
