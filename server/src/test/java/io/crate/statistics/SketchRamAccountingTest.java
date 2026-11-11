@@ -56,10 +56,12 @@ public class SketchRamAccountingTest extends ESTestCase {
         TrackingRateLimiter rateLimiter = new TrackingRateLimiter(1000);
         var ra = new SketchRamAccounting(RamAccounting.NO_ACCOUNTING, rateLimiter);
 
-        long bytesToAdd = rateLimiter.getMinPauseCheckBytes() / 2;
+        long totalBytesAdded = 0;
+        long bytesToAdd = 5 * rateLimiter.getMinPauseCheckBytes() + 8;
 
-        for (int i = 0; i < 10; i++) {
-            ra.addBytes(bytesToAdd);
+        while (totalBytesAdded < bytesToAdd) {
+            ra.addBytes(8);
+            totalBytesAdded += 8;
         }
 
         Assertions.assertThat(rateLimiter.pauses).isEqualTo(5);
