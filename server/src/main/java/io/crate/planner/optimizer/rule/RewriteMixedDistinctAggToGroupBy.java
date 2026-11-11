@@ -23,7 +23,6 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.rule.RewriteDistinctAggToGroupBy.hasFilter;
-import static io.crate.planner.optimizer.rule.RewriteDistinctAggToGroupBy.isColumnTypeSupported;
 
 import java.util.List;
 import java.util.Set;
