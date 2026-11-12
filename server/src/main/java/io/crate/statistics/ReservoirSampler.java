@@ -27,7 +27,6 @@ import static io.crate.statistics.TableStatsService.STATS_SERVICE_THROTTLING_SET
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
@@ -37,6 +36,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexReaderContext;
+import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.search.CollectionTerminatedException;
@@ -65,8 +65,6 @@ import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-
-import com.carrotsearch.hppc.LongArrayList;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
@@ -222,30 +220,14 @@ public final class ReservoirSampler {
 
             // We do the sampling in 2 phases. First we get the docIds;
             // then we retrieve the column values for the sampled docIds.
-            // we do this in 2 phases because the reservoir sampling might override previously seen
-            // items and we want to avoid unnecessary disk-lookup
-            long[] fetchIds;
-            int numFetchIds;
-            if (totalNumDocs <= 2L * Reservoir.NUM_SAMPLES) {
-                // Drawing at least half of all live docs at random costs about as much as a full scan
-                Reservoir reservoir = new Reservoir(random);
-                for (int i = 0; i < searchersToRelease.size(); i++) {
-                    sampleDocIds(reservoir, i, searchersToRelease.get(i).searcher);
-                }
-                LongArrayList samples = reservoir.samples();
-                fetchIds = samples.buffer;
-                numFetchIds = samples.size();
-            } else {
-                fetchIds = sampleLiveDocIds(
-                    Lists.map(searchersToRelease, ShardExpressions::searcher),
-                    Reservoir.NUM_SAMPLES,
-                    random
-                );
-                numFetchIds = fetchIds.length;
-            }
+            long[] fetchIds = sampleLiveDocIds(
+                Lists.map(searchersToRelease, ShardExpressions::searcher),
+                Reservoir.NUM_SAMPLES,
+                random
+            );
 
             var sampler = new ColumnSampler(columnCollectors, searchersToRelease::get);
-            sampler.iterate(fetchIds, numFetchIds);
+            sampler.iterate(fetchIds, fetchIds.length);
 
             List<ColumnSketchBuilder<?>> statsBuilders = new ArrayList<>();
             for (var collector : columnCollectors) {
@@ -269,68 +251,148 @@ public final class ReservoirSampler {
         }
     }
 
+    /// Samples `min(numSamples, live docs)` distinct live docs, each subset equally likely.
+    ///
+    /// @return the [FetchId]s of the sampled docs in increasing order; the reader id is the index into `searchers`
     @VisibleForTesting
     static long[] sampleLiveDocIds(List<? extends IndexSearcher> searchers, int numSamples, Random random) {
-        // docBases[i + 1] is the end of searcher i's range
-        long[] docBases = new long[searchers.size() + 1];
-        for (int i = 0; i < searchers.size(); i++) {
-            docBases[i + 1] = docBases[i] + searchers.get(i).getIndexReader().maxDoc();
+        long totalNumDocs = 0;
+        for (IndexSearcher searcher : searchers) {
+            totalNumDocs += searcher.getIndexReader().numDocs();
         }
-        long totalMaxDoc = docBases[searchers.size()];
-        long[] positions = new long[numSamples];
-        int numValid = 0;
-        while (numValid < numSamples) {
-            for (int i = numValid; i < numSamples; i++) {
-                positions[i] = random.nextLong(totalMaxDoc);
-            }
-            Arrays.sort(positions);
-            numValid = removeDuplicatesAndDeleted(positions, searchers, docBases);
-        }
-        int readerIdx = 0;
-        for (int i = 0; i < numSamples; i++) {
-            while (positions[i] >= docBases[readerIdx + 1]) {
-                readerIdx++;
-            }
-            positions[i] = FetchId.encode(readerIdx, (int) (positions[i] - docBases[readerIdx]));
-        }
-        return positions;
+        long[] ids = new long[(int) Math.min(numSamples, totalNumDocs)];
+        sampleSortedRanks(ids, totalNumDocs, random);
+        ranksToFetchIds(ids, searchers);
+        return ids;
     }
 
-    /// Moves the first occurrence of each live doc in the sorted `positions` to the front.
-    ///
-    /// @return the number of kept positions
-    private static int removeDuplicatesAndDeleted(long[] positions,
-                                                  List<? extends IndexSearcher> searchers,
-                                                  long[] docBases) {
-        int numKept = 0;
-        long previous = -1;
-        int readerIdx = -1;
-        List<LeafReaderContext> leaves = List.of();
-        LeafReaderContext leaf = null;
-        Bits liveDocs = null;
-        for (int i = 0; i < positions.length; i++) {
-            long position = positions[i];
-            if (position == previous) {
-                continue;
-            }
-            previous = position;
-            if (position >= docBases[readerIdx + 1]) {
-                do {
-                    readerIdx++;
-                } while (position >= docBases[readerIdx + 1]);
-                leaves = searchers.get(readerIdx).getIndexReader().leaves();
-                leaf = null;
-            }
-            int docId = (int) (position - docBases[readerIdx]);
-            if (leaf == null || docId >= leaf.docBase + leaf.reader().maxDoc()) {
-                leaf = leaves.get(ReaderUtil.subIndex(docId, leaves));
-                liveDocs = leaf.reader().getLiveDocs();
-            }
-            if (liveDocs == null || liveDocs.get(docId - leaf.docBase)) {
-                positions[numKept++] = position;
+    /// Replaces each rank (index of a doc among the live docs of all `searchers`, in reader and leaf order)
+    /// with the [FetchId] of that doc. `ids` must be sorted.
+    private static void ranksToFetchIds(long[] ids, List<? extends IndexSearcher> searchers) {
+        int i = 0;
+        long leafRankBase = 0;
+        for (int readerIdx = 0; readerIdx < searchers.size() && i < ids.length; readerIdx++) {
+            for (LeafReaderContext leaf : searchers.get(readerIdx).getIndexReader().leaves()) {
+                LeafReader reader = leaf.reader();
+                long leafRankEnd = leafRankBase + reader.numDocs();
+                Bits liveDocs = reader.getLiveDocs();
+                int docId = -1;
+                long docRank = leafRankBase - 1;
+                for (; i < ids.length && ids[i] < leafRankEnd; i++) {
+                    if (liveDocs == null) {
+                        docId = (int) (ids[i] - leafRankBase);
+                    } else {
+                        while (docRank < ids[i]) {
+                            docId++;
+                            if (liveDocs.get(docId)) {
+                                docRank++;
+                            }
+                        }
+                    }
+                    ids[i] = FetchId.encode(readerIdx, leaf.docBase + docId);
+                }
+                leafRankBase = leafRankEnd;
             }
         }
-        return numKept;
+        assert i == ids.length : "ranks must be below the sum of leaf numDocs";
+    }
+
+    /// Fills `ranks` with distinct values from `[0, populationSize)` in increasing order, each subset equally likely.
+    ///
+    /// Vitter's Algorithm D, from "An Efficient Algorithm for Sequential Random Sampling", ACM TOMS 13(1), 1987.
+    /// It takes O(ranks.length) expected time. Like in the paper, it switches to Algorithm A once
+    /// the remaining sample is more than 1/13 of the remaining population.
+    private static void sampleSortedRanks(long[] ranks, long populationSize, Random random) {
+        int n = ranks.length;
+        if (n == 0) {
+            return;
+        }
+        long N = populationSize;
+        long current = 0;
+        int out = 0;
+        double nInv = 1.0 / n;
+        double vPrime = Math.exp(Math.log(openUniform(random)) * nInv);
+        long qu1 = N - n + 1;
+        long threshold = 13L * n;
+        while (n > 1 && threshold < N) {
+            double nMin1Inv = 1.0 / (n - 1);
+            double realN = N;
+            long s;
+            while (true) {
+                // D2: generate S from the continuous approximation
+                double x;
+                while (true) {
+                    x = realN * (1.0 - vPrime);
+                    s = (long) x;
+                    if (s < qu1) {
+                        break;
+                    }
+                    vPrime = Math.exp(Math.log(openUniform(random)) * nInv);
+                }
+                // D3: accept S with the cheap test
+                double u = openUniform(random);
+                double y1 = Math.exp(Math.log(u * realN / qu1) * nMin1Inv);
+                vPrime = y1 * (1.0 - x / realN) * ((double) qu1 / (qu1 - s));
+                if (vPrime <= 1.0) {
+                    break;
+                }
+                // D4: accept S with the exact test
+                double y2 = 1.0;
+                double top = realN - 1.0;
+                double bottom;
+                long limit;
+                if (n - 1 > s) {
+                    bottom = realN - n;
+                    limit = N - s;
+                } else {
+                    bottom = realN - s - 1.0;
+                    limit = qu1;
+                }
+                for (long t = N - 1; t >= limit; t--) {
+                    y2 = y2 * top / bottom;
+                    top -= 1.0;
+                    bottom -= 1.0;
+                }
+                if (realN / (realN - x) >= y1 * Math.exp(Math.log(y2) * nMin1Inv)) {
+                    vPrime = Math.exp(Math.log(openUniform(random)) * nMin1Inv);
+                    break;
+                }
+                vPrime = Math.exp(Math.log(openUniform(random)) * nInv);
+            }
+            // D5: skip S ranks and select the next one
+            current += s;
+            ranks[out++] = current++;
+            N -= s + 1;
+            n--;
+            nInv = nMin1Inv;
+            qu1 -= s;
+            threshold -= 13;
+        }
+        if (n > 1) {
+            // Algorithm A
+            long top = N - n;
+            while (n > 1) {
+                double v = openUniform(random);
+                long s = 0;
+                double quot = (double) top / N;
+                while (quot > v) {
+                    s++;
+                    top--;
+                    quot = quot * top / (N - s);
+                }
+                current += s;
+                ranks[out++] = current++;
+                N -= s + 1;
+                n--;
+            }
+            vPrime = openUniform(random);
+        }
+        ranks[out] = current + Math.min((long) (N * vPrime), N - 1);
+    }
+
+    /// @return a uniform value in the open interval (0, 1)
+    private static double openUniform(Random random) {
+        return ((random.nextLong() >>> 11) + 0.5) * 0x1.0p-53;
     }
 
     private static List<? extends LuceneCollectorExpression<?>> getCollectorExpressions(
