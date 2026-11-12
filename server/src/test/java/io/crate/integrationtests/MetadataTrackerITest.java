@@ -386,6 +386,17 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         assertBusy(() -> assertThat(isTrackerActive()).isTrue());
 
         executeOnPublisher("ALTER PUBLICATION pub1 DROP TABLE t1, p2");
+        // t1 and p2 are no longer published,
+        // their retention leases must be removed.
+        assertBusy(() -> assertThat(executeOnPublisher("""
+            SELECT count(*) FROM (
+                SELECT unnest(retention_leases['leases']) AS lease
+                FROM sys.shards
+                WHERE primary = true
+            ) AS leases
+            WHERE lease['id'] LIKE 'logical_replication:%'
+            """)
+        ).hasRows("0"));
 
         // Only a next metadata poll will detect a dropped table and turn the table into a normal read-write one.
         assertBusy(
