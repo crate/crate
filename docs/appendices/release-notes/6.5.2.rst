@@ -61,3 +61,6 @@ Fixes
 
 - Fixed an issue that could discard recently replicated data from the
   subscriber cluster when dropping a subscription shortly after shard recovery.
+
+- Fixed an issue where user mappings were ignored when running :ref:`ANALYZE <analyze>`
+  on foreign tables and resulted in ``PSQLException[FATAL: role "crate" does not exist]``

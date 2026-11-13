@@ -28,6 +28,7 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.role.Role;
 
 public final class AnalyzePlan implements Plan {
 
@@ -48,6 +49,7 @@ public final class AnalyzePlan implements Plan {
         OneRowActionListener<AcknowledgedResponse> listener = new OneRowActionListener<>(
             consumer,
             req -> req.isAcknowledged() ? new Row1(1L) : new Row1(0L));
-        dependencies.analyzeAction().fetchSamplesThenGenerateAndPublishStats().whenComplete(listener);
+        Role currentUser = plannerContext.transactionContext().sessionSettings().sessionUser();
+        dependencies.analyzeAction().fetchSamplesThenGenerateAndPublishStats(currentUser).whenComplete(listener);
     }
 }
