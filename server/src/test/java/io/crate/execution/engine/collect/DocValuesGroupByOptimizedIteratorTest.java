@@ -31,6 +31,7 @@ import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -58,6 +59,7 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dsl.projection.GroupProjection;
+import io.crate.execution.engine.aggregation.GroupByMaps;
 import io.crate.execution.engine.aggregation.sum.SumAggregation;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
@@ -368,6 +370,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             null,
             null,
             null,
+            () -> GroupByMaps.wrapperForJDKMap(new HashMap<>()),
             (_, states, key) -> {
             },
             (expressions) -> expressions.get(0).value(),
