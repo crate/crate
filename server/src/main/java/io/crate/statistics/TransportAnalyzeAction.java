@@ -144,7 +144,7 @@ public final class TransportAnalyzeAction {
         );
     }
 
-    public CompletableFuture<AcknowledgedResponse> fetchSamplesThenGenerateAndPublishStats() {
+    public CompletableFuture<AcknowledgedResponse> fetchSamplesThenGenerateAndPublishStats(Role currentUser) {
         LOGGER.info("ANALYZE: Start collecting samples to update table statistics");
         HashMap<RelationName, Stats> entries = new HashMap<>();
         CompletableFuture<Void> currentFetch = CompletableFuture.completedFuture(null);
@@ -178,7 +178,7 @@ public final class TransportAnalyzeAction {
 
                 currentFetch = currentFetch
                     .thenCompose(ignored -> fdw.getStats(
-                        Role.CRATE_USER,
+                        currentUser,
                         server,
                         foreignTable,
                         systemTxnCtx,

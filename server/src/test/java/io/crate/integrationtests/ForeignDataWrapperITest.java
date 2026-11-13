@@ -535,4 +535,57 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             "y| 0.0| 16| 3.0| [1, 2, 42]| [0.33333334, 0.33333334, 0.33333334]"
         );
     }
+
+    /*
+     * Related to https://github.com/crate/crate/issues/20580
+    */
+    @Test
+    public void test_analyze_respects_user_mapping() throws Exception {
+        execute("create table doc.local_tbl (x int, y int)");
+        execute("insert into doc.local_tbl (x, y) values (1, 1), (2, 2), (3, 3)");
+        execute("refresh table doc.local_tbl");
+        execute("analyze");
+
+        execute("create user trillian with (password = 'secret')");
+        execute("grant al to trillian");
+
+        PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class);
+        int port = Objects.requireNonNull(postgresNetty.boundAddress()).publishAddress().getPort();
+        String url = "jdbc:postgresql://127.0.0.1:" + port + "/";
+
+        Roles roles = cluster().getInstance(Roles.class);
+        Role trillian = roles.getUser("trillian");
+
+        sqlExecutor.executeAs(
+            String.format("create server pg foreign data wrapper jdbc options (url '%s')", url),
+            trillian);
+        // The remote user does not exist, so we expect to see an exception raised
+        sqlExecutor.executeAs("""
+            CREATE USER MAPPING FOR trillian
+            SERVER pg
+            OPTIONS ("user" 'no_such_remote_user', password 'wrong')
+            """, trillian);
+        sqlExecutor.executeAs("""
+            CREATE FOREIGN TABLE doc.remote_tbl (x int, y int)
+            SERVER pg
+            OPTIONS (schema_name 'doc', table_name 'local_tbl')
+            """, trillian);
+
+        // Before the fix, ANALYZE on a foreign table always connected as `crate`, ignoring the
+        // session user's user mapping. Since our tests use CrateDB as a remote and not Postgres,
+        // the foreign table accepts `crate` without a password, so
+        // a test that only checks for success passes either way.
+        //
+        // Previously, the `crate` super user was always used to run `analyze` and ignored user mappings.
+        // Since our remote server here is itself a CrateDB server and the `crate` user exists on the remote,
+        // we cannot tell if our code uses the user mapping or falls back to `crate` simply by seeing if the
+        // `analyze` statement succeeds.
+        //
+        // In order to check if the mapping is used, we purposely map to a non-existent user on the foreign server.
+        // We then expect this to fail. This confirms the user mapping is used and not falling back to the `crate` super user (which would
+        // not throw an error in our tests)
+        assertThatThrownBy(() -> sqlExecutor.executeAs("ANALYZE", trillian))
+            .isExactlyInstanceOf(RuntimeException.class)
+            .hasMessageContaining("FATAL: trust authentication failed for user \"no_such_remote_user\"");
+    }
 }
