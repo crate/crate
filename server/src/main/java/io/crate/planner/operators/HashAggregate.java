@@ -39,6 +39,7 @@ import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.AggregateMode;
@@ -50,6 +51,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -110,6 +112,13 @@ public class HashAggregate extends ForwardingLogicalPlan {
                 plannerContext.nodeContext())
             : DistinctRewriter.noop(aggregates);
         int[] expectedDistinctValues = expectedDistinctValues(plannerContext, rewritten.aggregates());
+        int[] expectedPartialDistinctValues = capAtRowsPerState(
+            expectedDistinctValues,
+            plannerContext.planStats().get(source).numDocs(),
+            source.preferShardProjections()
+                ? numShards(executionPlan)
+                : executionPlan.resultDescription().nodeIds().size()
+        );
 
         var sourceOutputs = source.outputs();
         if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {
@@ -124,7 +133,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
                         paramBinder,
                         AggregateMode.ITER_PARTIAL,
                         RowGranularity.SHARD,
-                        expectedDistinctValues
+                        expectedPartialDistinctValues
                     )
                 );
                 executionPlan.addProjection(
@@ -162,7 +171,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
             paramBinder,
             AggregateMode.ITER_PARTIAL,
             source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE,
-            expectedDistinctValues
+            expectedPartialDistinctValues
         );
         executionPlan.addProjection(toPartial);
 
@@ -217,6 +226,33 @@ public class HashAggregate extends ForwardingLogicalPlan {
             }
         }
         return expected;
+    }
+
+    /// A partial state (per shard or per node) can't see more distinct values than it has rows.
+    private static int[] capAtRowsPerState(int[] expectedDistinctValues, long numDocs, int numStates) {
+        if (numDocs < 0 || numStates <= 0) {
+            return expectedDistinctValues;
+        }
+        long rowsPerState = numDocs / numStates;
+        int[] capped = new int[expectedDistinctValues.length];
+        for (int i = 0; i < expectedDistinctValues.length; i++) {
+            capped[i] = (int) Math.min(expectedDistinctValues[i], rowsPerState);
+        }
+        return capped;
+    }
+
+    /// 0 if the plan doesn't collect from shards.
+    private static int numShards(ExecutionPlan executionPlan) {
+        if (executionPlan instanceof io.crate.planner.node.dql.Collect collect
+            && collect.collectPhase() instanceof RoutedCollectPhase collectPhase) {
+            Routing routing = collectPhase.routing();
+            int numShards = 0;
+            for (String nodeId : routing.nodes()) {
+                numShards += routing.numShards(nodeId);
+            }
+            return numShards;
+        }
+        return 0;
     }
 
     public List<Function> aggregates() {
