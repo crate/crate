@@ -110,6 +110,13 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
         return this;
     }
 
+    /// Returns an implementation that pre-sizes its state for `expectedDistinctValues` distinct input values,
+    /// if it can make use of it. 0 if unknown.
+    /// Only used for global aggregations, where there is a single state per node.
+    public AggregationFunction<?, TFinal> withExpectedDistinctValues(int expectedDistinctValues) {
+        return this;
+    }
+
     /**
      * Indicates if this aggregation permits the removal of state from the previous aggregate state as defined in
      * http://www.vldb.org/pvldb/vol8/p1058-leis.pdf

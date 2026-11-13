@@ -407,7 +407,8 @@ public abstract class AggregationTestCase extends ESTestCase {
             new AggregationProjection(
                 List.of(aggregation),
                 RowGranularity.SHARD,
-                AggregateMode.ITER_PARTIAL
+                AggregateMode.ITER_PARTIAL,
+                new int[] { 0 }
             )
         );
         var collectPhase = createCollectPhase(toCollectRefs, projections);

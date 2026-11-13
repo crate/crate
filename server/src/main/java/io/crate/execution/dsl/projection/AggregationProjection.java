@@ -48,6 +48,9 @@ public class AggregationProjection extends Projection {
     private final AggregateMode mode;
     private final List<Aggregation> aggregations;
 
+    /// Expected number of distinct input values per aggregation, used to pre-size states. 0 if unknown.
+    private final int[] expectedDistinctValues;
+
     public AggregationProjection(StreamInput in) throws IOException {
         int size = in.readVInt();
         aggregations = new ArrayList<>(size);
@@ -56,17 +59,24 @@ public class AggregationProjection extends Projection {
         }
         contextGranularity = RowGranularity.fromStream(in);
         mode = AggregateMode.readFrom(in);
+        expectedDistinctValues = in.readVIntArray();
     }
 
-    public AggregationProjection(List<Aggregation> aggregations, RowGranularity contextGranularity, AggregateMode mode) {
+    public AggregationProjection(List<Aggregation> aggregations,
+                                 RowGranularity contextGranularity,
+                                 AggregateMode mode,
+                                 int[] expectedDistinctValues) {
         assert aggregations != null : "aggregations must not be null";
         assert aggregations.stream().noneMatch(s ->
             s.any(Symbol.IS_COLUMN.or(x -> x instanceof SelectSymbol)))
             : "Cannot operate on Reference, Field or SelectSymbol symbols: " + aggregations;
+        assert expectedDistinctValues.length == aggregations.size()
+            : "expectedDistinctValues must have one entry per aggregation";
 
         this.contextGranularity = contextGranularity;
         this.mode = mode;
         this.aggregations = aggregations;
+        this.expectedDistinctValues = expectedDistinctValues;
     }
 
     @Override
@@ -76,6 +86,10 @@ public class AggregationProjection extends Projection {
 
     public List<Aggregation> aggregations() {
         return aggregations;
+    }
+
+    public int[] expectedDistinctValues() {
+        return expectedDistinctValues;
     }
 
     @Override
@@ -98,6 +112,7 @@ public class AggregationProjection extends Projection {
         Symbols.toStream(aggregations, out);
         RowGranularity.toStream(contextGranularity, out);
         AggregateMode.writeTo(mode, out);
+        out.writeVIntArray(expectedDistinctValues);
     }
 
     @Override

@@ -45,13 +45,16 @@ public class AggregationPipe implements Projector {
                            AggregationContext[] aggregations,
                            RamAccounting ramAccounting,
                            MemoryManager memoryManager,
-                           Version minNodeVersion) {
+                           Version minNodeVersion,
+                           int[] expectedDistinctValues) {
+        assert expectedDistinctValues.length == aggregations.length
+            : "expectedDistinctValues must have one entry per aggregation";
         AggregationFunction<?, ?>[] functions = new AggregationFunction[aggregations.length];
         Input<?>[][] inputs = new Input[aggregations.length][];
         Input[] filters = new Input[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
             AggregationContext aggregation = aggregations[i];
-            functions[i] = aggregation.function();
+            functions[i] = aggregation.function().withExpectedDistinctValues(expectedDistinctValues[i]);
             inputs[i] = aggregation.inputs();
             filters[i] = aggregation.filter();
         }
