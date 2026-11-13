@@ -22,12 +22,14 @@
 package io.crate.planner.optimizer.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.rule.RemoveRedundantDistinct.isUniqueByPrimaryKey;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
@@ -131,7 +133,8 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
     }
 
     private static boolean matches(HashAggregate agg) {
-        return agg.aggregates().stream()
+        return agg.rewriteDistinct() &&
+        agg.aggregates().stream()
             .allMatch(fn ->
                 fn.distinct() &&
                     hasNoFilter(fn) &&
@@ -187,6 +190,10 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
             return null;
         }
 
+        if (isPrimaryKeyColumn(resolvedSource, groupKey, context.resolvePlan())) {
+            return null;
+        }
+
         GroupHashAggregate dedup = new GroupHashAggregate(source, List.of(groupKey), List.of());
         return new HashAggregate(dedup, aggregate.aggregates(), false);
     }
@@ -235,5 +242,9 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
         }
 
         return stats.numDocs() <= MAX_TABLE_SIZE;
+    }
+
+    private static boolean isPrimaryKeyColumn(LogicalPlan plan, Symbol groupKey, UnaryOperator<LogicalPlan> resolvePlan) {
+        return isUniqueByPrimaryKey(plan, List.of(groupKey), resolvePlan);
     }
 }

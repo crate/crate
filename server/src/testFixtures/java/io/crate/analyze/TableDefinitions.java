@@ -76,7 +76,8 @@ public final class TableDefinitions {
         "  name text," +
         "  details object," +
         "  awesome boolean," +
-        "  friends array(object)" +
+        "  friends array(object)," +
+        "  id2 bigint" +
         ")" +
         " clustered by (id)";
     static final RelationName TEST_PARTITIONED_TABLE_IDENT = new RelationName(DocSchemaInfo.NAME, "parted");

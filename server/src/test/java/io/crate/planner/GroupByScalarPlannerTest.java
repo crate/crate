@@ -38,6 +38,7 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.expression.symbol.Function;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.optimizer.rule.RemoveRedundantDistinct;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -52,6 +53,7 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
             .setNumNodes(2)
             .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
+        e.getSessionSettings().excludedOptimizerRules().add(RemoveRedundantDistinct.class);
     }
 
     @Test

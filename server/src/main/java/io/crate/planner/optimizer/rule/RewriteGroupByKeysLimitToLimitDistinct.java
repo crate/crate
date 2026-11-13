@@ -27,6 +27,7 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 import org.elasticsearch.Version;
 
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LimitDistinct;
@@ -166,6 +167,15 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                              Captures captures,
                              Rule.Context context) {
         GroupHashAggregate groupBy = captures.get(groupCapture);
+        // Defer to RemoveRedundantDistinct when it is enabled and PK uniqueness
+        // makes the grouping redundant. Otherwise, allow LimitDistinct to act
+        // as a fallback optimization.
+        boolean removeDistinctExcluded = context.txnCtx().sessionSettings() instanceof CoordinatorSessionSettings cs
+            && cs.excludedOptimizerRules().contains(RemoveRedundantDistinct.class);
+        if (!removeDistinctExcluded
+            && RemoveRedundantDistinct.isUniqueByPrimaryKey(groupBy.source(), groupBy.groupKeys(), context.resolvePlan())) {
+            return null;
+        }
         if (!eagerTerminateIsLikely(limit, groupBy, context.planStats())) {
             return null;
         }
