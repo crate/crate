@@ -65,7 +65,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
                             .returnType(returnType.getTypeSignature())
                             .features(Feature.DETERMINISTIC)
                             .build(),
-                    CollectSetAggregation::new
+                    (signature, boundSignature) -> new CollectSetAggregation(signature, boundSignature, 0)
             );
         }
     }
@@ -75,12 +75,16 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     private final DataType<?> partialReturnType;
     private final DataType<Object> elementType;
 
+    /// Pre-sizes the state. 0 if unknown.
+    private final int expectedEntries;
+
     @SuppressWarnings("unchecked")
-    private CollectSetAggregation(Signature signature, BoundSignature boundSignature) {
+    private CollectSetAggregation(Signature signature, BoundSignature boundSignature, int expectedEntries) {
         this.elementType = (DataType<Object>) ((ArrayType<?>) boundSignature.returnType()).innerType();
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.partialReturnType = UncheckedObjectType.INSTANCE;
+        this.expectedEntries = expectedEntries;
     }
 
     @Override
@@ -96,6 +100,11 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     @Override
     public AggregationFunction<Map<Object, Long>, List<Object>> optimizeForExecutionAsWindowFunction(Version minNodeVersion) {
         return new RemovableCumulativeCollectSet(signature, boundSignature);
+    }
+
+    @Override
+    public AggregationFunction<Map<Object, Object>, List<Object>> withExpectedDistinctValues(int expectedDistinctValues) {
+        return new CollectSetAggregation(signature, boundSignature, expectedDistinctValues);
     }
 
     @Override
@@ -122,7 +131,21 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
                                         Version minNodeInCluster,
                                         MemoryManager memoryManager) {
         ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
-        return new HashMap<>();
+        if (expectedEntries <= 0) {
+            return new HashMap<>();
+        }
+        // The table of a pre-sized HashMap is allocated with the first put()
+        ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(
+            RamUsageEstimator.NUM_BYTES_ARRAY_HEADER
+                + (long) tableSizeFor(expectedEntries) * RamUsageEstimator.NUM_BYTES_OBJECT_REF));
+        return HashMap.newHashMap(expectedEntries);
+    }
+
+    /// Table size of `HashMap.newHashMap(expectedEntries)`, mirrors `java.util.HashMap#tableSizeFor`.
+    private static int tableSizeFor(int expectedEntries) {
+        int capacity = (int) Math.min(Math.ceil(expectedEntries / 0.75), 1 << 30);
+        int n = -1 >>> Integer.numberOfLeadingZeros(capacity - 1);
+        return (n < 0) ? 1 : Math.min(n + 1, 1 << 30);
     }
 
     @Override

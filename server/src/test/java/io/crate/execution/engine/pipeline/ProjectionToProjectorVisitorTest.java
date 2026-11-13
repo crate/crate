@@ -193,7 +193,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
                 CountAggregation.SIGNATURE,
                 CountAggregation.SIGNATURE.getReturnType().createType(),
                 Collections.singletonList(new InputColumn(0)))
-        ), RowGranularity.SHARD, AggregateMode.ITER_FINAL);
+        ), RowGranularity.SHARD, AggregateMode.ITER_FINAL, new int[] { 0, 0 });
         Projector projector = visitor.create(
             projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
 

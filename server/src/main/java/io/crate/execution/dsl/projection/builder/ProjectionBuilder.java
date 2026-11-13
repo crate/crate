@@ -64,7 +64,8 @@ public class ProjectionBuilder {
                                                        Collection<Function> aggregates,
                                                        UnaryOperator<Symbol> subQueryAndParamBinder,
                                                        AggregateMode mode,
-                                                       RowGranularity granularity) {
+                                                       RowGranularity granularity,
+                                                       int[] expectedDistinctValues) {
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(inputs);
         ArrayList<Aggregation> aggregations = getAggregations(
             aggregates,
@@ -72,7 +73,7 @@ public class ProjectionBuilder {
             sourceSymbols,
             subQueryAndParamBinder
         );
-        return new AggregationProjection(aggregations, granularity, mode);
+        return new AggregationProjection(aggregations, granularity, mode, expectedDistinctValues);
     }
 
     public GroupProjection groupProjection(
