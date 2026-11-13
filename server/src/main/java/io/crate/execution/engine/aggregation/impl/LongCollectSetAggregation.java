@@ -64,9 +64,13 @@ public final class LongCollectSetAggregation extends AggregationFunction<LongHas
     private final Signature signature;
     private final BoundSignature boundSignature;
 
-    LongCollectSetAggregation(Signature signature, BoundSignature boundSignature) {
+    /// Pre-sizes the state. 0 if unknown.
+    private final int expectedEntries;
+
+    LongCollectSetAggregation(Signature signature, BoundSignature boundSignature, int expectedEntries) {
         this.signature = signature;
         this.boundSignature = boundSignature;
+        this.expectedEntries = expectedEntries;
     }
 
     @Override
@@ -85,10 +89,15 @@ public final class LongCollectSetAggregation extends AggregationFunction<LongHas
     }
 
     @Override
+    public AggregationFunction<LongHashSet, List<Object>> withExpectedDistinctValues(int expectedDistinctValues) {
+        return new LongCollectSetAggregation(signature, boundSignature, expectedDistinctValues);
+    }
+
+    @Override
     public LongHashSet newState(RamAccounting ramAccounting,
                                 Version minNodeInCluster,
                                 MemoryManager memoryManager) {
-        LongHashSet state = new LongHashSet();
+        LongHashSet state = new LongHashSet(expectedEntries);
         ramAccounting.addBytes(SHALLOW_SIZE + RamUsageEstimator.sizeOf(state.keys));
         return state;
     }

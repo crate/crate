@@ -65,7 +65,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
                 .features(Feature.DETERMINISTIC)
                 .build();
             if (LongCollectSetAggregation.supports(supportedType)) {
-                builder.add(signature, LongCollectSetAggregation::new);
+                builder.add(signature, (sig, boundSig) -> new LongCollectSetAggregation(sig, boundSig, 0));
             } else {
                 builder.add(signature, CollectSetAggregation::new);
             }

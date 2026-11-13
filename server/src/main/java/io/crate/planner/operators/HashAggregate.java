@@ -46,6 +46,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -56,6 +57,7 @@ import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.statistics.Stats;
 
 public class HashAggregate extends ForwardingLogicalPlan {
 
@@ -107,6 +109,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext())
             : DistinctRewriter.noop(aggregates);
+        int[] expectedDistinctValues = expectedDistinctValues(plannerContext, rewritten.aggregates());
 
         var sourceOutputs = source.outputs();
         if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {
@@ -120,7 +123,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
                         rewritten.aggregates(),
                         paramBinder,
                         AggregateMode.ITER_PARTIAL,
-                        RowGranularity.SHARD
+                        RowGranularity.SHARD,
+                        expectedDistinctValues
                     )
                 );
                 executionPlan.addProjection(
@@ -129,7 +133,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
                         rewritten.aggregates(),
                         paramBinder,
                         AggregateMode.PARTIAL_FINAL,
-                        RowGranularity.CLUSTER
+                        RowGranularity.CLUSTER,
+                        expectedDistinctValues
                     )
                 );
                 if (rewritten.evalProjection() != null) {
@@ -142,7 +147,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
                 rewritten.aggregates(),
                 paramBinder,
                 AggregateMode.ITER_FINAL,
-                RowGranularity.CLUSTER
+                RowGranularity.CLUSTER,
+                expectedDistinctValues
             );
             executionPlan.addProjection(fullAggregation);
             if (rewritten.evalProjection() != null) {
@@ -155,7 +161,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
             rewritten.aggregates(),
             paramBinder,
             AggregateMode.ITER_PARTIAL,
-            source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
+            source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE,
+            expectedDistinctValues
         );
         executionPlan.addProjection(toPartial);
 
@@ -164,7 +171,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
             rewritten.aggregates(),
             paramBinder,
             AggregateMode.PARTIAL_FINAL,
-            RowGranularity.CLUSTER
+            RowGranularity.CLUSTER,
+            expectedDistinctValues
         );
         ResultDescription resultDescription = executionPlan.resultDescription();
         return new Merge(
@@ -188,6 +196,27 @@ public class HashAggregate extends ForwardingLogicalPlan {
             1,
             null
         );
+    }
+
+    /// Expected number of distinct values of each aggregation's first argument.
+    /// 0 if the argument isn't a column with column stats, because
+    /// [GroupHashAggregate#approximateDistinctValues] then falls back to the number of source rows.
+    private int[] expectedDistinctValues(PlannerContext plannerContext, List<Function> aggregations) {
+        Stats sourceStats = plannerContext.planStats().get(source);
+        int[] expected = new int[aggregations.size()];
+        for (int i = 0; i < aggregations.size(); i++) {
+            List<Symbol> arguments = aggregations.get(i).arguments();
+            if (arguments.isEmpty()) {
+                continue;
+            }
+            Symbol argument = arguments.getFirst();
+            ColumnIdent column = GroupHashAggregate.columnOf(argument);
+            if (column != null && sourceStats.statsByColumn().get(column) != null) {
+                long distinctValues = GroupHashAggregate.approximateDistinctValues(sourceStats, List.of(argument));
+                expected[i] = Math.clamp(distinctValues, 0, Integer.MAX_VALUE);
+            }
+        }
+        return expected;
     }
 
     public List<Function> aggregates() {
