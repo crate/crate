@@ -26,7 +26,6 @@ import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.for
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -193,14 +192,14 @@ final class GroupByOptimizedIterator {
         if (keysOnly) {
             return CollectingBatchIterator.newInstance(
                 killToken,
-                () -> keysToRows(getCountsByKey(ramAccounting, keyRef, searcher, killToken)),
+                () -> keysToRows(getCountsByKey(ramAccounting, groupProjection.expectedGroups(), keyRef, searcher, killToken)),
                 true
             );
         }
         AggregateMode mode = groupProjection.mode();
         return CollectingBatchIterator.newInstance(
             killToken,
-            () -> countsToRows(getCountsByKey(ramAccounting, keyRef, searcher, killToken), mode),
+            () -> countsToRows(getCountsByKey(ramAccounting, groupProjection.expectedGroups(), keyRef, searcher, killToken), mode),
             true
         );
     }
@@ -236,6 +235,7 @@ final class GroupByOptimizedIterator {
     }
 
     private static Map<String, Long> getCountsByKey(RamAccounting ramAccounting,
+                                                    int expectedGroups,
                                                     Reference keyRef,
                                                     IndexSearcher searcher,
                                                     Token killToken) throws IOException {
@@ -245,7 +245,7 @@ final class GroupByOptimizedIterator {
         //
         // Benchmarks showed that this has significant cost (~35%).
         // Given that high cardinality cases are the more expensive ones, we optimize for them instead of the low cardinality cases.
-        ResizeAwareMap<String, Long> countsByKey = GroupByMaps.wrapperForJDKMap(new HashMap<>());
+        ResizeAwareMap<String, Long> countsByKey = GroupByMaps.wrapperForJDKMap(expectedGroups, ramAccounting);
         String keyStorageIdent = keyRef.storageIdent();
         PostingsEnum postings = null;
         for (var leaf : searcher.getLeafContexts()) {
@@ -413,6 +413,7 @@ final class GroupByOptimizedIterator {
                 aggregationFunctions(functions, groupProjection.values()),
                 groupProjection.mode(),
                 ramAccounting,
+                groupProjection.expectedGroups(),
                 accountForNewEntry,
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
@@ -442,6 +443,7 @@ final class GroupByOptimizedIterator {
             expressions,
             aggExpressions,
             ramAccounting,
+            groupProjection.expectedGroups(),
             accountForNewEntry,
             collectTask.memoryManager(),
             collectTask.minNodeVersion(),
@@ -464,6 +466,7 @@ final class GroupByOptimizedIterator {
             List<AggregationFunction> aggregationFunctions,
             AggregateMode mode,
             RamAccounting ramAccounting,
+            int expectedGroups,
             TriConsumer<ResizeAwareMap<List<Object>, Object[]>, List<Object>, Object[]> accountForNewEntry,
             MemoryManager memoryManager,
             Version minNodeVersion,
@@ -478,6 +481,7 @@ final class GroupByOptimizedIterator {
                     keyColumns,
                     aggregators,
                     ramAccounting,
+                    expectedGroups,
                     accountForNewEntry,
                     memoryManager,
                     minNodeVersion,
@@ -567,12 +571,13 @@ final class GroupByOptimizedIterator {
             List<String> keyColumns,
             List<DocValueAggregator> aggregators,
             RamAccounting ramAccounting,
+            int expectedGroups,
             TriConsumer<ResizeAwareMap<List<Object>, Object[]>, List<Object>, Object[]> accountForNewEntry,
             MemoryManager memoryManager,
             Version minNodeVersion,
             Query query,
             Token killToken) throws IOException {
-        final ResizeAwareMap<List<Object>, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(new HashMap<>());
+        final ResizeAwareMap<List<Object>, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(expectedGroups, ramAccounting);
         final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1f);
         final List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
         final int numKeys = keyColumns.size();
@@ -654,6 +659,7 @@ final class GroupByOptimizedIterator {
                                           List<? extends LuceneCollectorExpression<?>> expressions,
                                           List<CollectExpression<Row, ?>> aggExpressions,
                                           RamAccounting ramAccounting,
+                                          int expectedGroups,
                                           TriConsumer<ResizeAwareMap<List<Object>, Object[]>, List<Object>, Object[]> accountForNewEntry,
                                           MemoryManager memoryManager,
                                           Version minNodeVersion,
@@ -676,6 +682,7 @@ final class GroupByOptimizedIterator {
                         expressions,
                         aggExpressions,
                         ramAccounting,
+                        expectedGroups,
                         accountForNewEntry,
                         memoryManager,
                         minNodeVersion,
@@ -728,13 +735,14 @@ final class GroupByOptimizedIterator {
             List<? extends LuceneCollectorExpression<?>> expressions,
             List<CollectExpression<Row, ?>> aggExpressions,
             RamAccounting ramAccounting,
+            int expectedGroups,
             TriConsumer<ResizeAwareMap<List<Object>, Object[]>, List<Object>, Object[]> accountForNewEntry,
             MemoryManager memoryManager,
             Version minNodeVersion,
             InputRow inputRow,
             Query query,
             Token killToken) throws IOException {
-        final ResizeAwareMap<List<Object>, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(new HashMap<>());
+        final ResizeAwareMap<List<Object>, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(expectedGroups, ramAccounting);
         final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1f);
         final List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
         final int numKeys = keyColumns.size();

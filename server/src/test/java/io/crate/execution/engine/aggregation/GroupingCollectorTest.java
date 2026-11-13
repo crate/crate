@@ -24,7 +24,6 @@ package io.crate.execution.engine.aggregation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -77,10 +76,11 @@ public class GroupingCollectorTest {
             null, // memoryManager is unused
             Version.CURRENT,
             keyInputs.get(0),
-            DataTypes.LONG
+            DataTypes.LONG,
+            0
         );
 
-        ResizeAwareMap<Object, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(new HashMap<>());
+        ResizeAwareMap<Object, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(0, ramAccounting);
         collector.addNewEntry(statesByKey, 1L);
 
         assertThat(ramAccounting.totalBytes()).isEqualTo(112L);
@@ -114,10 +114,11 @@ public class GroupingCollectorTest {
             null, // memoryManager is unused
             Version.CURRENT,
             keyInputs.get(0),
-            DataTypes.LONG
+            DataTypes.LONG,
+            0
         );
 
-        ResizeAwareMap<Object, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(new HashMap<>());
+        ResizeAwareMap<Object, Object[]> statesByKey = GroupByMaps.wrapperForJDKMap(0, ramAccounting);
         collector.reduce(statesByKey, new Row1(1L));
 
         assertThat(ramAccounting.totalBytes()).isEqualTo(88L);

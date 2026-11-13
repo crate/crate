@@ -333,7 +333,8 @@ public class ProjectionToProjectorVisitor
             ctx.aggregations().toArray(new AggregationContext[0]),
             context.ramAccounting,
             context.memoryManager,
-            clusterService.state().nodes().getMinNodeVersion()
+            clusterService.state().nodes().getMinNodeVersion(),
+            projection.expectedGroups()
         );
     }
 

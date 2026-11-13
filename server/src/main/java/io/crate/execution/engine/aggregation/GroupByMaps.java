@@ -24,6 +24,7 @@ package io.crate.execution.engine.aggregation;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntFunction;
 import java.util.function.Supplier;
 
 import org.apache.lucene.util.RamUsageEstimator;
@@ -42,6 +43,9 @@ import io.netty.util.collection.LongObjectHashMap;
 import io.netty.util.collection.ShortObjectHashMap;
 
 public final class GroupByMaps {
+
+    // Copy of java.util.HashMap.MAXIMUM_CAPACITY
+    private static final int MAXIMUM_CAPACITY = 1 << 30;
 
     public static <K, V> TriConsumer<ResizeAwareMap<K, V>, K, Object[]> accountForNewEntry(RamAccounting ramAccounting, DataType<K> type) {
         return (map, key, states) -> {
@@ -68,54 +72,95 @@ public final class GroupByMaps {
         };
     }
 
+    /// @param expectedEntries pre-sizes the map, so that this many entries fit without a resize. 0 if unknown.
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public static <K, V> Supplier<ResizeAwareMap<K, V>> mapForType(DataType<K> type) {
+    public static <K, V> Supplier<ResizeAwareMap<K, V>> mapForType(DataType<K> type,
+                                                                   int expectedEntries,
+                                                                   RamAccounting ramAccounting) {
         return switch (type.id()) {
-            case ByteType.ID -> () -> (ResizeAwareMap<K, V>) new ResizeAwareMap<>(
-                new PrimitiveMapWithNulls<>(new ByteObjectHashMap<>()),
+            case ByteType.ID -> () -> (ResizeAwareMap<K, V>) newMap(
+                capacity -> new PrimitiveMapWithNulls<>(
+                    new ByteObjectHashMap<>(capacity, ByteObjectHashMap.DEFAULT_LOAD_FACTOR)),
                 ByteObjectHashMap.DEFAULT_CAPACITY,
                 ByteObjectHashMap.DEFAULT_LOAD_FACTOR,
                 true,
-                Byte.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF
+                Byte.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF,
+                expectedEntries,
+                ramAccounting
             );
 
-            case ShortType.ID -> () -> (ResizeAwareMap<K, V>) new ResizeAwareMap<>(
-                new PrimitiveMapWithNulls<>(new ShortObjectHashMap<>()),
+            case ShortType.ID -> () -> (ResizeAwareMap<K, V>) newMap(
+                capacity -> new PrimitiveMapWithNulls<>(
+                    new ShortObjectHashMap<>(capacity, ShortObjectHashMap.DEFAULT_LOAD_FACTOR)),
                 ShortObjectHashMap.DEFAULT_CAPACITY,
                 ShortObjectHashMap.DEFAULT_LOAD_FACTOR,
                 true,
-                Short.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF
+                Short.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF,
+                expectedEntries,
+                ramAccounting
             );
 
-            case IntegerType.ID -> () -> (ResizeAwareMap<K, V>) new ResizeAwareMap<>(
-                new PrimitiveMapWithNulls<>(new IntObjectHashMap<>()),
+            case IntegerType.ID -> () -> (ResizeAwareMap<K, V>) newMap(
+                capacity -> new PrimitiveMapWithNulls<>(
+                    new IntObjectHashMap<>(capacity, IntObjectHashMap.DEFAULT_LOAD_FACTOR)),
                 IntObjectHashMap.DEFAULT_CAPACITY,
                 IntObjectHashMap.DEFAULT_LOAD_FACTOR,
                 true,
-                Integer.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF
+                Integer.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF,
+                expectedEntries,
+                ramAccounting
             );
 
             case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ ->
-                () -> (ResizeAwareMap<K, V>) new ResizeAwareMap<>(
-                    new PrimitiveMapWithNulls<>(new LongObjectHashMap<>()),
+                () -> (ResizeAwareMap<K, V>) newMap(
+                    capacity -> new PrimitiveMapWithNulls<>(
+                        new LongObjectHashMap<>(capacity, LongObjectHashMap.DEFAULT_LOAD_FACTOR)),
                     LongObjectHashMap.DEFAULT_CAPACITY,
                     LongObjectHashMap.DEFAULT_LOAD_FACTOR,
                     true,
-                    Long.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF
+                    Long.BYTES + RamUsageEstimator.NUM_BYTES_OBJECT_REF,
+                    expectedEntries,
+                    ramAccounting
                 );
 
-            default -> () -> wrapperForJDKMap(new HashMap<>());
+            default -> () -> wrapperForJDKMap(expectedEntries, ramAccounting);
         };
     }
 
-    public static <K, V> ResizeAwareMap<K, V> wrapperForJDKMap(Map<K, V> map) {
-        return new ResizeAwareMap<>(
-            map,
+    /// @param expectedEntries pre-sizes the map, so that this many entries fit without a resize. 0 if unknown.
+    public static <K, V> ResizeAwareMap<K, V> wrapperForJDKMap(int expectedEntries, RamAccounting ramAccounting) {
+        return newMap(
+            HashMap::new,
             16, // HashMap.DEFAULT_INITIAL_CAPACITY
             0.75f, // HashMap.DEFAULT_LOAD_FACTOR
             false,
-            RamUsageEstimator.NUM_BYTES_OBJECT_REF
+            RamUsageEstimator.NUM_BYTES_OBJECT_REF,
+            expectedEntries,
+            ramAccounting
         );
+    }
+
+    /// The default capacity isn't accounted for (as before pre-sizing), only the capacity above it.
+    private static <K, V> ResizeAwareMap<K, V> newMap(IntFunction<Map<K, V>> mapWithCapacity,
+                                                      int defaultCapacity,
+                                                      float loadFactor,
+                                                      boolean openAddressing,
+                                                      long singleItemBytes,
+                                                      int expectedEntries,
+                                                      RamAccounting ramAccounting) {
+        int capacity = expectedEntries <= 0
+            ? defaultCapacity
+            // + 1: Netty maps need 1 slot to be free
+            : Math.clamp((long) Math.ceil(expectedEntries / (double) loadFactor) + 1, defaultCapacity, MAXIMUM_CAPACITY);
+        ResizeAwareMap<K, V> map = new ResizeAwareMap<>(
+            mapWithCapacity.apply(capacity),
+            capacity,
+            loadFactor,
+            openAddressing,
+            singleItemBytes
+        );
+        ramAccounting.addBytes((map.currentCapacity() - defaultCapacity) * singleItemBytes);
+        return map;
     }
 
 

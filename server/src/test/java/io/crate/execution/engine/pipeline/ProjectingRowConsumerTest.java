@@ -138,7 +138,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testConsumerRequiresScrollAndProjectorsSupportScrolling() {
         GroupProjection groupProjection = new GroupProjection(
-            new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.SHARD);
+            new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.SHARD, 0);
 
         RowConsumer delegateConsumerRequiresScroll = new TestingRowConsumer(false, true);
 
@@ -158,7 +158,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testConsumerDoesNotRequireScrollYieldsProjectingConsumerWithoutScrollRequirements() {
         GroupProjection groupProjection = new GroupProjection(
-            new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.DOC);
+            new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.DOC, 0);
         RowConsumer delegateConsumerRequiresScroll = new TestingRowConsumer(false, false);
 
         RowConsumer projectingConsumer = ProjectingRowConsumer.create(

@@ -23,7 +23,6 @@ package io.crate.execution.engine.aggregation;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +79,8 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                MemoryManager memoryManager,
                                                Version minNodeVersion,
                                                Input<?> keyInput,
-                                               DataType keyType) {
+                                               DataType keyType,
+                                               int expectedGroups) {
         return new GroupingCollector<>(
             expressions,
             aggregations,
@@ -94,7 +94,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             1,
             GroupByMaps.accountForNewEntry(ramAccounting, keyType),
             row -> keyInput.value(),
-            GroupByMaps.mapForType(keyType)
+            GroupByMaps.mapForType(keyType, expectedGroups, ramAccounting)
         );
     }
 
@@ -107,7 +107,8 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                     MemoryManager memoryManager,
                                                     Version minNodeVersion,
                                                     List<Input<?>> keyInputs,
-                                                    List<? extends DataType> keyTypes) {
+                                                    List<? extends DataType> keyTypes,
+                                                    int expectedGroups) {
         return new GroupingCollector<>(
             expressions,
             aggregations,
@@ -121,7 +122,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             keyInputs.size(),
             GroupByMaps.accountForNewEntry(ramAccountingContext, keyTypes),
             row -> evalKeyInputs(keyInputs),
-            () -> GroupByMaps.wrapperForJDKMap(new HashMap<>())
+            () -> GroupByMaps.wrapperForJDKMap(expectedGroups, ramAccountingContext)
         );
     }
 

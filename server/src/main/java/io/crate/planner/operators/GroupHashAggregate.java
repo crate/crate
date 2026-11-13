@@ -48,6 +48,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
@@ -75,11 +76,9 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         int numKeysWithStats = 0;
         for (Symbol groupKey : groupKeys) {
             ColumnStats<?> columnStats = null;
-            if (groupKey instanceof Reference ref) {
-                columnStats = stats.statsByColumn().get(ref.column());
-                numKeysWithStats++;
-            } else if (groupKey instanceof ScopedSymbol scopedSymbol) {
-                columnStats = stats.statsByColumn().get(scopedSymbol.column());
+            ColumnIdent column = columnOf(groupKey);
+            if (column != null) {
+                columnStats = stats.statsByColumn().get(column);
                 numKeysWithStats++;
             }
 
@@ -105,6 +104,34 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         } else {
             return numSourceRows;
         }
+    }
+
+    @Nullable
+    private static ColumnIdent columnOf(Symbol groupKey) {
+        if (groupKey instanceof Reference ref) {
+            return ref.column();
+        } else if (groupKey instanceof ScopedSymbol scopedSymbol) {
+            return scopedSymbol.column();
+        }
+        return null;
+    }
+
+    /// Expected number of groups each node holds, used to pre-size the group-by maps.
+    /// 0 (no pre-sizing) if any group key lacks column stats, because
+    /// [#approximateDistinctValues] then falls back to the number of source rows.
+    private int expectedGroupsPerNode(PlannerContext plannerContext, int numNodes) {
+        if (numNodes <= 0) {
+            return 0;
+        }
+        Stats sourceStats = plannerContext.planStats().get(source);
+        for (Symbol groupKey : groupKeys) {
+            ColumnIdent column = columnOf(groupKey);
+            if (column == null || sourceStats.statsByColumn().get(column) == null) {
+                return 0;
+            }
+        }
+        long expectedGroups = approximateDistinctValues(sourceStats, groupKeys) / numNodes;
+        return Math.clamp(expectedGroups, 0, Integer.MAX_VALUE);
     }
 
     public GroupHashAggregate(LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates) {
@@ -148,6 +175,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {
             executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         }
+        int expectedGroups = expectedGroupsPerNode(plannerContext, executionPlan.resultDescription().nodeIds().size());
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
         DistinctRewriter.Result rewritten = DistinctRewriter.rewrite(
@@ -166,7 +194,8 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                 rewritten.aggregates(),
                 paramBinder,
                 AggregateMode.ITER_FINAL,
-                source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.CLUSTER
+                source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.CLUSTER,
+                expectedGroups
             );
             executionPlan.addProjection(groupProjection, NO_LIMIT, 0, null);
             if (rewritten.evalProjection() != null) {
@@ -184,7 +213,8 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                         rewritten.aggregates(),
                         paramBinder,
                         AggregateMode.ITER_PARTIAL,
-                        RowGranularity.SHARD
+                        RowGranularity.SHARD,
+                        expectedGroups
                     )
                 );
                 executionPlan.addProjection(
@@ -194,7 +224,8 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                         rewritten.aggregates(),
                         paramBinder,
                         AggregateMode.PARTIAL_FINAL,
-                        RowGranularity.NODE
+                        RowGranularity.NODE,
+                        expectedGroups
                     ),
                     NO_LIMIT,
                     0,
@@ -212,7 +243,8 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                         rewritten.aggregates(),
                         paramBinder,
                         AggregateMode.ITER_FINAL,
-                        RowGranularity.NODE
+                        RowGranularity.NODE,
+                        expectedGroups
                     ),
                     NO_LIMIT,
                     0,
@@ -231,7 +263,8 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
             rewritten.aggregates(),
             paramBinder,
             AggregateMode.ITER_PARTIAL,
-            source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
+            source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE,
+            expectedGroups
         );
         executionPlan.addProjection(toPartial);
         executionPlan.setDistributionInfo(DistributionInfo.DEFAULT_MODULO);
@@ -242,7 +275,8 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
             rewritten.aggregates(),
             paramBinder,
             AggregateMode.PARTIAL_FINAL,
-            RowGranularity.CLUSTER
+            RowGranularity.CLUSTER,
+            expectedGroups
         );
         return createMerge(
             plannerContext,

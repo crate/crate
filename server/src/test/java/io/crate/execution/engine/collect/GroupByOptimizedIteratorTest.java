@@ -146,6 +146,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             }),
             Collections.singletonList(inExpr),
             RamAccounting.NO_ACCOUNTING,
+            0,
             GroupByMaps.accountForNewEntry(RamAccounting.NO_ACCOUNTING, List.of(DataTypes.STRING)),
             new OnHeapMemoryManager(usedBytes -> {}),
             Version.CURRENT,
@@ -218,7 +219,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             List.of(new InputColumn(0, DataTypes.STRING)),
             List.of(),
             AggregateMode.ITER_PARTIAL,
-            RowGranularity.SHARD
+            RowGranularity.SHARD, 0
         );
         var reference = new SimpleReference(
             new RelationName("doc", "test"),
@@ -267,7 +268,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             List.of(new InputColumn(0, DataTypes.STRING)),
             List.of(),
             AggregateMode.ITER_PARTIAL,
-            RowGranularity.SHARD
+            RowGranularity.SHARD, 0
         );
         var reference = new SimpleReference(
             new RelationName("doc", "test"),
@@ -322,7 +323,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             List.of(new InputColumn(0, DataTypes.STRING)),
             aggregations,
             mode,
-            RowGranularity.SHARD
+            RowGranularity.SHARD, 0
         );
         var groupRef = new SimpleReference(
             new RelationName("doc", "test"),
@@ -411,7 +412,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             keys,
             List.of(),
             AggregateMode.ITER_PARTIAL,
-            RowGranularity.SHARD
+            RowGranularity.SHARD, 0
         );
         IndexShard shard = newStartedPrimaryShard(TestingHelpers.createNodeContext(), refs, THREAD_POOL);
         List<Symbol> toCollect = new ArrayList<>(refs);
@@ -520,6 +521,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
                 List.of(),
                 Collections.singletonList(inExpr),
                 RamAccounting.NO_ACCOUNTING,
+                0,
                 GroupByMaps.accountForNewEntry(
                     RamAccounting.NO_ACCOUNTING,
                     List.of(DataTypes.STRING, DataTypes.STRING)

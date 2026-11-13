@@ -27,7 +27,6 @@ import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.for
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -167,6 +166,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.getRamAccounting(),
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
+                groupProjection.expectedGroups(),
                 queryContext.query(),
                 new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, partitionValues))
             );
@@ -179,6 +179,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.getRamAccounting(),
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
+                groupProjection.expectedGroups(),
                 queryContext.query(),
                 new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, partitionValues))
             );
@@ -198,6 +199,7 @@ final class DocValuesGroupByOptimizedIterator {
                                                RamAccounting ramAccounting,
                                                MemoryManager memoryManager,
                                                Version minNodeVersion,
+                                               int expectedGroups,
                                                Query query,
                                                CollectorContext collectorContext) {
             //noinspection unchecked
@@ -209,7 +211,7 @@ final class DocValuesGroupByOptimizedIterator {
                 ramAccounting,
                 memoryManager,
                 minNodeVersion,
-                GroupByMaps.mapForType(valueType),
+                GroupByMaps.mapForType(valueType, expectedGroups, ramAccounting),
                 GroupByMaps.accountForNewEntry(ramAccounting, valueType),
                 (expressions) -> expressions.get(0).value(),
                 (key, cells) -> cells[0] = key,
@@ -227,6 +229,7 @@ final class DocValuesGroupByOptimizedIterator {
                                               RamAccounting ramAccounting,
                                               MemoryManager memoryManager,
                                               Version minNodeVersion,
+                                              int expectedGroups,
                                               Query query,
                                               CollectorContext collectorContext) {
             return GroupByIterator.getIterator(
@@ -236,7 +239,7 @@ final class DocValuesGroupByOptimizedIterator {
                 ramAccounting,
                 memoryManager,
                 minNodeVersion,
-                () -> GroupByMaps.wrapperForJDKMap(new HashMap<>()),
+                () -> GroupByMaps.wrapperForJDKMap(expectedGroups, ramAccounting),
                 GroupByMaps.accountForNewEntry(
                     ramAccounting,
                     Lists.map(keyColumnRefs, Reference::valueType)

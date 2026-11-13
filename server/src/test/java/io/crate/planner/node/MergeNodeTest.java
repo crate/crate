@@ -61,7 +61,7 @@ public class MergeNodeTest extends ESTestCase {
             )
         );
         GroupProjection groupProjection = new GroupProjection(
-            keys, aggregations, AggregateMode.PARTIAL_FINAL, RowGranularity.CLUSTER);
+            keys, aggregations, AggregateMode.PARTIAL_FINAL, RowGranularity.CLUSTER, 0);
         LimitAndOffsetProjection limitAndOffsetProjection = new LimitAndOffsetProjection(10, 0, Symbols.typeView(groupProjection.outputs()));
 
         List<Projection> projections = Arrays.asList(groupProjection, limitAndOffsetProjection);

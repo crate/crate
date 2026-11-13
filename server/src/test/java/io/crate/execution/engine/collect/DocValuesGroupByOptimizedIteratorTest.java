@@ -31,7 +31,6 @@ import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -165,6 +164,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             RamAccounting.NO_ACCOUNTING,
             null,
             null,
+            0,
             MatchAllDocsQuery.INSTANCE,
             new CollectorContext(() -> null)
         );
@@ -242,6 +242,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             RamAccounting.NO_ACCOUNTING,
             null,
             null,
+            0,
             MatchAllDocsQuery.INSTANCE,
             new CollectorContext(() -> null)
         );
@@ -259,7 +260,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             List.of(new InputColumn(0, DataTypes.STRING)),
             List.of(),
             AggregateMode.ITER_PARTIAL,
-            RowGranularity.SHARD
+            RowGranularity.SHARD, 0
         );
         PartitionName partitionName = new PartitionName(new RelationName("doc", "test"), List.of());
         var reference = new SimpleReference(
@@ -370,7 +371,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             null,
             null,
             null,
-            () -> GroupByMaps.wrapperForJDKMap(new HashMap<>()),
+            () -> GroupByMaps.wrapperForJDKMap(0, RamAccounting.NO_ACCOUNTING),
             (_, states, key) -> {
             },
             (expressions) -> expressions.get(0).value(),

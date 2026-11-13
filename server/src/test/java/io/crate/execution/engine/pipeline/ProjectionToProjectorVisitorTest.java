@@ -230,7 +230,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
                 Collections.singletonList(new InputColumn(0)))
         );
         GroupProjection projection = new GroupProjection(
-            keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.CLUSTER);
+            keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.CLUSTER, 0);
 
         Projector projector = visitor.create(
             projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());

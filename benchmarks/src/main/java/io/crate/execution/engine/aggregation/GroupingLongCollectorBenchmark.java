@@ -144,7 +144,8 @@ public class GroupingLongCollectorBenchmark {
             memoryManager,
             Version.CURRENT,
             keyInputs.getFirst(),
-            DataTypes.LONG
+            DataTypes.LONG,
+            0
         );
     }
 

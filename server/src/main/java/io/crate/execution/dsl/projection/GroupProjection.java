@@ -48,10 +48,14 @@ public class GroupProjection extends Projection {
     private final AggregateMode mode;
     private final RowGranularity requiredGranularity;
 
+    /// Expected number of groups, used to pre-size the maps holding the groups. 0 if unknown.
+    private final int expectedGroups;
+
     public GroupProjection(List<Symbol> keys,
                            List<Aggregation> values,
                            AggregateMode mode,
-                           RowGranularity requiredGranularity) {
+                           RowGranularity requiredGranularity,
+                           int expectedGroups) {
         assert keys.stream().noneMatch(s ->
             s.any(Symbol.IS_COLUMN.or(x -> x instanceof SelectSymbol)))
             : "Cannot operate on Reference, Field or SelectSymbol symbols: " + keys;
@@ -62,6 +66,7 @@ public class GroupProjection extends Projection {
         this.values = values;
         this.mode = mode;
         this.requiredGranularity = requiredGranularity;
+        this.expectedGroups = expectedGroups;
     }
 
     public GroupProjection(StreamInput in) throws IOException {
@@ -73,10 +78,15 @@ public class GroupProjection extends Projection {
             values.add((Aggregation) Symbol.fromStream(in));
         }
         requiredGranularity = RowGranularity.fromStream(in);
+        expectedGroups = in.readVInt();
     }
 
     public List<Symbol> keys() {
         return keys;
+    }
+
+    public int expectedGroups() {
+        return expectedGroups;
     }
 
     public List<Aggregation> values() {
@@ -113,6 +123,7 @@ public class GroupProjection extends Projection {
         Symbols.toStream(keys, out);
         Symbols.toStream(values, out);
         RowGranularity.toStream(requiredGranularity, out);
+        out.writeVInt(expectedGroups);
     }
 
     @Override

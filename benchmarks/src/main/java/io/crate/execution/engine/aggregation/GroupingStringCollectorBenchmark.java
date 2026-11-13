@@ -113,7 +113,8 @@ public class GroupingStringCollectorBenchmark {
             memoryManager,
             Version.CURRENT,
             keyInputs.get(0),
-            DataTypes.STRING
+            DataTypes.STRING,
+            0
         );
     }
 

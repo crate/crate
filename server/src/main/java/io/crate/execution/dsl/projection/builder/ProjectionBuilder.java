@@ -81,7 +81,8 @@ public class ProjectionBuilder {
         Collection<Function> values,
         UnaryOperator<Symbol> subQueryAndParamBinder,
         AggregateMode mode,
-        RowGranularity requiredGranularity) {
+        RowGranularity requiredGranularity,
+        int expectedGroups) {
 
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(inputs);
         ArrayList<Aggregation> aggregations = getAggregations(
@@ -94,7 +95,8 @@ public class ProjectionBuilder {
             Lists.map(InputColumns.create(keys, sourceSymbols), subQueryAndParamBinder),
             aggregations,
             mode,
-            requiredGranularity
+            requiredGranularity,
+            expectedGroups
         );
     }
 

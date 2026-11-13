@@ -88,7 +88,7 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testProjectionsWithCorrectGranularityAreApplied() {
         GroupProjection groupProjection = new GroupProjection(
-            new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.SHARD);
+            new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.SHARD, 0);
         FilterProjection filterProjection = new FilterProjection(new InputColumn(0), Collections.emptyList());
         filterProjection.requiredGranularity(RowGranularity.DOC);
 

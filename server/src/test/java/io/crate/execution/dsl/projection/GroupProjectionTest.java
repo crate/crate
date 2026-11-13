@@ -48,7 +48,7 @@ public class GroupProjectionTest extends ESTestCase {
             new InputColumn(1, DataTypes.SHORT)
         );
         List<Aggregation> aggregations = List.of();
-        GroupProjection p = new GroupProjection(keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.CLUSTER);
+        GroupProjection p = new GroupProjection(keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.CLUSTER, 0);
 
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
@@ -70,7 +70,7 @@ public class GroupProjectionTest extends ESTestCase {
             )
         );
         GroupProjection groupProjection = new GroupProjection(
-            keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.CLUSTER);
+            keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.CLUSTER, 0);
 
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(groupProjection, out);
@@ -90,7 +90,7 @@ public class GroupProjectionTest extends ESTestCase {
             new InputColumn(1, DataTypes.SHORT)
         );
         List<Aggregation> aggregations = List.of();
-        GroupProjection p = new GroupProjection(keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.SHARD);
+        GroupProjection p = new GroupProjection(keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.SHARD, 0);
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
 

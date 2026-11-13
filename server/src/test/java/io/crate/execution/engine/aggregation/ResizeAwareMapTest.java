@@ -31,6 +31,7 @@ import java.util.Map;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.junit.Test;
 
+import io.crate.data.breaker.RamAccounting;
 import io.crate.types.DataTypes;
 import io.netty.util.collection.IntObjectHashMap;
 
@@ -38,22 +39,20 @@ public class ResizeAwareMapTest {
 
     @Test
     public void test_wrapperForJDKMap_uses_correct_defaults() {
-        Map<Integer, Integer> map = new HashMap<>();
-        ResizeAwareMap<Integer, Integer> resizeAwareMap = GroupByMaps.wrapperForJDKMap(map);
+        ResizeAwareMap<Integer, Integer> resizeAwareMap = GroupByMaps.wrapperForJDKMap(0, RamAccounting.NO_ACCOUNTING);
         int defaultCapacity = 16; // HashMap.DEFAULT_INITIAL_CAPACITY
         float defaultLoadFactor = 0.75f; // HashMap.DEFAULT_LOAD_FACTOR
         int threshold = (int) (defaultCapacity * defaultLoadFactor);
         assertThat(resizeAwareMap.currentCapacity()).isEqualTo(16); //HashMap. DEFAULT_INITIAL_CAPACITY
         for (int i = 0; i < threshold; i++) {
             assertThat(resizeAwareMap.expectedCapacityIncrease()).isEqualTo(0);
-            map.put(i, i);
+            resizeAwareMap.put(i, i);
         }
     }
 
     @Test
     public void test_jdk_map_accounts_only_object_ref_per_slot() {
-        Map<Integer, Integer> map = new HashMap<>();
-        ResizeAwareMap<Integer, Integer> resizeAwareMap = GroupByMaps.wrapperForJDKMap(map);
+        ResizeAwareMap<Integer, Integer> resizeAwareMap = GroupByMaps.wrapperForJDKMap(0, RamAccounting.NO_ACCOUNTING);
         int defaultCapacity = 16; // HashMap.DEFAULT_INITIAL_CAPACITY
         float defaultLoadFactor = 0.75f; // HashMap.DEFAULT_LOAD_FACTOR
         int threshold = (int) (defaultCapacity * defaultLoadFactor);
@@ -73,7 +72,7 @@ public class ResizeAwareMapTest {
 
     @Test
     public void test_netty_map_accounts_object_ref_and_primitive_per_slot() {
-        ResizeAwareMap<Integer, Object> resizeAwareMap = GroupByMaps.mapForType(DataTypes.INTEGER).get();
+        ResizeAwareMap<Integer, Object> resizeAwareMap = GroupByMaps.<Integer, Object>mapForType(DataTypes.INTEGER, 0, RamAccounting.NO_ACCOUNTING).get();
         int defaultCapacity = IntObjectHashMap.DEFAULT_CAPACITY;
         float defaultLoadFactor = IntObjectHashMap.DEFAULT_LOAD_FACTOR;
         int threshold = (int) (defaultCapacity * defaultLoadFactor);
