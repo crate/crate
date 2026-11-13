@@ -59,14 +59,16 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     public static void register(Functions.Builder builder) {
         for (DataType<?> supportedType : Lists.concat(DataTypes.PRIMITIVE_TYPES, DataTypes.NUMERIC)) {
             var returnType = new ArrayType<>(supportedType);
-            builder.add(
-                    Signature.builder(NAME, FunctionType.AGGREGATE)
-                            .argumentTypes(supportedType.getTypeSignature())
-                            .returnType(returnType.getTypeSignature())
-                            .features(Feature.DETERMINISTIC)
-                            .build(),
-                    CollectSetAggregation::new
-            );
+            Signature signature = Signature.builder(NAME, FunctionType.AGGREGATE)
+                .argumentTypes(supportedType.getTypeSignature())
+                .returnType(returnType.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build();
+            if (LongCollectSetAggregation.supports(supportedType)) {
+                builder.add(signature, LongCollectSetAggregation::new);
+            } else {
+                builder.add(signature, CollectSetAggregation::new);
+            }
         }
     }
 
@@ -163,7 +165,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
      *  {2, 3}           - [2, 3]
      *  {3}              - [3]
      */
-    private static class RemovableCumulativeCollectSet extends AggregationFunction<Map<Object, Long>, List<Object>> {
+    static class RemovableCumulativeCollectSet extends AggregationFunction<Map<Object, Long>, List<Object>> {
 
         private final Signature signature;
         private final BoundSignature boundSignature;
