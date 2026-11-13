@@ -46,9 +46,6 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.Stats;
-import io.crate.types.DataTypes;
-import io.crate.types.DateType;
-import io.crate.types.TimestampType;
 
 /// Deduplicates the argument of a global `agg(DISTINCT col)` with a keys-only `GROUP BY`, so the
 /// aggregate runs over the distinct values instead of over every row. Same result as
@@ -138,16 +135,8 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
                     SUPPORTED_AGGREGATES.contains(fn.name()) &&
                     // NB: distinct functions can have one and only one argument
                     !fn.arguments().isEmpty() &&
-                    fn.arguments().getFirst() instanceof Reference col &&
-                    isColumnTypeSupported(col)
+                    fn.arguments().getFirst() instanceof Reference
             );
-    }
-
-    private static boolean isColumnTypeSupported(Reference col) {
-        return !DataTypes.isNumeric(col.valueType()) &&
-            col.valueType().id() != DateType.ID &&
-            col.valueType().id() != TimestampType.ID_WITH_TZ &&
-            col.valueType().id() != TimestampType.ID_WITHOUT_TZ;
     }
 
     private static boolean hasNoFilter(Function aggregate) {
