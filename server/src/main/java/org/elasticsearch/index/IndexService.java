@@ -52,6 +52,7 @@ import org.elasticsearch.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -92,7 +93,9 @@ import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationMetadata;
 import io.crate.metadata.TableInfo;
+import io.crate.metadata.doc.DocTableInfoFactory;
 
 public class IndexService extends AbstractIndexComponent implements Iterable<IndexShard> {
 
@@ -505,6 +508,23 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
     public void updateMapping() {
         this.currentTable = null;
         this.getTranslogIndexer = null;
+    }
+
+    public void prepareTranslogIndexer(Metadata metadata, IndexMetadata indexMetadata) {
+        Index index = indexMetadata.getIndex();
+        RelationMetadata relation = metadata.getRelation(index.uuid());
+        if (relation == null) {
+            throw new IndexNotFoundException(index);
+        }
+        if (relation instanceof RelationMetadata.Table relationTable) {
+            Version indexVersionCreated = indexSettings.getIndexVersionCreated();
+            DocTableInfo table = new DocTableInfoFactory(nodeContext).create(relationTable.name(), metadata);
+            TranslogIndexer translogIndexer = new TranslogIndexer(table, indexVersionCreated);
+            this.currentTable = table;
+            this.getTranslogIndexer = () -> translogIndexer;
+            return;
+        }
+        throw new UnsupportedFeatureException("Unsupported table type: " + relation.getClass().getSimpleName());
     }
 
     @VisibleForTesting
