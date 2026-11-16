@@ -19,6 +19,7 @@
 
 package org.elasticsearch.indices.cluster;
 
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 import static org.elasticsearch.indices.cluster.IndicesClusterStateService.IndexRemovalReason.CLOSED;
 import static org.elasticsearch.indices.cluster.IndicesClusterStateService.IndexRemovalReason.DELETED;
 import static org.elasticsearch.indices.cluster.IndicesClusterStateService.IndexRemovalReason.FAILURE;
@@ -505,6 +506,12 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                 try {
                     reason = "metadata update failed";
                     try {
+                        prepareTranslogIndexerForSubscriptionRemoval(
+                            indexService,
+                            metadata,
+                            currentIndexMetadata,
+                            newIndexMetadata
+                        );
                         indexService.updateMetadata(currentIndexMetadata, newIndexMetadata);
                     } catch (Exception e) {
                         assert false : e;
@@ -520,6 +527,18 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                     failShards(state, index, reason, e);
                 }
             }
+        }
+    }
+
+    // Removing a subscription reopens the SubscriberEngine as an InternalEngine and replays the local translog.
+    // Prepare the indexer from the state being applied because Schemas cannot access it from the cluster state applier.
+    private static void prepareTranslogIndexerForSubscriptionRemoval(IndexService indexService,
+                                                                     Metadata metadata,
+                                                                     IndexMetadata currentIndexMetadata,
+                                                                     IndexMetadata newIndexMetadata) {
+        if (REPLICATION_SUBSCRIPTION_NAME.get(currentIndexMetadata.getSettings()).isEmpty() == false
+            && REPLICATION_SUBSCRIPTION_NAME.get(newIndexMetadata.getSettings()).isEmpty()) {
+            indexService.prepareTranslogIndexer(metadata, newIndexMetadata);
         }
     }
 
