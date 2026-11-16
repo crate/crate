@@ -3498,7 +3498,9 @@ public class IndexShardTests extends IndexShardTestCase {
         indexOnReplicaWithGaps(shard, between(1, 1000), Math.toIntExact(shard.getLocalCheckpoint()), false);
         Set<String> docIds = getShardDocUIDs(shard);
         SeqNoStats seqNoStats = shard.seqNoStats();
-        assertThat(seqNoStats.getLocalCheckpoint()).isGreaterThan(seqNoStats.getGlobalCheckpoint());
+        // Make sure we have ops on the replica that are above the global checkpoint.
+        // We test that no such op is lost.
+        assertThat(seqNoStats.getMaxSeqNo()).isGreaterThan(seqNoStats.getGlobalCheckpoint());
 
         CountDownLatch engineReopenLatch = new CountDownLatch(1);
         AtomicReference<Exception> failure = new AtomicReference<>();
