@@ -26,6 +26,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -79,6 +81,98 @@ public class ColumnSketchBuilderTest extends ESTestCase {
             sketch.add(RandomStrings.randomUnicodeOfLength(random(), 10));
         }
 
+<<<<<<< HEAD
+=======
+        var serializedSketch = streamOutIn(sketch, support, Version.CURRENT);
+
+        assertThat(sketch.toStats(sketch.sampleCount))
+            .isEqualTo(serializedSketch.toStats(serializedSketch.sampleCount));
+        assertThat(serializedSketch.distinctCounts).isNotNull();
+    }
+
+    @Test
+    public void test_streaming_pre_6_6_0() throws IOException {
+        var support = StringType.INSTANCE.columnStatsSupport();
+        var sketch = support.sketchBuilder(Version.V_6_5_0);
+
+        for (int i = 0; i < 200; i++) {
+            sketch.add(RandomStrings.randomUnicodeOfLength(random(), 10));
+        }
+
+        var serializedSketch = streamOutIn(sketch, support, Version.V_6_5_0);
+
+        assertThat(sketch.toStats(sketch.sampleCount))
+            .isEqualTo(serializedSketch.toStats(serializedSketch.sampleCount));
+        // We stopped relying on `distinctSketch` in 6.6.0
+        assertThat(serializedSketch.distinctSketch).isNotNull();
+    }
+
+    @Test
+    public void test_streaming_distinct_sample_set() throws IOException {
+        var support = StringType.INSTANCE.columnStatsSupport();
+        var sketch = support.sketchBuilder(Version.CURRENT);
+        for (int i = 0; i < 200; i++) {
+            String value = RandomStrings.randomUnicodeOfLength(random(), 10);
+            sketch.add(value);
+            if (i % 2 == 0) {
+                sketch.add(value);
+            }
+        }
+
+        var serializedSketch = streamOutIn(sketch, support, Version.CURRENT);
+
+        assertThat(serializedSketch.distinctSketch).isNull();
+        assertThat(normalize(serializedSketch.toStats(10_000))).isEqualTo(normalize(sketch.toStats(10_000)));
+    }
+
+    @Test
+    public void test_merge() {
+        for (Version version : List.of(Version.V_6_5_0, Version.CURRENT)) {
+            var support = IntegerType.INSTANCE.columnStatsSupport();
+            var builder1 = support.sketchBuilder(version);
+            var builder2 = support.sketchBuilder(version);
+
+            for (int j = 1; j <= 100; j++) {
+                builder1.add(j);
+            }
+            for (int j = 51; j <= 150; j++) {
+                builder2.add(j);
+            }
+
+            var merged = builder1.merge(builder2);
+
+            assertThat(merged.toStats(merged.sampleCount).approxDistinct())
+                .as("version: " + version)
+                .isEqualTo(150.0);
+        }
+    }
+
+    @Test
+    public void test_approx_distinct_sample_larger_than_reservoir_cap() {
+        // Sample (n = 40,000) exceeds Reservoir.NUM_SAMPLES (30,000).
+        // 30,000 values occur once (f1 = 30,000)
+        // 5,000 values occur twice each
+        // Number of distinct values: 35,000.
+        var builder = IntegerType.INSTANCE.columnStatsSupport().sketchBuilder(Version.CURRENT);
+        for (int i = 0; i < 30_000; i++) {
+            builder.add(i);
+        }
+        for (int i = 30_000; i < 35_000; i++) {
+            builder.add(i);
+            builder.add(i);
+        }
+
+        // Haas-Stokes: n*d / (n - f1 + f1*n/N)
+        //              = 40000*35000 / (10000 + 30000*40000/400000)
+        //              = 1,400,000,000 / 13,000 = 107,692.307692...
+        assertThat(builder.toStats(400_000).approxDistinct())
+            .isCloseTo(107_692, withinPercentage(5));
+    }
+
+    private static ColumnSketchBuilder<String> streamOutIn(ColumnSketchBuilder<String> sketch,
+                                                           ColumnStatsSupport<String> support,
+                                                           Version version) throws IOException {
+>>>>>>> f46774f (Fix flaky test -- test_streaming_distinct_sample_set)
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         StreamOutput out = new OutputStreamStreamOutput(os);
         sketch.writeTo(out);
@@ -89,4 +183,31 @@ public class ColumnSketchBuilderTest extends ESTestCase {
         assertThat(sketch.toStats()).isEqualTo(serializedSketch.toStats());
     }
 
+<<<<<<< HEAD
+=======
+    private static <T extends Comparable<T>> ColumnStats<T> normalize(ColumnStats<T> columnStats) {
+        MostCommonValues<T> mcv = columnStats.mostCommonValues();
+
+        record Entry<T>(T value, double freq) {}
+
+        List<Entry<T>> entries = new ArrayList<>();
+        for (int i = 0; i < mcv.length(); i++) {
+            entries.add(new Entry<>(mcv.value(i), mcv.frequency(i)));
+        }
+
+        entries.sort(Comparator.comparingDouble((Entry<T> e) -> e.freq())
+            .thenComparing(Entry::value));
+
+        List<T> values = entries.stream().map(Entry::value).toList();
+        double[] freqs = entries.stream().mapToDouble(Entry::freq).toArray();
+
+        return new ColumnStats<>(
+            columnStats.nullFraction(),
+            columnStats.averageSizeInBytes(),
+            columnStats.approxDistinct(),
+            columnStats.type(),
+            new MostCommonValues<>(values, freqs),
+            columnStats.histogram());
+    }
+>>>>>>> f46774f (Fix flaky test -- test_streaming_distinct_sample_set)
 }
