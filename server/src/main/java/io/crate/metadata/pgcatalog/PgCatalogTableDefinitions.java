@@ -152,9 +152,11 @@ public final class PgCatalogTableDefinitions {
                 PgAttributeTable.INSTANCE.expressions()
             )),
             Map.entry(PgIndexTable.IDENT, new StaticTableDefinition<>(
-                () -> completedFuture(informationSchemaIterables.pgIndices()),
-                PgIndexTable.INSTANCE.expressions(),
-                false)),
+                informationSchemaIterables::pgIndices,
+                (user, i) -> roles.hasAnyPrivilege(user, Securable.TABLE, i.relationName().fqn())
+                            || isPgCatalogOrInformationSchema(i.relationName().schema()),
+                PgIndexTable.INSTANCE.expressions()
+            )),
             Map.entry(PgConstraintTable.IDENT, new StaticTableDefinition<>(
                 informationSchemaIterables::pgConstraints,
                 (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.relationName().fqn())

@@ -245,6 +245,7 @@ public class InformationSchemaIterables {
             positions.add(position);
         }
         return new PgIndexTable.Entry(
+            tableInfo.ident(),
             Regclass.relationOid(tableInfo),
             Regclass.primaryOid(tableInfo),
             positions
