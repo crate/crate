@@ -66,3 +66,8 @@ Fixes
   of several tables if the rename options ``schema_rename_replacement``
   or ``table_rename_replacement`` mapped them to the same name.
   Now it fails with an error, similar to clashes with an existing table.
+
+- Fixed an issue that could cause :ref:`JWT authentication <auth_jwt>` to
+  hang if the issuer accepted the connection but never responded, when fetching
+  the OpenID configuration or its keys. These requests now time out after
+  ``5 seconds``.
