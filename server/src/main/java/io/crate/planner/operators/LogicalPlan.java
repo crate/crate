@@ -168,16 +168,17 @@ public interface LogicalPlan extends Plan {
      *     Limit[10]            // calls source.rewriteToFetch
      *      └ Order [a ASC]     // should call source.rewriteToFetch
      *        └ Collect [x, a, b]
-     *
+     * </pre>
      * This results in:
-     *
+     * <pre>
      *      Fetch[x, a, b]
      *       └ Limit[10]
      *         └ Order [a ASC]
      *           └ Collect [_fetchid, a]
+     * </pre>
      *
      * Note that propagation only needs to happen if all operators can forward the `_fetchid`. Consider the following:
-     *
+     * <pre>
      *      Limit[10]
      *        └ HashAggregate[min(x), min(y)]
      *          └ Limit[5]
