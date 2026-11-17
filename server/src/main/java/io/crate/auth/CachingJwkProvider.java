@@ -60,22 +60,27 @@ import io.netty.handler.codec.http.HttpHeaderNames;
  */
 public class CachingJwkProvider implements JwkProvider {
 
+    private static final Duration TIMEOUT = Duration.ofSeconds(5);
+
     private final URL url;
     private final ObjectReader reader;
     private final Clock clock;
+    private final Duration timeout;
     private volatile JwkResult cache;
 
     public CachingJwkProvider(String issuer) {
-        this(issuer, Clock.systemUTC());
+        this(issuer, Clock.systemUTC(), TIMEOUT);
     }
 
-    CachingJwkProvider(String issuer, Clock clock) {
-        this.url = resolveJwksUrlForDomain(issuer);
+    @VisibleForTesting
+    CachingJwkProvider(String issuer, Clock clock, Duration timeout) {
+        this.timeout = timeout;
+        this.url = resolveJwksUrlForDomain(issuer, timeout);
         this.clock = clock;
         this.reader = new ObjectMapper().readerFor(Map.class);
     }
 
-    static URL resolveJwksUrlForDomain(String issuer) {
+    private static URL resolveJwksUrlForDomain(String issuer, Duration timeout) {
         if (Strings.isNullOrEmpty(issuer)) {
             throw new IllegalArgumentException("Issuer is required");
         }
@@ -90,8 +95,7 @@ public class CachingJwkProvider implements JwkProvider {
                     ? issuer + ".well-known/openid-configuration"
                     : issuer + "/.well-known/openid-configuration";
 
-            URLConnection connection = new URI(discovery).toURL().openConnection();
-            connection.setRequestProperty("Accept", "application/json");
+            URLConnection connection = openConnection(new URI(discovery).toURL(), timeout);
 
             try (InputStream in = connection.getInputStream()) {
                 Map<String, Object> config = XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, in, false);
@@ -102,7 +106,7 @@ public class CachingJwkProvider implements JwkProvider {
             }
 
         } catch (IOException | URISyntaxException | ElasticsearchParseException e) {
-            //  Preserve previous behavior so getKeys() reports: this add secondary requestHandler call 
+            //  Preserve previous behavior so getKeys() reports: this add secondary requestHandler call
             //  highlighting the original issuer URL and aprropriate Test case is added to JwtAuthenticationIntegrationTest
             try {
                 return new URI(issuer).normalize().toURL();
@@ -111,7 +115,7 @@ public class CachingJwkProvider implements JwkProvider {
             }
         }
     }
-    
+
     @Override
     public Jwk get(String keyId) throws JwkException {
         var keys = cache;
@@ -137,8 +141,7 @@ public class CachingJwkProvider implements JwkProvider {
         final List<Map<String, Object>> keys;
         final Duration ttl;
         try {
-            final URLConnection c = this.url.openConnection();
-            c.setRequestProperty("Accept", "application/json");
+            final URLConnection c = openConnection(this.url, timeout);
             try (InputStream inputStream = c.getInputStream()) {
                 Map<String, Object> result = reader.readValue(inputStream);
                 keys = (List<Map<String, Object>>) result.get("keys");
@@ -159,6 +162,14 @@ public class CachingJwkProvider implements JwkProvider {
             parsedKeys.put(jwk.getId(), jwk);
         }
         return new JwkResult(clock.instant().plus(ttl), parsedKeys);
+    }
+
+    private static URLConnection openConnection(URL url, Duration timeout) throws IOException {
+        URLConnection connection = url.openConnection();
+        connection.setConnectTimeout(Math.toIntExact(timeout.toMillis()));
+        connection.setReadTimeout(Math.toIntExact(timeout.toMillis()));
+        connection.setRequestProperty("Accept", "application/json");
+        return connection;
     }
 
     private record JwkResult(Instant expirationTime, Map<String, Jwk> keys) {
