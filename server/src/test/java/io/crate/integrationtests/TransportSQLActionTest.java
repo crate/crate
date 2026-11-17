@@ -1893,7 +1893,6 @@ public class TransportSQLActionTest extends IntegTestCase {
         );
     }
 
-
     @Test
     @UseJdbc(0)
     @SuppressWarnings({"unchecked"})
@@ -1905,9 +1904,8 @@ public class TransportSQLActionTest extends IntegTestCase {
             }
             Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
             Object val1 = dataGenerator.get();
-            var extendedType = DataTypeTesting.extendedType(type, val1);
-            Object val2 = DataTypeTesting.getDataGenerator(extendedType).get();
-            String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(null));
+            Object val2 = dataGenerator.get();
+            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
             execute("create table tbl (id int primary key, x " + typeDefinition + ")");
             execute("insert into tbl (id, x) values (?, ?)", new Object[] { 1, val1 });
             execute("insert into tbl (id, x) values (?, ?)", new Object[] { 2, val2 });
