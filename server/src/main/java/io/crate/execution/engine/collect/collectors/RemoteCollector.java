@@ -28,6 +28,7 @@ import java.util.concurrent.Executor;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.jspecify.annotations.Nullable;
 import io.crate.common.annotations.VisibleForTesting;
 
@@ -74,6 +75,7 @@ public class RemoteCollector {
     private final boolean enableProfiling;
     private RootTask context = null;
     private boolean collectorKilled = false;
+    private final Version minNodeVersion;
 
     public RemoteCollector(UUID jobId,
                            SessionSettings sessionSettings,
@@ -85,7 +87,8 @@ public class RemoteCollector {
                            TasksService tasksService,
                            RamAccounting ramAccounting,
                            RowConsumer consumer,
-                           RoutedCollectPhase collectPhase) {
+                           RoutedCollectPhase collectPhase,
+                           Version minNodeVersion) {
         this.jobId = jobId;
         this.sessionSettings = sessionSettings;
         this.localNode = localNode;
@@ -105,6 +108,7 @@ public class RemoteCollector {
         this.ramAccounting = ramAccounting;
         this.consumer = consumer;
         this.collectPhase = collectPhase;
+        this.minNodeVersion = minNodeVersion;
     }
 
     public void doCollect() {
@@ -153,7 +157,10 @@ public class RemoteCollector {
                         sessionSettings,
                         localNode,
                         Collections.singletonList(nodeOperation),
-                        enableProfiling))
+                        enableProfiling,
+                        minNodeVersion
+                    )
+                )
                 .whenComplete(
                     (resp, t) -> {
                         if (t == null) {
@@ -174,7 +181,8 @@ public class RemoteCollector {
         RootTask.Builder builder = tasksService.newBuilder(
             jobId,
             sessionSettings.userName(),
-            Collections.emptySet()
+            Collections.emptySet(),
+            minNodeVersion
         );
 
         PassThroughPagingIterator<Integer, Row> pagingIterator;
