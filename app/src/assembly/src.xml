@@ -73,10 +73,6 @@
       <destName>CHANGES.txt</destName>
     </file>
     <file>
-      <source>../extensions/functions/src/main/resources/plugin-descriptor.properties</source>
-      <outputDirectory>plugins/functions</outputDirectory>
-    </file>
-    <file>
       <source>../extensions/jmx-monitoring/src/main/resources/plugin-descriptor.properties</source>
       <outputDirectory>plugins/jmx-monitoring</outputDirectory>
     </file>
@@ -127,7 +123,6 @@
       <excludes>
         <exclude>io.crate:crate-copy-s3</exclude>
         <exclude>io.crate:crate-copy-azure</exclude>
-        <exclude>io.crate:crate-functions</exclude>
         <exclude>io.crate:crate-lang-js</exclude>
         <exclude>io.crate:crate-jmx-monitoring</exclude>
         <exclude>io.crate:es-analysis-common</exclude>
@@ -165,17 +160,6 @@
         <includeDependencies>false</includeDependencies>
         <unpack>false</unpack>
         <outputDirectory>plugins/copy-azure</outputDirectory>
-      </binaries>
-    </moduleSet>
-    <moduleSet>
-      <useAllReactorProjects>true</useAllReactorProjects>
-      <includes>
-        <include>io.crate:crate-functions</include>
-      </includes>
-      <binaries>
-        <includeDependencies>false</includeDependencies>
-        <unpack>false</unpack>
-        <outputDirectory>plugins/functions</outputDirectory>
       </binaries>
     </moduleSet>
     <moduleSet>
