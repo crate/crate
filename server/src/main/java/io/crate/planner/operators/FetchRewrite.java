@@ -89,9 +89,10 @@ public final class FetchRewrite {
      *     Limit [5]
      *      └ Eval [x + x]
      *        └ Collect [x]
+     *</pre>
      *
-     *  Could be rewritten to:
-     *
+     *  could be rewritten to:
+     * <pre>
      *      Fetch [x + x]
      *       └ Limit [5]
      *         └ Eval [_fetchId]  with replacedOutputs `x + x` → `FetchStub(_fetchId, x) + FetchStub(_fetchId, x)`
