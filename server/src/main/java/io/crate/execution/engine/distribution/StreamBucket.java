@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Iterator;
 
 import org.apache.lucene.util.Accountable;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -47,6 +48,7 @@ public class StreamBucket implements Bucket, Writeable {
     private Streamer<?>[] streamers;
     private int size = -1;
     private BytesReference bytes;
+    private Version minNodeVersion;
 
     public static class Builder implements Accountable {
 
@@ -57,12 +59,15 @@ public class StreamBucket implements Bucket, Writeable {
         private int size = 0;
         private BytesStreamOutput out;
         private long prevRamUsed = 0L;
+        private final Version minNodeVersion;
 
-        public Builder(Streamer<?>[] streamers, RamAccounting ramAccounting) {
+        public Builder(Streamer<?>[] streamers, RamAccounting ramAccounting, Version minNodeVersion) {
             this.ramAccounting = requireNonNull(ramAccounting, "RamAccounting must not be null");
             assert validStreamers(streamers) : "streamers must not be null and they shouldn't be of undefinedType";
             this.streamers = streamers;
+            this.minNodeVersion = minNodeVersion;
             out = new BytesStreamOutput(INITIAL_PAGE_SIZE);
+            out.setVersion(minNodeVersion);
         }
 
         public void add(Row row) {
@@ -85,11 +90,13 @@ public class StreamBucket implements Bucket, Writeable {
             StreamBucket sb = new StreamBucket(streamers);
             sb.size = size;
             sb.bytes = out.bytes();
+            sb.minNodeVersion = minNodeVersion;
             return sb;
         }
 
         public void reset() {
             out = new BytesStreamOutput(size); // next bucket is probably going to have the same size
+            out.setVersion(minNodeVersion);
             size = 0;
         }
 
@@ -103,7 +110,7 @@ public class StreamBucket implements Bucket, Writeable {
         }
     }
 
-    public StreamBucket(@Nullable Streamer<?>[] streamers) {
+    private StreamBucket(@Nullable Streamer<?>[] streamers) {
         assert validStreamers(streamers) : "streamers must not be null and they shouldn't be of undefinedType";
         this.streamers = streamers;
     }
@@ -113,9 +120,10 @@ public class StreamBucket implements Bucket, Writeable {
         return size;
     }
 
-    public void streamers(Streamer<?>[] streamers) {
+    public void streamers(Streamer<?>[] streamers, Version minNodeVersion) {
         assert validStreamers(streamers) : "streamers must not be null and they shouldn't be of undefinedType";
         this.streamers = streamers;
+        this.minNodeVersion = minNodeVersion;
     }
 
     private static boolean validStreamers(Streamer<?>[] streamers) {
@@ -177,7 +185,12 @@ public class StreamBucket implements Bucket, Writeable {
         }
         assert streamers != null : "streamers must not be null";
         try {
-            return new RowIterator(bytes.streamInput(), streamers, size);
+            // streamInput() created from bytes uses Version.CURRENT by default.
+            // We must use the version which was used to write those bytes,
+            // so that any BWC code can reliably use getVersion().
+            var streamInput = bytes.streamInput();
+            streamInput.setVersion(minNodeVersion);
+            return new RowIterator(streamInput, streamers, size);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -187,14 +200,15 @@ public class StreamBucket implements Bucket, Writeable {
      * Create a StreamBucket by reading from an input stream.
      * The created buckets rows are lazily de-serialized using the provided streamers
      */
-    public StreamBucket(StreamInput in, Streamer<?>[] streamers) throws IOException {
+    public StreamBucket(StreamInput in, Streamer<?>[] streamers, Version minNodeVersion) throws IOException {
         this(in);
         this.streamers = streamers;
+        this.minNodeVersion = minNodeVersion;
     }
 
     /**
      * Create a StreamBucket by reading from an input stream.
-     * Before consuming the rows it is necessary to set the {@link #streamers(Streamer[])}
+     * Before consuming the rows it is necessary to set the {@link #streamers(Streamer[], Version)}
      */
     public StreamBucket(StreamInput in) throws IOException {
         size = in.readVInt();

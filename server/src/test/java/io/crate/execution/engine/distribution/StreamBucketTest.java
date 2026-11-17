@@ -23,6 +23,7 @@ package io.crate.execution.engine.distribution;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.Streamer;
@@ -36,7 +37,7 @@ public class StreamBucketTest {
     public void test_accounting() {
         Streamer<?>[] streamers = new Streamer[]{DataTypes.STRING.streamer()};
         var ramAccounting = new PlainRamAccounting();
-        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting);
+        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting, Version.CURRENT);
         builder.add(new RowN("0123456789"));
         assertThat(builder.ramBytesUsed()).isEqualTo(1080L); //Used to be 12
     }

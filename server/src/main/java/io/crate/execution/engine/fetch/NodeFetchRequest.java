@@ -24,6 +24,7 @@ package io.crate.execution.engine.fetch;
 import java.io.IOException;
 import java.util.UUID;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -51,9 +52,9 @@ public class NodeFetchRequest extends NodeRequest<NodeFetchRequest.FetchRequest>
                             boolean closeContext,
                             IntObjectMap<IntArrayList> toFetch,
                             IntObjectMap<Streamer<?>[]> streamers,
-                            RamAccounting ramAccounting) {
+                            RamAccounting ramAccounting, Version minNodeVersion) {
         super(nodeId, new FetchRequest(jobId, fetchPhaseId, closeContext, toFetch));
-        responseReader = in -> new NodeFetchResponse(in, streamers, ramAccounting);
+        responseReader = in -> new NodeFetchResponse(in, streamers, ramAccounting, minNodeVersion);
     }
 
     public Writeable.Reader<NodeFetchResponse> createResponseReader() {
