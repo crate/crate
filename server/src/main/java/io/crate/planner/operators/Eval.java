@@ -23,7 +23,6 @@ package io.crate.planner.operators;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.SequencedCollection;
@@ -39,6 +38,7 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FetchMarker;
+import io.crate.expression.symbol.FetchStub;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.DependencyCarrier;
@@ -124,8 +124,6 @@ public final class Eval extends ForwardingLogicalPlan {
             return null;
         }
         LogicalPlan newSource = fetchRewrite.newPlan();
-        UnaryOperator<Symbol> mapToFetchStubs = fetchRewrite.mapToFetchStubs();
-        LinkedHashMap<Symbol, Symbol> newReplacedOutputs = new LinkedHashMap<>();
         ArrayList<Symbol> newOutputs = new ArrayList<>();
         List<Symbol> newSourceOutputs = newSource.outputs();
         for (Symbol sourceOutput : newSourceOutputs) {
@@ -133,12 +131,16 @@ public final class Eval extends ForwardingLogicalPlan {
                 newOutputs.add(sourceOutput);
             }
         }
+
+        UnaryOperator<Symbol> mapToFetchStubs = fetchRewrite.mapToFetchStubs();
+        LinkedHashMap<Symbol, Symbol> newReplacedOutputs = new LinkedHashMap<>();
         int retainedOutputs = 0;
         for (Symbol output : outputs) {
-            newReplacedOutputs.put(output, mapToFetchStubs.apply(output));
-            HashSet<Symbol> outputColumns = new HashSet<>();
-            output.visit(Symbol.IS_COLUMN, outputColumns::add);
-            if (newSourceOutputs.containsAll(outputColumns)) {
+            Symbol replacedOutput = mapToFetchStubs.apply(output);
+            newReplacedOutputs.put(output, replacedOutput);
+
+            boolean referencesFetchStub = replacedOutput.any(s -> s instanceof FetchStub);
+            if (!referencesFetchStub) {
                 newOutputs.add(output);
                 retainedOutputs++;
             }
