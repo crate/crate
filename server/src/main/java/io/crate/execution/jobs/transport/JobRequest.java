@@ -42,10 +42,11 @@ public class JobRequest extends TransportRequest {
                                              SessionSettings sessionSettings,
                                              String coordinatorNodeId,
                                              Collection<? extends NodeOperation> nodeOperations,
-                                             boolean enableProfiling) {
+                                             boolean enableProfiling,
+                                             Version minNodeVersion) {
         return new NodeRequest<>(
             nodeId,
-            new JobRequest(jobId, sessionSettings, coordinatorNodeId, nodeOperations, enableProfiling)
+            new JobRequest(jobId, sessionSettings, coordinatorNodeId, nodeOperations, enableProfiling, minNodeVersion)
         );
     }
 
@@ -55,18 +56,21 @@ public class JobRequest extends TransportRequest {
     private final Collection<? extends NodeOperation> nodeOperations;
     private final boolean enableProfiling;
     private final Version senderVersion;
+    private final Version minNodeVersion;
 
     private JobRequest(UUID jobId,
                        SessionSettings sessionSettings,
                        String coordinatorNodeId,
                        Collection<? extends NodeOperation> nodeOperations,
-                       boolean enableProfiling) {
+                       boolean enableProfiling,
+                       Version minNodeVersion) {
         this.jobId = jobId;
         this.coordinatorNodeId = coordinatorNodeId;
         this.sessionSettings = sessionSettings;
         this.nodeOperations = nodeOperations;
         this.enableProfiling = enableProfiling;
         this.senderVersion = Version.CURRENT;
+        this.minNodeVersion = minNodeVersion;
     }
 
     public UUID jobId() {
@@ -93,6 +97,10 @@ public class JobRequest extends TransportRequest {
         return senderVersion;
     }
 
+    public Version minNodeVersion() {
+        return minNodeVersion;
+    }
+
     JobRequest(StreamInput in) throws IOException {
         super(in);
         senderVersion = in.getVersion();
@@ -109,6 +117,11 @@ public class JobRequest extends TransportRequest {
         enableProfiling = in.readBoolean();
 
         sessionSettings = new SessionSettings(in);
+        if (hasMinNodeVersion(in.getVersion())) {
+            minNodeVersion = Version.readVersion(in);
+        } else {
+            minNodeVersion = in.getVersion();
+        }
     }
 
     @Override
@@ -127,6 +140,14 @@ public class JobRequest extends TransportRequest {
         out.writeBoolean(enableProfiling);
 
         sessionSettings.writeTo(out);
+        if (hasMinNodeVersion(out.getVersion())) {
+            Version.writeVersion(minNodeVersion, out);
+        }
+    }
+
+    private static boolean hasMinNodeVersion(Version version) {
+        return version.after(Version.V_6_5_1) ||
+               (version.after(Version.V_6_2_11) && version.before(Version.V_6_3_0));
     }
 }
 

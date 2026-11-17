@@ -24,6 +24,7 @@ package io.crate.execution.engine.fetch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -60,7 +61,7 @@ public class NodeFetchResponseTest extends ESTestCase {
         IntObjectHashMap<IntContainer> toFetch = new IntObjectHashMap<>();
         IntHashSet docIds = new IntHashSet(3);
         toFetch.put(1, docIds);
-        StreamBucket.Builder builder = new StreamBucket.Builder(streamers.get(1), RamAccounting.NO_ACCOUNTING);
+        StreamBucket.Builder builder = new StreamBucket.Builder(streamers.get(1), RamAccounting.NO_ACCOUNTING, Version.CURRENT);
         builder.add(new RowN(new Object[]{true}));
         fetched = new IntObjectHashMap<>(1);
         fetched.put(1, builder.build());

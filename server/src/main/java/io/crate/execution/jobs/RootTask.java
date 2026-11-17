@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -62,6 +63,7 @@ public class RootTask implements CompletionListenable<Void> {
     private final Collection<String> participatedNodes;
     private final String user;
     private final List<Task> orderedTasks;
+    private final Version minNodeVersion;
 
     @Nullable
     private final ProfilingContext profiler;
@@ -84,6 +86,7 @@ public class RootTask implements CompletionListenable<Void> {
         private final List<Task> tasks = new ArrayList<>();
         private final String user;
         private final Set<String> participatingNodes;
+        private final Version minNodeVersion;
 
         @Nullable
         private ProfilingContext profilingContext = null;
@@ -93,13 +96,19 @@ public class RootTask implements CompletionListenable<Void> {
                 String user,
                 String coordinatorNode,
                 Collection<String> participatingNodes,
-                JobsLogs jobsLogs) {
+                JobsLogs jobsLogs,
+                Version minNodeVersion) {
             this.logger = logger;
             this.jobId = jobId;
             this.user = user;
             this.coordinatorNode = coordinatorNode;
             this.participatingNodes = new HashSet<>(participatingNodes);
             this.jobsLogs = jobsLogs;
+            this.minNodeVersion = minNodeVersion;
+        }
+
+        public Version minNodeVersion() {
+            return minNodeVersion;
         }
 
         public Builder profilingContext(ProfilingContext profilingContext) {
@@ -138,7 +147,8 @@ public class RootTask implements CompletionListenable<Void> {
                 participatingNodes,
                 jobsLogs,
                 tasks,
-                profilingContext
+                profilingContext,
+                minNodeVersion
             );
         }
     }
@@ -150,7 +160,8 @@ public class RootTask implements CompletionListenable<Void> {
                      Collection<String> participatingNodes,
                      JobsLogs jobsLogs,
                      List<Task> orderedTasks,
-                     @Nullable ProfilingContext profilingContext) throws Exception {
+                     @Nullable ProfilingContext profilingContext,
+                     Version minNodeVersion) throws Exception {
         this.logger = logger;
         this.user = user;
         this.coordinatorNodeId = coordinatorNodeId;
@@ -162,6 +173,7 @@ public class RootTask implements CompletionListenable<Void> {
         this.numActiveTasks = new AtomicInteger(numTasks);
         this.traceEnabled = logger.isTraceEnabled();
         this.startedTimestamp = System.currentTimeMillis();
+        this.minNodeVersion = minNodeVersion;
         if (profilingContext == null) {
             taskTimersByPhaseId = null;
             profilingFuture = null;
@@ -182,6 +194,10 @@ public class RootTask implements CompletionListenable<Void> {
 
     public UUID jobId() {
         return jobId;
+    }
+
+    public Version minNodeVersion() {
+        return minNodeVersion;
     }
 
     /// `System.currentTimeMillis()` when RootTask was created.
