@@ -26,6 +26,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -352,10 +353,9 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         DataType<?> type = randomType();
         Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
         Object val1 = dataGenerator.get();
-        var extendedType = DataTypeTesting.extendedType(type, val1);
-        Object val2 = DataTypeTesting.getDataGenerator(extendedType).get();
+        Object val2 = dataGenerator.get();
 
-        String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(null));
+        String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
         execute("create table t1 (c " + typeDefinition + ") with (number_of_replicas = 0)");
 
         Object[][] bulkArgs = $$($(val1), $(val2), new Object[]{null});

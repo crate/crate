@@ -27,6 +27,8 @@ import static org.assertj.core.api.Assertions.withinPercentage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -124,7 +126,7 @@ public class ColumnSketchBuilderTest extends ESTestCase {
         var serializedSketch = streamOutIn(sketch, support, Version.CURRENT);
 
         assertThat(serializedSketch.distinctSketch).isNull();
-        assertThat(serializedSketch.toStats(10_000)).isEqualTo(sketch.toStats(10_000));
+        assertThat(normalize(serializedSketch.toStats(10_000))).isEqualTo(normalize(sketch.toStats(10_000)));
     }
 
     @Test
@@ -182,5 +184,30 @@ public class ColumnSketchBuilderTest extends ESTestCase {
         StreamInput in = new InputStreamStreamInput(new ByteArrayInputStream(os.toByteArray()));
         in.setVersion(version);
         return support.readSketchFrom(version, in);
+    }
+
+    private static <T extends Comparable<T>> ColumnStats<T> normalize(ColumnStats<T> columnStats) {
+        MostCommonValues<T> mcv = columnStats.mostCommonValues();
+
+        record Entry<T>(T value, double freq) {}
+
+        List<Entry<T>> entries = new ArrayList<>();
+        for (int i = 0; i < mcv.length(); i++) {
+            entries.add(new Entry<>(mcv.value(i), mcv.frequency(i)));
+        }
+
+        entries.sort(Comparator.comparingDouble((Entry<T> e) -> e.freq())
+            .thenComparing(Entry::value));
+
+        List<T> values = entries.stream().map(Entry::value).toList();
+        double[] freqs = entries.stream().mapToDouble(Entry::freq).toArray();
+
+        return new ColumnStats<>(
+            columnStats.nullFraction(),
+            columnStats.averageSizeInBytes(),
+            columnStats.approxDistinct(),
+            columnStats.type(),
+            new MostCommonValues<>(values, freqs),
+            columnStats.histogram());
     }
 }

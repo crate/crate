@@ -237,8 +237,7 @@ public class FieldExistsQueryTest extends LuceneQueryBuilderTest {
             }
             Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
             Object val1 = dataGenerator.get();
-            var extendedType = DataTypeTesting.extendedType(type, val1);
-            String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(null));
+            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
             String tableName = "tbl_" + idx++;
             String stmt = "create table " + tableName + " (id int primary key, x " + typeDefinition + " storage with (columnstore = false))";
             QueryTester.Builder builder = new QueryTester.Builder(

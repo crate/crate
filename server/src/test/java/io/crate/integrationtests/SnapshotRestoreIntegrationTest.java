@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.INVALID_OBJECT_DEFINITION;
 import static io.crate.rest.action.HttpErrorStatus.GENERIC_NOT_FOUND;
@@ -1080,6 +1081,20 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
             "schema_prefix_source.table_postfix_my_table_1",
             "source.my_table_1"
         );
+    }
+
+    @Test
+    public void test_restore_with_rename_fails_if_renamed_relations_clash() throws Exception {
+        createTable("doc.t1", false);
+        createTable("doc.t2", false);
+        createSnapshot(SNAPSHOT_NAME, "doc.t1", "doc.t2");
+        waitNoPendingTasksOnAll();
+        Asserts.assertSQLError(() -> execute("RESTORE SNAPSHOT " + snapshotName() + " ALL WITH (" +
+                "wait_for_completion=true," +
+                "table_rename_replacement='t')") // Intentionally restoring into same name
+        ).hasPGError(DUPLICATE_TABLE)
+        .hasHTTPError(CONFLICT, 4093)
+        .hasMessageContaining("to the same name 'doc.t'");
     }
 
     @Test

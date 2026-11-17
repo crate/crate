@@ -423,3 +423,33 @@ Takes an array and returns a set of value and an index into the array.
     | b | 2 |
     +---+---+
     SELECT 2 rows in set (... sec)
+
+
+.. _table-functions-parquet_schema:
+
+``parquet_schema( string )``
+============================
+
+``parquet_schema`` takes a URI to a parquet file as string and returns the
+file's columns.
+
+All URI schemes supported by the ref:`Parquet foreign data wrapper
+<administration-fdw-parquet>` are supported.
+
+::
+
+    cr> select * from parquet_schema('testdata/departments.parquet');
+    +------------+------------+-------------+-----------------+--------------+--------------+
+    | name       | type       | type_length | repetition_type | logical_type | column_index |
+    +------------+------------+-------------+-----------------+--------------+--------------+
+    | id         | INT64      | NULL        | OPTIONAL        | INT_64       |            0 |
+    | name       | BYTE_ARRAY | NULL        | OPTIONAL        | STRING       |            1 |
+    | manager_id | INT64      | NULL        | OPTIONAL        | INT_64       |            2 |
+    | location   | INT64      | NULL        | OPTIONAL        | INT_64       |            3 |
+    +------------+------------+-------------+-----------------+--------------+--------------+
+    SELECT 4 rows in set (... sec)
+
+
+See `Parquet types`_ for more information regarding the types.
+
+.. _Parquet types: https://parquet.apache.org/docs/file-format/types/
