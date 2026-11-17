@@ -74,3 +74,7 @@ Fixes
   hang if the issuer accepted the connection but never responded, when fetching
   the OpenID configuration or its keys. These requests now time out after
   ``5 seconds``.
+
+- Fixed an issue that caused an error with the message
+  ``Couldn't find x in SourceSymbols`` in certain queries with aliased columns
+  and with the ``optimizer_rewrite_to_query_then_fetch`` enabled.

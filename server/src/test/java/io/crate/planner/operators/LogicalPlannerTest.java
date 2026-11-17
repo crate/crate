@@ -574,6 +574,28 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
+    /// [The RewriteToQueryThenFetch rule drops an aliased column](https://github.com/crate/crate/issues/20596)
+    @Test
+    public void test_rewrite_to_query_then_fetch_with_aliased_columns() {
+        LogicalPlan plan = plan("""
+            SELECT c.name, c.x
+              FROM (SELECT ints, other_id AS x, name FROM users WHERE awesome) c
+              JOIN t2 ON c.ints = t2.i
+              ORDER BY c.x
+              LIMIT 10
+            """);
+        assertThat(plan).hasOperators(
+            "Eval[name, x]",
+            "  └ Fetch[ints, x, name, i]",
+            "    └ Limit[10;0]",
+            "      └ OrderBy[x ASC]",
+            "        └ HashJoin[INNER | (i = ints)]",
+            "          ├ Rename[c._fetchid, ints, x] AS c",
+            "          │  └ Collect[doc.users | [_fetchid, ints, other_id AS x] | awesome]",
+            "          └ Collect[doc.t2 | [i] | true]"
+        );
+    }
+
     @Test
     public void test_unused_table_function_in_subquery_is_not_pruned() {
         LogicalPlan plan = plan("SELECT name FROM (SELECT name, unnest(counters), text FROM users) u");
