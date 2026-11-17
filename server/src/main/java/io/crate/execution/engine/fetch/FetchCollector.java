@@ -82,7 +82,7 @@ class FetchCollector {
 
     public StreamBucket collect(IntArrayList docIds) {
         boolean collectSequential = isSequential(docIds);
-        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting);
+        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting, fetchTask.minNodeVersion());
         try (var borrowed = fetchTask.searcher(readerId)) {
             var searcher = borrowed.item();
             List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();

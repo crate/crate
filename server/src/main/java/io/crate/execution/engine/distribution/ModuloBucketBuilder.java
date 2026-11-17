@@ -24,6 +24,7 @@ package io.crate.execution.engine.distribution;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.Streamer;
@@ -48,13 +49,14 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
                                int numBuckets,
                                Input<?> distributeBy,
                                List<CollectExpression<Row, ?>> expressions,
-                               RamAccounting ramAccounting) {
+                               RamAccounting ramAccounting,
+                               Version minNodeVersion) {
         this.numBuckets = numBuckets;
         this.distributeBy = distributeBy;
         this.expressions = expressions;
         this.bucketBuilders = new ArrayList<>(numBuckets);
         for (int i = 0; i < numBuckets; i++) {
-            bucketBuilders.add(new StreamBucket.Builder(streamers, ramAccounting));
+            bucketBuilders.add(new StreamBucket.Builder(streamers, ramAccounting, minNodeVersion));
         }
     }
 

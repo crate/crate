@@ -153,7 +153,8 @@ public class RemoteCollectorFactory {
             tasksService,
             collectTask.getRamAccounting(),
             consumer,
-            createRemoteCollectPhase(childJobId, collectPhase, primaryRouting.shardId(), remoteNodeId)
+            createRemoteCollectPhase(childJobId, collectPhase, primaryRouting.shardId(), remoteNodeId),
+            collectTask.txnCtx().minNodeVersion()
         );
         collectTask.completionFuture().exceptionally(err -> {
             remoteCollector.kill(err);

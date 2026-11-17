@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,9 +48,15 @@ public class MultiBucketBuilderTest {
             1,
             rowCollectExpression,
             List.of(rowCollectExpression),
-            RamAccounting.NO_ACCOUNTING
+            RamAccounting.NO_ACCOUNTING,
+            Version.CURRENT
         ));
-        builders.add(new BroadcastingBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 1, RamAccounting.NO_ACCOUNTING));
+        builders.add(new BroadcastingBucketBuilder(
+            new Streamer[]{DataTypes.INTEGER.streamer()},
+            1,
+            RamAccounting.NO_ACCOUNTING,
+            Version.CURRENT)
+        );
     }
 
     @Test

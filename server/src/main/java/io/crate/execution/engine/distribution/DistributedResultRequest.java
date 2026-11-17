@@ -26,6 +26,7 @@ import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
@@ -118,8 +119,8 @@ public class DistributedResultRequest extends TransportRequest {
         return bucketIdx;
     }
 
-    public Bucket readRows(Streamer<?>[] streamers) {
-        rows.streamers(streamers);
+    public Bucket readRows(Streamer<?>[] streamers, Version minNodeVersion) {
+        rows.streamers(streamers, minNodeVersion);
         return rows;
     }
 

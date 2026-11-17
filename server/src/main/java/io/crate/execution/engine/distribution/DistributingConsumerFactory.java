@@ -100,7 +100,8 @@ public class DistributingConsumerFactory {
                     multiBucketBuilder = new BroadcastingBucketBuilder(
                         streamers,
                         nodeOperation.downstreamNodes().size(),
-                        ramAccounting
+                        ramAccounting,
+                        txnCtx.minNodeVersion()
                     );
                 } else {
                     var ctx = inputFactory.ctxForInputColumns(txnCtx);
@@ -110,7 +111,8 @@ public class DistributingConsumerFactory {
                         nodeOperation.downstreamNodes().size(),
                         input,
                         ctx.expressions(),
-                        ramAccounting
+                        ramAccounting,
+                        txnCtx.minNodeVersion()
                     );
                 }
                 break;
@@ -118,7 +120,8 @@ public class DistributingConsumerFactory {
                 multiBucketBuilder = new BroadcastingBucketBuilder(
                     streamers,
                     nodeOperation.downstreamNodes().size(),
-                    ramAccounting
+                    ramAccounting,
+                    txnCtx.minNodeVersion()
                 );
                 break;
             default:

@@ -295,7 +295,7 @@ public class JobSetup {
                     b -> breaker.addEstimateBytesAndMaybeBreak(b, executionPhase.label()),
                     ramAccountingBlockSizeInBytes);
                 Streamer<?>[] streamers = executionPhase.getStreamers();
-                SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers, ramAccounting);
+                SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers, ramAccounting, context.txnCtx().minNodeVersion());
                 context.directResponseFutures.add(bucketBuilder.completionFuture().whenComplete((res, err) -> ramAccounting.close()));
                 context.registerBatchConsumer(nodeOperation.downstreamExecutionPhaseId(), bucketBuilder);
             }
@@ -484,7 +484,7 @@ public class JobSetup {
             this.opCtx = new NodeOperationCtx(localNodeId, nodeOperations);
             this.distributingConsumerFactory = distributingConsumerFactory;
             this.sharedShardContexts = sharedShardContexts;
-            this.transactionContext = TransactionContext.of(sessionInfo);
+            this.transactionContext = TransactionContext.of(sessionInfo, taskBuilder.minNodeVersion());
         }
 
         public UUID jobId() {
@@ -851,7 +851,9 @@ public class JobSetup {
                 context.sharedShardContexts,
                 clusterService.state().metadata(),
                 relationName -> schemas.getTableInfo(relationName),
-                routings));
+                routings,
+                context.transactionContext.minNodeVersion()
+            ));
             return null;
         }
 
