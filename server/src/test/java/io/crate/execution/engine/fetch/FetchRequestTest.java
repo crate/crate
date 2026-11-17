@@ -26,6 +26,7 @@ import static org.mockito.Mockito.mock;
 
 import java.util.UUID;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
@@ -45,7 +46,7 @@ public class FetchRequestTest {
         toFetch.put(1, docIds);
 
         NodeFetchRequest.FetchRequest orig = new NodeFetchRequest(
-            "dummy", UUID.randomUUID(), 1, true, toFetch, new IntObjectHashMap<>(), mock(RamAccounting.class)
+            "dummy", UUID.randomUUID(), 1, true, toFetch, new IntObjectHashMap<>(), mock(RamAccounting.class), Version.CURRENT
         ).innerRequest();
 
         BytesStreamOutput out = new BytesStreamOutput();

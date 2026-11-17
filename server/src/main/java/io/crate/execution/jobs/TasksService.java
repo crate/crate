@@ -40,6 +40,7 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.NoSuchNodeException;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -164,14 +165,23 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
             Role.CRATE_USER.name(),
             clusterService.localNode().getId(),
             Collections.emptySet(),
-            jobsLogs);
+            jobsLogs,
+            clusterService.state().nodes().getMinNodeVersion()
+        );
     }
 
     public RootTask.Builder newBuilder(UUID jobId,
                                        String user,
                                        Collection<String> participatingNodes) {
+        return newBuilder(jobId, user, participatingNodes, clusterService.state().nodes().getMinNodeVersion());
+    }
+
+    public RootTask.Builder newBuilder(UUID jobId,
+                                       String user,
+                                       Collection<String> participatingNodes,
+                                       Version minNodeVersion) {
         String localNodeId = clusterService.localNode().getId();
-        return new RootTask.Builder(LOGGER, jobId, user, localNodeId, participatingNodes, jobsLogs);
+        return new RootTask.Builder(LOGGER, jobId, user, localNodeId, participatingNodes, jobsLogs, minNodeVersion);
     }
 
     public int numActive() {

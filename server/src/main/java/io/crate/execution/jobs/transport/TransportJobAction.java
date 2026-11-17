@@ -128,7 +128,8 @@ public class TransportJobAction extends TransportAction<NodeRequest<JobRequest>,
         RootTask.Builder contextBuilder = tasksService.newBuilder(
             request.jobId(),
             request.sessionSettings().userName(),
-            Collections.emptySet()
+            Collections.emptySet(),
+            clusterService.state().nodes().getMinNodeVersion()
         );
 
         SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(request.enableProfiling(), contextBuilder);

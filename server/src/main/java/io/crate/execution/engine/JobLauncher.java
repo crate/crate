@@ -34,6 +34,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
@@ -220,7 +221,8 @@ public class JobLauncher {
         RootTask.Builder builder = tasksService.newBuilder(
             jobId,
             txnCtx.sessionSettings().userName(),
-            operationByServer.keySet()
+            operationByServer.keySet(),
+            clusterService.state().nodes().getMinNodeVersion()
         );
         SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(builder);
         List<CompletableFuture<StreamBucket>> directResponseFutures = jobSetup.prepareOnHandler(
@@ -272,7 +274,8 @@ public class JobLauncher {
                     pageBucketReceivers,
                     handlerPhaseAndReceiver,
                     nextBucket,
-                    initializationTracker
+                    initializationTracker,
+                    localTask.minNodeVersion()
                 );
             } else {
                 initializationTracker.jobInitializationFailed(err); // for localTask
@@ -282,7 +285,8 @@ public class JobLauncher {
                     ActionListener<JobResponse> listener = new BucketForwarder(
                         pageBucketReceivers,
                         bucket,
-                        initializationTracker
+                        initializationTracker,
+                        localTask.minNodeVersion()
                     );
                     listener.onFailure(e);
                     bucket++;
@@ -354,7 +358,8 @@ public class JobLauncher {
                                  List<PageBucketReceiver> bucketReceivers,
                                  List<HandlerPhase> handlerPhases,
                                  int bucketIdx,
-                                 InitializationTracker initializationTracker) {
+                                 InitializationTracker initializationTracker,
+                                 Version minNodeVersion) {
         for (Map.Entry<String, Collection<NodeOperation>> entry : operationByServer.entrySet()) {
             String serverNodeId = entry.getKey();
             var request = JobRequest.of(
@@ -368,7 +373,8 @@ public class JobLauncher {
             ActionListener<JobResponse> listener = new BucketForwarder(
                 bucketReceivers,
                 bucketIdx,
-                initializationTracker
+                initializationTracker,
+                minNodeVersion
             );
             transportJobAction.execute(request).whenComplete(listener);
             bucketIdx++;

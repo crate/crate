@@ -168,7 +168,7 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
             SendResponsePageResultListener pageResultListener = new SendResponsePageResultListener();
             pageBucketReceiver.setBucket(
                 request.bucketIdx(),
-                request.readRows(pageBucketReceiver.streamers()),
+                request.readRows(pageBucketReceiver.streamers(), rootTask.minNodeVersion()),
                 request.isLast(),
                 pageResultListener
             );
