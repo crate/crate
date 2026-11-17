@@ -29,7 +29,6 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.After;
 import org.junit.Before;
@@ -742,6 +741,51 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
             .hasRows(
                 "my_table_pkey",
                 "positive_num"
+            );
+    }
+
+    @Test
+    public void test_pg_index_entries_are_filtered_by_privileges() throws Exception {
+        String selectIndices =
+            "select indrelid::text, indkey from pg_catalog.pg_index where indrelid::text like 'test_schema.%' order by 1";
+
+        executeAsSuperuser("create table test_schema.t_visible (id int primary key)");
+        executeAsSuperuser("create table test_schema.t_hidden (a int, b int, primary key (a, b))");
+        executeAsSuperuser("grant DQL on table test_schema.t_visible to " + TEST_USERNAME);
+
+        try (Session testUserSession = testUserSession()) {
+            execute(
+                """
+                    select count(*) from pg_catalog.pg_index
+                    where indrelid::text not like 'information_schema.%' and indrelid::text not like 'pg_catalog.%'
+                    and indrelid::text not like 'test_schema.%'""",
+                null,
+                testUserSession);
+            assertThat(response)
+                .as("user doesn't see pg_index entries of system tables outside information_schema and pg_catalog")
+                .hasRows("0");
+
+            execute(selectIndices, null, testUserSession);
+            assertThat(response)
+                .as("user only sees pg_index entries of tables with privileges")
+                .hasRows("test_schema.t_visible| [1]");
+
+            executeAsSuperuser("grant DQL on table test_schema.t_hidden to " + TEST_USERNAME);
+            execute(selectIndices, null, testUserSession);
+            assertThat(response)
+                .as("user sees pg_index entries after having granted privileges")
+                .hasRows(
+                    "test_schema.t_hidden| [1, 2]",
+                    "test_schema.t_visible| [1]"
+                );
+        }
+
+        executeAsSuperuser(selectIndices);
+        assertThat(response)
+            .as("super user sees same pg_index entries")
+            .hasRows(
+                "test_schema.t_hidden| [1, 2]",
+                "test_schema.t_visible| [1]"
             );
     }
 
