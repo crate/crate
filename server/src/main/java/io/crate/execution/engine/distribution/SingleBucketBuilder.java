@@ -21,6 +21,8 @@
 
 package io.crate.execution.engine.distribution;
 
+import org.elasticsearch.Version;
+
 import io.crate.Streamer;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
@@ -37,11 +39,13 @@ public class SingleBucketBuilder implements RowConsumer, CompletionListenable<St
 
     private final Streamer<?>[] streamers;
     private RamAccounting ramAccounting;
+    private final Version minNodeVersion;
     private final CompletableFuture<StreamBucket> bucketFuture = new CompletableFuture<>();
 
-    public SingleBucketBuilder(Streamer<?>[] streamers, RamAccounting ramAccounting) {
+    public SingleBucketBuilder(Streamer<?>[] streamers, RamAccounting ramAccounting, Version minNodeVersion) {
         this.streamers = streamers;
         this.ramAccounting = ramAccounting;
+        this.minNodeVersion = minNodeVersion;
     }
 
     @Override
@@ -52,7 +56,7 @@ public class SingleBucketBuilder implements RowConsumer, CompletionListenable<St
     @Override
     public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
         if (failure == null) {
-            StreamBucketCollector streamBucketCollector = new StreamBucketCollector(streamers, ramAccounting);
+            StreamBucketCollector streamBucketCollector = new StreamBucketCollector(streamers, ramAccounting, minNodeVersion);
             BatchIterators.collect(iterator, streamBucketCollector.supplier().get(), streamBucketCollector, bucketFuture);
         } else {
             if (iterator != null) {

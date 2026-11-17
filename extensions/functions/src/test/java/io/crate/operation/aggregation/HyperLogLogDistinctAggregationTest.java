@@ -42,9 +42,12 @@ import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import io.crate.Streamer;
 import io.crate.common.collections.Lists;
+import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
+import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.FunctionImplementation;
@@ -253,5 +256,29 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
         hllState1.addHash("127.0.0.1".hashCode());
         hllState2.addHash("127.0.0.1".hashCode());
         assertThat(hllState2.value()).isEqualTo(hllState1.value());
+    }
+
+    @Test
+    public void test_bwc_streaming() throws Exception {
+        Version stateVersion = Version.V_6_1_0;
+        var state = new HyperLogLogDistinctAggregation.LegacyHllState(DataTypes.LONG);
+        state.init(memoryManager, HyperLogLogPlusPlus.DEFAULT_PRECISION);
+        state.addHash(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.LONG).hash(1));
+
+        Streamer<?>[] streamers = new Streamer[] {HyperLogLogDistinctAggregation.HllStateType.INSTANCE.streamer()};
+        var builder = new StreamBucket.Builder(streamers, RamAccounting.NO_ACCOUNTING, stateVersion);
+        builder.add(new Row1(state));
+        BytesStreamOutput out = new BytesStreamOutput();
+        builder.build().writeTo(out);
+
+        StreamInput in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_1_0); // StreamBucket.iterator() used to override correct version with CURRENT
+        StreamBucket received = new StreamBucket(in);
+        received.streamers(streamers, stateVersion);
+
+        Row row = received.iterator().next();
+        assertThat(row.get(0))
+            .isExactlyInstanceOf(HyperLogLogDistinctAggregation.LegacyHllState.class)
+            .isEqualTo(state);
     }
 }

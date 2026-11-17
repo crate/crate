@@ -28,6 +28,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import org.elasticsearch.Version;
+
 import io.crate.common.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -50,17 +52,20 @@ public class TransportFetchOperation implements FetchOperation {
     private final UUID jobId;
     private final int fetchPhaseId;
     private final RamAccounting ramAccounting;
+    private final Version minNodeVersion;
 
     public TransportFetchOperation(ActionExecutor<NodeFetchRequest, NodeFetchResponse> fetchNodeAction,
                                    Map<String, ? extends IntObjectMap<Streamer<?>[]>> nodeIdToReaderIdToStreamers,
                                    UUID jobId,
                                    int fetchPhaseId,
-                                   RamAccounting ramAccounting) {
+                                   RamAccounting ramAccounting,
+                                   Version minNodeVersion) {
         this.fetchNodeAction = fetchNodeAction;
         this.nodeIdToReaderIdToStreamers = nodeIdToReaderIdToStreamers;
         this.jobId = jobId;
         this.fetchPhaseId = fetchPhaseId;
         this.ramAccounting = ramAccounting;
+        this.minNodeVersion = minNodeVersion;
     }
 
     @Override
@@ -76,7 +81,10 @@ public class TransportFetchOperation implements FetchOperation {
                                      closeContext,
                                      toFetch,
                                      nodeIdToReaderIdToStreamers.get(nodeId),
-                                     ramAccountingForIncomingResponse(ramAccounting, toFetch, closeContext)))
+                                     ramAccountingForIncomingResponse(ramAccounting, toFetch, closeContext),
+                                     minNodeVersion
+                )
+            )
             .whenComplete(listener)
             .thenApply(GET_FETCHED);
     }

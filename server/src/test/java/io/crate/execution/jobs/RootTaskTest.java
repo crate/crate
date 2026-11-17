@@ -67,7 +67,7 @@ public class RootTaskTest extends ESTestCase {
     @Test
     public void testKillPropagatesToSubContexts() throws Exception {
         RootTask.Builder builder =
-            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class), Version.CURRENT);
 
 
         AbstractTaskTest.TestingTask ctx1 = new AbstractTaskTest.TestingTask(1);
@@ -88,7 +88,7 @@ public class RootTaskTest extends ESTestCase {
     public void testErrorMessageIsIncludedInStatsTableOnFailure() throws Throwable {
         JobsLogs jobsLogs = mock(JobsLogs.class);
         RootTask.Builder builder =
-            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), jobsLogs);
+            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), jobsLogs, Version.CURRENT);
 
         Task task = new AbstractTask(0) {
             @Override
@@ -121,7 +121,7 @@ public class RootTaskTest extends ESTestCase {
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
 
         RootTask.Builder builder =
-            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class), Version.CURRENT);
 
         CollectTask collectChildTask = new CollectTask(
             collectPhase,
@@ -167,7 +167,7 @@ public class RootTaskTest extends ESTestCase {
     @Test
     public void testEnablingProfilingGathersExecutionTimes() throws Throwable {
         RootTask.Builder builder =
-            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
+            new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class), Version.CURRENT);
         ProfilingContext profilingContext = new ProfilingContext(Map.of(), ClusterState.EMPTY_STATE);
         builder.profilingContext(profilingContext);
 
