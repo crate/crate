@@ -22,8 +22,8 @@
 package io.crate.protocols.http;
 
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.jspecify.annotations.Nullable;
 
+import io.crate.common.exceptions.Exceptions;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -57,7 +57,7 @@ public class CircuitBreakingRejectionHandler extends ChannelInboundHandlerAdapte
             // the output dropped by the trip is missing (e.g. a CRC mismatch). The channel is closing anyway.
             return;
         }
-        CircuitBreakingException e = extractCircuitBreakingException(cause);
+        Throwable e = Exceptions.firstCause(cause, CircuitBreakingException.class);
         if (e == null) {
             ctx.fireExceptionCaught(cause);
             return;
@@ -70,19 +70,5 @@ public class CircuitBreakingRejectionHandler extends ChannelInboundHandlerAdapte
         );
         response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-    }
-
-    @Nullable
-    private static CircuitBreakingException extractCircuitBreakingException(Throwable t) {
-        while (t != null) {
-            if (t instanceof CircuitBreakingException e) {
-                return e;
-            }
-            if (t.getCause() == t) {
-                return null;
-            }
-            t = t.getCause();
-        }
-        return null;
     }
 }

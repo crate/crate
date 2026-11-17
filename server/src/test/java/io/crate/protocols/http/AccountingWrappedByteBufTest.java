@@ -31,6 +31,7 @@ import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.breaker.ConcurrentRamAccounting;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -52,8 +53,9 @@ public class AccountingWrappedByteBufTest {
     private ByteBuf accounted(int size) {
         ByteBuf buf = ALLOC.heapBuffer(size);
         buf.writeZero(size);
-        breaker.addEstimateBytesAndMaybeBreak(buf.capacity(), AccountingZlibDecoder.LABEL);
-        return new AccountingWrappedByteBuf(buf, () -> breaker, buf.capacity());
+        var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(AccountingZlibDecoder.LABEL, breaker, 0);
+        ramAccounting.addBytes(buf.capacity());
+        return new AccountingWrappedByteBuf(buf, ramAccounting);
     }
 
     @Test
@@ -70,8 +72,8 @@ public class AccountingWrappedByteBufTest {
     @Test
     public void test_additionally_accounted_bytes_are_returned() {
         ByteBuf buf = accounted(100);
-        breaker.addEstimateBytesAndMaybeBreak(50, AccountingZlibDecoder.LABEL);
-        ((AccountingWrappedByteBuf) buf).addAccounted(50);
+        ((AccountingWrappedByteBuf) buf).ramAccounting().addBytes(50);
+        assertThat(breaker.getUsed()).isEqualTo(150L);
 
         buf.release();
         assertThat(breaker.getUsed()).isEqualTo(0L);

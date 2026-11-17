@@ -22,15 +22,12 @@
 package io.crate.protocols.http;
 
 import java.nio.ByteOrder;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
 
-import org.elasticsearch.common.breaker.CircuitBreaker;
-
+import io.crate.data.breaker.RamAccounting;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.WrappedByteBuf;
 
-/// Returns the bytes accounted for a buffer to the circuit breaker once the buffer is deallocated.
+/// Releases the {@link RamAccounting} of a buffer once the buffer is deallocated.
 ///
 /// - Derived buffers (slices, duplicates, swapped or read-only views) are wrapped as well and share
 ///   the accounting, so the bytes are returned no matter through which view the last reference is released.
@@ -44,31 +41,20 @@ public class AccountingWrappedByteBuf extends WrappedByteBuf {
 
     private final Accounting accounting;
 
-    private static final class Accounting {
+    /// Shared by the root buffer and all buffers derived from it.
+    private record Accounting(ByteBuf root, RamAccounting ramAccounting) {
 
-        private final ByteBuf root;
-        private final Supplier<CircuitBreaker> circuitBreaker;
-        private final AtomicBoolean returned = new AtomicBoolean(false);
-
-        /// Only increased on the event loop, but the buffer can be released on another thread.
-        private volatile long bytes;
-
-        private Accounting(ByteBuf root, Supplier<CircuitBreaker> circuitBreaker, long bytes) {
-            this.root = root;
-            this.circuitBreaker = circuitBreaker;
-            this.bytes = bytes;
-        }
-
-        private void maybeReturn() {
-            if (root.refCnt() == 0 && returned.compareAndSet(false, true)) {
-                circuitBreaker.get().addWithoutBreaking(-bytes);
+        private void maybeRelease() {
+            if (root.refCnt() == 0) {
+                // Safe to call multiple times, prevents from accounting bytes after release.
+                ramAccounting.close();
             }
         }
     }
 
-    /// @param bytes already reserved on the circuit breaker for {@code buf}
-    public AccountingWrappedByteBuf(ByteBuf buf, Supplier<CircuitBreaker> circuitBreaker, long bytes) {
-        this(buf, new Accounting(buf, circuitBreaker, bytes));
+    /// @param ramAccounting already accounts the capacity of {@code buf}
+    public AccountingWrappedByteBuf(ByteBuf buf, RamAccounting ramAccounting) {
+        this(buf, new Accounting(buf, ramAccounting));
     }
 
     private AccountingWrappedByteBuf(ByteBuf buf, Accounting accounting) {
@@ -76,9 +62,9 @@ public class AccountingWrappedByteBuf extends WrappedByteBuf {
         this.accounting = accounting;
     }
 
-    /// @param bytes additionally reserved on the circuit breaker, e.g. after the buffer grew
-    void addAccounted(long bytes) {
-        accounting.bytes += bytes;
+    /// Used to account additional bytes, e.g. after the buffer grew
+    RamAccounting ramAccounting() {
+        return accounting.ramAccounting();
     }
 
     private ByteBuf derived(ByteBuf derived) {
@@ -88,14 +74,14 @@ public class AccountingWrappedByteBuf extends WrappedByteBuf {
     @Override
     public boolean release() {
         boolean released = super.release();
-        accounting.maybeReturn();
+        accounting.maybeRelease();
         return released;
     }
 
     @Override
     public boolean release(int decrement) {
         boolean released = super.release(decrement);
-        accounting.maybeReturn();
+        accounting.maybeRelease();
         return released;
     }
 

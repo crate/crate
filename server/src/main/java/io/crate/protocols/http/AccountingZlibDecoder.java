@@ -27,14 +27,17 @@ import java.util.function.Supplier;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
+import io.crate.breaker.ConcurrentRamAccounting;
+import io.crate.data.breaker.RamAccounting;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.compression.JdkZlibDecoder;
 import io.netty.handler.codec.compression.ZlibWrapper;
 
-/// A {@link JdkZlibDecoder} accounting the capacity of its decompression buffers in a circuit breaker.
+/// A {@link JdkZlibDecoder} accounting the capacity of its decompression buffers in a circuit breaker,
+/// using a {@link RamAccounting} per buffer.
 ///
-/// Relies on these internals of Netty's {@link JdkZlibDecoder} (verified with Netty 4.2.20):
+/// Relies on these internals of Netty's {@link JdkZlibDecoder} (verified with Netty 4.2.21):
 /// - {@link #prepareDecompressBuffer} is the only place allocating and growing the decompression buffer.
 /// - With {@code maxAllocation == 0} the buffer is forwarded once it holds 64 KB, which bounds
 ///   the bytes allocated before they are accounted.
@@ -60,20 +63,20 @@ public class AccountingZlibDecoder extends JdkZlibDecoder {
     }
 
     /// Both the initial allocation and every growth of the decompression buffer go through here.
-    /// The buffer is released by its consumer, which returns the accounted bytes (see {@link AccountingWrappedByteBuf}).
+    /// The buffer is released by its consumer, which releases its {@link RamAccounting} (see {@link AccountingWrappedByteBuf}).
     @Override
     protected ByteBuf prepareDecompressBuffer(ChannelHandlerContext ctx, ByteBuf buffer, int preferredSize) {
         if (buffer == null) {
             ByteBuf allocated = super.prepareDecompressBuffer(ctx, null, preferredSize);
-            int bytes = allocated.capacity();
+            RamAccounting ramAccounting = newRamAccounting();
             try {
-                addEstimateBytesAndMaybeBreak(bytes);
+                addBytes(ramAccounting, allocated.capacity());
             } catch (CircuitBreakingException e) {
                 // Nobody else owns the buffer yet
                 allocated.release();
                 throw e;
             }
-            return new AccountingWrappedByteBuf(allocated, circuitBreaker, bytes);
+            return new AccountingWrappedByteBuf(allocated, ramAccounting);
         }
 
         // On growth, `buffer` is owned by the caller which releases it on failure, so it must not be released here.
@@ -81,15 +84,23 @@ public class AccountingZlibDecoder extends JdkZlibDecoder {
         ByteBuf result = super.prepareDecompressBuffer(ctx, buffer, preferredSize);
         int deltaBytes = result.capacity() - beforeBytes;
         if (deltaBytes > 0) {
-            addEstimateBytesAndMaybeBreak(deltaBytes);
-            ((AccountingWrappedByteBuf) result).addAccounted(deltaBytes);
+            addBytes(((AccountingWrappedByteBuf) result).ramAccounting(), deltaBytes);
         }
         return result;
     }
 
-    private void addEstimateBytesAndMaybeBreak(int bytes) {
+    private RamAccounting newRamAccounting() {
+        return new ConcurrentRamAccounting(
+            bytes -> circuitBreaker.get().addEstimateBytesAndMaybeBreak(bytes, LABEL),
+            bytes -> circuitBreaker.get().addWithoutBreaking(-bytes),
+            LABEL,
+            0
+        );
+    }
+
+    private void addBytes(RamAccounting ramAccounting, int bytes) {
         try {
-            circuitBreaker.get().addEstimateBytesAndMaybeBreak(bytes, LABEL);
+            ramAccounting.addBytes(bytes);
         } catch (CircuitBreakingException e) {
             tripped = true;
             throw e;
