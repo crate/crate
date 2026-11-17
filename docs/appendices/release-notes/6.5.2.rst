@@ -93,3 +93,8 @@ Fixes
   there was no mapping of the ``crate`` superuser to the foreign server pointing
   to a remote user with read access on the foreign table. Also improved documentation
   on this required mapping. See :ref:`administration-fdw-statistics`.
+
+- Fixed an issue that caused queries using the
+  :ref:`hyperloglog_distinct <aggregation-hyperloglog-distinct>` aggregation to
+  fail with ``EOFException`` during a rolling upgrade from :ref:`version_6.1.0`
+  to :ref:`version_6.2.0`.

@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
@@ -40,9 +41,9 @@ public class JobResponse extends TransportResponse {
         this.directResponse = directResponse;
     }
 
-    public List<StreamBucket> getDirectResponses(Streamer<?>[] streamers) {
+    public List<StreamBucket> getDirectResponses(Streamer<?>[] streamers, Version minNodeVersion) {
         for (StreamBucket bucket : directResponse) {
-            bucket.streamers(streamers);
+            bucket.streamers(streamers, minNodeVersion);
         }
         return directResponse;
     }

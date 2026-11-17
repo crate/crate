@@ -21,6 +21,8 @@
 
 package io.crate.execution.engine.distribution;
 
+import org.elasticsearch.Version;
+
 import io.crate.Streamer;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
@@ -40,15 +42,17 @@ public class StreamBucketCollector implements Collector<Row, StreamBucket.Builde
 
     private final Streamer<?>[] streamers;
     private final RamAccounting ramAccounting;
+    private final Version minNodeVersion;
 
-    public StreamBucketCollector(Streamer<?>[] streamers, RamAccounting ramAccounting) {
+    public StreamBucketCollector(Streamer<?>[] streamers, RamAccounting ramAccounting, Version minNodeVersion) {
         this.streamers = streamers;
         this.ramAccounting = ramAccounting;
+        this.minNodeVersion = minNodeVersion;
     }
 
     @Override
     public Supplier<StreamBucket.Builder> supplier() {
-        return () -> new StreamBucket.Builder(streamers, ramAccounting);
+        return () -> new StreamBucket.Builder(streamers, ramAccounting, minNodeVersion);
     }
 
     @Override

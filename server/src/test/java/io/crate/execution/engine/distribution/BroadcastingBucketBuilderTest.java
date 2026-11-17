@@ -23,6 +23,7 @@ package io.crate.execution.engine.distribution;
 
 import static io.crate.testing.Asserts.assertThat;
 
+import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.Streamer;
@@ -35,7 +36,12 @@ public class BroadcastingBucketBuilderTest {
 
     @Test
     public void testBucketIsReUsed() throws Exception {
-        final BroadcastingBucketBuilder builder = new BroadcastingBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 3, RamAccounting.NO_ACCOUNTING);
+        final BroadcastingBucketBuilder builder = new BroadcastingBucketBuilder(
+            new Streamer[]{DataTypes.INTEGER.streamer()},
+            3,
+            RamAccounting.NO_ACCOUNTING,
+            Version.CURRENT
+        );
         builder.add(new Row1(10));
 
         StreamBucket[] buckets = new StreamBucket[3];

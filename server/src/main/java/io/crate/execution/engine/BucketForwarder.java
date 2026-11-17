@@ -23,6 +23,7 @@ package io.crate.execution.engine;
 
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 
 import io.crate.data.Bucket;
@@ -38,18 +39,23 @@ final class BucketForwarder implements ActionListener<JobResponse> {
     private final List<PageBucketReceiver> bucketReceivers;
     private final int bucketIdx;
     private final InitializationTracker initializationTracker;
+    private final Version minNodeVersion;
 
-    BucketForwarder(List<PageBucketReceiver> bucketReceivers, int bucketIdx, InitializationTracker initializationTracker) {
+    BucketForwarder(List<PageBucketReceiver> bucketReceivers,
+                    int bucketIdx,
+                    InitializationTracker initializationTracker,
+                    Version minNodeVersion) {
         assert !bucketReceivers.isEmpty() : "bucketReceivers must not be empty";
         this.bucketReceivers = bucketReceivers;
         this.bucketIdx = bucketIdx;
         this.initializationTracker = initializationTracker;
+        this.minNodeVersion = minNodeVersion;
     }
 
     @Override
     public void onResponse(JobResponse jobResponse) {
         initializationTracker.jobInitialized();
-        List<StreamBucket> directResponses = jobResponse.getDirectResponses(bucketReceivers.getFirst().streamers());
+        List<StreamBucket> directResponses = jobResponse.getDirectResponses(bucketReceivers.getFirst().streamers(), minNodeVersion);
         assert directResponses.isEmpty() || bucketReceivers.size() == directResponses.size()
             : "Direct responses must either be empty or match number of bucketReceivers";
         for (int i = 0; i < directResponses.size(); i++) {

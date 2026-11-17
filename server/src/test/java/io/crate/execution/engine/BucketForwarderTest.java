@@ -31,6 +31,7 @@ import static org.mockito.Mockito.verify;
 
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.execution.jobs.PageBucketReceiver;
@@ -44,7 +45,7 @@ public class BucketForwarderTest {
         var receiver = mock(PageBucketReceiver.class);
         var jobResponse = new JobResponse(List.of());
 
-        var forwarder = new BucketForwarder(List.of(receiver), 0, initTracker);
+        var forwarder = new BucketForwarder(List.of(receiver), 0, initTracker, Version.CURRENT);
         forwarder.onResponse(jobResponse);
 
         verify(receiver, never()).setBucket(anyInt(), any(), anyBoolean(), any());
