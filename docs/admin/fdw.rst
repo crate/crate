@@ -189,13 +189,19 @@ The ``parquet`` foreign data wrapper allows CrateDB to read parquet
 files stored locally and/or in a remote object storage.
 The ``parquet`` foreign data wrapper does not support writing data to parquet files.
 
-Usage::
+Here is a short usage example. Each step is explained in more detail further
+below::
 
   cr> CREATE SERVER my_parquet FOREIGN DATA WRAPPER parquet
   ... OPTIONS (files ['testdata/departments.parquet']);
   CREATE OK, 1 row affected (... sec)
 
-  cr> CREATE FOREIGN TABLE departments (manager_id bigint, name text, location bigint, id bigint) SERVER my_parquet;
+  cr> CREATE FOREIGN TABLE departments (
+  ...     manager_id bigint,
+  ...     name text,
+  ...     location bigint,
+  ...     id bigint
+  ... ) SERVER my_parquet;
   CREATE OK, 1 row affected (... sec)
 
   cr> SELECT * FROM departments;
@@ -228,17 +234,18 @@ Usage::
 
 The schema for the foreign table is defined according to CrateDB's
 :ref:`data-types` while the data stored in the parquet file format is stored
-according to parquet's specification. The table below explains the expected
-mapping between the CrateDB data type defined in the foreign table schema and
-the data type stored in parquet.
-If there is a mismatch that cannot be automatically resolved
-internally by CrateDB, an error will be raised at runtime. For example, if the foreign
-table schema declares a column ``x`` as ``TEXT`` but ``x`` is stored in parquet
-as ``INT32``, an error will be raised when trying to read the data.
+according to parquet's specification. The schema of the parquet file can be
+inspected using the :ref:`parquet_schema <table-functions-parquet_schema>`
+table function.
+The table below explains the expected mapping between the CrateDB data type
+defined in the foreign table schema and the data type stored in parquet.
+If there is a mismatch that cannot be automatically resolved internally by
+CrateDB, an error will be raised at runtime. For example, if the foreign table
+schema declares a column ``x`` as ``TEXT`` but ``x`` is stored in parquet as
+``INT32``, an error will be raised when trying to read the data.
 
-The table below provides the expected mappings between CrateDB. If a CrateDB
-type or a parquet type is not listed in the table below, it is not supported in
-the parquet foreign data wrapper.
+If a CrateDB type or a parquet type is not listed in the table below, it is not
+supported in the parquet foreign data wrapper.
 
 .. list-table::
     :header-rows: 1
