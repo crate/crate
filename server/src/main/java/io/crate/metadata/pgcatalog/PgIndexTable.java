@@ -63,16 +63,6 @@ public final class PgIndexTable {
         .add("indpred", STRING, x -> null)
         .build();
 
-    public static final class Entry {
 
-        final Regclass indRelId;
-        final Regclass indexRelId;
-        final List<Integer> indKey;
-
-        public Entry(Regclass indRelId, Regclass indexRelId, List<Integer> indKey) {
-            this.indRelId = indRelId;
-            this.indexRelId = indexRelId;
-            this.indKey = indKey;
-        }
-    }
+    public record Entry(RelationName relationName, Regclass indRelId, Regclass indexRelId, List<Integer> indKey) {}
 }

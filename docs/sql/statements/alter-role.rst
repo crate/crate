@@ -25,7 +25,8 @@ Superusers and users with ``AL`` privileges can modify other roles. Every role
 has permission to modify themselves.
 
 ``ALTER ROLE RESET`` resets modifiable
-:ref:`session settings <conf-session>` to their default value.
+:ref:`session settings <conf-session>` to their default value, or removes the
+``password`` or ``jwt`` properties of a user.
 
 
 Arguments
@@ -102,13 +103,24 @@ are supported to alter an existing user account:
 ``RESET``
 ---------
 
-Resets modifiable :ref:`session settings <conf-session>` to their default value.
+Resets a user parameter to its default value.
 
 :parameter:
 
-  Any of the modifiable :ref:`session settings <conf-session>`.
+  - Any of the modifiable :ref:`session settings <conf-session>`, which is
+    reset to its default value.
+  - ``password``, which removes the password from the user, equivalent to
+    ``SET (password = NULL)``.
+  - ``jwt``, which removes the :ref:`JWT properties <auth_jwt>` from the user.
+    This is equivalent to ``SET (jwt = NULL)``, and thus requires ``AL``
+    privileges, also when users alter themselves.
 
 :ALL:
 
   Resets all the modifiable :ref:`session settings <conf-session>` of the user
   to their default values.
+
+  .. NOTE::
+
+      ``RESET ALL`` only affects session settings. The ``password`` and ``jwt``
+      properties are left unchanged and must be reset explicitly.
