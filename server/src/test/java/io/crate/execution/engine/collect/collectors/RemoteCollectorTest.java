@@ -36,6 +36,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
@@ -127,7 +128,8 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             tasksService,
             RamAccounting.NO_ACCOUNTING,
             consumer,
-            collectPhase
+            collectPhase,
+            Version.CURRENT
         );
     }
 
