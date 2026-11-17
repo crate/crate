@@ -77,6 +77,9 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
+- Added a :ref:`parquet_schema <table-functions-parquet_schema>` table
+  function.
+
 - Added a :ref:`gen_random_uuid <scalar-gen_random_uuid>` scalar.
 
 - `Manish Singh <https://github.com/manish9363>`_ added the

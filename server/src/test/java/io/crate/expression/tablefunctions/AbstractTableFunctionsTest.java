@@ -74,7 +74,7 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
         sqlExpressions = new SqlExpressions(Map.of(relationName, relation));
     }
 
-    protected Iterable<Row> execute(String expr) {
+    protected Iterable<Row> execute(String expr, Object ... parameterValues) {
         Symbol functionSymbol = sqlExpressions.normalize(sqlExpressions.asSymbol(expr));
 
         var function = (Function) functionSymbol;
@@ -90,11 +90,21 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
                 .isEqualTo(functionImplementation.returnType());
         }
 
+        Input[] inputs = new Input[function.arguments().size()];
+        for (int i = 0; i < inputs.length; i++) {
+            Symbol arg = function.arguments().get(i);
+            if (arg instanceof Input input) {
+                inputs[i] = input;
+            } else if (parameterValues.length > i) {
+                Object value = parameterValues[i];
+                inputs[i] = Literal.ofUnchecked(DataTypes.guessType(value), value);
+            } else {
+                throw new IllegalArgumentException("Unexpected function argument: " + arg);
+            }
+        }
+
         //noinspection unchecked,rawtypes
-        return functionImplementation.evaluate(
-            txnCtx,
-            null,
-            function.arguments().stream().map(a -> (Input) a).toArray(Input[]::new));
+        return functionImplementation.evaluate(txnCtx, sqlExpressions.nodeCtx, inputs);
     }
 
     public void assertCompile(String functionExpression,
@@ -113,7 +123,7 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
         assertThat(compiled).satisfies(matcher);
     }
 
-    protected void assertExecute(String expr, String expected) {
-        assertThat(printedTable(execute(expr))).isEqualTo(expected);
+    protected void assertExecute(String expr, String expected, Object ... parameterValues) {
+        assertThat(printedTable(execute(expr, parameterValues))).isEqualTo(expected);
     }
 }
