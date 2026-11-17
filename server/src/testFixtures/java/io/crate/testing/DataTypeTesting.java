@@ -48,7 +48,6 @@ import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.sql.tree.BitString;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
@@ -68,7 +67,6 @@ import io.crate.types.IpType;
 import io.crate.types.LongType;
 import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
-import io.crate.types.ObjectType.Builder;
 import io.crate.types.Regclass;
 import io.crate.types.RegclassType;
 import io.crate.types.Regtype;
@@ -83,20 +81,30 @@ public final class DataTypeTesting {
 
     private DataTypeTesting() {}
 
-    public static Set<DataType<?>> getStorableTypesExceptArrays(Random random) {
+    public static Set<DataType<?>> getStorableTypesExceptArrays(Random random, Set<Integer> excluding) {
         return DataTypes.TYPES_BY_NAME_OR_ALIAS
             .values().stream()
+            .filter(t -> !excluding.contains(t.id()))
             .map(type -> {
                 // Numeric needs precision to support storage
                 if (type instanceof NumericType) {
                     int precision = random.nextInt(2, 39);
                     int scale = random.nextInt(0, precision - 1);
                     return new NumericType(precision, scale);
+                } else if (type instanceof ObjectType objectType && objectType.innerTypes().isEmpty()) {
+                    DataType<?> innerType = RandomPicks.randomFrom(random, getStorableTypesExceptArrays(random, Set.of(ObjectType.ID)));
+                    return ObjectType.of(objectType.columnPolicy())
+                        .setInnerType("x", innerType)
+                        .build();
                 }
                 return type;
             })
             .filter(x -> x.storageSupport() != null && x.id() != ArrayType.ID && x.id() != UndefinedType.ID)
             .collect(Collectors.toSet());
+    }
+
+    public static Set<DataType<?>> getStorableTypesExceptArrays(Random random) {
+        return getStorableTypesExceptArrays(random, Set.of());
     }
 
     public static DataType<?> randomType() {
@@ -106,10 +114,9 @@ public final class DataTypeTesting {
 
     public static DataType<?> randomTypeExcluding(Set<DataType<?>> excluding) {
         Random random = RandomizedContext.current().getRandom();
-        Set<DataType<?>> pickFrom = getStorableTypesExceptArrays(random).stream()
-            .filter(t -> excluding.contains(t) == false)
-            .collect(Collectors.toSet());
-        return RandomPicks.randomFrom(random, pickFrom);
+        Set<Integer> excludedTypeIds = excluding.stream().map(t -> t.id()).collect(Collectors.toSet());
+        Set<DataType<?>> candidates = getStorableTypesExceptArrays(random, excludedTypeIds);
+        return RandomPicks.randomFrom(random, candidates);
     }
 
     @SuppressWarnings("unchecked")
@@ -284,29 +291,6 @@ public final class DataTypeTesting {
                 };
             default:
                 throw new AssertionError("No data generator for type " + type.getName());
-        }
-    }
-
-    /**
-     * Adds innerTypes to object type definitions
-     **/
-    public static DataType<?> extendedType(DataType<?> type, Object value) {
-        if (type.id() == ObjectType.ID) {
-            var entryIt = ((Map<?, ?>) value).entrySet().iterator();
-            Builder builder = ObjectType.of(ColumnPolicy.DYNAMIC);
-            while (entryIt.hasNext()) {
-                var entry = entryIt.next();
-                String innerName = (String) entry.getKey();
-                Object innerValue = entry.getValue();
-                DataType<?> innerType = DataTypes.guessType(innerValue);
-                if (innerType.id() == ObjectType.ID && innerValue instanceof Map<?, ?> m && m.containsKey("coordinates")) {
-                    innerType = DataTypes.GEO_SHAPE;
-                }
-                builder.setInnerType(innerName, extendedType(innerType, innerValue));
-            }
-            return builder.build();
-        } else {
-            return type;
         }
     }
 
