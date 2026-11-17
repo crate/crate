@@ -123,6 +123,9 @@ Administration and Operations
   apply to foreign tables and views. Previously, they were always restored
   under their original names.
 
+- Changed :ref:`ALTER USER <ref-alter-user>` to require the ``AL`` privilege
+  when setting or resetting their own :ref:`JWT properties <auth_jwt>`.
+
 Client interfaces
 -----------------
 

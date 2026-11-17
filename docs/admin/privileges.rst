@@ -115,6 +115,8 @@ the user/role to execute the following statements:
 
 - ``CREATE USER/ROLE``
 - ``DROP USER/ROLE``
+- ``ALTER USER/ROLE`` on other users or roles, and ``ALTER USER`` changing the
+  :ref:`JWT properties <auth_jwt>`. of any user, including their own.
 - ``SET GLOBAL``
 - ``RESTORE SNAPSHOT``, if the restored sections include user management
   metadata, see :ref:`sql-restore-snapshot` for details.

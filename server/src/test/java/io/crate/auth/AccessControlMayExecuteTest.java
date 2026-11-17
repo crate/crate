@@ -231,6 +231,24 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_alter_own_user_jwt_requires_al_permission() {
+        analyze("alter user normal set (jwt = {\"iss\" = 'https://example.com', \"username\" = 'other'})");
+        assertAskedForCluster(Permission.AL);
+    }
+
+    @Test
+    public void test_reset_own_user_jwt_requires_al_permission() {
+        analyze("alter user normal reset jwt");
+        assertAskedForCluster(Permission.AL);
+    }
+
+    @Test
+    public void test_reset_all_own_user_is_allowed() {
+        analyze("alter user normal reset all");
+        assertThat(validationCallArguments).isEmpty();
+    }
+
+    @Test
     public void test_set_global_statements_can_be_executed_with_al_cluster_privileges() throws Exception {
         analyze("set global stats.enabled = true");
         assertAskedForCluster(Permission.AL);

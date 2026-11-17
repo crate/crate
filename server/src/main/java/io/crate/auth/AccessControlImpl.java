@@ -373,8 +373,10 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitAnalyzedAlterRole(AnalyzedAlterRole analysis, Role user) {
-            // user is allowed to change it's own properties
-            if (analysis.roleName().equals(user.name())) {
+            // user is allowed to change it's own properties, except JWT properties,
+            // which define how the user is authenticated and thus require AL privileges
+            if (analysis.roleName().equals(user.name())
+                && analysis.properties().contains(Role.Properties.JWT_KEY) == false) {
                 return null;
             }
             hasALPrivileges(user);

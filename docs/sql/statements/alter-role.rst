@@ -22,7 +22,8 @@ Description
 
 ``ALTER ROLE SET`` applies a change to an existing database user or role.
 Superusers and users with ``AL`` privileges can modify other roles. Every role
-has permission to modify themselves.
+has permission to modify themselves, except for the ``jwt`` properties, which
+require ``AL`` privileges.
 
 ``ALTER ROLE RESET`` resets modifiable
 :ref:`session settings <conf-session>` to their default value, or removes the
@@ -69,6 +70,11 @@ are supported to alter an existing user account:
 
     If :ref:`auth.host_based.jwt.iss <auth.host_based.jwt.iss>` is set,
     user specific properties are ignored and :ref:`jwt_defaults` are used.
+
+.. NOTE::
+
+    Setting or resetting JWT properties requires ``AL`` privileges, also when
+    users alter themselves.
 
 .. NOTE::
 
