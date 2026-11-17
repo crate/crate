@@ -24,6 +24,7 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,11 +32,15 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Function;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.HashAggregate;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.statistics.ColumnStats;
+import io.crate.statistics.MostCommonValues;
 import io.crate.statistics.Stats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -95,16 +100,21 @@ public class RewriteDistinctAggToGroupByTest extends CrateDummyClusterServiceUni
         assertThat(result).isNull();
     }
 
-    private void setTableStats(long numDocs) {
-        e.updateTableStats(Map.of(
-            e.resolveTableInfo("t1").ident(),
-            new Stats(numDocs, 0L, Map.of())
-        ));
+    private void setColumnCardinalityRatios(Map<String, Double> ratios) {
+        long numDocs = 1000;
+        Map<ColumnIdent, ColumnStats<?>> columnStats = new HashMap<>();
+        for (var entry : ratios.entrySet()) {
+            Reference ref = (Reference) e.asSymbol(entry.getKey());
+            columnStats.put(ref.column(), new ColumnStats<>(
+                0.0, 0.0, entry.getValue() * numDocs, ref.valueType(), MostCommonValues.empty(), List.of()));
+        }
+        e.updateTableStats(Map.of(e.resolveTableInfo("t1").ident(), new Stats(numDocs, 0L, columnStats)));
     }
 
     @Test
     public void test_count_distinct_is_grouped_by_the_counted_column() {
         // SELECT count(distinct a) FROM t1
+        setColumnCardinalityRatios(Map.of("a", 0.1));
         var countFn = (Function) e.asSymbol("count(distinct a)");
         var hashAgg = new HashAggregate(collectA, List.of(countFn));
 
@@ -126,6 +136,7 @@ public class RewriteDistinctAggToGroupByTest extends CrateDummyClusterServiceUni
     @Test
     public void test_where_clause_stays_below_the_group_by() {
         // SELECT count(distinct a) FROM t1 WHERE x > 1
+        setColumnCardinalityRatios(Map.of("a", 0.1));
         var filteredCollect = e.logicalPlan("SELECT a FROM t1 WHERE x > 1");
         var countFn = (Function) e.asSymbol("count(distinct a)");
         var hashAgg = new HashAggregate(filteredCollect, List.of(countFn));
@@ -234,6 +245,7 @@ public class RewriteDistinctAggToGroupByTest extends CrateDummyClusterServiceUni
     @Test
     public void test_reapply_rule() {
         // SELECT count(distinct a) FROM t1
+        setColumnCardinalityRatios(Map.of("a", 0.1));
         var countFn = (Function) e.asSymbol("count(distinct a)");
         var hashAgg = new HashAggregate(collectA, List.of(countFn));
 
@@ -272,7 +284,7 @@ public class RewriteDistinctAggToGroupByTest extends CrateDummyClusterServiceUni
             "  └ Collect[doc.t1 | [a, b] | true]"
         );
 
-        setTableStats(1000);
+        setColumnCardinalityRatios(Map.of("a", 0.1, "b", 0.1));
         // No Eval here, because the join's natural output order already matches the original aggregate order.
         assertApplied(
             hashAgg,
@@ -308,9 +320,9 @@ public class RewriteDistinctAggToGroupByTest extends CrateDummyClusterServiceUni
     }
 
     @Test
-    public void test_not_applied_when_table_is_too_large() {
+    public void test_not_applied_when_a_column_has_too_many_distinct_values() {
         // SELECT count(distinct a), count(distinct x) FROM t1
-        setTableStats((long) (RewriteDistinctAggToGroupBy.MAX_TABLE_SIZE + 1));
+        setColumnCardinalityRatios(Map.of("a", 0.1, "b", 0.9));
 
         var countA = (Function) e.asSymbol("count(distinct a)");
         var countB = (Function) e.asSymbol("count(distinct b)");
@@ -327,7 +339,7 @@ public class RewriteDistinctAggToGroupByTest extends CrateDummyClusterServiceUni
         var countB = (Function) e.asSymbol("count(distinct b)");
         var hashAgg = new HashAggregate(filteredCollect, List.of(countA, countB));
 
-        setTableStats(1000);
+        setColumnCardinalityRatios(Map.of("a", 0.1, "b", 0.1));
         assertApplied(
             hashAgg,
             """

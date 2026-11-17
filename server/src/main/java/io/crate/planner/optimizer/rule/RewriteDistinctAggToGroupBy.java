@@ -24,12 +24,12 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.expression.symbol.Function;
@@ -46,6 +46,11 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.Stats;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.DateType;
+import io.crate.types.StringType;
+import io.crate.types.TimestampType;
 
 /// Deduplicates the argument of a global `agg(DISTINCT col)` with a keys-only `GROUP BY`, so the
 /// aggregate runs over the distinct values instead of over every row. Same result as
@@ -91,17 +96,14 @@ import io.crate.statistics.Stats;
 /// Each branch reuses the same source, so `WHERE` (baked into that source) applies to every
 /// branch unchanged.
 ///
-/// The split doesn't happen if the table is too large (see [#meetsNumRowsRequirement]): on a high-cardinality
-/// branch, the dedup `GROUP BY` barely shrinks the row count, so the extra cross join wouldn't pay
-/// for itself. This is currently a table-size check rather than a per-column cardinality check,
-/// because column stats aren't accurate yet; see [#meetsNumRowsRequirement] for details.
+/// The rule doesn't apply if a column has too many distinct values relative to the source rows
+/// (see [#meetsCardinalityRequirement]): the dedup `GROUP BY` then barely shrinks the row count,
+/// so it doesn't pay for itself.
 ///
 /// If there's a parent `Filter`: The `Filter` references the original `Function` outputs.
 /// However, the join groups the outputs by column (one side per column), which means that
 /// the `Filter`'s references become invalid. For this reason, an [Eval] is added on top of
 /// the `JoinPlan` to keep the same order.
-///
-/// Note: currently, numeric, timestamp, and date types aren't supported due to a performance regression.
 public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
     /// Generally, the rule doesn't care about which aggregate functions are present.
     /// However, the default implementation of distinct functions is limited to the ones below
@@ -113,12 +115,12 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
         AverageAggregation.NAMES[1]
     );
 
-    /// Maximum table size for which the rule can be applied.
-    /// Benchmarks showed that performance drops once a column's cardinality
-    /// exceeded ~85% on a table with 7.7M rows. That's why we set the limit
-    /// on number of rows to 85% * 7.7M ≈ 6.6M.
-    @VisibleForTesting
-    static final double MAX_TABLE_SIZE = 6_600_000;
+    /// Maximum ratio of distinct values to source rows for numeric, date and timestamp columns.
+    private static final double MAX_DISTINCT_RATIO_NUMERIC = 0.12;
+
+    /// Maximum ratio of distinct values to source rows for string columns.
+    /// Benchmarks showed that performance drops once a column's cardinality exceeds ~85%.
+    private static final double MAX_DISTINCT_RATIO_STRING = 0.85;
 
     private final Pattern<HashAggregate> pattern;
 
@@ -161,7 +163,7 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
     private static Map<Symbol, List<Function>> groupByColumn(List<Function> aggregates) {
         Map<Symbol, List<Function>> byColumn = new LinkedHashMap<>();
         for (Function fn : aggregates) {
-            byColumn.computeIfAbsent(fn.arguments().getFirst(), k -> new ArrayList<>()).add(fn);
+            byColumn.computeIfAbsent(fn.arguments().getFirst(), _ -> new ArrayList<>()).add(fn);
         }
         return byColumn;
     }
@@ -173,6 +175,9 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
 
         LogicalPlan resolvedSource = context.resolvePlan().apply(source);
         if (isGroupHashAgg(resolvedSource, groupKey)) {
+            return null;
+        }
+        if (!meetsCardinalityRequirement(context.planStats().get(source), List.of(groupKey))) {
             return null;
         }
 
@@ -196,7 +201,7 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
         LogicalPlan source = aggregate.sources().getFirst();
         Map<Symbol, List<Function>> byColumn = groupByColumn(aggregate.aggregates());
 
-        if (!meetsNumRowsRequirement(context.planStats().get(source))) {
+        if (!meetsCardinalityRequirement(context.planStats().get(source), byColumn.keySet())) {
             // Each column results in a full scan. Our benchmarks showed that
             // (at the time of writing this), the rule makes a query with 2
             // high-cardinality (~100%) columns actually slower (23% higher query time).
@@ -212,17 +217,33 @@ public final class RewriteDistinctAggToGroupBy implements Rule<HashAggregate> {
         return Eval.create(joined, List.copyOf(aggregate.aggregates()));
     }
 
-    /// True, if this rule can be applied.
-    /// Currently, we only check the table size (in number of rows).
-    /// todo Once https://github.com/crate/crate/pull/20172 is merged,
-    /// this method should use column stats.
-    /// The condition (that we found through benchmarks) is that at most 1 column
-    /// with cardinality higher than 85% makes the rule effective.
-    private static boolean meetsNumRowsRequirement(Stats stats) {
-        if (stats.numDocs() <= 0) {
-            return true;
-        }
+    /// True, if every numeric, date, timestamp and string column has a ratio of distinct values
+    /// to source rows at or below the limit for its type. Columns of other types aren't checked.
+    /// A checked column without stats fails.
+    private static boolean meetsCardinalityRequirement(Stats stats, Collection<Symbol> columns) {
+        for (Symbol column : columns) {
+            DataType<?> type = column.valueType();
+            int typeId = type.id();
+            double maxRatio;
+            if (DataTypes.isNumeric(type)
+                || typeId == DateType.ID
+                || typeId == TimestampType.ID_WITH_TZ
+                || typeId == TimestampType.ID_WITHOUT_TZ) {
+                maxRatio = MAX_DISTINCT_RATIO_NUMERIC;
+            } else if (type instanceof StringType) {
+                maxRatio = MAX_DISTINCT_RATIO_STRING;
+            } else {
+                continue;
+            }
 
-        return stats.numDocs() <= MAX_TABLE_SIZE;
+            if (stats.numDocs() <= 0) {
+                return false;
+            }
+            long distinctValues = GroupHashAggregate.approximateDistinctValues(stats, List.of(column));
+            if ((double) distinctValues / stats.numDocs() > maxRatio) {
+                return false;
+            }
+        }
+        return true;
     }
 }
