@@ -24,6 +24,7 @@ package io.crate.execution.engine.distribution;
 import java.io.IOException;
 import java.util.UUID;
 
+import org.elasticsearch.Version;
 import org.jspecify.annotations.Nullable;
 
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -118,8 +119,8 @@ public class DistributedResultRequest extends TransportRequest {
         return bucketIdx;
     }
 
-    public Bucket readRows(Streamer<?>[] streamers) {
-        rows.streamers(streamers);
+    public Bucket readRows(Streamer<?>[] streamers, Version minNodeVersion) {
+        rows.streamers(streamers, minNodeVersion);
         return rows;
     }
 

@@ -21,27 +21,39 @@
 
 package io.crate.metadata;
 
-import io.crate.metadata.settings.SessionSettings;
-
 import java.time.Instant;
+
+import org.elasticsearch.Version;
+
+import io.crate.metadata.settings.SessionSettings;
 
 public interface TransactionContext {
 
     static TransactionContext of(SessionSettings sessionSettings) {
-        return new StaticTransactionContext(sessionSettings);
+        return of(sessionSettings, Version.CURRENT);
+    }
+
+    static TransactionContext of(SessionSettings sessionSettings, Version minNodeVersion) {
+        return new StaticTransactionContext(sessionSettings, minNodeVersion);
     }
 
     Instant currentInstant();
 
     SessionSettings sessionSettings();
 
+    default Version minNodeVersion() {
+        return Version.CURRENT;
+    }
+
     class StaticTransactionContext implements TransactionContext {
 
         private final SessionSettings sessionSettings;
+        private final Version minNodeVersion;
         private Instant currentInstant;
 
-        StaticTransactionContext(SessionSettings sessionSettings) {
+        StaticTransactionContext(SessionSettings sessionSettings, Version minNodeVersion) {
             this.sessionSettings = sessionSettings;
+            this.minNodeVersion = minNodeVersion;
         }
 
         @Override
@@ -55,6 +67,11 @@ public interface TransactionContext {
         @Override
         public SessionSettings sessionSettings() {
             return sessionSettings;
+        }
+
+        @Override
+        public Version minNodeVersion() {
+            return minNodeVersion;
         }
     }
 }

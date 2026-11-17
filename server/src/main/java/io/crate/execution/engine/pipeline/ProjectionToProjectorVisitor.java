@@ -632,7 +632,8 @@ public class ProjectionToProjectorVisitor
                 projection.generateStreamersGroupedByReaderAndNode(),
                 context.jobId,
                 projection.fetchPhaseId(),
-                context.ramAccounting
+                context.ramAccounting,
+                context.txnCtx.minNodeVersion()
             )
         );
     }

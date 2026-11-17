@@ -35,6 +35,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import org.apache.lucene.search.IndexSearcher;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
@@ -78,6 +79,7 @@ public class FetchTask implements Task {
     private final UUID jobId;
     private final Function<RelationName, DocTableInfo> getTableInfo;
     private final CompletableFuture<Void> result = new CompletableFuture<>();
+    private final Version minNodeVersion;
 
 
     @GuardedBy("jobId")
@@ -93,7 +95,8 @@ public class FetchTask implements Task {
                      SharedShardContexts sharedShardContexts,
                      Metadata metadata,
                      Function<RelationName, DocTableInfo> getTableInfo,
-                     List<? extends Routing> routings) {
+                     List<? extends Routing> routings,
+                     Version minNodeVersion) {
         this.jobId = jobId;
         this.phase = phase;
         this.memoryLimitInBytes = memoryLimitInBytes;
@@ -103,6 +106,7 @@ public class FetchTask implements Task {
         this.routings = routings;
         this.toFetch = HashMap.newHashMap(phase.tableIndices().size());
         this.getTableInfo = getTableInfo;
+        this.minNodeVersion = minNodeVersion;
         this.result.whenComplete((_, _) -> {
             synchronized (jobId) {
                 for (var cursor : searchers) {
@@ -343,5 +347,9 @@ public class FetchTask implements Task {
 
     public UUID jobId() {
         return jobId;
+    }
+
+    public Version minNodeVersion() {
+        return minNodeVersion;
     }
 }

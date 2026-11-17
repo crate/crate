@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.transport.TransportService;
@@ -74,7 +75,7 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
         );
 
         StreamBucket.Builder builder = new StreamBucket.Builder(
-            new Streamer[0], RamAccounting.NO_ACCOUNTING);
+            new Streamer[0], RamAccounting.NO_ACCOUNTING, Version.CURRENT);
         assertThatThrownBy(() ->
             transportDistributedResultAction.nodeOperation(
                 DistributedResultRequest.of(

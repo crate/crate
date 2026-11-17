@@ -78,7 +78,8 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
             new SharedShardContexts(mock(IndicesService.class), (ignored, searcher) -> searcher),
             clusterService.state().metadata(),
             relationName -> null,
-            Collections.emptyList());
+            Collections.emptyList(),
+            Version.CURRENT);
 
         assertThatThrownBy(() -> context.indexService(10))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -128,7 +129,8 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
             sharedShardContexts,
             metadata,
             relationName -> null,
-            List.of(routing));
+            List.of(routing),
+            Version.CURRENT);
 
         context.start().get(5, TimeUnit.SECONDS);
         assertThat(calledRefreshReaders.get()).isTrue();

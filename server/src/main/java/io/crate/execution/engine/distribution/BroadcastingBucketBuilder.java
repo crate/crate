@@ -21,6 +21,8 @@
 
 package io.crate.execution.engine.distribution;
 
+import org.elasticsearch.Version;
+
 import io.crate.Streamer;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
@@ -34,9 +36,9 @@ public class BroadcastingBucketBuilder implements MultiBucketBuilder {
     private final int numBuckets;
     private final StreamBucket.Builder bucketBuilder;
 
-    public BroadcastingBucketBuilder(Streamer<?>[] streamers, int numBuckets, RamAccounting ramAccounting) {
+    public BroadcastingBucketBuilder(Streamer<?>[] streamers, int numBuckets, RamAccounting ramAccounting, Version minNodeVersion) {
         this.numBuckets = numBuckets;
-        this.bucketBuilder = new StreamBucket.Builder(streamers, ramAccounting);
+        this.bucketBuilder = new StreamBucket.Builder(streamers, ramAccounting, minNodeVersion);
     }
 
     @Override
