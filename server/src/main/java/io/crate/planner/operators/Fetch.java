@@ -75,7 +75,7 @@ import io.crate.types.DataType;
  *
  * In a first phase we can fetch the values for [_fetchid, a],
  * then do a sorted merge to apply the limit of 10, and afterwards fetch the values [b, c] for the remaining 10 _fetchids.
- *
+ * <p>
  * Note: Fetch always requires a merge to the coordinator node.
  * That's why it is best used after a `Limit`, because a `Limit` requires a merge as well.
  */
