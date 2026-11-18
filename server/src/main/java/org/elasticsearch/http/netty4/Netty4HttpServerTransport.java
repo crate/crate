@@ -64,6 +64,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.network.InetAddresses;
@@ -103,7 +104,9 @@ import com.carrotsearch.hppc.IntSet;
 import io.crate.auth.Authentication;
 import io.crate.auth.Protocol;
 import io.crate.blob.BlobService;
+import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.common.exceptions.Exceptions;
+import io.crate.netty.AccountedByteBufAllocator;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.http.HttpAuthenticator;
 import io.crate.protocols.http.HttpBlobHandler;
@@ -115,6 +118,7 @@ import io.crate.role.Roles;
 import io.crate.session.Sessions;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandler;
@@ -578,6 +582,11 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         @Override
         public void initChannel(Channel ch) throws Exception {
             ChannelPipeline pipeline = ch.pipeline();
+            ByteBufAllocator allocator = ch.config().getAllocator();
+            CircuitBreaker breaker = breakerService.getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS);
+            var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker("netty-http", breaker, -1);
+            ch.closeFuture().addListener(_ -> ramAccounting.close());
+            ch.config().setAllocator(new AccountedByteBufAllocator(allocator, ramAccounting));
             if (SslSettings.isHttpsEnabled(settings)) {
                 SslContext sslContext = sslContextProvider.getServerContext(Protocol.HTTP);
                 if (sslContext != null) {
