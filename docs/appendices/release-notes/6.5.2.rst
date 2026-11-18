@@ -78,3 +78,9 @@ Fixes
 - Fixed an issue that caused an error with the message
   ``Couldn't find x in SourceSymbols`` in certain queries with aliased columns
   and with the ``optimizer_rewrite_to_query_then_fetch`` enabled.
+
+- Fixed an issue where statistics gathering on foreign tables would abort and
+  raise a ``PSQLException[FATAL: role "crate" does not exist]`` if
+  there was no mapping of the ``crate`` superuser to the foreign server pointing
+  to a remote user with read access on the foreign table. Also improved documentation
+  on this required mapping. See :ref:`administration-fdw-statistics`.
