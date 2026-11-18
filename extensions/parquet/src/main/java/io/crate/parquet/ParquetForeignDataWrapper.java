@@ -46,7 +46,7 @@ import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.InputColumns.SourceSymbols;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.pipeline.InputRowProjector;
+import io.crate.execution.engine.pipeline.MapRowUsingInputs;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputFactory.Context;
 import io.crate.expression.symbol.Symbol;
@@ -149,19 +149,13 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
             });
         }
 
-
         SourceSymbols sourceRefs = new InputColumns.SourceSymbols(columns);
         List<Symbol> inputColumns = InputColumns.create(collect, sourceRefs);
         Context<CollectExpression<Row, ?>> inputCtx = inputFactory.ctxForInputColumns(txnCtx, inputColumns);
-        InputRowProjector inputRowProjector = new InputRowProjector(
-            inputCtx.topLevelInputs(),
-            inputCtx.expressions()
-        );
-
         AsyncExecutor asyncExecutor = sharedAsyncExecutor.asyncExecutor();
+        var mapRowUsingInputs = new MapRowUsingInputs(inputCtx.topLevelInputs(), inputCtx.expressions());
         List<InputFile> inputFiles = urisToInputFiles(asyncExecutor, currentUser, pathsToFiles, options);
         BatchIterator<Row> it = new ParquetBatchIterator(inputFiles, columns);
-        it = inputRowProjector.apply(it);
-        return CompletableFuture.completedFuture(it);
+        return CompletableFuture.completedFuture(it.map(mapRowUsingInputs));
     }
 }
