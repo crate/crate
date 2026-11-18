@@ -13,7 +13,7 @@ clusters and thus chaining subscriptions is possible.
 
 .. NOTE::
 
-    A replicated index on a subscriber is read-only.
+    A replicated table on a subscriber is read-only.
 
 Logical replication is useful for the following use cases:
 
@@ -22,7 +22,7 @@ Logical replication is useful for the following use cases:
 - Consolidating data from multiple clusters into a single one for aggregated
   reports.
 
-- Ensure high availability if one cluster becomes unavailable.
+- Ensuring high availability if one cluster becomes unavailable.
 
 - Replicating between different compatible versions of CrateDB.
   Replicating tables created on a cluster with higher major/minor version to a
@@ -77,30 +77,33 @@ way as any other CrateDB cluster and can be used as a publisher for other
 clusters by defining its own publications.
 
 A cluster can have multiple subscriptions. It is also possible for a cluster to
-have both subscriptions and publications. A cluster cannot subscribe to locally
-already existing tables, therefore it is not possible to setup a bi-directional
-replication (both sides subscribing to ``ALL TABLES`` leads to a cluster trying
-to replicate its own tables from another cluster). However, two clusters still
-can cross-subscribe to each other if one cluster subscribes to locally
-non-existing tables of another cluster and vice versa.
+have both subscriptions and publications.
+
+The tables are matched between the publisher and the subscriber using the fully
+qualified table name. Replication to differently named tables on the subscriber
+is not supported.
+
+A cluster cannot subscribe to a publisher table if a relation (regular table,
+foreign table or view) with the same fully qualified name exists in the
+subscriber cluster. This has two implications.
+
+First, it is not possible to set up a bi-directional replication where both
+sides publish ``FOR ALL TABLES`` and subscribe to each other. This setup leads
+to a cluster trying to replicate its own tables from another cluster. However,
+two clusters still can cross-subscribe to each other if one cluster subscribes
+to a table that doesn't exist locally of another cluster and vice versa.
+
+Second, it's not possible to drop and re-create a subscription without starting
+from scratch, i.e., removing all replicated tables.
 
 A subscription is added using the
 :ref:`CREATE SUBSCRIPTION <sql-create-subscription>` command and can be
 removed using the :ref:`DROP SUBSCRIPTION <sql-drop-subscription>` command.
 A subscription starts replicating on its creation and stops on its removal
-(if no failure happen in-between).
-
-Published tables must not exist on the subscriber. A cluster cannot subscribe
-to a table on another cluster if it exists already on its side, therefore it's
-not possible to drop and re-create a subscription without starting from scratch
-i.e removing all replicated tables.
+(if no failure happens in between).
 
 Only regular tables (including partitions) may be the target of a replication.
 For example, you can not replicate system tables or views.
-
-The tables are matched between the publisher and the subscriber using the fully
-qualified table name. Replication to differently-named tables on the subscriber
-is not supported.
 
 Security
 --------
@@ -116,7 +119,6 @@ The user a subscriber uses to connect to the publisher must have ``DQL``
 privileges on the published tables. Tables, included into a publication but
 not available for a subscriber due to lack of ``DQL`` privilege, will not be
 replicated.
-
 
 To create or drop a subscription, a user must have the ``AL`` privilege
 on the cluster. Only the owner (the user who created the subscription) or a
