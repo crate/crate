@@ -36,6 +36,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import dev.hardwood.InputFile;
+import io.crate.common.io.IOUtils;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.exceptions.InvalidArgumentException;
@@ -87,6 +88,7 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
                 Operator operator = AsyncOperator.of(s3, executor).blocking();
                 inputFiles.add(new OpenDALInputFile(operator, s3uri.path()));
             } else {
+                IOUtils.closeWhileHandlingException(inputFiles);
                 throw new InvalidArgumentException("Unsupported URI scheme: " + scheme);
             }
         }
@@ -139,16 +141,18 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
             });
         }
 
-        List<InputFile> inputFiles = urisToInputFiles(currentUser, pathsToFiles, options);
-        BatchIterator<Row> it = new ParquetBatchIterator(inputFiles, columns);
 
         SourceSymbols sourceRefs = new InputColumns.SourceSymbols(columns);
         List<Symbol> inputColumns = InputColumns.create(collect, sourceRefs);
         Context<CollectExpression<Row, ?>> inputCtx = inputFactory.ctxForInputColumns(txnCtx, inputColumns);
-        InputRowProjector inputRowProjector = new InputRowProjector(inputCtx.topLevelInputs(),
-                inputCtx.expressions());
-        it = inputRowProjector.apply(it);
+        InputRowProjector inputRowProjector = new InputRowProjector(
+            inputCtx.topLevelInputs(),
+            inputCtx.expressions()
+        );
 
+        List<InputFile> inputFiles = urisToInputFiles(currentUser, pathsToFiles, options);
+        BatchIterator<Row> it = new ParquetBatchIterator(inputFiles, columns);
+        it = inputRowProjector.apply(it);
         return CompletableFuture.completedFuture(it);
     }
 }
