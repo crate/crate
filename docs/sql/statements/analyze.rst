@@ -34,3 +34,6 @@ I/O throughput during collection of statistics can be throttled with the
 setting. Changes to this setting can be made and take effect while an analysis
 is in progress, thus it's possible to adjust optimal value for a concrete setup
 by trying different values while ``ANALYZE`` is running.
+
+For collecting statistics on foreign tables, please see
+:ref:`administration-fdw-statistics`.
