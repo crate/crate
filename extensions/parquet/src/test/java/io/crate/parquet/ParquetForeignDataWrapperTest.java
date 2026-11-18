@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.common.settings.Settings;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,10 +51,14 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
 public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest {
+
     private SQLExecutor e;
     private Server server;
     private RelationMetadata.ForeignTable foreignTable;
     private CoordinatorTxnCtx txnCtx;
+    private NodeContext nodeCtx;
+    private Role role;
+    private ParquetForeignDataWrapper fdw;
 
     @Before
     public void prepare() throws Exception {
@@ -89,14 +94,19 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
         foreignTable = e.resolveTableInfo("doc.taxi");
         server = new Server("pq", "parquet", "crate", Map.of(), options);
         txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+        role = Role.CRATE_USER;
+        nodeCtx = createNodeContext(List.of(role));
+        fdw = new ParquetForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx));
     }
 
+    @After
+    public void closeFdw() throws Exception {
+        fdw.close();
+        e.close();
+    }
 
     @Test
     public void test_evaluates_references() throws Exception {
-        Role role = Role.CRATE_USER;
-        NodeContext nodeCtx = createNodeContext(List.of(role));
-        ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(new InputFactory(nodeCtx));
         BatchIterator<Row> it = fdw.getIterator(role, server, foreignTable, txnCtx,
                 List.of(e.asSymbol("passenger_count * 2"), e.asSymbol("passenger_count")),
                 Literal.BOOLEAN_TRUE).get();
@@ -118,9 +128,6 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void test_projects_nested_field_from_object_type_strict_policy() throws Exception {
-        Role role = Role.CRATE_USER;
-        NodeContext nodeCtx = createNodeContext(List.of(role));
-        ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(new InputFactory(nodeCtx));
         BatchIterator<Row> it = fdw.getIterator(role, server, foreignTable, txnCtx,
                 List.of(e.asSymbol("car_sensor['engine_temp']")),
                 Literal.BOOLEAN_TRUE).get();
@@ -143,8 +150,6 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
     @Test
     public void test_projects_nested_field_from_object_type_ignored_policy() throws Exception {
         Role role = Role.CRATE_USER;
-        NodeContext nodeCtx = createNodeContext(List.of(role));
-        ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(new InputFactory(nodeCtx));
         BatchIterator<Row> it = fdw.getIterator(role, server, foreignTable, txnCtx,
                 List.of(e.asSymbol("car_sensor_json_ignored_policy['engine_temp']")),
                 Literal.BOOLEAN_TRUE).get();
@@ -168,8 +173,6 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
     public void test_projects_nested_field_from_object_type_dynamic_policy() throws Exception {
         e.getSessionSettings().setErrorOnUnknownObjectKey(false);
         Role role = Role.CRATE_USER;
-        NodeContext nodeCtx = createNodeContext(List.of(role));
-        ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(new InputFactory(nodeCtx));
         BatchIterator<Row> it = fdw.getIterator(role, server, foreignTable, txnCtx,
                 List.of(e.asSymbol("car_sensor_json['engine_temp']")),
                 Literal.BOOLEAN_TRUE).get();
@@ -193,8 +196,6 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
     @Test
     public void test_read_from_local_is_only_allowed_for_superusers() throws Exception {
         Role role = RolesHelper.userOf("typical_user");
-        NodeContext nodeCtx = createNodeContext(List.of(role));
-        ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(new InputFactory(nodeCtx));
         assertThatThrownBy(() -> {
             fdw.getIterator(role, server, foreignTable, txnCtx, List.of(e.asSymbol("passenger_count")), Literal.BOOLEAN_TRUE);
         }).isInstanceOf(UnauthorizedException.class);
@@ -204,24 +205,22 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
     public void test_raises_if_no_files_provided() throws Exception {
         Settings options = Settings.builder()
                 .build();
-        SQLExecutor executor = SQLExecutor.of(clusterService)
-                .addServer("pq_no_files", "parquet", "crate", options)
-                .addForeignTable(
-                    """
-                    create foreign table doc.taxi_no_files
-                    (passenger_count bigint) server pq
-                    """
-                );
+        e.addServer("pq_no_files", "parquet", "crate", options);
+        e.addForeignTable(
+            """
+            create foreign table doc.taxi_no_files (
+                passenger_count bigint
+            ) server pq
+            """
+        );
 
 
-        RelationMetadata.ForeignTable noFilesForeignTable = executor.resolveTableInfo("taxi_no_files");
+        RelationMetadata.ForeignTable noFilesForeignTable = e.resolveTableInfo("taxi_no_files");
         Server noFilesServer = new Server("pq_no_files", "parquet", "crate", Map.of(), options);
         CoordinatorTxnCtx coordinator = CoordinatorTxnCtx.systemTransactionContext();
         Role role = Role.CRATE_USER;
-        NodeContext nodeCtx = createNodeContext(List.of(role));
-        ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(new InputFactory(nodeCtx));
         assertThatThrownBy(() -> {
-            fdw.getIterator(role, noFilesServer, noFilesForeignTable, coordinator, List.of(executor.asSymbol("taxi_no_files.passenger_count")), Literal.BOOLEAN_TRUE).get();
+            fdw.getIterator(role, noFilesServer, noFilesForeignTable, coordinator, List.of(e.asSymbol("taxi_no_files.passenger_count")), Literal.BOOLEAN_TRUE).get();
         }).isInstanceOf(InvalidArgumentException.class);
     }
 
@@ -230,24 +229,22 @@ public class ParquetForeignDataWrapperTest extends CrateDummyClusterServiceUnitT
         Settings options = Settings.builder()
                 .put("files", List.of("unsupportedURI://some/file"))
                 .build();
-        SQLExecutor executor = SQLExecutor.of(clusterService)
-                .addServer("pq_uri", "parquet", "crate", options)
-                .addForeignTable(
-                    """
-                    create foreign table doc.taxi_uri_test
-                    (passenger_count bigint) server pq
-                    """
-                );
+        e.addServer("pq_uri", "parquet", "crate", options);
+        e.addForeignTable(
+            """
+            create foreign table doc.taxi_uri_test (
+                passenger_count bigint
+            ) server pq
+            """
+        );
 
 
-        RelationMetadata.ForeignTable noFilesForeignTable = executor.resolveTableInfo("taxi_uri_test");
+        RelationMetadata.ForeignTable noFilesForeignTable = e.resolveTableInfo("taxi_uri_test");
         Server noFilesServer = new Server("pq_uri", "parquet", "crate", Map.of(), options);
         CoordinatorTxnCtx coordinator = CoordinatorTxnCtx.systemTransactionContext();
         Role role = Role.CRATE_USER;
-        NodeContext nodeCtx = createNodeContext(List.of(role));
-        ParquetForeignDataWrapper fdw = new ParquetForeignDataWrapper(new InputFactory(nodeCtx));
         assertThatThrownBy(() -> {
-            fdw.getIterator(role, noFilesServer, noFilesForeignTable, coordinator, List.of(executor.asSymbol("taxi_uri_test.passenger_count")), Literal.BOOLEAN_TRUE).get();
+            fdw.getIterator(role, noFilesServer, noFilesForeignTable, coordinator, List.of(e.asSymbol("taxi_uri_test.passenger_count")), Literal.BOOLEAN_TRUE).get();
         }).isInstanceOf(InvalidArgumentException.class)
         .hasMessageMatching("Unsupported URI scheme: unsupportedURI");
     }

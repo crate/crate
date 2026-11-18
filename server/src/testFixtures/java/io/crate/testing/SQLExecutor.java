@@ -191,7 +191,7 @@ import io.crate.statistics.TableStats;
  *
  * Can be used for unit-tests tests which don't require the full execution-layer/nodes to be started.
  */
-public class SQLExecutor {
+public class SQLExecutor implements AutoCloseable {
 
     public final Sessions sqlOperations;
     public final Analyzer analyzer;
@@ -1064,5 +1064,10 @@ public class SQLExecutor {
 
     public Rule.Context ruleContext() {
       return new Rule.Context(planStats, CoordinatorTxnCtx.systemTransactionContext(), nodeCtx, UnaryOperator.identity(), null);
+    }
+
+    @Override
+    public void close() throws IOException {
+        this.foreignDataWrappers.close();
     }
 }

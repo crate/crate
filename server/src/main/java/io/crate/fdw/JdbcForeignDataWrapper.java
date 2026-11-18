@@ -21,6 +21,7 @@
 
 package io.crate.fdw;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -105,6 +106,10 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
         this.settings = settings;
         this.inputFactory = inputFactory;
         this.executor = executor;
+    }
+
+    @Override
+    public void close() throws IOException {
     }
 
     @Override

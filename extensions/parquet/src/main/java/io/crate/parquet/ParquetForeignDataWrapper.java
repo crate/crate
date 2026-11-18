@@ -23,12 +23,14 @@ package io.crate.parquet;
 
 import static io.crate.types.DataTypes.STRING_ARRAY;
 
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.opendal.AsyncExecutor;
 import org.apache.opendal.AsyncOperator;
 import org.apache.opendal.Operator;
 import org.apache.opendal.ServiceConfig.S3;
@@ -36,6 +38,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import dev.hardwood.InputFile;
+import io.crate.common.io.IOUtils;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.exceptions.InvalidArgumentException;
@@ -60,6 +63,7 @@ import io.crate.role.Role;
 
 public class ParquetForeignDataWrapper implements ForeignDataWrapper {
 
+    private final SharedAsyncExecutor sharedAsyncExecutor;
     private final InputFactory inputFactory;
     private final Setting<List<String>> filesSetting = Setting.listSetting("files", new ArrayList<>(), s -> s, STRING_ARRAY);
     private final Setting<String> protocolSetting = Setting.simpleString("protocol");
@@ -67,7 +71,8 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
     private final List<Setting<?>> mandatoryServerOptions = List.of(filesSetting);
     private final List<Setting<?>> optionalServerOptions = List.of(protocolSetting, regionSetting);
 
-    public static List<InputFile> urisToInputFiles(Role currentUser,
+    public static List<InputFile> urisToInputFiles(AsyncExecutor asyncExecutor,
+                                                   Role currentUser,
                                                    List<String> uris,
                                                    Settings options) {
         List<InputFile> inputFiles = new ArrayList<>();
@@ -80,21 +85,26 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
                 }
                 inputFiles.add(InputFile.of(Path.of(uri.getPath())));
             } else if (scheme.equals("s3")) {
-                SharedAsyncExecutor sharedAsyncExecutor = SharedAsyncExecutor.getInstance(options);
-                var executor = sharedAsyncExecutor.asyncExecutor();
                 S3URI s3uri = S3URI.of(URI.create(p));
                 S3 s3 = S3Env.getServiceConfig(s3uri, options);
-                Operator operator = AsyncOperator.of(s3, executor).blocking();
+                Operator operator = AsyncOperator.of(s3, asyncExecutor).blocking();
                 inputFiles.add(new OpenDALInputFile(operator, s3uri.path()));
             } else {
+                IOUtils.closeWhileHandlingException(inputFiles);
                 throw new InvalidArgumentException("Unsupported URI scheme: " + scheme);
             }
         }
         return inputFiles;
     }
 
-    public ParquetForeignDataWrapper(InputFactory inputFactory) {
+    public ParquetForeignDataWrapper(Settings settings, InputFactory inputFactory) {
+        this.sharedAsyncExecutor = SharedAsyncExecutor.getInstance(settings);
         this.inputFactory = inputFactory;
+    }
+
+    @Override
+    public void close() throws IOException {
+        sharedAsyncExecutor.close();
     }
 
     @Override
@@ -139,16 +149,19 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
             });
         }
 
-        List<InputFile> inputFiles = urisToInputFiles(currentUser, pathsToFiles, options);
-        BatchIterator<Row> it = new ParquetBatchIterator(inputFiles, columns);
 
         SourceSymbols sourceRefs = new InputColumns.SourceSymbols(columns);
         List<Symbol> inputColumns = InputColumns.create(collect, sourceRefs);
         Context<CollectExpression<Row, ?>> inputCtx = inputFactory.ctxForInputColumns(txnCtx, inputColumns);
-        InputRowProjector inputRowProjector = new InputRowProjector(inputCtx.topLevelInputs(),
-                inputCtx.expressions());
-        it = inputRowProjector.apply(it);
+        InputRowProjector inputRowProjector = new InputRowProjector(
+            inputCtx.topLevelInputs(),
+            inputCtx.expressions()
+        );
 
+        AsyncExecutor asyncExecutor = sharedAsyncExecutor.asyncExecutor();
+        List<InputFile> inputFiles = urisToInputFiles(asyncExecutor, currentUser, pathsToFiles, options);
+        BatchIterator<Row> it = new ParquetBatchIterator(inputFiles, columns);
+        it = inputRowProjector.apply(it);
         return CompletableFuture.completedFuture(it);
     }
 }

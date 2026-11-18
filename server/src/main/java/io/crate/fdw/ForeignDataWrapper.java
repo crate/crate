@@ -21,6 +21,7 @@
 
 package io.crate.fdw;
 
+import java.io.Closeable;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -36,7 +37,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.role.Role;
 import io.crate.statistics.Stats;
 
-public interface ForeignDataWrapper {
+public interface ForeignDataWrapper extends Closeable {
 
     default List<Setting<?>> mandatoryServerOptions() {
         return List.of();
