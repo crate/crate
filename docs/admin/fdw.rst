@@ -85,6 +85,24 @@ system::
 
    Only `DQL` (Data Query Language) statements are supported on foreign tables.
 
+.. _administration-fdw-statistics:
+
+Collecting statistics on foreign tables
+=======================================
+
+In order to collect statistics on foreign tables via :ref:`analyze`, a user
+mapping for the ``crate`` superuser on the foreign server, pointing to a
+remote user with read access to the foreign table is required
+(ref:`ref-create-user-mapping`).
+
+For example::
+
+  CREATE USER MAPPING FOR crate
+  SERVER remote
+  OPTIONS (
+    "user" 'remote_user',
+    password '<PASSWORD>'
+  )
 
 .. _administration-fdw-jdbc:
 
