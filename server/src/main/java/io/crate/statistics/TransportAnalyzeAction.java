@@ -174,6 +174,10 @@ public final class TransportAnalyzeAction {
                         systemTxnCtx,
                         List.of()
                     ))
+                    .exceptionally(err -> {
+                        LOGGER.warn("Skipping statistics collection for foreign table {}: {}", foreignTable.ident(), err.getMessage(), err);
+                        return Stats.EMPTY;
+                    })
                     .thenAccept(foreignStats -> {
                         if (foreignStats != null && !foreignStats.isEmpty()) {
                             entries.put(foreignTable.ident(), foreignStats);
