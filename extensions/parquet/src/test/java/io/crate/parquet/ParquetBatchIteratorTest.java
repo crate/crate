@@ -37,6 +37,7 @@ import org.apache.opendal.AsyncExecutor;
 import org.apache.opendal.AsyncOperator;
 import org.apache.opendal.Operator;
 import org.apache.opendal.ServiceConfig;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -91,6 +92,11 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                         steering_wheel_count smallint, total_amount_earned decimal(18,3),
                         bstr bit, ip_address ip, ip_address_long ip, car_weight float)
                         """);
+    }
+
+    @After
+    public void closeExecutor() throws Exception {
+        e.close();
     }
 
     @Test
@@ -721,9 +727,8 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_raises_if_cratedb_foreign_table_schema_is_incompatible_with_the_underlying_parquet_schema()
             throws Exception {
-        SQLExecutor executor = SQLExecutor.of(clusterService)
-                .addTable("create table doc.taxi_wrong_data_type (total_amount_earned text)");
-        DocTableInfo table = executor.resolveTableInfo("doc.taxi_wrong_data_type");
+        e.addTable("create table doc.taxi_wrong_data_type (total_amount_earned text)");
+        DocTableInfo table = e.resolveTableInfo("doc.taxi_wrong_data_type");
 
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("total_amount_earned")));
@@ -742,9 +747,8 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_error_message_falls_back_to_physical_type_if_no_logical_type() throws Exception {
-        SQLExecutor executor = SQLExecutor.of(clusterService)
-                .addTable("create table doc.taxi_wrong_data_type (trip_distance text)");
-        DocTableInfo table = executor.resolveTableInfo("doc.taxi_wrong_data_type");
+        e.addTable("create table doc.taxi_wrong_data_type (trip_distance text)");
+        DocTableInfo table = e.resolveTableInfo("doc.taxi_wrong_data_type");
 
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("trip_distance")));
@@ -768,9 +772,8 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_raises_error_if_object_dynamic_not_stored_as_json_in_parquet() throws Exception {
         // car_sensor is a parquet STRUCT in our test data
-        SQLExecutor executor = SQLExecutor.of(clusterService)
-                .addTable("create table doc.taxi_wrong_data_type (car_sensor object(dynamic))");
-        DocTableInfo table = executor.resolveTableInfo("doc.taxi_wrong_data_type");
+        e.addTable("create table doc.taxi_wrong_data_type (car_sensor object(dynamic))");
+        DocTableInfo table = e.resolveTableInfo("doc.taxi_wrong_data_type");
 
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("car_sensor")));
@@ -799,9 +802,8 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_raises_error_if_object_strict_not_stored_as_struct_in_parquet() throws Exception {
         // car_sensor_json is a parquet JSON in our test data
-        SQLExecutor executor = SQLExecutor.of(clusterService)
-                .addTable("create table doc.taxi_wrong_data_type (car_sensor_json object(strict))");
-        DocTableInfo table = executor.resolveTableInfo("doc.taxi_wrong_data_type");
+        e.addTable("create table doc.taxi_wrong_data_type (car_sensor_json object(strict))");
+        DocTableInfo table = e.resolveTableInfo("doc.taxi_wrong_data_type");
 
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("car_sensor_json")));
@@ -825,9 +827,8 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_raises_if_foreign_table_type_does_not_match_actual_type_in_parquet() throws Exception {
         // trip_type is stored as a string in parquet, purposely declare it "incorrectly" as int for the test
-        SQLExecutor executor = SQLExecutor.of(clusterService)
-                .addTable("create table doc.taxi_wrong_data_type (trip_type int)");
-        DocTableInfo table = executor.resolveTableInfo("doc.taxi_wrong_data_type");
+        e.addTable("create table doc.taxi_wrong_data_type (trip_type int)");
+        DocTableInfo table = e.resolveTableInfo("doc.taxi_wrong_data_type");
 
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("trip_type")));
@@ -849,9 +850,8 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_raises_if_ip_type_not_stored_as_long_or_string() throws Exception {
         // car_sensor is stored as a struct in parquet, purposely declare it "incorrectly" as int for the test
-        SQLExecutor executor = SQLExecutor.of(clusterService)
-                .addTable("create table doc.taxi_wrong_data_type (car_sensor ip)");
-        DocTableInfo table = executor.resolveTableInfo("doc.taxi_wrong_data_type");
+        e.addTable("create table doc.taxi_wrong_data_type (car_sensor ip)");
+        DocTableInfo table = e.resolveTableInfo("doc.taxi_wrong_data_type");
 
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("car_sensor")));
