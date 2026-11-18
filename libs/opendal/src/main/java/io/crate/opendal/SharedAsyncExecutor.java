@@ -21,7 +21,6 @@
 
 package io.crate.opendal;
 
-import java.io.Closeable;
 import java.io.IOException;
 
 import org.apache.opendal.AsyncExecutor;
@@ -33,14 +32,14 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
  * Wrapper around OpenDAL AsyncExecutor.
  * Holds a singleton instance and manages its lifecycle.
  */
-public class SharedAsyncExecutor implements Closeable {
+public class SharedAsyncExecutor implements AutoCloseable {
 
     private static SharedAsyncExecutor INSTANCE = null;
     private final AsyncExecutor asyncExecutor;
 
     private int refs = 0;
 
-    public static SharedAsyncExecutor getInstance(Settings settings) {
+    public static synchronized SharedAsyncExecutor getInstance(Settings settings) {
         if (INSTANCE == null) {
             INSTANCE = new SharedAsyncExecutor(settings);
         }
@@ -58,7 +57,7 @@ public class SharedAsyncExecutor implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public synchronized void close() throws IOException {
         refs--;
         if (refs == 0) {
             INSTANCE = null;

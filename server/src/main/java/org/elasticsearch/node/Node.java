@@ -717,6 +717,8 @@ public class Node implements Closeable {
             AtomicReference<Injector> injectorRef = new AtomicReference<>();
             Provider<DependencyCarrier> dependencyCarrier = () -> injectorRef.get().getInstance(DependencyCarrier.class);
 
+            var foreignDataWrappers = new ForeignDataWrappers(settings, clusterService, nodeContext, threadPool);
+            resourcesToClose.add(foreignDataWrappers);
             Planner planner = new Planner(
                 settings,
                 clusterService,
@@ -724,7 +726,7 @@ public class Node implements Closeable {
                 new NumberOfShards(clusterService),
                 new CreateTableClient(client),
                 rolesManager,
-                new ForeignDataWrappers(settings, clusterService, nodeContext, threadPool),
+                foreignDataWrappers,
                 sessionSettingRegistry
             );
             RepositoryService repositoryService = new RepositoryService(clusterService, client);
@@ -863,6 +865,7 @@ public class Node implements Closeable {
                     b.bind(BlobSchemaInfo.class).toInstance((BlobSchemaInfo) schemas.getSystemSchema(BlobSchemaInfo.NAME));
                     b.bind(TasksService.class).toInstance(tasksService);
                     b.bind(NodeLimits.class).toInstance(nodeLimits);
+                    b.bind(ForeignDataWrappers.class).toInstance(foreignDataWrappers);
                 }
             );
             injector = modules.createInjector();
@@ -1268,6 +1271,8 @@ public class Node implements Closeable {
         toClose.add(() -> stopWatch.stop().start("netty_bootstrap"));
         toClose.add(injector.getInstance(NettyBootstrap.class));
 
+        toClose.add(() -> stopWatch.stop().start("foreign_data_wrappers"));
+        toClose.add(injector.getInstance(ForeignDataWrappers.class));
         toClose.add(() -> stopWatch.stop().start("table_stats_service"));
         toClose.add(injector.getInstance(TableStatsService.class));
 
