@@ -12,6 +12,7 @@ update the list of published tables on the current cluster.
 .. SEEALSO::
 
     :ref:`CREATE PUBLICATION <sql-create-publication>`
+
     :ref:`DROP PUBLICATION <sql-drop-publication>`
 
 
@@ -42,6 +43,9 @@ the tables removed from the publication.
   Replicated tables on a subscriber cluster will turn into regular writable
   tables after excluding them from a publication on a publishing cluster.
 
+``ALTER PUBLICATION`` isn't supported for publications that were created with
+``FOR ALL TABLES``.
+
 Parameters
 ==========
 
@@ -49,10 +53,10 @@ Parameters
   The name of the publication to be updated.
 
 **ADD TABLE**
-  Add one or more tables to the list of existing publications.
+  Add one or more tables to the publication.
 
 **DROP TABLE**
-   Remove one or more tables from the list of existing publications.
+  Remove one or more tables from the publication.
 
 **SET TABLE**
-    Replace the list of existing publications with the new one.
+  Replace the tables in the publication with the given tables.
