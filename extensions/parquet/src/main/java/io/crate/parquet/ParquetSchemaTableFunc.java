@@ -45,6 +45,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.opendal.SharedAsyncExecutor;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.types.DataTypes;
@@ -96,30 +97,36 @@ public class ParquetSchemaTableFunc extends TableFunctionImplementation<String> 
         }
         Roles roles = nodeContext.roles();
         Role user = roles.getUser(txnCtx.sessionSettings().userName());
-        List<InputFile> inputFiles = ParquetForeignDataWrapper.urisToInputFiles(user, List.of(uri), Settings.EMPTY);
-
-        try (ParquetFileReader reader = ParquetFileReader.openAll(inputFiles)) {
-            FileSchema fileSchema = reader.getFileSchema();
-            List<ColumnSchema> columns = fileSchema.getColumns();
-            ArrayList<Row> result = new ArrayList<>();
-            for (var column : columns) {
-                String name = column.name();
-                PhysicalType type = column.type();
-                RepetitionType repetitionType = column.repetitionType();
-                LogicalType logicalType = column.logicalType();
-                RowN row = new RowN(
-                    name,
-                    type.toString(),
-                    column.typeLength(),
-                    repetitionType == null ? null : repetitionType.toString(),
-                    logicalType == null ? null : logicalType.toString(),
-                    column.columnIndex()
-                );
-                result.add(row);
+        try (var sharedAsyncExecutor = SharedAsyncExecutor.getInstance(Settings.EMPTY)) {
+            List<InputFile> inputFiles = ParquetForeignDataWrapper.urisToInputFiles(
+                sharedAsyncExecutor.asyncExecutor(),
+                user,
+                List.of(uri),
+                Settings.EMPTY
+            );
+            try (ParquetFileReader reader = ParquetFileReader.openAll(inputFiles)) {
+                FileSchema fileSchema = reader.getFileSchema();
+                List<ColumnSchema> columns = fileSchema.getColumns();
+                ArrayList<Row> result = new ArrayList<>();
+                for (var column : columns) {
+                    String name = column.name();
+                    PhysicalType type = column.type();
+                    RepetitionType repetitionType = column.repetitionType();
+                    LogicalType logicalType = column.logicalType();
+                    RowN row = new RowN(
+                        name,
+                        type.toString(),
+                        column.typeLength(),
+                        repetitionType == null ? null : repetitionType.toString(),
+                        logicalType == null ? null : logicalType.toString(),
+                        column.columnIndex()
+                    );
+                    result.add(row);
+                }
+                return result;
             }
-            return result;
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
         }
     }
 }

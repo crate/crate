@@ -23,6 +23,8 @@ package io.crate.fdw;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -55,7 +57,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.role.Roles;
 
 @Singleton
-public class ForeignDataWrappers implements CollectSource {
+public class ForeignDataWrappers implements CollectSource, Closeable {
 
     public static Setting<Boolean> ALLOW_LOCAL = Setting.boolSetting(
         "fdw.allow_local",
@@ -96,6 +98,13 @@ public class ForeignDataWrappers implements CollectSource {
                 "foreign-data wrapper " + fdw + " does not exist");
         }
         return foreignDataWrapper;
+    }
+
+    @Override
+    public void close() throws IOException {
+        for (var wrapper : wrappers.values()) {
+            wrapper.close();
+        }
     }
 
     @Override
