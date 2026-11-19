@@ -73,6 +73,10 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
     private final List<Setting<?>> mandatoryServerOptions = List.of(filesSetting);
     private final List<Setting<?>> optionalServerOptions = List.of(protocolSetting, regionSetting);
 
+    public String name() {
+        return "parquet";
+    }
+
     public static List<InputFile> urisToInputFiles(AsyncExecutor asyncExecutor,
                                                    Role currentUser,
                                                    List<String> uris,

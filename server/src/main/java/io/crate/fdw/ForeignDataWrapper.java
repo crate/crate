@@ -39,6 +39,8 @@ import io.crate.statistics.Stats;
 
 public interface ForeignDataWrapper extends Closeable {
 
+    abstract String name();
+
     default List<Setting<?>> mandatoryServerOptions() {
         return List.of();
     }
