@@ -22,6 +22,7 @@
 package io.crate.parquet;
 
 import static io.crate.parquet.ParquetToCrate.readColumn;
+import static io.crate.parquet.Predicates.createFilterPredicate;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -46,6 +47,9 @@ import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.LtOperator;
 import io.crate.expression.operator.LteOperator;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 
 public class ParquetBatchIterator implements BatchIterator<Row> {
@@ -74,6 +78,22 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
         this.predicates = predicates;
         this.cells = new Object[columns.size()];
         this.row = new RowN(cells);
+    }
+
+    private FilterPredicate createFilter() {
+        if (predicates instanceof Function) {
+            Function func = (Function) predicates;
+            FilterPredicate.Operator hardwoodOperator = FILTER_PUSHDOWN_OPERATORS.get(func.name());
+            if (hardwoodOperator == null) {
+                throw new UnsupportedOperationException("Unexpected error: Cannot push predicate down for operator: " + func.name());
+            }
+            Symbol left = func.arguments().get(0);
+            Symbol right = func.arguments().get(1);
+            if (left instanceof Reference ref && right instanceof Literal<?> literal) {
+                return createFilterPredicate(ref, literal.value(), hardwoodOperator);
+            }
+        }
+        return null;
     }
 
     private void raiseIfKilled() {
@@ -171,6 +191,10 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
                 builder.projection(ColumnProjection.columns(columns.stream()
                     .map(ref -> ref.column().fqn())
                     .toArray(String[]::new)));
+            }
+            FilterPredicate filter = createFilter();
+            if (filter != null) {
+                builder.filter(filter);
             }
             rowReader = builder.build();
         } catch (IOException e) {
