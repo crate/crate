@@ -46,7 +46,7 @@ public class FormatCodes {
      * </pre>
      */
     static FormatCode[] fromBuffer(ByteBuf buffer) {
-        short numFormatCodes = buffer.readShort();
+        int numFormatCodes = buffer.readUnsignedShort();
         if (numFormatCodes == 0) {
             return EMPTY_FORMAT_CODES;
         }
