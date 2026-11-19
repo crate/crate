@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
@@ -73,7 +74,7 @@ public class AlterTableOperationTest extends ESTestCase {
             .build();
 
         RelationName t1 = new RelationName("doc", "t1");
-        var oneTablePublished = Map.of("pub1", new Publication("owner", false, List.of(t1)));
+        var oneTablePublished = Map.of("pub1", new Publication("owner", false, List.of(new TableOrPartition(t1, null))));
 
         assertThatThrownBy(() -> AlterTableClient.validateSettingsForPublishedTables(t1, settings, oneTablePublished, DEFAULT_SCOPED_SETTINGS))
             .isExactlyInstanceOf(IllegalArgumentException.class)

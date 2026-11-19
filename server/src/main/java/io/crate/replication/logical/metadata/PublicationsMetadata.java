@@ -30,6 +30,7 @@ import java.util.Objects;
 
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -124,7 +125,7 @@ public class PublicationsMetadata extends AbstractNamedDiffable<Metadata.Custom>
                     if (parser.nextToken() == XContentParser.Token.START_OBJECT) {
                         String owner = null;
                         boolean forAllTables = false;
-                        var tables = new ArrayList<RelationName>();
+                        var targets = new ArrayList<TableOrPartition>();
                         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
                             if ("owner".equals(parser.currentName())) {
                                 parser.nextToken();
@@ -137,14 +138,14 @@ public class PublicationsMetadata extends AbstractNamedDiffable<Metadata.Custom>
                             if ("tables".equals(parser.currentName())) {
                                 parser.nextToken();
                                 while ((parser.nextToken()) != XContentParser.Token.END_ARRAY) {
-                                    tables.add(RelationName.fromIndexName(parser.text()));
+                                    targets.add(new TableOrPartition(RelationName.fromIndexName(parser.text()), null));
                                 }
                             }
                         }
                         if (owner == null) {
                             throw new ElasticsearchParseException("failed to parse publication, expected field 'owner' in object");
                         }
-                        publications.put(name, new Publication(owner, forAllTables, tables));
+                        publications.put(name, new Publication(owner, forAllTables, targets));
                     }
                 }
             }
@@ -185,7 +186,7 @@ public class PublicationsMetadata extends AbstractNamedDiffable<Metadata.Custom>
 
     public boolean isPublished(RelationName relation) {
         for (Publication publication : publications().values()) {
-            if (publication.isForAllTables() || publication.tables().contains(relation)) {
+            if (publication.isForAllTables() || publication.targets().contains(new TableOrPartition(relation, null))) {
                 return true;
             }
         }

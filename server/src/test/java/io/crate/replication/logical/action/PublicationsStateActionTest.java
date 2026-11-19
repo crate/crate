@@ -34,6 +34,7 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
@@ -66,6 +67,19 @@ import io.crate.testing.SQLExecutor;
 public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTest {
 
     private MockLogAppender appender;
+
+    private static TableOrPartition target(RelationName relationName) {
+        return new TableOrPartition(relationName, null);
+    }
+
+    private static TableOrPartition target(String relationName) {
+        return target(RelationName.fromIndexName(relationName));
+    }
+
+    private static TableOrPartition target(String relationName, List<String> partitionValues) {
+        RelationName table = RelationName.fromIndexName(relationName);
+        return new TableOrPartition(table, new PartitionName(table, partitionValues).ident());
+    }
 
     @Before
     public void appendLogger() throws Exception {
@@ -197,8 +211,8 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             .startShards("doc.t1", "doc.t2");
         var publication = new Publication("publisher", false,
             List.of(
-                RelationName.of(QualifiedName.of("t1"), DocSchemaInfo.NAME),
-                RelationName.of(QualifiedName.of("t2"), DocSchemaInfo.NAME)
+                target(RelationName.of(QualifiedName.of("t1"), DocSchemaInfo.NAME)),
+                target(RelationName.of(QualifiedName.of("t2"), DocSchemaInfo.NAME))
             )
         );
 
@@ -280,7 +294,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         var publication = new Publication(
             "some_user",
             false,
-            List.of(RelationName.fromIndexName("t1"), RelationName.fromIndexName("doc.t2"))
+            List.of(target("t1"), target("doc.t2"))
         );
 
         Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
@@ -364,7 +378,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         var publication = new Publication(
             "some_user",
             false,
-            List.of(RelationName.fromIndexName("p1"))
+            List.of(target("p1"))
         );
 
         Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
@@ -381,6 +395,51 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         List<IndexMetadata> indices = metadata.getIndices(new RelationName("doc", "p1"), List.of(), true, im -> im);
         IndexMetadata indexMetadata = indices.getFirst();
         assertThat(REPLICATION_INDEX_ROUTING_ACTIVE.get(indexMetadata.getSettings())).isFalse();
+    }
+
+    @Test
+    public void test_resolve_relation_names_for_concrete_partition_includes_only_target_partition() throws Exception {
+        var user = userOf("dummy");
+        Roles roles = new Roles() {
+            @Override
+            public Collection<Role> roles() {
+                return List.of(user);
+            }
+
+            @Override
+            public boolean hasPrivilege(Role user, Permission permission, Securable securable, @Nullable String ident) {
+                return true; // This test case doesn't check privileges.
+            }
+        };
+
+        var relationName = new RelationName("doc", "p1");
+        var partitionName = new PartitionName(relationName, List.of("1"));
+        SQLExecutor.of(clusterService)
+            .addTable(
+                "CREATE TABLE doc.p1 (id int, p int) PARTITIONED BY (p)",
+                List.of("1"),
+                List.of("2")
+            )
+            .startShards("doc.p1");
+        var publication = new Publication(
+            "some_user",
+            false,
+            List.of(target("p1", List.of("1")))
+        );
+
+        Metadata.Builder metadataBuilder = Metadata.builder(clusterService.state().metadata().currentMaxTableOid());
+        publication.resolveCurrentRelations(
+            clusterService.state(),
+            roles,
+            user,
+            user,
+            "dummy",
+            metadataBuilder
+        );
+        Metadata metadata = metadataBuilder.build();
+
+        List<IndexMetadata> indices = metadata.getIndices(relationName, List.of(), true, im -> im);
+        assertThat(indices.stream().map(im -> im.getIndex().name()).toList()).containsExactly(partitionName.asIndexName());
     }
 
     @Test

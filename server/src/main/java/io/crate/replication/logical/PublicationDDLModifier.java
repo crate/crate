@@ -23,6 +23,7 @@ package io.crate.replication.logical;
 
 import java.util.ArrayList;
 
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 
@@ -49,7 +50,13 @@ public class PublicationDDLModifier implements DDLClusterStateModifier {
             var tables = new ArrayList<>(publication.tables());
             // handling potential duplicates as CREATE PUBLICATION can list same table multiple times
             tables.removeIf(relationName::equals);
-            updated.publications().put(entry.getKey(), new Publication(publication.owner(), false, tables));
+            updated.publications().put(
+                entry.getKey(),
+                new Publication(
+                    publication.owner(),
+                    false,
+                    tables.stream().map(t -> new TableOrPartition(t, null)).toList())
+            );
             isUpdated = true;
         }
         if (isUpdated == false) {

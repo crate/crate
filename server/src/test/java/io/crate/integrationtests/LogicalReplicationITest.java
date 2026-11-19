@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -44,10 +45,12 @@ import org.junit.Test;
 import io.crate.exceptions.DependentObjectsExists;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.CreateSubscriptionException;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.role.Role;
@@ -178,6 +181,46 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertThat(executeOnPublisher(stmt)).hasRows(expected);
         assertThat(executeOnPublisherAsUser(stmt, roles.getUser("al_user"))).hasRows(expected);
         assertThat(executeOnPublisherAsUser(stmt, roles.getUser("other_user"))).hasRowCount(0);
+    }
+
+    @Test
+    public void test_create_publication_for_concrete_partition() {
+        executeOnPublisher(
+            "CREATE TABLE doc.parted (id INT, p INT) " +
+            "PARTITIONED BY (p) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
+        executeOnPublisher("INSERT INTO doc.parted (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("REFRESH TABLE doc.parted");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.parted PARTITION (p = 1)");
+
+        PublicationsMetadata publicationsMetadata = publisherCluster.getInstance(ClusterService.class)
+            .state()
+            .metadata()
+            .custom(PublicationsMetadata.TYPE);
+        var publication = publicationsMetadata.publications().get("pub1");
+        var relationName = new RelationName("doc", "parted");
+        assertThat(publication.targets()).containsExactly(
+            new TableOrPartition(relationName, new PartitionName(relationName, List.of("1")).ident()));
+    }
+
+    @Test
+    public void test_create_publication_for_concrete_partition_with_parameter() {
+        executeOnPublisher(
+            "CREATE TABLE doc.parted (id INT, p INT) " +
+            "PARTITIONED BY (p) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
+        executeOnPublisher("INSERT INTO doc.parted (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("REFRESH TABLE doc.parted");
+        publisherSqlExecutor.exec(
+            "CREATE PUBLICATION pub1 FOR TABLE doc.parted PARTITION (p = ?)",
+            new Object[] { 1 });
+
+        PublicationsMetadata publicationsMetadata = publisherCluster.getInstance(ClusterService.class)
+            .state()
+            .metadata()
+            .custom(PublicationsMetadata.TYPE);
+        var publication = publicationsMetadata.publications().get("pub1");
+        var relationName = new RelationName("doc", "parted");
+        assertThat(publication.targets()).containsExactly(
+            new TableOrPartition(relationName, new PartitionName(relationName, List.of("1")).ident()));
     }
 
     @Test
@@ -715,7 +758,9 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                 var metadata = SubscriptionsMetadata.get(currentMetadata);
                 var subscription = metadata.subscription().get(subscriptionName);
                 if (subscription != null) {
-                    var currentState = subscription.relations().get(RelationName.fromIndexName("doc.t1")).state();
+                    var currentState = subscription.relations()
+                        .get(new TableOrPartition(RelationName.fromIndexName("doc.t1"), null))
+                        .state();
                     synchronized (subscriptionStates) {
                         var size = subscriptionStates.size();
                         if (size == 0 || subscriptionStates.get(size - 1).equals(currentState) == false) {

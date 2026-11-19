@@ -24,9 +24,13 @@ package io.crate.replication.logical.action;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.IOException;
 import java.util.List;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import io.crate.exceptions.RelationUnknown;
@@ -38,6 +42,10 @@ import io.crate.testing.SQLExecutor;
 
 public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitTest {
 
+    private static TableOrPartition target(String table) {
+        return new TableOrPartition(RelationName.fromIndexName(table), null);
+    }
+
     @Test
     public void test_unknown_table_raises_exception() {
         var pub = new Publication("owner", false, List.of());
@@ -45,7 +53,7 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
         var request = new TransportAlterPublication.Request(
             "pub1",
             AlterPublication.Operation.SET,
-            List.of(RelationName.fromIndexName("t1"))
+            List.of(target("t1"))
         );
 
         assertThatThrownBy(() -> TransportAlterPublication.updatePublication(request, metadata, pub))
@@ -54,7 +62,7 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void test_set_tables_on_existing_publication() throws Exception {
-        var oldPublication = new Publication("owner", false, List.of(RelationName.fromIndexName("t1")));
+        var oldPublication = new Publication("owner", false, List.of(target("t1")));
 
         SQLExecutor.of(clusterService)
             .addTable("create table t2 (x int)");
@@ -63,7 +71,7 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
         var request = new TransportAlterPublication.Request(
             "pub1",
             AlterPublication.Operation.SET,
-            List.of(RelationName.fromIndexName("t2"))
+            List.of(target("t2"))
         );
 
         var newPublication = TransportAlterPublication.updatePublication(request, metadata, oldPublication);
@@ -73,14 +81,14 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void test_add_table_on_existing_publication() throws Exception {
-        var oldPublication = new Publication("owner", false, List.of(RelationName.fromIndexName("t1")));
+        var oldPublication = new Publication("owner", false, List.of(target("t1")));
         SQLExecutor.of(clusterService)
             .addTable("create table t2 (x int)");
         Metadata metadata = clusterService.state().metadata();
         var request = new TransportAlterPublication.Request(
             "pub1",
             AlterPublication.Operation.ADD,
-            List.of(RelationName.fromIndexName("t2"))
+            List.of(target("t2"))
         );
 
         var newPublication = TransportAlterPublication.updatePublication(request, metadata, oldPublication);
@@ -94,7 +102,7 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
         var oldPublication = new Publication(
             "owner",
             false,
-            List.of(RelationName.fromIndexName("t1"), RelationName.fromIndexName("t2"))
+            List.of(target("t1"), target("t2"))
         );
         SQLExecutor.of(clusterService)
             .addTable("create table t1 (x int)")
@@ -103,11 +111,64 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
         var request = new TransportAlterPublication.Request(
             "pub1",
             AlterPublication.Operation.DROP,
-            List.of(RelationName.fromIndexName("t2"))
+            List.of(target("t2"))
         );
 
         var newPublication = TransportAlterPublication.updatePublication(request, metadata, oldPublication);
         assertThat(newPublication).isNotEqualTo(oldPublication);
         assertThat(newPublication.tables()).containsExactly(RelationName.fromIndexName("t1"));
+    }
+
+    @Test
+    public void test_streaming_partition_targets() throws IOException {
+        var target = new TableOrPartition(new RelationName("doc", "t1"), "04132");
+        var request = new TransportAlterPublication.Request(
+            "pub1",
+            AlterPublication.Operation.ADD,
+            List.of(target)
+        );
+        var out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_5_0);
+        request.writeTo(out);
+
+        var in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_5_0);
+        var streamed = new TransportAlterPublication.Request(in);
+
+        assertThat(streamed).usingRecursiveComparison().isEqualTo(request);
+    }
+
+    @Test
+    public void test_streaming_table_targets_to_older_version() throws IOException {
+        var target = new TableOrPartition(new RelationName("doc", "t1"), null);
+        var request = new TransportAlterPublication.Request(
+            "pub1",
+            AlterPublication.Operation.ADD,
+            List.of(target)
+        );
+        var out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_4_0);
+        request.writeTo(out);
+
+        var in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_4_0);
+        var streamed = new TransportAlterPublication.Request(in);
+
+        assertThat(streamed).usingRecursiveComparison().isEqualTo(request);
+    }
+
+    @Test
+    public void test_cannot_stream_partition_targets_to_older_version() {
+        var request = new TransportAlterPublication.Request(
+            "pub1",
+            AlterPublication.Operation.ADD,
+            List.of(new TableOrPartition(new RelationName("doc", "t1"), "04132"))
+        );
+        var out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_4_0);
+
+        assertThatThrownBy(() -> request.writeTo(out))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Cannot write partition publication target to a node before");
     }
 }

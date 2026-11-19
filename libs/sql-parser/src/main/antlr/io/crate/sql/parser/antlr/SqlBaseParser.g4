@@ -631,7 +631,8 @@ createStmt
         OPEN_ROUND_BRACKET? options=spaceSeparatedIdents CLOSE_ROUND_BRACKET?))?     #createRole
     | CREATE ( OR REPLACE )? VIEW name=qname AS queryOptParens                       #createView
     | CREATE PUBLICATION name=ident
-        (FOR ALL TABLES | FOR TABLE qname ASTERISK?  (COMMA qname ASTERISK? )*)?     #createPublication
+        (FOR ALL TABLES | FOR TABLE tableWithPartition ASTERISK?
+            (COMMA tableWithPartition ASTERISK? )*)?                                 #createPublication
     | CREATE SUBSCRIPTION name=ident CONNECTION conninfo=expr
           PUBLICATION publications=idents
           withProperties?                                                            #createSubscription
