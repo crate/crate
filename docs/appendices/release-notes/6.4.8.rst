@@ -48,3 +48,8 @@ Security Fixes
 
 - Mitigation for CVE-2026-114938 by disabling the ``UseBASE64Intrinsics`` JVM
   option.
+
+Fixes
+=====
+
+None
