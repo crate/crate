@@ -487,6 +487,37 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
     }
 
     @Test
+    public void test_subscribing_to_publication_for_concrete_partition_with_multiple_partition_columns() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p1 INT, p2 STRING) PARTITIONED BY (p1, p2) " +
+                "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p1, p2) VALUES (1, 1, 'foo'), (2, 1, 'bar')");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p1 = 1, p2 = 'foo')");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT AL TO " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        createSubscription("sub1", "pub1");
+
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            assertThat(executeOnSubscriber("SELECT id, p1, p2 FROM doc.t1 ORDER BY id")).hasRows(
+                "1| 1| foo"
+            );
+        });
+
+        executeOnPublisher("INSERT INTO doc.t1 (id, p1, p2) VALUES (3, 1, 'foo'), (4, 1, 'bar')");
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            assertThat(executeOnSubscriber("SELECT id, p1, p2 FROM doc.t1 ORDER BY id")).hasRows(
+                "1| 1| foo",
+                "3| 1| foo"
+            );
+        });
+    }
+
+    @Test
     public void test_can_subscribe_to_different_partitions_of_same_table() throws Exception {
         executeOnPublisher(
             "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
@@ -607,6 +638,14 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertThatThrownBy(() -> executeOnSubscriber("DELETE FROM doc.t1 WHERE p = 1"))
             .isInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("Cannot delete partition (p = 1) of relation \"doc.t1\" because it is included in logical replication subscription \"sub1\".");
+        assertThatThrownBy(() -> executeOnSubscriber("DELETE FROM doc.t1 WHERE p <= 2"))
+            .isInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("Cannot delete partition (p = 1) of relation \"doc.t1\" because it is included in logical replication subscription \"sub1\".");
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id")).hasRows(
+            "1| 1",
+            "2| 2"
+        );
 
         executeOnSubscriber("INSERT INTO doc.t1 (id, p) VALUES (3, 2)");
         executeOnSubscriber("REFRESH TABLE doc.t1");
@@ -637,6 +676,30 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnSubscriber("DELETE FROM doc.t1 WHERE p = 3 AND id = 6");
         executeOnSubscriber("REFRESH TABLE doc.t1");
         assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 WHERE p = 3")).hasRowCount(0L);
+    }
+
+    @Test
+    public void test_table_level_operations_are_rejected_while_partition_is_subscribed() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+            "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT AL TO " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+
+        createSubscription("sub1", "pub1");
+
+        assertThatThrownBy(() -> executeOnSubscriber("DROP TABLE doc.t1"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage(
+                "The relation \"doc.t1\" doesn't allow DROP operations, because it is included in a logical replication subscription.");
+        assertThatThrownBy(() -> executeOnSubscriber("ALTER TABLE doc.t1 ADD COLUMN x INT"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage(
+                "The relation \"doc.t1\" doesn't allow ALTER operations, because it is included in a logical replication subscription.");
     }
 
     @Test
