@@ -1,0 +1,25 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="pub" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="io.crate.bootstrap.CrateDB" />
+    <module name="crate-app" />
+    <option name="PROGRAM_PARAMETERS" value="-Cpath.home=$PROJECT_DIR$/sandbox/crate -Ccluster.name=pub -Chttp.port=4200 -Cpsql.port=5432 -Ctransport.tcp.port=4300" />
+    <!-- Netty uses Unsafe, disable warning, continue to allow it (See also https://github.com/netty/netty/pull/14975) -->
+    <option name="VM_PARAMETERS" value="-Dlog4j.shutdownHookEnabled=false -Dlog4j.skipJansi=true --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector --sun-misc-unsafe-memory-access=allow -XX:+HeapDumpOnOutOfMemoryError" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/app" />
+    <RunnerSettings RunnerId="Debug">
+      <option name="DEBUG_PORT" value="" />
+      <option name="TRANSPORT" value="0" />
+      <option name="LOCAL" value="true" />
+    </RunnerSettings>
+    <RunnerSettings RunnerId="JProfiler">
+      <option name="WINDOW" value="false" />
+    </RunnerSettings>
+    <RunnerSettings RunnerId="Profile " />
+    <RunnerSettings RunnerId="Run" />
+    <ConfigurationWrapper RunnerId="Debug" />
+    <ConfigurationWrapper RunnerId="Run" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
