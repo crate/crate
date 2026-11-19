@@ -28,6 +28,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.opendal.AsyncExecutor;
@@ -49,6 +50,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.pipeline.InputRowProjector;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputFactory.Context;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.ForeignDataWrapper;
 import io.crate.fdw.ServersMetadata.Server;
@@ -60,6 +62,10 @@ import io.crate.opendal.S3Env;
 import io.crate.opendal.S3URI;
 import io.crate.opendal.SharedAsyncExecutor;
 import io.crate.role.Role;
+import io.crate.expression.symbol.Literal;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.expression.symbol.Function;
 
 public class ParquetForeignDataWrapper implements ForeignDataWrapper {
 
@@ -70,6 +76,8 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
     private final Setting<String> regionSetting = Setting.simpleString("region");
     private final List<Setting<?>> mandatoryServerOptions = List.of(filesSetting);
     private final List<Setting<?>> optionalServerOptions = List.of(protocolSetting, regionSetting);
+
+    private static final Set<String> SUPPORTED_PREDICATE_PUSHDOWN_TYPES = Set.of(LongType.NAME, IntegerType.NAME);
 
     public static List<InputFile> urisToInputFiles(AsyncExecutor asyncExecutor,
                                                    Role currentUser,
@@ -109,6 +117,30 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
 
     @Override
     public boolean supportsQueryPushdown(Symbol query) {
+        if (query instanceof Function function) {
+            if (function.name().equals(AndOperator.NAME)) {
+                List<Symbol> predicates = AndOperator.split(query);
+                for (Symbol predicate : predicates) {
+                    if (!supportsQueryPushdown(predicate)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            if (!ParquetBatchIterator.FILTER_PUSHDOWN_OPERATORS.containsKey(function.name())) {
+                return false;
+            }
+
+            assert function.arguments().size() == 2;
+            Symbol lhs = function.arguments().get(0);
+            Symbol rhs = function.arguments().get(1);
+            if (!(lhs instanceof Reference ref && rhs instanceof Literal)
+                    || !SUPPORTED_PREDICATE_PUSHDOWN_TYPES.contains(ref.valueType().getName())) {
+                return false;
+            }
+            return true;
+        }
         return false;
     }
 
@@ -160,7 +192,7 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
 
         AsyncExecutor asyncExecutor = sharedAsyncExecutor.asyncExecutor();
         List<InputFile> inputFiles = urisToInputFiles(asyncExecutor, currentUser, pathsToFiles, options);
-        BatchIterator<Row> it = new ParquetBatchIterator(inputFiles, columns);
+        BatchIterator<Row> it = new ParquetBatchIterator(inputFiles, columns, query);
         it = inputRowProjector.apply(it);
         return CompletableFuture.completedFuture(it);
     }
