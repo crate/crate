@@ -1173,6 +1173,36 @@ memory used by Lucene for segments.
 
       This setting is deprecated and will be removed in a future release.
 
+.. _in_flight_requests_breaker:
+
+In-flight requests circuit breaker
+..................................
+
+Tracks the memory used by requests while they are received by a node, before
+they are processed. This includes requests between the nodes of a cluster and
+the content of compressed HTTP requests.
+
+The content of HTTP requests compressed with ``gzip`` or ``deflate`` (see the
+``Content-Encoding`` header) is accounted while it is decompressed, until the
+request is processed. If decompressing a request trips the circuit breaker, the
+request is rejected with ``429 Too Many Requests`` and the connection is closed.
+Requests already sent on the same connection after the rejected one are ignored,
+and must be sent again on a new connection.
+
+Blob uploads are streamed, so only the part currently being decompressed is
+accounted.
+
+.. NOTE::
+
+    The accounted memory is the capacity of the buffers holding the
+    decompressed content, which can be somewhat larger than the decompressed
+    content itself.
+
+    The content of uncompressed HTTP requests, and of HTTP requests compressed
+    with other encodings, like ``br`` or ``zstd``, is not accounted. Its size is
+    limited by :ref:`http.max_content_length <http.max_content_length>`
+    instead.
+
 
 .. _stats.breaker.log:
 

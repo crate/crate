@@ -64,6 +64,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.network.InetAddresses;
@@ -105,6 +106,8 @@ import io.crate.auth.Protocol;
 import io.crate.blob.BlobService;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.netty.NettyBootstrap;
+import io.crate.protocols.http.AccountingHttpContentDecompressor;
+import io.crate.protocols.http.CircuitBreakingRejectionHandler;
 import io.crate.protocols.http.HttpAuthenticator;
 import io.crate.protocols.http.HttpBlobHandler;
 import io.crate.protocols.http.MainAndStaticFileHandler;
@@ -127,7 +130,6 @@ import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.RecvByteBufAllocator;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.http.HttpContentCompressor;
-import io.netty.handler.codec.http.HttpContentDecompressor;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
@@ -593,12 +595,15 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
                 Math.toIntExact(transport.maxChunkSize.getBytes()));
             decoder.setCumulator(ByteToMessageDecoder.COMPOSITE_CUMULATOR);
             pipeline.addLast("decoder", decoder);
-            pipeline.addLast("decoder_compress", new HttpContentDecompressor());
             pipeline.addLast("encoder", new HttpResponseEncoder());
+            pipeline.addLast("auth", new HttpAuthenticator(settings, authentication, roles));
+            pipeline.addLast("decoder_compress", new AccountingHttpContentDecompressor(
+                () -> breakerService.getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS)
+            ));
             final HttpObjectAggregator aggregator = new HttpObjectAggregator(Math.toIntExact(transport.maxContentLength.getBytes()));
             aggregator.setMaxCumulationBufferComponents(transport.maxCompositeBufferComponents);
             pipeline.addLast("chunked", new ChunkedWriteHandler());
-            pipeline.addLast("auth", new HttpAuthenticator(settings, authentication, roles));
+            pipeline.addLast("breaker_rejection", new CircuitBreakingRejectionHandler());
             pipeline.addLast("blob_handler", new HttpBlobHandler(
                 blobService,
                 sessions,
