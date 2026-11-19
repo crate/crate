@@ -96,6 +96,7 @@
                         -XX:TieredStopAtLevel=1
                         -XX:ReservedCodeCacheSize=512M
                         -XX:+UseCompactObjectHeaders
+                        -XX:-UseBASE64Intrinsics
                         --add-modules jdk.incubator.vector
                         --enable-native-access=ALL-UNNAMED
                         --sun-misc-unsafe-memory-access=allow
