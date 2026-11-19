@@ -142,6 +142,29 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testReschedulesIfLocalNodeNotAvailable() {
+        final ClusterService clusterService = Mockito.mock(ClusterService.class);
+        Mockito.when(clusterService.localNode()).thenReturn(null);
+        Mockito.when(clusterService.getClusterSettings()).thenReturn(this.clusterService.getClusterSettings());
+        Sessions sqlOperations = Mockito.mock(Sessions.class);
+
+        try (var statsService = new TableStatsService(
+                Settings.EMPTY,
+                THREAD_POOL,
+                clusterService,
+                sqlOperations,
+                createTempDir())) {
+
+            var scheduledRefresh = statsService.scheduledRefresh;
+            assertThat(scheduledRefresh).isNotNull();
+            scheduledRefresh.cancel();
+
+            statsService.run();
+            assertThat(statsService.scheduledRefresh).isNotNull().isNotSameAs(scheduledRefresh);
+        }
+    }
+
+    @Test
     public void test_persist_load_update_stats() throws IOException {
         ColumnStats<Integer> columnStats = StatsUtils.statsFromValues(
             DataTypes.INTEGER, List.of(1, 2, 3, 4, 5, 6, 7, 8, 9)

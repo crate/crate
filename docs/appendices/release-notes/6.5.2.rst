@@ -84,3 +84,8 @@ Fixes
   there was no mapping of the ``crate`` superuser to the foreign server pointing
   to a remote user with read access on the foreign table. Also improved documentation
   on this required mapping. See :ref:`administration-fdw-statistics`.
+
+- `Yannic Hamann <https://github.com/yannic-hamann-abb>`_ fixed an issue that
+  could cause periodic :ref:`ANALYZE <analyze>` runs to stop under certain
+  conditions, such as when a new master node was elected.
+  
