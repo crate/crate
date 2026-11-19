@@ -104,7 +104,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(table.getReadReference(ColumnIdent.of("trip_distance")));
         BatchIteratorTester<Object[]> tester = BatchIteratorTester.forRows(
-                () -> new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns),
+                () -> new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null),
                 ResultOrder.EXACT);
         List<Object[]> expectedResult = List.of(
                 new Object[] { 0.97 },
@@ -136,7 +136,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("passenger_count")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { 1L },
@@ -167,7 +167,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
     public void test_reads_boolean() throws Exception {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(table.getReadReference(ColumnIdent.of("big_car")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows)
                 .containsExactly(
@@ -200,7 +200,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("trip_type")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { "local" },
@@ -231,7 +231,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("car_id")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { UUID.fromString("3ac37162-0efb-414e-af0c-adbcfd275026") },
@@ -262,7 +262,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("car_sensor_json")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { Map.ofEntries(Map.entry("engine_temp", 50), Map.entry("outdoor_temp", Map.ofEntries(Map.entry("unit", "Celsius"), Map.entry("value", 25)))) },
@@ -293,7 +293,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("car_sensor_json_ignored_policy")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { Map.ofEntries(Map.entry("engine_temp", 50), Map.entry("outdoor_temp", Map.ofEntries(Map.entry("unit", "Celsius"), Map.entry("value", 25)))) },
@@ -324,7 +324,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("car_sensor")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { Map.ofEntries(Map.entry("engine_temp", 50), Map.entry("outdoor_temp", Map.ofEntries(Map.entry("unit", "Celsius"), Map.entry("value", 25)))) },
@@ -355,7 +355,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("car_sensor_mixed_objects")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { Map.ofEntries(Map.entry("engine_temp", 50), Map.entry("outdoor_temp", Map.ofEntries(Map.entry("unit", "Celsius"), Map.entry("value", 25)))) },
@@ -387,7 +387,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("tire_health")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { List.of(1, 1, 1, 1) },
@@ -418,7 +418,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("tpep_pickup_datetime")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { TimestampType.INSTANCE_WITHOUT_TZ.implicitCast("2026-01-01T00:54:04Z") },
@@ -449,7 +449,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("taxi_start")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { DateType.INSTANCE.implicitCast("2020-01-01") },
@@ -480,7 +480,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("taxi_start_shift")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { TimestampType.INSTANCE_WITH_TZ.implicitCast("2026-09-15 14:05:50.496298+02") },
@@ -511,7 +511,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("steering_wheel_count")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { (short) 1 },
@@ -542,7 +542,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("total_amount_earned")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { NumericType.INSTANCE.implicitCast("733.085") },
@@ -573,7 +573,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("bstr")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { BitStringType.INSTANCE_ONE.implicitCast("101010") },
@@ -604,7 +604,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("ip_address")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { IpType.INSTANCE.implicitCast("127.0.0.1") },
@@ -635,7 +635,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("ip_address_long")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { IpType.INSTANCE.implicitCast(2130706433) },
@@ -666,7 +666,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("doc.taxi");
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("car_weight")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         assertThat(rows).containsExactly(
                 new Object[] { 1024.128f },
@@ -695,7 +695,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_returns_rows_without_projection() throws Exception {
         List<Reference> columns = List.of();
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
         // If the query is `select count(*) from tbl`, the `columns` list is empty and there is nothing to project.
         // Hardwood will get empty rows
@@ -732,7 +732,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
 
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("total_amount_earned")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         assertThatThrownBy(() -> {
             try {
                 it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
@@ -752,7 +752,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
 
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("trip_distance")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         assertThatThrownBy(() -> {
             try {
                 it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
@@ -777,7 +777,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
 
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("car_sensor")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         assertThatThrownBy(() -> {
             try {
                 it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
@@ -807,7 +807,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
 
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("car_sensor_json")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         assertThatThrownBy(() -> {
             try {
                 it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
@@ -832,7 +832,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
 
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("trip_type")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         assertThatThrownBy(() -> {
             try {
                 it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
@@ -855,7 +855,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
 
         List<Reference> columns = List.of(
                 table.getReadReference(ColumnIdent.of("car_sensor")));
-        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns);
+        ParquetBatchIterator it = new ParquetBatchIterator(InputFile.ofPaths(parquetFile), columns, null);
         assertThatThrownBy(() -> {
             try {
                 it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
@@ -882,7 +882,7 @@ public class ParquetBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
                 operator.write(p.toString(), Files.readAllBytes(p));
                 inputFiles.add(new OpenDALInputFile(operator, p.toString()));
             }
-            ParquetBatchIterator it = new ParquetBatchIterator(inputFiles, columns);
+            ParquetBatchIterator it = new ParquetBatchIterator(inputFiles, columns, null);
             List<Object[]> rows = it.toList(Row::materialize).get(10, TimeUnit.SECONDS);
             assertThat(rows).containsExactly(
                     new Object[] { 0.97 },

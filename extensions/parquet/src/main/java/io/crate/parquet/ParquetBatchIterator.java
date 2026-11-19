@@ -57,6 +57,7 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
     private FileSchema fileSchema;
     private RowReader rowReader;
     private final List<Reference> columns;
+    private final Symbol predicates;
     private final List<InputFile> inputFiles;
     private volatile Throwable killed = null;
     public static final Map<String, FilterPredicate.Operator> FILTER_PUSHDOWN_OPERATORS = Map.of(
@@ -70,6 +71,7 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
     public ParquetBatchIterator(List<InputFile> inputFiles, List<Reference> columns, Symbol predicates) {
         this.inputFiles = inputFiles;
         this.columns = columns;
+        this.predicates = predicates;
         this.cells = new Object[columns.size()];
         this.row = new RowN(cells);
     }
