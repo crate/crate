@@ -42,3 +42,9 @@ Version 6.4.8 - Unreleased
 
 See the :ref:`version_6.4.0` release notes for a full list of changes in the 6.4
 series.
+
+Security Fixes
+==============
+
+- Mitigation for CVE-2026-114938 by disabling the ``UseBASE64Intrinsics`` JVM
+  option.
