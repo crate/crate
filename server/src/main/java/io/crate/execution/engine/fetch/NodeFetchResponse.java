@@ -24,6 +24,7 @@ package io.crate.execution.engine.fetch;
 import java.io.IOException;
 import java.util.Objects;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
@@ -52,7 +53,10 @@ public class NodeFetchResponse extends TransportResponse {
         return fetched;
     }
 
-    public NodeFetchResponse(StreamInput in, IntObjectMap<Streamer<?>[]> streamers, RamAccounting ramAccounting) throws IOException {
+    public NodeFetchResponse(StreamInput in,
+                             IntObjectMap<Streamer<?>[]> streamers,
+                             RamAccounting ramAccounting,
+                             Version minNodeVersion) throws IOException {
         ramAccounting.addBytes(in.available());
         int numReaders = in.readVInt();
         if (numReaders > 0) {
@@ -60,7 +64,11 @@ public class NodeFetchResponse extends TransportResponse {
             fetched = new IntObjectHashMap<>(numReaders);
             for (int i = 0; i < numReaders; i++) {
                 int readerId = in.readVInt();
-                StreamBucket bucket = new StreamBucket(in, Objects.requireNonNull(streamers.get(readerId), "streamers must exist for readerId=" + readerId));
+                StreamBucket bucket = new StreamBucket(
+                    in,
+                    Objects.requireNonNull(streamers.get(readerId), "streamers must exist for readerId=" + readerId),
+                    minNodeVersion
+                );
                 fetched.put(readerId, bucket);
             }
         } else {

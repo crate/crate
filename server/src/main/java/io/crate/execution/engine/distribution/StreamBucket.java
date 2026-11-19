@@ -200,9 +200,10 @@ public class StreamBucket implements Bucket, Writeable {
      * Create a StreamBucket by reading from an input stream.
      * The created buckets rows are lazily de-serialized using the provided streamers
      */
-    public StreamBucket(StreamInput in, Streamer<?>[] streamers) throws IOException {
+    public StreamBucket(StreamInput in, Streamer<?>[] streamers, Version minNodeVersion) throws IOException {
         this(in);
         this.streamers = streamers;
+        this.minNodeVersion = minNodeVersion;
     }
 
     /**

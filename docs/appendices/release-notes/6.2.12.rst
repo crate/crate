@@ -15,7 +15,7 @@ Version 6.2.12 - Unreleased
 .. NOTE::
 
     If you are upgrading a cluster, you must be running CrateDB 5.0.0 or higher
-    before you upgrade to 6.2.11.
+    before you upgrade to 6.2.12.
 
     We recommend that you upgrade to the latest 6.1 release before moving to
     6.2.12.

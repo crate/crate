@@ -82,9 +82,7 @@ class FetchCollector {
 
     public StreamBucket collect(IntArrayList docIds) {
         boolean collectSequential = isSequential(docIds);
-        // Fetch buckets contains only values (InputRow-s).
-        // no need for BWC checks, so just passing CURRENT as a placeholder.
-        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting, Version.CURRENT);
+        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting, fetchTask.minNodeVersion());
         try (var borrowed = fetchTask.searcher(readerId)) {
             var searcher = borrowed.item();
             List<LeafReaderContext> leaves = searcher.getTopReaderContext().leaves();

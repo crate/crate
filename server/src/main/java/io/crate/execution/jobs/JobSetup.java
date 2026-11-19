@@ -856,7 +856,9 @@ public class JobSetup {
                 context.sharedShardContexts,
                 clusterService.state().metadata(),
                 schemas::getTableInfo,
-                routings));
+                routings,
+                context.transactionContext.minNodeVersion()
+            ));
             return null;
         }
 

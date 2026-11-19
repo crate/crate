@@ -77,7 +77,7 @@ public class NodeFetchResponseTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
 
         // receiving side is required to set the streamers
-        NodeFetchResponse streamed = new NodeFetchResponse(in, streamers, RamAccounting.NO_ACCOUNTING);
+        NodeFetchResponse streamed = new NodeFetchResponse(in, streamers, RamAccounting.NO_ACCOUNTING, Version.CURRENT);
 
         assertThat(streamed.fetched().get(1)).hasSize(1);
         assertThat(streamed.fetched().get(1).iterator().next()).isEqualTo(new Row1(true));
@@ -100,7 +100,7 @@ public class NodeFetchResponseTest extends ESTestCase {
                         new NoneCircuitBreakerService()
                     ),
                     10
-                ))
+                ), Version.CURRENT)
             ).isExactlyInstanceOf(CircuitBreakingException.class);
     }
 }
