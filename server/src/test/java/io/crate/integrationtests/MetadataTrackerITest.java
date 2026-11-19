@@ -322,6 +322,37 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         );
     }
 
+    @Test
+    public void test_partition_remains_active_if_other_publication_still_contains_it() throws Exception {
+        executeOnPublisher(
+            "CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) " +
+                "CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("REFRESH TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE PUBLICATION pub2 FOR TABLE doc.t1 PARTITION (p = 1)");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT AL TO " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE doc.t1 TO " + SUBSCRIBING_USER);
+        createSubscription("sub1", List.of("pub1", "pub2"));
+
+        executeOnPublisher("DROP PUBLICATION pub1");
+        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (3, 1), (4, 2)");
+
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            assertThat(executeOnSubscriber("SELECT id, p FROM doc.t1 ORDER BY id")).hasRows(
+                "1| 1",
+                "3| 1"
+            );
+        });
+
+        assertThatThrownBy(() -> executeOnSubscriber("INSERT INTO doc.t1 (id, p) VALUES (1, 1)"))
+            .isInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessageContaining("The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication subscription.");
+    }
+
+    @Test
     public void test_subscription_to_multiple_publications_stops_when_all_publications_are_dropped() throws Exception {
         executeOnPublisher("CREATE TABLE t1 (id INT)");
         createPublication("pub1", false, List.of("t1"));
