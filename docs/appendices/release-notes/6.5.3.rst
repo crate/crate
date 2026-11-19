@@ -46,6 +46,12 @@ series.
 Fixes
 =====
 
+- `Mansi <https://github.com/mansi2024>`_ fixed an issue in the
+  :ref:`PostgreSQL wire protocol <interface-postgresql>`, that caused statements
+  with more than ``32,767``parameters to fail with an ``Illegal Capacity``
+  error. Up to ``65,535`` parameters are now supported, as allowed by the
+  protocol.
+
 - Fixed a ``ClassCastException`` error which was thrown when using a subscript
   on a column of type ``ARRAY(OBJECT)``, including nested arrays of objects,
   selected from a view or a subquery, e.g.::

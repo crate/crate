@@ -278,6 +278,55 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_parse_and_bind_accept_more_than_32767_parameters() throws Exception {
+        // int16 counts in the protocol are unsigned, so up to 65,535 parameters are allowed.
+        // Reading them as signed short turned 32,768+ into negative numbers ("Illegal Capacity").
+        int numParams = 65_535;
+        var mockedSqlOperations = mock(Sessions.class);
+        AtomicReference<Session> sessionRef = new AtomicReference<>();
+        when(mockedSqlOperations.newSession(
+            any(ConnectionProperties.class),
+            Mockito.anyString(),
+            Mockito.any())).thenAnswer((Answer<Session>) invocation -> {
+                var session = sessions.newSession(
+                    invocation.getArgument(0, ConnectionProperties.class),
+                    invocation.getArgument(1, String.class),
+                    invocation.getArgument(2, Role.class)
+                );
+                sessionRef.set(session);
+                return session;
+            });
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                mockedSqlOperations,
+                new SessionSettingRegistry(Set.of()),
+                _ -> AccessControl.DISABLED,
+                _ -> {},
+                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                roles,
+                () -> null
+            );
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        String query = "select [" + String.join(", ", Collections.nCopies(numParams, "?")) + "]";
+        int[] paramOids = new int[numParams];
+        Arrays.fill(paramOids, PGTypes.get(DataTypes.INTEGER).oid());
+        List<Object> params = new ArrayList<>(Collections.nCopies(numParams, 1));
+
+        ByteBuf buffer = Unpooled.buffer();
+        ClientMessages.sendStartupMessage(buffer, "doc", Map.of("user", "crate"));
+        ClientMessages.sendParseMessage(buffer, "S1", query, paramOids);
+        ClientMessages.sendBindMessage(buffer, "P1", "S1", params);
+
+        channel.writeInbound(buffer);
+        channel.releaseInbound();
+
+        Session session = sessionRef.get();
+        // If the query can be retrieved via portalName it means parse and bind worked
+        assertThat(session.getQuery("P1")).isEqualTo(query);
+    }
+
+    @Test
     public void testDescribePortalMessage() throws Exception {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
