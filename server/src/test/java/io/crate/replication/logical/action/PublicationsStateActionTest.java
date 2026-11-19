@@ -522,7 +522,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void test_response_rejects_streaming_partition_targets_to_nodes_before_6_5() {
+    public void test_response_rejects_streaming_partition_targets_to_nodes_before_6_6() {
         RelationName relationName = new RelationName("doc", "t1");
         PublicationsStateAction.Response response = new PublicationsStateAction.Response(
             Metadata.builder(Metadata.OID_UNASSIGNED).build(),
@@ -530,15 +530,15 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             List.of());
 
         BytesStreamOutput out = new BytesStreamOutput();
-        out.setVersion(Version.V_6_4_0);
+        out.setVersion(Version.V_6_5_0);
 
         assertThatThrownBy(() -> response.writeTo(out))
             .isExactlyInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("Cannot write partition publication target to a node before " + Version.V_6_5_0);
+            .hasMessageContaining("Cannot write partition publication target to a node before " + Version.V_6_6_0);
     }
 
     @Test
-    public void test_response_derives_table_targets_from_metadata_before_6_5() throws IOException {
+    public void test_response_derives_table_targets_from_metadata_before_6_6() throws IOException {
         RelationName relationName = new RelationName("doc", "t1");
         SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)");
@@ -548,11 +548,11 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             List.of());
 
         BytesStreamOutput out = new BytesStreamOutput();
-        out.setVersion(Version.V_6_4_0);
+        out.setVersion(Version.V_6_5_0);
         response.writeTo(out);
 
         try (var in = new NamedWriteableAwareStreamInput(out.bytes().streamInput(), writableRegistry())) {
-            in.setVersion(Version.V_6_4_0);
+            in.setVersion(Version.V_6_5_0);
             PublicationsStateAction.Response response1 = new PublicationsStateAction.Response(in);
             assertThat(response1.targets()).containsExactly(new TableOrPartition(relationName, null));
         }

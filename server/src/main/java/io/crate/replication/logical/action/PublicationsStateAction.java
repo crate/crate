@@ -239,7 +239,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 metadata = Metadata.readFrom(in);
             }
             unknownPublications = in.readList(StreamInput::readString);
-            if (in.getVersion().onOrAfter(Version.V_6_5_0)) {
+            if (in.getVersion().onOrAfter(Version.V_6_6_0)) {
                 targets = in.readList(TableOrPartition::new);
             } else if (relationsInPublications != null) {
                 targets = relationsInPublications.keySet().stream()
@@ -255,10 +255,10 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
         @Override
         @SuppressWarnings("deprecation")
         public void writeTo(StreamOutput out) throws IOException {
-            if (out.getVersion().before(Version.V_6_5_0)) {
+            if (out.getVersion().before(Version.V_6_6_0)) {
                 for (var target : targets) {
                     if (target.partitionIdent() != null) {
-                        throw new IllegalStateException("Cannot write partition publication target to a node before " + Version.V_6_5_0);
+                        throw new IllegalStateException("Cannot write partition publication target to a node before " + Version.V_6_6_0);
                     }
                 }
             }
@@ -273,7 +273,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 metadata.writeTo(out);
             }
             out.writeStringCollection(unknownPublications);
-            if (out.getVersion().onOrAfter(Version.V_6_5_0)) {
+            if (out.getVersion().onOrAfter(Version.V_6_6_0)) {
                 out.writeCollection(targets);
             }
         }

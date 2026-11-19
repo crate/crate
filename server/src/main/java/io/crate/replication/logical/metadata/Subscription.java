@@ -113,7 +113,7 @@ public class Subscription implements Writeable {
         HashMap<TableOrPartition, RelationState> relations = new HashMap<>();
         for (int i = 0; i < relSize; i++) {
             TableOrPartition relationName;
-            if (in.getVersion().before(Version.V_6_5_0)) {
+            if (in.getVersion().before(Version.V_6_6_0)) {
                 relationName = new TableOrPartition(new RelationName(in), null);
             } else {
                 relationName = new TableOrPartition(in);
@@ -150,17 +150,17 @@ public class Subscription implements Writeable {
         connectionInfo.writeTo(out);
         out.writeStringArray(publications.toArray(new String[0]));
         Settings.writeSettingsToStream(out, settings);
-        if (out.getVersion().before(Version.V_6_5_0)) {
+        if (out.getVersion().before(Version.V_6_6_0)) {
             for (var target : relations.keySet()) {
                 if (target.partitionIdent() != null) {
-                    throw new IllegalStateException("Cannot write partition subscription target to a node before " + Version.V_6_5_0);
+                    throw new IllegalStateException("Cannot write partition subscription target to a node before " + Version.V_6_6_0);
                 }
             }
         }
         out.writeVInt(relations.size());
         for (var entry : relations.entrySet()) {
             var target = entry.getKey();
-            if (out.getVersion().before(Version.V_6_5_0)) {
+            if (out.getVersion().before(Version.V_6_6_0)) {
                 target.table().writeTo(out);
             } else {
                 target.writeTo(out);

@@ -71,7 +71,7 @@ public class Publication implements Writeable {
         int size = in.readVInt();
         targets = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            if (in.getVersion().before(Version.V_6_5_0)) {
+            if (in.getVersion().before(Version.V_6_6_0)) {
                 targets.add(new TableOrPartition(RelationName.fromIndexName(in.readString()), null));
             } else {
                 targets.add(new TableOrPartition(in));
@@ -99,16 +99,16 @@ public class Publication implements Writeable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(owner);
         out.writeBoolean(forAllTables);
-        if (out.getVersion().before(Version.V_6_5_0)) {
+        if (out.getVersion().before(Version.V_6_6_0)) {
             for (var target : targets) {
                 if (target.partitionIdent() != null) {
-                    throw new IllegalStateException("Cannot write partition publication target to a node before " + Version.V_6_5_0);
+                    throw new IllegalStateException("Cannot write partition publication target to a node before " + Version.V_6_6_0);
                 }
             }
         }
         out.writeVInt(targets.size());
         for (var target : targets) {
-            if (out.getVersion().before(Version.V_6_5_0)) {
+            if (out.getVersion().before(Version.V_6_6_0)) {
                 out.writeString(target.table().indexNameOrAlias());
             } else {
                 target.writeTo(out);
