@@ -117,7 +117,7 @@ public class JobRequest extends TransportRequest {
         enableProfiling = in.readBoolean();
 
         sessionSettings = new SessionSettings(in);
-        if (in.getVersion().onOrAfter(Version.V_6_2_12)) {
+        if (hasMinNodeVersion(in.getVersion())) {
             minNodeVersion = Version.readVersion(in);
         } else {
             minNodeVersion = in.getVersion();
@@ -140,9 +140,13 @@ public class JobRequest extends TransportRequest {
         out.writeBoolean(enableProfiling);
 
         sessionSettings.writeTo(out);
-        if (out.getVersion().onOrAfter(Version.V_6_2_12)) {
+        if (hasMinNodeVersion(out.getVersion())) {
             Version.writeVersion(minNodeVersion, out);
         }
+    }
+
+    private static boolean hasMinNodeVersion(Version version) {
+        return version.after(Version.V_6_2_11) && version.before(Version.fromString("6.3.0"));
     }
 }
 
