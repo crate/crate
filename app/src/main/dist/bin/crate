@@ -172,6 +172,9 @@ fi
 
 JAVA_OPTS="$JAVA_OPTS -Djava.library.path=$CRATE_HOME/lib"
 
+# Mitigation for Java4Shell - CVE-2026-114938
+JAVA_OPTS="$JAVA_OPTS -XX:-UseBASE64Intrinsics"
+
 JAVA="$CRATE_HOME/jdk/bin/java"
 
 if [ -z "$CRATE_CLASSPATH" ]; then

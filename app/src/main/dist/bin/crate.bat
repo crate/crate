@@ -93,7 +93,6 @@ set JAVA_OPTS=%JAVA_OPTS% --sun-misc-unsafe-memory-access=allow
 REM Lucene uses native access
 set JAVA_OPTS=%JAVA_OPTS% --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector
 
-
 REM Dump heap on OOM
 set JAVA_OPTS=%JAVA_OPTS% -XX:+HeapDumpOnOutOfMemoryError
 if NOT "%CRATE_HEAP_DUMP_PATH%" == "" (
@@ -101,6 +100,9 @@ if NOT "%CRATE_HEAP_DUMP_PATH%" == "" (
 )
 
 set JAVA_OPTS=%JAVA_OPTS% -Djava.library.path=%CRATE_HOME%\lib
+
+REM Mitigation for Java4Shell - CVE-2026-114938
+set JAVA_OPTS=%JAVA_OPTS% -XX:-UseBASE64Intrinsics
 
 if "%CRATE_CLASSPATH%" == "" (
     set CRATE_CLASSPATH=%CRATE_HOME%/lib/*
