@@ -69,6 +69,21 @@ public class TransportCreateSubscriptionTest {
     private final ClusterService clusterService = mock(ClusterService.class);
 
     @Test
+    public void test_rejects_table_and_partition_targets_for_same_relation() {
+        var relationName = new RelationName("doc", "t1");
+
+        assertThatThrownBy(() -> TransportCreateSubscription.validateNoOverlappingSubscriptionTargets(
+            "sub1",
+            List.of(
+                new TableOrPartition(relationName, null),
+                new TableOrPartition(relationName, "04132")
+            )
+        ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Subscription 'sub1' cannot include relation 'doc.t1' both as a table and as an individual partition");
+    }
+
+    @Test
     public void test_subscribing_to_tables_with_higher_version_raises_error() throws Exception {
         FutureActionListener<AcknowledgedResponse> responseFuture = new FutureActionListener<>();
         subscribeToTablesWithVersion(responseFuture, Version.CURRENT.internalId + 10000, true);

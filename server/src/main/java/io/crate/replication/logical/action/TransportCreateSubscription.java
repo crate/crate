@@ -23,6 +23,7 @@ package io.crate.replication.logical.action;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
@@ -129,6 +130,7 @@ public class TransportCreateSubscription extends TransportMasterNodeAction<Creat
                     if (response.unknownPublications().isEmpty() == false) {
                         throw new PublicationUnknownException(response.unknownPublications().get(0));
                     }
+                    validateNoOverlappingSubscriptionTargets(request.name(), response.targets());
 
                     // Published tables can have metadata or documents which subscriber with a lower version might not process.
                     // We check published tables version and not publisher cluster's MinNodeVersion.
@@ -204,6 +206,30 @@ public class TransportCreateSubscription extends TransportMasterNodeAction<Creat
                     }
                 }
             );
+    }
+
+    static void validateNoOverlappingSubscriptionTargets(String subscriptionName, List<TableOrPartition> targets) {
+        var tableTargets = new HashSet<RelationName>();
+        var partitionTargets = new HashSet<RelationName>();
+        for (TableOrPartition target : targets) {
+            RelationName relationName = target.table();
+            boolean overlaps;
+            if (target.partitionIdent() == null) {
+                overlaps = partitionTargets.contains(relationName);
+                tableTargets.add(relationName);
+            } else {
+                overlaps = tableTargets.contains(relationName);
+                partitionTargets.add(relationName);
+            }
+            if (overlaps) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "Subscription '%s' cannot include relation '%s' both as a table and as an individual partition",
+                    subscriptionName,
+                    relationName
+                ));
+            }
+        }
     }
 
     private static void checkVersionCompatibility(String tableFqn, Version subscriberMinNodeVersion, Settings settings) {
