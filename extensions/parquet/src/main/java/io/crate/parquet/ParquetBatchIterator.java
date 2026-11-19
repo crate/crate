@@ -26,10 +26,12 @@ import static io.crate.parquet.ParquetToCrate.readColumn;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import dev.hardwood.InputFile;
+import dev.hardwood.reader.FilterPredicate;
 import dev.hardwood.reader.ParquetFileReader;
 import dev.hardwood.reader.RowReader;
 import dev.hardwood.reader.ParquetFileReader.RowReaderBuilder;
@@ -39,6 +41,11 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.GtOperator;
+import io.crate.expression.operator.GteOperator;
+import io.crate.expression.operator.LtOperator;
+import io.crate.expression.operator.LteOperator;
 import io.crate.metadata.Reference;
 
 public class ParquetBatchIterator implements BatchIterator<Row> {
@@ -52,8 +59,15 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
     private final List<Reference> columns;
     private final List<InputFile> inputFiles;
     private volatile Throwable killed = null;
+    public static final Map<String, FilterPredicate.Operator> FILTER_PUSHDOWN_OPERATORS = Map.of(
+        EqOperator.NAME, FilterPredicate.Operator.EQ,
+        GtOperator.NAME, FilterPredicate.Operator.GT,
+        GteOperator.NAME, FilterPredicate.Operator.GT_EQ,
+        LtOperator.NAME, FilterPredicate.Operator.LT,
+        LteOperator.NAME, FilterPredicate.Operator.LT_EQ
+    );
 
-    public ParquetBatchIterator(List<InputFile> inputFiles, List<Reference> columns) {
+    public ParquetBatchIterator(List<InputFile> inputFiles, List<Reference> columns, Symbol predicates) {
         this.inputFiles = inputFiles;
         this.columns = columns;
         this.cells = new Object[columns.size()];

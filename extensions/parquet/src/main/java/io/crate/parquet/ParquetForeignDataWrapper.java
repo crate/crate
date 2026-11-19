@@ -60,6 +60,8 @@ import io.crate.opendal.S3Env;
 import io.crate.opendal.S3URI;
 import io.crate.opendal.SharedAsyncExecutor;
 import io.crate.role.Role;
+import io.crate.types.ArrayType;
+import io.crate.expression.symbol.Function;
 
 public class ParquetForeignDataWrapper implements ForeignDataWrapper {
 
@@ -109,6 +111,15 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
 
     @Override
     public boolean supportsQueryPushdown(Symbol query) {
+        if (query instanceof Function function) {
+            Symbol ref = function.arguments().get(0);
+            if (ref.valueType() instanceof ArrayType) {
+                return false;
+            }
+            if (ParquetBatchIterator.FILTER_PUSHDOWN_OPERATORS.containsKey(function.name())) {
+                return true;
+            }
+        }
         return false;
     }
 
