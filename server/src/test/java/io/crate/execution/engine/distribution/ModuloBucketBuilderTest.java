@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -46,7 +47,8 @@ public class ModuloBucketBuilderTest extends ESTestCase {
             2,
             rowCollectExpression,
             List.of(rowCollectExpression),
-            RamAccounting.NO_ACCOUNTING
+            RamAccounting.NO_ACCOUNTING,
+            Version.CURRENT
         );
 
         builder.add(new Row1(1));
