@@ -96,6 +96,7 @@ public final class OutboundHandler {
         OutboundMessage.Request message = new OutboundMessage.Request(
             request,
             version,
+            channelVersion,
             action,
             requestId,
             isHandshake,
