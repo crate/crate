@@ -1118,13 +1118,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_distinct_is_removed_when_projection_contains_primary_key() {
-        LogicalPlan plan = sqlExecutor.logicalPlan(
-            "SELECT DISTINCT id, name FROM distinct_pk"
-        );
-
-        assertThat(plan).isEqualTo(
-            "Collect[doc.distinct_pk | [id, name] | true]"
-        );
+        assertThat(plan("SELECT DISTINCT id, name FROM distinct_pk"))
+            .isEqualTo("Collect[doc.distinct_pk | [id, name] | true]");
     }
 
     @Test

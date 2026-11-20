@@ -119,4 +119,13 @@ public class RemoveRedundantDistinctTest extends CrateDummyClusterServiceUnitTes
 
         assertThat(rule.pattern().accept(hashAgg, Captures.empty()).isPresent()).isFalse();
     }
+
+    @Test
+    public void test_limit_distinct_over_unsupported_operator_is_kept() {
+        LogicalPlan collect = collect("SELECT id, name FROM pk");
+        var countFn = (Function) e.asSymbol("count(name)");
+        var hashAgg = new HashAggregate(collect, List.of(countFn));
+
+        assertThat(apply(limitDistinct(hashAgg))).isNull();
+    }
 }

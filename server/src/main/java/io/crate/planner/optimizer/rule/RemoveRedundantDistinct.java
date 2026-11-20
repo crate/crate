@@ -104,7 +104,7 @@ public final class RemoveRedundantDistinct implements Rule<ForwardingLogicalPlan
         return withoutDistinct;
     }
 
-    public static boolean isUniqueByPrimaryKey(
+    private static boolean isUniqueByPrimaryKey(
         LogicalPlan plan,
         List<Symbol> groupKeys,
         UnaryOperator<LogicalPlan> resolvePlan
@@ -116,98 +116,40 @@ public final class RemoveRedundantDistinct implements Rule<ForwardingLogicalPlan
         LogicalPlan current = resolvePlan.apply(plan);
         List<Symbol> currentKeys = groupKeys;
 
-        while (current != null) {
+        while (true) {
             if (current instanceof Filter || current instanceof Limit || current instanceof Order) {
                 // These operators do not alter the column identities or duplicate rows in a way
                 // that breaks uniqueness, so we just pass through to their source.
-                if (current.sources().size() != 1) {
-                    return false;
-                }
                 current = resolvePlan.apply(current.sources().getFirst());
             } else if (current instanceof Rename rename) {
                 // A Rename operator alters the symbol names. We map our current group keys
                 // back to the original symbols produced by the Rename's source.
                 // This relies on Rename's outputs being positionally aligned with its source's outputs.
-                if (rename.sources().size() != 1) {
+                current = resolvePlan.apply(rename.source());
+                currentKeys = mapKeysToOutputs(
+                    currentKeys,
+                    rename.outputs(),
+                    current.outputs()
+                );
+                if (currentKeys == null) {
                     return false;
                 }
-                LogicalPlan source = resolvePlan.apply(rename.source());
-                List<Symbol> renameOutputs = rename.outputs();
-                List<Symbol> sourceOutputs = source.outputs();
-                if (renameOutputs.size() != sourceOutputs.size()) {
-                    return false;
-                }
-
-                List<Symbol> mappedKeys = new ArrayList<>(currentKeys.size());
-                for (Symbol key : currentKeys) {
-                    // Match the unwrapped expression so aliases do not prevent identifying
-                    // a grouping key that originates from the source plan.
-                    Symbol unwrappedKey = unwrapAlias(key);
-                    int idx = -1;
-                    for (int i = 0; i < renameOutputs.size(); i++) {
-                        if (unwrapAlias(renameOutputs.get(i)).equals(unwrappedKey)) {
-                            idx = i;
-                            break;
-                        }
-                    }
-                    if (idx < 0) {
-                        return false;
-                    }
-                    mappedKeys.add(sourceOutputs.get(idx));
-                }
-                currentKeys = mappedKeys;
-                current = source;
             } else if (current instanceof Eval eval) {
-                if (eval.sources().size() != 1) {
+                current = resolvePlan.apply(eval.source());
+                currentKeys = mapKeysToOutputs(
+                    currentKeys,
+                    current.outputs(),
+                    current.outputs()
+                );
+                if (currentKeys == null) {
                     return false;
                 }
-                LogicalPlan source = resolvePlan.apply(eval.source());
-                List<Symbol> evalOutputs = eval.outputs();
-                List<Symbol> sourceOutputs = source.outputs();
-
-                // Only propagate keys that are preserved by Eval as direct source
-                // outputs. Computed expressions are not considered when proving
-                // primary-key uniqueness.
-                List<Symbol> mappedKeys = new ArrayList<>(currentKeys.size());
-                for (Symbol key : currentKeys) {
-                    Symbol unwrappedKey = unwrapAlias(key);
-                    boolean foundInEval = false;
-                    for (Symbol evalOut : evalOutputs) {
-                        if (unwrapAlias(evalOut).equals(unwrappedKey)) {
-                            foundInEval = true;
-                            break;
-                        }
-                    }
-                    if (!foundInEval) {
-                        return false;
-                    }
-
-                    // Ensure the key can also be traced to an actual source output.
-                    // Otherwise, do not assume that the expression preserves uniqueness.
-                    Symbol matchingSourceOutput = null;
-                    for (Symbol srcOut : sourceOutputs) {
-                        if (unwrapAlias(srcOut).equals(unwrappedKey)) {
-                            matchingSourceOutput = srcOut;
-                            break;
-                        }
-                    }
-                    if (matchingSourceOutput == null) {
-                        return false;
-                    }
-                    mappedKeys.add(matchingSourceOutput);
-                }
-                currentKeys = mappedKeys;
-                current = source;
             } else if (current instanceof Collect collect) {
                 if (!(collect.relation().tableInfo() instanceof DocTableInfo tableInfo)) {
                     return false;
                 }
 
                 // If the PK is auto-generated (like _id), user columns can't guarantee uniqueness
-                if (tableInfo.hasAutoGeneratedPrimaryKey()) {
-                    return false;
-                }
-
                 var primaryKey = tableInfo.primaryKey();
                 if (primaryKey.isEmpty() || primaryKey.contains(SysColumns.ID.COLUMN)) {
                     return false;
@@ -234,7 +176,6 @@ public final class RemoveRedundantDistinct implements Rule<ForwardingLogicalPlan
                 return false;
             }
         }
-        return false;
     }
 
     private static Symbol unwrapAlias(Symbol symbol) {
@@ -242,5 +183,33 @@ public final class RemoveRedundantDistinct implements Rule<ForwardingLogicalPlan
             symbol = alias.symbol();
         }
         return symbol;
+    }
+
+    private static int findOutputIndex(List<Symbol> outputs, Symbol key) {
+        // Match the unwrapped expression so aliases do not prevent identifying
+        // a grouping key that originates from the source plan.
+        Symbol unwrappedKey = unwrapAlias(key);
+        for (int i = 0; i < outputs.size(); i++) {
+            if (unwrapAlias(outputs.get(i)).equals(unwrappedKey)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static List<Symbol> mapKeysToOutputs(
+        List<Symbol> keys,
+        List<Symbol> matchingOutputs,
+        List<Symbol> targetOutputs
+    ) {
+        List<Symbol> mappedKeys = new ArrayList<>(keys.size());
+        for (Symbol key : keys) {
+            int idx = findOutputIndex(matchingOutputs, key);
+            if (idx < 0 || idx >= targetOutputs.size()) {
+                return null;
+            }
+            mappedKeys.add(targetOutputs.get(idx));
+        }
+        return mappedKeys;
     }
 }
