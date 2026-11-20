@@ -121,12 +121,12 @@ public class InboundPipelineTests extends ESTestCase {
                         if (rarely()) {
                             messageData = new MessageData(version, requestId, true, isCompressed, breakThisAction, null);
                             message = new OutboundMessage.Request(new TestRequest(value),
-                                version, breakThisAction, requestId, false, isCompressed);
+                                version, version, breakThisAction, requestId, false, isCompressed);
                             expectedExceptionClass = new CircuitBreakingException("");
                         } else {
                             messageData = new MessageData(version, requestId, true, isCompressed, actionName, value);
                             message = new OutboundMessage.Request(new TestRequest(value),
-                                version, actionName, requestId, false, isCompressed);
+                                version, version, actionName, requestId, false, isCompressed);
                         }
                     } else {
                         messageData = new MessageData(version, requestId, false, isCompressed, null, value);
@@ -225,7 +225,7 @@ public class InboundPipelineTests extends ESTestCase {
             OutboundMessage message;
             if (isRequest) {
                 message = new OutboundMessage.Request(new TestRequest(value),
-                    version, actionName, requestId, false, false);
+                    version, version, actionName, requestId, false, false);
             } else {
                 message = new OutboundMessage.Response(new TestResponse(value),
                     version, requestId, false, false);

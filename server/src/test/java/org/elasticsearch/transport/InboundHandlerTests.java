@@ -174,7 +174,7 @@ public class InboundHandlerTests extends ESTestCase {
         requestHandlers.registerHandler(registry);
         String requestValue = randomAlphaOfLength(10);
         OutboundMessage.Request request = new OutboundMessage.Request(
-            new TestRequest(requestValue), version, action, requestId, false, false);
+            new TestRequest(requestValue), version, version, action, requestId, false, false);
 
         BytesReference fullRequestBytes = request.serialize(new BytesStreamOutput());
         BytesReference requestContent = fullRequestBytes.slice(headerSize, fullRequestBytes.length() - headerSize);
@@ -294,6 +294,7 @@ public class InboundHandlerTests extends ESTestCase {
         OutboundMessage.Request request = new OutboundMessage.Request(
             new TransportHandshaker.HandshakeRequest(remoteVersion),
             remoteVersion,
+            remoteVersion,
             TransportHandshaker.HANDSHAKE_ACTION_NAME,
             requestId,
             true,
@@ -337,6 +338,7 @@ public class InboundHandlerTests extends ESTestCase {
         OutboundMessage.Request request = new OutboundMessage.Request(
             new TransportHandshaker.HandshakeRequest(localVersion),
             localVersion,
+            localVersion,
             TransportHandshaker.HANDSHAKE_ACTION_NAME,
             requestId,
             true,
@@ -373,6 +375,7 @@ public class InboundHandlerTests extends ESTestCase {
             TransportStatus.setRequest(TransportStatus.setHandshake((byte) 0)), remoteVersion);
         OutboundMessage.Request request = new OutboundMessage.Request(
             new TransportHandshaker.HandshakeRequest(remoteVersion),
+            remoteVersion,
             remoteVersion,
             TransportHandshaker.HANDSHAKE_ACTION_NAME,
             requestId,
@@ -485,6 +488,7 @@ public class InboundHandlerTests extends ESTestCase {
         OutboundMessage.Request request = new OutboundMessage.Request(
             new TestRequest(requestValue),
             version,
+            version,
             action,
             requestId,
             false,
@@ -555,6 +559,7 @@ public class InboundHandlerTests extends ESTestCase {
         String requestValue = randomAlphaOfLength(10);
         OutboundMessage.Request request = new OutboundMessage.Request(
             new TestRequest(requestValue),
+            version,
             version,
             action,
             requestId,
@@ -628,6 +633,7 @@ public class InboundHandlerTests extends ESTestCase {
         String requestValue = randomAlphaOfLength(10);
         OutboundMessage.Request request = new OutboundMessage.Request(
             new TestRequest(requestValue),
+            version,
             version,
             action,
             requestId,
@@ -716,6 +722,7 @@ public class InboundHandlerTests extends ESTestCase {
         String requestValue = randomAlphaOfLength(10);
         OutboundMessage.Request request = new OutboundMessage.Request(
             new TestRequest(requestValue),
+            version,
             version,
             action,
             requestId,

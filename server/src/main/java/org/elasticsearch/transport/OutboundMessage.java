@@ -29,16 +29,20 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
+import org.jspecify.annotations.Nullable;
 
 abstract class OutboundMessage {
 
     private final Writeable message;
     protected final Version version;
+    @Nullable
+    protected final Version remoteVersion;
     protected final long requestId;
     protected final byte status;
 
-    OutboundMessage(Version version, byte status, long requestId, Writeable message) {
+    OutboundMessage(Version version, @Nullable Version remoteVersion, byte status, long requestId, Writeable message) {
         this.version = version;
+        this.remoteVersion = remoteVersion;
         this.status = status;
         this.requestId = requestId;
         this.message = message;
@@ -46,6 +50,7 @@ abstract class OutboundMessage {
 
     BytesReference serialize(BytesStreamOutput bytesStream) throws IOException {
         bytesStream.setVersion(version);
+        bytesStream.setRemoteVersion(remoteVersion);
         bytesStream.skip(TcpHeader.headerSize(version));
 
         // The compressible bytes stream will not close the underlying bytes stream
@@ -60,6 +65,7 @@ abstract class OutboundMessage {
 
         try (CompressibleBytesOutputStream stream = new CompressibleBytesOutputStream(bytesStream, TransportStatus.isCompress(status))) {
             stream.setVersion(version);
+            stream.setRemoteVersion(remoteVersion);
             if (variableHeaderLength == -1) {
                 writeVariableHeader(stream);
             }
@@ -108,11 +114,12 @@ abstract class OutboundMessage {
 
         Request(Writeable message,
                 Version version,
+                Version remoteVersion,
                 String action,
                 long requestId,
                 boolean isHandshake,
                 boolean compress) {
-            super(version, setStatus(compress, isHandshake, message), requestId, message);
+            super(version, remoteVersion, setStatus(compress, isHandshake, message), requestId, message);
             this.action = action;
         }
 
@@ -143,7 +150,7 @@ abstract class OutboundMessage {
                  long requestId,
                  boolean isHandshake,
                  boolean compress) {
-            super(version, setStatus(compress, isHandshake, message), requestId, message);
+            super(version, null, setStatus(compress, isHandshake, message), requestId, message);
         }
 
         private static byte setStatus(boolean compress, boolean isHandshake, Writeable message) {

@@ -109,19 +109,49 @@ public abstract class StreamOutput extends OutputStream {
     }
 
     private Version version = Version.CURRENT;
+    @Nullable
+    private Version remoteVersion;
 
     /**
-     * The version of the node on the other side of this stream.
+     * The min(CURRENT, remote) where CURRENT is this node version
+     * and remote is version of the node on the other side of this stream.
+     * For regular, "backward-looking" BWC code it's essentially remote node version.
      */
     public Version getVersion() {
         return this.version;
     }
 
     /**
-     * Set the version of the node on the other side of this stream.
+     * Set the min(CURRENT, remote) where CURRENT is this node version
+     * and remote is version of the node on the other side of this stream.
+     * For regular, "backward-looking" BWC code it's essentially remote node version.
      */
     public void setVersion(Version version) {
         this.version = version;
+    }
+
+    /**
+     * The real version of the node on the other side of this stream.
+     * Must be used for writing "forward-looking" BWC code
+     * when an older node has a patch with wire format changes
+     * and some newer versions don't have it.
+     *
+     * @return non-null value only for requests
+     * as "forward-looking" BWC code is needed only when sending requests.
+     */
+    @Nullable
+    public Version getRemoteVersion() {
+        return this.remoteVersion;
+    }
+
+    /**
+     * Set the real version of the node on the other side of this stream.
+     * Must be used for writing "forward-looking" BWC code
+     * when an older node has a patch with wire format changes
+     * and some newer versions don't have it.
+     */
+    public void setRemoteVersion(@Nullable Version remoteVersion) {
+        this.remoteVersion = remoteVersion;
     }
 
     public long position() throws IOException {
