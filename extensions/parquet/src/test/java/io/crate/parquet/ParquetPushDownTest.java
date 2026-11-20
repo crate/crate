@@ -104,6 +104,30 @@ public class ParquetPushDownTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_pushes_down_bigint() throws Exception {
+        String base = "select passenger_count from taxi where passenger_count ";
+        LogicalPlan plan_eq = plan(base + "= 2");
+        assertThat(plan_eq).hasOperators("ForeignCollect[doc.taxi | [passenger_count] | (passenger_count = 2)]");
+
+        LogicalPlan plan_notEq = plan(base + "!= 2");
+        assertThat(plan_notEq).hasOperators(
+            "Filter[(NOT (passenger_count = 2))]",
+            "  └ ForeignCollect[doc.taxi | [passenger_count] | true]");
+
+        LogicalPlan plan_gt = plan(base + "> 2");
+        assertThat(plan_gt).hasOperators("ForeignCollect[doc.taxi | [passenger_count] | (passenger_count > 2)]");
+
+        LogicalPlan plan_gtEq = plan(base + ">= 2");
+        assertThat(plan_gtEq).hasOperators("ForeignCollect[doc.taxi | [passenger_count] | (passenger_count >= 2)]");
+
+        LogicalPlan plan_lt = plan(base + "< 2");
+        assertThat(plan_lt).hasOperators("ForeignCollect[doc.taxi | [passenger_count] | (passenger_count < 2)]");
+
+        LogicalPlan plan_ltEq = plan(base + "<= 2");
+        assertThat(plan_ltEq).hasOperators("ForeignCollect[doc.taxi | [passenger_count] | (passenger_count <= 2)]");
+    }
+
+    @Test
     public void test_pushes_down_boolean() throws Exception {
         String base = "select big_car from taxi where big_car ";
         LogicalPlan plan_eq = plan(base + "= true");
@@ -113,6 +137,79 @@ public class ParquetPushDownTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan_notEq).hasOperators(
             "Filter[(NOT (big_car = true))]",
             "  └ ForeignCollect[doc.taxi | [big_car] | true]");
+    }
+
+    @Test
+    public void test_pushes_down_text() throws Exception {
+        String base = "select trip_type from taxi where trip_type ";
+        LogicalPlan plan_eq = plan(base + "= 'local'");
+        assertThat(plan_eq).hasOperators("ForeignCollect[doc.taxi | [trip_type] | (trip_type = 'local')]");
+
+        LogicalPlan plan_notEq = plan(base + "!= 'local'");
+        assertThat(plan_notEq).hasOperators(
+            "Filter[(NOT (trip_type = 'local'))]",
+            "  └ ForeignCollect[doc.taxi | [trip_type] | true]");
+
+        LogicalPlan plan_gt = plan(base + "> 'local'");
+        assertThat(plan_gt).hasOperators("ForeignCollect[doc.taxi | [trip_type] | (trip_type > 'local')]");
+
+        LogicalPlan plan_gtEq = plan(base + ">= 'local'");
+        assertThat(plan_gtEq).hasOperators("ForeignCollect[doc.taxi | [trip_type] | (trip_type >= 'local')]");
+
+        LogicalPlan plan_lt = plan(base + "< 'local'");
+        assertThat(plan_lt).hasOperators("ForeignCollect[doc.taxi | [trip_type] | (trip_type < 'local')]");
+
+        LogicalPlan plan_ltEq = plan(base + "<= 'local'");
+        assertThat(plan_ltEq).hasOperators("ForeignCollect[doc.taxi | [trip_type] | (trip_type <= 'local')]");
+    }
+
+    @Test
+    public void test_pushes_down_uuid() throws Exception {
+        String base = "select car_id from taxi where car_id ";
+        LogicalPlan plan_eq = plan(base + "= '3ac37162-0efb-414e-af0c-adbcfd275026'");
+        assertThat(plan_eq).hasOperators("ForeignCollect[doc.taxi | [car_id] | (car_id = '3ac37162-0efb-414e-af0c-adbcfd275026')]");
+
+        LogicalPlan plan_notEq = plan(base + "!= '3ac37162-0efb-414e-af0c-adbcfd275026'");
+        assertThat(plan_notEq).hasOperators(
+            "Filter[(NOT (car_id = '3ac37162-0efb-414e-af0c-adbcfd275026'))]",
+            "  └ ForeignCollect[doc.taxi | [car_id] | true]");
+
+        LogicalPlan plan_gt = plan(base + "> '3ac37162-0efb-414e-af0c-adbcfd275026'");
+        assertThat(plan_gt).hasOperators("ForeignCollect[doc.taxi | [car_id] | (car_id > '3ac37162-0efb-414e-af0c-adbcfd275026')]");
+
+        LogicalPlan plan_gtEq = plan(base + ">= '3ac37162-0efb-414e-af0c-adbcfd275026'");
+        assertThat(plan_gtEq).hasOperators("ForeignCollect[doc.taxi | [car_id] | (car_id >= '3ac37162-0efb-414e-af0c-adbcfd275026')]");
+
+        LogicalPlan plan_lt = plan(base + "< '3ac37162-0efb-414e-af0c-adbcfd275026'");
+        assertThat(plan_lt).hasOperators("ForeignCollect[doc.taxi | [car_id] | (car_id < '3ac37162-0efb-414e-af0c-adbcfd275026')]");
+
+        LogicalPlan plan_ltEq = plan(base + "<= '3ac37162-0efb-414e-af0c-adbcfd275026'");
+        assertThat(plan_ltEq).hasOperators("ForeignCollect[doc.taxi | [car_id] | (car_id <= '3ac37162-0efb-414e-af0c-adbcfd275026')]");
+    }
+
+    @Test
+    public void test_pushes_down_object_subscript() throws Exception {
+        String base = "select car_sensor from taxi where car_sensor['engine_temp'] ";
+        LogicalPlan plan_eq = plan(base + "= 2");
+        assertThat(plan_eq).hasOperators("ForeignCollect[doc.taxi | [car_sensor] | (car_sensor['engine_temp'] = 2)]");
+
+        LogicalPlan plan_notEq = plan(base + "!= car_sensor['engine_temp']");
+        assertThat(plan_notEq).hasOperators(
+            "Eval[car_sensor]",
+            "  └ Filter[(NOT (car_sensor['engine_temp'] = car_sensor['engine_temp']))]",
+            "    └ ForeignCollect[doc.taxi | [car_sensor, car_sensor['engine_temp']] | true]");
+
+        LogicalPlan plan_gt = plan(base + "> 2");
+        assertThat(plan_gt).hasOperators("ForeignCollect[doc.taxi | [car_sensor] | (car_sensor['engine_temp'] > 2)]");
+
+        LogicalPlan plan_gtEq = plan(base + ">= 2");
+        assertThat(plan_gtEq).hasOperators("ForeignCollect[doc.taxi | [car_sensor] | (car_sensor['engine_temp'] >= 2)]");
+
+        LogicalPlan plan_lt = plan(base + "< 2");
+        assertThat(plan_lt).hasOperators("ForeignCollect[doc.taxi | [car_sensor] | (car_sensor['engine_temp'] < 2)]");
+
+        LogicalPlan plan_ltEq = plan(base + "<= 2");
+        assertThat(plan_ltEq).hasOperators("ForeignCollect[doc.taxi | [car_sensor] | (car_sensor['engine_temp'] <= 2)]");
     }
 
 }
