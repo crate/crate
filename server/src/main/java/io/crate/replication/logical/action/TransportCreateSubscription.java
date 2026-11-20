@@ -23,6 +23,7 @@ package io.crate.replication.logical.action;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
@@ -43,12 +44,18 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.snapshots.Snapshot;
+import org.elasticsearch.snapshots.SnapshotId;
+import org.elasticsearch.snapshots.SnapshotSchemaValidator;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationMetadata;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.repository.LogicalReplicationRepository;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
@@ -123,6 +130,7 @@ public class TransportCreateSubscription extends TransportMasterNodeAction<Creat
                     if (response.unknownPublications().isEmpty() == false) {
                         throw new PublicationUnknownException(response.unknownPublications().get(0));
                     }
+                    validateNoOverlappingSubscriptionTargets(request.name(), response.targets());
 
                     // Published tables can have metadata or documents which subscriber with a lower version might not process.
                     // We check published tables version and not publisher cluster's MinNodeVersion.
@@ -131,26 +139,56 @@ public class TransportCreateSubscription extends TransportMasterNodeAction<Creat
 
                     Metadata metadata = state.metadata();
                     Metadata publisherMetadata = response.metadata();
-                    for (RelationMetadata.Table table : publisherMetadata.relations(RelationMetadata.Table.class)) {
-                        if (metadata.getRelation(table.name()) != null) {
-                            var message = String.format(
-                                Locale.ENGLISH,
-                                "Subscription '%s' cannot be created as included relation '%s' already exists",
-                                request.name(),
-                                table.name()
-                            );
-                            throw new RelationAlreadyExists(table.name(), message);
+                    for (TableOrPartition target : response.targets()) {
+                        RelationName targetName = target.table();
+                        RelationMetadata.Table table = publisherMetadata.getRelation(targetName);
+                        String partitionIdent = target.partitionIdent();
 
+                        if (partitionIdent == null) {
+                            if (metadata.getRelation(targetName) != null) {
+                                var message = String.format(
+                                    Locale.ENGLISH,
+                                    "Subscription '%s' cannot be created as included relation '%s' already exists",
+                                    request.name(),
+                                    targetName
+                                );
+                                throw new RelationAlreadyExists(targetName, message);
+                            }
+                        } else {
+                            List<String> partitionValues = PartitionName.decodeIdent(partitionIdent);
+                            if (metadata.getIndex(targetName, partitionValues, false, x -> x) != null) {
+                                var message = String.format(
+                                    Locale.ENGLISH,
+                                    "Subscription '%s' cannot be created as included relation '%s' partition '%s' already exists",
+                                    request.name(),
+                                    targetName,
+                                    partitionIdent
+                                );
+                                throw new RelationAlreadyExists(targetName, message);
+                            }
+                            RelationMetadata.Table existingSubscriberTable = metadata.getRelation(targetName);
+                            if (existingSubscriberTable != null) {
+                                SnapshotSchemaValidator.validate(
+                                    new Snapshot(
+                                        LogicalReplicationRepository.TYPE,
+                                        new SnapshotId(LogicalReplicationRepository.LATEST, LogicalReplicationRepository.LATEST)
+                                    ),
+                                    targetName,
+                                    table,
+                                    existingSubscriberTable
+                                );
+                            }
                         }
+
                         checkVersionCompatibility(
-                            table.name().fqn(),
+                            targetName.fqn(),
                             state.nodes().getMinNodeVersion(),
                             table.settings()
                         );
 
-                        for (Settings settings : publisherMetadata.getIndices(table.name(), List.of(), false, IndexMetadata::getSettings)) {
+                        for (Settings settings : publisherMetadata.getIndices(targetName, List.of(), false, IndexMetadata::getSettings)) {
                             checkVersionCompatibility(
-                                table.name().fqn(),
+                                targetName.fqn(),
                                 state.nodes().getMinNodeVersion(),
                                 settings
                             );
@@ -168,6 +206,30 @@ public class TransportCreateSubscription extends TransportMasterNodeAction<Creat
                     }
                 }
             );
+    }
+
+    static void validateNoOverlappingSubscriptionTargets(String subscriptionName, List<TableOrPartition> targets) {
+        var tableTargets = new HashSet<RelationName>();
+        var partitionTargets = new HashSet<RelationName>();
+        for (TableOrPartition target : targets) {
+            RelationName relationName = target.table();
+            boolean overlaps;
+            if (target.partitionIdent() == null) {
+                overlaps = partitionTargets.contains(relationName);
+                tableTargets.add(relationName);
+            } else {
+                overlaps = tableTargets.contains(relationName);
+                partitionTargets.add(relationName);
+            }
+            if (overlaps) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "Subscription '%s' cannot include relation '%s' both as a table and as an individual partition",
+                    subscriptionName,
+                    relationName
+                ));
+            }
+        }
     }
 
     private static void checkVersionCompatibility(String tableFqn, Version subscriberMinNodeVersion, Settings settings) {
@@ -200,10 +262,9 @@ public class TransportCreateSubscription extends TransportMasterNodeAction<Creat
                 }
 
                 HashMap<TableOrPartition, Subscription.RelationState> relations = new HashMap<>();
-                Metadata publisherMetadata = publicationsStateResponse.metadata();
-                for (RelationMetadata.Table table : publisherMetadata.relations(RelationMetadata.Table.class)) {
+                for (TableOrPartition target : publicationsStateResponse.targets()) {
                     relations.put(
-                        new TableOrPartition(table.name(), null),
+                        target,
                         new Subscription.RelationState(Subscription.State.INITIALIZING, null)
                     );
                 }

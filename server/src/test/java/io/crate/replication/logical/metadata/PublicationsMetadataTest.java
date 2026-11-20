@@ -78,11 +78,11 @@ public class PublicationsMetadataTest extends ESTestCase {
             List.of(target)
         );
         var out = new BytesStreamOutput();
-        out.setVersion(Version.V_6_5_0);
+        out.setVersion(Version.V_6_6_0);
         publication.writeTo(out);
 
         var in = out.bytes().streamInput();
-        in.setVersion(Version.V_6_5_0);
+        in.setVersion(Version.V_6_6_0);
         var streamed = new Publication(in);
 
         assertThat(streamed.targets()).containsExactly(target);
@@ -97,11 +97,11 @@ public class PublicationsMetadataTest extends ESTestCase {
             List.of(target)
         );
         var out = new BytesStreamOutput();
-        out.setVersion(Version.V_6_4_0);
+        out.setVersion(Version.V_6_5_0);
         publication.writeTo(out);
 
         var in = out.bytes().streamInput();
-        in.setVersion(Version.V_6_4_0);
+        in.setVersion(Version.V_6_5_0);
         var streamed = new Publication(in);
 
         assertThat(streamed.targets()).containsExactly(target);
@@ -115,7 +115,7 @@ public class PublicationsMetadataTest extends ESTestCase {
             List.of(new TableOrPartition(new RelationName("doc", "t1"), "04132"))
         );
         var out = new BytesStreamOutput();
-        out.setVersion(Version.V_6_4_0);
+        out.setVersion(Version.V_6_5_0);
 
         assertThatThrownBy(() -> publication.writeTo(out))
             .isExactlyInstanceOf(IllegalStateException.class)

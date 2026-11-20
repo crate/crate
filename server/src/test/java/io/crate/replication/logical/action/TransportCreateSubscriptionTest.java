@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -66,6 +67,21 @@ public class TransportCreateSubscriptionTest {
     private final LogicalReplicationService logicalReplicationService = mock(LogicalReplicationService.class);
     private final Roles roles = new StubRoleManager();
     private final ClusterService clusterService = mock(ClusterService.class);
+
+    @Test
+    public void test_rejects_table_and_partition_targets_for_same_relation() {
+        var relationName = new RelationName("doc", "t1");
+
+        assertThatThrownBy(() -> TransportCreateSubscription.validateNoOverlappingSubscriptionTargets(
+            "sub1",
+            List.of(
+                new TableOrPartition(relationName, null),
+                new TableOrPartition(relationName, "04132")
+            )
+        ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Subscription 'sub1' cannot include relation 'doc.t1' both as a table and as an individual partition");
+    }
 
     @Test
     public void test_subscribing_to_tables_with_higher_version_raises_error() throws Exception {
@@ -154,7 +170,10 @@ public class TransportCreateSubscriptionTest {
             .put(IndexMetadata.builder(indexUUID).indexName(relationName.indexNameOrAlias()).settings(indexSettings))
             .build();
 
-        PublicationsStateAction.Response response = new PublicationsStateAction.Response(publisherMetadata, List.of());
+        PublicationsStateAction.Response response = new PublicationsStateAction.Response(
+            publisherMetadata,
+            List.of(new TableOrPartition(relationName, null)),
+            List.of());
         when(logicalReplicationService.getPublicationState(anyString(), any(List.class), any(ConnectionInfo.class)))
             .thenReturn(CompletableFuture.completedFuture(response));
 
