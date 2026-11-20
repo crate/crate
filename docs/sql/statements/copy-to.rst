@@ -102,7 +102,7 @@ Clauses
 
    Multiple files (in this directory) use the same standard text for
    documenting the ``PARTITION`` clause. (Minor verb changes are made to
-   accomodate the specifics of the parent statement.)
+   accommodate the specifics of the parent statement.)
 
    For consistency, if you make changes here, please be sure to make a
    corresponding change to the other files.
