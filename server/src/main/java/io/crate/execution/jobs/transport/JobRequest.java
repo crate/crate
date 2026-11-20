@@ -140,7 +140,7 @@ public class JobRequest extends TransportRequest {
         out.writeBoolean(enableProfiling);
 
         sessionSettings.writeTo(out);
-        if (hasMinNodeVersion(out.getVersion())) {
+        if (hasMinNodeVersion(out.getRemoteVersion())) {
             Version.writeVersion(minNodeVersion, out);
         }
     }
