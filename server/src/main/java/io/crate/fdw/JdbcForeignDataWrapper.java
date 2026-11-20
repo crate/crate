@@ -108,6 +108,10 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
         this.executor = executor;
     }
 
+    public String name() {
+        return "jdbc";
+    }
+
     @Override
     public void close() throws IOException {
     }

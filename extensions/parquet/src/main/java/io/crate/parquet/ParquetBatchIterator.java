@@ -22,14 +22,17 @@
 package io.crate.parquet;
 
 import static io.crate.parquet.ParquetToCrate.readColumn;
+import static io.crate.parquet.Predicates.createFilterPredicate;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import dev.hardwood.InputFile;
+import dev.hardwood.reader.FilterPredicate;
 import dev.hardwood.reader.ParquetFileReader;
 import dev.hardwood.reader.RowReader;
 import dev.hardwood.reader.ParquetFileReader.RowReaderBuilder;
@@ -39,6 +42,14 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.GtOperator;
+import io.crate.expression.operator.GteOperator;
+import io.crate.expression.operator.LtOperator;
+import io.crate.expression.operator.LteOperator;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 
 public class ParquetBatchIterator implements BatchIterator<Row> {
@@ -50,14 +61,39 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
     private FileSchema fileSchema;
     private RowReader rowReader;
     private final List<Reference> columns;
+    private final Symbol predicates;
     private final List<InputFile> inputFiles;
     private volatile Throwable killed = null;
+    public static final Map<String, FilterPredicate.Operator> FILTER_PUSHDOWN_OPERATORS = Map.of(
+        EqOperator.NAME, FilterPredicate.Operator.EQ,
+        GtOperator.NAME, FilterPredicate.Operator.GT,
+        GteOperator.NAME, FilterPredicate.Operator.GT_EQ,
+        LtOperator.NAME, FilterPredicate.Operator.LT,
+        LteOperator.NAME, FilterPredicate.Operator.LT_EQ
+    );
 
-    public ParquetBatchIterator(List<InputFile> inputFiles, List<Reference> columns) {
+    public ParquetBatchIterator(List<InputFile> inputFiles, List<Reference> columns, Symbol predicates) {
         this.inputFiles = inputFiles;
         this.columns = columns;
+        this.predicates = predicates;
         this.cells = new Object[columns.size()];
         this.row = new RowN(cells);
+    }
+
+    private FilterPredicate createFilter() {
+        if (predicates instanceof Function) {
+            Function func = (Function) predicates;
+            FilterPredicate.Operator hardwoodOperator = FILTER_PUSHDOWN_OPERATORS.get(func.name());
+            if (hardwoodOperator == null) {
+                throw new UnsupportedOperationException("Unexpected error: Cannot push predicate down for operator: " + func.name());
+            }
+            Symbol left = func.arguments().get(0);
+            Symbol right = func.arguments().get(1);
+            if (left instanceof Reference ref && right instanceof Literal<?> literal) {
+                return createFilterPredicate(ref, literal.value(), hardwoodOperator);
+            }
+        }
+        return null;
     }
 
     private void raiseIfKilled() {
@@ -82,16 +118,19 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
         if (rowReader == null) {
             return false;
         }
-
-        if (rowReader.hasNext()) {
-            rowReader.next();
-            for (int i = 0; i < columns.size(); i++) {
-                Reference ref = columns.get(i);
-                cells[i] = readColumn(fileSchema, rowReader, ref);
+        try {
+            if (rowReader.hasNext()) {
+                rowReader.next();
+                for (int i = 0; i < columns.size(); i++) {
+                    Reference ref = columns.get(i);
+                    cells[i] = readColumn(fileSchema, rowReader, ref);
+                }
+                return true;
             }
-            return true;
+            return false;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
-        return false;
     }
 
     private void releaseReader() {
@@ -105,8 +144,13 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
             }
         }
         if (rowReader != null) {
-            rowReader.close();
-            rowReader = null;
+            try {
+                rowReader.close();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            } finally {
+                rowReader = null;
+            }
         }
 
     }
@@ -155,6 +199,10 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
                 builder.projection(ColumnProjection.columns(columns.stream()
                     .map(ref -> ref.column().fqn())
                     .toArray(String[]::new)));
+            }
+            FilterPredicate filter = createFilter();
+            if (filter != null) {
+                builder.filter(filter);
             }
             rowReader = builder.build();
         } catch (IOException e) {

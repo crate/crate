@@ -24,6 +24,8 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
+import io.crate.expression.operator.AndOperator;
+import io.crate.expression.symbol.Symbol;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.ForeignCollect;
 import io.crate.planner.operators.LogicalPlan;
@@ -56,19 +58,35 @@ public class MergeFilterAndForeignCollect implements Rule<Filter> {
         return pattern;
     }
 
+    private static boolean alreadyPushedDown(ForeignCollect foreignCollect, Symbol query) {
+        Symbol existingQuery = foreignCollect.where().queryOrFallback();
+        return AndOperator.split(existingQuery).contains(query);
+    }
+
     @Override
     public LogicalPlan apply(Filter filter,
                              Captures captures,
                              Rule.Context ruleContext) {
+        Symbol query = filter.query();
         ForeignCollect collect = captures.get(collectCapture);
-        if (collect.fdw().supportsQueryPushdown(filter.query())) {
-            return new ForeignCollect(
+        if (collect.fdw().supportsQueryPushdown(query)) {
+            ForeignCollect foreignCollect = new ForeignCollect(
                 collect.fdw(),
                 collect.relation(),
                 collect.outputs(),
-                collect.where().add(filter.query()),
+                collect.where().add(query),
                 collect.executeAs()
             );
+
+
+            if (collect.fdw().name().equals("parquet")) {
+                if (alreadyPushedDown(collect, query)) {
+                    return null;
+                }
+                return Filter.create(foreignCollect, query);
+            }
+
+            return foreignCollect;
         }
         return null;
     }

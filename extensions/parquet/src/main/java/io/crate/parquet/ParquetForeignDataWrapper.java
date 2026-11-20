@@ -29,6 +29,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.opendal.AsyncExecutor;
 import org.apache.opendal.AsyncOperator;
@@ -38,6 +39,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import dev.hardwood.InputFile;
+import dev.hardwood.internal.reader.RangeBackedInputFile;
 import io.crate.common.io.IOUtils;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -60,6 +62,8 @@ import io.crate.opendal.S3Env;
 import io.crate.opendal.S3URI;
 import io.crate.opendal.SharedAsyncExecutor;
 import io.crate.role.Role;
+import io.crate.types.ArrayType;
+import io.crate.expression.symbol.Function;
 
 public class ParquetForeignDataWrapper implements ForeignDataWrapper {
 
@@ -70,6 +74,11 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
     private final Setting<String> regionSetting = Setting.simpleString("region");
     private final List<Setting<?>> mandatoryServerOptions = List.of(filesSetting);
     private final List<Setting<?>> optionalServerOptions = List.of(protocolSetting, regionSetting);
+    private static ConcurrentHashMap<String, RangeBackedInputFile> inputFileCache = new ConcurrentHashMap<>();
+
+    public String name() {
+        return "parquet";
+    }
 
     public static List<InputFile> urisToInputFiles(AsyncExecutor asyncExecutor,
                                                    Role currentUser,
@@ -86,9 +95,13 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
                 inputFiles.add(InputFile.of(Path.of(uri.getPath())));
             } else if (scheme.equals("s3")) {
                 S3URI s3uri = S3URI.of(URI.create(p));
-                S3 s3 = S3Env.getServiceConfig(s3uri, options);
-                Operator operator = AsyncOperator.of(s3, asyncExecutor).blocking();
-                inputFiles.add(new OpenDALInputFile(operator, s3uri.path()));
+                String cacheKey = p + "|" + options.toString();
+                RangeBackedInputFile rangeBackedInputFile = inputFileCache.computeIfAbsent(cacheKey, key -> {
+                    S3 s3 = S3Env.getServiceConfig(s3uri, options);
+                    Operator operator = AsyncOperator.of(s3, asyncExecutor).blocking();
+                    return new RangeBackedInputFile(new OpenDALInputFile(operator, s3uri.path()), Path.of(""));
+                });
+                inputFiles.add(new SharedInputFile(rangeBackedInputFile));
             } else {
                 IOUtils.closeWhileHandlingException(inputFiles);
                 throw new InvalidArgumentException("Unsupported URI scheme: " + scheme);
@@ -105,10 +118,23 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
     @Override
     public void close() throws IOException {
         sharedAsyncExecutor.close();
+        for (RangeBackedInputFile f : inputFileCache.values()) {
+            IOUtils.closeWhileHandlingException(f);
+        }
+        inputFileCache.clear();
     }
 
     @Override
     public boolean supportsQueryPushdown(Symbol query) {
+        if (query instanceof Function function) {
+            Symbol ref = function.arguments().get(0);
+            if (ref.valueType() instanceof ArrayType) {
+                return false;
+            }
+            if (ParquetBatchIterator.FILTER_PUSHDOWN_OPERATORS.containsKey(function.name())) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -160,7 +186,7 @@ public class ParquetForeignDataWrapper implements ForeignDataWrapper {
 
         AsyncExecutor asyncExecutor = sharedAsyncExecutor.asyncExecutor();
         List<InputFile> inputFiles = urisToInputFiles(asyncExecutor, currentUser, pathsToFiles, options);
-        BatchIterator<Row> it = new ParquetBatchIterator(inputFiles, columns);
+        BatchIterator<Row> it = new ParquetBatchIterator(inputFiles, columns, query);
         it = inputRowProjector.apply(it);
         return CompletableFuture.completedFuture(it);
     }
