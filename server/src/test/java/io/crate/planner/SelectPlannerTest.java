@@ -24,7 +24,6 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collection;
@@ -83,6 +82,7 @@ import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.PKAndVersion;
+import io.crate.planner.optimizer.rule.RemoveRedundantDistinct;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.Stats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -1140,6 +1140,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .setNumNodes(2)
             .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
+        e.getSessionSettings().excludedOptimizerRules().add(RemoveRedundantDistinct.class);
 
         String stmt = "select id, name from users group by id, name limit 1";
         LogicalPlan plan = e.logicalPlan(stmt);
@@ -1154,6 +1155,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .setNumNodes(2)
             .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
+        e.getSessionSettings().excludedOptimizerRules().add(RemoveRedundantDistinct.class);
 
         String stmt = "select id, name from users group by id, name limit 1 offset 3";
         LogicalPlan plan = e.logicalPlan(stmt);

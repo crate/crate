@@ -55,6 +55,7 @@ import io.crate.planner.Merge;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.optimizer.rule.RemoveRedundantDistinct;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
@@ -387,6 +388,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             .setNumNodes(2)
             .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
+        e.getSessionSettings().excludedOptimizerRules().add(RemoveRedundantDistinct.class);
+
         Merge merge = e.plan(
             "select id from users group by id having id > 0");
         Collect collect = (Collect) merge.subPlan();

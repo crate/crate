@@ -23,7 +23,6 @@ package io.crate.planner;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 
@@ -51,12 +50,14 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
         e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            // no primary key so that a GROUP BY on id isn't removed as redundant
+            .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION);
     }
 
     @Test
     public void testGroupByWithScalarPlan() throws Exception {
-        Merge merge = e.plan("SELECT id + 1 FROM users GROUP BY id");
+        Merge merge = e.plan("SELECT id + 1 FROM users_clustered_by_only GROUP BY id");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
 
@@ -83,7 +84,7 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByWithMultipleScalarPlan() throws Exception {
-        Merge merge = e.plan("SELECT abs(id + 1) FROM users GROUP BY id");
+        Merge merge = e.plan("SELECT abs(id + 1) FROM users_clustered_by_only GROUP BY id");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
 
@@ -107,7 +108,7 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByScalarWithMultipleColumnArgumentsPlan() throws Exception {
-        Merge merge = e.plan("SELECT abs(id + other_id) FROM users GROUP BY id, other_id");
+        Merge merge = e.plan("SELECT abs(id + other_id) FROM users_clustered_by_only GROUP BY id, other_id");
         Merge subplan = (Merge) merge.subPlan();
         Collect collect = (Collect) subplan.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());

@@ -1435,7 +1435,7 @@ public class GroupByAggregateTest extends IntegTestCase {
     @UseRandomizedOptimizerRules(0)
     @Test
     public void test_optimized_limit_distinct_returns_2_unique_items() throws Throwable {
-        execute("create table m.tbl (id int primary key)");
+        execute("create table m.tbl (id int)");
         Object[][] ids = new Object[100][];
         for (int i = 0; i < ids.length; i++) {
             ids[i] = new Object[] { i };
@@ -1463,6 +1463,59 @@ public class GroupByAggregateTest extends IntegTestCase {
 
         execute("select distinct x from tbl limit 1 offset 3");
         assertThat(response).hasRowCount(0L);
+    }
+
+    @UseRandomizedOptimizerRules(0)
+    @UseRandomizedSchema(random = false)
+    @Test
+    public void test_distinct_and_group_by_on_primary_key_return_correct_results() throws Exception {
+        execute("create table doc.pk_tbl (id text primary key, name text)");
+        execute("create table doc.composite_pk_tbl (a int, b int, v text, primary key (a, b))");
+        execute("""
+            insert into doc.pk_tbl (id, name) values
+                ('id1', 'a'), ('id2', 'a'), ('id3', 'b'), ('id4', 'b'), ('id5', 'c'), ('id6', null)
+            """);
+        execute("insert into doc.composite_pk_tbl (a, b, v) values (1, 1, 'x'), (1, 2, 'x'), (2, 1, 'y')");
+        execute("refresh table doc.pk_tbl, doc.composite_pk_tbl");
+
+        // grouping is removed: the keys contain the full primary key
+        execute("explain (costs false) select distinct id, name from doc.pk_tbl");
+        assertThat(printedTable(response.rows())).doesNotContain("GroupHashAggregate");
+        execute("select distinct id, name from doc.pk_tbl order by id");
+        assertThat(response).hasRows(
+            "id1| a", "id2| a", "id3| b", "id4| b", "id5| c", "id6| NULL");
+
+        execute("select id from doc.pk_tbl group by id order by id");
+        assertThat(response).hasRows("id1", "id2", "id3", "id4", "id5", "id6");
+
+        execute("select distinct id, name from doc.pk_tbl order by id limit 2 offset 1");
+        assertThat(response).hasRows("id2| a", "id3| b");
+
+        execute("select distinct s.id, s.name from (select id, name from doc.pk_tbl where id > 'id2') s order by s.id");
+        assertThat(response).hasRows("id3| b", "id4| b", "id5| c", "id6| NULL");
+
+        // COUNT(DISTINCT pk): the de-duplicating GROUP BY inserted by RewriteDistinctAggToGroupBy is
+        // removed and the remaining aggregate must still count each primary key exactly once
+        execute("explain (costs false) select count(distinct id) from doc.pk_tbl");
+        assertThat(printedTable(response.rows())).doesNotContain("GroupHashAggregate");
+        execute("select count(distinct id) from doc.pk_tbl");
+        assertThat(response).hasRows("6");
+
+        // grouping is kept: the keys don't contain the (full) primary key
+        execute("select distinct name from doc.pk_tbl order by name");
+        assertThat(response).hasRows("a", "b", "c", "NULL");
+        execute("select count(distinct name) from doc.pk_tbl");
+        assertThat(response).hasRows("3");
+        execute("select distinct a from doc.composite_pk_tbl order by a");
+        assertThat(response).hasRows("1", "2");
+        execute("select distinct a, v from doc.composite_pk_tbl order by a");
+        assertThat(response).hasRows("1| x", "2| y");
+
+        execute("explain (costs false) select count(distinct id) + 1 from doc.pk_tbl");
+        assertThat(printedTable(response.rows())).doesNotContain("GroupHashAggregate");
+
+        execute("select count(distinct id) + 1 from doc.pk_tbl");
+        assertThat(response).hasRows("7");
     }
 
     @Test
