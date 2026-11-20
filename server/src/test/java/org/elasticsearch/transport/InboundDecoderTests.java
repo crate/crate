@@ -50,7 +50,7 @@ public class InboundDecoderTests extends ESTestCase {
         OutboundMessage message;
         if (isRequest) {
             message = new OutboundMessage.Request(new TestRequest(randomAlphaOfLength(100)),
-                Version.CURRENT, action, requestId, false, false);
+                Version.CURRENT, Version.CURRENT, action, requestId, false, false);
         } else {
             message = new OutboundMessage.Response(new TestResponse(randomAlphaOfLength(100)),
                 Version.CURRENT, requestId, false, false);
@@ -101,7 +101,7 @@ public class InboundDecoderTests extends ESTestCase {
         long requestId = randomNonNegativeLong();
         Version handshakeCompat = Version.CURRENT.minimumCompatibilityVersion();
         OutboundMessage message = new OutboundMessage.Request(new TestRequest(randomAlphaOfLength(100)),
-            handshakeCompat, action, requestId, true, false);
+            handshakeCompat, handshakeCompat, action, requestId, true, false);
 
         final BytesReference bytes = message.serialize(new BytesStreamOutput());
         int totalHeaderSize = TcpHeader.headerSize(handshakeCompat) + bytes.getInt(TcpHeader.VARIABLE_HEADER_SIZE_POSITION);
@@ -132,7 +132,7 @@ public class InboundDecoderTests extends ESTestCase {
         Writeable transportMessage;
         if (isRequest) {
             transportMessage = new TestRequest(randomAlphaOfLength(100));
-            message = new OutboundMessage.Request(transportMessage, Version.CURRENT, action, requestId,
+            message = new OutboundMessage.Request(transportMessage, Version.CURRENT, Version.CURRENT, action, requestId,
                 false, true);
         } else {
             transportMessage = new TestResponse(randomAlphaOfLength(100));
@@ -187,7 +187,7 @@ public class InboundDecoderTests extends ESTestCase {
         long requestId = randomNonNegativeLong();
         Version handshakeCompat = Version.CURRENT.minimumCompatibilityVersion();
         OutboundMessage message = new OutboundMessage.Request(new TestRequest(randomAlphaOfLength(100)),
-            handshakeCompat, action, requestId, true, true);
+            handshakeCompat, handshakeCompat, action, requestId, true, true);
 
         final BytesReference bytes = message.serialize(new BytesStreamOutput());
         int totalHeaderSize = TcpHeader.headerSize(handshakeCompat) + bytes.getInt(TcpHeader.VARIABLE_HEADER_SIZE_POSITION);
