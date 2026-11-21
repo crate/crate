@@ -27,16 +27,17 @@ import java.util.function.Consumer;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.DDLStatement;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.RelationName;
+import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AlterPublication;
+import io.crate.sql.tree.Table;
 
 public class AnalyzedAlterPublication implements DDLStatement {
 
     private final String name;
     private final AlterPublication.Operation operation;
-    private final List<RelationName> tables;
+    private final List<Table<Symbol>> tables;
 
-    public AnalyzedAlterPublication(String name, AlterPublication.Operation operation, List<RelationName> tables) {
+    public AnalyzedAlterPublication(String name, AlterPublication.Operation operation, List<Table<Symbol>> tables) {
         this.name = name;
         this.operation = operation;
         this.tables = tables;
@@ -50,12 +51,17 @@ public class AnalyzedAlterPublication implements DDLStatement {
         return operation;
     }
 
-    public List<RelationName> tables() {
+    public List<Table<Symbol>> tables() {
         return tables;
     }
 
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
+        for (Table<Symbol> table : tables) {
+            for (Assignment<Symbol> partitionProperty : table.partitionProperties()) {
+                partitionProperty.expressions().forEach(consumer);
+            }
+        }
     }
 
     @Override

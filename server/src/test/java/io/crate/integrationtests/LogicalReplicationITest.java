@@ -50,6 +50,7 @@ import io.crate.metadata.RelationName;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.CreateSubscriptionException;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
+import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
@@ -221,6 +222,41 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         var relationName = new RelationName("doc", "parted");
         assertThat(publication.targets()).containsExactly(
             new TableOrPartition(relationName, new PartitionName(relationName, List.of("1")).ident()));
+    }
+
+    @Test
+    public void test_alter_publication_with_concrete_partitions() {
+        executeOnPublisher(
+            "CREATE TABLE doc.parted (id INT, p INT) " +
+            "PARTITIONED BY (p) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
+        executeOnPublisher("INSERT INTO doc.parted (id, p) VALUES (1, 1), (2, 2), (3, 3)");
+        executeOnPublisher("CREATE PUBLICATION pub1");
+        publisherSqlExecutor.exec(
+            "ALTER PUBLICATION pub1 ADD TABLE doc.parted PARTITION (p = ?)",
+            new Object[] { 1 });
+
+        var relationName = new RelationName("doc", "parted");
+        var partition1 = new TableOrPartition(relationName, new PartitionName(relationName, List.of("1")).ident());
+        var partition2 = new TableOrPartition(relationName, new PartitionName(relationName, List.of("2")).ident());
+        var partition3 = new TableOrPartition(relationName, new PartitionName(relationName, List.of("3")).ident());
+        assertThat(publication("pub1").targets()).containsExactly(partition1);
+
+        executeOnPublisher("ALTER PUBLICATION pub1 ADD TABLE doc.parted PARTITION (p = 2)");
+        assertThat(publication("pub1").targets()).containsExactlyInAnyOrder(partition1, partition2);
+
+        executeOnPublisher("ALTER PUBLICATION pub1 DROP TABLE doc.parted PARTITION (p = 1)");
+        assertThat(publication("pub1").targets()).containsExactly(partition2);
+
+        executeOnPublisher("ALTER PUBLICATION pub1 SET TABLE doc.parted PARTITION (p = 3)");
+        assertThat(publication("pub1").targets()).containsExactly(partition3);
+    }
+
+    private Publication publication(String name) {
+        PublicationsMetadata publicationsMetadata = publisherCluster.getInstance(ClusterService.class)
+            .state()
+            .metadata()
+            .custom(PublicationsMetadata.TYPE);
+        return publicationsMetadata.publications().get(name);
     }
 
     @Test

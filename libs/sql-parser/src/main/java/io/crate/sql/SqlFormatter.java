@@ -1506,7 +1506,17 @@ public final class SqlFormatter {
             builder.append("TABLE ");
             builder.append(
                 alterPublication.tables().stream()
-                    .map(Formatter::formatQualifiedName)
+                    .map(table -> {
+                        var formattedTable = new StringBuilder(formatQualifiedName(table.getName()));
+                        if (!table.partitionProperties().isEmpty()) {
+                            formattedTable.append(" PARTITION (")
+                                .append(table.partitionProperties().stream()
+                                    .map(assignment -> assignment.columnName().toString() + "=" + assignment.expression().toString())
+                                    .collect(COMMA_JOINER))
+                                .append(")");
+                        }
+                        return formattedTable;
+                    })
                     .collect(COMMA_JOINER)
             );
             return null;

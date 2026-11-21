@@ -2190,8 +2190,11 @@ public class TestStatementBuilder {
     @Test
     public void test_alter_publication() {
         printStatement("ALTER PUBLICATION pub1 ADD TABLE t1");
+        printStatement("ALTER PUBLICATION pub1 ADD TABLE t1 PARTITION (p = 1)");
         printStatement("ALTER PUBLICATION \"myPublication\" SET TABLE t1");
+        printStatement("ALTER PUBLICATION \"myPublication\" SET TABLE t1 PARTITION (p1 = 1, p2 = 2), t2");
         printStatement("ALTER PUBLICATION pub1 DROP TABLE s1.t1");
+        printStatement("ALTER PUBLICATION pub1 DROP TABLE s1.t1 PARTITION (p = 1)");
     }
 
     @Test

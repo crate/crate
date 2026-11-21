@@ -150,7 +150,8 @@ alterStmt
         SET OPEN_ROUND_BRACKET genericProperties CLOSE_ROUND_BRACKET                 #alterRepository
     | ALTER REPOSITORY name=ident RESET alterRepositoryResetTarget                   #alterRepositoryReset
     | ALTER PUBLICATION name=ident
-        ((ADD | SET | DROP) TABLE qname ASTERISK?  (COMMA qname ASTERISK? )*)        #alterPublication
+        ((ADD | SET | DROP) TABLE tableWithPartition ASTERISK?
+            (COMMA tableWithPartition ASTERISK? )*)                                  #alterPublication
     | ALTER SUBSCRIPTION name=ident alterSubscriptionMode                            #alterSubscription
     | ALTER SERVER  name=ident alterServerOptions                                    #alterServer
     ;
