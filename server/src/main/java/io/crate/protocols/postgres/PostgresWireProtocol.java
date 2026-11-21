@@ -608,7 +608,7 @@ public class PostgresWireProtocol {
     private void handleParseMessage(ByteBuf buffer, final Channel channel) {
         String statementName = readCString(buffer);
         final String query = readCString(buffer);
-        short numParams = buffer.readShort();
+        int numParams = buffer.readUnsignedShort();
         List<DataType<?>> paramTypes = new ArrayList<>(numParams);
         for (int i = 0; i < numParams; i++) {
             int oid = buffer.readInt();
@@ -659,7 +659,7 @@ public class PostgresWireProtocol {
 
         FormatCodes.FormatCode[] formatCodes = FormatCodes.fromBuffer(buffer);
 
-        short numParams = buffer.readShort();
+        int numParams = buffer.readUnsignedShort();
         List<Object> params = createList(numParams);
         for (int i = 0; i < numParams; i++) {
             int valueLength = buffer.readInt();
@@ -699,7 +699,7 @@ public class PostgresWireProtocol {
         Messages.sendBindComplete(channel);
     }
 
-    private <T> List<T> createList(short size) {
+    private <T> List<T> createList(int size) {
         return size == 0 ? Collections.emptyList() : new ArrayList<>(size);
     }
 

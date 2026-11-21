@@ -277,6 +277,57 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_parse_message_with_more_than_32767_parameters() throws Exception {
+        var mockedSqlOperations = mock(Sessions.class);
+        AtomicReference<Session> sessionRef = new AtomicReference<>();
+        when(mockedSqlOperations.newSession(
+            any(ConnectionProperties.class),
+            Mockito.anyString(),
+            Mockito.any())).thenAnswer((Answer<Session>) invocation -> {
+                var session = sessions.newSession(
+                    invocation.getArgument(0, ConnectionProperties.class),
+                    invocation.getArgument(1, String.class),
+                    invocation.getArgument(2, Role.class)
+                );
+                sessionRef.set(session);
+                return session;
+            });
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                mockedSqlOperations,
+                new SessionSettingRegistry(Set.of()),
+                _ -> AccessControl.DISABLED,
+                _ -> {},
+                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                roles,
+                () -> null
+            );
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        int numParams = 33000;
+        ByteBuf buffer = Unpooled.buffer();
+        ClientMessages.sendStartupMessage(buffer, "doc", Map.of("user", "crate"));
+
+        buffer.writeByte('P');
+        int messageStartIndex = buffer.writerIndex();
+        buffer.writeInt(0);
+        Messages.writeCString(buffer, "S1");
+        Messages.writeCString(buffer, "select 1");
+        buffer.writeShort(numParams);
+        for (int i = 0; i < numParams; i++) {
+            buffer.writeInt(0);
+        }
+        int messageLength = buffer.writerIndex() - messageStartIndex;
+        buffer.setInt(messageStartIndex, messageLength);
+
+        channel.writeInbound(buffer);
+        channel.releaseInbound();
+
+        Session session = sessionRef.get();
+        assertThat(session.getQuery("S1")).isEqualTo("select 1");
+    }
+
+    @Test
     public void testDescribePortalMessage() throws Exception {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
