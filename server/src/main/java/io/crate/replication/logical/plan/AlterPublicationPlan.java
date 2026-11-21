@@ -21,18 +21,30 @@
 
 package io.crate.replication.logical.plan;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 
+import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.DocTableInfo;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.table.Operation;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.replication.logical.action.TransportAlterPublication;
 import io.crate.replication.logical.analyze.AnalyzedAlterPublication;
+import io.crate.sql.tree.AlterPublication;
+import io.crate.sql.tree.Table;
 
 public class AlterPublicationPlan implements Plan {
 
@@ -53,12 +65,36 @@ public class AlterPublicationPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
+        Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
+            plannerContext.transactionContext(),
+            dependencies.nodeContext(),
+            x,
+            params,
+            subQueryResults
+        );
+        List<TableOrPartition> targets = new ArrayList<>(alterPublication.tables().size());
+        var sessionSettings = plannerContext.transactionContext().sessionSettings();
+        for (Table<Symbol> table : alterPublication.tables()) {
+            DocTableInfo tableInfo = dependencies.schemas().findRelation(
+                table.getName(),
+                Operation.CREATE_PUBLICATION,
+                sessionSettings.sessionUser(),
+                sessionSettings.searchPath()
+            );
+            String partitionIdent = null;
+            if (table.partitionProperties().isEmpty() == false) {
+                var partitionProperties = Lists.map(table.partitionProperties(), x -> x.map(eval));
+                var partitionName = alterPublication.operation() == AlterPublication.Operation.DROP
+                    ? PartitionName.ofAssignmentsUnsafe(tableInfo, partitionProperties)
+                    : PartitionName.ofAssignments(tableInfo, partitionProperties, plannerContext.clusterState().metadata());
+                partitionIdent = partitionName.ident();
+            }
+            targets.add(new TableOrPartition(tableInfo.ident(), partitionIdent));
+        }
         var request = new TransportAlterPublication.Request(
             alterPublication.name(),
             alterPublication.operation(),
-            alterPublication.tables().stream()
-                .map(table -> new TableOrPartition(table, null))
-                .toList()
+            targets
         );
         dependencies.client().execute(TransportAlterPublication.ACTION, request)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1L : 1L)));

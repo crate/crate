@@ -1232,6 +1232,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public Node visitAlterPublication(SqlBaseParser.AlterPublicationContext ctx) {
         AlterPublication.Operation op;
         if (ctx.ADD() != null) {
@@ -1241,9 +1242,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         } else {
             op = AlterPublication.Operation.DROP;
         }
-        List<QualifiedName> tables = ctx.qname().stream()
-            .map(this::getQualifiedName)
-            .toList();
+        List<Table<Expression>> tables = (List) visitCollection(ctx.tableWithPartition(), Table.class);
 
         return new AlterPublication(getIdentText(ctx.name), op, tables);
     }

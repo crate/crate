@@ -30,7 +30,6 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.InvalidArgumentException;
-import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -38,7 +37,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocTableInfo;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
@@ -76,12 +74,18 @@ public class LogicalReplicationAnalyzer {
         if (logicalReplicationService.publications().containsKey(createPublication.name())) {
             throw new PublicationAlreadyExistsException(createPublication.name());
         }
+        List<Table<Symbol>> tables = analyzePublicationTargets(createPublication.tables(), txnCtx);
+
+        return new AnalyzedCreatePublication(createPublication.name(), createPublication.forAllTables(), tables);
+    }
+
+    private List<Table<Symbol>> analyzePublicationTargets(List<Table<Expression>> publicationTargets, CoordinatorTxnCtx txnCtx) {
         var sessionSettings = txnCtx.sessionSettings();
         var exprCtx = new ExpressionAnalysisContext(sessionSettings);
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             txnCtx, nodeCtx, ParamTypeHints.EMPTY, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
-        List<Table<Symbol>> tables = Lists.map(
-            createPublication.tables(),
+        return Lists.map(
+            publicationTargets,
             table -> {
                 DocTableInfo tableInfo = schemas.findRelation(
                     table.getName(),
@@ -119,8 +123,6 @@ public class LogicalReplicationAnalyzer {
                 return analyzedTable;
             }
         );
-
-        return new AnalyzedCreatePublication(createPublication.name(), createPublication.forAllTables(), tables);
     }
 
     public AnalyzedDropPublication analyze(DropPublication dropPublication,
@@ -138,8 +140,8 @@ public class LogicalReplicationAnalyzer {
         return new AnalyzedDropPublication(dropPublication.name(), dropPublication.ifExists());
     }
 
-    public AnalyzedAlterPublication analyze(AlterPublication alterPublication,
-                                            CoordinatorSessionSettings sessionSettings) {
+    public AnalyzedAlterPublication analyze(AlterPublication alterPublication, CoordinatorTxnCtx txnCtx) {
+        var sessionSettings = txnCtx.sessionSettings();
         var publication = logicalReplicationService.publications().get(alterPublication.name());
         if (publication == null) {
             throw new PublicationUnknownException(alterPublication.name());
@@ -154,17 +156,7 @@ public class LogicalReplicationAnalyzer {
                 " adding or dropping tables is not supported"
             );
         }
-        var defaultSchema = sessionSettings.searchPath().currentSchema();
-        var tables = Lists.map(
-            alterPublication.tables(),
-            q -> {
-                var relation = RelationName.of(q, defaultSchema);
-                if (schemas.tableExists(relation) == false) {
-                    throw new RelationUnknown(relation);
-                }
-                return relation;
-            }
-        );
+        List<Table<Symbol>> tables = analyzePublicationTargets(alterPublication.tables(), txnCtx);
         return new AnalyzedAlterPublication(alterPublication.name(), alterPublication.operation(), tables);
     }
 

@@ -206,6 +206,34 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     }
 
     @Test
+    public void test_alter_publication_with_partition() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.t1 (id int, p int) PARTITIONED BY (p)", List.of("1"))
+            .addPublication("pub1", false, new RelationName("doc", "t1"));
+
+        AnalyzedAlterPublication stmt = e.analyze("ALTER PUBLICATION pub1 ADD TABLE doc.t1 PARTITION (p = 1)");
+
+        assertThat(stmt.tables()).satisfiesExactly(table -> {
+            assertThat(table.getName().toString()).isEqualTo("doc.t1");
+            assertThat(table.partitionProperties()).satisfiesExactly(assignment -> {
+                assertThat(assignment.columnName()).satisfies(isLiteral("p"));
+                assertThat(assignment.expressions()).satisfiesExactly(isLiteral(1));
+            });
+        });
+    }
+
+    @Test
+    public void test_alter_publication_with_unknown_partition_column_raises_error() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.t1 (id int, p int) PARTITIONED BY (p)", List.of("1"))
+            .addPublication("pub1", false, new RelationName("doc", "t1"));
+
+        assertThatThrownBy(() -> e.analyze("ALTER PUBLICATION pub1 ADD TABLE doc.t1 PARTITION (q = 1)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("\"q\" is not a partition column");
+    }
+
+    @Test
     public void test_alter_publication_for_all_tables_raise_error() throws Exception {
         var e = SQLExecutor.of(clusterService)
             .addTable("create table doc.t1 (x int)")

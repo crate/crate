@@ -36,9 +36,9 @@ public class AlterPublication implements Statement {
 
     private final String name;
     private final Operation operation;
-    private final List<QualifiedName> tables;
+    private final List<Table<Expression>> tables;
 
-    public AlterPublication(String name, Operation operation, List<QualifiedName> tables) {
+    public AlterPublication(String name, Operation operation, List<Table<Expression>> tables) {
         this.name = name;
         this.operation = operation;
         this.tables = tables;
@@ -52,7 +52,7 @@ public class AlterPublication implements Statement {
         return operation;
     }
 
-    public List<QualifiedName> tables() {
+    public List<Table<Expression>> tables() {
         return tables;
     }
 

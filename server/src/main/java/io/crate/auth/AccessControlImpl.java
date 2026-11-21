@@ -138,6 +138,7 @@ import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
 import io.crate.sql.tree.SetStatement;
+import io.crate.sql.tree.Table;
 
 public final class AccessControlImpl implements AccessControl {
 
@@ -895,7 +896,8 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         public Void visitAlterPublication(AnalyzedAlterPublication alterPublication, Role user) {
             hasALPrivileges(user);
-            for (RelationName relationName: alterPublication.tables()) {
+            for (Table<Symbol> table : alterPublication.tables()) {
+                RelationName relationName = RelationName.of(table.getName(), null);
                 for (Permission permission : READ_WRITE_DEFINE) {
                     Privileges.ensureUserHasPrivilege(
                         relationVisitor.roles,
