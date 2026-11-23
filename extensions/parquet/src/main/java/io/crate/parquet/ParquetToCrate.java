@@ -88,7 +88,7 @@ public class ParquetToCrate {
                 default -> throw new UnsupportedOperationException("The CrateDB type " + crateType.toString()
                         + " is not supported in the parquet foreign data wrapper");
             };
-        } catch (ClassCastException e) {
+        } catch (IllegalArgumentException | ClassCastException e) {
             throw new IncompatibleSchemaForParquet(col, crateType, fileSchema.getField(fieldName));
         }
     }

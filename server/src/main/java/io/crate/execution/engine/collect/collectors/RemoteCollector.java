@@ -157,7 +157,8 @@ public class RemoteCollector {
                         sessionSettings,
                         localNode,
                         Collections.singletonList(nodeOperation),
-                        enableProfiling
+                        enableProfiling,
+                        minNodeVersion
                     )
                 )
                 .whenComplete(
