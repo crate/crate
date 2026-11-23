@@ -82,16 +82,19 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
         if (rowReader == null) {
             return false;
         }
-
-        if (rowReader.hasNext()) {
-            rowReader.next();
-            for (int i = 0; i < columns.size(); i++) {
-                Reference ref = columns.get(i);
-                cells[i] = readColumn(fileSchema, rowReader, ref);
+        try {
+            if (rowReader.hasNext()) {
+                rowReader.next();
+                for (int i = 0; i < columns.size(); i++) {
+                    Reference ref = columns.get(i);
+                    cells[i] = readColumn(fileSchema, rowReader, ref);
+                }
+                return true;
             }
-            return true;
+            return false;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
-        return false;
     }
 
     private void releaseReader() {
@@ -105,8 +108,13 @@ public class ParquetBatchIterator implements BatchIterator<Row> {
             }
         }
         if (rowReader != null) {
-            rowReader.close();
-            rowReader = null;
+            try {
+                rowReader.close();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            } finally {
+                rowReader = null;
+            }
         }
 
     }

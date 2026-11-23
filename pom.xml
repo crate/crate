@@ -373,7 +373,7 @@
         <versions.jwt>4.6.1</versions.jwt>
         <versions.jwks-rsa>0.24.1</versions.jwks-rsa>
         <versions.bouncycastle-bcpkix-jdk18on>1.86</versions.bouncycastle-bcpkix-jdk18on>
-        <versions.hardwood>1.0.0.Final</versions.hardwood>
+        <versions.hardwood>1.1.0.Beta2</versions.hardwood>
 
         <versions.hamcrest>2.2</versions.hamcrest>
         <versions.mockito>5.23.0</versions.mockito>
