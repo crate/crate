@@ -48,7 +48,7 @@ public class DistributedResultRequestTest extends ESTestCase {
         Streamer<?>[] streamers = new Streamer[]{DataTypes.STRING.streamer()};
 
         UUID uuid = UUID.randomUUID();
-        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, RamAccounting.NO_ACCOUNTING);
+        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, RamAccounting.NO_ACCOUNTING, Version.CURRENT);
         builder.add(new RowN(new Object[] {"ab"}));
         builder.add(new RowN(new Object[] {null}));
         builder.add(new RowN(new Object[] {"cd"}));
@@ -62,11 +62,11 @@ public class DistributedResultRequestTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         DistributedResultRequest r2 = new DistributedResultRequest(in);
 
-        assertThat(r2.readRows(streamers).size()).isEqualTo(r1.readRows(streamers).size());
+        assertThat(r2.readRows(streamers, Version.CURRENT).size()).isEqualTo(r1.readRows(streamers, Version.CURRENT).size());
         assertThat(r1.isLast()).isEqualTo(r2.isLast());
         assertThat(r1.executionPhaseInputId()).isEqualTo(r2.executionPhaseInputId());
 
-        Bucket result = r2.readRows(streamers);
+        Bucket result = r2.readRows(streamers, Version.CURRENT);
         List<Object[]> rows = StreamSupport.stream(result.spliterator(), false)
             .map(Row::materialize)
             .toList();

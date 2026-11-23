@@ -129,7 +129,8 @@ public final class EqOperator extends Operator<Object> {
                 ref.column(),
                 (ObjectType) dataType,
                 (Map<String, Object>) value,
-                context
+                context,
+                Occur.MUST
             );
             case ArrayType.ID -> termsAndGenericFilter(
                 function,
@@ -305,6 +306,10 @@ public final class EqOperator extends Operator<Object> {
         int preFilters = 0;
         for (Map.Entry<String, Object> entry : value.entrySet()) {
             String key = entry.getKey();
+            Object innerValue = entry.getValue();
+            if (innerValue == null) {
+                continue;
+            }
             DataType<?> innerType = type.innerType(key);
             if (innerType == UndefinedType.INSTANCE) {
                 // could be a nested object or not part of meta data; skip pre-filtering
@@ -316,9 +321,9 @@ public final class EqOperator extends Operator<Object> {
             Query innerQuery;
             if (DataTypes.isArray(innerType)) {
                 innerQuery = termsAndGenericFilter(
-                    eq, nestedStorageIdentifier, innerType, (Collection<?>) entry.getValue(), context, childRef.hasDocValues(), childRef.indexType(), termQueryOccur);
+                    eq, nestedStorageIdentifier, innerType, (Collection<?>) innerValue, context, childRef.hasDocValues(), childRef.indexType(), termQueryOccur);
             } else {
-                innerQuery = fromPrimitive(innerType, nestedStorageIdentifier, entry.getValue(), childRef.hasDocValues(), childRef.indexType());
+                innerQuery = fromPrimitive(innerType, nestedStorageIdentifier, innerValue, childRef.hasDocValues(), childRef.indexType());
                 // instead of adding a MUST_NOT clause for the negation, we negate the innerQuery to also match null values
                 if (termQueryOccur == Occur.MUST_NOT) {
                     innerQuery = Queries.not(innerQuery);
@@ -331,7 +336,7 @@ public final class EqOperator extends Operator<Object> {
             preFilters++;
             boolBuilder.add(innerQuery, Occur.MUST);
         }
-        if (preFilters > 0 && preFilters == value.size()) {
+        if (preFilters > 0 && preFilters == value.size() && preFilters == type.innerTypes().size()) {
             return boolBuilder.build();
         } else {
             Query genericEqFilter = genericFunctionFilter(eq, context);
@@ -342,13 +347,5 @@ public final class EqOperator extends Operator<Object> {
                 return boolBuilder.build();
             }
         }
-    }
-
-    private static Query refEqObject(Function eq,
-                                    ColumnIdent columnIdent,
-                                    ObjectType type,
-                                    Map<String, Object> value,
-                                    Context context) {
-        return refEqObject(eq, columnIdent, type, value, context, Occur.MUST);
     }
 }
