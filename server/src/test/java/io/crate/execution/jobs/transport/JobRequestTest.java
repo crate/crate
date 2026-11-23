@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Collections;
 import java.util.UUID;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -42,7 +43,8 @@ public class JobRequestTest {
                                                                      SearchPath.createSearchPathFrom("dummySchema")),
                                                  "n1",
                                                  Collections.emptyList(),
-                                                 true).innerRequest();
+                                                 true,
+                                                 Version.V_6_1_0).innerRequest();
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
@@ -54,5 +56,6 @@ public class JobRequestTest {
         assertThat(r1.sessionSettings()).isEqualTo(r2.sessionSettings());
         assertThat(r1.nodeOperations().isEmpty()).isTrue();
         assertThat(r1.enableProfiling()).isEqualTo(r2.enableProfiling());
+        assertThat(r2.minNodeVersion()).isEqualTo(Version.V_6_1_0);
     }
 }
