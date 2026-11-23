@@ -121,7 +121,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws Exception {
         executor = SQLExecutor.of(clusterService)
-            .addTable("create table users (name text not null)");
+            .addTable("create table users (name text not null, x int)");
         sessions = executor.sqlOperations;
 
         roles = () -> List.of(Role.CRATE_USER);
@@ -145,6 +145,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             channel.close().awaitUninterruptibly().get(5, TimeUnit.SECONDS);
             channel = null;
         }
+        executor.close();
     }
 
     @Test
@@ -1329,27 +1330,6 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_messages_are_ignored_till_sync_after_execute_error() throws Exception {
-        Planner planner = mock(Planner.class);
-        executor = SQLExecutor.builder(clusterService)
-            .setPlanner(planner)
-            .build();
-
-        when(planner.plan(any(AnalyzedStatement.class), any())).thenReturn(new Plan() {
-
-            @Override
-            public StatementType type() {
-                return StatementType.UNDEFINED;
-            }
-
-            @Override
-            public void executeOrFail(DependencyCarrier dependencies,
-                                      PlannerContext plannerContext,
-                                      RowConsumer consumer,
-                                      Row params,
-                                      SubQueryResults subQueryResults) throws Exception {
-                consumer.accept(null, new ArithmeticException("1/0"));
-            }
-        });
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 sessions,
@@ -1378,6 +1358,40 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         readErrorResponse(channel);
         readReadyForQueryMessage(channel, TransactionState.FAILED_TRANSACTION);
         // No parseComplete for sequent query
+        assertThat(channel.outboundMessages()).isEmpty();
+    }
+
+    @Test
+    public void test_bind_error_after_execute_with_no_sync_results_in_error_response() throws Exception {
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sessions,
+                new SessionSettingRegistry(Set.of()),
+                _ -> AccessControl.DISABLED,
+                _ -> {},
+                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                roles,
+                () -> null
+            );
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        startupHandshake();
+        ByteBuf buffer = Unpooled.buffer();
+        ClientMessages.sendParseMessage(buffer, "", "insert into users (name, x) values (?, ?)", new int[0]);
+        ClientMessages.sendBindMessage(buffer, "", "", List.of(1, 1));
+        ClientMessages.sendExecute(buffer, "", 0);
+
+        ClientMessages.sendParseMessage(buffer, "", "insert into users (name, x) values (?, ?)", new int[0]);
+        // "abc" triggers decoding error for int type
+        ClientMessages.sendBindMessage(buffer, "", "", List.of(1, "abc"));
+        ClientMessages.sendExecute(buffer, "", 0);
+
+        channel.writeInbound(buffer);
+
+        readParseComplete();
+        readBindComplete();
+        readParseComplete();
+        readErrorResponse(channel);
         assertThat(channel.outboundMessages()).isEmpty();
     }
 

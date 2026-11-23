@@ -363,6 +363,7 @@ public class PostgresWireProtocol {
 
                 case MSG:
                     if (ignoreTillSync && msg.type() != 'S') {
+                        channel.writePendingMessages();
                         msg.buf().skipBytes(msg.length());
                         return;
                     }
