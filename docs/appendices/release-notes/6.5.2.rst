@@ -46,6 +46,13 @@ series.
 Fixes
 =====
 
+- Fixed an issue where an ``<obj_column> = <obj_literal>`` expression could
+  match rows where the object column had additional properties not present in
+  the object literal.
+
+- Fixed a ``NullPointerException`` that could occur if comparing an object to a
+  full literal containing a ``null`` value.
+
 - Fixed an issue in the PostgreSQL wire protocol implementation that could cause
   clients to not receive an error message if:
 
