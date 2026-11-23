@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.After;
 import org.junit.Before;
@@ -48,7 +49,11 @@ import io.crate.types.DataTypes;
 @SuppressWarnings("ConstantConditions")
 public class SingleBucketBuilderTest extends ESTestCase {
 
-    private SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, RamAccounting.NO_ACCOUNTING);
+    private SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(
+        new Streamer[]{DataTypes.INTEGER.streamer()},
+        RamAccounting.NO_ACCOUNTING,
+        Version.CURRENT
+    );
     private ExecutorService executor;
 
     @Before

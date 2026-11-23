@@ -536,8 +536,8 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
     @Test
     public void testEqOnObjectDoesBoolTermQueryForContents() {
-        assertThat(convert("obj = {x=10, y=20}")).hasToString(
-            "+obj.x:[10 TO 10] +obj.y:[20 TO 20]");
+        assertThat(convert("obj = {x=10, y=20, o_array=[]}")).hasToString(
+            "+obj.x:[10 TO 10] +obj.y:[20 TO 20] +_array_length_o_array:[0 TO 0]");
     }
 
     @Test

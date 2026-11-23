@@ -206,6 +206,33 @@ public class EqOperatorTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_obj_eq_obj_literal_prefilter_needs_all_columns_to_drop_generic_filter() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (obj object(strict) as (x int, y int, z int))");
+        Map<String, Integer> map1 = Map.of("x", 1, "y", 2, "z", 3);
+        Map<String, Integer> map2 = Map.of("x", 10, "y", 20, "z", 30);
+        builder.indexValues("obj", map1, map2);
+        try (QueryTester tester = builder.build()) {
+            String expression = "obj = {x=10, y=20}";
+            Query query = tester.toQuery(expression);
+            assertThat(query)
+                .isExactlyInstanceOf(BooleanQuery.class)
+                .hasToString("+obj.x:[10 TO 10] +obj.y:[20 TO 20] #(obj = {\"x\"=10, \"y\"=20})");
+            assertThat(tester.runQuery("obj", expression)).isEmpty();
+
+            expression = "obj = {x=10, y=20, z=30}";
+            query = tester.toQuery(expression);
+            assertThat(query)
+                .isExactlyInstanceOf(BooleanQuery.class)
+                .hasToString("+obj.x:[10 TO 10] +obj.y:[20 TO 20] +obj.z:[30 TO 30]");
+            assertThat(tester.runQuery("obj", expression)).containsExactly(map2);
+        }
+    }
+
+    @Test
     public void test_numeric_type_equals_number_types() {
         assertEvaluate("numeric_4_2 = 1.111", false, Literal.of(new BigDecimal("1.11")));
         assertEvaluate("numeric_4_2 = 100", false, Literal.of(new BigDecimal("100.01")));

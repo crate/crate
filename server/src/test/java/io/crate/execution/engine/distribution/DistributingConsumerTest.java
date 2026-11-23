@@ -38,6 +38,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -239,7 +240,7 @@ public class DistributingConsumerTest extends ESTestCase {
             executorService,
             breaker,
             UUID.randomUUID(),
-            new ModuloBucketBuilder(streamers, 1, rowCollectExpression, List.of(rowCollectExpression), RamAccounting.NO_ACCOUNTING),
+            new ModuloBucketBuilder(streamers, 1, rowCollectExpression, List.of(rowCollectExpression), RamAccounting.NO_ACCOUNTING, Version.CURRENT),
             1,
             (byte) 0,
             0,
@@ -285,7 +286,7 @@ public class DistributingConsumerTest extends ESTestCase {
             if (throwable == null) {
                 bucketReceiver.setBucket(
                     resultRequest.bucketIdx(),
-                    resultRequest.readRows(streamers),
+                    resultRequest.readRows(streamers, Version.CURRENT),
                     resultRequest.isLast(),
                     needMore -> result.complete(new DistributedResultResponse(needMore)));
             } else {

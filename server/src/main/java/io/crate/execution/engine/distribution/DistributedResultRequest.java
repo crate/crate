@@ -116,8 +116,8 @@ public class DistributedResultRequest extends TransportRequest {
         return bucketIdx;
     }
 
-    public Bucket readRows(Streamer<?>[] streamers) {
-        rows.streamers(streamers);
+    public Bucket readRows(Streamer<?>[] streamers, Version minNodeVersion) {
+        rows.streamers(streamers, minNodeVersion);
         return rows;
     }
 
