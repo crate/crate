@@ -139,12 +139,7 @@ public class ArrayType<T> extends DataType<List<T>> {
                         return (List<T>) map.values().iterator().next();
                     } catch (NotXContentException e) {
                         // may be an array of nulls inserted before the field was upcast to an array of objects
-                        try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
-                            in.setVersion(tableVersion);
-                            return (List<T>) ArrayType.ARRAY_OF_UNDEFINED.streamer().readValueFrom(in);
-                        } catch (IOException io) {
-                            throw new UncheckedIOException(io);
-                        }
+                        return (List<T>) readArrayOfNulls(bytes, tableVersion, dimensions(ArrayType.this));
                     }
                 }
 
@@ -187,12 +182,7 @@ public class ArrayType<T> extends DataType<List<T>> {
                     } catch (Exception e) {
                         // Might be an array of nulls inserted before the column was upcast to an
                         // array of defined type
-                        try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
-                            in.setVersion(tableVersion);
-                            return (List<T>) ArrayType.ARRAY_OF_UNDEFINED.streamer().readValueFrom(in);
-                        } catch (IOException ee) {
-                            throw new UncheckedIOException(ee);
-                        }
+                        return (List<T>) readArrayOfNulls(bytes, tableVersion, dimensions(ArrayType.this));
                     }
                 }
 
@@ -489,6 +479,20 @@ public class ArrayType<T> extends DataType<List<T>> {
             dimensions++;
         }
         return dimensions;
+    }
+
+    /// Reads an array of nulls, like `[null]` or `[[null]]`, that was stored before its
+    /// column was upcast to an array of a defined type. It must be read with an array of
+    /// undefined of the same dimensions, as each nested level was written with its own size.
+    @SuppressWarnings("unchecked")
+    private static List<?> readArrayOfNulls(byte[] bytes, Version tableVersion, int dimensions) {
+        Streamer<List<?>> streamer = (Streamer<List<?>>) makeArray(UndefinedType.INSTANCE, dimensions).streamer();
+        try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
+            in.setVersion(tableVersion);
+            return streamer.readValueFrom(in);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     static class ArrayStreamer<T> implements Streamer<List<T>> {
