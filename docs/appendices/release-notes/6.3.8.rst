@@ -43,6 +43,11 @@ Version 6.3.8 - Unreleased
 See the :ref:`version_6.3.0` release notes for a full list of changes in the 6.3
 series.
 
+Security Fixes
+==============
+
+- Added remediation for CVE-2026-114938 (``java4shell``).
+
 Fixes
 =====
 
