@@ -26,7 +26,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Locale;
@@ -45,6 +44,7 @@ import io.crate.metadata.RelationName;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.sql.tree.BitString;
 import io.crate.testing.Asserts;
+import io.crate.testing.UseJdbc;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class ViewsITest extends IntegTestCase {
@@ -234,14 +234,41 @@ public class ViewsITest extends IntegTestCase {
     }
 
     @Test
+    @UseJdbc(0) // compares column types; pg reports nested arrays as json
     public void testSubscriptOnViews() {
-        execute("create table t1 (a object as (b integer), c object as (d object as (e integer))) ");
-        execute("insert into t1 (a, c) values ({ b = 1 }, { d = { e = 2 }})");
-        execute("refresh table t1");
+        execute("create table t1 (" +
+                "a object as (b integer), " +
+                "c object as (d object as (e integer)), " +
+                "items array(object as (x integer, o object as (y integer))), " +
+                "ign object(ignored) as (declared integer), " +
+                "dyn object(dynamic), " +
+                "nested array(object as (arr array(object as (z integer)))))");
         execute("create view v1 as select * from t1");
+        // dyn['added'] is created by dynamic mapping after the view exists
+        execute("insert into t1 (a, c, items, ign, dyn, nested) values (" +
+                "{ b = 1 }, { d = { e = 2 }}, [{ x = 3, o = { y = 4 }}], " +
+                "{ declared = 5, undeclared = 'foo' }, { added = 6 }, [{ arr = [{ z = 7 }] }])");
+        execute("refresh table t1");
+
         // must not throw an exception, subscript must be resolved
-        execute("select a['b'], c['d']['e'] from v1");
-        assertThat(response).hasRows("1| 2");
+        // https://github.com/crate/crate/issues/20652: also on an array of objects
+        String stmt = "select a['b'], c['d']['e'], items['x'], items['o']['y'], " +
+                      "ign['declared'], ign['undeclared'], dyn['added'], nested['arr']['z'] from ";
+        execute(stmt + "t1");
+        var expectedTypes = response.columnTypes();
+        var expectedRows = response.rows();
+
+        execute(stmt + "v1");
+        assertThat(response).hasRows("1| 2| [3]| [4]| 5| foo| 6| [[7]]");
+        assertThat(response.columnTypes()).isEqualTo(expectedTypes);
+        assertThat(response.rows()).isEqualTo(expectedRows);
+
+        execute(stmt + "(select * from t1) t");
+        assertThat(response.columnTypes()).isEqualTo(expectedTypes);
+        assertThat(response.rows()).isEqualTo(expectedRows);
+
+        execute("select pg_typeof(dyn['added']) from v1");
+        assertThat(response).hasRows("bigint");
     }
 
     @Test
