@@ -52,6 +52,11 @@ Security Fixes
 Fixes
 =====
 
+- Fixed a ``NullPointerException`` that occurred when updating a column of
+  type ``ARRAY(OBJECT)``, or an object containing one, with an array that
+  contains a ``null`` element. The ``null`` element is now stored, matching the
+  behaviour of ``INSERT``.
+
 - Fixed an issue where an ``<obj_column> = <obj_literal>`` expression could
   match rows where the object column had additional properties not present in
   the object literal.
