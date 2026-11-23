@@ -49,6 +49,11 @@ public class NoneCircuitBreakerService extends CircuitBreakerService {
     }
 
     @Override
+    public void registerBreaker(BreakerSettings breakerSettings) {
+        // ignore
+    }
+
+    @Override
     public void checkParentLimit(long newBytesReserved, String label) throws CircuitBreakingException {
         // ignore
     }
