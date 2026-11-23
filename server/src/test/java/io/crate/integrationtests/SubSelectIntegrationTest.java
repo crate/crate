@@ -26,7 +26,6 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -183,7 +182,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
                 "  select min(age) as minAge from characters group by gender) as ch " +
                 "group by minAge");
         List<Object[]> rows = Arrays.asList(response.rows());
-        Collections.sort(rows, OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, true, true));
+        rows.sort(OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, true, true));
         assertThat(rows).containsExactly(
             new Object[] { 1L },
             new Object[] { 1L }
@@ -742,15 +741,15 @@ public class SubSelectIntegrationTest extends IntegTestCase {
 
     @Test
     public void testSubscriptOnSubSelect() {
-        execute("create table t1 (a object, c object)");
-        execute("insert into t1 (a, c) values ({ b = 1 }, { d = { e = 2 }})");
+        execute("create table t1 (a object, c object, items array(object as (x int)))");
+        execute("insert into t1 (a, c, items) values ({ b = 1 }, { d = { e = 2 }}, [{ x = 3 }])");
         execute("refresh table t1");
-        execute("select a['b'], c['d']['e'] from t1");
+        execute("select a['b'], c['d']['e'], items['x'] from t1");
         assertThat(response).hasRows(
-            "1| 2");
-        execute("select a['b'], c['d']['e'] from (select * from t1) t2");
+            "1| 2| [3]");
+        execute("select a['b'], c['d']['e'], items['x'] from (select * from t1) t2");
         assertThat(response).hasRows(
-            "1| 2");
+            "1| 2| [3]");
     }
 
     @Test

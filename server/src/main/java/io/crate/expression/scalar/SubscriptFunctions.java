@@ -100,7 +100,7 @@ public final class SubscriptFunctions {
                 Function subscript = new Function(
                     SubscriptFunction.SIGNATURE_ARRAY_OF_OBJECTS,
                     List.of(baseSymbol, Literal.of(child)),
-                    new ArrayType<>(returnType)
+                    ArrayType.makeArray(returnType, ArrayType.dimensions(baseType))
                 );
 
                 for (int i = 1; i < path.size(); i++) {
