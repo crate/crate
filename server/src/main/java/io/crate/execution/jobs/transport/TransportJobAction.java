@@ -111,7 +111,8 @@ public class TransportJobAction extends TransportAction<NodeRequest<JobRequest>,
                     receiverVersion,
                     clusterState.metadata()
                 ),
-                jobRequest.enableProfiling()
+                jobRequest.enableProfiling(),
+                jobRequest.minNodeVersion()
             );
         }
 
@@ -129,7 +130,9 @@ public class TransportJobAction extends TransportAction<NodeRequest<JobRequest>,
             request.jobId(),
             request.sessionSettings().userName(),
             Collections.emptySet(),
-            clusterService.state().nodes().getMinNodeVersion()
+            request.minNodeVersion() == null
+                ? clusterService.state().nodes().getMinNodeVersion()
+                : request.minNodeVersion()
         );
 
         SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(request.enableProfiling(), contextBuilder);

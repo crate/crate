@@ -368,7 +368,8 @@ public class JobLauncher {
                 txnCtx.sessionSettings(),
                 localNodeId,
                 entry.getValue(),
-                enableProfiling);
+                enableProfiling,
+                minNodeVersion);
 
             ActionListener<JobResponse> listener = new BucketForwarder(
                 bucketReceivers,
