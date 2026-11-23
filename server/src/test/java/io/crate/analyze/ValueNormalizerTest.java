@@ -22,10 +22,11 @@
 package io.crate.analyze;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
@@ -48,6 +49,7 @@ import io.crate.metadata.TableInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 
@@ -83,7 +85,15 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
                       " strict object(strict) as (" +
                       "  inner_d double" +
                       " )," +
-                      " ignored object(ignored)" +
+                      " ignored object(ignored)," +
+                      " obj_arr array(object as (" +
+                      "  v int" +
+                      " ))," +
+                      " nested object as (" +
+                      "  groups array(object as (" +
+                      "   entries array(object as (v int))" +
+                      "  ))" +
+                      " )" +
                       ") " +
                       "clustered by (id)");
         userTableInfo = e.resolveTableInfo("doc.test1");
@@ -231,5 +241,27 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
         Literal<String> stringDoubleLiteral = Literal.of("298.444");
         Symbol literal = normalizeInputForReference(stringDoubleLiteral, objInfo);
         assertThat(literal).isLiteral(298.444d, DataTypes.DOUBLE);
+    }
+
+    @Test
+    public void test_normalize_object_array_keeps_null_elements() throws Exception {
+        Reference objArr = userTableInfo.getReference(ColumnIdent.of("obj_arr"));
+        List<Map<String, Object>> value = Arrays.asList(new HashMap<>(Map.of("v", 1)), null);
+        Symbol normalized = normalizeInputForReference(
+            Literal.of(new ArrayType<>(DataTypes.UNTYPED_OBJECT), value),
+            objArr
+        );
+        assertThat(normalized).isLiteral(Arrays.asList(Map.of("v", 1), null));
+    }
+
+    @Test
+    public void test_normalize_nested_object_array_keeps_null_elements() throws Exception {
+        Reference nested = userTableInfo.getReference(ColumnIdent.of("nested"));
+        List<Map<String, Object>> entries = Arrays.asList(new HashMap<>(Map.of("v", 4)), null);
+        Map<String, Object> group = new HashMap<>(Map.of("entries", entries));
+        Map<String, Object> value = new HashMap<>(Map.of("groups", List.of(group)));
+        Symbol normalized = normalizeInputForReference(Literal.of(value), nested);
+        assertThat(normalized).isLiteral(
+            Map.of("groups", List.of(Map.of("entries", Arrays.asList(Map.of("v", 4), null)))));
     }
 }
