@@ -52,6 +52,9 @@ Security Fixes
 Fixes
 =====
 
+- Fixed a ``NullPointerException`` that could occur if comparing an object to a
+  full literal containing a ``null`` value.
+
 - Fixed an issue in the PostgreSQL wire protocol implementation that could cause
   clients to not receive an error message if:
 

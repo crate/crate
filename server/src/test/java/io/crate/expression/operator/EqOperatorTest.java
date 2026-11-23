@@ -29,10 +29,12 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.junit.Test;
 
+import io.crate.common.collections.MapBuilder;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.GenericFunctionQuery;
@@ -173,6 +175,33 @@ public class EqOperatorTest extends ScalarTestCase {
             assertThat(tester.runQuery("obj", "obj = {}")).containsExactly(
                 Map.of()
             );
+        }
+    }
+
+    @Test
+    public void test_obj_eq_obj_literal_with_null_value() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (obj object(strict) as (x int, y int))");
+        Map<String, Integer> map1 = Map.of("x", 10, "y", 20);
+        Map<String, Integer> map2 = Map.of("x", 42, "y", 84);
+        Map<String, Integer> map3 = MapBuilder.<String, Integer>newMapBuilder()
+            .put("x", 10)
+            .put("y", null)
+            .map();
+        Map<String, Integer> map4 = MapBuilder.<String, Integer>newMapBuilder()
+            .put("x", 20)
+            .put("y", null)
+            .map();
+        builder.indexValues("obj", map1, map2, map3, map4);
+        try (QueryTester tester = builder.build()) {
+            Query query = tester.toQuery("obj = {x=10, y=null}");
+            assertThat(query)
+                .isExactlyInstanceOf(BooleanQuery.class)
+                .hasToString("+obj.x:[10 TO 10] #(obj = {\"x\"=10, \"y\"=NULL})");
+            assertThat(tester.runQuery("obj", "obj = {x=10, y=null}")).containsExactly(map3);
         }
     }
 
